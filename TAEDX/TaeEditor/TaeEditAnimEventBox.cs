@@ -11,7 +11,7 @@ namespace TAEDX.TaeEditor
     public class TaeEditAnimEventBox
     {
         public readonly TaeEditAnimEventGraph OwnerPane;
-        public readonly TimeActEventBase MyEvent;
+        public TimeActEventBase MyEvent;
 
         public event EventHandler<int> RowChanged;
         private void RaiseRowChanged(int oldRow)

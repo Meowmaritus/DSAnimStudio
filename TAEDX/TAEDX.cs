@@ -10,6 +10,8 @@ namespace TAEDX
 {
     public class TAEDX : Game
     {
+        public const string VERSION = "Alpha v0.1.2";
+
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
 
@@ -51,9 +53,11 @@ namespace TAEDX
             Blank = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
             Blank.SetData(new Color[] { Color.White }, 0, 1);
 
-            var tae = DataFile.LoadFromFile<TAE>(@"G:\SteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr\c0000.anibnd.yabber\Model\chr\c0000\taeNew\win32\a20.tae");
+            var winForm = (System.Windows.Forms.Form)System.Windows.Forms.Form.FromHandle(Window.Handle);
 
-            testEditorScreen = new TaeEditorScreen(tae);
+            testEditorScreen = new TaeEditorScreen(winForm);
+            //testEditorScreen.TaeFileName = @"G:\SteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr\c0000.anibnd.yabber\Model\chr\c0000\taeNew\win32\a20.tae";
+            //testEditorScreen.LoadCurrentFile();
         }
 
         protected override void UnloadContent()
@@ -63,7 +67,13 @@ namespace TAEDX
 
         protected override void Update(GameTime gameTime)
         {
-            testEditorScreen.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+            if (IsActive)
+                testEditorScreen.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+
+            if (!string.IsNullOrWhiteSpace(testEditorScreen.TaeFileName))
+                Window.Title = $"{System.IO.Path.GetFileName(testEditorScreen.TaeFileName)} - TAE Editor DX {VERSION}";
+            else
+                Window.Title = $"TAE Editor DX {VERSION}";
 
             base.Update(gameTime);
         }

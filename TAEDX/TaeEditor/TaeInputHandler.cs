@@ -10,6 +10,7 @@ namespace TAEDX.TaeEditor
 {
     public enum MouseCursorType
     {
+        StopUpdating,
         Arrow,
         DragX,
     }

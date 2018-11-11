@@ -132,7 +132,7 @@ namespace TAEDX.TaeEditor
         //    }
         //}
 
-        private void ScrollByVirtualScrollUnits(Vector2 virtualScroll)
+        public void ScrollByVirtualScrollUnits(Vector2 virtualScroll)
         {
             if (virtualScroll.X != 0)
             {
