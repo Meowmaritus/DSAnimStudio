@@ -34,8 +34,11 @@ namespace TAEDX.TaeEditor
             ScrollViewer = new TaeScrollViewer();
         }
 
-        public void Update(float elapsedSeconds)
+        public void Update(float elapsedSeconds, bool allowMouseUpdate)
         {
+            if (!allowMouseUpdate)
+                return;
+
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, true);
 
             if (Rect.Contains(MainScreen.Input.MousePositionPoint))
@@ -62,8 +65,11 @@ namespace TAEDX.TaeEditor
             
         }
 
-        public void UpdateMouseOutsideRect(float elapsedSeconds)
+        public void UpdateMouseOutsideRect(float elapsedSeconds, bool allowMouseUpdate)
         {
+            if (!allowMouseUpdate)
+                return;
+
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: false);
         }
 

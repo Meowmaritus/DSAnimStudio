@@ -28,7 +28,7 @@ namespace TAEDX.TaeEditor
         TaeScrollViewer ScrollViewer = new TaeScrollViewer();
 
         public float SecondsPixelSize = 128 * 4;
-        public float SecondsPixelSizeMin = 128;
+        public float SecondsPixelSizeFarAwayModeUpperBound = 128;
         public float SecondsPixelSizeMax = 128 * 400;
         public float SecondsPixelSizeScrollNotch = 128;
 
@@ -41,13 +41,56 @@ namespace TAEDX.TaeEditor
         private Point currentDragOffset = Point.Zero;
         private float currentDragBoxOriginalWidth = 0;
 
-        public void Zoom(float zoomDelta)
+        private void ZoomOutOneNotch(float mouseScreenPosX)
         {
-            SecondsPixelSize += zoomDelta * SecondsPixelSizeScrollNotch;
-            if (SecondsPixelSize < SecondsPixelSizeMin)
-                SecondsPixelSize = SecondsPixelSizeMin;
-            if (SecondsPixelSize > SecondsPixelSizeMax)
-                SecondsPixelSize = SecondsPixelSizeMax;
+            float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
+
+            if (SecondsPixelSize <= SecondsPixelSizeFarAwayModeUpperBound)
+            {
+                SecondsPixelSize /= 2f;
+                if (SecondsPixelSize < 8f)
+                    SecondsPixelSize = 8f;
+            }
+            else
+            {
+                SecondsPixelSize -= SecondsPixelSizeScrollNotch;
+            }
+
+            float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
+            float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
+            ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
+        }
+
+        private void ZoomInOneNotch(float mouseScreenPosX)
+        {
+            float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
+
+            if (SecondsPixelSize < SecondsPixelSizeFarAwayModeUpperBound)
+            {
+                SecondsPixelSize *= 2;
+            }
+            else
+            {
+                SecondsPixelSize += SecondsPixelSizeScrollNotch;
+            }
+
+            float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
+            float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
+            ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
+        }
+
+        public void Zoom(float zoomDelta, float mouseScreenPosX)
+        {
+            var zoomIn = zoomDelta >= 0;
+            var zoomAmt = Math.Abs(zoomDelta);
+
+            for (int i = 0; i < zoomAmt; i++)
+            {
+                if (zoomIn)
+                    ZoomInOneNotch(mouseScreenPosX);
+                else
+                    ZoomOutOneNotch(mouseScreenPosX);
+            }
         }
 
         public float RowHeight = 24;
@@ -157,8 +200,11 @@ namespace TAEDX.TaeEditor
             }
         }
 
-        public void Update(float elapsedSeconds)
+        public void Update(float elapsedSeconds, bool allowMouseUpdate)
         {
+            if (!allowMouseUpdate)
+                return;
+
             var isZooming = MainScreen.Input.KeyHeld(Keys.LeftControl) || MainScreen.Input.KeyHeld(Keys.RightControl);
 
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !isZooming);
@@ -252,16 +298,19 @@ namespace TAEDX.TaeEditor
 
                 if (isZooming)
                 {
-                    Zoom(MainScreen.Input.ScrollDelta);
+                    Zoom(MainScreen.Input.ScrollDelta, MainScreen.Input.MousePosition.X - Rect.X);
                 }
             }
 
             
         }
 
-        public void UpdateMouseOutsideRect(float elapsedSeconds)
+        public void UpdateMouseOutsideRect(float elapsedSeconds, bool allowMouseUpdate)
         {
             MouseRow = -1;
+            if (!allowMouseUpdate)
+                return;
+
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: false);
         }
 
@@ -306,17 +355,6 @@ namespace TAEDX.TaeEditor
         private void DrawTimeLine(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, 
             SpriteFont font, Dictionary<int, float> secondVerticalLineXPositions)
         {
-            sb.Draw(texture: boxTex,
-                    position: ScrollViewer.Scroll,
-                    sourceRectangle: null,
-                    color: Color.DarkGray,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
             foreach (var kvp in secondVerticalLineXPositions)
             {
                 sb.DrawString(font, $"{(kvp.Key * 30)}", new Vector2(kvp.Value + 4 + 1, ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
@@ -350,6 +388,9 @@ namespace TAEDX.TaeEditor
                 {
                     foreach (var box in kvp.Value)
                     {
+                        if (box == MainScreen.SelectedEventBox)
+                            box.UpdateEventText();
+
                         Vector2 pos = new Vector2((int)box.LeftFr, (int)box.Top);
                         Vector2 size = new Vector2(box.WidthFr, box.HeightFr);
 
@@ -400,23 +441,42 @@ namespace TAEDX.TaeEditor
                             layerDepth: 0
                             );
 
-                var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
+
+                sb.Draw(texture: boxTex,
+                       position: ScrollViewer.Scroll,
+                       sourceRectangle: null,
+                       color: Color.DarkGray,
+                       rotation: 0,
+                       origin: Vector2.Zero,
+                       scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight),
+                       effects: SpriteEffects.None,
+                       layerDepth: 0
+                       );
+
                 var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
 
-                DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
-
-                foreach (var kvp in secondVerticalLineXPositions)
+                if (SecondsPixelSize >= 4f)
                 {
-                    sb.Draw(texture: boxTex,
-                    position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
-                    sourceRectangle: null,
-                    color: Color.Black * 0.5f,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(1, ScrollViewer.Viewport.Height),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
+                    var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
+
+                    if (SecondsPixelSize >= 32f)
+                    {
+                        DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
+                    }
+
+                    foreach (var kvp in secondVerticalLineXPositions)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: Color.Black * 0.5f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
                 }
 
                 foreach (var kvp in rowHorizontalLineYPositions)
