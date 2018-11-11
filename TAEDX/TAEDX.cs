@@ -1,16 +1,23 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MeowDSIO;
+using MeowDSIO.DataFiles;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
+using TAEDX.TaeEditor;
 
 namespace TAEDX
 {
-    /// <summary>
-    /// This is the main type for your game.
-    /// </summary>
     public class TAEDX : Game
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
+
+        SpriteFont eventLabelFont;
+
+        TaeEditorScreen testEditorScreen;
+
+        public static Texture2D Blank;
 
         public TAEDX()
         {
@@ -18,64 +25,56 @@ namespace TAEDX
             Content.RootDirectory = "Content";
         }
 
-        /// <summary>
-        /// Allows the game to perform any initialization it needs to before starting to run.
-        /// This is where it can query for any required services and load any non-graphic
-        /// related content.  Calling base.Initialize will enumerate through any components
-        /// and initialize them as well.
-        /// </summary>
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
+            IsMouseVisible = true;
+
+            IsFixedTimeStep = true;
+            TargetElapsedTime = TimeSpan.FromTicks(166667);
+            MaxElapsedTime = TimeSpan.FromTicks(333334);
+
+            graphics.PreferredBackBufferWidth = 1280;
+            graphics.PreferredBackBufferHeight = 720;
+            graphics.ApplyChanges();
+
+            Window.AllowUserResizing = true;
 
             base.Initialize();
         }
 
-        /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
-        /// </summary>
         protected override void LoadContent()
         {
-            // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            // TODO: use this.Content to load your game content here
+            eventLabelFont = Content.Load<SpriteFont>("DbgMenuFontSmall");
+
+            Blank = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
+            Blank.SetData(new Color[] { Color.White }, 0, 1);
+
+            var tae = DataFile.LoadFromFile<TAE>(@"G:\SteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr\c0000.anibnd.yabber\Model\chr\c0000\taeNew\win32\a20.tae");
+
+            testEditorScreen = new TaeEditorScreen(tae);
         }
 
-        /// <summary>
-        /// UnloadContent will be called once per game and is the place to unload
-        /// game-specific content.
-        /// </summary>
         protected override void UnloadContent()
         {
-            // TODO: Unload any non ContentManager content here
+
         }
 
-        /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
-
-            // TODO: Add your update logic here
+            testEditorScreen.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
 
             base.Update(gameTime);
         }
 
-        /// <summary>
-        /// This is called when the game should draw itself.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(new Color(0.15f, 0.15f, 0.15f));
 
-            // TODO: Add your drawing code here
+            testEditorScreen.Rect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height - 20);
+
+            testEditorScreen.Draw(GraphicsDevice, spriteBatch, Blank, eventLabelFont);
 
             base.Draw(gameTime);
         }
