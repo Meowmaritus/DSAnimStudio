@@ -105,6 +105,7 @@ namespace TAEDX.TaeEditor
         }
 
         private System.Windows.Forms.ToolStripMenuItem ToolStripFileSave;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripFileSaveAs;
 
         private void UndoMan_CanRedoMaybeChanged(object sender, EventArgs e)
         {
@@ -121,6 +122,9 @@ namespace TAEDX.TaeEditor
         private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.5f, 0.15f);
         private System.Windows.Forms.ToolStripMenuItem ToolStripEditUndo;
         private System.Windows.Forms.ToolStripMenuItem ToolStripEditRedo;
+
+        //private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityDisableRainbow;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityColorBlindMode;
 
         private float LeftSectionWidth = 256;
         private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth - (DividerHitboxPad / 2f);
@@ -184,12 +188,37 @@ namespace TAEDX.TaeEditor
 
         public string TaeFileName = "";
 
+        public TaeConfigFile Config = new TaeConfigFile();
+
+        public void LoadConfig()
+        {
+            if (!System.IO.File.Exists("TAEDX_Config.json"))
+            {
+                Config = new TaeConfigFile();
+                SaveConfig();
+            }
+
+            var jsonText = System.IO.File.ReadAllText("TAEDX_Config.json");
+
+            Config = Newtonsoft.Json.JsonConvert.DeserializeObject<TaeConfigFile>(jsonText);
+        }
+
+        public void SaveConfig()
+        {
+            var jsonText = Newtonsoft.Json.JsonConvert
+                .SerializeObject(Config,
+                Newtonsoft.Json.Formatting.Indented);
+
+            System.IO.File.WriteAllText("TAEDX_Config.json", jsonText);
+        }
+
         public void LoadCurrentFile()
         {
             if (System.IO.File.Exists(TaeFileName))
             {
                 var newTae = MeowDSIO.DataFile.LoadFromFile<TAE>(TaeFileName);
                 LoadTAE(newTae);
+                ToolStripFileSaveAs.Enabled = true;
             }
         }
 
@@ -222,9 +251,9 @@ namespace TAEDX.TaeEditor
 
         public TaeEditorScreen(System.Windows.Forms.Form gameWindowAsForm)
         {
+            LoadConfig();
+
             GameWindowAsForm = gameWindowAsForm;
-            
-            
 
             Input = new TaeInputHandler();
 
@@ -249,6 +278,8 @@ namespace TAEDX.TaeEditor
 
             inspectorWinFormsControl.buttonChangeType.Click += ButtonChangeType_Click;
 
+            inspectorWinFormsControl.propertyGrid.PropertyValueChanged += PropertyGrid_PropertyValueChanged;
+
             GameWindowAsForm.Controls.Add(inspectorWinFormsControl);
 
             var toolstripFile = new System.Windows.Forms.ToolStripMenuItem("File");
@@ -260,13 +291,15 @@ namespace TAEDX.TaeEditor
                 toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
 
                 ToolStripFileSave = new System.Windows.Forms.ToolStripMenuItem("Save");
+                ToolStripFileSave.Enabled = false;
                 ToolStripFileSave.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S;
                 ToolStripFileSave.Click += ToolstripFile_Save_Click;
                 toolstripFile.DropDownItems.Add(ToolStripFileSave);
 
-                var toolstripFile_SaveAs = new System.Windows.Forms.ToolStripMenuItem("Save As...");
-                toolstripFile_SaveAs.Click += ToolstripFile_SaveAs_Click;
-                toolstripFile.DropDownItems.Add(toolstripFile_SaveAs);
+                ToolStripFileSaveAs = new System.Windows.Forms.ToolStripMenuItem("Save As...");
+                ToolStripFileSaveAs.Enabled = false;
+                ToolStripFileSaveAs.Click += ToolstripFile_SaveAs_Click;
+                toolstripFile.DropDownItems.Add(ToolStripFileSaveAs);
             }
 
             var toolstripEdit = new System.Windows.Forms.ToolStripMenuItem("Edit");
@@ -283,18 +316,70 @@ namespace TAEDX.TaeEditor
                 toolstripEdit.DropDownItems.Add(ToolStripEditRedo);
             }
 
+            var toolstripAccessibility = new System.Windows.Forms.ToolStripMenuItem("Accessibility");
+            {
+                //ToolStripAccessibilityDisableRainbow = new System.Windows.Forms.ToolStripMenuItem("Use brightness for selection instead of rainbow pulsing");
+                //ToolStripAccessibilityDisableRainbow.CheckOnClick = true;
+                //ToolStripAccessibilityDisableRainbow.CheckedChanged += ToolStripAccessibilityDisableRainbow_CheckedChanged;
+                //ToolStripAccessibilityDisableRainbow.Checked = Config.DisableRainbow;
+                //toolstripAccessibility.DropDownItems.Add(ToolStripAccessibilityDisableRainbow);
+
+                ToolStripAccessibilityColorBlindMode = new System.Windows.Forms.ToolStripMenuItem("Color-Blind Mode");
+                ToolStripAccessibilityColorBlindMode.CheckOnClick = true;
+                ToolStripAccessibilityColorBlindMode.CheckedChanged += ToolStripAccessibilityColorBlindMode_CheckedChanged;
+                ToolStripAccessibilityColorBlindMode.Checked = Config.EnableColorBlindMode;
+                toolstripAccessibility.DropDownItems.Add(ToolStripAccessibilityColorBlindMode);
+            }
+
             var toolstripHelp = new System.Windows.Forms.ToolStripMenuItem("Help");
             toolstripHelp.Click += ToolstripHelp_Click;
 
             WinFormsMenuStrip = new System.Windows.Forms.MenuStrip();
             WinFormsMenuStrip.Items.Add(toolstripFile);
             WinFormsMenuStrip.Items.Add(toolstripEdit);
+            WinFormsMenuStrip.Items.Add(toolstripAccessibility);
             WinFormsMenuStrip.Items.Add(toolstripHelp);
 
             WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
 
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
+        }
+
+        private void ToolStripAccessibilityColorBlindMode_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.EnableColorBlindMode = ToolStripAccessibilityColorBlindMode.Checked;
+            SaveConfig();
+        }
+
+        //private void ToolStripAccessibilityDisableRainbow_CheckedChanged(object sender, EventArgs e)
+        //{
+        //    Config.DisableRainbow = ToolStripAccessibilityDisableRainbow.Checked;
+        //    SaveConfig();
+        //}
+
+        private void PropertyGrid_PropertyValueChanged(object s, System.Windows.Forms.PropertyValueChangedEventArgs e)
+        {
+            var gridReference = (System.Windows.Forms.PropertyGrid)s;
+            var boxReference = SelectedEventBox;
+            var newValReference = e.ChangedItem.Value;
+            var oldValReference = e.OldValue;
+
+            UndoMan.NewAction(doAction: () =>
+            {
+                e.ChangedItem.PropertyDescriptor.SetValue(boxReference.MyEvent, newValReference);
+
+                TaeAnim.IsModified = true;
+                IsModified = true;
+
+                gridReference.Refresh();
+            },
+            undoAction: () =>
+            {
+                e.ChangedItem.PropertyDescriptor.SetValue(boxReference.MyEvent, oldValReference);
+
+                gridReference.Refresh();
+            });
         }
 
         private void ToolStripEditRedo_Click(object sender, EventArgs e)
@@ -407,6 +492,7 @@ namespace TAEDX.TaeEditor
                     var referenceToEventBox = SelectedEventBox;
                     var referenceToPreviousEvent = referenceToEventBox.MyEvent;
                     int index = TaeAnim.Anim.EventList.IndexOf(referenceToEventBox.MyEvent);
+                    int row = referenceToEventBox.MyEvent.Row;
 
                     UndoMan.NewAction(
                         doAction: () =>
@@ -422,6 +508,8 @@ namespace TAEDX.TaeEditor
 
                             SelectedEventBox = referenceToEventBox;
 
+                            SelectedEventBox.MyEvent.Row = row;
+
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
 
                             TaeAnim.IsModified = true;
@@ -434,6 +522,8 @@ namespace TAEDX.TaeEditor
                             TaeAnim.Anim.EventList.Insert(index, referenceToPreviousEvent);
 
                             SelectedEventBox = referenceToEventBox;
+
+                            SelectedEventBox.MyEvent.Row = row;
 
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
                         });
@@ -612,6 +702,9 @@ namespace TAEDX.TaeEditor
 
         public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
         {
+            sb.Begin();
+            sb.Draw(boxTex, Rect, Config.EnableColorBlindMode ? Color.Black : new Color(0.2f, 0.2f, 0.2f));
+            sb.End();
             //throw new Exception("TaeUndoMan");
 
             //throw new Exception("Make left/right edges of events line up to same vertical lines so the rounding doesnt make them 1 pixel off");
