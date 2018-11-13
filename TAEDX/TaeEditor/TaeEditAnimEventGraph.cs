@@ -39,7 +39,8 @@ namespace TAEDX.TaeEditor
 
         TaeScrollViewer ScrollViewer = new TaeScrollViewer();
 
-        public float SecondsPixelSize = 128 * 4;
+        const float SecondsPixelSizeDefault = 128 * 4;
+        public float SecondsPixelSize = SecondsPixelSizeDefault;
         public float SecondsPixelSizeFarAwayModeUpperBound = 128;
         public float SecondsPixelSizeMax = 128 * 400;
         public float SecondsPixelSizeScrollNotch = 128;
@@ -85,6 +86,26 @@ namespace TAEDX.TaeEditor
             float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
 
             SecondsPixelSize *= 2;
+
+            //if (SecondsPixelSize < SecondsPixelSizeFarAwayModeUpperBound)
+            //{
+            //    SecondsPixelSize *= 2;
+            //}
+            //else
+            //{
+            //    SecondsPixelSize += SecondsPixelSizeScrollNotch;
+            //}
+
+            float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
+            float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
+            ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
+        }
+
+        private void ResetZoom(float mouseScreenPosX)
+        {
+            float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
+
+            SecondsPixelSize = SecondsPixelSizeDefault;
 
             //if (SecondsPixelSize < SecondsPixelSizeFarAwayModeUpperBound)
             //{
@@ -359,9 +380,19 @@ namespace TAEDX.TaeEditor
             if (!allowMouseUpdate)
                 return;
 
-            var isZooming = MainScreen.Input.KeyHeld(Keys.LeftControl) || MainScreen.Input.KeyHeld(Keys.RightControl);
+            var ctrlHeld = MainScreen.Input.KeyHeld(Keys.LeftControl) || MainScreen.Input.KeyHeld(Keys.RightControl);
 
-            ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !isZooming);
+            ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !ctrlHeld);
+
+            if (ctrlHeld)
+            {
+                if (MainScreen.Input.KeyDown(Keys.OemPlus))
+                    ZoomInOneNotch(0);
+                else if (MainScreen.Input.KeyDown(Keys.OemMinus))
+                    ZoomOutOneNotch(0);
+                if (MainScreen.Input.KeyDown(Keys.D0) || MainScreen.Input.KeyDown(Keys.NumPad0))
+                    ResetZoom(0);
+            }
 
             if (MainScreen.SelectedEventBox != null && MainScreen.Input.KeyDown(Keys.Delete))
             {
@@ -502,7 +533,7 @@ namespace TAEDX.TaeEditor
                     }
                 }
 
-                if (isZooming)
+                if (ctrlHeld)
                 {
                     Zoom(MainScreen.Input.ScrollDelta, MainScreen.Input.MousePosition.X - Rect.X);
                 }
@@ -597,7 +628,8 @@ namespace TAEDX.TaeEditor
                         if (box == MainScreen.SelectedEventBox)
                             box.UpdateEventText();
 
-                        if (box.LeftFr > ScrollViewer.RelativeViewport.Right || box.RightFr < ScrollViewer.RelativeViewport.Left)
+                        if (box.LeftFr > ScrollViewer.RelativeViewport.Right
+                            || box.RightFr < ScrollViewer.RelativeViewport.Left)
                             continue;
 
                         bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.RelativeViewport.Left;
@@ -605,10 +637,32 @@ namespace TAEDX.TaeEditor
                         Vector2 pos = new Vector2((int)box.LeftFr, (int)box.Top);
                         Vector2 size = new Vector2(box.WidthFr, box.HeightFr);
 
+                        int boxOutlineThickness = (MainScreen.SelectedEventBox == box) ? 2 : 1;
+
+                        Color textFG = Color.White;
+                        Color textBG = Color.Black;
+
+                        Color boxOutlineColor = Color.Black;
+
+                        Color thisBoxBgColor = new Color(box.ColorBG.ToVector3() * 0.4f);
+                        Color thisBoxBgColorSelected = new Color(box.ColorBG.ToVector3() * 0.8f);
+                        Color boxOutlineColorSelected = Color.White;
+                        
+
+                        if (MainScreen.Config.EnableColorBlindMode)
+                        {
+                            thisBoxBgColor = Color.Black;
+                            thisBoxBgColorSelected = Color.White;
+                            boxOutlineColor = Color.Gray;
+                            boxOutlineColorSelected = Color.Black;
+                            textFG = (MainScreen.SelectedEventBox == box) ? Color.Black : Color.White;
+                            textBG = Color.Transparent;
+                        }
+
                         sb.Draw(texture: boxTex,
                             position: pos + new Vector2(0, -1),
                             sourceRectangle: null,
-                            color: box.ColorOutline,
+                            color: (MainScreen.SelectedEventBox == box) ? boxOutlineColorSelected : boxOutlineColor,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: size + new Vector2(0, 2),
@@ -616,13 +670,15 @@ namespace TAEDX.TaeEditor
                             layerDepth: 0
                             );
 
+                        
+
                         sb.Draw(texture: boxTex,
-                            position: pos + new Vector2(1, 0),
+                            position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
                             sourceRectangle: null,
-                            color: (MainScreen.SelectedEventBox == box) ? TaeMiscUtils.GetPastelRainbow((float)gt.TotalGameTime.TotalSeconds / 4) : box.ColorBG,
+                            color: (MainScreen.SelectedEventBox == box) ? thisBoxBgColorSelected : thisBoxBgColor,
                             rotation: 0,
                             origin: Vector2.Zero,
-                            scale: size + new Vector2(-2, 0),
+                            scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
                             effects: SpriteEffects.None,
                             layerDepth: 0
                             );
@@ -631,15 +687,28 @@ namespace TAEDX.TaeEditor
 
                         var nameSize = font.MeasureString(box.EventText);
 
+                        var thicknessOffset = new Vector2(boxOutlineThickness * 2, 0);
+
                         if ((namePos.X + nameSize.X) <= box.RightFr)
                         {
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}", namePos + new Vector2(2 + 1, 1), box.ColorOutline);
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}", namePos + new Vector2(2, 0), box.ColorFG);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}",
+                                namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}",
+                                namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}",
+                                namePos + new Vector2(1, 0) + thicknessOffset, textFG);
                         }
                         else
                         {
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{((int)box.MyEvent.EventType)}", namePos + (Vector2.One), box.ColorOutline, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{((int)box.MyEvent.EventType)}", namePos, box.ColorFG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}" +
+                                $"{((int)box.MyEvent.EventType)}", namePos + (Vector2.One) + thicknessOffset,
+                                textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}" +
+                                $"{((int)box.MyEvent.EventType)}", namePos + (Vector2.One * 2) + thicknessOffset,
+                                textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}" +
+                                $"{((int)box.MyEvent.EventType)}", namePos + thicknessOffset,
+                                textFG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
                         }
                     }
                 }

@@ -10,7 +10,7 @@ namespace TAEDX
 {
     public class TAEDX : Game
     {
-        public const string VERSION = "Alpha v0.2";
+        public const string VERSION = "v1.0";
 
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;

@@ -34,8 +34,14 @@ namespace TAEDX.TaeEditor
         public string EventText { get; private set; }
         public string EventTextTall { get; private set; }
 
-        public Color ColorBG => OwnerPane.GetColorInfo(MyEvent.EventType)?.ColorA ?? Color.Blue;
-        public Color ColorOutline => OwnerPane.GetColorInfo(MyEvent.EventType)?.ColorB ?? Color.Black;
+        public Color ColorBG => OwnerPane.GetColorInfo(MyEvent.EventType)?.ColorA ?? Color.SkyBlue;
+        public Color ColorOutline
+        {
+            get
+            {
+                return new Color(255 - ColorFG.R, 255 - ColorFG.G, 255 - ColorFG.B, 255);
+            }
+        }
         public Color ColorFG
         {
             get

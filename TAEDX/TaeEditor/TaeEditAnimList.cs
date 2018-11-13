@@ -98,16 +98,32 @@ namespace TAEDX.TaeEditor
                 int i = 0;
                 foreach (var anim in AnimNameMap)
                 {
+                    string animNameStr = (anim.Value.IsModified ? $"{anim.Key}*" : anim.Key);
+
                     if (anim.Value == MainScreen.TaeAnim)
                     {
                         var thisAnimRect = new Rectangle(0, i * AnimHeight, ScrollViewer.Viewport.Width, AnimHeight);
-                        sb.Draw(boxTex, thisAnimRect, Color.CornflowerBlue);
+                        sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : Color.CornflowerBlue);
+
+                        if (MainScreen.Config.EnableColorBlindMode)
+                        {
+                            sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.Black);
+                        }
+                        else
+                        {
+                            sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
+                            sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.White);
+                        }
+                    }
+                    else
+                    {
+                        sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
+                        sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.White);
                     }
 
-                    string animNameStr = (anim.Value.IsModified ? $"{anim.Key}*" : anim.Key);
+                    
 
-                    sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
-                    sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.White);
+                    
 
                     i++;
                 }
