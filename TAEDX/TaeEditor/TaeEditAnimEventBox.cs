@@ -18,24 +18,10 @@ namespace TAEDX.TaeEditor
         {
             RowChanged?.Invoke(this, oldRow);
         }
-        private int _row;
-        public int Row
-        {
-            get => _row;
-            set
-            {
-                if (value != _row)
-                {
-                    int oldRow = _row;
-                    _row = value;
-                    RaiseRowChanged(oldRow);
-                }
-            }
-        }
 
         public float Left => MyEvent.StartTime * OwnerPane.SecondsPixelSize;
         public float Right => MyEvent.EndTime * OwnerPane.SecondsPixelSize;
-        public float Top => (Row * OwnerPane.RowHeight) + 1 + OwnerPane.TimeLineHeight;
+        public float Top => (MyEvent.Row * OwnerPane.RowHeight) + 1 + OwnerPane.TimeLineHeight;
         public float Bottom => Top + OwnerPane.RowHeight;
         public float Width => (MyEvent.EndTime - MyEvent.StartTime) * OwnerPane.SecondsPixelSize;
         public float Height => OwnerPane.RowHeight - 2;
@@ -48,10 +34,26 @@ namespace TAEDX.TaeEditor
         public string EventText { get; private set; }
         public string EventTextTall { get; private set; }
 
-        public Color BGColor = Color.LightSteelBlue;
+        public Color ColorBG => OwnerPane.GetColorInfo(MyEvent.EventType)?.ColorA ?? Color.Blue;
+        public Color ColorOutline => OwnerPane.GetColorInfo(MyEvent.EventType)?.ColorB ?? Color.Black;
+        public Color ColorFG
+        {
+            get
+            {
+                var info = OwnerPane.GetColorInfo(MyEvent.EventType);
+                if (info == null)
+                    return Color.White;
+
+                if (info.ColorAFlag == 5)
+                    return Color.Black;
+                else
+                    return Color.White;
+            }
+        }
 
         public void DragWholeBoxToVirtualUnitX(float x)
         {
+            x = MathHelper.Max(x, 0);
             float eventLength = MyEvent.EndTimeFr - MyEvent.StartTimeFr;
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
             MyEvent.EndTime = MyEvent.StartTimeFr + eventLength;
@@ -59,6 +61,7 @@ namespace TAEDX.TaeEditor
 
         public void DragLeftSideOfBoxToVirtualUnitX(float x)
         {
+            x = MathHelper.Max(x, 0);
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
         }
 
@@ -67,38 +70,27 @@ namespace TAEDX.TaeEditor
             MyEvent.EndTime = x / OwnerPane.SecondsPixelSize;
         }
 
-        //public void DragLeftSide(float dragAmount)
-        //{
-        //    float dragAmountInSeconds = dragAmount / OwnerPane.SecondsPixelSize;
-        //    MyEvent.StartTime += dragAmountInSeconds;
-        //    if (MyEvent.StartTime < 0)
-        //        MyEvent.StartTime = 0;
-        //}
-
-        //public void DragRightSide(float dragAmount)
-        //{
-        //    float dragAmountInSeconds = dragAmount / OwnerPane.SecondsPixelSize;
-        //    MyEvent.EndTime += dragAmountInSeconds;
-        //}
-
-        //public void DragMiddle(float dragAmount)
-        //{
-        //    float dragAmountInSeconds = dragAmount / OwnerPane.SecondsPixelSize;
-        //    MyEvent.StartTime += dragAmountInSeconds;
-        //    MyEvent.EndTime += dragAmountInSeconds;
-        //    float amountToShiftRight = (0 - MyEvent.StartTime);
-        //    if (amountToShiftRight > 0)
-        //    {
-        //        MyEvent.StartTime += amountToShiftRight;
-        //        MyEvent.EndTime += amountToShiftRight;
-        //    }
-        //}
-
         public TaeEditAnimEventBox(TaeEditAnimEventGraph owner, TimeActEventBase myEvent)
         {
+            //BGColor = TaeMiscUtils.GetRandomPastelColor();
+
             OwnerPane = owner;
             MyEvent = myEvent;
             UpdateEventText();
+            myEvent.RowChanged += MyEvent_RowChanged;
+        }
+
+        public void ChangeEvent(TimeActEventBase newEvent)
+        {
+            MyEvent.RowChanged -= MyEvent_RowChanged;
+            MyEvent = newEvent;
+            MyEvent.RowChanged += MyEvent_RowChanged;
+            UpdateEventText();
+        }
+
+        private void MyEvent_RowChanged(object sender, int e)
+        {
+            RaiseRowChanged(e);
         }
 
         public void UpdateEventText()

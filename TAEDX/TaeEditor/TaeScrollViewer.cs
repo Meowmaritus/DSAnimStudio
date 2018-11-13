@@ -30,6 +30,7 @@ namespace TAEDX.TaeEditor
         private Rectangle ViewportDisplayRect;
 
         public Rectangle Viewport => ViewportDisplayRect;
+        public Rectangle RelativeViewport => new Rectangle((int)Scroll.X, (int)Scroll.Y, ViewportDisplayRect.Width, ViewportDisplayRect.Height);
 
         public Vector2 Scroll;
         private Vector2 MaxScroll;
@@ -42,7 +43,7 @@ namespace TAEDX.TaeEditor
         private Rectangle VerticalBox;
         private Point VerticalBoxGrabOffset;
 
-        public int ScrollWheelVirtualScrollAmountX = 64;
+        public int ScrollWheelVirtualScrollAmountX = 128;
         public int ScrollWheelVirtualScrollAmountY = 32;
 
         public int ScrollArrowButtonVirtualScrollAmountX = 64;

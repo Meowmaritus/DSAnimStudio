@@ -23,6 +23,18 @@ namespace TAEDX.TaeEditor
         public readonly TaeEditorScreen MainScreen;
         public AnimationRef AnimRef { get; private set; }
         public Rectangle Rect;
+
+        private Dictionary<TimeActEventType, MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors> EventTypeColorInfo
+            = new Dictionary<TimeActEventType, MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors>();
+
+        public MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors GetColorInfo(TimeActEventType type)
+        {
+            if (EventTypeColorInfo.ContainsKey(type))
+                return EventTypeColorInfo[type];
+
+            return null;
+        }
+
         public List<TaeEditAnimEventBox> EventBoxes = new List<TaeEditAnimEventBox>();
 
         TaeScrollViewer ScrollViewer = new TaeScrollViewer();
@@ -40,21 +52,28 @@ namespace TAEDX.TaeEditor
         private TaeEditAnimEventBox currentDragBox = null;
         private Point currentDragOffset = Point.Zero;
         private float currentDragBoxOriginalWidth = 0;
+        private float currentDragBoxOriginalStart = 0;
+        private float currentDragBoxOriginalEnd = 0;
+        private int currentDragBoxOriginalRow = 0;
 
         private void ZoomOutOneNotch(float mouseScreenPosX)
         {
             float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
 
-            if (SecondsPixelSize <= SecondsPixelSizeFarAwayModeUpperBound)
-            {
-                SecondsPixelSize /= 2f;
-                if (SecondsPixelSize < 8f)
-                    SecondsPixelSize = 8f;
-            }
-            else
-            {
-                SecondsPixelSize -= SecondsPixelSizeScrollNotch;
-            }
+            SecondsPixelSize /= 2f;
+            if (SecondsPixelSize < 8f)
+                SecondsPixelSize = 8f;
+
+            //if (SecondsPixelSize <= SecondsPixelSizeFarAwayModeUpperBound)
+            //{
+            //    SecondsPixelSize /= 2f;
+            //    if (SecondsPixelSize < 8f)
+            //        SecondsPixelSize = 8f;
+            //}
+            //else
+            //{
+            //    SecondsPixelSize -= SecondsPixelSizeScrollNotch;
+            //}
 
             float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
             float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
@@ -65,14 +84,16 @@ namespace TAEDX.TaeEditor
         {
             float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
 
-            if (SecondsPixelSize < SecondsPixelSizeFarAwayModeUpperBound)
-            {
-                SecondsPixelSize *= 2;
-            }
-            else
-            {
-                SecondsPixelSize += SecondsPixelSizeScrollNotch;
-            }
+            SecondsPixelSize *= 2;
+
+            //if (SecondsPixelSize < SecondsPixelSizeFarAwayModeUpperBound)
+            //{
+            //    SecondsPixelSize *= 2;
+            //}
+            //else
+            //{
+            //    SecondsPixelSize += SecondsPixelSizeScrollNotch;
+            //}
 
             float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
             float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
@@ -110,6 +131,17 @@ namespace TAEDX.TaeEditor
             else return new List<TaeEditAnimEventBox>();
         }
 
+        public void RegisterEventBoxExistance(TaeEditAnimEventBox box)
+        {
+            if (!EventBoxes.Contains(box))
+                EventBoxes.Add(box);
+
+            if (!sortedByRow.ContainsKey(box.MyEvent.Row))
+                sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
+
+            sortedByRow[box.MyEvent.Row].Add(box);
+        }
+
         public void ChangeToNewAnimRef(AnimationRef newAnimRef)
         {
             foreach (var box in EventBoxes)
@@ -117,6 +149,7 @@ namespace TAEDX.TaeEditor
 
             EventBoxes.Clear();
             sortedByRow.Clear();
+            EventTypeColorInfo.Clear();
             AnimRef = newAnimRef;
 
             void RegisterBoxToRow(TaeEditAnimEventBox box, int row)
@@ -131,19 +164,36 @@ namespace TAEDX.TaeEditor
             float farthestRightOnCurrentRow = 0;
             foreach (var ev in AnimRef.Anim.EventList)
             {
-                var newBox = new TaeEditAnimEventBox(this, ev);
-                newBox.Row = currentRow;
 
-                if (newBox.LeftFr < farthestRightOnCurrentRow)
+                if (ev is MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors colorEvent)
                 {
-                    newBox.Row++;
-                    currentRow++;
+                    if (!EventTypeColorInfo.ContainsKey(colorEvent.EventKind))
+                        EventTypeColorInfo.Add(colorEvent.EventKind, colorEvent);
+                    //continue;
+                }
+
+                var newBox = new TaeEditAnimEventBox(this, ev);
+
+                if (ev.Row >= 0)
+                {
+                    currentRow = ev.Row;
                     farthestRightOnCurrentRow = newBox.RightFr;
                 }
                 else
                 {
-                    if (newBox.RightFr > farthestRightOnCurrentRow)
+                    newBox.MyEvent.Row = currentRow;
+
+                    if (newBox.LeftFr < farthestRightOnCurrentRow)
+                    {
+                        newBox.MyEvent.Row++;
+                        currentRow++;
                         farthestRightOnCurrentRow = newBox.RightFr;
+                    }
+                    else
+                    {
+                        if (newBox.RightFr > farthestRightOnCurrentRow)
+                            farthestRightOnCurrentRow = newBox.RightFr;
+                    }
                 }
 
                 newBox.RowChanged += Box_RowChanged;
@@ -164,10 +214,10 @@ namespace TAEDX.TaeEditor
             var box = (TaeEditAnimEventBox)sender;
             if (sortedByRow.ContainsKey(e) && sortedByRow[e].Contains(box))
                 sortedByRow[e].Remove(box);
-            if (!sortedByRow.ContainsKey(box.Row))
-                sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
-            if (!sortedByRow[box.Row].Contains(box))
-                sortedByRow[box.Row].Add(box);
+            if (!sortedByRow.ContainsKey(box.MyEvent.Row))
+                sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
+            if (!sortedByRow[box.MyEvent.Row].Contains(box))
+                sortedByRow[box.MyEvent.Row].Add(box);
         }
 
         public void DeleteEventBox(TaeEditAnimEventBox box)
@@ -177,11 +227,40 @@ namespace TAEDX.TaeEditor
                 throw new ArgumentException($"This {nameof(TaeEditAnimEventGraph)} can only " +
                     $"delete {nameof(TaeEditAnimEventBox)}'s that it owns!", nameof(box));
             }
-            if (MainScreen.SelectedEventBox == box)
-                MainScreen.SelectedEventBox = null;
-            box.RowChanged -= Box_RowChanged;
-            AnimRef.Anim.EventList.Remove(box.MyEvent);
-            EventBoxes.Remove(box);
+
+            MainScreen.UndoMan.NewAction(
+                doAction: () =>
+                {
+                    if (MainScreen.SelectedEventBox == box)
+                        MainScreen.SelectedEventBox = null;
+                    box.RowChanged -= Box_RowChanged;
+
+                    if (sortedByRow.ContainsKey(box.MyEvent.Row))
+                        if (sortedByRow[box.MyEvent.Row].Contains(box))
+                            sortedByRow[box.MyEvent.Row].Remove(box);
+
+                    AnimRef.Anim.EventList.Remove(box.MyEvent);
+
+                    EventBoxes.Remove(box);
+
+                    AnimRef.IsModified = true;
+                    MainScreen.IsModified = true;
+                },
+                undoAction: () =>
+                {
+                    EventBoxes.Add(box);
+                    AnimRef.Anim.EventList.Add(box.MyEvent);
+
+                    if (!sortedByRow.ContainsKey(box.MyEvent.Row))
+                        sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
+
+                    if (!sortedByRow[box.MyEvent.Row].Contains(box))
+                        sortedByRow[box.MyEvent.Row].Add(box);
+
+                    box.RowChanged += Box_RowChanged;
+
+                    MainScreen.SelectedEventBox = box;
+                });
         }
 
         private void DragCurrentDragBoxToMouse(Point mouse)
@@ -200,6 +279,81 @@ namespace TAEDX.TaeEditor
             }
         }
 
+        private void PlaceNewEventAtMouse()
+        {
+            float mouseTime = ((MainScreen.Input.MousePosition.X - Rect.X + ScrollViewer.Scroll.X) / SecondsPixelSize);
+
+            TimeActEventBase newEvent = null;
+
+            if (MainScreen.SelectedEventBox != null)
+            {
+                newEvent = TimeActEventBase.GetNewEvent(
+                    MainScreen.SelectedEventBox.MyEvent.EventType,
+                    mouseTime, mouseTime + (MainScreen.SelectedEventBox.MyEvent.EndTimeFr 
+                    - MainScreen.SelectedEventBox.MyEvent.StartTimeFr));
+
+                TimeActEventBase.CopyEventParameters(MainScreen.SelectedEventBox.MyEvent, newEvent);
+            }
+            else
+            {
+                newEvent = TimeActEventBase.GetNewEvent(
+                    TimeActEventType.DoCommand,
+                    mouseTime, mouseTime + 1);
+            }
+
+            newEvent.Index = MainScreen.TaeAnim.Anim.EventList.Count;
+
+            var newBox = new TaeEditAnimEventBox(this, newEvent);
+
+            newBox.MyEvent.Row = MouseRow;
+
+            MainScreen.UndoMan.NewAction(
+                doAction: () =>
+                {
+                    MainScreen.TaeAnim.Anim.EventList.Add(newEvent);
+
+                    if (!sortedByRow.ContainsKey(newBox.MyEvent.Row))
+                        sortedByRow.Add(newBox.MyEvent.Row, new List<TaeEditAnimEventBox>());
+
+                    sortedByRow[newBox.MyEvent.Row].Add(newBox);
+
+                    EventBoxes.Add(newBox);
+
+                    AnimRef.IsModified = true;
+                    MainScreen.IsModified = true;
+                },
+                undoAction: () =>
+                {
+                    EventBoxes.Remove(newBox);
+
+                    if (sortedByRow.ContainsKey(newBox.MyEvent.Row))
+                        if (sortedByRow[newBox.MyEvent.Row].Contains(newBox))
+                            sortedByRow[newBox.MyEvent.Row].Remove(newBox);
+
+                    MainScreen.TaeAnim.Anim.EventList.Remove(newEvent);
+                });
+
+            
+        }
+
+        private void DeleteSelectedEvent()
+        {
+            var selectedEventBox = MainScreen.SelectedEventBox;
+
+            //var yesNo = System.Windows.Forms.MessageBox.Show(
+            //    "Would you really like to delete the selected event?" +
+            //    " This cannot be undone.", "Delete Event?", 
+            //    System.Windows.Forms.MessageBoxButtons.YesNo, 
+            //    System.Windows.Forms.MessageBoxIcon.Question);
+
+            //if (yesNo != System.Windows.Forms.DialogResult.Yes)
+            //{
+            //    return;
+            //}
+
+            DeleteEventBox(selectedEventBox);
+        }
+
         public void Update(float elapsedSeconds, bool allowMouseUpdate)
         {
             if (!allowMouseUpdate)
@@ -208,6 +362,11 @@ namespace TAEDX.TaeEditor
             var isZooming = MainScreen.Input.KeyHeld(Keys.LeftControl) || MainScreen.Input.KeyHeld(Keys.RightControl);
 
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !isZooming);
+
+            if (MainScreen.SelectedEventBox != null && MainScreen.Input.KeyDown(Keys.Delete))
+            {
+                DeleteSelectedEvent();
+            }
 
             if (ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y)))
             {
@@ -218,6 +377,11 @@ namespace TAEDX.TaeEditor
                 if (MainScreen.Input.LeftClickDown)
                 {
                     MainScreen.SelectedEventBox = null;
+                }
+
+                if (MainScreen.Input.RightClickDown)
+                {
+                    PlaceNewEventAtMouse();
                 }
 
                 foreach (var box in GetRow(MouseRow))
@@ -239,6 +403,9 @@ namespace TAEDX.TaeEditor
                                 currentDragBox = box;
                                 currentDragOffset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
                                 currentDragBoxOriginalWidth = box.Width;
+                                currentDragBoxOriginalStart = box.MyEvent.StartTime;
+                                currentDragBoxOriginalEnd = box.MyEvent.EndTime;
+                                currentDragBoxOriginalRow = box.MyEvent.Row;
                             }
                         }
                         else if (relMouse.X >= box.RightFr - BoxSideScrollMarginSize && relMouse.X <= box.RightFr + BoxSideScrollMarginSize)
@@ -250,6 +417,9 @@ namespace TAEDX.TaeEditor
                                 currentDragBox = box;
                                 currentDragOffset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
                                 currentDragBoxOriginalWidth = box.Width;
+                                currentDragBoxOriginalStart = box.MyEvent.StartTime;
+                                currentDragBoxOriginalEnd = box.MyEvent.EndTime;
+                                currentDragBoxOriginalRow = box.MyEvent.Row;
                             }
                         }
                         else if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
@@ -261,6 +431,9 @@ namespace TAEDX.TaeEditor
                                 currentDragBox = box;
                                 currentDragOffset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
                                 currentDragBoxOriginalWidth = box.Width;
+                                currentDragBoxOriginalStart = box.MyEvent.StartTime;
+                                currentDragBoxOriginalEnd = box.MyEvent.EndTime;
+                                currentDragBoxOriginalRow = box.MyEvent.Row;
                             }
                         }
                     }
@@ -273,27 +446,60 @@ namespace TAEDX.TaeEditor
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
                         DragCurrentDragBoxToMouse(relMouse.ToPoint());
+                        AnimRef.IsModified = true;
+                        MainScreen.IsModified = true;
                         //currentDragBox.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
                     }
                     else if (currentDragType == BoxDragType.Right && currentDragBox != null)
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
                         DragCurrentDragBoxToMouse(relMouse.ToPoint());
+                        AnimRef.IsModified = true;
+                        MainScreen.IsModified = true;
                         //currentDragBox.DragRightSide(MainScreen.Input.MousePositionDelta.X);
                     }
                     else if (currentDragType == BoxDragType.Middle && currentDragBox != null)
                     {
                         MainScreen.Input.CursorType = MouseCursorType.Arrow;
                         DragCurrentDragBoxToMouse(relMouse.ToPoint());
+                        AnimRef.IsModified = true;
+                        MainScreen.IsModified = true;
                         //currentDragBox.DragMiddle(MainScreen.Input.MousePositionDelta.X);
                         if (MouseRow >= 0)
-                            currentDragBox.Row = MouseRow;
+                            currentDragBox.MyEvent.Row = MouseRow;
                     }
                 }
                 else
                 {
-                    currentDragType = BoxDragType.None;
-                    currentDragBox = null;
+                    if (currentDragType != BoxDragType.None)
+                    {
+                        TaeEditAnimEventBox copyOfBox = currentDragBox;
+
+                        float copyOfOldBoxStart = currentDragBoxOriginalStart;
+                        float copyOfOldBoxEnd = currentDragBoxOriginalEnd;
+                        int copyOfOldBoxRow = currentDragBoxOriginalRow;
+
+                        float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
+                        float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
+                        int copyOfCurrentBoxRow = copyOfBox.MyEvent.Row;
+
+                        MainScreen.UndoMan.NewAction(
+                            doAction: () =>
+                            {
+                                copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
+                                copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
+                                copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
+                            },
+                            undoAction: () =>
+                            {
+                                copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
+                                copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
+                                copyOfBox.MyEvent.Row = copyOfOldBoxRow;
+                            });
+
+                        currentDragType = BoxDragType.None;
+                        currentDragBox = null;
+                    }
                 }
 
                 if (isZooming)
@@ -321,7 +527,7 @@ namespace TAEDX.TaeEditor
 
             return new Point(
                 (int)EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 64, 
-                (int)EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 64);
+                (int)EventBoxes.OrderByDescending(x => x.MyEvent.Row).First().Bottom + 64);
         }
 
         private Dictionary<int, float> GetSecondVerticalLineXPositions()
@@ -362,7 +568,7 @@ namespace TAEDX.TaeEditor
             }
         }
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
         {
             ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
 
@@ -391,13 +597,18 @@ namespace TAEDX.TaeEditor
                         if (box == MainScreen.SelectedEventBox)
                             box.UpdateEventText();
 
+                        if (box.LeftFr > ScrollViewer.RelativeViewport.Right || box.RightFr < ScrollViewer.RelativeViewport.Left)
+                            continue;
+
+                        bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.RelativeViewport.Left;
+
                         Vector2 pos = new Vector2((int)box.LeftFr, (int)box.Top);
                         Vector2 size = new Vector2(box.WidthFr, box.HeightFr);
 
                         sb.Draw(texture: boxTex,
                             position: pos + new Vector2(0, -1),
                             sourceRectangle: null,
-                            color: Color.DarkBlue,
+                            color: box.ColorOutline,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: size + new Vector2(0, 2),
@@ -408,7 +619,7 @@ namespace TAEDX.TaeEditor
                         sb.Draw(texture: boxTex,
                             position: pos + new Vector2(1, 0),
                             sourceRectangle: null,
-                            color: (MainScreen.SelectedEventBox == box) ? Color.CornflowerBlue : box.BGColor,
+                            color: (MainScreen.SelectedEventBox == box) ? TaeMiscUtils.GetPastelRainbow((float)gt.TotalGameTime.TotalSeconds / 4) : box.ColorBG,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: size + new Vector2(-2, 0),
@@ -416,16 +627,19 @@ namespace TAEDX.TaeEditor
                             layerDepth: 0
                             );
 
+                        var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), pos.Y);
+
                         var nameSize = font.MeasureString(box.EventText);
-                        if (nameSize.X <= box.Width)
+
+                        if ((namePos.X + nameSize.X) <= box.RightFr)
                         {
-                            sb.DrawString(font, box.EventText, pos + new Vector2(2 + 1, 1), Color.Black);
-                            sb.DrawString(font, box.EventText, pos + new Vector2(2, 0), Color.White);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}", namePos + new Vector2(2 + 1, 1), box.ColorOutline);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}", namePos + new Vector2(2, 0), box.ColorFG);
                         }
                         else
                         {
-                            sb.DrawString(font, $"{((int)box.MyEvent.EventType)}", pos + (Vector2.One), Color.Black, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            sb.DrawString(font, $"{((int)box.MyEvent.EventType)}", pos, Color.White, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{((int)box.MyEvent.EventType)}", namePos + (Vector2.One), box.ColorOutline, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{((int)box.MyEvent.EventType)}", namePos, box.ColorFG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
                         }
                     }
                 }

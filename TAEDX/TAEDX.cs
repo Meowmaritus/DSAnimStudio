@@ -10,7 +10,7 @@ namespace TAEDX
 {
     public class TAEDX : Game
     {
-        public const string VERSION = "Alpha v0.1.2";
+        public const string VERSION = "Alpha v0.2";
 
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -71,7 +71,9 @@ namespace TAEDX
                 testEditorScreen.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
 
             if (!string.IsNullOrWhiteSpace(testEditorScreen.TaeFileName))
-                Window.Title = $"{System.IO.Path.GetFileName(testEditorScreen.TaeFileName)} - TAE Editor DX {VERSION}";
+                Window.Title = $"{System.IO.Path.GetFileName(testEditorScreen.TaeFileName)}" +
+                    $"{(testEditorScreen.IsModified ? "*" : "")}" +
+                    $" - TAE Editor DX {VERSION}";
             else
                 Window.Title = $"TAE Editor DX {VERSION}";
 
@@ -84,7 +86,7 @@ namespace TAEDX
 
             testEditorScreen.Rect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height - 20);
 
-            testEditorScreen.Draw(GraphicsDevice, spriteBatch, Blank, eventLabelFont);
+            testEditorScreen.Draw(gameTime, GraphicsDevice, spriteBatch, Blank, eventLabelFont);
 
             base.Draw(gameTime);
         }
