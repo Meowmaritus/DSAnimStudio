@@ -29,10 +29,98 @@ namespace TAEDX.TaeEditor
 
         private int TopMargin = 32;
 
+        const string HELP_TEXT = 
+            "Left Click + Drag Middle of Event:\n" +
+            "    Move whole event\n" +
+            "Left Click + Drag Left/Right Side of Event:\n" +
+            "    Move start/end of event\n" +
+            "Left Click:\n" +
+            "    Highlight event under mouse cursor\n" +
+            "Right Click:\n" +
+            "    Place copy of last highlighted event at mouse cursor\n" +
+            "Delete Key:\n" +
+            "    Delete highlighted event.\n\n\n" +
+            "The pane on the right shows the parameters of the highlighted event." +
+            "Click \"Change Type\" on the upper-right corner to change the event type of the highlighted event.";
+
         private static object _lock_PauseUpdate = new object();
-        private bool PauseUpdate;
+        private bool _PauseUpdate;
+        private bool PauseUpdate
+        {
+            get
+            {
+                lock (_lock_PauseUpdate)
+                    return _PauseUpdate;
+            }
+            set
+            {
+                lock (_lock_PauseUpdate)
+                    _PauseUpdate = value;
+            }
+        }
+        //private float _PauseUpdateTotalTime;
+        //private float PauseUpdateTotalTime
+        //{
+        //    get
+        //    {
+        //        lock (_lock_PauseUpdate)
+        //            return _PauseUpdateTotalTime;
+        //    }
+        //    set
+        //    {
+        //        lock (_lock_PauseUpdate)
+        //            _PauseUpdateTotalTime = value;
+        //    }
+        //}
 
         public Rectangle Rect;
+
+        public Dictionary<AnimationRef, TaeUndoMan> UndoManDictionary 
+            = new Dictionary<AnimationRef, TaeUndoMan>();
+
+        public TaeUndoMan UndoMan
+        {
+            get
+            {
+                if (!UndoManDictionary.ContainsKey(TaeAnim))
+                {
+                    var newUndoMan = new TaeUndoMan();
+                    newUndoMan.CanUndoMaybeChanged += UndoMan_CanUndoMaybeChanged;
+                    newUndoMan.CanRedoMaybeChanged += UndoMan_CanRedoMaybeChanged;
+                    UndoManDictionary.Add(TaeAnim, newUndoMan);
+                }
+                return UndoManDictionary[TaeAnim];
+            }
+        }
+
+        private bool _IsModified = false;
+        public bool IsModified
+        {
+            get => _IsModified;
+            set
+            {
+                _IsModified = value;
+                ToolStripFileSave.Enabled = value;
+            }
+        }
+
+        private System.Windows.Forms.ToolStripMenuItem ToolStripFileSave;
+
+        private void UndoMan_CanRedoMaybeChanged(object sender, EventArgs e)
+        {
+            ToolStripEditRedo.Enabled = UndoMan.CanRedo;
+        }
+
+        private void UndoMan_CanUndoMaybeChanged(object sender, EventArgs e)
+        {
+            ToolStripEditUndo.Enabled = UndoMan.CanUndo;
+        }
+
+
+        private TaeButtonRepeater UndoButton = new TaeButtonRepeater(0.5f, 0.15f);
+        private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.5f, 0.15f);
+        private System.Windows.Forms.ToolStripMenuItem ToolStripEditUndo;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripEditRedo;
 
         private float LeftSectionWidth = 256;
         private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth - (DividerHitboxPad / 2f);
@@ -92,6 +180,8 @@ namespace TAEDX.TaeEditor
 
         public TaeInputHandler Input;
 
+        private System.Windows.Forms.MenuStrip WinFormsMenuStrip;
+
         public string TaeFileName = "";
 
         public void LoadCurrentFile()
@@ -115,6 +205,11 @@ namespace TAEDX.TaeEditor
                     System.Windows.Forms.MessageBoxIcon.Information);
             }
             MeowDSIO.DataFile.SaveToFile(Tae, TaeFileName);
+            foreach (var animRef in Tae.Animations)
+            {
+                animRef.IsModified = false;
+            }
+            IsModified = false;
         }
 
         private void LoadTAE(TAE tae)
@@ -157,29 +252,99 @@ namespace TAEDX.TaeEditor
             GameWindowAsForm.Controls.Add(inspectorWinFormsControl);
 
             var toolstripFile = new System.Windows.Forms.ToolStripMenuItem("File");
+            {
+                var toolstripFile_Open = new System.Windows.Forms.ToolStripMenuItem("Open");
+                toolstripFile_Open.Click += ToolstripFile_Open_Click;
+                toolstripFile.DropDownItems.Add(toolstripFile_Open);
 
-            var toolstripFile_Open = new System.Windows.Forms.ToolStripMenuItem("Open");
-            toolstripFile_Open.Click += ToolstripFile_Open_Click;
-            toolstripFile.DropDownItems.Add(toolstripFile_Open);
+                toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
 
-            toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+                ToolStripFileSave = new System.Windows.Forms.ToolStripMenuItem("Save");
+                ToolStripFileSave.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S;
+                ToolStripFileSave.Click += ToolstripFile_Save_Click;
+                toolstripFile.DropDownItems.Add(ToolStripFileSave);
 
-            var toolstripFile_Save = new System.Windows.Forms.ToolStripMenuItem("Save");
-            toolstripFile_Save.Click += ToolstripFile_Save_Click;
-            toolstripFile.DropDownItems.Add(toolstripFile_Save);
+                var toolstripFile_SaveAs = new System.Windows.Forms.ToolStripMenuItem("Save As...");
+                toolstripFile_SaveAs.Click += ToolstripFile_SaveAs_Click;
+                toolstripFile.DropDownItems.Add(toolstripFile_SaveAs);
+            }
 
-            var toolstripFile_SaveAs = new System.Windows.Forms.ToolStripMenuItem("Save As...");
-            toolstripFile_SaveAs.Click += ToolstripFile_SaveAs_Click;
-            toolstripFile.DropDownItems.Add(toolstripFile_SaveAs);
+            var toolstripEdit = new System.Windows.Forms.ToolStripMenuItem("Edit");
+            {
+                ToolStripEditUndo = new System.Windows.Forms.ToolStripMenuItem("Undo");
+                ToolStripEditUndo.ShortcutKeyDisplayString = "Ctrl+Z";
+                ToolStripEditUndo.Click += ToolStripEditUndo_Click;
 
-            var menuStrip = new System.Windows.Forms.MenuStrip();
-            menuStrip.Items.Add(toolstripFile);
+                ToolStripEditRedo = new System.Windows.Forms.ToolStripMenuItem("Redo");
+                ToolStripEditRedo.ShortcutKeyDisplayString = "Ctrl+Y";
+                ToolStripEditRedo.Click += ToolStripEditRedo_Click;
 
-            GameWindowAsForm.Controls.Add(menuStrip);
+                toolstripEdit.DropDownItems.Add(ToolStripEditUndo);
+                toolstripEdit.DropDownItems.Add(ToolStripEditRedo);
+            }
+
+            var toolstripHelp = new System.Windows.Forms.ToolStripMenuItem("Help");
+            toolstripHelp.Click += ToolstripHelp_Click;
+
+            WinFormsMenuStrip = new System.Windows.Forms.MenuStrip();
+            WinFormsMenuStrip.Items.Add(toolstripFile);
+            WinFormsMenuStrip.Items.Add(toolstripEdit);
+            WinFormsMenuStrip.Items.Add(toolstripHelp);
+
+            WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
+            WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
+
+            GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
+        }
+
+        private void ToolStripEditRedo_Click(object sender, EventArgs e)
+        {
+            UndoMan.Redo();
+        }
+
+        private void ToolStripEditUndo_Click(object sender, EventArgs e)
+        {
+            UndoMan.Undo();
+        }
+
+        private void ToolstripHelp_Click(object sender, EventArgs e)
+        {
+            System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
+                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+        }
+
+        private void WinFormsMenuStrip_MenuDeactivate(object sender, EventArgs e)
+        {
+            PauseUpdate = false;
+        }
+
+        private void WinFormsMenuStrip_MenuActivate(object sender, EventArgs e)
+        {
+            PauseUpdate = true;
         }
 
         private void ToolstripFile_Open_Click(object sender, EventArgs e)
         {
+            if (Tae != null && Tae.Animations.Any(a => a.IsModified))
+            {
+                var yesNoCancel = System.Windows.Forms.MessageBox.Show(
+                    $"File \"{System.IO.Path.GetFileName(TaeFileName)}\" has " +
+                    $"unsaved changes. Would you like to save these changes before " +
+                    $"loading a new file?", "Save Unsaved Changes?",
+                    System.Windows.Forms.MessageBoxButtons.YesNoCancel,
+                    System.Windows.Forms.MessageBoxIcon.None);
+
+                if (yesNoCancel == System.Windows.Forms.DialogResult.Yes)
+                {
+                    SaveCurrentFile();
+                }
+                else if (yesNoCancel == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    return;
+                }
+                //If they chose no, continue as normal.
+            }
+
             var browseDlg = new System.Windows.Forms.OpenFileDialog()
             {
                 Filter = "TAE Files (*.TAE)|*.TAE|All Files|*.*",
@@ -232,46 +397,91 @@ namespace TAEDX.TaeEditor
 
         private void ButtonChangeType_Click(object sender, EventArgs e)
         {
-            lock (_lock_PauseUpdate)
-            {
-                PauseUpdate = true;
-            }
+            PauseUpdate = true;
+
             var changeTypeDlg = new TaeInspectorFormChangeEventType();
             if (changeTypeDlg.ShowDialog(GameWindowAsForm) == System.Windows.Forms.DialogResult.OK)
             {
                 if (changeTypeDlg.NewEventType != SelectedEventBox.MyEvent.EventType)
                 {
-                    TaeAnim.Anim.EventList.Remove(SelectedEventBox.MyEvent);
-                    int index = SelectedEventBox.MyEvent.Index;
-                    SelectedEventBox.MyEvent = TimeActEventBase.GetNewEvent(changeTypeDlg.NewEventType, SelectedEventBox.MyEvent.StartTimeFr, SelectedEventBox.MyEvent.EndTimeFr);
-                    TaeAnim.Anim.EventList.Insert(index, SelectedEventBox.MyEvent);
+                    var referenceToEventBox = SelectedEventBox;
+                    var referenceToPreviousEvent = referenceToEventBox.MyEvent;
+                    int index = TaeAnim.Anim.EventList.IndexOf(referenceToEventBox.MyEvent);
 
-                    //Force Refresh lol
-                    SelectedEventBox = SelectedEventBox;
+                    UndoMan.NewAction(
+                        doAction: () =>
+                        {
+                            TaeAnim.Anim.EventList.Remove(referenceToPreviousEvent);
+                            referenceToEventBox.ChangeEvent(
+                                TimeActEventBase.GetNewEvent(
+                                    changeTypeDlg.NewEventType,
+                                    referenceToPreviousEvent.StartTimeFr,
+                                    referenceToPreviousEvent.EndTimeFr));
+
+                            TaeAnim.Anim.EventList.Insert(index, referenceToEventBox.MyEvent);
+
+                            SelectedEventBox = referenceToEventBox;
+
+                            editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
+
+                            TaeAnim.IsModified = true;
+                            IsModified = true;
+                        },
+                        undoAction: () =>
+                        {
+                            TaeAnim.Anim.EventList.RemoveAt(index);
+                            referenceToEventBox.ChangeEvent(referenceToPreviousEvent);
+                            TaeAnim.Anim.EventList.Insert(index, referenceToPreviousEvent);
+
+                            SelectedEventBox = referenceToEventBox;
+
+                            editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
+                        });
                 }
             }
-            lock (_lock_PauseUpdate)
-            {
-                PauseUpdate = false;
-            }
+
+            PauseUpdate = false;
         }
 
         public void SelectNewAnimRef(AnimationRef animRef)
         {
             TaeAnim = animRef;
+            ToolStripEditUndo.Enabled = UndoMan.CanUndo;
+            ToolStripEditRedo.Enabled = UndoMan.CanRedo;
             SelectedEventBox = null;
             editScreenCurrentAnim.ChangeToNewAnimRef(TaeAnim);
         }
 
         public void Update(float elapsedSeconds)
         {
-            lock (_lock_PauseUpdate)
+            if (PauseUpdate)
             {
-                if (PauseUpdate)
-                    return;
+                //PauseUpdateTotalTime += elapsedSeconds;
+                return;
+            }
+            else
+            {
+                //PauseUpdateTotalTime = 0;
             }
 
+
             Input.Update(Rect);
+
+            var ctrlHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftControl) 
+                || Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightControl);
+
+            var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
+            var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
+
+            if (UndoButton.Update(elapsedSeconds, ctrlHeld && (zHeld && !yHeld)))
+            {
+                UndoMan.Undo();
+            }
+
+            if (RedoButton.Update(elapsedSeconds, ctrlHeld && (!zHeld && yHeld)))
+            {
+                UndoMan.Redo();
+            }
 
             if (CurrentDividerDragMode == DividerDragMode.None)
             {
@@ -400,8 +610,10 @@ namespace TAEDX.TaeEditor
             inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMargin, (int)RightSectionWidth, Rect.Height - TopMargin);
         }
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
         {
+            //throw new Exception("TaeUndoMan");
+
             //throw new Exception("Make left/right edges of events line up to same vertical lines so the rounding doesnt make them 1 pixel off");
             //throw new Exception("Make dragging edges of scrollbar box do zoom");
             //throw new Exception("make ctrl+scroll zoom centered on mouse cursor pos");
@@ -410,7 +622,7 @@ namespace TAEDX.TaeEditor
             if (editScreenAnimList != null && editScreenCurrentAnim != null)
             {
                 editScreenAnimList.Draw(gd, sb, boxTex, font);
-                editScreenCurrentAnim.Draw(gd, sb, boxTex, font);
+                editScreenCurrentAnim.Draw(gt, gd, sb, boxTex, font);
             }  
             //editScreenGraphInspector.Draw(gd, sb, boxTex, font);
 

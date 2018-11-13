@@ -104,8 +104,10 @@ namespace TAEDX.TaeEditor
                         sb.Draw(boxTex, thisAnimRect, Color.CornflowerBlue);
                     }
 
-                    sb.DrawString(font, anim.Key, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
-                    sb.DrawString(font, anim.Key, new Vector2(4, (int)(i * AnimHeight)), Color.White);
+                    string animNameStr = (anim.Value.IsModified ? $"{anim.Key}*" : anim.Key);
+
+                    sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
+                    sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.White);
 
                     i++;
                 }

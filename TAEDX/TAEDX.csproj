@@ -64,7 +64,9 @@
     <Compile Include="TaeEditor\TaeEditAnimList.cs" />
     <Compile Include="TaeEditor\TaeEditorScreen.cs" />
     <Compile Include="TaeEditor\TaeInputHandler.cs" />
+    <Compile Include="TaeEditor\TaeMiscUtils.cs" />
     <Compile Include="TaeEditor\TaeScrollViewer.cs" />
+    <Compile Include="TaeEditor\TaeUndoMan.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework">
