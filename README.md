@@ -16,6 +16,7 @@
   * shaking the camera (e.g. Smough's footsteps)
   * playing additional animation layers (e.g. all of Gwyn's animations have events to play his clothes-blowing-in-wind animation layer)
   * **many more that we haven't even figured out yet!**
+* ***Has all events mapped so that every single ingame file is openable without errors!***
 * Shows a visual representation of event start/end times.
 * Snaps to 30-fps increments just like the vanilla files do.
 * Allows you to add new events to animations by right-clicking anywhere.
