@@ -304,21 +304,22 @@ namespace TAEDX.TaeEditor
                 }
             }
 
-            if (!DisableVerticalScroll)
-            {
+            
                 var scrollWheel = allowScrollWheel ? input.ScrollDelta : 0;
                 if (scrollWheel != 0)
                 {
                     if (input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift))
                     {
-                        ScrollByVirtualScrollUnits(new Vector2(-scrollWheel * ScrollWheelVirtualScrollAmountX, 0));
+                        if (!DisableHorizontalScroll)
+                            ScrollByVirtualScrollUnits(new Vector2(-scrollWheel * ScrollWheelVirtualScrollAmountX, 0));
                     }
                     else
                     {
-                        ScrollByVirtualScrollUnits(new Vector2(0, -scrollWheel * ScrollWheelVirtualScrollAmountY));
+                        if (!DisableVerticalScroll)
+                            ScrollByVirtualScrollUnits(new Vector2(0, -scrollWheel * ScrollWheelVirtualScrollAmountY));
                     }
                 }
-            }
+            
         }
 
 
