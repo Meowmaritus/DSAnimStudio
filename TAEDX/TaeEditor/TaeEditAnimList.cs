@@ -34,6 +34,8 @@ namespace TAEDX.TaeEditor
         {
             MainScreen = mainScreen;
 
+            EntireListHeight = 64;
+
             if (MainScreen.Anibnd.StandardTAE != null)
             {
                 var group = new TaeEditAnimListGroup();
