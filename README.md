@@ -35,6 +35,7 @@
   1. Hit Ctrl+S to save
   
 ## Developer Instructions:
+  1. Install [MonoGame for Visual Studio - Development Build](http://teamcity.monogame.net/repository/download/MonoGame_PackagingWindows/latest.lastSuccessful/MonoGameSetup.exe?guest=1)
   1. Clone the TAE-DX repository
   1. Update the MeowDSIO submodule (do `git submodule update --init --recursive` from within TAE-DX directory)
   1. Open the TAEDX.sln file in Visual Studio 2017
