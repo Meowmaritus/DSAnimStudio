@@ -15,10 +15,60 @@ namespace TAEDX.TaeEditor
         enum BoxDragType
         {
             None,
-            Left,
-            Right,
-            Middle,
+            LeftOfEventBox,
+            RightOfEventBox,
+            MiddleOfEventBox,
+            MultiSelectionRectangle,
+            MultiDragLeftOfEventBox,
+            MultiDragRightOfEventBox,
+            MultiDragMiddleOfEventBox,
         }
+
+        private class TaeDragState
+        {
+            public BoxDragType DragType = BoxDragType.None;
+            public TaeEditAnimEventBox Box = null;
+            public Point Offset = Point.Zero;
+            public float BoxOriginalWidth = 0;
+            public float BoxOriginalStart = 0;
+            public float BoxOriginalEnd = 0;
+            public float BoxOriginalDuration => BoxOriginalEnd - BoxOriginalStart;
+            public int BoxOriginalRow = 0;
+            public int StartMouseRow = 0;
+            public Point StartDragPoint = Point.Zero;
+            public Point CurrentDragPoint = Point.Zero;
+            public Rectangle GetVirtualDragRect() =>
+                new Rectangle(MathHelper.Min(CurrentDragPoint.X, StartDragPoint.X),
+                    MathHelper.Min(CurrentDragPoint.Y, StartDragPoint.Y),
+                    Math.Abs(CurrentDragPoint.X - StartDragPoint.X),
+                    Math.Abs(CurrentDragPoint.Y - StartDragPoint.Y));
+
+            public void DragBoxToMouse(Point mouse)
+            {
+                if (DragType == BoxDragType.MiddleOfEventBox)
+                {
+                    Box.DragWholeBoxToVirtualUnitX(mouse.X - Offset.X);
+                }
+                else if (DragType == BoxDragType.LeftOfEventBox)
+                {
+                    Box.DragLeftSideOfBoxToVirtualUnitX(mouse.X - Offset.X);
+                }
+                else if (DragType == BoxDragType.RightOfEventBox)
+                {
+                    Box.DragRightSideOfBoxToVirtualUnitX(mouse.X - Offset.X + BoxOriginalWidth);
+                }
+            }
+
+            public void ShiftBoxRow(int newMouseRow)
+            {
+                if (newMouseRow >= 0)
+                    Box.MyEvent.Row = BoxOriginalRow + (newMouseRow - StartMouseRow);
+            }
+        }
+
+        public int MultiSelectRectOutlineThickness => MainScreen.Config.EnableColorBlindMode ? 4 : 1;
+        public Color MultiSelectRectFillColor => Color.LightGray * 0.5f;
+        public Color MultiSelectRectOutlineColor => MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White;
 
         public readonly TaeEditorScreen MainScreen;
         public AnimationRef AnimRef { get; private set; }
@@ -49,13 +99,10 @@ namespace TAEDX.TaeEditor
 
         public float BoxSideScrollMarginSize = 4;
 
-        private BoxDragType currentDragType = BoxDragType.None;
-        private TaeEditAnimEventBox currentDragBox = null;
-        private Point currentDragOffset = Point.Zero;
-        private float currentDragBoxOriginalWidth = 0;
-        private float currentDragBoxOriginalStart = 0;
-        private float currentDragBoxOriginalEnd = 0;
-        private int currentDragBoxOriginalRow = 0;
+
+        private TaeDragState currentDrag = new TaeDragState();
+        private List<TaeDragState> currentMultiDrag = new List<TaeDragState>();
+
 
         private void ZoomOutOneNotch(float mouseScreenPosX)
         {
@@ -244,6 +291,71 @@ namespace TAEDX.TaeEditor
                 sortedByRow[box.MyEvent.Row].Add(box);
         }
 
+        public void DeleteMultipleEventBoxes(IEnumerable<TaeEditAnimEventBox> boxes)
+        {
+            var copyOfBoxes = new List<TaeEditAnimEventBox>();
+
+            foreach (var box in boxes)
+            {
+                if (box.OwnerPane != this)
+                {
+                    throw new ArgumentException($"This {nameof(TaeEditAnimEventGraph)} can only " +
+                    $"delete {nameof(TaeEditAnimEventBox)}'s that it owns!", nameof(boxes));
+                }
+
+                copyOfBoxes.Add(box);
+            }
+
+            MainScreen.UndoMan.NewAction(
+                doAction: () =>
+                {
+                    foreach (var box in copyOfBoxes)
+                    {
+                        if (MainScreen.SelectedEventBox == box)
+                            MainScreen.SelectedEventBox = null;
+
+                        if (MainScreen.MultiSelectedEventBoxes.Contains(box))
+                            MainScreen.MultiSelectedEventBoxes.Remove(box);
+
+                        box.RowChanged -= Box_RowChanged;
+
+                        if (sortedByRow.ContainsKey(box.MyEvent.Row))
+                            if (sortedByRow[box.MyEvent.Row].Contains(box))
+                                sortedByRow[box.MyEvent.Row].Remove(box);
+
+                        AnimRef.Anim.EventList.Remove(box.MyEvent);
+
+                        EventBoxes.Remove(box);
+
+                        AnimRef.IsModified = true;
+                        MainScreen.IsModified = true;
+                    }
+                },
+                undoAction: () =>
+                {
+                    MainScreen.MultiSelectedEventBoxes.Clear();
+                    foreach (var box in copyOfBoxes)
+                    {
+                        EventBoxes.Add(box);
+                        AnimRef.Anim.EventList.Add(box.MyEvent);
+
+                        if (!sortedByRow.ContainsKey(box.MyEvent.Row))
+                            sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
+
+                        if (!sortedByRow[box.MyEvent.Row].Contains(box))
+                            sortedByRow[box.MyEvent.Row].Add(box);
+
+                        box.RowChanged += Box_RowChanged;
+
+                        if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
+                            MainScreen.MultiSelectedEventBoxes.Add(box);
+
+                        AnimRef.IsModified = true;
+                        MainScreen.IsModified = true;
+                    }
+                });
+        }
+
         public void DeleteEventBox(TaeEditAnimEventBox box)
         {
             if (box.OwnerPane != this)
@@ -284,23 +396,10 @@ namespace TAEDX.TaeEditor
                     box.RowChanged += Box_RowChanged;
 
                     MainScreen.SelectedEventBox = box;
-                });
-        }
 
-        private void DragCurrentDragBoxToMouse(Point mouse)
-        {
-            if (currentDragType == BoxDragType.Middle)
-            {
-                currentDragBox.DragWholeBoxToVirtualUnitX(mouse.X - currentDragOffset.X);
-            }
-            else if (currentDragType == BoxDragType.Left)
-            {
-                currentDragBox.DragLeftSideOfBoxToVirtualUnitX(mouse.X - currentDragOffset.X);
-            }
-            else if (currentDragType == BoxDragType.Right)
-            {
-                currentDragBox.DragRightSideOfBoxToVirtualUnitX(mouse.X - currentDragOffset.X + currentDragBoxOriginalWidth);
-            }
+                    AnimRef.IsModified = true;
+                    MainScreen.IsModified = true;
+                });
         }
 
         private void PlaceNewEventAtMouse()
@@ -355,6 +454,9 @@ namespace TAEDX.TaeEditor
                             sortedByRow[newBox.MyEvent.Row].Remove(newBox);
 
                     MainScreen.SelectedTaeAnim.Anim.EventList.Remove(newEvent);
+
+                    AnimRef.IsModified = true;
+                    MainScreen.IsModified = true;
                 });
 
             
@@ -362,20 +464,14 @@ namespace TAEDX.TaeEditor
 
         private void DeleteSelectedEvent()
         {
-            var selectedEventBox = MainScreen.SelectedEventBox;
-
-            //var yesNo = System.Windows.Forms.MessageBox.Show(
-            //    "Would you really like to delete the selected event?" +
-            //    " This cannot be undone.", "Delete Event?", 
-            //    System.Windows.Forms.MessageBoxButtons.YesNo, 
-            //    System.Windows.Forms.MessageBoxIcon.Question);
-
-            //if (yesNo != System.Windows.Forms.DialogResult.Yes)
-            //{
-            //    return;
-            //}
-
-            DeleteEventBox(selectedEventBox);
+            if (MainScreen.MultiSelectedEventBoxes.Count > 0)
+            {
+                DeleteMultipleEventBoxes(MainScreen.MultiSelectedEventBoxes);
+            }
+            else if (MainScreen.SelectedEventBox != null)
+            {
+                DeleteEventBox(MainScreen.SelectedEventBox);
+            }
         }
 
         public void Update(float elapsedSeconds, bool allowMouseUpdate)
@@ -384,20 +480,52 @@ namespace TAEDX.TaeEditor
                 return;
 
             var ctrlHeld = MainScreen.Input.KeyHeld(Keys.LeftControl) || MainScreen.Input.KeyHeld(Keys.RightControl);
+            var shiftHeld = MainScreen.Input.KeyHeld(Keys.LeftShift) || MainScreen.Input.KeyHeld(Keys.RightShift);
+            var altHeld = MainScreen.Input.KeyHeld(Keys.LeftAlt) || MainScreen.Input.KeyHeld(Keys.RightAlt);
 
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !ctrlHeld);
 
-            if (ctrlHeld)
+            if (ctrlHeld && !shiftHeld && !altHeld)
             {
                 if (MainScreen.Input.KeyDown(Keys.OemPlus))
+                {
                     ZoomInOneNotch(0);
+                }
                 else if (MainScreen.Input.KeyDown(Keys.OemMinus))
+                {
                     ZoomOutOneNotch(0);
-                if (MainScreen.Input.KeyDown(Keys.D0) || MainScreen.Input.KeyDown(Keys.NumPad0))
+                }
+                else if (MainScreen.Input.KeyDown(Keys.D0) || MainScreen.Input.KeyDown(Keys.NumPad0))
+                {
                     ResetZoom(0);
+                }
+                else if (MainScreen.Input.KeyDown(Keys.A))
+                {
+                    if (currentDrag.DragType == BoxDragType.None)
+                    {
+                        MainScreen.SelectedEventBox = null;
+                        MainScreen.MultiSelectedEventBoxes.Clear();
+                        foreach (var box in EventBoxes)
+                        {
+                            MainScreen.MultiSelectedEventBoxes.Add(box);
+                        }
+                        MainScreen.UpdateInspectorToSelection();
+                    }
+                }
             }
 
-            if (MainScreen.SelectedEventBox != null && MainScreen.Input.KeyDown(Keys.Delete))
+            if (!ctrlHeld && shiftHeld && !altHeld)
+            {
+                if (MainScreen.Input.KeyDown(Keys.D))
+                {
+                    if (MainScreen.SelectedEventBox != null)
+                        MainScreen.SelectedEventBox = null;
+                    if (MainScreen.MultiSelectedEventBoxes.Count > 0)
+                        MainScreen.MultiSelectedEventBoxes.Clear();
+                }
+            }
+
+            if (MainScreen.Input.KeyDown(Keys.Delete))
             {
                 DeleteSelectedEvent();
             }
@@ -413,47 +541,102 @@ namespace TAEDX.TaeEditor
                     MainScreen.SelectedEventBox = null;
                 }
 
-                if (MainScreen.Input.RightClickDown)
+                if (MainScreen.Input.RightClickDown &&
+                    currentDrag.DragType == BoxDragType.None)
                 {
                     PlaceNewEventAtMouse();
                 }
 
-                foreach (var box in GetRow(MouseRow))
-                {
-                    if (MainScreen.Input.LeftClickDown)
-                    {
-                        if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
-                            MainScreen.SelectedEventBox = box;
-                    }
+                var rowOrderedByTime = GetRow(MouseRow).OrderByDescending(x => x.MyEvent.StartTime);
 
-                    if (currentDragType == BoxDragType.None && box.WidthFr >= 16)
+                foreach (var box in rowOrderedByTime)
+                {
+                    if (currentDrag.DragType == BoxDragType.None)
                     {
-                        if (relMouse.X <= box.LeftFr + BoxSideScrollMarginSize && relMouse.X >= box.LeftFr - BoxSideScrollMarginSize)
+                        if (box.WidthFr >= 16 && relMouse.X <= box.LeftFr + BoxSideScrollMarginSize && relMouse.X >= box.LeftFr - BoxSideScrollMarginSize)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             if (MainScreen.Input.LeftClickDown)
                             {
-                                currentDragType = BoxDragType.Left;
-                                currentDragBox = box;
-                                currentDragOffset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
-                                currentDragBoxOriginalWidth = box.Width;
-                                currentDragBoxOriginalStart = box.MyEvent.StartTime;
-                                currentDragBoxOriginalEnd = box.MyEvent.EndTime;
-                                currentDragBoxOriginalRow = box.MyEvent.Row;
+                                if (MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                {
+                                    currentMultiDrag.Clear();
+
+                                    currentDrag.DragType = BoxDragType.LeftOfEventBox;
+                                    currentDrag.Box = box;
+                                    currentDrag.Offset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
+                                    currentDrag.BoxOriginalWidth = box.Width;
+                                    currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
+                                    currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
+                                    currentDrag.BoxOriginalRow = box.MyEvent.Row;
+                                    currentDrag.StartMouseRow = MouseRow;
+                                    currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
+                                }
+                                else
+                                {
+                                    currentDrag.DragType = BoxDragType.MultiDragLeftOfEventBox;
+                                    currentMultiDrag.Clear();
+                                    foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
+                                    {
+                                        var newDrag = new TaeDragState();
+
+                                        newDrag.DragType = BoxDragType.LeftOfEventBox;
+                                        newDrag.Box = multiBox;
+                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
+                                        newDrag.BoxOriginalWidth = multiBox.Width;
+                                        newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
+                                        newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
+                                        newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
+                                        newDrag.StartMouseRow = MouseRow;
+                                        newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
+
+                                        currentMultiDrag.Add(newDrag);
+                                    }
+                                }
+                                
                             }
                         }
-                        else if (relMouse.X >= box.RightFr - BoxSideScrollMarginSize && relMouse.X <= box.RightFr + BoxSideScrollMarginSize)
+                        else if (box.WidthFr >= 16 && relMouse.X >= box.RightFr - BoxSideScrollMarginSize && relMouse.X <= box.RightFr + BoxSideScrollMarginSize)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             if (MainScreen.Input.LeftClickDown)
                             {
-                                currentDragType = BoxDragType.Right;
-                                currentDragBox = box;
-                                currentDragOffset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
-                                currentDragBoxOriginalWidth = box.Width;
-                                currentDragBoxOriginalStart = box.MyEvent.StartTime;
-                                currentDragBoxOriginalEnd = box.MyEvent.EndTime;
-                                currentDragBoxOriginalRow = box.MyEvent.Row;
+                                if (MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                {
+                                    currentMultiDrag.Clear();
+
+                                    currentDrag.DragType = BoxDragType.RightOfEventBox;
+                                    currentDrag.Box = box;
+                                    currentDrag.Offset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
+                                    currentDrag.BoxOriginalWidth = box.Width;
+                                    currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
+                                    currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
+                                    currentDrag.BoxOriginalRow = box.MyEvent.Row;
+                                    currentDrag.StartMouseRow = MouseRow;
+                                    currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
+                                }
+                                else
+                                {
+                                    currentDrag.DragType = BoxDragType.MultiDragRightOfEventBox;
+                                    currentMultiDrag.Clear();
+                                    foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
+                                    {
+                                        var newDrag = new TaeDragState();
+
+                                        newDrag.DragType = BoxDragType.RightOfEventBox;
+                                        newDrag.Box = multiBox;
+                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
+                                        newDrag.BoxOriginalWidth = multiBox.Width;
+                                        newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
+                                        newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
+                                        newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
+                                        newDrag.StartMouseRow = MouseRow;
+                                        newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
+
+                                        currentMultiDrag.Add(newDrag);
+                                    }
+                                }
+                                
                             }
                         }
                         else if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
@@ -461,78 +644,318 @@ namespace TAEDX.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.Arrow;
                             if (MainScreen.Input.LeftClickDown)
                             {
-                                currentDragType = BoxDragType.Middle;
-                                currentDragBox = box;
-                                currentDragOffset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
-                                currentDragBoxOriginalWidth = box.Width;
-                                currentDragBoxOriginalStart = box.MyEvent.StartTime;
-                                currentDragBoxOriginalEnd = box.MyEvent.EndTime;
-                                currentDragBoxOriginalRow = box.MyEvent.Row;
+                                if (MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                {
+                                    currentDrag.DragType = BoxDragType.MiddleOfEventBox;
+                                    currentDrag.Box = box;
+                                    currentDrag.Offset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
+                                    currentDrag.BoxOriginalWidth = box.Width;
+                                    currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
+                                    currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
+                                    currentDrag.BoxOriginalRow = box.MyEvent.Row;
+                                    currentDrag.StartMouseRow = MouseRow;
+                                    currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
+                                }
+                                else
+                                {
+                                    currentDrag.DragType = BoxDragType.MultiDragMiddleOfEventBox;
+                                    currentMultiDrag.Clear();
+                                    foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
+                                    {
+                                        var newDrag = new TaeDragState();
+
+                                        newDrag.DragType = BoxDragType.MiddleOfEventBox;
+                                        newDrag.Box = multiBox;
+                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
+                                        newDrag.BoxOriginalWidth = multiBox.Width;
+                                        newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
+                                        newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
+                                        newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
+                                        newDrag.StartMouseRow = MouseRow;
+                                        newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
+
+                                        currentMultiDrag.Add(newDrag);
+                                    }
+                                }
                             }
                         }
                     }
 
+                    var isSingleSelect = (currentDrag.DragType == BoxDragType.None) ||
+                        (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.StartDragPoint == currentDrag.CurrentDragPoint);
+
+
+                    if (isSingleSelect && MainScreen.Input.LeftClickDown)
+                    {
+                        if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
+                        {
+                            MainScreen.SelectedEventBox = box;
+
+                            currentMultiDrag.Clear();
+                            MainScreen.MultiSelectedEventBoxes.Clear();
+
+                            MainScreen.UpdateInspectorToSelection();
+
+                            break;
+                        }
+
+                    }
+
+                }
+
+
+
+                if (MainScreen.SelectedEventBox == null && 
+                    currentDrag.DragType == BoxDragType.None && 
+                    MainScreen.Input.LeftClickDown)
+                {
+                    currentDrag.DragType = BoxDragType.MultiSelectionRectangle;
+                    currentDrag.StartDragPoint = relMouse.ToPoint();
                 }
 
                 if (MainScreen.Input.LeftClickHeld)
                 {
-                    if (currentDragType == BoxDragType.Left && currentDragBox != null)
+                    currentDrag.CurrentDragPoint = relMouse.ToPoint();
+
+                    if (currentDrag.DragType == BoxDragType.LeftOfEventBox && currentDrag.Box != null)
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
-                        DragCurrentDragBoxToMouse(relMouse.ToPoint());
+                        currentDrag.DragBoxToMouse(relMouse.ToPoint());
                         AnimRef.IsModified = true;
                         MainScreen.IsModified = true;
-                        //currentDragBox.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
+                        //currentDrag.Box.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
                     }
-                    else if (currentDragType == BoxDragType.Right && currentDragBox != null)
+                    else if (currentDrag.DragType == BoxDragType.RightOfEventBox && currentDrag.Box != null)
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
-                        DragCurrentDragBoxToMouse(relMouse.ToPoint());
+                        currentDrag.DragBoxToMouse(relMouse.ToPoint());
                         AnimRef.IsModified = true;
                         MainScreen.IsModified = true;
-                        //currentDragBox.DragRightSide(MainScreen.Input.MousePositionDelta.X);
+                        //currentDrag.Box.DragRightSide(MainScreen.Input.MousePositionDelta.X);
                     }
-                    else if (currentDragType == BoxDragType.Middle && currentDragBox != null)
+                    else if (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.Box != null)
                     {
                         MainScreen.Input.CursorType = MouseCursorType.Arrow;
-                        DragCurrentDragBoxToMouse(relMouse.ToPoint());
+                        currentDrag.DragBoxToMouse(relMouse.ToPoint());
                         AnimRef.IsModified = true;
                         MainScreen.IsModified = true;
-                        //currentDragBox.DragMiddle(MainScreen.Input.MousePositionDelta.X);
-                        if (MouseRow >= 0)
-                            currentDragBox.MyEvent.Row = MouseRow;
+                        //currentDrag.Box.DragMiddle(MainScreen.Input.MousePositionDelta.X);
+                        currentDrag.ShiftBoxRow(MouseRow);
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox)
+                    {
+                        var earliestEndingDrag = currentMultiDrag.OrderBy(x => x.BoxOriginalEnd).First();
+                        int mouseMaxX = MathHelper.Max((int)earliestEndingDrag.StartDragPoint.X, (int)((earliestEndingDrag.BoxOriginalEnd * SecondsPixelSize) - (TimeActEventBase.FRAME * SecondsPixelSize)));
+
+                        var earliestDrag_preventNegative = currentMultiDrag.OrderBy(x => x.BoxOriginalStart).First();
+                        int mouseMinX_preventNegative = earliestDrag_preventNegative.Offset.X + (int)earliestDrag_preventNegative.BoxOriginalStart;
+
+                        var actualMousePoint = new Point(MathHelper.Max(MathHelper.Min((int)relMouse.X, mouseMaxX), mouseMinX_preventNegative), (int)(relMouse.Y));
+
+                        foreach (var multiDrag in currentMultiDrag)
+                        {
+                            MainScreen.Input.CursorType = MouseCursorType.DragX;
+                            multiDrag.DragBoxToMouse(actualMousePoint);
+                            AnimRef.IsModified = true;
+                            MainScreen.IsModified = true;
+                        }
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox)
+                    {
+                        var earliestEndingDrag = currentMultiDrag.OrderBy(x => x.BoxOriginalEnd).First();
+                        int mouseMinX = earliestEndingDrag.StartDragPoint.X - (int)((earliestEndingDrag.BoxOriginalDuration * SecondsPixelSize));
+                        var actualMousePoint = new Point(MathHelper.Max((int)relMouse.X, mouseMinX), (int)(relMouse.Y));
+
+                        foreach (var multiDrag in currentMultiDrag)
+                        {
+                            MainScreen.Input.CursorType = MouseCursorType.DragX;
+                            multiDrag.DragBoxToMouse(actualMousePoint);
+                            AnimRef.IsModified = true;
+                            MainScreen.IsModified = true;
+                        }
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
+                    {
+                        var highestDragRow = currentMultiDrag.OrderBy(x => x.BoxOriginalRow).First();
+                        var minimumMouseRow = (highestDragRow.StartMouseRow - highestDragRow.BoxOriginalRow);
+
+                        var earliestDrag = currentMultiDrag.OrderBy(x => x.BoxOriginalStart).First();
+                        int mouseMinX = earliestDrag.Offset.X + (int)earliestDrag.BoxOriginalStart;
+                        var actualMousePoint = new Point(MathHelper.Max((int)relMouse.X, mouseMinX), (int)(relMouse.Y));
+
+                        foreach (var multiDrag in currentMultiDrag)
+                        {
+                            MainScreen.Input.CursorType = MouseCursorType.Arrow;
+                            multiDrag.DragBoxToMouse(actualMousePoint);
+                            AnimRef.IsModified = true;
+                            MainScreen.IsModified = true;
+                            multiDrag.ShiftBoxRow(MathHelper.Max(MouseRow, minimumMouseRow));
+                        }
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle)
+                    {
+                        MainScreen.MultiSelectedEventBoxes.Clear();
+                        var dragRect = currentDrag.GetVirtualDragRect();
+                        int firstRow = (int)(dragRect.Top / RowHeight) - 1;
+                        int lastRow = (int)(dragRect.Bottom / RowHeight) + 1;
+                        for (int i = firstRow; i <= lastRow; i++)
+                        {
+                            if (sortedByRow.ContainsKey(i))
+                            {
+                                foreach (var box in sortedByRow[i])
+                                {
+                                    var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.WidthFr, (int)box.HeightFr);
+                                    if (boxRect.Intersects(dragRect))
+                                    {
+                                        MainScreen.MultiSelectedEventBoxes.Add(box);
+                                    }
+                                }
+                            }
+                        }
+                        MainScreen.SelectedEventBox = null;
+                        MainScreen.UpdateInspectorToSelection();
                     }
                 }
                 else
                 {
-                    if (currentDragType != BoxDragType.None)
+                    if (currentDrag.DragType != BoxDragType.None)
                     {
-                        TaeEditAnimEventBox copyOfBox = currentDragBox;
+                        if (currentDrag.DragType == BoxDragType.LeftOfEventBox ||
+                        currentDrag.DragType == BoxDragType.RightOfEventBox ||
+                        currentDrag.DragType == BoxDragType.MiddleOfEventBox)
+                        {
+                            TaeEditAnimEventBox copyOfBox = currentDrag.Box;
 
-                        float copyOfOldBoxStart = currentDragBoxOriginalStart;
-                        float copyOfOldBoxEnd = currentDragBoxOriginalEnd;
-                        int copyOfOldBoxRow = currentDragBoxOriginalRow;
+                            float copyOfOldBoxStart = currentDrag.BoxOriginalStart;
+                            float copyOfOldBoxEnd = currentDrag.BoxOriginalEnd;
+                            int copyOfOldBoxRow = currentDrag.BoxOriginalRow;
 
-                        float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
-                        float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
-                        int copyOfCurrentBoxRow = copyOfBox.MyEvent.Row;
+                            float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
+                            float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
+                            int copyOfCurrentBoxRow = copyOfBox.MyEvent.Row;
 
-                        MainScreen.UndoMan.NewAction(
-                            doAction: () =>
+                            MainScreen.UndoMan.NewAction(
+                                doAction: () =>
+                                {
+                                    copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
+                                    copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
+                                    copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
+
+                                    MainScreen.IsModified = true;
+                                    MainScreen.SelectedTaeAnim.IsModified = true;
+                                },
+                                undoAction: () =>
+                                {
+                                    copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
+                                    copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
+                                    copyOfBox.MyEvent.Row = copyOfOldBoxRow;
+
+                                    MainScreen.IsModified = true;
+                                    MainScreen.SelectedTaeAnim.IsModified = true;
+                                });
+
+                            currentDrag.DragType = BoxDragType.None;
+                            currentDrag.Box = null;
+                        }
+                        else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox ||
+                            currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox ||
+                            currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
+                        {
+                            List<TaeEditAnimEventBox> copiesOfBox = new List<TaeEditAnimEventBox>();
+
+                            List<float> copiesOfOldBoxStart = new List<float>();
+                            List<float> copiesOfOldBoxEnd = new List<float>();
+                            List<int> copiesOfOldBoxRow = new List<int>();
+
+                            List<float> copiesOfCurrentBoxStart = new List<float>();
+                            List<float> copiesOfCurrentBoxEnd = new List<float>();
+                            List<int> copiesOfCurrentBoxRow = new List<int>();
+
+                            foreach (var multiDrag in currentMultiDrag)
                             {
-                                copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
-                                copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
-                                copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
-                            },
-                            undoAction: () =>
-                            {
-                                copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
-                                copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
-                                copyOfBox.MyEvent.Row = copyOfOldBoxRow;
-                            });
+                                copiesOfBox.Add(multiDrag.Box);
 
-                        currentDragType = BoxDragType.None;
-                        currentDragBox = null;
+                                copiesOfOldBoxStart.Add(multiDrag.BoxOriginalStart);
+                                copiesOfOldBoxEnd.Add(multiDrag.BoxOriginalEnd);
+                                copiesOfOldBoxRow.Add(multiDrag.BoxOriginalRow);
+
+                                copiesOfCurrentBoxStart.Add(multiDrag.Box.MyEvent.StartTime);
+                                copiesOfCurrentBoxEnd.Add(multiDrag.Box.MyEvent.EndTime);
+                                copiesOfCurrentBoxRow.Add(multiDrag.Box.MyEvent.Row);
+                            }
+
+                            MainScreen.UndoMan.NewAction(
+                                    doAction: () =>
+                                    {
+                                        for (int i = 0; i < copiesOfBox.Count; i++)
+                                        {
+                                            copiesOfBox[i].MyEvent.StartTime = copiesOfCurrentBoxStart[i];
+                                            copiesOfBox[i].MyEvent.EndTime = copiesOfCurrentBoxEnd[i];
+                                            copiesOfBox[i].MyEvent.Row = copiesOfCurrentBoxRow[i];
+                                        }
+
+                                        MainScreen.IsModified = true;
+                                        MainScreen.SelectedTaeAnim.IsModified = true;
+                                    },
+                                    undoAction: () =>
+                                    {
+                                        for (int i = 0; i < copiesOfBox.Count; i++)
+                                        {
+                                            copiesOfBox[i].MyEvent.StartTime = copiesOfOldBoxStart[i];
+                                            copiesOfBox[i].MyEvent.EndTime = copiesOfOldBoxEnd[i];
+                                            copiesOfBox[i].MyEvent.Row = copiesOfOldBoxRow[i];
+                                        }
+
+                                        MainScreen.IsModified = true;
+                                        MainScreen.SelectedTaeAnim.IsModified = true;
+                                    });
+
+
+                            //foreach (var multiDrag in currentMultiDrag)
+                            //{
+                            //    TaeEditAnimEventBox copyOfBox = multiDrag.Box;
+
+                            //    float copyOfOldBoxStart = multiDrag.BoxOriginalStart;
+                            //    float copyOfOldBoxEnd = multiDrag.BoxOriginalEnd;
+                            //    int copyOfOldBoxRow = multiDrag.BoxOriginalRow;
+
+                            //    float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
+                            //    float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
+                            //    int copyOfCurrentBoxRow = copyOfBox.MyEvent.Row;
+
+                            //    MainScreen.UndoMan.NewAction(
+                            //        doAction: () =>
+                            //        {
+                            //            copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
+                            //            copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
+                            //            copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
+
+                            //            MainScreen.IsModified = true;
+                            //            MainScreen.SelectedTaeAnim.IsModified = true;
+                            //        },
+                            //        undoAction: () =>
+                            //        {
+                            //            copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
+                            //            copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
+                            //            copyOfBox.MyEvent.Row = copyOfOldBoxRow;
+
+                            //            MainScreen.IsModified = true;
+                            //            MainScreen.SelectedTaeAnim.IsModified = true;
+                            //        });
+
+                            //    multiDrag.DragType = BoxDragType.None;
+                            //    multiDrag.Box = null;
+                            //}
+
+                            currentMultiDrag.Clear();
+                            currentDrag.DragType = BoxDragType.None;
+                        }
+                        else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle)
+                        {
+                            currentDrag.DragType = BoxDragType.None;
+                        }
+
+                        
                     }
                 }
 
@@ -549,7 +972,15 @@ namespace TAEDX.TaeEditor
         {
             MouseRow = -1;
             if (!allowMouseUpdate)
+            {
+                if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle)
+                {
+                    currentDrag.DragType = BoxDragType.None;
+                }
+
                 return;
+            }
+                
 
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: false);
         }
@@ -626,9 +1057,12 @@ namespace TAEDX.TaeEditor
 
                 foreach (var kvp in sortedByRow)
                 {
-                    foreach (var box in kvp.Value)
+                    var boxesOrderedByTime = kvp.Value.OrderBy(x => x.MyEvent.StartTime);
+                    foreach (var box in boxesOrderedByTime)
                     {
-                        if (box == MainScreen.SelectedEventBox)
+                        var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
+
+                        if (isBoxSelected)
                             box.UpdateEventText();
 
                         if (box.LeftFr > ScrollViewer.RelativeViewport.Right
@@ -637,10 +1071,10 @@ namespace TAEDX.TaeEditor
 
                         bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.RelativeViewport.Left;
 
-                        Vector2 pos = new Vector2((int)box.LeftFr, (int)box.Top);
+                        Vector2 pos = new Vector2(box.LeftFr, box.Top);
                         Vector2 size = new Vector2(box.WidthFr, box.HeightFr);
 
-                        int boxOutlineThickness = (MainScreen.SelectedEventBox == box) ? 2 : 1;
+                        int boxOutlineThickness = isBoxSelected ? 2 : 1;
 
                         Color textFG = Color.White;
                         Color textBG = Color.Black;
@@ -658,14 +1092,14 @@ namespace TAEDX.TaeEditor
                             thisBoxBgColorSelected = Color.White;
                             boxOutlineColor = Color.Gray;
                             boxOutlineColorSelected = Color.Black;
-                            textFG = (MainScreen.SelectedEventBox == box) ? Color.Black : Color.White;
+                            textFG = isBoxSelected ? Color.Black : Color.White;
                             textBG = Color.Transparent;
                         }
 
                         sb.Draw(texture: boxTex,
                             position: pos + new Vector2(0, -1),
                             sourceRectangle: null,
-                            color: (MainScreen.SelectedEventBox == box) ? boxOutlineColorSelected : boxOutlineColor,
+                            color: isBoxSelected ? boxOutlineColorSelected : boxOutlineColor,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: size + new Vector2(0, 2),
@@ -678,7 +1112,7 @@ namespace TAEDX.TaeEditor
                         sb.Draw(texture: boxTex,
                             position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
                             sourceRectangle: null,
-                            color: (MainScreen.SelectedEventBox == box) ? thisBoxBgColorSelected : thisBoxBgColor,
+                            color: isBoxSelected ? thisBoxBgColorSelected : thisBoxBgColor,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
@@ -686,7 +1120,7 @@ namespace TAEDX.TaeEditor
                             layerDepth: 0
                             );
 
-                        var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), pos.Y);
+                        var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), (int)pos.Y);
 
                         var nameSize = font.MeasureString(box.EventText);
 
@@ -726,6 +1160,73 @@ namespace TAEDX.TaeEditor
                             effects: SpriteEffects.None,
                             layerDepth: 0
                             );
+
+                if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle)
+                {
+                    var multiSelectRect = currentDrag.GetVirtualDragRect();
+
+                    // FILL RECT:
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
+                        sourceRectangle: null,
+                        color: MultiSelectRectFillColor,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(multiSelectRect.Width, multiSelectRect.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0.01f
+                        );
+
+                    // THICK OUTLINE:
+
+                    //-- LEFT Side
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
+                        sourceRectangle: null,
+                        color: MultiSelectRectOutlineColor,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(MultiSelectRectOutlineThickness, multiSelectRect.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+                    //-- TOP Side
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
+                        sourceRectangle: null,
+                        color: MultiSelectRectOutlineColor,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(multiSelectRect.Width, MultiSelectRectOutlineThickness),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+                    //-- RIGHT Side
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2(multiSelectRect.Right - MultiSelectRectOutlineThickness, multiSelectRect.Top + TimeLineHeight),
+                        sourceRectangle: null,
+                        color: MultiSelectRectOutlineColor,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(MultiSelectRectOutlineThickness, multiSelectRect.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+                    //-- BOTTOM Side
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Bottom + TimeLineHeight - MultiSelectRectOutlineThickness),
+                        sourceRectangle: null,
+                        color: MultiSelectRectOutlineColor,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(multiSelectRect.Width, MultiSelectRectOutlineThickness),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                }
 
 
                 sb.Draw(texture: boxTex,

@@ -73,7 +73,7 @@ namespace TAEDX.TaeEditor
 
         public void DragRightSideOfBoxToVirtualUnitX(float x)
         {
-            MyEvent.EndTime = x / OwnerPane.SecondsPixelSize;
+            MyEvent.EndTime = (float)Math.Max(x / OwnerPane.SecondsPixelSize, MyEvent.StartTime + TimeActEventBase.FRAME);
         }
 
         public TaeEditAnimEventBox(TaeEditAnimEventGraph owner, TimeActEventBase myEvent)
