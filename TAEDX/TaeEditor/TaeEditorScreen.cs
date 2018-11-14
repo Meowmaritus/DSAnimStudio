@@ -286,6 +286,8 @@ namespace TAEDX.TaeEditor
         {
             LoadConfig();
 
+            gameWindowAsForm.FormClosing += GameWindowAsForm_FormClosing;
+
             GameWindowAsForm = gameWindowAsForm;
 
             GameWindowAsForm.MinimumSize = new System.Drawing.Size(720, 480);
@@ -379,6 +381,25 @@ namespace TAEDX.TaeEditor
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
 
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
+        }
+
+        private void GameWindowAsForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
+        {
+            var confirmDlg = System.Windows.Forms.MessageBox.Show(
+                    $"File \"{System.IO.Path.GetFileName(AnibndFileName)}\" has " +
+                    $"unsaved changes. Would you like to save these changes before " +
+                    $"closing?", "Save Unsaved Changes?",
+                    System.Windows.Forms.MessageBoxButtons.YesNoCancel,
+                    System.Windows.Forms.MessageBoxIcon.None);
+
+            if (confirmDlg == System.Windows.Forms.DialogResult.Yes)
+            {
+                SaveCurrentFile();
+            }
+            else if (confirmDlg == System.Windows.Forms.DialogResult.Cancel)
+            {
+                e.Cancel = true;
+            }
         }
 
         private void ToolStripAccessibilityColorBlindMode_CheckedChanged(object sender, EventArgs e)
