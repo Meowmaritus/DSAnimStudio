@@ -120,8 +120,8 @@ namespace TAEDX.TaeEditor
         }
 
 
-        private TaeButtonRepeater UndoButton = new TaeButtonRepeater(0.5f, 0.15f);
-        private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.5f, 0.15f);
+        private TaeButtonRepeater UndoButton = new TaeButtonRepeater(0.4f, 0.05f);
+        private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.4f, 0.05f);
         private System.Windows.Forms.ToolStripMenuItem ToolStripEditUndo;
         private System.Windows.Forms.ToolStripMenuItem ToolStripEditRedo;
 
@@ -160,6 +160,29 @@ namespace TAEDX.TaeEditor
 
         public readonly System.Windows.Forms.Form GameWindowAsForm;
 
+        public void UpdateInspectorToSelection()
+        {
+            if (SelectedEventBox == null)
+            {
+                if (MultiSelectedEventBoxes.Count > 0)
+                {
+                    inspectorWinFormsControl.labelEventType.Text = "(Multiple Selected)";
+                    inspectorWinFormsControl.buttonChangeType.Enabled = false;
+                }
+                else
+                {
+                    inspectorWinFormsControl.labelEventType.Text = "(Nothing Selected)";
+                    inspectorWinFormsControl.buttonChangeType.Enabled = false;
+                }
+            }
+            else
+            {
+                inspectorWinFormsControl.labelEventType.Text =
+                    SelectedEventBox.MyEvent.EventType.ToString();
+                inspectorWinFormsControl.buttonChangeType.Enabled = true;
+            }
+        }
+
         private TaeEditAnimEventBox _selectedEventBox = null;
         public TaeEditAnimEventBox SelectedEventBox
         {
@@ -167,19 +190,25 @@ namespace TAEDX.TaeEditor
             set
             {
                 _selectedEventBox = value;
-                inspectorWinFormsControl.labelEventType.Text = 
-                    _selectedEventBox?.MyEvent.EventType.ToString() ?? "(None Selected)";
+
                 if (_selectedEventBox == null)
                 {
-                    inspectorWinFormsControl.buttonChangeType.Enabled = false;
+                    //inspectorWinFormsControl.buttonChangeType.Enabled = false;
                 }
                 else
                 {
-                    inspectorWinFormsControl.buttonChangeType.Enabled = true;
+                    //inspectorWinFormsControl.buttonChangeType.Enabled = true;
+
+                    // If one box was just selected, clear the multi-select
+                    MultiSelectedEventBoxes.Clear();
                 }
                 inspectorWinFormsControl.propertyGrid.SelectedObject = _selectedEventBox?.MyEvent;
+
+                UpdateInspectorToSelection();
             }
         }
+
+        public List<TaeEditAnimEventBox> MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>();
 
         private TaeEditAnimList editScreenAnimList;
         private TaeEditAnimEventGraph editScreenCurrentAnim;
@@ -361,7 +390,7 @@ namespace TAEDX.TaeEditor
                 //ToolStripAccessibilityDisableRainbow.Checked = Config.DisableRainbow;
                 //toolstripAccessibility.DropDownItems.Add(ToolStripAccessibilityDisableRainbow);
 
-                ToolStripAccessibilityColorBlindMode = new System.Windows.Forms.ToolStripMenuItem("Color-Blind Mode");
+                ToolStripAccessibilityColorBlindMode = new System.Windows.Forms.ToolStripMenuItem("Color-Blind + High Contrast Mode");
                 ToolStripAccessibilityColorBlindMode.CheckOnClick = true;
                 ToolStripAccessibilityColorBlindMode.CheckedChanged += ToolStripAccessibilityColorBlindMode_CheckedChanged;
                 ToolStripAccessibilityColorBlindMode.Checked = Config.EnableColorBlindMode;
@@ -385,21 +414,54 @@ namespace TAEDX.TaeEditor
 
         private void GameWindowAsForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
         {
-            var confirmDlg = System.Windows.Forms.MessageBox.Show(
+            var unsavedChanges = false;
+
+            if (Anibnd != null)
+            {
+                if (Anibnd.IsModified)
+                {
+                    unsavedChanges = true;
+                }
+                else
+                {
+                    foreach (var tae in Anibnd.AllTAE)
+                    {
+                        foreach (var anim in tae.Animations)
+                        {
+                            if (anim.IsModified)
+                            {
+                                unsavedChanges = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (unsavedChanges)
+            {
+                var confirmDlg = System.Windows.Forms.MessageBox.Show(
                     $"File \"{System.IO.Path.GetFileName(AnibndFileName)}\" has " +
                     $"unsaved changes. Would you like to save these changes before " +
                     $"closing?", "Save Unsaved Changes?",
                     System.Windows.Forms.MessageBoxButtons.YesNoCancel,
                     System.Windows.Forms.MessageBoxIcon.None);
 
-            if (confirmDlg == System.Windows.Forms.DialogResult.Yes)
-            {
-                SaveCurrentFile();
+                if (confirmDlg == System.Windows.Forms.DialogResult.Yes)
+                {
+                    SaveCurrentFile();
+                }
+                else if (confirmDlg == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                }
             }
-            else if (confirmDlg == System.Windows.Forms.DialogResult.Cancel)
+            else
             {
-                e.Cancel = true;
+                e.Cancel = false;
             }
+
+            
         }
 
         private void ToolStripAccessibilityColorBlindMode_CheckedChanged(object sender, EventArgs e)
@@ -433,6 +495,9 @@ namespace TAEDX.TaeEditor
             undoAction: () =>
             {
                 e.ChangedItem.PropertyDescriptor.SetValue(boxReference.MyEvent, oldValReference);
+
+                SelectedTaeAnim.IsModified = true;
+                IsModified = true;
 
                 gridReference.Refresh();
             });
@@ -605,6 +670,9 @@ namespace TAEDX.TaeEditor
                             SelectedEventBox.MyEvent.Row = row;
 
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
+
+                            SelectedTaeAnim.IsModified = true;
+                            IsModified = true;
                         });
                 }
             }
@@ -638,6 +706,8 @@ namespace TAEDX.TaeEditor
             {
                 //PauseUpdateTotalTime = 0;
             }
+
+            
 
 
             Input.Update(Rect);

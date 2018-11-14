@@ -54,7 +54,7 @@
             this.labelEventType.Name = "labelEventType";
             this.labelEventType.Size = new System.Drawing.Size(209, 28);
             this.labelEventType.TabIndex = 2;
-            this.labelEventType.Text = "(None Selected)";
+            this.labelEventType.Text = "(Nothing Selected)";
             this.labelEventType.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // buttonChangeType
@@ -69,7 +69,7 @@
             this.buttonChangeType.Text = "Change Type...";
             this.buttonChangeType.UseVisualStyleBackColor = true;
             // 
-            // InspectorWinFormsControl
+            // TaeInspectorWinFormsControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -78,7 +78,7 @@
             this.Controls.Add(this.labelEventType);
             this.Controls.Add(this.propertyGrid);
             this.DoubleBuffered = true;
-            this.Name = "InspectorWinFormsControl";
+            this.Name = "TaeInspectorWinFormsControl";
             this.Size = new System.Drawing.Size(331, 453);
             this.ResumeLayout(false);
 
