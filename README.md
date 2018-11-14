@@ -20,6 +20,7 @@
 * Snaps to 30-fps increments just like the vanilla files do.
 * Allows you to add new events to animations by right-clicking anywhere.
 * Allows you to delete events by highlighting them and pressing the Delete key.
+* Allows you to modify the parameters passed to each event (click an event to highlight it, then the parameters appear in the pane on the right side of the window)
 * **Has full undo/redo functionality with Ctrl+Z/Ctrl+Y**
 * Edits the .anibnd or .anibnd.dcx files of the games directly. **No need to use BND rebuilders.**
 
