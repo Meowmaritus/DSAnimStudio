@@ -41,8 +41,8 @@ namespace TAEDX.TaeEditor
 
         const float SecondsPixelSizeDefault = 128 * 4;
         public float SecondsPixelSize = SecondsPixelSizeDefault;
-        public float SecondsPixelSizeFarAwayModeUpperBound = 128;
-        public float SecondsPixelSizeMax = 128 * 400;
+        public float SecondsPixelSizeFarAwayModeUpperBound = SecondsPixelSizeDefault;
+        public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 2048);
         public float SecondsPixelSizeScrollNotch = 128;
 
         public float TimeLineHeight = 24;
@@ -86,6 +86,9 @@ namespace TAEDX.TaeEditor
             float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
 
             SecondsPixelSize *= 2;
+
+            if (SecondsPixelSize > SecondsPixelSizeMax)
+                SecondsPixelSize = SecondsPixelSizeMax;
 
             //if (SecondsPixelSize < SecondsPixelSizeFarAwayModeUpperBound)
             //{
@@ -227,7 +230,7 @@ namespace TAEDX.TaeEditor
         public TaeEditAnimEventGraph(TaeEditorScreen mainScreen)
         {
             MainScreen = mainScreen;
-            ChangeToNewAnimRef(MainScreen.TaeAnim);
+            ChangeToNewAnimRef(MainScreen.SelectedTaeAnim);
         }
 
         private void Box_RowChanged(object sender, int e)
@@ -322,7 +325,7 @@ namespace TAEDX.TaeEditor
                     mouseTime, mouseTime + 1);
             }
 
-            newEvent.Index = MainScreen.TaeAnim.Anim.EventList.Count;
+            newEvent.Index = MainScreen.SelectedTaeAnim.Anim.EventList.Count;
 
             var newBox = new TaeEditAnimEventBox(this, newEvent);
 
@@ -331,7 +334,7 @@ namespace TAEDX.TaeEditor
             MainScreen.UndoMan.NewAction(
                 doAction: () =>
                 {
-                    MainScreen.TaeAnim.Anim.EventList.Add(newEvent);
+                    MainScreen.SelectedTaeAnim.Anim.EventList.Add(newEvent);
 
                     if (!sortedByRow.ContainsKey(newBox.MyEvent.Row))
                         sortedByRow.Add(newBox.MyEvent.Row, new List<TaeEditAnimEventBox>());
@@ -351,7 +354,7 @@ namespace TAEDX.TaeEditor
                         if (sortedByRow[newBox.MyEvent.Row].Contains(newBox))
                             sortedByRow[newBox.MyEvent.Row].Remove(newBox);
 
-                    MainScreen.TaeAnim.Anim.EventList.Remove(newEvent);
+                    MainScreen.SelectedTaeAnim.Anim.EventList.Remove(newEvent);
                 });
 
             
@@ -611,12 +614,12 @@ namespace TAEDX.TaeEditor
                 sb.Begin(transformMatrix: ScrollViewer.GetScrollMatrix());
 
                 sb.Draw(texture: boxTex,
-                    position: ScrollViewer.Scroll,
+                    position: ScrollViewer.Scroll - (Vector2.One * 2),
                     sourceRectangle: null,
                     color: Color.DimGray,
                     rotation: 0,
                     origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height),
+                    scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
                     effects: SpriteEffects.None,
                     layerDepth: 0
                     );

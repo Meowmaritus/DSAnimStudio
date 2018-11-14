@@ -17,6 +17,9 @@ namespace TAEDX.TaeEditor
             Vertical,
         }
 
+        public bool DisableHorizontalScroll = false;
+        public bool DisableVerticalScroll = false;
+
         private Color ColorScrollBackground = new Color(0.25f, 0.25f, 0.25f);
         private Color ColorScrollForegroundInactive = new Color(0.45f, 0.45f, 0.45f);
         private Color ColorScrollForegroundActive = new Color(0.55f, 0.55f, 0.55f);
@@ -160,12 +163,17 @@ namespace TAEDX.TaeEditor
         public void SetDisplayRect(Rectangle dispRect, Point virtualAreaSize)
         {
             FullDisplayRect = dispRect;
-            VirtualAreaSize = new Point(virtualAreaSize.X + ScrollBarThickness, virtualAreaSize.Y + ScrollBarThickness);
+            VirtualAreaSize = new Point(virtualAreaSize.X - ScrollBarThickness, virtualAreaSize.Y - ScrollBarThickness);
+
+            DisableHorizontalScroll = VirtualAreaSize.X < FullDisplayRect.Width;
+            DisableVerticalScroll = VirtualAreaSize.Y < FullDisplayRect.Height;
 
             ViewportDisplayRect = new Rectangle(FullDisplayRect.X, FullDisplayRect.Y, 
-                FullDisplayRect.Width - ScrollBarThickness, FullDisplayRect.Height - ScrollBarThickness);
-            MaxScroll = new Vector2(VirtualAreaSize.X - ViewportDisplayRect.Width, 
-                VirtualAreaSize.Y - ViewportDisplayRect.Height);
+                FullDisplayRect.Width - (DisableVerticalScroll ? 0 : ScrollBarThickness),
+                FullDisplayRect.Height - (DisableHorizontalScroll ? 0 : ScrollBarThickness));
+
+            MaxScroll = new Vector2(DisableHorizontalScroll ? 0 : VirtualAreaSize.X - ViewportDisplayRect.Width,
+                DisableVerticalScroll ? 0 : VirtualAreaSize.Y - ViewportDisplayRect.Height);
 
             if (MaxScroll.X < 0)
                 MaxScroll.X = 0;
@@ -175,18 +183,18 @@ namespace TAEDX.TaeEditor
 
             HorizontalBoxValidArea = new Rectangle(FullDisplayRect.X + ScrollBarThickness, 
                 FullDisplayRect.Bottom - ScrollBarThickness,
-                FullDisplayRect.Width - (ScrollBarThickness * 3), 
+                FullDisplayRect.Width - (ScrollBarThickness * 2) - (DisableVerticalScroll ? 0 : ScrollBarThickness), 
                 ScrollBarThickness);
 
             VerticalBoxValidArea = new Rectangle(FullDisplayRect.X + FullDisplayRect.Width - ScrollBarThickness, 
                 FullDisplayRect.Y + ScrollBarThickness, 
                 ScrollBarThickness,
-                FullDisplayRect.Height - (ScrollBarThickness * 3));
+                FullDisplayRect.Height - (ScrollBarThickness * 2) - (DisableHorizontalScroll ? 0 : ScrollBarThickness));
 
             ClampScroll();
 
-            int hBoxLength = (int)(HorizontalBoxValidArea.Width * (1.0f * ViewportDisplayRect.Width / VirtualAreaSize.X));
-            int vBoxLength = (int)(VerticalBoxValidArea.Height * (1.0f * ViewportDisplayRect.Height / VirtualAreaSize.Y));
+            int hBoxLength = (int)Math.Max((HorizontalBoxValidArea.Width * (1.0f * ViewportDisplayRect.Width / VirtualAreaSize.X)), ScrollBarThickness);
+            int vBoxLength = (int)Math.Max((VerticalBoxValidArea.Height * (1.0f * ViewportDisplayRect.Height / VirtualAreaSize.Y)), ScrollBarThickness);
 
             HorizontalBox = new Rectangle((int)(HorizontalBoxValidArea.X +
                 (Scroll.X / MaxScroll.X) * (HorizontalBoxValidArea.Width - hBoxLength)),
@@ -202,7 +210,7 @@ namespace TAEDX.TaeEditor
                 ScrollBarThickness);
 
             ScrollRightArrowBox = new Rectangle(
-                FullDisplayRect.Right - (ScrollBarThickness * 2), 
+                FullDisplayRect.Right - (ScrollBarThickness) - (DisableVerticalScroll ? 0 : ScrollBarThickness), 
                 HorizontalBoxValidArea.Top, 
                 ScrollBarThickness, 
                 ScrollBarThickness);
@@ -215,7 +223,7 @@ namespace TAEDX.TaeEditor
 
             ScrollDownArrowBox = new Rectangle(
                 FullDisplayRect.Right - ScrollBarThickness, 
-                FullDisplayRect.Bottom - (ScrollBarThickness * 2), 
+                FullDisplayRect.Bottom - (ScrollBarThickness) - (DisableHorizontalScroll ? 0 : ScrollBarThickness), 
                 ScrollBarThickness, 
                 ScrollBarThickness);
         }
@@ -238,12 +246,12 @@ namespace TAEDX.TaeEditor
 
             if (CurrentScroll == ScrollbarType.None && input.LeftClickDown)
             {
-                if (HorizontalBox.Contains(relMouse))
+                if (!DisableHorizontalScroll && HorizontalBox.Contains(relMouse))
                 {
                     CurrentScroll = ScrollbarType.Horizontal;
                     HorizontalBoxGrabOffset = new Point(relMouse.X - HorizontalBox.X, relMouse.Y - HorizontalBox.Y);
                 }
-                else if (VerticalBox.Contains(relMouse))
+                else if (!DisableVerticalScroll && VerticalBox.Contains(relMouse))
                 {
                     CurrentScroll = ScrollbarType.Vertical;
                     VerticalBoxGrabOffset = new Point(relMouse.X - VerticalBox.X, relMouse.Y - VerticalBox.Y);
@@ -265,41 +273,50 @@ namespace TAEDX.TaeEditor
                 CurrentScroll = ScrollbarType.None;
             }
 
-            ScrollUpButtonHeld = CurrentScroll == ScrollbarType.None && input.LeftClickHeld && ScrollUpArrowBox.Contains(relMouse);
-            ScrollDownButtonHeld = CurrentScroll == ScrollbarType.None && input.LeftClickHeld && ScrollDownArrowBox.Contains(relMouse);
-            ScrollLeftButtonHeld = CurrentScroll == ScrollbarType.None && input.LeftClickHeld && ScrollLeftArrowBox.Contains(relMouse);
-            ScrollRightButtonHeld = CurrentScroll == ScrollbarType.None && input.LeftClickHeld && ScrollRightArrowBox.Contains(relMouse);
+            ScrollUpButtonHeld = CurrentScroll == ScrollbarType.None && !DisableVerticalScroll && input.LeftClickHeld && ScrollUpArrowBox.Contains(relMouse);
+            ScrollDownButtonHeld = CurrentScroll == ScrollbarType.None && !DisableVerticalScroll && input.LeftClickHeld && ScrollDownArrowBox.Contains(relMouse);
+            ScrollLeftButtonHeld = CurrentScroll == ScrollbarType.None && !DisableHorizontalScroll && input.LeftClickHeld && ScrollLeftArrowBox.Contains(relMouse);
+            ScrollRightButtonHeld = CurrentScroll == ScrollbarType.None && !DisableHorizontalScroll && input.LeftClickHeld && ScrollRightArrowBox.Contains(relMouse);
 
-            if (ScrollUpButton.Update(elapsedSeconds, ScrollUpButtonHeld))
+            if (!DisableVerticalScroll)
             {
-                ScrollByVirtualScrollUnits(new Vector2(0, -ScrollArrowButtonVirtualScrollAmountY));
-            }
-
-            if (ScrollDownButton.Update(elapsedSeconds, ScrollDownButtonHeld))
-            {
-                ScrollByVirtualScrollUnits(new Vector2(0, ScrollArrowButtonVirtualScrollAmountY));
-            }
-
-            if (ScrollLeftButton.Update(elapsedSeconds, ScrollLeftButtonHeld))
-            {
-                ScrollByVirtualScrollUnits(new Vector2(-ScrollArrowButtonVirtualScrollAmountX, 0));
-            }
-
-            if (ScrollRightButton.Update(elapsedSeconds, ScrollRightButtonHeld))
-            {
-                ScrollByVirtualScrollUnits(new Vector2(ScrollArrowButtonVirtualScrollAmountX, 0));
-            }
-
-            var scrollWheel = allowScrollWheel ? input.ScrollDelta : 0;
-            if (scrollWheel != 0)
-            {
-                if (input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift))
+                if (ScrollUpButton.Update(elapsedSeconds, ScrollUpButtonHeld))
                 {
-                    ScrollByVirtualScrollUnits(new Vector2(-scrollWheel * ScrollWheelVirtualScrollAmountX, 0));
+                    ScrollByVirtualScrollUnits(new Vector2(0, -ScrollArrowButtonVirtualScrollAmountY));
                 }
-                else
+
+                if (ScrollDownButton.Update(elapsedSeconds, ScrollDownButtonHeld))
                 {
-                    ScrollByVirtualScrollUnits(new Vector2(0,  -scrollWheel * ScrollWheelVirtualScrollAmountY));
+                    ScrollByVirtualScrollUnits(new Vector2(0, ScrollArrowButtonVirtualScrollAmountY));
+                }
+            }
+
+            if (!DisableHorizontalScroll)
+            {
+                if (ScrollLeftButton.Update(elapsedSeconds, ScrollLeftButtonHeld))
+                {
+                    ScrollByVirtualScrollUnits(new Vector2(-ScrollArrowButtonVirtualScrollAmountX, 0));
+                }
+
+                if (ScrollRightButton.Update(elapsedSeconds, ScrollRightButtonHeld))
+                {
+                    ScrollByVirtualScrollUnits(new Vector2(ScrollArrowButtonVirtualScrollAmountX, 0));
+                }
+            }
+
+            if (!DisableVerticalScroll)
+            {
+                var scrollWheel = allowScrollWheel ? input.ScrollDelta : 0;
+                if (scrollWheel != 0)
+                {
+                    if (input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift))
+                    {
+                        ScrollByVirtualScrollUnits(new Vector2(-scrollWheel * ScrollWheelVirtualScrollAmountX, 0));
+                    }
+                    else
+                    {
+                        ScrollByVirtualScrollUnits(new Vector2(0, -scrollWheel * ScrollWheelVirtualScrollAmountY));
+                    }
                 }
             }
         }
@@ -312,48 +329,55 @@ namespace TAEDX.TaeEditor
             //{
             sb.Begin();
 
-            sb.Draw(boxTex, HorizontalBoxValidArea, ColorScrollBackground);
-            sb.Draw(boxTex, HorizontalBox, CurrentScroll == ScrollbarType.Horizontal ? 
-                ColorScrollForegroundActive : ColorScrollForegroundInactive);
-
-            sb.Draw(boxTex, VerticalBoxValidArea, ColorScrollBackground);
-            sb.Draw(boxTex, VerticalBox, CurrentScroll == ScrollbarType.Vertical ? 
-                ColorScrollForegroundActive : ColorScrollForegroundInactive);
-
-            sb.Draw(boxTex, ScrollUpArrowBox, 
-                ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundActive 
-                : ColorScrollArrowButtonForegroundInactive);
-            sb.Draw(boxTex, ScrollDownArrowBox, 
-                ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundActive 
-                : ColorScrollArrowButtonForegroundInactive);
-            sb.Draw(boxTex, ScrollLeftArrowBox,
-                ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundActive 
-                : ColorScrollArrowButtonForegroundInactive);
-            sb.Draw(boxTex, ScrollRightArrowBox, 
-                ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundActive 
-                : ColorScrollArrowButtonForegroundInactive);
-
             var scrollArrowOrigin = font.MeasureString(ScrollArrowStr) / 2;
 
-            sb.DrawString(font, ScrollArrowStr, ScrollUpArrowBox.Center.ToVector2(), 
-                ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundInactive 
-                : ColorScrollArrowButtonForegroundActive, 
-                0, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+            if (!DisableHorizontalScroll)
+            {
+                sb.Draw(boxTex, HorizontalBoxValidArea, ColorScrollBackground);
+                sb.Draw(boxTex, HorizontalBox, CurrentScroll == ScrollbarType.Horizontal ?
+                    ColorScrollForegroundActive : ColorScrollForegroundInactive);
 
-            sb.DrawString(font, ScrollArrowStr, ScrollDownArrowBox.Center.ToVector2(),
-                ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundInactive 
+                sb.Draw(boxTex, ScrollLeftArrowBox,
+                    ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundActive
+                    : ColorScrollArrowButtonForegroundInactive);
+                sb.Draw(boxTex, ScrollRightArrowBox,
+                    ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundActive
+                    : ColorScrollArrowButtonForegroundInactive);
+
+                sb.DrawString(font, ScrollArrowStr, ScrollLeftArrowBox.Center.ToVector2(),
+                ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundInactive
                 : ColorScrollArrowButtonForegroundActive,
-                MathHelper.PiOver2 * 2, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
-
-            sb.DrawString(font, ScrollArrowStr, ScrollLeftArrowBox.Center.ToVector2(), 
-                ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundInactive 
-                : ColorScrollArrowButtonForegroundActive, 
                 MathHelper.PiOver2 * 3, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
 
-            sb.DrawString(font, ScrollArrowStr, ScrollRightArrowBox.Center.ToVector2(), 
-                ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundInactive 
-                : ColorScrollArrowButtonForegroundActive, 
-                MathHelper.PiOver2 * 1, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+                sb.DrawString(font, ScrollArrowStr, ScrollRightArrowBox.Center.ToVector2(),
+                    ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                    : ColorScrollArrowButtonForegroundActive,
+                    MathHelper.PiOver2 * 1, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+            }
+
+            if (!DisableVerticalScroll)
+            {
+                sb.Draw(boxTex, VerticalBoxValidArea, ColorScrollBackground);
+                sb.Draw(boxTex, VerticalBox, CurrentScroll == ScrollbarType.Vertical ?
+                    ColorScrollForegroundActive : ColorScrollForegroundInactive);
+                
+                sb.Draw(boxTex, ScrollUpArrowBox,
+                    ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundActive
+                    : ColorScrollArrowButtonForegroundInactive);
+                sb.Draw(boxTex, ScrollDownArrowBox,
+                    ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundActive
+                    : ColorScrollArrowButtonForegroundInactive);
+
+                sb.DrawString(font, ScrollArrowStr, ScrollUpArrowBox.Center.ToVector2(),
+                ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                : ColorScrollArrowButtonForegroundActive,
+                0, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+
+                sb.DrawString(font, ScrollArrowStr, ScrollDownArrowBox.Center.ToVector2(),
+                    ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                    : ColorScrollArrowButtonForegroundActive,
+                    MathHelper.PiOver2 * 2, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+            }
 
             sb.End();
             //}

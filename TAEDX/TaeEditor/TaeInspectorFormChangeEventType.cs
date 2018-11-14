@@ -26,9 +26,21 @@ namespace TAEDX.TaeEditor
             listBoxEventTypes.Items.Clear();
             foreach (var et in eventTypes)
             {
-                listBoxEventTypes.Items.Add(Text = et.ToString());
+                listBoxEventTypes.Items.Add($"{((int)et):D3}: {et.ToString()}");
             }
-            listBoxEventTypes.SelectedIndex = 0;
+            listBoxEventTypes.SelectedIndex = listBoxEventTypes.Items.IndexOf($"{((int)NewEventType):D3}: {NewEventType.ToString()}");
+            listBoxEventTypes.Focus();
+            listBoxEventTypes.KeyDown += ListBoxEventTypes_KeyDown;
+        }
+
+        private void ListBoxEventTypes_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                NewEventType = (TimeActEventType)Enum.Parse(typeof(TimeActEventType), listBoxEventTypes.SelectedItem.ToString().Substring(5));
+                DialogResult = DialogResult.OK;
+                Close();
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)

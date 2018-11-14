@@ -41,7 +41,9 @@ namespace TAEDX.TaeEditor
             "Delete Key:\n" +
             "    Delete highlighted event.\n\n\n" +
             "The pane on the right shows the parameters of the highlighted event." +
-            "Click \"Change Type\" on the upper-right corner to change the event type of the highlighted event.";
+            "Click \"Change Type\" on the upper-right corner to change the event type of the highlighted event." +
+            "F1 Key:\n" +
+            "    Change type of highlighted event.\n";
 
         private static object _lock_PauseUpdate = new object();
         private bool _PauseUpdate;
@@ -82,14 +84,14 @@ namespace TAEDX.TaeEditor
         {
             get
             {
-                if (!UndoManDictionary.ContainsKey(TaeAnim))
+                if (!UndoManDictionary.ContainsKey(SelectedTaeAnim))
                 {
                     var newUndoMan = new TaeUndoMan();
                     newUndoMan.CanUndoMaybeChanged += UndoMan_CanUndoMaybeChanged;
                     newUndoMan.CanRedoMaybeChanged += UndoMan_CanRedoMaybeChanged;
-                    UndoManDictionary.Add(TaeAnim, newUndoMan);
+                    UndoManDictionary.Add(SelectedTaeAnim, newUndoMan);
                 }
-                return UndoManDictionary[TaeAnim];
+                return UndoManDictionary[SelectedTaeAnim];
             }
         }
 
@@ -126,11 +128,13 @@ namespace TAEDX.TaeEditor
         //private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityDisableRainbow;
         private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityColorBlindMode;
 
-        private float LeftSectionWidth = 256;
+        private float LeftSectionWidth = 128;
+        private const float LeftSectionWidthMin = 128;
         private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth - (DividerHitboxPad / 2f);
         private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + (DividerHitboxPad / 2f);
 
         private float RightSectionWidth = 320;
+        private const float RightSectionWidthMin = 128;
         private float DividerRightGrabStart => Rect.Right - RightSectionWidth - (DividerHitboxPad / 2f);
         private float DividerRightGrabEnd => Rect.Right - RightSectionWidth + (DividerHitboxPad / 2f);
 
@@ -148,9 +152,11 @@ namespace TAEDX.TaeEditor
         private ScreenMouseHoverKind MouseHoverKind = ScreenMouseHoverKind.None;
         private ScreenMouseHoverKind oldMouseHoverKind = ScreenMouseHoverKind.None;
 
-        public TAE Tae;
+        public ANIBND Anibnd;
 
-        public AnimationRef TaeAnim { get; private set; }
+        public TAE SelectedTae { get; private set; }
+
+        public AnimationRef SelectedTaeAnim { get; private set; }
 
         public readonly System.Windows.Forms.Form GameWindowAsForm;
 
@@ -186,19 +192,19 @@ namespace TAEDX.TaeEditor
 
         private System.Windows.Forms.MenuStrip WinFormsMenuStrip;
 
-        public string TaeFileName = "";
+        public string AnibndFileName = "";
 
         public TaeConfigFile Config = new TaeConfigFile();
 
         public void LoadConfig()
         {
-            if (!System.IO.File.Exists("TAEDX_Config.json"))
+            if (!System.IO.File.Exists("TAE Editor DX - Configuration.json"))
             {
                 Config = new TaeConfigFile();
                 SaveConfig();
             }
 
-            var jsonText = System.IO.File.ReadAllText("TAEDX_Config.json");
+            var jsonText = System.IO.File.ReadAllText("TAE Editor DX - Configuration.json");
 
             Config = Newtonsoft.Json.JsonConvert.DeserializeObject<TaeConfigFile>(jsonText);
         }
@@ -209,42 +215,69 @@ namespace TAEDX.TaeEditor
                 .SerializeObject(Config,
                 Newtonsoft.Json.Formatting.Indented);
 
-            System.IO.File.WriteAllText("TAEDX_Config.json", jsonText);
+            System.IO.File.WriteAllText("TAE Editor DX - Configuration.json", jsonText);
         }
 
-        public void LoadCurrentFile()
+        public bool? LoadCurrentFile()
         {
-            if (System.IO.File.Exists(TaeFileName))
+            if (System.IO.File.Exists(AnibndFileName))
             {
-                var newTae = MeowDSIO.DataFile.LoadFromFile<TAE>(TaeFileName);
-                LoadTAE(newTae);
-                ToolStripFileSaveAs.Enabled = true;
+                ANIBND newAnibnd = null;
+                if (AnibndFileName.ToUpper().EndsWith(".DCX"))
+                    newAnibnd = MeowDSIO.DataFile.LoadFromDcxFile<ANIBND>(AnibndFileName);
+                else
+                    newAnibnd = MeowDSIO.DataFile.LoadFromFile<ANIBND>(AnibndFileName);
+
+                if (newAnibnd.AllTAE.Any())
+                {
+                    LoadANIBND(newAnibnd);
+                    ToolStripFileSaveAs.Enabled = true;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return null;
             }
         }
 
         public void SaveCurrentFile()
         {
-            if (System.IO.File.Exists(TaeFileName) && 
-                !System.IO.File.Exists(TaeFileName + ".taedxbak"))
+            if (System.IO.File.Exists(AnibndFileName) && 
+                !System.IO.File.Exists(AnibndFileName + ".taedxbak"))
             {
-                System.IO.File.Copy(TaeFileName, TaeFileName + ".taedxbak");
+                System.IO.File.Copy(AnibndFileName, AnibndFileName + ".taedxbak");
                 System.Windows.Forms.MessageBox.Show(
-                    "A backup was not found and was created:\n" + TaeFileName + ".taedxbak",
+                    "A backup was not found and was created:\n" + AnibndFileName + ".taedxbak",
                     "Backup Created", System.Windows.Forms.MessageBoxButtons.OK, 
                     System.Windows.Forms.MessageBoxIcon.Information);
             }
-            MeowDSIO.DataFile.SaveToFile(Tae, TaeFileName);
-            foreach (var animRef in Tae.Animations)
+
+            if (AnibndFileName.ToUpper().EndsWith(".DCX"))
+                MeowDSIO.DataFile.SaveToDcxFile(Anibnd, AnibndFileName);
+            else
+                MeowDSIO.DataFile.SaveToFile(Anibnd, AnibndFileName);
+
+            foreach (var tae in Anibnd.AllTAE)
             {
-                animRef.IsModified = false;
+                foreach (var animRef in tae.Animations)
+                {
+                    animRef.IsModified = false;
+                }
             }
+            
             IsModified = false;
         }
 
-        private void LoadTAE(TAE tae)
+        private void LoadANIBND(ANIBND anibnd)
         {
-            Tae = tae;
-            TaeAnim = Tae.Animations[0];
+            Anibnd = anibnd;
+            SelectedTae = Anibnd.AllTAE.First();
+            SelectedTaeAnim = SelectedTae.Animations[0];
             editScreenAnimList = new TaeEditAnimList(this);
             editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
         }
@@ -254,6 +287,8 @@ namespace TAEDX.TaeEditor
             LoadConfig();
 
             GameWindowAsForm = gameWindowAsForm;
+
+            GameWindowAsForm.MinimumSize = new System.Drawing.Size(720, 480);
 
             Input = new TaeInputHandler();
 
@@ -369,7 +404,7 @@ namespace TAEDX.TaeEditor
             {
                 e.ChangedItem.PropertyDescriptor.SetValue(boxReference.MyEvent, newValReference);
 
-                TaeAnim.IsModified = true;
+                SelectedTaeAnim.IsModified = true;
                 IsModified = true;
 
                 gridReference.Refresh();
@@ -410,10 +445,10 @@ namespace TAEDX.TaeEditor
 
         private void ToolstripFile_Open_Click(object sender, EventArgs e)
         {
-            if (Tae != null && Tae.Animations.Any(a => a.IsModified))
+            if (Anibnd != null && Anibnd.AllTAE.Any(x => x.Animations.Any(a => a.IsModified)))
             {
                 var yesNoCancel = System.Windows.Forms.MessageBox.Show(
-                    $"File \"{System.IO.Path.GetFileName(TaeFileName)}\" has " +
+                    $"File \"{System.IO.Path.GetFileName(AnibndFileName)}\" has " +
                     $"unsaved changes. Would you like to save these changes before " +
                     $"loading a new file?", "Save Unsaved Changes?",
                     System.Windows.Forms.MessageBoxButtons.YesNoCancel,
@@ -432,22 +467,40 @@ namespace TAEDX.TaeEditor
 
             var browseDlg = new System.Windows.Forms.OpenFileDialog()
             {
-                Filter = "TAE Files (*.TAE)|*.TAE|All Files|*.*",
+                Filter = "ANIBND Files (*.ANIBND)|*.ANIBND|Compressed ANIBND Files(*.ANIBND.DCX)|*.ANIBND.DCX|All Files|*.*",
                 ValidateNames = true,
                 CheckFileExists = true,
                 CheckPathExists = true,
             };
 
-            if (System.IO.File.Exists(TaeFileName))
+            if (System.IO.File.Exists(AnibndFileName))
             {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(TaeFileName);
-                browseDlg.FileName = System.IO.Path.GetFileName(TaeFileName);
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(AnibndFileName);
+                browseDlg.FileName = System.IO.Path.GetFileName(AnibndFileName);
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                TaeFileName = browseDlg.FileName;
-                LoadCurrentFile();
+                AnibndFileName = browseDlg.FileName;
+                var loadFileResult = LoadCurrentFile();
+                if (loadFileResult == false)
+                {
+                    AnibndFileName = "";
+                    System.Windows.Forms.MessageBox.Show(
+                        "Selected ANIBND file had no TAE files within. " +
+                        "Cancelling load operation.", "Invalid ANIBND",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Stop);
+                }
+                else if (loadFileResult == null)
+                {
+                    AnibndFileName = "";
+                    System.Windows.Forms.MessageBox.Show(
+                        "Selected ANIBND file did not exist (how did you " +
+                        "get this message to appear, anyways?).", "ANIBND Does Not Exist",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Stop);
+                }
             }
         }
 
@@ -461,50 +514,55 @@ namespace TAEDX.TaeEditor
         {
             var browseDlg = new System.Windows.Forms.SaveFileDialog()
             {
-                Filter = "TAE Files (*.TAE)|*.TAE|All Files|*.*",
+                Filter = "ANIBND Files (*.ANIBND)|*.ANIBND|Compressed ANIBND Files(*.ANIBND.DCX)|*.ANIBND.DCX|All Files|*.*",
                 ValidateNames = true,
-                CheckFileExists = true,
+                CheckFileExists = false,
                 CheckPathExists = true,
             };
 
-            if (System.IO.File.Exists(TaeFileName))
+            if (System.IO.File.Exists(AnibndFileName))
             {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(TaeFileName);
-                browseDlg.FileName = System.IO.Path.GetFileName(TaeFileName);
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(AnibndFileName);
+                browseDlg.FileName = System.IO.Path.GetFileName(AnibndFileName);
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                TaeFileName = browseDlg.FileName;
+                AnibndFileName = browseDlg.FileName;
                 SaveCurrentFile();
             }
         }
 
-        private void ButtonChangeType_Click(object sender, EventArgs e)
+        private void ChangeTypeOfSelectedEvent()
         {
+            if (SelectedEventBox == null)
+                return;
+
             PauseUpdate = true;
 
             var changeTypeDlg = new TaeInspectorFormChangeEventType();
+            changeTypeDlg.NewEventType = SelectedEventBox.MyEvent.EventType;
+
             if (changeTypeDlg.ShowDialog(GameWindowAsForm) == System.Windows.Forms.DialogResult.OK)
             {
                 if (changeTypeDlg.NewEventType != SelectedEventBox.MyEvent.EventType)
                 {
                     var referenceToEventBox = SelectedEventBox;
                     var referenceToPreviousEvent = referenceToEventBox.MyEvent;
-                    int index = TaeAnim.Anim.EventList.IndexOf(referenceToEventBox.MyEvent);
+                    int index = SelectedTaeAnim.Anim.EventList.IndexOf(referenceToEventBox.MyEvent);
                     int row = referenceToEventBox.MyEvent.Row;
 
                     UndoMan.NewAction(
                         doAction: () =>
                         {
-                            TaeAnim.Anim.EventList.Remove(referenceToPreviousEvent);
+                            SelectedTaeAnim.Anim.EventList.Remove(referenceToPreviousEvent);
                             referenceToEventBox.ChangeEvent(
                                 TimeActEventBase.GetNewEvent(
                                     changeTypeDlg.NewEventType,
                                     referenceToPreviousEvent.StartTimeFr,
                                     referenceToPreviousEvent.EndTimeFr));
 
-                            TaeAnim.Anim.EventList.Insert(index, referenceToEventBox.MyEvent);
+                            SelectedTaeAnim.Anim.EventList.Insert(index, referenceToEventBox.MyEvent);
 
                             SelectedEventBox = referenceToEventBox;
 
@@ -512,14 +570,14 @@ namespace TAEDX.TaeEditor
 
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
 
-                            TaeAnim.IsModified = true;
+                            SelectedTaeAnim.IsModified = true;
                             IsModified = true;
                         },
                         undoAction: () =>
                         {
-                            TaeAnim.Anim.EventList.RemoveAt(index);
+                            SelectedTaeAnim.Anim.EventList.RemoveAt(index);
                             referenceToEventBox.ChangeEvent(referenceToPreviousEvent);
-                            TaeAnim.Anim.EventList.Insert(index, referenceToPreviousEvent);
+                            SelectedTaeAnim.Anim.EventList.Insert(index, referenceToPreviousEvent);
 
                             SelectedEventBox = referenceToEventBox;
 
@@ -533,13 +591,19 @@ namespace TAEDX.TaeEditor
             PauseUpdate = false;
         }
 
-        public void SelectNewAnimRef(AnimationRef animRef)
+        private void ButtonChangeType_Click(object sender, EventArgs e)
         {
-            TaeAnim = animRef;
+            ChangeTypeOfSelectedEvent();
+        }
+
+        public void SelectNewAnimRef(TAE tae, AnimationRef animRef)
+        {
+            SelectedTae = tae;
+            SelectedTaeAnim = animRef;
             ToolStripEditUndo.Enabled = UndoMan.CanUndo;
             ToolStripEditRedo.Enabled = UndoMan.CanRedo;
             SelectedEventBox = null;
-            editScreenCurrentAnim.ChangeToNewAnimRef(TaeAnim);
+            editScreenCurrentAnim.ChangeToNewAnimRef(SelectedTaeAnim);
         }
 
         public void Update(float elapsedSeconds)
@@ -556,6 +620,9 @@ namespace TAEDX.TaeEditor
 
 
             Input.Update(Rect);
+
+            if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
+                ChangeTypeOfSelectedEvent();
 
             var ctrlHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftControl) 
                 || Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightControl);
@@ -599,7 +666,7 @@ namespace TAEDX.TaeEditor
                 if (Input.LeftClickHeld)
                 {
                     Input.CursorType = MouseCursorType.DragX;
-                    LeftSectionWidth = MathHelper.Max(Input.MousePosition.X - (DividerHitboxPad / 2), 64);
+                    LeftSectionWidth = MathHelper.Max(Input.MousePosition.X - (DividerHitboxPad / 2), LeftSectionWidthMin);
                 }
                 else
                 {
@@ -612,7 +679,7 @@ namespace TAEDX.TaeEditor
                 if (Input.LeftClickHeld)
                 {
                     Input.CursorType = MouseCursorType.DragX;
-                    RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerHitboxPad / 2), 64);
+                    RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerHitboxPad / 2), RightSectionWidthMin);
                 }
                 else
                 {

@@ -12,6 +12,13 @@ namespace TAEDX.TaeEditor
 {
     public class TaeEditAnimList
     {
+        private class TaeEditAnimListGroup
+        {
+            public string GroupName;
+            public TAE Tae;
+            public Dictionary<string, AnimationRef> AnimNameMap = new Dictionary<string, AnimationRef>();
+        }
+
         public Rectangle Rect;
         public readonly TaeEditorScreen MainScreen;
 
@@ -19,17 +26,44 @@ namespace TAEDX.TaeEditor
 
         private int AnimHeight = 24;
 
-        private Dictionary<string, AnimationRef> AnimNameMap = new Dictionary<string, AnimationRef>();
+        private List<TaeEditAnimListGroup> AnimGroups = new List<TaeEditAnimListGroup>();
+
+        private float EntireListHeight = 0;
 
         public TaeEditAnimList(TaeEditorScreen mainScreen)
         {
             MainScreen = mainScreen;
 
-            int i = 0;
-            foreach (var anim in mainScreen.Tae.Animations)
+            if (MainScreen.Anibnd.StandardTAE != null)
             {
-                AnimNameMap.Add($"{anim.ID} ({(anim.Anim.IsReference ? $"References Anim {anim.Anim.RefAnimID}" : $"\"{anim.Anim.FileName}\"")})", anim);
+                var group = new TaeEditAnimListGroup();
+                group.GroupName = System.IO.Path.GetFileName(MainScreen.Anibnd.StandardTAE.FilePath ?? MainScreen.Anibnd.StandardTAE.VirtualUri);
+                foreach (var anim in MainScreen.Anibnd.StandardTAE.Animations)
+                {
+                    group.AnimNameMap.Add($"a{(anim.ID / 10000):D2}_{(anim.ID % 10000):D4}", anim);
+                    EntireListHeight += AnimHeight;
+                }
+                AnimGroups.Add(group);
+                EntireListHeight += AnimHeight;
             }
+
+            if (MainScreen.Anibnd.PlayerTAE != null)
+            {
+                foreach (var kvp in MainScreen.Anibnd.PlayerTAE)
+                {
+                    var group = new TaeEditAnimListGroup();
+                    group.GroupName = System.IO.Path.GetFileName(kvp.Value.FilePath ?? kvp.Value.VirtualUri);
+                    foreach (var anim in kvp.Value.Animations)
+                    {
+                        group.AnimNameMap.Add($"a{kvp.Key:D2}_{anim.ID:D4}", anim);
+                        EntireListHeight += AnimHeight;
+                    }
+                    AnimGroups.Add(group);
+                    EntireListHeight += AnimHeight;
+                }
+            }
+
+            
 
             ScrollViewer = new TaeScrollViewer();
         }
@@ -52,12 +86,16 @@ namespace TAEDX.TaeEditor
                         (int)(MainScreen.Input.MousePosition.Y - Rect.Y + ScrollViewer.Scroll.Y));
 
                     int i = 0;
-                    foreach (var anim in AnimNameMap)
+                    foreach (var group in AnimGroups)
                     {
-                        var thisAnimRect = new Rectangle(0, i * AnimHeight, ScrollViewer.Viewport.Width, AnimHeight);
-                        if (thisAnimRect.Contains(mouseCheckPoint))
-                            MainScreen.SelectNewAnimRef(anim.Value);
-                        i++;
+                        i++; //Group Header
+                        foreach (var anim in group.AnimNameMap)
+                        {
+                            var thisAnimRect = new Rectangle(0, i * AnimHeight, ScrollViewer.Viewport.Width, AnimHeight);
+                            if (thisAnimRect.Contains(mouseCheckPoint))
+                                MainScreen.SelectNewAnimRef(group.Tae, anim.Value);
+                            i++;
+                        }
                     }
                 }
             }
@@ -75,7 +113,7 @@ namespace TAEDX.TaeEditor
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
         {
-            ScrollViewer.SetDisplayRect(Rect, new Point(Rect.Width, AnimNameMap.Count * AnimHeight));
+            ScrollViewer.SetDisplayRect(Rect, new Point(Rect.Width, (int)EntireListHeight));
 
             ScrollViewer.Draw(gd, sb, boxTex, font);
 
@@ -96,37 +134,47 @@ namespace TAEDX.TaeEditor
                 //    );
 
                 int i = 0;
-                foreach (var anim in AnimNameMap)
+
+                foreach (var group in AnimGroups)
                 {
-                    string animNameStr = (anim.Value.IsModified ? $"{anim.Key}*" : anim.Key);
+                    var thisGroupRect = new Rectangle(0, i * AnimHeight, ScrollViewer.Viewport.Width, AnimHeight);
+                    sb.Draw(boxTex, thisGroupRect, Color.Gray);
+                    sb.DrawString(font, $"[{group.GroupName}]", new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
+                    sb.DrawString(font, $"[{group.GroupName}]", new Vector2(4, (int)(i * AnimHeight)) + (Vector2.One * 2), Color.Black);
+                    sb.DrawString(font, $"[{group.GroupName}]", new Vector2(4, (int)(i * AnimHeight)), Color.White);
 
-                    if (anim.Value == MainScreen.TaeAnim)
+                    i++;
+
+                    foreach (var anim in group.AnimNameMap)
                     {
-                        var thisAnimRect = new Rectangle(0, i * AnimHeight, ScrollViewer.Viewport.Width, AnimHeight);
-                        sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : Color.CornflowerBlue);
+                        string animNameStr = (anim.Value.IsModified ? $"{anim.Key}*" : anim.Key);
 
-                        if (MainScreen.Config.EnableColorBlindMode)
+                        if (anim.Value == MainScreen.SelectedTaeAnim)
                         {
-                            sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.Black);
+                            var thisAnimRect = new Rectangle(0, i * AnimHeight, ScrollViewer.Viewport.Width, AnimHeight);
+                            sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : Color.CornflowerBlue);
+
+                            if (MainScreen.Config.EnableColorBlindMode)
+                            {
+                                sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.Black);
+                            }
+                            else
+                            {
+                                sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
+                                sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.White);
+                            }
                         }
                         else
                         {
                             sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
                             sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.White);
                         }
+
+                        i++;
                     }
-                    else
-                    {
-                        sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)) + Vector2.One, Color.Black);
-                        sb.DrawString(font, animNameStr, new Vector2(4, (int)(i * AnimHeight)), Color.White);
-                    }
-
-                    
-
-                    
-
-                    i++;
                 }
+
+                
 
                 sb.End();
             }
