@@ -50,7 +50,7 @@ namespace TAEDX.TaeEditor
 
         private void button1_Click(object sender, EventArgs e)
         {
-            NewEventType = (TimeActEventType)Enum.Parse(typeof(TimeActEventType), listBoxEventTypes.SelectedItem.ToString());
+            NewEventType = (TimeActEventType)Enum.Parse(typeof(TimeActEventType), listBoxEventTypes.SelectedItem.ToString().Substring(5));
             Close();
         }
     }
