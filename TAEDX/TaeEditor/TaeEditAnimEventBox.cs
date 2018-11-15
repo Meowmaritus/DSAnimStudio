@@ -31,8 +31,12 @@ namespace TAEDX.TaeEditor
         public float WidthFr => (MyEvent.EndTimeFr - MyEvent.StartTimeFr) * OwnerPane.SecondsPixelSize;
         public float HeightFr => OwnerPane.RowHeight - 2;
 
-        public string EventText { get; private set; }
-        public string EventTextTall { get; private set; }
+        public Rectangle GetTextRect(int outlineThickness)
+        {
+            return new Rectangle((int)LeftFr + 2 + outlineThickness, (int)Top + 1, (int)WidthFr - 4 - (outlineThickness * 2), (int)HeightFr - 2);
+        }
+
+        public TaeScrollingString EventText { get; private set; } = new TaeScrollingString();
 
         public Color ColorBG => OwnerPane.GetColorInfo(MyEvent.EventType)?.ColorA ?? Color.SkyBlue;
         public Color ColorOutline
@@ -67,7 +71,7 @@ namespace TAEDX.TaeEditor
 
         public void DragLeftSideOfBoxToVirtualUnitX(float x)
         {
-            x = MathHelper.Max(x, 0);
+            x = MathHelper.Min(x, (RightFr - (float)(TimeActEventBase.FRAME * OwnerPane.SecondsPixelSize)) - OwnerPane.ScrollViewer.Scroll.X);
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
         }
 
@@ -101,10 +105,7 @@ namespace TAEDX.TaeEditor
 
         public void UpdateEventText()
         {
-            EventText = $"{MyEvent.EventType.ToString()}[{((int)MyEvent.EventType)}]({string.Join(", ", MyEvent.Parameters)})";
-            EventTextTall = $"[{((int)MyEvent.EventType)}]\n" +
-                $"{MyEvent.EventType.ToString()}\n\n" +
-                $"{string.Join("\n", MyEvent.Parameters)}";
+            EventText.SetText($"{MyEvent.EventType.ToString()}[{((int)MyEvent.EventType)}]({string.Join(", ", MyEvent.Parameters)})");
         }
 
         public void DeleteMe()
