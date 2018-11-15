@@ -12,14 +12,14 @@ namespace TAEDX.TaeEditor
 {
     public class TaeEditAnimList
     {
-        private class TaeEditAnimInfo
+        public class TaeEditAnimInfo
         {
             public string Name;
             public AnimationRef Ref;
             public float VerticalOffset;
         }
 
-        private class TaeEditAnimListTaeSection
+        public class TaeEditAnimListTaeSection
         {
             public string SectionName;
             public TAE Tae;
@@ -35,7 +35,7 @@ namespace TAEDX.TaeEditor
 
         private int AnimHeight = 24;
 
-        private List<TaeEditAnimListTaeSection> AnimTaeSections = new List<TaeEditAnimListTaeSection>();
+        public List<TaeEditAnimListTaeSection> AnimTaeSections = new List<TaeEditAnimListTaeSection>();
 
         int GroupBraceMarginLeft = 16;
         int GroupBraceThickness = 2;
@@ -47,7 +47,7 @@ namespace TAEDX.TaeEditor
             if (MainScreen.Anibnd.StandardTAE != null)
             {
                 var taeSection = new TaeEditAnimListTaeSection();
-                taeSection.Collapsed = !MainScreen.Config.AutoCollapseAllTaeSections;
+                taeSection.Collapsed = MainScreen.Config.AutoCollapseAllTaeSections;
                 taeSection.Tae = MainScreen.Anibnd.StandardTAE;
                 taeSection.SectionName = System.IO.Path.GetFileName(MainScreen.Anibnd.StandardTAE.FilePath ?? MainScreen.Anibnd.StandardTAE.VirtualUri);
                 foreach (var anim in MainScreen.Anibnd.StandardTAE.Animations)
@@ -70,7 +70,7 @@ namespace TAEDX.TaeEditor
                 foreach (var kvp in MainScreen.Anibnd.PlayerTAE)
                 {
                     var taeSection = new TaeEditAnimListTaeSection();
-                    taeSection.Collapsed = !MainScreen.Config.AutoCollapseAllTaeSections;
+                    taeSection.Collapsed = MainScreen.Config.AutoCollapseAllTaeSections;
                     taeSection.Tae = kvp.Value;
                     taeSection.SectionName = System.IO.Path.GetFileName(kvp.Value.FilePath ?? kvp.Value.VirtualUri);
                     foreach (var anim in kvp.Value.Animations)
@@ -178,8 +178,16 @@ namespace TAEDX.TaeEditor
 
                 foreach (var taeSection in AnimTaeSections)
                 {
-                    var thisGroupRect = new Rectangle(0, (int)offset, ScrollViewer.Viewport.Width, AnimHeight);
-                    sb.Draw(boxTex, thisGroupRect, Color.Gray);
+                    var thisGroupRect = new Rectangle(1, (int)offset + 1, ScrollViewer.Viewport.Width - 2, AnimHeight - 2);
+                    int border = MainScreen.Config.EnableColorBlindMode ? 2 : 1;
+                    sb.Draw(boxTex, thisGroupRect, Color.White);
+                    sb.Draw(boxTex, 
+                        new Rectangle(
+                            thisGroupRect.X + border, 
+                            thisGroupRect.Y + border, 
+                            thisGroupRect.Width - border * 2, 
+                            thisGroupRect.Height - border * 2), 
+                        MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.Gray);
                     sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset)) + Vector2.One, Color.Black);
                     sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset)) + (Vector2.One * 2), Color.Black);
                     sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset)), Color.White);
@@ -214,7 +222,6 @@ namespace TAEDX.TaeEditor
 
                     sb.DrawString(font, collapseStr, collapseStrPoint, Color.Black);
 
-
                     offset += AnimHeight; //Section Header
 
                     if (taeSection.Collapsed)
@@ -231,25 +238,25 @@ namespace TAEDX.TaeEditor
                             var thisAnimRect = new Rectangle(
                                 GroupBraceMarginLeft, 
                                 (int)(sectionStartOffset + anim.Value.VerticalOffset), 
-                                ScrollViewer.Viewport.Width, 
+                                ScrollViewer.Viewport.Width - (GroupBraceMarginLeft * 2), 
                                 AnimHeight);
 
-                            sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : Color.CornflowerBlue);
+                            sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : Color.Blue);
 
-                            if (MainScreen.Config.EnableColorBlindMode)
-                            {
-                                sb.DrawString(font, animNameStr, new Vector2(GroupBraceMarginLeft + 4, 
-                                    (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.Black);
-                            }
-                            else
-                            {
-                                sb.DrawString(font, animNameStr, new Vector2(
-                                    GroupBraceMarginLeft + 4, 
+                            sb.Draw(boxTex,
+                                new Rectangle(
+                                    thisAnimRect.X + border,
+                                    thisAnimRect.Y + border,
+                                    thisAnimRect.Width - border * 2,
+                                    thisAnimRect.Height - border * 2),
+                                MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.CornflowerBlue);
+
+                            sb.DrawString(font, animNameStr, new Vector2(
+                                    GroupBraceMarginLeft + 4,
                                     (int)(sectionStartOffset + anim.Value.VerticalOffset)) + Vector2.One, Color.Black);
-                                sb.DrawString(font, animNameStr, new Vector2(
-                                    GroupBraceMarginLeft + 4, 
-                                    (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
-                            }
+                            sb.DrawString(font, animNameStr, new Vector2(
+                                GroupBraceMarginLeft + 4,
+                                (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
                         }
                         else
                         {
