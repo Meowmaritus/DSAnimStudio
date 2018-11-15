@@ -10,7 +10,9 @@ namespace TAEDX
 {
     public class TAEDX : Game
     {
-        public const string VERSION = "v1.2";
+        public const string VERSION = "v1.3";
+
+        public string AutoLoadAnibnd = null;
 
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -58,6 +60,16 @@ namespace TAEDX
             testEditorScreen = new TaeEditorScreen(winForm);
             //testEditorScreen.TaeFileName = @"G:\SteamLibrary\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr\c0000.anibnd.yabber\Model\chr\c0000\taeNew\win32\a20.tae";
             //testEditorScreen.LoadCurrentFile();
+
+            if (AutoLoadAnibnd != null)
+            {
+                if (System.IO.File.Exists(AutoLoadAnibnd))
+                {
+                    testEditorScreen.AnibndFileName = AutoLoadAnibnd;
+                    testEditorScreen.LoadCurrentFile();
+                }
+            }
+            
         }
 
         protected override void UnloadContent()

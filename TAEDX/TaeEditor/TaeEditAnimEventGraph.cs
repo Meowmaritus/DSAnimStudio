@@ -233,7 +233,7 @@ namespace TAEDX.TaeEditor
 
             int currentRow = 0;
             float farthestRightOnCurrentRow = 0;
-            foreach (var ev in AnimRef.Anim.EventList)
+            foreach (var ev in AnimRef.EventList)
             {
 
                 if (ev is MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors colorEvent)
@@ -323,7 +323,7 @@ namespace TAEDX.TaeEditor
                             if (sortedByRow[box.MyEvent.Row].Contains(box))
                                 sortedByRow[box.MyEvent.Row].Remove(box);
 
-                        AnimRef.Anim.EventList.Remove(box.MyEvent);
+                        AnimRef.EventList.Remove(box.MyEvent);
 
                         EventBoxes.Remove(box);
 
@@ -337,7 +337,7 @@ namespace TAEDX.TaeEditor
                     foreach (var box in copyOfBoxes)
                     {
                         EventBoxes.Add(box);
-                        AnimRef.Anim.EventList.Add(box.MyEvent);
+                        AnimRef.EventList.Add(box.MyEvent);
 
                         if (!sortedByRow.ContainsKey(box.MyEvent.Row))
                             sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
@@ -375,7 +375,7 @@ namespace TAEDX.TaeEditor
                         if (sortedByRow[box.MyEvent.Row].Contains(box))
                             sortedByRow[box.MyEvent.Row].Remove(box);
 
-                    AnimRef.Anim.EventList.Remove(box.MyEvent);
+                    AnimRef.EventList.Remove(box.MyEvent);
 
                     EventBoxes.Remove(box);
 
@@ -385,7 +385,7 @@ namespace TAEDX.TaeEditor
                 undoAction: () =>
                 {
                     EventBoxes.Add(box);
-                    AnimRef.Anim.EventList.Add(box.MyEvent);
+                    AnimRef.EventList.Add(box.MyEvent);
 
                     if (!sortedByRow.ContainsKey(box.MyEvent.Row))
                         sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
@@ -424,7 +424,7 @@ namespace TAEDX.TaeEditor
                     mouseTime, mouseTime + 1);
             }
 
-            newEvent.Index = MainScreen.SelectedTaeAnim.Anim.EventList.Count;
+            newEvent.Index = MainScreen.SelectedTaeAnim.EventList.Count;
 
             var newBox = new TaeEditAnimEventBox(this, newEvent);
 
@@ -433,7 +433,7 @@ namespace TAEDX.TaeEditor
             MainScreen.UndoMan.NewAction(
                 doAction: () =>
                 {
-                    MainScreen.SelectedTaeAnim.Anim.EventList.Add(newEvent);
+                    MainScreen.SelectedTaeAnim.EventList.Add(newEvent);
 
                     if (!sortedByRow.ContainsKey(newBox.MyEvent.Row))
                         sortedByRow.Add(newBox.MyEvent.Row, new List<TaeEditAnimEventBox>());
@@ -453,7 +453,7 @@ namespace TAEDX.TaeEditor
                         if (sortedByRow[newBox.MyEvent.Row].Contains(newBox))
                             sortedByRow[newBox.MyEvent.Row].Remove(newBox);
 
-                    MainScreen.SelectedTaeAnim.Anim.EventList.Remove(newEvent);
+                    MainScreen.SelectedTaeAnim.EventList.Remove(newEvent);
 
                     AnimRef.IsModified = true;
                     MainScreen.IsModified = true;
@@ -762,8 +762,8 @@ namespace TAEDX.TaeEditor
                     }
                     else if (currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox)
                     {
-                        var earliestEndingDrag = currentMultiDrag.OrderBy(x => x.BoxOriginalEnd).First();
-                        int mouseMinX = earliestEndingDrag.StartDragPoint.X - (int)((earliestEndingDrag.BoxOriginalDuration * SecondsPixelSize));
+                        var shortestDrag = currentMultiDrag.OrderBy(x => x.BoxOriginalDuration).First();
+                        int mouseMinX = shortestDrag.StartDragPoint.X - (int)((shortestDrag.BoxOriginalDuration * SecondsPixelSize));
                         var actualMousePoint = new Point(MathHelper.Max((int)relMouse.X, mouseMinX), (int)(relMouse.Y));
 
                         foreach (var multiDrag in currentMultiDrag)
