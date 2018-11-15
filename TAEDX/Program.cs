@@ -12,10 +12,14 @@ namespace TAEDX
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             using (var game = new TAEDX())
+            {
+                if (args.Length > 0)
+                    game.AutoLoadAnibnd = args[0];
                 game.Run();
+            }
         }
     }
 #endif

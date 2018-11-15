@@ -27,7 +27,11 @@ namespace TAEDX.TaeEditor
             Inspector
         }
 
-        private int TopMargin = 32;
+        private int TopMenuBarMargin = 32;
+
+        private int TopOfGraphAnimInfoMargin = 24;
+        private int ButtonEditCurrentAnimInfoWidth = 200;
+        private System.Windows.Forms.Button ButtonEditCurrentAnimInfo;
 
         const string HELP_TEXT = 
             "Left Click + Drag Middle of Event:\n" +
@@ -157,6 +161,7 @@ namespace TAEDX.TaeEditor
         public TAE SelectedTae { get; private set; }
 
         public AnimationRef SelectedTaeAnim { get; private set; }
+        private string SelectedTaeAnimInfoText = "";
 
         public readonly System.Windows.Forms.Form GameWindowAsForm;
 
@@ -225,26 +230,41 @@ namespace TAEDX.TaeEditor
 
         public TaeConfigFile Config = new TaeConfigFile();
 
+        private static string ConfigFilePath = null;
+
+        private static void CheckConfigFilePath()
+        {
+            if (ConfigFilePath == null)
+            {
+                var currentAssemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                var currentAssemblyDir = System.IO.Path.GetDirectoryName(currentAssemblyPath);
+                ConfigFilePath = System.IO.Path.Combine(currentAssemblyDir, "TAE Editor DX - Configuration.json");
+            }
+        }
+
         public void LoadConfig()
         {
-            if (!System.IO.File.Exists("TAE Editor DX - Configuration.json"))
+            CheckConfigFilePath();
+            if (!System.IO.File.Exists(ConfigFilePath))
             {
                 Config = new TaeConfigFile();
                 SaveConfig();
             }
 
-            var jsonText = System.IO.File.ReadAllText("TAE Editor DX - Configuration.json");
+            var jsonText = System.IO.File.ReadAllText(ConfigFilePath);
 
             Config = Newtonsoft.Json.JsonConvert.DeserializeObject<TaeConfigFile>(jsonText);
         }
 
         public void SaveConfig()
         {
+            CheckConfigFilePath();
+
             var jsonText = Newtonsoft.Json.JsonConvert
                 .SerializeObject(Config,
                 Newtonsoft.Json.Formatting.Indented);
 
-            System.IO.File.WriteAllText("TAE Editor DX - Configuration.json", jsonText);
+            System.IO.File.WriteAllText(ConfigFilePath, jsonText);
         }
 
         public bool? LoadCurrentFile()
@@ -309,6 +329,8 @@ namespace TAEDX.TaeEditor
             SelectedTaeAnim = SelectedTae.Animations[0];
             editScreenAnimList = new TaeEditAnimList(this);
             editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
+            SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
+            ButtonEditCurrentAnimInfo.Enabled = true;
         }
 
         public TaeEditorScreen(System.Windows.Forms.Form gameWindowAsForm)
@@ -410,13 +432,35 @@ namespace TAEDX.TaeEditor
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
 
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
+
+            ButtonEditCurrentAnimInfo = new System.Windows.Forms.Button();
+            ButtonEditCurrentAnimInfo.Text = "Edit Anim Info...";
+            ButtonEditCurrentAnimInfo.Click += ButtonEditCurrentAnimInfo_Click;
+            ButtonEditCurrentAnimInfo.Enabled = false;
+
+            GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
+        }
+
+        private void ButtonEditCurrentAnimInfo_Click(object sender, EventArgs e)
+        {
+            PauseUpdate = true;
+            var editForm = new TaeEditAnimPropertiesForm(SelectedTaeAnim);
+            editForm.Owner = GameWindowAsForm;
+            editForm.ShowDialog();
+            if (editForm.WereThingsChanged)
+            {
+                SelectedTaeAnim.IsModified = true;
+                IsModified = true;
+                UpdateSelectedTaeAnimInfoText();
+            }
+            PauseUpdate = false;
         }
 
         private void GameWindowAsForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
         {
-            var unsavedChanges = false;
+            var unsavedChanges = IsModified;
 
-            if (Anibnd != null)
+            if (!unsavedChanges && Anibnd != null)
             {
                 if (Anibnd.IsModified)
                 {
@@ -635,20 +679,20 @@ namespace TAEDX.TaeEditor
                 {
                     var referenceToEventBox = SelectedEventBox;
                     var referenceToPreviousEvent = referenceToEventBox.MyEvent;
-                    int index = SelectedTaeAnim.Anim.EventList.IndexOf(referenceToEventBox.MyEvent);
+                    int index = SelectedTaeAnim.EventList.IndexOf(referenceToEventBox.MyEvent);
                     int row = referenceToEventBox.MyEvent.Row;
 
                     UndoMan.NewAction(
                         doAction: () =>
                         {
-                            SelectedTaeAnim.Anim.EventList.Remove(referenceToPreviousEvent);
+                            SelectedTaeAnim.EventList.Remove(referenceToPreviousEvent);
                             referenceToEventBox.ChangeEvent(
                                 TimeActEventBase.GetNewEvent(
                                     changeTypeDlg.NewEventType,
                                     referenceToPreviousEvent.StartTimeFr,
                                     referenceToPreviousEvent.EndTimeFr));
 
-                            SelectedTaeAnim.Anim.EventList.Insert(index, referenceToEventBox.MyEvent);
+                            SelectedTaeAnim.EventList.Insert(index, referenceToEventBox.MyEvent);
 
                             SelectedEventBox = referenceToEventBox;
 
@@ -661,9 +705,9 @@ namespace TAEDX.TaeEditor
                         },
                         undoAction: () =>
                         {
-                            SelectedTaeAnim.Anim.EventList.RemoveAt(index);
+                            SelectedTaeAnim.EventList.RemoveAt(index);
                             referenceToEventBox.ChangeEvent(referenceToPreviousEvent);
-                            SelectedTaeAnim.Anim.EventList.Insert(index, referenceToPreviousEvent);
+                            SelectedTaeAnim.EventList.Insert(index, referenceToPreviousEvent);
 
                             SelectedEventBox = referenceToEventBox;
 
@@ -685,10 +729,43 @@ namespace TAEDX.TaeEditor
             ChangeTypeOfSelectedEvent();
         }
 
+        public void UpdateSelectedTaeAnimInfoText()
+        {
+            var stringBuilder = new StringBuilder();
+
+            stringBuilder.Append(SelectedTaeAnim.ID);
+
+            if (SelectedTaeAnim.IsReference)
+            {
+                stringBuilder.Append($" [RefID: {SelectedTaeAnim.RefAnimID}]");
+            }
+            else
+            {
+                stringBuilder.Append($" [\"{SelectedTaeAnim.FileName}\"]");
+
+                if (SelectedTaeAnim.IsLoopingObjAnim)
+                    stringBuilder.Append($" [ObjLoop]");
+
+                if (SelectedTaeAnim.UseHKXOnly)
+                    stringBuilder.Append($" [HKXOnly]");
+
+                if (SelectedTaeAnim.TAEDataOnly)
+                    stringBuilder.Append($" [TAEOnly]");
+
+                if (SelectedTaeAnim.OriginalAnimID >= 0)
+                    stringBuilder.Append($" [OrigID: {SelectedTaeAnim.OriginalAnimID}]");
+            }
+
+            SelectedTaeAnimInfoText = stringBuilder.ToString();
+        }
+
         public void SelectNewAnimRef(TAE tae, AnimationRef animRef)
         {
             SelectedTae = tae;
             SelectedTaeAnim = animRef;
+
+            UpdateSelectedTaeAnimInfoText();
+
             ToolStripEditUndo.Enabled = UndoMan.CanUndo;
             ToolStripEditRedo.Enabled = UndoMan.CanRedo;
             SelectedEventBox = null;
@@ -850,12 +927,41 @@ namespace TAEDX.TaeEditor
         {
             if (editScreenAnimList != null && editScreenCurrentAnim != null)
             {
-                editScreenAnimList.Rect = new Rectangle((int)LeftSectionStartX, Rect.Top + TopMargin, (int)LeftSectionWidth, Rect.Height - TopMargin);
-                editScreenCurrentAnim.Rect = new Rectangle((int)MiddleSectionStartX, Rect.Top + TopMargin,
-                    (int)MiddleSectionWidth, Rect.Height - TopMargin);
+                editScreenAnimList.Rect = new Rectangle(
+                    (int)LeftSectionStartX,
+                    Rect.Top + TopMenuBarMargin, 
+                    (int)LeftSectionWidth, 
+                    Rect.Height - TopMenuBarMargin);
+
+                editScreenCurrentAnim.Rect = new Rectangle(
+                    (int)MiddleSectionStartX, 
+                    Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                    (int)MiddleSectionWidth,
+                    Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
+                    editScreenCurrentAnim.Rect.Right - ButtonEditCurrentAnimInfoWidth,
+                    Rect.Top + TopMenuBarMargin,
+                    ButtonEditCurrentAnimInfoWidth, 
+                    TopOfGraphAnimInfoMargin);
+            }
+            else
+            {
+                var plannedGraphRect = new Rectangle(
+                    (int)MiddleSectionStartX,
+                    Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                    (int)MiddleSectionWidth,
+                    Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
+                    plannedGraphRect.Right - ButtonEditCurrentAnimInfoWidth, 
+                    Rect.Top + TopMenuBarMargin, 
+                    ButtonEditCurrentAnimInfoWidth, 
+                    TopOfGraphAnimInfoMargin);
+
             }
             //editScreenGraphInspector.Rect = new Rectangle(Rect.Width - LayoutInspectorWidth, 0, LayoutInspectorWidth, Rect.Height);
-            inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMargin, (int)RightSectionWidth, Rect.Height - TopMargin);
+            inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, Rect.Height - TopMenuBarMargin);
         }
 
         public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
@@ -874,6 +980,14 @@ namespace TAEDX.TaeEditor
             {
                 editScreenAnimList.Draw(gd, sb, boxTex, font);
                 editScreenCurrentAnim.Draw(gt, gd, sb, boxTex, font);
+
+                Vector2 curAnimInfoTextPos = new Vector2(editScreenCurrentAnim.Rect.Left, Rect.Top + TopMenuBarMargin);
+
+                sb.Begin();
+                sb.DrawString(font, SelectedTaeAnimInfoText, curAnimInfoTextPos + Vector2.One, Color.Black);
+                sb.DrawString(font, SelectedTaeAnimInfoText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
+                sb.DrawString(font, SelectedTaeAnimInfoText, curAnimInfoTextPos, Color.White);
+                sb.End();
             }  
             //editScreenGraphInspector.Draw(gd, sb, boxTex, font);
 

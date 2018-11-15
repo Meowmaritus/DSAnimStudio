@@ -43,6 +43,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="TaeEditor\TaeConfigFile.cs" />
+    <Compile Include="TaeEditor\TaeEditAnimPropertiesForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TaeEditor\TaeEditAnimPropertiesForm.Designer.cs">
+      <DependentUpon>TaeEditAnimPropertiesForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="TaeEditor\TaeInspectorFormChangeEventType.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -104,6 +110,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="TaeEditor\TaeEditAnimPropertiesForm.resx">
+      <DependentUpon>TaeEditAnimPropertiesForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TaeEditor\TaeInspectorFormChangeEventType.resx">
       <DependentUpon>TaeInspectorFormChangeEventType.cs</DependentUpon>
     </EmbeddedResource>
