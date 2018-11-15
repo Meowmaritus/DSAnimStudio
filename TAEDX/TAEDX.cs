@@ -10,7 +10,7 @@ namespace TAEDX
 {
     public class TAEDX : Game
     {
-        public const string VERSION = "v1.3";
+        public const string VERSION = "v1.4";
 
         public string AutoLoadAnibnd = null;
 
@@ -98,7 +98,8 @@ namespace TAEDX
 
             testEditorScreen.Rect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height - 20);
 
-            testEditorScreen.Draw(gameTime, GraphicsDevice, spriteBatch, Blank, eventLabelFont);
+            testEditorScreen.Draw(gameTime, GraphicsDevice, spriteBatch,
+                Blank, eventLabelFont, (float)gameTime.ElapsedGameTime.TotalSeconds);
 
             base.Draw(gameTime);
         }

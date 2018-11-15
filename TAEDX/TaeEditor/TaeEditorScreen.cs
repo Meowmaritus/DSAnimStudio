@@ -15,7 +15,7 @@ namespace TAEDX.TaeEditor
         enum DividerDragMode
         {
             None,
-            Left,
+            //Left,
             Right,
         }
 
@@ -130,26 +130,27 @@ namespace TAEDX.TaeEditor
         private System.Windows.Forms.ToolStripMenuItem ToolStripEditRedo;
 
         //private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityDisableRainbow;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityColorBlindMode;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripConfigColorBlindMode;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripConfigFancyTextScroll;
 
         private float LeftSectionWidth = 128;
         private const float LeftSectionWidthMin = 128;
-        private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth - (DividerHitboxPad / 2f);
-        private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + (DividerHitboxPad / 2f);
+        private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth;
+        private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + DividerHitboxPad;
 
         private float RightSectionWidth = 320;
         private const float RightSectionWidthMin = 128;
-        private float DividerRightGrabStart => Rect.Right - RightSectionWidth - (DividerHitboxPad / 2f);
-        private float DividerRightGrabEnd => Rect.Right - RightSectionWidth + (DividerHitboxPad / 2f);
+        private float DividerRightGrabStart => Rect.Right - RightSectionWidth - DividerHitboxPad;
+        private float DividerRightGrabEnd => Rect.Right - RightSectionWidth;
 
         private float LeftSectionStartX => Rect.Left;
-        private float MiddleSectionStartX => LeftSectionStartX + LeftSectionWidth + (DividerHitboxPad / 2f) - (DividerVisiblePad / 2f);
-        private float RightSectionStartX => Rect.Right - RightSectionWidth - (DividerHitboxPad / 2f) - (DividerVisiblePad / 2f);
+        private float MiddleSectionStartX => DividerLeftGrabEnd;
+        private float RightSectionStartX => Rect.Right - RightSectionWidth;
 
-        private float MiddleSectionWidth => DividerRightGrabStart - DividerLeftGrabEnd - (DividerHitboxPad / 2f) + (DividerVisiblePad / 2f);
+        private float MiddleSectionWidth => DividerRightGrabStart - DividerLeftGrabEnd;
 
-        private float DividerVisiblePad = 4;
-        private float DividerHitboxPad = 8;
+        //private float DividerVisiblePad = 12;
+        private float DividerHitboxPad = 4;
 
         private DividerDragMode CurrentDividerDragMode = DividerDragMode.None;
 
@@ -161,7 +162,7 @@ namespace TAEDX.TaeEditor
         public TAE SelectedTae { get; private set; }
 
         public AnimationRef SelectedTaeAnim { get; private set; }
-        private string SelectedTaeAnimInfoText = "";
+        private TaeScrollingString SelectedTaeAnimInfoScrollingText = new TaeScrollingString();
 
         public readonly System.Windows.Forms.Form GameWindowAsForm;
 
@@ -187,6 +188,8 @@ namespace TAEDX.TaeEditor
                 inspectorWinFormsControl.buttonChangeType.Enabled = true;
             }
         }
+
+        public TaeEditAnimEventBox HoveringOverEventBox = null;
 
         private TaeEditAnimEventBox _selectedEventBox = null;
         public TaeEditAnimEventBox SelectedEventBox
@@ -404,7 +407,7 @@ namespace TAEDX.TaeEditor
                 toolstripEdit.DropDownItems.Add(ToolStripEditRedo);
             }
 
-            var toolstripAccessibility = new System.Windows.Forms.ToolStripMenuItem("Accessibility");
+            var toolstripConfig = new System.Windows.Forms.ToolStripMenuItem("Config");
             {
                 //ToolStripAccessibilityDisableRainbow = new System.Windows.Forms.ToolStripMenuItem("Use brightness for selection instead of rainbow pulsing");
                 //ToolStripAccessibilityDisableRainbow.CheckOnClick = true;
@@ -412,11 +415,145 @@ namespace TAEDX.TaeEditor
                 //ToolStripAccessibilityDisableRainbow.Checked = Config.DisableRainbow;
                 //toolstripAccessibility.DropDownItems.Add(ToolStripAccessibilityDisableRainbow);
 
-                ToolStripAccessibilityColorBlindMode = new System.Windows.Forms.ToolStripMenuItem("Color-Blind + High Contrast Mode");
-                ToolStripAccessibilityColorBlindMode.CheckOnClick = true;
-                ToolStripAccessibilityColorBlindMode.CheckedChanged += ToolStripAccessibilityColorBlindMode_CheckedChanged;
-                ToolStripAccessibilityColorBlindMode.Checked = Config.EnableColorBlindMode;
-                toolstripAccessibility.DropDownItems.Add(ToolStripAccessibilityColorBlindMode);
+                ToolStripConfigColorBlindMode = new System.Windows.Forms.ToolStripMenuItem("Color-Blind + High Contrast Mode");
+                ToolStripConfigColorBlindMode.CheckOnClick = true;
+                ToolStripConfigColorBlindMode.CheckedChanged += (s, e) =>
+                {
+                    Config.EnableColorBlindMode = ToolStripConfigColorBlindMode.Checked;
+                    SaveConfig();
+                };
+                ToolStripConfigColorBlindMode.Checked = Config.EnableColorBlindMode;
+                toolstripConfig.DropDownItems.Add(ToolStripConfigColorBlindMode);
+
+                toolstripConfig.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+
+                ToolStripConfigFancyTextScroll = new System.Windows.Forms.ToolStripMenuItem("Use Fancy Text Scrolling");
+                ToolStripConfigFancyTextScroll.CheckOnClick = true;
+                ToolStripConfigFancyTextScroll.CheckedChanged += (s, e) =>
+                {
+                    Config.EnableFancyScrollingStrings = ToolStripConfigFancyTextScroll.Checked;
+                    SaveConfig();
+                };
+                ToolStripConfigFancyTextScroll.Checked = Config.EnableFancyScrollingStrings;
+                toolstripConfig.DropDownItems.Add(ToolStripConfigFancyTextScroll);
+
+                var toolStripConfigFancyScrollSpeed = new System.Windows.Forms.ToolStripMenuItem("Fancy Text Scroll Speed");
+                {
+                    
+
+                    var toolStripConfigFancyScrollSpeed_ExtremelySlow 
+                        = new System.Windows.Forms.ToolStripMenuItem("Extremely Slow (4 px/s)");
+                    var toolStripConfigFancyScrollSpeed_VerySlow
+                        = new System.Windows.Forms.ToolStripMenuItem("Very Slow (8 px/s)");
+                    var toolStripConfigFancyScrollSpeed_Slow
+                        = new System.Windows.Forms.ToolStripMenuItem("Slow (16 px/s)");
+                    var toolStripConfigFancyScrollSpeed_Medium
+                        = new System.Windows.Forms.ToolStripMenuItem("Medium Speed (32 px/s)");
+                    var toolStripConfigFancyScrollSpeed_Fast
+                        = new System.Windows.Forms.ToolStripMenuItem("Fast (64 px/s)");
+                    var toolStripConfigFancyScrollSpeed_VeryFast
+                        = new System.Windows.Forms.ToolStripMenuItem("Very Fast (128 px/s)");
+                    var toolStripConfigFancyScrollSpeed_ExtremelyFast
+                        = new System.Windows.Forms.ToolStripMenuItem("Extremely Fast (256 px/s)");
+
+                    void updateToolStripConfigFancyScrollSpeedChecks()
+                    {
+                        toolStripConfigFancyScrollSpeed_ExtremelySlow.Checked = Config.FancyScrollingStringsScrollSpeed == 4;
+                        toolStripConfigFancyScrollSpeed_VerySlow.Checked = Config.FancyScrollingStringsScrollSpeed == 8;
+                        toolStripConfigFancyScrollSpeed_Slow.Checked = Config.FancyScrollingStringsScrollSpeed == 16;
+                        toolStripConfigFancyScrollSpeed_Medium.Checked = Config.FancyScrollingStringsScrollSpeed == 32;
+                        toolStripConfigFancyScrollSpeed_Fast.Checked = Config.FancyScrollingStringsScrollSpeed == 64;
+                        toolStripConfigFancyScrollSpeed_VeryFast.Checked = Config.FancyScrollingStringsScrollSpeed == 128;
+                        toolStripConfigFancyScrollSpeed_ExtremelyFast.Checked = Config.FancyScrollingStringsScrollSpeed == 256;
+                    }
+
+                    toolStripConfigFancyScrollSpeed_ExtremelySlow.Click += (s, e) =>
+                    {
+                        Config.FancyScrollingStringsScrollSpeed = 4;
+                        SaveConfig();
+                        updateToolStripConfigFancyScrollSpeedChecks();
+                    };
+                    toolStripConfigFancyScrollSpeed.DropDownItems
+                        .Add(toolStripConfigFancyScrollSpeed_ExtremelySlow);
+
+                    
+                    toolStripConfigFancyScrollSpeed_VerySlow.Click += (s, e) =>
+                    {
+                        Config.FancyScrollingStringsScrollSpeed = 8;
+                        SaveConfig();
+                        updateToolStripConfigFancyScrollSpeedChecks();
+                    };
+                    toolStripConfigFancyScrollSpeed.DropDownItems
+                        .Add(toolStripConfigFancyScrollSpeed_VerySlow);
+
+                    
+                    toolStripConfigFancyScrollSpeed_Slow.Click += (s, e) =>
+                    {
+                        Config.FancyScrollingStringsScrollSpeed = 16;
+                        SaveConfig();
+                        updateToolStripConfigFancyScrollSpeedChecks();
+                    };
+                    toolStripConfigFancyScrollSpeed.DropDownItems
+                        .Add(toolStripConfigFancyScrollSpeed_Slow);
+
+                    
+                    toolStripConfigFancyScrollSpeed_Medium.Click += (s, e) =>
+                    {
+                        Config.FancyScrollingStringsScrollSpeed = 32;
+                        SaveConfig();
+                        updateToolStripConfigFancyScrollSpeedChecks();
+                    };
+                    toolStripConfigFancyScrollSpeed.DropDownItems
+                        .Add(toolStripConfigFancyScrollSpeed_Medium);
+
+                    
+                    toolStripConfigFancyScrollSpeed_Fast.Click += (s, e) =>
+                    {
+                        Config.FancyScrollingStringsScrollSpeed = 64;
+                        SaveConfig();
+                        updateToolStripConfigFancyScrollSpeedChecks();
+                    };
+                    toolStripConfigFancyScrollSpeed.DropDownItems
+                        .Add(toolStripConfigFancyScrollSpeed_Fast);
+
+                    
+                    toolStripConfigFancyScrollSpeed_VeryFast.Click += (s, e) =>
+                    {
+                        Config.FancyScrollingStringsScrollSpeed = 128;
+                        SaveConfig();
+                        updateToolStripConfigFancyScrollSpeedChecks();
+                    };
+                    toolStripConfigFancyScrollSpeed.DropDownItems
+                        .Add(toolStripConfigFancyScrollSpeed_VeryFast);
+
+                    
+                    toolStripConfigFancyScrollSpeed_ExtremelyFast.Click += (s, e) =>
+                    {
+                        Config.FancyScrollingStringsScrollSpeed = 256;
+                        SaveConfig();
+                        updateToolStripConfigFancyScrollSpeedChecks();
+                    };
+                    toolStripConfigFancyScrollSpeed.DropDownItems
+                        .Add(toolStripConfigFancyScrollSpeed_ExtremelyFast);
+
+                    updateToolStripConfigFancyScrollSpeedChecks();
+                }
+                toolstripConfig.DropDownItems.Add(toolStripConfigFancyScrollSpeed);
+
+                var toolStripConfigFancyScrollSnapsToPixels = 
+                    new System.Windows.Forms.ToolStripMenuItem("Fancy Scroll Snaps to Pixels");
+
+                toolStripConfigFancyScrollSnapsToPixels.CheckedChanged += (s, e) =>
+                {
+                    Config.FancyTextScrollSnapsToPixels = toolStripConfigFancyScrollSnapsToPixels.Checked;
+                    SaveConfig();
+                };
+
+                toolStripConfigFancyScrollSnapsToPixels.CheckOnClick = true;
+
+                toolStripConfigFancyScrollSnapsToPixels.Checked = Config.FancyTextScrollSnapsToPixels;
+
+                toolstripConfig.DropDownItems.Add(toolStripConfigFancyScrollSnapsToPixels);
             }
 
             var toolstripHelp = new System.Windows.Forms.ToolStripMenuItem("Help");
@@ -425,7 +562,7 @@ namespace TAEDX.TaeEditor
             WinFormsMenuStrip = new System.Windows.Forms.MenuStrip();
             WinFormsMenuStrip.Items.Add(toolstripFile);
             WinFormsMenuStrip.Items.Add(toolstripEdit);
-            WinFormsMenuStrip.Items.Add(toolstripAccessibility);
+            WinFormsMenuStrip.Items.Add(toolstripConfig);
             WinFormsMenuStrip.Items.Add(toolstripHelp);
 
             WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
@@ -458,6 +595,8 @@ namespace TAEDX.TaeEditor
 
         private void GameWindowAsForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
         {
+            SaveConfig();
+
             var unsavedChanges = IsModified;
 
             if (!unsavedChanges && Anibnd != null)
@@ -507,18 +646,6 @@ namespace TAEDX.TaeEditor
 
             
         }
-
-        private void ToolStripAccessibilityColorBlindMode_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.EnableColorBlindMode = ToolStripAccessibilityColorBlindMode.Checked;
-            SaveConfig();
-        }
-
-        //private void ToolStripAccessibilityDisableRainbow_CheckedChanged(object sender, EventArgs e)
-        //{
-        //    Config.DisableRainbow = ToolStripAccessibilityDisableRainbow.Checked;
-        //    SaveConfig();
-        //}
 
         private void PropertyGrid_PropertyValueChanged(object s, System.Windows.Forms.PropertyValueChangedEventArgs e)
         {
@@ -571,6 +698,7 @@ namespace TAEDX.TaeEditor
         private void WinFormsMenuStrip_MenuActivate(object sender, EventArgs e)
         {
             PauseUpdate = true;
+            Input.CursorType = MouseCursorType.Arrow;
         }
 
         private void ToolstripFile_Open_Click(object sender, EventArgs e)
@@ -756,7 +884,7 @@ namespace TAEDX.TaeEditor
                     stringBuilder.Append($" [OrigID: {SelectedTaeAnim.OriginalAnimID}]");
             }
 
-            SelectedTaeAnimInfoText = stringBuilder.ToString();
+            SelectedTaeAnimInfoScrollingText.SetText(stringBuilder.ToString());
         }
 
         public void SelectNewAnimRef(TAE tae, AnimationRef animRef)
@@ -810,48 +938,48 @@ namespace TAEDX.TaeEditor
 
             if (CurrentDividerDragMode == DividerDragMode.None)
             {
-                if (Input.MousePosition.X >= DividerLeftGrabStart && Input.MousePosition.X <= DividerLeftGrabEnd)
+                //if (Input.MousePosition.X >= DividerLeftGrabStart && Input.MousePosition.X <= DividerLeftGrabEnd)
+                //{
+                //    MouseHoverKind = ScreenMouseHoverKind.None;
+                //    //Input.CursorType = MouseCursorType.DragX;
+                //    if (Input.LeftClickDown)
+                //    {
+                //        CurrentDividerDragMode = DividerDragMode.Left;
+                //    }
+                //}
+                if (Input.MousePosition.X >= DividerRightGrabStart && Input.MousePosition.X <= DividerRightGrabEnd)
                 {
                     MouseHoverKind = ScreenMouseHoverKind.None;
-                    Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
-                    {
-                        CurrentDividerDragMode = DividerDragMode.Left;
-                    }
-                }
-                else if (Input.MousePosition.X >= DividerRightGrabStart && Input.MousePosition.X <= DividerRightGrabEnd)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-                    Input.CursorType = MouseCursorType.DragX;
+                    //Input.CursorType = MouseCursorType.DragX;
                     if (Input.LeftClickDown)
                     {
                         CurrentDividerDragMode = DividerDragMode.Right;
                     }
                 }
             }
-            else if (CurrentDividerDragMode == DividerDragMode.Left)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    Input.CursorType = MouseCursorType.DragX;
-                    LeftSectionWidth = MathHelper.Max(Input.MousePosition.X - (DividerHitboxPad / 2), LeftSectionWidthMin);
-                }
-                else
-                {
-                    Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                }
-            }
+            //else if (CurrentDividerDragMode == DividerDragMode.Left)
+            //{
+            //    if (Input.LeftClickHeld)
+            //    {
+            //        //Input.CursorType = MouseCursorType.DragX;
+            //        LeftSectionWidth = MathHelper.Max(Input.MousePosition.X - (DividerHitboxPad / 2), LeftSectionWidthMin);
+            //    }
+            //    else
+            //    {
+            //        //Input.CursorType = MouseCursorType.Arrow;
+            //        CurrentDividerDragMode = DividerDragMode.None;
+            //    }
+            //}
             else if (CurrentDividerDragMode == DividerDragMode.Right)
             {
                 if (Input.LeftClickHeld)
                 {
-                    Input.CursorType = MouseCursorType.DragX;
+                    //Input.CursorType = MouseCursorType.DragX;
                     RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerHitboxPad / 2), RightSectionWidthMin);
                 }
                 else
                 {
-                    Input.CursorType = MouseCursorType.Arrow;
+                    //Input.CursorType = MouseCursorType.Arrow;
                     CurrentDividerDragMode = DividerDragMode.None;
                 }
             }
@@ -909,7 +1037,7 @@ namespace TAEDX.TaeEditor
 
             if (MouseHoverKind != ScreenMouseHoverKind.None && oldMouseHoverKind == ScreenMouseHoverKind.None)
             {
-                Input.CursorType = MouseCursorType.Arrow;
+                //Input.CursorType = MouseCursorType.Arrow;
             }
 
             if (MouseHoverKind == ScreenMouseHoverKind.Inspector)
@@ -964,7 +1092,7 @@ namespace TAEDX.TaeEditor
             inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, Rect.Height - TopMenuBarMargin);
         }
 
-        public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
         {
             sb.Begin();
             sb.Draw(boxTex, Rect, Config.EnableColorBlindMode ? Color.Black : new Color(0.2f, 0.2f, 0.2f));
@@ -979,14 +1107,32 @@ namespace TAEDX.TaeEditor
             if (editScreenAnimList != null && editScreenCurrentAnim != null)
             {
                 editScreenAnimList.Draw(gd, sb, boxTex, font);
-                editScreenCurrentAnim.Draw(gt, gd, sb, boxTex, font);
+                editScreenCurrentAnim.Draw(gt, gd, sb, boxTex, font, elapsedSeconds);
 
-                Vector2 curAnimInfoTextPos = new Vector2(editScreenCurrentAnim.Rect.Left, Rect.Top + TopMenuBarMargin);
+                Rectangle curAnimInfoTextRect = new Rectangle(
+                    editScreenCurrentAnim.Rect.Left,
+                    Rect.Top + TopMenuBarMargin,
+                    editScreenCurrentAnim.Rect.Width - ButtonEditCurrentAnimInfoWidth,
+                    TopOfGraphAnimInfoMargin);
 
                 sb.Begin();
-                sb.DrawString(font, SelectedTaeAnimInfoText, curAnimInfoTextPos + Vector2.One, Color.Black);
-                sb.DrawString(font, SelectedTaeAnimInfoText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
-                sb.DrawString(font, SelectedTaeAnimInfoText, curAnimInfoTextPos, Color.White);
+
+                if (Config.EnableFancyScrollingStrings)
+                {
+                    SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect, font, elapsedSeconds);
+                }
+                else
+                {
+                    var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
+
+                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One, Color.Black);
+                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
+                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos, Color.White);
+                }
+
+                //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + Vector2.One, Color.Black);
+                //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
+                //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos, Color.White);
                 sb.End();
             }  
             //editScreenGraphInspector.Draw(gd, sb, boxTex, font);

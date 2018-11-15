@@ -87,7 +87,7 @@ namespace TAEDX.TaeEditor
 
         public List<TaeEditAnimEventBox> EventBoxes = new List<TaeEditAnimEventBox>();
 
-        TaeScrollViewer ScrollViewer = new TaeScrollViewer();
+        public TaeScrollViewer ScrollViewer { get; private set; } = new TaeScrollViewer();
 
         const float SecondsPixelSizeDefault = 128 * 4;
         public float SecondsPixelSize = SecondsPixelSizeDefault;
@@ -547,13 +547,21 @@ namespace TAEDX.TaeEditor
                     PlaceNewEventAtMouse();
                 }
 
-                var rowOrderedByTime = GetRow(MouseRow).OrderByDescending(x => x.MyEvent.StartTime);
+                IEnumerable<TaeEditAnimEventBox> masterRowBoxList = GetRow(MouseRow);
+                var rowOrderedByTime = masterRowBoxList.OrderByDescending(x => x.MyEvent.StartTime);
+
+                MainScreen.HoveringOverEventBox = null;
 
                 foreach (var box in rowOrderedByTime)
                 {
+                    bool canManipulateBox = (MainScreen.MultiSelectedEventBoxes.Count == 0
+                        || MainScreen.MultiSelectedEventBoxes.Contains(box));
+
                     if (currentDrag.DragType == BoxDragType.None)
                     {
-                        if (box.WidthFr >= 16 && relMouse.X <= box.LeftFr + BoxSideScrollMarginSize && relMouse.X >= box.LeftFr - BoxSideScrollMarginSize)
+                        if (canManipulateBox && box.WidthFr >= 16 && 
+                            relMouse.X <= box.LeftFr + BoxSideScrollMarginSize && 
+                            relMouse.X >= box.LeftFr - BoxSideScrollMarginSize)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             if (MainScreen.Input.LeftClickDown)
@@ -596,7 +604,10 @@ namespace TAEDX.TaeEditor
                                 
                             }
                         }
-                        else if (box.WidthFr >= 16 && relMouse.X >= box.RightFr - BoxSideScrollMarginSize && relMouse.X <= box.RightFr + BoxSideScrollMarginSize)
+                        else if (canManipulateBox && 
+                            box.WidthFr >= 16 && 
+                            relMouse.X >= box.RightFr - BoxSideScrollMarginSize && 
+                            relMouse.X <= box.RightFr + BoxSideScrollMarginSize)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             if (MainScreen.Input.LeftClickDown)
@@ -607,13 +618,15 @@ namespace TAEDX.TaeEditor
 
                                     currentDrag.DragType = BoxDragType.RightOfEventBox;
                                     currentDrag.Box = box;
-                                    currentDrag.Offset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
+                                    currentDrag.Offset = new Point(
+                                        (int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
                                     currentDrag.BoxOriginalWidth = box.Width;
                                     currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
                                     currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
                                     currentDrag.BoxOriginalRow = box.MyEvent.Row;
                                     currentDrag.StartMouseRow = MouseRow;
-                                    currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
+                                    currentDrag.StartDragPoint =
+                                        currentDrag.CurrentDragPoint = relMouse.ToPoint();
                                 }
                                 else
                                 {
@@ -625,13 +638,16 @@ namespace TAEDX.TaeEditor
 
                                         newDrag.DragType = BoxDragType.RightOfEventBox;
                                         newDrag.Box = multiBox;
-                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
+                                        newDrag.Offset = new Point(
+                                            (int)(relMouse.X - multiBox.LeftFr), 
+                                            (int)(relMouse.Y - multiBox.Top));
                                         newDrag.BoxOriginalWidth = multiBox.Width;
                                         newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
                                         newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
                                         newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
                                         newDrag.StartMouseRow = MouseRow;
-                                        newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
+                                        newDrag.StartDragPoint =
+                                            newDrag.CurrentDragPoint = relMouse.ToPoint();
 
                                         currentMultiDrag.Add(newDrag);
                                     }
@@ -642,6 +658,7 @@ namespace TAEDX.TaeEditor
                         else if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.Arrow;
+                            MainScreen.HoveringOverEventBox = box;
                             if (MainScreen.Input.LeftClickDown)
                             {
                                 if (MainScreen.MultiSelectedEventBoxes.Count == 0)
@@ -658,23 +675,32 @@ namespace TAEDX.TaeEditor
                                 }
                                 else
                                 {
-                                    currentDrag.DragType = BoxDragType.MultiDragMiddleOfEventBox;
-                                    currentMultiDrag.Clear();
-                                    foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
+                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box))
                                     {
-                                        var newDrag = new TaeDragState();
+                                        currentDrag.DragType = BoxDragType.MultiDragMiddleOfEventBox;
+                                        currentMultiDrag.Clear();
+                                        foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
+                                        {
+                                            var newDrag = new TaeDragState();
 
-                                        newDrag.DragType = BoxDragType.MiddleOfEventBox;
-                                        newDrag.Box = multiBox;
-                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
-                                        newDrag.BoxOriginalWidth = multiBox.Width;
-                                        newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
-                                        newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
-                                        newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
-                                        newDrag.StartMouseRow = MouseRow;
-                                        newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
+                                            newDrag.DragType = BoxDragType.MiddleOfEventBox;
+                                            newDrag.Box = multiBox;
+                                            newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
+                                            newDrag.BoxOriginalWidth = multiBox.Width;
+                                            newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
+                                            newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
+                                            newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
+                                            newDrag.StartMouseRow = MouseRow;
+                                            newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
 
-                                        currentMultiDrag.Add(newDrag);
+                                            currentMultiDrag.Add(newDrag);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        MainScreen.MultiSelectedEventBoxes.Clear();
+                                        MainScreen.SelectedEventBox = box;
+                                        MainScreen.UpdateInspectorToSelection();
                                     }
                                 }
                             }
@@ -1033,16 +1059,18 @@ namespace TAEDX.TaeEditor
             }
         }
 
-        public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
         {
             ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
 
             ScrollViewer.Draw(gd, sb, boxTex, font);
 
+            var scrollMatrix = ScrollViewer.GetScrollMatrix();
+
             var oldViewport = gd.Viewport;
             gd.Viewport = new Viewport(ScrollViewer.Viewport);
             {
-                sb.Begin(transformMatrix: ScrollViewer.GetScrollMatrix());
+                sb.Begin(transformMatrix: scrollMatrix);
 
                 sb.Draw(texture: boxTex,
                     position: ScrollViewer.Scroll - (Vector2.One * 2),
@@ -1054,6 +1082,46 @@ namespace TAEDX.TaeEditor
                     effects: SpriteEffects.None,
                     layerDepth: 0
                     );
+
+                var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
+
+                if (SecondsPixelSize >= 4f)
+                {
+                    var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
+
+                    if (SecondsPixelSize >= 32f)
+                    {
+                        DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
+                    }
+
+                    foreach (var kvp in secondVerticalLineXPositions)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: Color.Black * 0.5f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+                }
+
+                foreach (var kvp in rowHorizontalLineYPositions)
+                {
+                    sb.Draw(texture: boxTex,
+                    position: new Vector2(ScrollViewer.Scroll.X, kvp.Value),
+                    sourceRectangle: null,
+                    color: Color.Black * 0.5f,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(ScrollViewer.Viewport.Width, 1),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+                }
 
                 foreach (var kvp in sortedByRow)
                 {
@@ -1069,7 +1137,7 @@ namespace TAEDX.TaeEditor
                             || box.RightFr < ScrollViewer.RelativeViewport.Left)
                             continue;
 
-                        bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.RelativeViewport.Left;
+                        bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.Scroll.X;
 
                         Vector2 pos = new Vector2(box.LeftFr, box.Top);
                         Vector2 size = new Vector2(box.WidthFr, box.HeightFr);
@@ -1122,30 +1190,80 @@ namespace TAEDX.TaeEditor
 
                         var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), (int)pos.Y);
 
-                        var nameSize = font.MeasureString(box.EventText);
+                        const string fixedPrefix = "< ";
 
-                        var thicknessOffset = new Vector2(boxOutlineThickness * 2, 0);
+                        var boxRect = box.GetTextRect(boxOutlineThickness);
 
-                        if ((namePos.X + nameSize.X) <= box.RightFr)
+                        if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= 64)
                         {
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}",
-                                namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}",
-                                namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}{box.EventText}",
-                                namePos + new Vector2(1, 0) + thicknessOffset, textFG);
+                            var fancyTextRect = boxRect;
+                            if (eventStartsBeforeScreen)
+                            {
+                                var fixedPrefixSize = font.MeasureString(fixedPrefix).ToPoint();
+
+                                int amountOutOfScreen = (int)ScrollViewer.Scroll.X - fancyTextRect.X;
+
+                                fancyTextRect = new Rectangle(
+                                    fancyTextRect.X + fixedPrefixSize.X + amountOutOfScreen,
+                                    fancyTextRect.Y,
+                                    fancyTextRect.Width - fixedPrefixSize.X - amountOutOfScreen,
+                                    fancyTextRect.Height);
+
+                                var prefixPos = new Vector2((int)ScrollViewer.Scroll.X, boxRect.Y);
+
+                                sb.DrawString(font, fixedPrefix,
+                                    prefixPos + Vector2.One, textBG);
+                                sb.DrawString(font, fixedPrefix,
+                                    prefixPos + (Vector2.One * 2), textBG);
+                                sb.DrawString(font, fixedPrefix,
+                                    prefixPos, textFG);
+                            }
+
+                            box.EventText.TextColor = textFG;
+                            box.EventText.TextShadowColor = textBG;
+                            box.EventText.ScrollPixelsPerSecond = MainScreen.Config.FancyScrollingStringsScrollSpeed;
+                            box.EventText.ScrollingSnapsToPixels = MainScreen.Config.FancyTextScrollSnapsToPixels;
+
+                            if (MainScreen.HoveringOverEventBox == box)
+                            {
+                                box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, elapsedSeconds);
+                            }
+                            else
+                            {
+                                box.EventText.ResetScroll(startImmediatelyNextTime: true);
+                                box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, 0);
+                            }
                         }
                         else
                         {
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}" +
-                                $"{((int)box.MyEvent.EventType)}", namePos + (Vector2.One) + thicknessOffset,
-                                textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}" +
-                                $"{((int)box.MyEvent.EventType)}", namePos + (Vector2.One * 2) + thicknessOffset,
-                                textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            sb.DrawString(font, $"{(eventStartsBeforeScreen ? "<-- " : "")}" +
-                                $"{((int)box.MyEvent.EventType)}", namePos + thicknessOffset,
-                                textFG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            box.EventText.ResetScroll(startImmediatelyNextTime: true);
+
+                            var thicknessOffset = new Vector2(boxOutlineThickness * 2, 0);
+
+                            string fullTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}{box.EventText.Text}";
+
+                            var nameSize = font.MeasureString(fullTextWithPrefix);
+
+                            if ((namePos.X + nameSize.X) <= box.RightFr)
+                            {
+                                sb.DrawString(font, fullTextWithPrefix,
+                                    namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
+                                sb.DrawString(font, fullTextWithPrefix,
+                                    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
+                                sb.DrawString(font, fullTextWithPrefix,
+                                    namePos + new Vector2(1, 0) + thicknessOffset, textFG);
+                            }
+                            else
+                            {
+                                string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
+                                    $"{((int)box.MyEvent.EventType)}";
+                                sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
+                                    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                                sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                                    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                                sb.DrawString(font, shortTextWithPrefix, namePos + thicknessOffset,
+                                    textFG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            }
                         }
                     }
                 }
@@ -1239,46 +1357,6 @@ namespace TAEDX.TaeEditor
                        effects: SpriteEffects.None,
                        layerDepth: 0
                        );
-
-                var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
-
-                if (SecondsPixelSize >= 4f)
-                {
-                    var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
-
-                    if (SecondsPixelSize >= 32f)
-                    {
-                        DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
-                    }
-
-                    foreach (var kvp in secondVerticalLineXPositions)
-                    {
-                        sb.Draw(texture: boxTex,
-                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
-                        sourceRectangle: null,
-                        color: Color.Black * 0.5f,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-                    }
-                }
-
-                foreach (var kvp in rowHorizontalLineYPositions)
-                {
-                    sb.Draw(texture: boxTex,
-                    position: new Vector2(ScrollViewer.Scroll.X, kvp.Value),
-                    sourceRectangle: null,
-                    color: Color.Black * 0.5f,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, 1),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-                }
 
                 sb.End();
             }
