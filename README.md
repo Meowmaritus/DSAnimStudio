@@ -29,7 +29,7 @@
   1. Download and extract [the latest version](https://github.com/Meowmaritus/TAE-DX/releases/download/v1.3/TAE.Editor.DX.v1.3.zip)
   1. Run `TAE Editor DX.exe`
   1. Go to File -> Open
-  1. Load a .anibnd (PTDE) or .anibnd.dcx (Remastered)
+  1. Load a .anibnd (PTDE) or .anibnd.dcx (Remastered). [There's a dropdown to change which type of file is shown.](https://lh3.googleusercontent.com/-006qBXK_PwY/W-2OWtSfmrI/AAAAAAAAAmg/9mI1fiRrnFM98Os-skSmn7s3ei8ry2JEQCHMYCw/s0/TAE%2BEditor%2BDX_2018-11-15_09-18-50.png)
   1. Select an animation ID on the left pane
   1. Drag some events around or otherwise mess with things (try the right pane for editing the highlighted event)
   1. Hit Ctrl+S to save
