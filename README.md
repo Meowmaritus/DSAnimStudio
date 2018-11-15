@@ -26,7 +26,7 @@
 * Edits the .anibnd or .anibnd.dcx files of the games directly. **No need to use BND rebuilders.**
 
 ## User Instructions:
-  1. Download and extract [the latest version](https://github.com/Meowmaritus/TAE-DX/releases/download/v1.1.3/TAE.Editor.DX.v1.1.3.zip)
+  1. Download and extract [the latest version](https://github.com/Meowmaritus/TAE-DX/releases/download/v1.3/TAE.Editor.DX.v1.3.zip)
   1. Run `TAE Editor DX.exe`
   1. Go to File -> Open
   1. Load a .anibnd (PTDE) or .anibnd.dcx (Remastered)
