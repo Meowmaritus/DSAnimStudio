@@ -133,8 +133,8 @@ namespace TAEDX.TaeEditor
         private System.Windows.Forms.ToolStripMenuItem ToolStripConfigColorBlindMode;
         private System.Windows.Forms.ToolStripMenuItem ToolStripConfigFancyTextScroll;
 
-        private float LeftSectionWidth = 128;
-        private const float LeftSectionWidthMin = 128;
+        private float LeftSectionWidth = 135;
+        private const float LeftSectionWidthMin = 135;
         private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth;
         private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + DividerHitboxPad;
 
@@ -398,13 +398,34 @@ namespace TAEDX.TaeEditor
                 ToolStripEditUndo = new System.Windows.Forms.ToolStripMenuItem("Undo");
                 ToolStripEditUndo.ShortcutKeyDisplayString = "Ctrl+Z";
                 ToolStripEditUndo.Click += ToolStripEditUndo_Click;
+                toolstripEdit.DropDownItems.Add(ToolStripEditUndo);
 
                 ToolStripEditRedo = new System.Windows.Forms.ToolStripMenuItem("Redo");
                 ToolStripEditRedo.ShortcutKeyDisplayString = "Ctrl+Y";
                 ToolStripEditRedo.Click += ToolStripEditRedo_Click;
-
-                toolstripEdit.DropDownItems.Add(ToolStripEditUndo);
                 toolstripEdit.DropDownItems.Add(ToolStripEditRedo);
+
+                toolstripEdit.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+
+                var toolStripEditCollapseAllTaeSections = new System.Windows.Forms.ToolStripMenuItem("Collapse All TAE Sections");
+                toolStripEditCollapseAllTaeSections.Click += (s, e) =>
+                {
+                    foreach (var kvp in editScreenAnimList.AnimTaeSections)
+                    {
+                        kvp.Collapsed = true;
+                    }
+                };
+                toolstripEdit.DropDownItems.Add(toolStripEditCollapseAllTaeSections);
+
+                var toolStripEditExpandAllTaeSections = new System.Windows.Forms.ToolStripMenuItem("Expand All TAE Sections");
+                toolStripEditExpandAllTaeSections.Click += (s, e) =>
+                {
+                    foreach (var kvp in editScreenAnimList.AnimTaeSections)
+                    {
+                        kvp.Collapsed = false;
+                    }
+                };
+                toolstripEdit.DropDownItems.Add(toolStripEditExpandAllTaeSections);
             }
 
             var toolstripConfig = new System.Windows.Forms.ToolStripMenuItem("Config");
@@ -554,6 +575,22 @@ namespace TAEDX.TaeEditor
                 toolStripConfigFancyScrollSnapsToPixels.Checked = Config.FancyTextScrollSnapsToPixels;
 
                 toolstripConfig.DropDownItems.Add(toolStripConfigFancyScrollSnapsToPixels);
+
+                toolstripConfig.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+
+                var toolStripConfigCollapseAllTaeSectionsByDefault = new System.Windows.Forms.ToolStripMenuItem("Auto Collapse All TAE Sections");
+
+                toolStripConfigCollapseAllTaeSectionsByDefault.CheckOnClick = true;
+
+                toolStripConfigCollapseAllTaeSectionsByDefault.CheckedChanged += (s, e) =>
+                {
+                    Config.AutoCollapseAllTaeSections = toolStripConfigCollapseAllTaeSectionsByDefault.Checked;
+                    SaveConfig();
+                };
+
+                toolStripConfigCollapseAllTaeSectionsByDefault.Checked = Config.AutoCollapseAllTaeSections;
+
+                toolstripConfig.DropDownItems.Add(toolStripConfigCollapseAllTaeSectionsByDefault);
             }
 
             var toolstripHelp = new System.Windows.Forms.ToolStripMenuItem("Help");

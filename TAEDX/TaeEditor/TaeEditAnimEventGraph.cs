@@ -1054,8 +1054,9 @@ namespace TAEDX.TaeEditor
         {
             foreach (var kvp in secondVerticalLineXPositions)
             {
-                sb.DrawString(font, $"{(kvp.Key * 30)}", new Vector2(kvp.Value + 4 + 1, ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
-                sb.DrawString(font, $"{(kvp.Key * 30)}", new Vector2(kvp.Value + 4, ScrollViewer.Scroll.Y + 1), Color.White);
+                if (!MainScreen.Config.EnableColorBlindMode)
+                    sb.DrawString(font, $"{(kvp.Key * 30)}", new Vector2(kvp.Value + 4 + 1, (int)ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
+                sb.DrawString(font, $"{(kvp.Key * 30)}", new Vector2(kvp.Value + 4, (int)ScrollViewer.Scroll.Y + 1), MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White);
             }
         }
 
@@ -1075,7 +1076,7 @@ namespace TAEDX.TaeEditor
                 sb.Draw(texture: boxTex,
                     position: ScrollViewer.Scroll - (Vector2.One * 2),
                     sourceRectangle: null,
-                    color: Color.DimGray,
+                    color: MainScreen.Config.EnableColorBlindMode ? Color.Gray : Color.DimGray,
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
@@ -1085,36 +1086,12 @@ namespace TAEDX.TaeEditor
 
                 var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
 
-                if (SecondsPixelSize >= 4f)
-                {
-                    var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
-
-                    if (SecondsPixelSize >= 32f)
-                    {
-                        DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
-                    }
-
-                    foreach (var kvp in secondVerticalLineXPositions)
-                    {
-                        sb.Draw(texture: boxTex,
-                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
-                        sourceRectangle: null,
-                        color: Color.Black * 0.5f,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-                    }
-                }
-
                 foreach (var kvp in rowHorizontalLineYPositions)
                 {
                     sb.Draw(texture: boxTex,
                     position: new Vector2(ScrollViewer.Scroll.X, kvp.Value),
                     sourceRectangle: null,
-                    color: Color.Black * 0.5f,
+                    color: MainScreen.Config.EnableColorBlindMode ? Color.White * 0.5f : Color.Black * 0.25f,
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(ScrollViewer.Viewport.Width, 1),
@@ -1269,6 +1246,17 @@ namespace TAEDX.TaeEditor
                 }
 
                 sb.Draw(texture: boxTex,
+                       position: new Vector2((int)ScrollViewer.Scroll.X, (int)ScrollViewer.Scroll.Y),
+                       sourceRectangle: null,
+                       color: MainScreen.Config.EnableColorBlindMode ? Color.White : Color.DarkGray,
+                       rotation: 0,
+                       origin: Vector2.Zero,
+                       scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight),
+                       effects: SpriteEffects.None,
+                       layerDepth: 0
+                       );
+
+                sb.Draw(texture: boxTex,
                             position: new Vector2(ScrollViewer.Scroll.X, TimeLineHeight + MouseRow * RowHeight),
                             sourceRectangle: null,
                             color: Color.LightGray * 0.25f,
@@ -1276,8 +1264,34 @@ namespace TAEDX.TaeEditor
                             origin: Vector2.Zero,
                             scale: new Vector2(ScrollViewer.Viewport.Width, RowHeight),
                             effects: SpriteEffects.None,
-                            layerDepth: 0
+                            layerDepth: 0.01f
                             );
+
+                if (SecondsPixelSize >= 4f)
+                {
+                    var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
+
+                    if (SecondsPixelSize >= 32f)
+                    {
+                        DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
+                    }
+
+                    foreach (var kvp in secondVerticalLineXPositions)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: MainScreen.Config.EnableColorBlindMode ? Color.White * 0.5f : Color.Black * 0.25f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+                }
+
+                
 
                 if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle)
                 {
@@ -1345,18 +1359,6 @@ namespace TAEDX.TaeEditor
                         layerDepth: 0
                         );
                 }
-
-
-                sb.Draw(texture: boxTex,
-                       position: ScrollViewer.Scroll,
-                       sourceRectangle: null,
-                       color: Color.DarkGray,
-                       rotation: 0,
-                       origin: Vector2.Zero,
-                       scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight),
-                       effects: SpriteEffects.None,
-                       layerDepth: 0
-                       );
 
                 sb.End();
             }
