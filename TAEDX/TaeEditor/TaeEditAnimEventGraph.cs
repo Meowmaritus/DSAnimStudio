@@ -440,6 +440,8 @@ namespace TAEDX.TaeEditor
 
                     sortedByRow[newBox.MyEvent.Row].Add(newBox);
 
+                    newBox.RowChanged += Box_RowChanged;
+
                     EventBoxes.Add(newBox);
 
                     AnimRef.IsModified = true;
@@ -448,6 +450,8 @@ namespace TAEDX.TaeEditor
                 undoAction: () =>
                 {
                     EventBoxes.Remove(newBox);
+
+                    newBox.RowChanged -= Box_RowChanged;
 
                     if (sortedByRow.ContainsKey(newBox.MyEvent.Row))
                         if (sortedByRow[newBox.MyEvent.Row].Contains(newBox))
@@ -979,6 +983,11 @@ namespace TAEDX.TaeEditor
                         else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle)
                         {
                             currentDrag.DragType = BoxDragType.None;
+                            if (MainScreen.MultiSelectedEventBoxes.Count == 1)
+                            {
+                                MainScreen.SelectedEventBox = MainScreen.MultiSelectedEventBoxes[0];
+                                MainScreen.MultiSelectedEventBoxes.Clear();
+                            }
                         }
 
                         
