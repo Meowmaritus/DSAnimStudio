@@ -23,6 +23,10 @@
 * Allows you to delete events by highlighting them and pressing the Delete key.
 * Allows you to modify the parameters passed to each event (click an event to highlight it, then the parameters appear in the pane on the right side of the window)
 * **Has full undo/redo functionality with Ctrl+Z/Ctrl+Y**
+* **Has full copy/paste functionality**:
+  * **Ctrl+C**: Copy
+  * **Ctrl+V**: Paste at Mouse Cursor
+  * **Ctrl+Shift+V**: Paste In-Place (keeps original location where you copied them from, useful for copying between animations)
 * Edits the .anibnd or .anibnd.dcx files of the games directly. **No need to use BND rebuilders.**
 
 ## User Instructions:
