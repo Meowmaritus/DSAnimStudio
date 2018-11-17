@@ -170,6 +170,14 @@ namespace TAEDX.TaeEditor
         {
             if (SelectedEventBox == null)
             {
+                //if (MultiSelectedEventBoxes.Count == 1)
+                //{
+                //    SelectedEventBox = MultiSelectedEventBoxes[0];
+                //    MultiSelectedEventBoxes.Clear();
+                //    inspectorWinFormsControl.labelEventType.Text =
+                //        SelectedEventBox.MyEvent.EventType.ToString();
+                //    inspectorWinFormsControl.buttonChangeType.Enabled = true;
+                //}
                 if (MultiSelectedEventBoxes.Count > 0)
                 {
                     inspectorWinFormsControl.labelEventType.Text = "(Multiple Selected)";

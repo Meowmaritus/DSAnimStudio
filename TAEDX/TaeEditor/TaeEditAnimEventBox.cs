@@ -10,6 +10,7 @@ namespace TAEDX.TaeEditor
 {
     public class TaeEditAnimEventBox
     {
+        [Newtonsoft.Json.JsonIgnore]
         public readonly TaeEditAnimEventGraph OwnerPane;
         public TimeActEventBase MyEvent;
 

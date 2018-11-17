@@ -42,6 +42,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="TaeEditor\TaeClipboardContents.cs" />
     <Compile Include="TaeEditor\TaeConfigFile.cs" />
     <Compile Include="TaeEditor\TaeEditAnimPropertiesForm.cs">
       <SubType>Form</SubType>
