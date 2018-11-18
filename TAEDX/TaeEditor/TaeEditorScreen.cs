@@ -27,6 +27,8 @@ namespace TAEDX.TaeEditor
             Inspector
         }
 
+        private const int RECENT_FILES_MAX = 24;
+
         private int TopMenuBarMargin = 32;
 
         private int TopOfGraphAnimInfoMargin = 24;
@@ -112,6 +114,52 @@ namespace TAEDX.TaeEditor
 
         private System.Windows.Forms.ToolStripMenuItem ToolStripFileSave;
         private System.Windows.Forms.ToolStripMenuItem ToolStripFileSaveAs;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripFileRecent;
+
+        private void PushNewRecentFile(string fileName)
+        {
+            while (Config.RecentFilesList.Contains(fileName))
+                Config.RecentFilesList.Remove(fileName);
+
+            while (Config.RecentFilesList.Count >= RECENT_FILES_MAX)
+                Config.RecentFilesList.RemoveAt(Config.RecentFilesList.Count - 1);
+
+            Config.RecentFilesList.Insert(0, fileName);
+
+            SaveConfig();
+
+            CreateRecentFilesList();
+        }
+
+        private void CreateRecentFilesList()
+        {
+            ToolStripFileRecent.DropDownItems.Clear();
+            var toolStripFileRecentClear = new System.Windows.Forms.ToolStripMenuItem("Clear All Recent Files...");
+            toolStripFileRecentClear.Click += (s, e) =>
+            {
+                var askYesNoResult = System.Windows.Forms.MessageBox.Show(
+                    "Are you sure you wish to remove all recent files?",
+                    "Remove All Recent Files?",
+                    System.Windows.Forms.MessageBoxButtons.YesNo);
+
+                if (askYesNoResult == System.Windows.Forms.DialogResult.Yes)
+                {
+                    Config.RecentFilesList.Clear();
+                    SaveConfig();
+                }
+            };
+            ToolStripFileRecent.DropDownItems.Add(toolStripFileRecentClear);
+            ToolStripFileRecent.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+            foreach (var f in Config.RecentFilesList)
+            {
+                var thisRecentFileEntry = new System.Windows.Forms.ToolStripMenuItem(f);
+                thisRecentFileEntry.Click += (s, e) =>
+                {
+                    DirectOpenFile(f);
+                };
+                ToolStripFileRecent.DropDownItems.Add(thisRecentFileEntry);
+            }
+        }
 
         private void UndoMan_CanRedoMaybeChanged(object sender, EventArgs e)
         {
@@ -291,6 +339,7 @@ namespace TAEDX.TaeEditor
                 if (newAnibnd.AllTAE.Any())
                 {
                     LoadANIBND(newAnibnd);
+                    PushNewRecentFile(AnibndFileName);
                     ToolStripFileSaveAs.Enabled = true;
                     return true;
                 }
@@ -344,6 +393,36 @@ namespace TAEDX.TaeEditor
             ButtonEditCurrentAnimInfo.Enabled = true;
         }
 
+        public void RecreateAnimList()
+        {
+            Vector2 oldScroll = editScreenAnimList.ScrollViewer.Scroll;
+            editScreenAnimList = new TaeEditAnimList(this);
+            editScreenAnimList.ScrollViewer.Scroll = oldScroll;
+        }
+
+        public void AddNewAnimation()
+        {
+            var newAnimRef = new AnimationRef()
+            {
+                ID = SelectedTaeAnim.ID,
+                IsReference = SelectedTaeAnim.IsReference,
+                FileName = SelectedTaeAnim.FileName,
+                OriginalAnimID = SelectedTaeAnim.OriginalAnimID,
+                RefAnimID = SelectedTaeAnim.RefAnimID,
+                TAEDataOnly = SelectedTaeAnim.TAEDataOnly,
+                UseHKXOnly = SelectedTaeAnim.UseHKXOnly,
+                IsLoopingObjAnim = SelectedTaeAnim.IsLoopingObjAnim,
+                IsModified = true,
+            };
+
+            var index = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
+            SelectedTae.Animations.Insert(index + 1, newAnimRef);
+
+            RecreateAnimList();
+
+            SelectNewAnimRef(SelectedTae, newAnimRef);
+        }
+
         public TaeEditorScreen(System.Windows.Forms.Form gameWindowAsForm)
         {
             LoadConfig();
@@ -389,6 +468,12 @@ namespace TAEDX.TaeEditor
 
                 toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
 
+                ToolStripFileRecent = new System.Windows.Forms.ToolStripMenuItem("Recent Files");
+                CreateRecentFilesList();
+                toolstripFile.DropDownItems.Add(ToolStripFileRecent);
+
+                toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+
                 ToolStripFileSave = new System.Windows.Forms.ToolStripMenuItem("Save");
                 ToolStripFileSave.Enabled = false;
                 ToolStripFileSave.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S;
@@ -399,6 +484,8 @@ namespace TAEDX.TaeEditor
                 ToolStripFileSaveAs.Enabled = false;
                 ToolStripFileSaveAs.Click += ToolstripFile_SaveAs_Click;
                 toolstripFile.DropDownItems.Add(ToolStripFileSaveAs);
+
+                
             }
 
             var toolstripEdit = new System.Windows.Forms.ToolStripMenuItem("Edit");
@@ -629,12 +716,52 @@ namespace TAEDX.TaeEditor
             var editForm = new TaeEditAnimPropertiesForm(SelectedTaeAnim);
             editForm.Owner = GameWindowAsForm;
             editForm.ShowDialog();
-            if (editForm.WereThingsChanged)
+
+            if (editForm.WasAnimDeleted)
             {
-                SelectedTaeAnim.IsModified = true;
-                IsModified = true;
-                UpdateSelectedTaeAnimInfoText();
+                if (SelectedTae.Animations.Count <= 1)
+                {
+                    System.Windows.Forms.MessageBox.Show(
+                        "Cannot delete the only animation remaining in the TAE.", 
+                        "Can't Delete Last Animation",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Stop);
+                }
+                else
+                {
+                    var indexOfCurrentAnim = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
+                    SelectedTae.Animations.Remove(SelectedTaeAnim);
+                    RecreateAnimList();
+
+                    if (indexOfCurrentAnim > SelectedTae.Animations.Count - 1)
+                        indexOfCurrentAnim = SelectedTae.Animations.Count - 1;
+
+                    if (indexOfCurrentAnim >= 0)
+                        SelectNewAnimRef(SelectedTae, SelectedTae.Animations[indexOfCurrentAnim]);
+                    else
+                        SelectNewAnimRef(SelectedTae, SelectedTae[0]);
+
+                    IsModified = true;
+                }
             }
+            else
+            {
+                if (editForm.WasAnimIDChanged)
+                {
+                    SelectedTaeAnim.IsModified = true;
+                    IsModified = true;
+                    RecreateAnimList();
+                    UpdateSelectedTaeAnimInfoText();
+                }
+
+                if (editForm.WereThingsChanged)
+                {
+                    SelectedTaeAnim.IsModified = true;
+                    IsModified = true;
+                    UpdateSelectedTaeAnimInfoText();
+                }
+            }
+            
             PauseUpdate = false;
         }
 
@@ -746,6 +873,49 @@ namespace TAEDX.TaeEditor
             Input.CursorType = MouseCursorType.Arrow;
         }
 
+        private void DirectOpenFile(string fileName)
+        {
+            if (Anibnd != null && Anibnd.AllTAE.Any(x => x.Animations.Any(a => a.IsModified)))
+            {
+                var yesNoCancel = System.Windows.Forms.MessageBox.Show(
+                    $"File \"{System.IO.Path.GetFileName(AnibndFileName)}\" has " +
+                    $"unsaved changes. Would you like to save these changes before " +
+                    $"loading a new file?", "Save Unsaved Changes?",
+                    System.Windows.Forms.MessageBoxButtons.YesNoCancel,
+                    System.Windows.Forms.MessageBoxIcon.None);
+
+                if (yesNoCancel == System.Windows.Forms.DialogResult.Yes)
+                {
+                    SaveCurrentFile();
+                }
+                else if (yesNoCancel == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    return;
+                }
+                //If they chose no, continue as normal.
+            }
+
+            AnibndFileName = fileName;
+            var loadFileResult = LoadCurrentFile();
+            if (loadFileResult == false)
+            {
+                AnibndFileName = "";
+                System.Windows.Forms.MessageBox.Show(
+                    "Selected ANIBND file had no TAE files within. " +
+                    "Cancelling load operation.", "Invalid ANIBND",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Stop);
+            }
+            else if (loadFileResult == null)
+            {
+                AnibndFileName = "";
+                System.Windows.Forms.MessageBox.Show(
+                    "ANIBND file did not exist.", "ANIBND Does Not Exist",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Stop);
+            }
+        }
+
         private void ToolstripFile_Open_Click(object sender, EventArgs e)
         {
             if (Anibnd != null && Anibnd.AllTAE.Any(x => x.Animations.Any(a => a.IsModified)))
@@ -775,6 +945,14 @@ namespace TAEDX.TaeEditor
                 CheckFileExists = true,
                 CheckPathExists = true,
             };
+
+            if (AnibndFileName != null)
+            {
+                if (AnibndFileName.ToUpper().EndsWith(".DCX"))
+                    browseDlg.FilterIndex = 1;
+                else
+                    browseDlg.FilterIndex = 0;
+            }
 
             if (System.IO.File.Exists(AnibndFileName))
             {
@@ -822,6 +1000,14 @@ namespace TAEDX.TaeEditor
                 CheckFileExists = false,
                 CheckPathExists = true,
             };
+
+            if (AnibndFileName != null)
+            {
+                if (AnibndFileName.ToUpper().EndsWith(".DCX"))
+                    browseDlg.FilterIndex = 1;
+                else
+                    browseDlg.FilterIndex = 0;
+            }
 
             if (System.IO.File.Exists(AnibndFileName))
             {
@@ -906,27 +1092,34 @@ namespace TAEDX.TaeEditor
         {
             var stringBuilder = new StringBuilder();
 
-            stringBuilder.Append(SelectedTaeAnim.ID);
-
-            if (SelectedTaeAnim.IsReference)
+            if (SelectedTaeAnim == null)
             {
-                stringBuilder.Append($" [RefID: {SelectedTaeAnim.RefAnimID}]");
+                stringBuilder.Append("(No Animation Selected)");
             }
             else
             {
-                stringBuilder.Append($" [\"{SelectedTaeAnim.FileName}\"]");
+                stringBuilder.Append(SelectedTaeAnim.ID);
 
-                if (SelectedTaeAnim.IsLoopingObjAnim)
-                    stringBuilder.Append($" [ObjLoop]");
+                if (SelectedTaeAnim.IsReference)
+                {
+                    stringBuilder.Append($" [RefID: {SelectedTaeAnim.RefAnimID}]");
+                }
+                else
+                {
+                    stringBuilder.Append($" [\"{SelectedTaeAnim.FileName}\"]");
 
-                if (SelectedTaeAnim.UseHKXOnly)
-                    stringBuilder.Append($" [HKXOnly]");
+                    if (SelectedTaeAnim.IsLoopingObjAnim)
+                        stringBuilder.Append($" [ObjLoop]");
 
-                if (SelectedTaeAnim.TAEDataOnly)
-                    stringBuilder.Append($" [TAEOnly]");
+                    if (SelectedTaeAnim.UseHKXOnly)
+                        stringBuilder.Append($" [HKXOnly]");
 
-                if (SelectedTaeAnim.OriginalAnimID >= 0)
-                    stringBuilder.Append($" [OrigID: {SelectedTaeAnim.OriginalAnimID}]");
+                    if (SelectedTaeAnim.TAEDataOnly)
+                        stringBuilder.Append($" [TAEOnly]");
+
+                    if (SelectedTaeAnim.OriginalAnimID >= 0)
+                        stringBuilder.Append($" [OrigID: {SelectedTaeAnim.OriginalAnimID}]");
+                }
             }
 
             SelectedTaeAnimInfoScrollingText.SetText(stringBuilder.ToString());
@@ -939,10 +1132,27 @@ namespace TAEDX.TaeEditor
 
             UpdateSelectedTaeAnimInfoText();
 
-            ToolStripEditUndo.Enabled = UndoMan.CanUndo;
-            ToolStripEditRedo.Enabled = UndoMan.CanRedo;
-            SelectedEventBox = null;
-            editScreenCurrentAnim.ChangeToNewAnimRef(SelectedTaeAnim);
+            if (SelectedTaeAnim != null)
+            {
+                ToolStripEditUndo.Enabled = UndoMan.CanUndo;
+                ToolStripEditRedo.Enabled = UndoMan.CanRedo;
+                SelectedEventBox = null;
+
+                if (editScreenCurrentAnim == null)
+                    editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
+
+                editScreenCurrentAnim.ChangeToNewAnimRef(SelectedTaeAnim);
+            }
+            else
+            {
+                ToolStripEditUndo.Enabled = false;
+                ToolStripEditRedo.Enabled = false;
+                SelectedEventBox = null;
+
+                editScreenCurrentAnim = null;
+            }
+
+            
         }
 
         public void Update(float elapsedSeconds)
@@ -1149,15 +1359,15 @@ namespace TAEDX.TaeEditor
             //throw new Exception("make ctrl+scroll zoom centered on mouse cursor pos");
 
             UpdateLayout();
-            if (editScreenAnimList != null && editScreenCurrentAnim != null)
+
+            if (editScreenAnimList != null)
             {
                 editScreenAnimList.Draw(gd, sb, boxTex, font);
-                editScreenCurrentAnim.Draw(gt, gd, sb, boxTex, font, elapsedSeconds);
 
                 Rectangle curAnimInfoTextRect = new Rectangle(
-                    editScreenCurrentAnim.Rect.Left,
+                    (int)(MiddleSectionStartX),
                     Rect.Top + TopMenuBarMargin,
-                    editScreenCurrentAnim.Rect.Width - ButtonEditCurrentAnimInfoWidth,
+                    (int)(MiddleSectionWidth - ButtonEditCurrentAnimInfoWidth),
                     TopOfGraphAnimInfoMargin);
 
                 sb.Begin();
@@ -1179,7 +1389,12 @@ namespace TAEDX.TaeEditor
                 //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
                 //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos, Color.White);
                 sb.End();
-            }  
+            }
+
+            if (editScreenCurrentAnim != null)
+            {
+                editScreenCurrentAnim.Draw(gt, gd, sb, boxTex, font, elapsedSeconds);
+            }
             //editScreenGraphInspector.Draw(gd, sb, boxTex, font);
 
             //var oldViewport = gd.Viewport;

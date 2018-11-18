@@ -28,6 +28,10 @@ namespace TAEDX.TaeEditor
 
         public bool WereThingsChanged = false;
 
+        public bool WasAnimIDChanged = false;
+
+        public bool WasAnimDeleted = false;
+
         public TaeEditAnimPropertiesForm(AnimationRef animRef)
         {
             AnimRef = animRef;
@@ -49,6 +53,8 @@ namespace TAEDX.TaeEditor
 
         private void buttonSaveChanges_Click(object sender, EventArgs e)
         {
+            WasAnimIDChanged = (AnimRef.ID != originalID);
+
             ReadyToExit = true;
             WereThingsChanged = true;
             Close();
@@ -72,6 +78,20 @@ namespace TAEDX.TaeEditor
         private void TaeEditAnimPropertiesForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             e.Cancel = !ReadyToExit;
+        }
+
+        private void buttonDeleteAnim_Click(object sender, EventArgs e)
+        {
+            var yesNoDlgResult = MessageBox.Show(
+                $"Are you sure you want to delete animation entry {originalID}?\nThis can NOT be undone!",
+                "Permanently Delete Animation Entry?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (yesNoDlgResult == DialogResult.Yes)
+            {
+                WasAnimDeleted = true;
+                ReadyToExit = true;
+                Close();
+            }
         }
     }
 }

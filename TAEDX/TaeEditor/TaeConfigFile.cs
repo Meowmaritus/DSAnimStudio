@@ -13,5 +13,6 @@ namespace TAEDX.TaeEditor
         public float FancyScrollingStringsScrollSpeed { get; set; } = 64;
         public bool FancyTextScrollSnapsToPixels { get; set; } = true;
         public bool AutoCollapseAllTaeSections { get; set; } = false;
+        public List<string> RecentFilesList { get; set; } = new List<string>();
     }
 }
