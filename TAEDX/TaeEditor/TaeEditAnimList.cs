@@ -14,7 +14,7 @@ namespace TAEDX.TaeEditor
     {
         public class TaeEditAnimInfo
         {
-            public string Name;
+            public Func<string> GetName;
             public AnimationRef Ref;
             public float VerticalOffset;
         }
@@ -23,7 +23,7 @@ namespace TAEDX.TaeEditor
         {
             public string SectionName;
             public TAE Tae;
-            public Dictionary<int, TaeEditAnimInfo> InfoMap = new Dictionary<int, TaeEditAnimInfo>();
+            public Dictionary<AnimationRef, TaeEditAnimInfo> InfoMap = new Dictionary<AnimationRef, TaeEditAnimInfo>();
             public float HeightOfAllAnims = 0;
             public bool Collapsed = false;
         }
@@ -31,7 +31,7 @@ namespace TAEDX.TaeEditor
         public Rectangle Rect;
         public readonly TaeEditorScreen MainScreen;
 
-        private TaeScrollViewer ScrollViewer;
+        public TaeScrollViewer ScrollViewer;
 
         private int AnimHeight = 24;
 
@@ -54,12 +54,12 @@ namespace TAEDX.TaeEditor
                 {
                     var info = new TaeEditAnimInfo()
                     {
-                        Name = $"a{(anim.ID / 10000):D2}_{(anim.ID % 10000):D4}",
+                        GetName = () => $"a{(anim.ID / 10000):D2}_{(anim.ID % 10000):D4}",
                         Ref = anim,
                         VerticalOffset = taeSection.HeightOfAllAnims,
                     };
                     
-                    taeSection.InfoMap.Add(anim.ID, info);
+                    taeSection.InfoMap.Add(anim, info);
                     taeSection.HeightOfAllAnims += AnimHeight;
                 }
                 AnimTaeSections.Add(taeSection);
@@ -77,12 +77,12 @@ namespace TAEDX.TaeEditor
                     {
                         var info = new TaeEditAnimInfo()
                         {
-                            Name = $"a{kvp.Key:D2}_{anim.ID:D4}",
+                            GetName = () => $"a{kvp.Key:D2}_{anim.ID:D4}",
                             Ref = anim,
                             VerticalOffset = taeSection.HeightOfAllAnims,
                         };
 
-                        taeSection.InfoMap.Add(anim.ID, info);
+                        taeSection.InfoMap.Add(anim, info);
                         taeSection.HeightOfAllAnims += AnimHeight;
                     }
                     AnimTaeSections.Add(taeSection);
@@ -134,6 +134,11 @@ namespace TAEDX.TaeEditor
                     }
                 }
             }
+
+            if (MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Insert))
+            {
+                MainScreen.AddNewAnimation();
+            }
         }
 
         public void UpdateMouseOutsideRect(float elapsedSeconds, bool allowMouseUpdate)
@@ -142,6 +147,11 @@ namespace TAEDX.TaeEditor
                 return;
 
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: false);
+
+            if (MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Insert))
+            {
+                MainScreen.AddNewAnimation();
+            }
         }
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
@@ -153,6 +163,8 @@ namespace TAEDX.TaeEditor
                 if (!section.Collapsed)
                     EntireListHeight += section.HeightOfAllAnims;
             }
+
+            EntireListHeight += AnimHeight;
 
             ScrollViewer.SetDisplayRect(Rect, new Point(Rect.Width, (int)EntireListHeight));
 
@@ -231,7 +243,7 @@ namespace TAEDX.TaeEditor
 
                     foreach (var anim in taeSection.InfoMap)
                     {
-                        string animNameStr = (anim.Value.Ref.IsModified ? $"{anim.Value.Name}*" : anim.Value.Name);
+                        string animNameStr = (anim.Value.Ref.IsModified ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
 
                         if (anim.Value.Ref == MainScreen.SelectedTaeAnim)
                         {
@@ -271,73 +283,73 @@ namespace TAEDX.TaeEditor
                         offset += AnimHeight;
                     }
 
-                    foreach (var group in taeSection.Tae.AnimationGroups)
-                    {
-                        float startHeight = taeSection.InfoMap[group.FirstID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
-                        if (startHeight > (ScrollViewer.Scroll.Y + Rect.Height))
-                            continue;
-                        float endHeight = taeSection.InfoMap[group.LastID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
-                        if (endHeight < ScrollViewer.Scroll.Y)
-                            continue;
+                    //foreach (var group in taeSection.Tae.AnimationGroups)
+                    //{
+                    //    float startHeight = taeSection.InfoMap[group.FirstID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
+                    //    if (startHeight > (ScrollViewer.Scroll.Y + Rect.Height))
+                    //        continue;
+                    //    float endHeight = taeSection.InfoMap[group.LastID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
+                    //    if (endHeight < ScrollViewer.Scroll.Y)
+                    //        continue;
 
-                        float startX = GroupBraceMarginLeft / 2f;
-                        float endX = GroupBraceMarginLeft;
+                    //    float startX = GroupBraceMarginLeft / 2f;
+                    //    float endX = GroupBraceMarginLeft;
 
-                        if (startHeight == endHeight)
-                        {
-                            sb.Draw(texture: boxTex,
-                            position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
-                              + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
-                            sourceRectangle: null,
-                            color: Color.White,
-                            rotation: 0,
-                            origin: Vector2.Zero,
-                            scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
-                            effects: SpriteEffects.None,
-                            layerDepth: 0
-                            );
-                        }
-                        else
-                        {
-                            sb.Draw(texture: boxTex,
-                            position: new Vector2((GroupBraceMarginLeft / 2f), startHeight)
-                              + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
-                            sourceRectangle: null,
-                            color: Color.White,
-                            rotation: 0,
-                            origin: Vector2.Zero,
-                            scale: new Vector2(GroupBraceThickness, endHeight - startHeight + GroupBraceThickness),
-                            effects: SpriteEffects.None,
-                            layerDepth: 0
-                            );
+                    //    if (startHeight == endHeight)
+                    //    {
+                    //        sb.Draw(texture: boxTex,
+                    //        position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
+                    //          + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
+                    //        sourceRectangle: null,
+                    //        color: Color.White,
+                    //        rotation: 0,
+                    //        origin: Vector2.Zero,
+                    //        scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
+                    //        effects: SpriteEffects.None,
+                    //        layerDepth: 0
+                    //        );
+                    //    }
+                    //    else
+                    //    {
+                    //        sb.Draw(texture: boxTex,
+                    //        position: new Vector2((GroupBraceMarginLeft / 2f), startHeight)
+                    //          + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
+                    //        sourceRectangle: null,
+                    //        color: Color.White,
+                    //        rotation: 0,
+                    //        origin: Vector2.Zero,
+                    //        scale: new Vector2(GroupBraceThickness, endHeight - startHeight + GroupBraceThickness),
+                    //        effects: SpriteEffects.None,
+                    //        layerDepth: 0
+                    //        );
 
-                            sb.Draw(texture: boxTex,
-                                position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
-                                  + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
-                                sourceRectangle: null,
-                                color: Color.White,
-                                rotation: 0,
-                                origin: Vector2.Zero,
-                                scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
-                                effects: SpriteEffects.None,
-                                layerDepth: 0
-                                );
+                    //        sb.Draw(texture: boxTex,
+                    //            position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
+                    //              + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
+                    //            sourceRectangle: null,
+                    //            color: Color.White,
+                    //            rotation: 0,
+                    //            origin: Vector2.Zero,
+                    //            scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
+                    //            effects: SpriteEffects.None,
+                    //            layerDepth: 0
+                    //            );
 
-                            sb.Draw(texture: boxTex,
-                                position: new Vector2(GroupBraceMarginLeft / 2f, endHeight)
-                                  + new Vector2(-GroupBraceThickness / 2f, GroupBraceThickness / 2f),
-                                sourceRectangle: null,
-                                color: Color.White,
-                                rotation: 0,
-                                origin: Vector2.Zero,
-                                scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
-                                effects: SpriteEffects.None,
-                                layerDepth: 0
-                                );
-                        }
+                    //        sb.Draw(texture: boxTex,
+                    //            position: new Vector2(GroupBraceMarginLeft / 2f, endHeight)
+                    //              + new Vector2(-GroupBraceThickness / 2f, GroupBraceThickness / 2f),
+                    //            sourceRectangle: null,
+                    //            color: Color.White,
+                    //            rotation: 0,
+                    //            origin: Vector2.Zero,
+                    //            scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
+                    //            effects: SpriteEffects.None,
+                    //            layerDepth: 0
+                    //            );
+                    //    }
 
                         
-                    }
+                    //}
                 }
                 
 

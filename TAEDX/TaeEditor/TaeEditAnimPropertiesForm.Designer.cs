@@ -32,6 +32,7 @@
             this.propertyGrid = new System.Windows.Forms.PropertyGrid();
             this.buttonDiscardChanges = new System.Windows.Forms.Button();
             this.buttonSaveChanges = new System.Windows.Forms.Button();
+            this.buttonDeleteAnim = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // propertyGrid
@@ -68,17 +69,30 @@
             this.buttonSaveChanges.UseVisualStyleBackColor = true;
             this.buttonSaveChanges.Click += new System.EventHandler(this.buttonSaveChanges_Click);
             // 
+            // buttonDeleteAnim
+            // 
+            this.buttonDeleteAnim.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.buttonDeleteAnim.Location = new System.Drawing.Point(12, 270);
+            this.buttonDeleteAnim.Name = "buttonDeleteAnim";
+            this.buttonDeleteAnim.Size = new System.Drawing.Size(108, 23);
+            this.buttonDeleteAnim.TabIndex = 3;
+            this.buttonDeleteAnim.Text = "Delete Anim...";
+            this.buttonDeleteAnim.UseVisualStyleBackColor = true;
+            this.buttonDeleteAnim.Click += new System.EventHandler(this.buttonDeleteAnim_Click);
+            // 
             // TaeEditAnimPropertiesForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(394, 299);
             this.ControlBox = false;
+            this.Controls.Add(this.buttonDeleteAnim);
             this.Controls.Add(this.buttonSaveChanges);
             this.Controls.Add(this.buttonDiscardChanges);
             this.Controls.Add(this.propertyGrid);
             this.DoubleBuffered = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MinimumSize = new System.Drawing.Size(380, 200);
             this.Name = "TaeEditAnimPropertiesForm";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
@@ -94,5 +108,6 @@
         private System.Windows.Forms.Button buttonDiscardChanges;
         private System.Windows.Forms.Button buttonSaveChanges;
         private System.Windows.Forms.PropertyGrid propertyGrid;
+        private System.Windows.Forms.Button buttonDeleteAnim;
     }
 }
