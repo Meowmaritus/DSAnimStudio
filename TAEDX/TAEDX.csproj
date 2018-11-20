@@ -44,6 +44,12 @@
   <ItemGroup>
     <Compile Include="TaeEditor\TaeClipboardContents.cs" />
     <Compile Include="TaeEditor\TaeConfigFile.cs" />
+    <Compile Include="TaeEditor\TaeEditTaeHeaderForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TaeEditor\TaeEditTaeHeaderForm.Designer.cs">
+      <DependentUpon>TaeEditTaeHeaderForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="TaeEditor\TaeEditAnimPropertiesForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -111,6 +117,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="TaeEditor\TaeEditTaeHeaderForm.resx">
+      <DependentUpon>TaeEditTaeHeaderForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TaeEditor\TaeEditAnimPropertiesForm.resx">
       <DependentUpon>TaeEditAnimPropertiesForm.cs</DependentUpon>
     </EmbeddedResource>

@@ -96,7 +96,7 @@ namespace TAEDX
         {
             GraphicsDevice.Clear(new Color(0.15f, 0.15f, 0.15f));
 
-            testEditorScreen.Rect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height - 20);
+            testEditorScreen.Rect = new Rectangle(8, 0, GraphicsDevice.Viewport.Width - 16, GraphicsDevice.Viewport.Height - 20);
 
             testEditorScreen.Draw(gameTime, GraphicsDevice, spriteBatch,
                 Blank, eventLabelFont, (float)gameTime.ElapsedGameTime.TotalSeconds);

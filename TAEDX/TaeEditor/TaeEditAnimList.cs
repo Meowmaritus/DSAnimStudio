@@ -46,23 +46,28 @@ namespace TAEDX.TaeEditor
 
             if (MainScreen.Anibnd.StandardTAE != null)
             {
-                var taeSection = new TaeEditAnimListTaeSection();
-                taeSection.Collapsed = MainScreen.Config.AutoCollapseAllTaeSections;
-                taeSection.Tae = MainScreen.Anibnd.StandardTAE;
-                taeSection.SectionName = System.IO.Path.GetFileName(MainScreen.Anibnd.StandardTAE.FilePath ?? MainScreen.Anibnd.StandardTAE.VirtualUri);
-                foreach (var anim in MainScreen.Anibnd.StandardTAE.Animations)
+                foreach (var kvp in MainScreen.Anibnd.StandardTAE)
                 {
-                    var info = new TaeEditAnimInfo()
+                    var taeSection = new TaeEditAnimListTaeSection();
+                    taeSection.Collapsed = MainScreen.Config.AutoCollapseAllTaeSections;
+                    taeSection.Tae = kvp.Value;
+                    taeSection.SectionName = System.IO.Path.GetFileName(kvp.Value.FilePath ?? kvp.Value.VirtualUri);
+                    foreach (var anim in kvp.Value.Animations)
                     {
-                        GetName = () => $"a{(anim.ID / 10000):D2}_{(anim.ID % 10000):D4}",
-                        Ref = anim,
-                        VerticalOffset = taeSection.HeightOfAllAnims,
-                    };
-                    
-                    taeSection.InfoMap.Add(anim, info);
-                    taeSection.HeightOfAllAnims += AnimHeight;
+                        var animID_Lower = anim.ID % 10000;
+                        var animID_Upper = anim.ID / 10000;
+                        var info = new TaeEditAnimInfo()
+                        {
+                            GetName = () => $"a{(kvp.Key + animID_Upper):D2}_{animID_Lower:D4}",
+                            Ref = anim,
+                            VerticalOffset = taeSection.HeightOfAllAnims,
+                        };
+
+                        taeSection.InfoMap.Add(anim, info);
+                        taeSection.HeightOfAllAnims += AnimHeight;
+                    }
+                    AnimTaeSections.Add(taeSection);
                 }
-                AnimTaeSections.Add(taeSection);
             }
 
             if (MainScreen.Anibnd.PlayerTAE != null)
@@ -75,9 +80,11 @@ namespace TAEDX.TaeEditor
                     taeSection.SectionName = System.IO.Path.GetFileName(kvp.Value.FilePath ?? kvp.Value.VirtualUri);
                     foreach (var anim in kvp.Value.Animations)
                     {
+                        var animID_Lower = anim.ID % 10000;
+                        var animID_Upper = anim.ID / 10000;
                         var info = new TaeEditAnimInfo()
                         {
-                            GetName = () => $"a{kvp.Key:D2}_{anim.ID:D4}",
+                            GetName = () => $"a{(kvp.Key + animID_Upper):D2}_{animID_Lower:D4}",
                             Ref = anim,
                             VerticalOffset = taeSection.HeightOfAllAnims,
                         };
@@ -348,7 +355,7 @@ namespace TAEDX.TaeEditor
                     //            );
                     //    }
 
-                        
+
                     //}
                 }
                 

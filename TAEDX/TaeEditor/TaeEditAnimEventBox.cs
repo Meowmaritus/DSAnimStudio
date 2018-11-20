@@ -39,7 +39,7 @@ namespace TAEDX.TaeEditor
 
         public TaeScrollingString EventText { get; private set; } = new TaeScrollingString();
 
-        public Color ColorBG => OwnerPane.GetColorInfo(MyEvent.EventType)?.ColorA ?? Color.SkyBlue;
+        public Color ColorBG => OwnerPane.GetColorInfo(MyEvent.EventType)?.Color1 ?? Color.SkyBlue;
         public Color ColorOutline
         {
             get
@@ -55,7 +55,7 @@ namespace TAEDX.TaeEditor
                 if (info == null)
                     return Color.White;
 
-                if (info.ColorAFlag == 5)
+                if (info.C1F == 5)
                     return Color.Black;
                 else
                     return Color.White;
