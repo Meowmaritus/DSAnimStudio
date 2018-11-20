@@ -587,6 +587,32 @@ namespace TAEDX.TaeEditor
             return false;
         }
 
+        public void ShowDialogFind()
+        {
+            var find = KeyboardInput.Show("Quick Find Event ID", "Finds the very first animation containing the event with the specified ID", "");
+            if (int.TryParse(find.Result, out int typeID))
+            {
+                var gotoAnim = MainScreen.SelectedTae.Animations.Where(x => x.EventList.Any(ev => (int)ev.EventType == typeID));
+                if (gotoAnim.Any())
+                    MainScreen.SelectNewAnimRef(MainScreen.SelectedTae, gotoAnim.First());
+            }
+            else if (Enum.TryParse<TimeActEventType>(find.Result, out TimeActEventType type))
+            {
+                var gotoAnim = MainScreen.SelectedTae.Animations.Where(x => x.EventList.Any(ev => ev.EventType == type));
+                if (gotoAnim.Any())
+                    MainScreen.SelectNewAnimRef(MainScreen.SelectedTae, gotoAnim.First());
+            }
+            else
+            {
+                MessageBox.Show("None Found", "No events found with that ID in the current TAE.", new[] { "OK" });
+            }
+        }
+
+        public void ShowDialogGoto()
+        {
+
+        }
+
         public void Update(float elapsedSeconds, bool allowMouseUpdate)
         {
             if (!allowMouseUpdate)
@@ -636,6 +662,14 @@ namespace TAEDX.TaeEditor
                         }
                         MainScreen.UpdateInspectorToSelection();
                     }
+                }
+                else if (MainScreen.Input.KeyDown(Keys.F))
+                {
+                    ShowDialogFind();
+                }
+                else if (MainScreen.Input.KeyDown(Keys.G))
+                {
+                    ShowDialogGoto();
                 }
             }
 

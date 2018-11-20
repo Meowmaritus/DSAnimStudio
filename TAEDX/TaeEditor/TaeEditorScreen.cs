@@ -35,6 +35,10 @@ namespace TAEDX.TaeEditor
         private int ButtonEditCurrentAnimInfoWidth = 200;
         private System.Windows.Forms.Button ButtonEditCurrentAnimInfo;
 
+        private int EditTaeHeaderButtonMargin = 32;
+        private int EditTaeHeaderButtonHeight = 20;
+        private System.Windows.Forms.Button ButtonEditCurrentTaeHeader;
+
         const string HELP_TEXT = 
             "Left Click + Drag Middle of Event:\n" +
             "    Move whole event\n" +
@@ -181,8 +185,8 @@ namespace TAEDX.TaeEditor
         private System.Windows.Forms.ToolStripMenuItem ToolStripConfigColorBlindMode;
         private System.Windows.Forms.ToolStripMenuItem ToolStripConfigFancyTextScroll;
 
-        private float LeftSectionWidth = 135;
-        private const float LeftSectionWidthMin = 135;
+        private float LeftSectionWidth = 150;
+        private const float LeftSectionWidthMin = 150;
         private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth;
         private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + DividerHitboxPad;
 
@@ -328,6 +332,10 @@ namespace TAEDX.TaeEditor
 
         public bool? LoadCurrentFile()
         {
+            // Even if it faile to load, just always push it to the recent files list
+            // in case you're Meowmaritus and you're trying to get a new type of file to load.
+            PushNewRecentFile(AnibndFileName);
+
             if (System.IO.File.Exists(AnibndFileName))
             {
                 ANIBND newAnibnd = null;
@@ -339,7 +347,6 @@ namespace TAEDX.TaeEditor
                 if (newAnibnd.AllTAE.Any())
                 {
                     LoadANIBND(newAnibnd);
-                    PushNewRecentFile(AnibndFileName);
                     ToolStripFileSaveAs.Enabled = true;
                     return true;
                 }
@@ -386,6 +393,7 @@ namespace TAEDX.TaeEditor
         {
             Anibnd = anibnd;
             SelectedTae = Anibnd.AllTAE.First();
+            ButtonEditCurrentTaeHeader.Enabled = false;
             SelectedTaeAnim = SelectedTae.Animations[0];
             editScreenAnimList = new TaeEditAnimList(this);
             editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
@@ -396,8 +404,20 @@ namespace TAEDX.TaeEditor
         public void RecreateAnimList()
         {
             Vector2 oldScroll = editScreenAnimList.ScrollViewer.Scroll;
+            var sectionsCollapsed = editScreenAnimList
+                .AnimTaeSections
+                .ToDictionary(x => x.SectionName, x => x.Collapsed);
+
             editScreenAnimList = new TaeEditAnimList(this);
+
+            foreach (var section in editScreenAnimList.AnimTaeSections)
+            {
+                if (sectionsCollapsed.ContainsKey(section.SectionName))
+                    section.Collapsed = sectionsCollapsed[section.SectionName];
+            }
+            
             editScreenAnimList.ScrollViewer.Scroll = oldScroll;
+            
         }
 
         public void AddNewAnimation()
@@ -708,9 +728,37 @@ namespace TAEDX.TaeEditor
             ButtonEditCurrentAnimInfo.Enabled = false;
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
+
+            ButtonEditCurrentTaeHeader = new System.Windows.Forms.Button();
+            ButtonEditCurrentTaeHeader.Text = "Edit TAE Header...";
+            ButtonEditCurrentTaeHeader.Click += ButtonEditCurrentTaeHeader_Click;
+            ButtonEditCurrentTaeHeader.Enabled = false;
+
+            GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
         }
 
-        private void ButtonEditCurrentAnimInfo_Click(object sender, EventArgs e)
+        private void ButtonEditCurrentTaeHeader_Click(object sender, EventArgs e)
+        {
+            ShowDialogEditTaeHeader();
+        }
+
+        public void ShowDialogEditTaeHeader()
+        {
+            PauseUpdate = true;
+            var editForm = new TaeEditTaeHeaderForm(SelectedTae);
+            editForm.Owner = GameWindowAsForm;
+            editForm.ShowDialog();
+
+            if (editForm.WereThingsChanged)
+            {
+                IsModified = true;
+                UpdateSelectedTaeAnimInfoText();
+            }
+
+            PauseUpdate = false;
+        }
+
+        public void ShowDialogEditCurrentAnimInfo()
         {
             PauseUpdate = true;
             var editForm = new TaeEditAnimPropertiesForm(SelectedTaeAnim);
@@ -722,7 +770,7 @@ namespace TAEDX.TaeEditor
                 if (SelectedTae.Animations.Count <= 1)
                 {
                     System.Windows.Forms.MessageBox.Show(
-                        "Cannot delete the only animation remaining in the TAE.", 
+                        "Cannot delete the only animation remaining in the TAE.",
                         "Can't Delete Last Animation",
                         System.Windows.Forms.MessageBoxButtons.OK,
                         System.Windows.Forms.MessageBoxIcon.Stop);
@@ -761,8 +809,13 @@ namespace TAEDX.TaeEditor
                     UpdateSelectedTaeAnimInfoText();
                 }
             }
-            
+
             PauseUpdate = false;
+        }
+
+        private void ButtonEditCurrentAnimInfo_Click(object sender, EventArgs e)
+        {
+            ShowDialogEditCurrentAnimInfo();
         }
 
         private void GameWindowAsForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
@@ -1128,6 +1181,9 @@ namespace TAEDX.TaeEditor
         public void SelectNewAnimRef(TAE tae, AnimationRef animRef)
         {
             SelectedTae = tae;
+
+            ButtonEditCurrentTaeHeader.Enabled = true;
+
             SelectedTaeAnim = animRef;
 
             UpdateSelectedTaeAnimInfoText();
@@ -1151,7 +1207,6 @@ namespace TAEDX.TaeEditor
 
                 editScreenCurrentAnim = null;
             }
-
             
         }
 
@@ -1314,19 +1369,13 @@ namespace TAEDX.TaeEditor
                     (int)LeftSectionStartX,
                     Rect.Top + TopMenuBarMargin, 
                     (int)LeftSectionWidth, 
-                    Rect.Height - TopMenuBarMargin);
+                    Rect.Height - TopMenuBarMargin - EditTaeHeaderButtonMargin);
 
                 editScreenCurrentAnim.Rect = new Rectangle(
                     (int)MiddleSectionStartX, 
                     Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
                     (int)MiddleSectionWidth,
                     Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
-
-                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
-                    editScreenCurrentAnim.Rect.Right - ButtonEditCurrentAnimInfoWidth,
-                    Rect.Top + TopMenuBarMargin,
-                    ButtonEditCurrentAnimInfoWidth, 
-                    TopOfGraphAnimInfoMargin);
             }
             else
             {
@@ -1341,8 +1390,14 @@ namespace TAEDX.TaeEditor
                     Rect.Top + TopMenuBarMargin, 
                     ButtonEditCurrentAnimInfoWidth, 
                     TopOfGraphAnimInfoMargin);
-
             }
+
+            ButtonEditCurrentTaeHeader.Bounds = new System.Drawing.Rectangle(
+                    (int)LeftSectionStartX,
+                    Rect.Bottom - EditTaeHeaderButtonHeight,
+                    (int)LeftSectionWidth,
+                    EditTaeHeaderButtonHeight);
+
             //editScreenGraphInspector.Rect = new Rectangle(Rect.Width - LayoutInspectorWidth, 0, LayoutInspectorWidth, Rect.Height);
             inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, Rect.Height - TopMenuBarMargin);
         }
