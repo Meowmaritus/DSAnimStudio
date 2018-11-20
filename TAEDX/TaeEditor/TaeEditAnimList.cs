@@ -17,6 +17,8 @@ namespace TAEDX.TaeEditor
             public Func<string> GetName;
             public AnimationRef Ref;
             public float VerticalOffset;
+            public int TaePrefix;
+            public int FullID => (TaePrefix * 10000) + Ref.ID;
         }
 
         public class TaeEditAnimListTaeSection
@@ -40,6 +42,47 @@ namespace TAEDX.TaeEditor
         int GroupBraceMarginLeft = 16;
         int GroupBraceThickness = 2;
 
+        public void ScrollToAnimRef(AnimationRef anim, bool scrollOnCenter)
+        {
+            if (anim == null)
+                return;
+            float verticalOffset = 0;
+            foreach (var section in AnimTaeSections)
+            {
+                verticalOffset += AnimHeight;
+                if (section.InfoMap.ContainsKey(anim))
+                {
+                    // Un-collapse section where anim is.
+                    if (section.Collapsed)
+                        section.Collapsed = false;
+                    verticalOffset += section.InfoMap[anim].VerticalOffset;
+                    break;
+                }
+                else if (!section.Collapsed)
+                {
+                    verticalOffset += section.HeightOfAllAnims;
+                }
+            }
+
+            if (scrollOnCenter)
+            {
+                ScrollViewer.Scroll.Y = (verticalOffset + AnimHeight / 2f) - (ScrollViewer.Viewport.Height / 2f);
+            }
+            else
+            {
+                if (ScrollViewer.Scroll.Y > (verticalOffset - AnimHeight))
+                {
+                    ScrollViewer.Scroll.Y = verticalOffset - AnimHeight;
+                }
+                else if (ScrollViewer.Scroll.Y + Rect.Height < verticalOffset + (AnimHeight * 2))
+                {
+                    ScrollViewer.Scroll.Y = verticalOffset + (AnimHeight * 2) - Rect.Height;
+                }
+            }
+
+            
+        }
+
         public TaeEditAnimList(TaeEditorScreen mainScreen)
         {
             MainScreen = mainScreen;
@@ -61,6 +104,7 @@ namespace TAEDX.TaeEditor
                             GetName = () => $"a{(kvp.Key + animID_Upper):D2}_{animID_Lower:D4}",
                             Ref = anim,
                             VerticalOffset = taeSection.HeightOfAllAnims,
+                            TaePrefix = kvp.Key,
                         };
 
                         taeSection.InfoMap.Add(anim, info);
@@ -87,6 +131,7 @@ namespace TAEDX.TaeEditor
                             GetName = () => $"a{(kvp.Key + animID_Upper):D2}_{animID_Lower:D4}",
                             Ref = anim,
                             VerticalOffset = taeSection.HeightOfAllAnims,
+                            TaePrefix = kvp.Key,
                         };
 
                         taeSection.InfoMap.Add(anim, info);

@@ -12,7 +12,7 @@ namespace TAEDX.TaeEditor
 {
     public class TaeEditAnimEventGraph
     {
-        enum BoxDragType
+        public enum BoxDragType
         {
             None,
             LeftOfEventBox,
@@ -26,7 +26,7 @@ namespace TAEDX.TaeEditor
             MultiDragMiddleOfEventBox,
         }
 
-        private class TaeDragState
+        public class TaeDragState
         {
             public BoxDragType DragType = BoxDragType.None;
             public TaeEditAnimEventBox Box = null;
@@ -68,10 +68,6 @@ namespace TAEDX.TaeEditor
             }
         }
 
-        bool CtrlHeld = false;
-        bool ShiftHeld = false;
-        bool AltHeld = false;
-
         public int MultiSelectRectOutlineThickness => MainScreen.Config.EnableColorBlindMode ? 4 : 1;
         public Color MultiSelectRectFillColor => Color.LightGray * 0.5f;
         public Color MultiSelectRectOutlineColor => MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White;
@@ -106,11 +102,11 @@ namespace TAEDX.TaeEditor
         public float BoxSideScrollMarginSize = 4;
 
 
-        private TaeDragState currentDrag = new TaeDragState();
-        private List<TaeDragState> currentMultiDrag = new List<TaeDragState>();
+        public TaeDragState currentDrag = new TaeDragState();
+        public List<TaeDragState> currentMultiDrag = new List<TaeDragState>();
 
 
-        private void ZoomOutOneNotch(float mouseScreenPosX)
+        public void ZoomOutOneNotch(float mouseScreenPosX)
         {
             float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
 
@@ -134,7 +130,7 @@ namespace TAEDX.TaeEditor
             ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
         }
 
-        private void ZoomInOneNotch(float mouseScreenPosX)
+        public void ZoomInOneNotch(float mouseScreenPosX)
         {
             float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
 
@@ -157,7 +153,7 @@ namespace TAEDX.TaeEditor
             ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
         }
 
-        private void ResetZoom(float mouseScreenPosX)
+        public void ResetZoom(float mouseScreenPosX)
         {
             float mousePointTime = (mouseScreenPosX + ScrollViewer.Scroll.X) / SecondsPixelSize;
 
@@ -477,7 +473,7 @@ namespace TAEDX.TaeEditor
             PlaceNewEvent(newEvent);
         }
 
-        private void DeleteSelectedEvent()
+        public void DeleteSelectedEvent()
         {
             if (MainScreen.MultiSelectedEventBoxes.Count > 0)
             {
@@ -587,115 +583,14 @@ namespace TAEDX.TaeEditor
             return false;
         }
 
-        public void ShowDialogFind()
-        {
-            var find = KeyboardInput.Show("Quick Find Event ID", "Finds the very first animation containing the event with the specified ID", "");
-            if (int.TryParse(find.Result, out int typeID))
-            {
-                var gotoAnim = MainScreen.SelectedTae.Animations.Where(x => x.EventList.Any(ev => (int)ev.EventType == typeID));
-                if (gotoAnim.Any())
-                    MainScreen.SelectNewAnimRef(MainScreen.SelectedTae, gotoAnim.First());
-            }
-            else if (Enum.TryParse<TimeActEventType>(find.Result, out TimeActEventType type))
-            {
-                var gotoAnim = MainScreen.SelectedTae.Animations.Where(x => x.EventList.Any(ev => ev.EventType == type));
-                if (gotoAnim.Any())
-                    MainScreen.SelectNewAnimRef(MainScreen.SelectedTae, gotoAnim.First());
-            }
-            else
-            {
-                MessageBox.Show("None Found", "No events found with that ID in the current TAE.", new[] { "OK" });
-            }
-        }
-
-        public void ShowDialogGoto()
-        {
-
-        }
-
         public void Update(float elapsedSeconds, bool allowMouseUpdate)
         {
             if (!allowMouseUpdate)
                 return;
 
-            CtrlHeld = MainScreen.Input.KeyHeld(Keys.LeftControl) || MainScreen.Input.KeyHeld(Keys.RightControl);
-            ShiftHeld = MainScreen.Input.KeyHeld(Keys.LeftShift) || MainScreen.Input.KeyHeld(Keys.RightShift);
-            AltHeld = MainScreen.Input.KeyHeld(Keys.LeftAlt) || MainScreen.Input.KeyHeld(Keys.RightAlt);
+            ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !MainScreen.CtrlHeld);
 
-            ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !CtrlHeld);
-
-            if (CtrlHeld && !ShiftHeld && !AltHeld)
-            {
-                if (MainScreen.Input.KeyDown(Keys.OemPlus))
-                {
-                    ZoomInOneNotch(0);
-                }
-                else if (MainScreen.Input.KeyDown(Keys.OemMinus))
-                {
-                    ZoomOutOneNotch(0);
-                }
-                else if (MainScreen.Input.KeyDown(Keys.D0) || MainScreen.Input.KeyDown(Keys.NumPad0))
-                {
-                    ResetZoom(0);
-                }
-                else if (MainScreen.Input.KeyDown(Keys.C))
-                {
-                    DoCopy();
-                }
-                else if (MainScreen.Input.KeyDown(Keys.X))
-                {
-                    DoCut();
-                }
-                else if (MainScreen.Input.KeyDown(Keys.V))
-                {
-                    DoPaste(isAbsoluteLocation: false);
-                }
-                else if (MainScreen.Input.KeyDown(Keys.A))
-                {
-                    if (currentDrag.DragType == BoxDragType.None)
-                    {
-                        MainScreen.SelectedEventBox = null;
-                        MainScreen.MultiSelectedEventBoxes.Clear();
-                        foreach (var box in EventBoxes)
-                        {
-                            MainScreen.MultiSelectedEventBoxes.Add(box);
-                        }
-                        MainScreen.UpdateInspectorToSelection();
-                    }
-                }
-                else if (MainScreen.Input.KeyDown(Keys.F))
-                {
-                    ShowDialogFind();
-                }
-                else if (MainScreen.Input.KeyDown(Keys.G))
-                {
-                    ShowDialogGoto();
-                }
-            }
-
-            if (CtrlHeld && ShiftHeld && !AltHeld)
-            {
-                if (MainScreen.Input.KeyDown(Keys.V))
-                {
-                    DoPaste(isAbsoluteLocation: true);
-                }
-            }
-
-            if (!CtrlHeld && ShiftHeld && !AltHeld)
-            {
-                if (MainScreen.Input.KeyDown(Keys.D))
-                {
-                    if (MainScreen.SelectedEventBox != null)
-                        MainScreen.SelectedEventBox = null;
-                    if (MainScreen.MultiSelectedEventBoxes.Count > 0)
-                        MainScreen.MultiSelectedEventBoxes.Clear();
-                }
-            }
-
-            if (MainScreen.Input.KeyDown(Keys.Delete))
-            {
-                DeleteSelectedEvent();
-            }
+            
 
             if (ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y)))
             {
@@ -703,7 +598,7 @@ namespace TAEDX.TaeEditor
 
                 MainScreen.Input.CursorType = MouseCursorType.Arrow;
 
-                if (MainScreen.Input.LeftClickDown && !ShiftHeld && !CtrlHeld)
+                if (MainScreen.Input.LeftClickDown && !MainScreen.ShiftHeld && !MainScreen.CtrlHeld)
                 {
                     MainScreen.SelectedEventBox = null;
                 }
@@ -842,7 +737,7 @@ namespace TAEDX.TaeEditor
                                 }
                                 else
                                 {
-                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box) && !CtrlHeld)
+                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box) && !MainScreen.CtrlHeld)
                                     {
                                         currentDrag.DragType = BoxDragType.MultiDragMiddleOfEventBox;
                                         currentMultiDrag.Clear();
@@ -865,7 +760,7 @@ namespace TAEDX.TaeEditor
                                     }
                                     else
                                     {
-                                        if (ShiftHeld && !CtrlHeld && !AltHeld)
+                                        if (MainScreen.ShiftHeld && !MainScreen.CtrlHeld && !MainScreen.AltHeld)
                                         {
                                             if (MainScreen.SelectedEventBox == null 
                                                 && MainScreen.MultiSelectedEventBoxes.Count == 0)
@@ -884,7 +779,7 @@ namespace TAEDX.TaeEditor
                                                 && !MainScreen.MultiSelectedEventBoxes.Contains(box))
                                                 MainScreen.MultiSelectedEventBoxes.Add(box);
                                         }
-                                        else if (!ShiftHeld && CtrlHeld && !AltHeld)
+                                        else if (!MainScreen.ShiftHeld && MainScreen.CtrlHeld && !MainScreen.AltHeld)
                                         {
                                             if (MainScreen.MultiSelectedEventBoxes.Contains(box))
                                                 MainScreen.MultiSelectedEventBoxes.Remove(box);
@@ -914,7 +809,7 @@ namespace TAEDX.TaeEditor
                         {
                             currentMultiDrag.Clear();
 
-                            if (ShiftHeld && !CtrlHeld && !AltHeld)
+                            if (MainScreen.ShiftHeld && !MainScreen.CtrlHeld && !MainScreen.AltHeld)
                             {
                                 if (MainScreen.SelectedEventBox == null
                                     && MainScreen.MultiSelectedEventBoxes.Count == 0)
@@ -933,7 +828,7 @@ namespace TAEDX.TaeEditor
                                     && !MainScreen.MultiSelectedEventBoxes.Contains(box))
                                     MainScreen.MultiSelectedEventBoxes.Add(box);
                             }
-                            else if (!ShiftHeld && CtrlHeld && !AltHeld)
+                            else if (!MainScreen.ShiftHeld && MainScreen.CtrlHeld && !MainScreen.AltHeld)
                             {
                                 if (MainScreen.MultiSelectedEventBoxes.Contains(box))
                                     MainScreen.MultiSelectedEventBoxes.Remove(box);
@@ -966,9 +861,9 @@ namespace TAEDX.TaeEditor
                         MainScreen.SelectedEventBox = null;
                     }
 
-                    if (ShiftHeld && !CtrlHeld && !AltHeld)
+                    if (MainScreen.ShiftHeld && !MainScreen.CtrlHeld && !MainScreen.AltHeld)
                         currentDrag.DragType = BoxDragType.MultiSelectionRectangleADD;
-                    else if (!ShiftHeld && CtrlHeld && !AltHeld)
+                    else if (!MainScreen.ShiftHeld && MainScreen.CtrlHeld && !MainScreen.AltHeld)
                         currentDrag.DragType = BoxDragType.MultiSelectionRectangleSUBTRACT;
                     else
                         currentDrag.DragType = BoxDragType.MultiSelectionRectangle;
@@ -1258,7 +1153,7 @@ namespace TAEDX.TaeEditor
                     }
                 }
 
-                if (CtrlHeld)
+                if (MainScreen.CtrlHeld)
                 {
                     Zoom(MainScreen.Input.ScrollDelta, MainScreen.Input.MousePosition.X - Rect.X);
                 }

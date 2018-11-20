@@ -2,11 +2,13 @@
 using MeowDSIO.DataTypes.TAE;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static TAEDX.TaeEditor.TaeEditAnimEventGraph;
 
 namespace TAEDX.TaeEditor
 {
@@ -38,6 +40,10 @@ namespace TAEDX.TaeEditor
         private int EditTaeHeaderButtonMargin = 32;
         private int EditTaeHeaderButtonHeight = 20;
         private System.Windows.Forms.Button ButtonEditCurrentTaeHeader;
+
+        public bool CtrlHeld;
+        public bool ShiftHeld;
+        public bool AltHeld;
 
         const string HELP_TEXT = 
             "Left Click + Drag Middle of Event:\n" +
@@ -180,6 +186,8 @@ namespace TAEDX.TaeEditor
         private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.4f, 0.05f);
         private System.Windows.Forms.ToolStripMenuItem ToolStripEditUndo;
         private System.Windows.Forms.ToolStripMenuItem ToolStripEditRedo;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripEditFind;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripEditGoto;
 
         //private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityDisableRainbow;
         private System.Windows.Forms.ToolStripMenuItem ToolStripConfigColorBlindMode;
@@ -399,6 +407,8 @@ namespace TAEDX.TaeEditor
             editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
             SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
             ButtonEditCurrentAnimInfo.Enabled = true;
+            ToolStripEditFind.Enabled = true;
+            ToolStripEditGoto.Enabled = true;
         }
 
         public void RecreateAnimList()
@@ -541,6 +551,26 @@ namespace TAEDX.TaeEditor
                     }
                 };
                 toolstripEdit.DropDownItems.Add(toolStripEditExpandAllTaeSections);
+
+                toolstripEdit.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+
+                ToolStripEditFind = new System.Windows.Forms.ToolStripMenuItem("Find...");
+                ToolStripEditFind.ShortcutKeyDisplayString = "Ctrl+F";
+                ToolStripEditFind.Enabled = false;
+                ToolStripEditFind.Click += (s, e) =>
+                {
+                    ShowDialogFind();
+                };
+                //toolstripEdit.DropDownItems.Add(ToolStripEditFind);
+
+                ToolStripEditGoto = new System.Windows.Forms.ToolStripMenuItem("Goto Anim...");
+                ToolStripEditGoto.ShortcutKeyDisplayString = "Ctrl+G";
+                ToolStripEditGoto.Enabled = false;
+                ToolStripEditGoto.Click += (s, e) =>
+                {
+                    ShowDialogGoto();
+                };
+                toolstripEdit.DropDownItems.Add(ToolStripEditGoto);
             }
 
             var toolstripConfig = new System.Windows.Forms.ToolStripMenuItem("Config");
@@ -756,6 +786,21 @@ namespace TAEDX.TaeEditor
             }
 
             PauseUpdate = false;
+        }
+
+        public bool GotoAnimID(int id, bool scrollOnCenter)
+        {
+            foreach (var s in editScreenAnimList.AnimTaeSections)
+            {
+                var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
+                if (matchedAnims.Any())
+                {
+                    var anim = matchedAnims.First().Value.Ref;
+                    SelectNewAnimRef(s.Tae, anim, scrollOnCenter);
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void ShowDialogEditCurrentAnimInfo()
@@ -1178,7 +1223,7 @@ namespace TAEDX.TaeEditor
             SelectedTaeAnimInfoScrollingText.SetText(stringBuilder.ToString());
         }
 
-        public void SelectNewAnimRef(TAE tae, AnimationRef animRef)
+        public void SelectNewAnimRef(TAE tae, AnimationRef animRef, bool scrollOnCenter = false)
         {
             SelectedTae = tae;
 
@@ -1198,6 +1243,8 @@ namespace TAEDX.TaeEditor
                     editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
 
                 editScreenCurrentAnim.ChangeToNewAnimRef(SelectedTaeAnim);
+
+                editScreenAnimList.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
             }
             else
             {
@@ -1208,6 +1255,58 @@ namespace TAEDX.TaeEditor
                 editScreenCurrentAnim = null;
             }
             
+        }
+
+
+        public void ShowDialogFind()
+        {
+            //if (Anibnd == null || SelectedTae == null)
+            //    return;
+            //PauseUpdate = true;
+            //var find = KeyboardInput.Show("Quick Find Event ID", "Finds the very first animation containing the event with the specified ID", "");
+            //if (int.TryParse(find.Result, out int typeID))
+            //{
+            //    var gotoAnim = SelectedTae.Animations.Where(x => x.EventList.Any(ev => (int)ev.EventType == typeID));
+            //    if (gotoAnim.Any())
+            //        SelectNewAnimRef(SelectedTae, gotoAnim.First());
+            //}
+            //else if (Enum.TryParse<TimeActEventType>(find.Result, out TimeActEventType type))
+            //{
+            //    var gotoAnim = SelectedTae.Animations.Where(x => x.EventList.Any(ev => ev.EventType == type));
+            //    if (gotoAnim.Any())
+            //        SelectNewAnimRef(SelectedTae, gotoAnim.First());
+            //}
+            //else
+            //{
+            //    MessageBox.Show("None Found", "No events found with that ID in the current TAE.", new[] { "OK" });
+            //}
+            //PauseUpdate = false;
+        }
+
+        public void ShowDialogGoto()
+        {
+            if (Anibnd == null || SelectedTae == null)
+                return;
+            PauseUpdate = true;
+            var anim = KeyboardInput.Show("Goto Anim", "Goes to the animation with the ID\n" +
+                "entered, if applicable \n" +
+                "(for aXX_YYYY, type XXYYYY)", "");
+            if (!anim.IsCanceled && anim.Result != null)
+            {
+                if (int.TryParse(anim.Result, out int id))
+                {
+                    if (!GotoAnimID(id, scrollOnCenter: true))
+                    {
+                        MessageBox.Show("Goto Failed", $"Unable to find anim {id}.", new[] { "OK" });
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Goto Failed", $"\"{anim.Result}\" is not a valid integer.", new[] { "OK" });
+                }
+            }
+            
+            PauseUpdate = false;
         }
 
         public void Update(float elapsedSeconds)
@@ -1222,26 +1321,97 @@ namespace TAEDX.TaeEditor
                 //PauseUpdateTotalTime = 0;
             }
 
-            
-
-
             Input.Update(Rect);
 
             if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
                 ChangeTypeOfSelectedEvent();
 
-            var ctrlHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftControl) 
-                || Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightControl);
+            CtrlHeld = Input.KeyHeld(Keys.LeftControl) || Input.KeyHeld(Keys.RightControl);
+            ShiftHeld = Input.KeyHeld(Keys.LeftShift) || Input.KeyHeld(Keys.RightShift);
+            AltHeld = Input.KeyHeld(Keys.LeftAlt) || Input.KeyHeld(Keys.RightAlt);
 
             var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
             var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
 
-            if (UndoButton.Update(elapsedSeconds, ctrlHeld && (zHeld && !yHeld)))
+            if (CtrlHeld && !ShiftHeld && !AltHeld)
+            {
+                if (Input.KeyDown(Keys.OemPlus))
+                {
+                    editScreenCurrentAnim.ZoomInOneNotch(0);
+                }
+                else if (Input.KeyDown(Keys.OemMinus))
+                {
+                    editScreenCurrentAnim.ZoomOutOneNotch(0);
+                }
+                else if (Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0))
+                {
+                    editScreenCurrentAnim.ResetZoom(0);
+                }
+                else if (Input.KeyDown(Keys.C))
+                {
+                    editScreenCurrentAnim.DoCopy();
+                }
+                else if (Input.KeyDown(Keys.X))
+                {
+                    editScreenCurrentAnim.DoCut();
+                }
+                else if (Input.KeyDown(Keys.V))
+                {
+                    editScreenCurrentAnim.DoPaste(isAbsoluteLocation: false);
+                }
+                else if (Input.KeyDown(Keys.A))
+                {
+                    if (editScreenCurrentAnim.currentDrag.DragType == BoxDragType.None)
+                    {
+                        SelectedEventBox = null;
+                        MultiSelectedEventBoxes.Clear();
+                        foreach (var box in editScreenCurrentAnim.EventBoxes)
+                        {
+                            MultiSelectedEventBoxes.Add(box);
+                        }
+                        UpdateInspectorToSelection();
+                    }
+                }
+                else if (Input.KeyDown(Keys.F))
+                {
+                    ShowDialogFind();
+                }
+                else if (Input.KeyDown(Keys.G))
+                {
+                    ShowDialogGoto();
+                }
+            }
+
+            if (CtrlHeld && ShiftHeld && !AltHeld)
+            {
+                if (Input.KeyDown(Keys.V))
+                {
+                    editScreenCurrentAnim.DoPaste(isAbsoluteLocation: true);
+                }
+            }
+
+            if (!CtrlHeld && ShiftHeld && !AltHeld)
+            {
+                if (Input.KeyDown(Keys.D))
+                {
+                    if (SelectedEventBox != null)
+                        SelectedEventBox = null;
+                    if (MultiSelectedEventBoxes.Count > 0)
+                        MultiSelectedEventBoxes.Clear();
+                }
+            }
+
+            if (Input.KeyDown(Keys.Delete))
+            {
+                editScreenCurrentAnim.DeleteSelectedEvent();
+            }
+
+            if (UndoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (zHeld && !yHeld)))
             {
                 UndoMan.Undo();
             }
 
-            if (RedoButton.Update(elapsedSeconds, ctrlHeld && (!zHeld && yHeld)))
+            if (RedoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (!zHeld && yHeld)))
             {
                 UndoMan.Redo();
             }

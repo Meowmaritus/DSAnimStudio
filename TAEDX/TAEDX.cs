@@ -10,7 +10,7 @@ namespace TAEDX
 {
     public class TAEDX : Game
     {
-        public const string VERSION = "v1.6";
+        public const string VERSION = "v1.7";
 
         public string AutoLoadAnibnd = null;
 

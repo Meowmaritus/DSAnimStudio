@@ -106,7 +106,7 @@ namespace TAEDX.TaeEditor
 
         public void UpdateEventText()
         {
-            EventText.SetText($"{MyEvent.EventType.ToString()}[{((int)MyEvent.EventType)}]({string.Join(", ", MyEvent.Parameters)})");
+            EventText.SetText($"{MyEvent.EventType.ToString()}({string.Join(", ", MyEvent.Parameters)})");
         }
 
         public void DeleteMe()
