@@ -117,8 +117,8 @@ namespace TAEDX.TaeEditor
             get => _IsModified;
             set
             {
-                _IsModified = value;
-                ToolStripFileSave.Enabled = value;
+                _IsModified = value && !IsReadOnlyFileMode;
+                ToolStripFileSave.Enabled = value && !IsReadOnlyFileMode;
             }
         }
 
@@ -217,7 +217,7 @@ namespace TAEDX.TaeEditor
         private ScreenMouseHoverKind MouseHoverKind = ScreenMouseHoverKind.None;
         private ScreenMouseHoverKind oldMouseHoverKind = ScreenMouseHoverKind.None;
 
-        public ANIBND Anibnd;
+        public TaeFileContainer FileContainer;
 
         public TAE SelectedTae { get; private set; }
 
@@ -297,7 +297,9 @@ namespace TAEDX.TaeEditor
 
         private System.Windows.Forms.MenuStrip WinFormsMenuStrip;
 
-        public string AnibndFileName = "";
+        public string FileContainerName = "";
+
+        public bool IsReadOnlyFileMode = false;
 
         public TaeConfigFile Config = new TaeConfigFile();
 
@@ -342,26 +344,24 @@ namespace TAEDX.TaeEditor
         {
             // Even if it faile to load, just always push it to the recent files list
             // in case you're Meowmaritus and you're trying to get a new type of file to load.
-            PushNewRecentFile(AnibndFileName);
+            PushNewRecentFile(FileContainerName);
 
-            if (System.IO.File.Exists(AnibndFileName))
+            if (System.IO.File.Exists(FileContainerName))
             {
-                ANIBND newAnibnd = null;
-                if (AnibndFileName.ToUpper().EndsWith(".DCX"))
-                    newAnibnd = MeowDSIO.DataFile.LoadFromDcxFile<ANIBND>(AnibndFileName);
-                else
-                    newAnibnd = MeowDSIO.DataFile.LoadFromFile<ANIBND>(AnibndFileName);
+                FileContainer = new TaeFileContainer();
 
-                if (newAnibnd.AllTAE.Any())
-                {
-                    LoadANIBND(newAnibnd);
-                    ToolStripFileSaveAs.Enabled = true;
-                    return true;
-                }
-                else
+                FileContainer.LoadFromPath(FileContainerName);
+
+                if (!FileContainer.AllTAE.Any())
                 {
                     return false;
                 }
+
+                LoadTaeFileContainer(FileContainer);
+
+                ToolStripFileSaveAs.Enabled = !IsReadOnlyFileMode;
+
+                return true;
             }
             else
             {
@@ -371,22 +371,32 @@ namespace TAEDX.TaeEditor
 
         public void SaveCurrentFile()
         {
-            if (System.IO.File.Exists(AnibndFileName) && 
-                !System.IO.File.Exists(AnibndFileName + ".taedxbak"))
+            if (IsReadOnlyFileMode)
             {
-                System.IO.File.Copy(AnibndFileName, AnibndFileName + ".taedxbak");
+                System.Windows.Forms.MessageBox.Show("Read-only mode is" +
+                    " active so nothing was saved. To open a file in re-saveable mode," +
+                    " make sure the Read-Only checkbox is unchecked in the open" +
+                    " file dialog.\n\nNOTE: Loose TAE files currently only" +
+                    " load in read-only mode. This is due to editor" +
+                    " programming limitations.", "Read-Only Mode Active",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Stop);
+                return;
+            }
+
+            if (System.IO.File.Exists(FileContainerName) && 
+                !System.IO.File.Exists(FileContainerName + ".taedxbak"))
+            {
+                System.IO.File.Copy(FileContainerName, FileContainerName + ".taedxbak");
                 System.Windows.Forms.MessageBox.Show(
-                    "A backup was not found and was created:\n" + AnibndFileName + ".taedxbak",
+                    "A backup was not found and was created:\n" + FileContainerName + ".taedxbak",
                     "Backup Created", System.Windows.Forms.MessageBoxButtons.OK, 
                     System.Windows.Forms.MessageBoxIcon.Information);
             }
 
-            if (AnibndFileName.ToUpper().EndsWith(".DCX"))
-                MeowDSIO.DataFile.SaveToDcxFile(Anibnd, AnibndFileName);
-            else
-                MeowDSIO.DataFile.SaveToFile(Anibnd, AnibndFileName);
+            FileContainer.SaveToPath(FileContainerName);
 
-            foreach (var tae in Anibnd.AllTAE)
+            foreach (var tae in FileContainer.AllTAE)
             {
                 foreach (var animRef in tae.Animations)
                 {
@@ -397,10 +407,10 @@ namespace TAEDX.TaeEditor
             IsModified = false;
         }
 
-        private void LoadANIBND(ANIBND anibnd)
+        private void LoadTaeFileContainer(TaeFileContainer fileContainer)
         {
-            Anibnd = anibnd;
-            SelectedTae = Anibnd.AllTAE.First();
+            FileContainer = fileContainer;
+            SelectedTae = FileContainer.AllTAE.First();
             ButtonEditCurrentTaeHeader.Enabled = false;
             SelectedTaeAnim = SelectedTae.Animations[0];
             editScreenAnimList = new TaeEditAnimList(this);
@@ -442,7 +452,7 @@ namespace TAEDX.TaeEditor
                 TAEDataOnly = SelectedTaeAnim.TAEDataOnly,
                 UseHKXOnly = SelectedTaeAnim.UseHKXOnly,
                 IsLoopingObjAnim = SelectedTaeAnim.IsLoopingObjAnim,
-                IsModified = true,
+                IsModified = !IsReadOnlyFileMode,
             };
 
             var index = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
@@ -841,7 +851,7 @@ namespace TAEDX.TaeEditor
             {
                 if (editForm.WasAnimIDChanged)
                 {
-                    SelectedTaeAnim.IsModified = true;
+                    SelectedTaeAnim.IsModified = !IsReadOnlyFileMode;
                     IsModified = true;
                     RecreateAnimList();
                     UpdateSelectedTaeAnimInfoText();
@@ -849,7 +859,7 @@ namespace TAEDX.TaeEditor
 
                 if (editForm.WereThingsChanged)
                 {
-                    SelectedTaeAnim.IsModified = true;
+                    SelectedTaeAnim.IsModified = !IsReadOnlyFileMode;
                     IsModified = true;
                     UpdateSelectedTaeAnimInfoText();
                 }
@@ -869,19 +879,19 @@ namespace TAEDX.TaeEditor
 
             var unsavedChanges = IsModified;
 
-            if (!unsavedChanges && Anibnd != null)
+            if (!unsavedChanges && FileContainer != null)
             {
-                if (Anibnd.IsModified)
+                if (FileContainer.IsModified)
                 {
                     unsavedChanges = true;
                 }
                 else
                 {
-                    foreach (var tae in Anibnd.AllTAE)
+                    foreach (var tae in FileContainer.AllTAE)
                     {
                         foreach (var anim in tae.Animations)
                         {
-                            if (anim.IsModified)
+                            if (anim.IsModified && !IsReadOnlyFileMode)
                             {
                                 unsavedChanges = true;
                                 break;
@@ -894,7 +904,7 @@ namespace TAEDX.TaeEditor
             if (unsavedChanges)
             {
                 var confirmDlg = System.Windows.Forms.MessageBox.Show(
-                    $"File \"{System.IO.Path.GetFileName(AnibndFileName)}\" has " +
+                    $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
                     $"unsaved changes. Would you like to save these changes before " +
                     $"closing?", "Save Unsaved Changes?",
                     System.Windows.Forms.MessageBoxButtons.YesNoCancel,
@@ -928,7 +938,7 @@ namespace TAEDX.TaeEditor
             {
                 e.ChangedItem.PropertyDescriptor.SetValue(boxReference.MyEvent, newValReference);
 
-                SelectedTaeAnim.IsModified = true;
+                SelectedTaeAnim.IsModified = !IsReadOnlyFileMode;
                 IsModified = true;
 
                 gridReference.Refresh();
@@ -937,7 +947,7 @@ namespace TAEDX.TaeEditor
             {
                 e.ChangedItem.PropertyDescriptor.SetValue(boxReference.MyEvent, oldValReference);
 
-                SelectedTaeAnim.IsModified = true;
+                SelectedTaeAnim.IsModified = !IsReadOnlyFileMode;
                 IsModified = true;
 
                 gridReference.Refresh();
@@ -973,10 +983,10 @@ namespace TAEDX.TaeEditor
 
         private void DirectOpenFile(string fileName)
         {
-            if (Anibnd != null && Anibnd.AllTAE.Any(x => x.Animations.Any(a => a.IsModified)))
+            if (FileContainer != null && !IsReadOnlyFileMode && FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.IsModified)))
             {
                 var yesNoCancel = System.Windows.Forms.MessageBox.Show(
-                    $"File \"{System.IO.Path.GetFileName(AnibndFileName)}\" has " +
+                    $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
                     $"unsaved changes. Would you like to save these changes before " +
                     $"loading a new file?", "Save Unsaved Changes?",
                     System.Windows.Forms.MessageBoxButtons.YesNoCancel,
@@ -993,22 +1003,22 @@ namespace TAEDX.TaeEditor
                 //If they chose no, continue as normal.
             }
 
-            AnibndFileName = fileName;
+            FileContainerName = fileName;
             var loadFileResult = LoadCurrentFile();
-            if (loadFileResult == false)
+            if (loadFileResult == false || !FileContainer.AllTAE.Any())
             {
-                AnibndFileName = "";
+                FileContainerName = "";
                 System.Windows.Forms.MessageBox.Show(
-                    "Selected ANIBND file had no TAE files within. " +
-                    "Cancelling load operation.", "Invalid ANIBND",
+                    "Selected file had no TAE files within. " +
+                    "Cancelling load operation.", "Invalid File",
                     System.Windows.Forms.MessageBoxButtons.OK,
                     System.Windows.Forms.MessageBoxIcon.Stop);
             }
             else if (loadFileResult == null)
             {
-                AnibndFileName = "";
+                FileContainerName = "";
                 System.Windows.Forms.MessageBox.Show(
-                    "ANIBND file did not exist.", "ANIBND Does Not Exist",
+                    "File did not exist.", "File Does Not Exist",
                     System.Windows.Forms.MessageBoxButtons.OK,
                     System.Windows.Forms.MessageBoxIcon.Stop);
             }
@@ -1016,10 +1026,10 @@ namespace TAEDX.TaeEditor
 
         private void ToolstripFile_Open_Click(object sender, EventArgs e)
         {
-            if (Anibnd != null && Anibnd.AllTAE.Any(x => x.Animations.Any(a => a.IsModified)))
+            if (FileContainer != null && !IsReadOnlyFileMode && FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.IsModified)))
             {
                 var yesNoCancel = System.Windows.Forms.MessageBox.Show(
-                    $"File \"{System.IO.Path.GetFileName(AnibndFileName)}\" has " +
+                    $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
                     $"unsaved changes. Would you like to save these changes before " +
                     $"loading a new file?", "Save Unsaved Changes?",
                     System.Windows.Forms.MessageBoxButtons.YesNoCancel,
@@ -1038,45 +1048,39 @@ namespace TAEDX.TaeEditor
 
             var browseDlg = new System.Windows.Forms.OpenFileDialog()
             {
-                Filter = "ANIBND Files (*.ANIBND)|*.ANIBND|Compressed ANIBND Files(*.ANIBND.DCX)|*.ANIBND.DCX|All Files|*.*",
+                Filter = TaeFileContainer.DefaultSaveFilter,
                 ValidateNames = true,
                 CheckFileExists = true,
                 CheckPathExists = true,
+                ShowReadOnly = true,
             };
 
-            if (AnibndFileName != null)
+            if (System.IO.File.Exists(FileContainerName))
             {
-                if (AnibndFileName.ToUpper().EndsWith(".DCX"))
-                    browseDlg.FilterIndex = 1;
-                else
-                    browseDlg.FilterIndex = 0;
-            }
-
-            if (System.IO.File.Exists(AnibndFileName))
-            {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(AnibndFileName);
-                browseDlg.FileName = System.IO.Path.GetFileName(AnibndFileName);
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(FileContainerName);
+                browseDlg.FileName = System.IO.Path.GetFileName(FileContainerName);
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                AnibndFileName = browseDlg.FileName;
+                IsReadOnlyFileMode = browseDlg.ReadOnlyChecked;
+                FileContainerName = browseDlg.FileName;
                 var loadFileResult = LoadCurrentFile();
-                if (loadFileResult == false)
+                if (loadFileResult == false || !FileContainer.AllTAE.Any())
                 {
-                    AnibndFileName = "";
+                    FileContainerName = "";
                     System.Windows.Forms.MessageBox.Show(
-                        "Selected ANIBND file had no TAE files within. " +
-                        "Cancelling load operation.", "Invalid ANIBND",
+                        "Selected file had no TAE files within. " +
+                        "Cancelling load operation.", "Invalid File",
                         System.Windows.Forms.MessageBoxButtons.OK,
                         System.Windows.Forms.MessageBoxIcon.Stop);
                 }
                 else if (loadFileResult == null)
                 {
-                    AnibndFileName = "";
+                    FileContainerName = "";
                     System.Windows.Forms.MessageBox.Show(
-                        "Selected ANIBND file did not exist (how did you " +
-                        "get this message to appear, anyways?).", "ANIBND Does Not Exist",
+                        "Selected file did not exist (how did you " +
+                        "get this message to appear, anyways?).", "File Does Not Exist",
                         System.Windows.Forms.MessageBoxButtons.OK,
                         System.Windows.Forms.MessageBoxIcon.Stop);
                 }
@@ -1093,29 +1097,22 @@ namespace TAEDX.TaeEditor
         {
             var browseDlg = new System.Windows.Forms.SaveFileDialog()
             {
-                Filter = "ANIBND Files (*.ANIBND)|*.ANIBND|Compressed ANIBND Files(*.ANIBND.DCX)|*.ANIBND.DCX|All Files|*.*",
+                Filter = FileContainer?.GetResaveFilter()
+                           ?? TaeFileContainer.DefaultSaveFilter,
                 ValidateNames = true,
                 CheckFileExists = false,
                 CheckPathExists = true,
             };
 
-            if (AnibndFileName != null)
+            if (System.IO.File.Exists(FileContainerName))
             {
-                if (AnibndFileName.ToUpper().EndsWith(".DCX"))
-                    browseDlg.FilterIndex = 1;
-                else
-                    browseDlg.FilterIndex = 0;
-            }
-
-            if (System.IO.File.Exists(AnibndFileName))
-            {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(AnibndFileName);
-                browseDlg.FileName = System.IO.Path.GetFileName(AnibndFileName);
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(FileContainerName);
+                browseDlg.FileName = System.IO.Path.GetFileName(FileContainerName);
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                AnibndFileName = browseDlg.FileName;
+                FileContainerName = browseDlg.FileName;
                 SaveCurrentFile();
             }
         }
@@ -1157,7 +1154,7 @@ namespace TAEDX.TaeEditor
 
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
 
-                            SelectedTaeAnim.IsModified = true;
+                            SelectedTaeAnim.IsModified = !IsReadOnlyFileMode;
                             IsModified = true;
                         },
                         undoAction: () =>
@@ -1172,7 +1169,7 @@ namespace TAEDX.TaeEditor
 
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
 
-                            SelectedTaeAnim.IsModified = true;
+                            SelectedTaeAnim.IsModified = !IsReadOnlyFileMode;
                             IsModified = true;
                         });
                 }
@@ -1285,7 +1282,7 @@ namespace TAEDX.TaeEditor
 
         public void ShowDialogGoto()
         {
-            if (Anibnd == null || SelectedTae == null)
+            if (FileContainer == null || SelectedTae == null)
                 return;
             PauseUpdate = true;
             var anim = KeyboardInput.Show("Goto Anim", "Goes to the animation with the ID\n" +
