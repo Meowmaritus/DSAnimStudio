@@ -10,7 +10,7 @@ namespace TAEDX
 {
     public class TAEDX : Game
     {
-        public const string VERSION = "v1.7";
+        public const string VERSION = "v1.8";
 
         public string AutoLoadAnibnd = null;
 
@@ -65,7 +65,7 @@ namespace TAEDX
             {
                 if (System.IO.File.Exists(AutoLoadAnibnd))
                 {
-                    testEditorScreen.AnibndFileName = AutoLoadAnibnd;
+                    testEditorScreen.FileContainerName = AutoLoadAnibnd;
                     testEditorScreen.LoadCurrentFile();
                 }
             }
@@ -82,9 +82,10 @@ namespace TAEDX
             if (IsActive)
                 testEditorScreen.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
 
-            if (!string.IsNullOrWhiteSpace(testEditorScreen.AnibndFileName))
-                Window.Title = $"{System.IO.Path.GetFileName(testEditorScreen.AnibndFileName)}" +
+            if (!string.IsNullOrWhiteSpace(testEditorScreen.FileContainerName))
+                Window.Title = $"{System.IO.Path.GetFileName(testEditorScreen.FileContainerName)}" +
                     $"{(testEditorScreen.IsModified ? "*" : "")}" +
+                    $"{(testEditorScreen.IsReadOnlyFileMode ? " !READ ONLY!" : "")}" +
                     $" - TAE Editor DX {VERSION}";
             else
                 Window.Title = $"TAE Editor DX {VERSION}";

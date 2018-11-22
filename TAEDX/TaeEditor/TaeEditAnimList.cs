@@ -87,9 +87,9 @@ namespace TAEDX.TaeEditor
         {
             MainScreen = mainScreen;
 
-            if (MainScreen.Anibnd.StandardTAE != null)
+            if (MainScreen.FileContainer.StandardTAE != null)
             {
-                foreach (var kvp in MainScreen.Anibnd.StandardTAE)
+                foreach (var kvp in MainScreen.FileContainer.StandardTAE)
                 {
                     var taeSection = new TaeEditAnimListTaeSection();
                     taeSection.Collapsed = MainScreen.Config.AutoCollapseAllTaeSections;
@@ -114,9 +114,9 @@ namespace TAEDX.TaeEditor
                 }
             }
 
-            if (MainScreen.Anibnd.PlayerTAE != null)
+            if (MainScreen.FileContainer.PlayerTAE != null)
             {
-                foreach (var kvp in MainScreen.Anibnd.PlayerTAE)
+                foreach (var kvp in MainScreen.FileContainer.PlayerTAE)
                 {
                     var taeSection = new TaeEditAnimListTaeSection();
                     taeSection.Collapsed = MainScreen.Config.AutoCollapseAllTaeSections;
@@ -132,6 +132,33 @@ namespace TAEDX.TaeEditor
                             Ref = anim,
                             VerticalOffset = taeSection.HeightOfAllAnims,
                             TaePrefix = kvp.Key,
+                        };
+
+                        taeSection.InfoMap.Add(anim, info);
+                        taeSection.HeightOfAllAnims += AnimHeight;
+                    }
+                    AnimTaeSections.Add(taeSection);
+                }
+            }
+
+            if (AnimTaeSections.Count == 0)
+            {
+                foreach (var tae in MainScreen.FileContainer.AllTAE)
+                {
+                    var taeSection = new TaeEditAnimListTaeSection();
+                    taeSection.Collapsed = MainScreen.Config.AutoCollapseAllTaeSections;
+                    taeSection.Tae = tae;
+                    taeSection.SectionName = System.IO.Path.GetFileName(tae.FilePath ?? tae.VirtualUri);
+                    foreach (var anim in tae.Animations)
+                    {
+                        var animID_Lower = anim.ID % 10000;
+                        var animID_Upper = anim.ID / 10000;
+                        var info = new TaeEditAnimInfo()
+                        {
+                            GetName = () => $"a{(animID_Upper):D2}_{animID_Lower:D4}",
+                            Ref = anim,
+                            VerticalOffset = taeSection.HeightOfAllAnims,
+                            TaePrefix = animID_Upper,
                         };
 
                         taeSection.InfoMap.Add(anim, info);

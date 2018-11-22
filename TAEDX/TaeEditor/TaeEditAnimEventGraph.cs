@@ -329,7 +329,7 @@ namespace TAEDX.TaeEditor
 
                         EventBoxes.Remove(box);
 
-                        AnimRef.IsModified = true;
+                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                         MainScreen.IsModified = true;
                     }
                 },
@@ -352,7 +352,7 @@ namespace TAEDX.TaeEditor
                         if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
                             MainScreen.MultiSelectedEventBoxes.Add(box);
 
-                        AnimRef.IsModified = true;
+                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                         MainScreen.IsModified = true;
                     }
                 });
@@ -381,7 +381,7 @@ namespace TAEDX.TaeEditor
 
                     EventBoxes.Remove(box);
 
-                    AnimRef.IsModified = true;
+                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                     MainScreen.IsModified = true;
                 },
                 undoAction: () =>
@@ -399,7 +399,7 @@ namespace TAEDX.TaeEditor
 
                     MainScreen.SelectedEventBox = box;
 
-                    AnimRef.IsModified = true;
+                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                     MainScreen.IsModified = true;
                 });
         }
@@ -424,7 +424,7 @@ namespace TAEDX.TaeEditor
 
                     EventBoxes.Add(newBox);
 
-                    AnimRef.IsModified = true;
+                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                     MainScreen.IsModified = true;
                 },
                 undoAction: () =>
@@ -439,7 +439,7 @@ namespace TAEDX.TaeEditor
 
                     MainScreen.SelectedTaeAnim.EventList.Remove(ev);
 
-                    AnimRef.IsModified = true;
+                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                     MainScreen.IsModified = true;
                 });
 
@@ -879,7 +879,7 @@ namespace TAEDX.TaeEditor
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
                         currentDrag.DragBoxToMouse(relMouse.ToPoint());
-                        AnimRef.IsModified = true;
+                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                         MainScreen.IsModified = true;
                         //currentDrag.Box.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
                     }
@@ -887,7 +887,7 @@ namespace TAEDX.TaeEditor
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
                         currentDrag.DragBoxToMouse(relMouse.ToPoint());
-                        AnimRef.IsModified = true;
+                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                         MainScreen.IsModified = true;
                         //currentDrag.Box.DragRightSide(MainScreen.Input.MousePositionDelta.X);
                     }
@@ -895,7 +895,7 @@ namespace TAEDX.TaeEditor
                     {
                         MainScreen.Input.CursorType = MouseCursorType.Arrow;
                         currentDrag.DragBoxToMouse(relMouse.ToPoint());
-                        AnimRef.IsModified = true;
+                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                         MainScreen.IsModified = true;
                         //currentDrag.Box.DragMiddle(MainScreen.Input.MousePositionDelta.X);
                         currentDrag.ShiftBoxRow(MouseRow);
@@ -914,7 +914,7 @@ namespace TAEDX.TaeEditor
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             multiDrag.DragBoxToMouse(actualMousePoint);
-                            AnimRef.IsModified = true;
+                            AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                             MainScreen.IsModified = true;
                         }
                     }
@@ -928,7 +928,7 @@ namespace TAEDX.TaeEditor
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             multiDrag.DragBoxToMouse(actualMousePoint);
-                            AnimRef.IsModified = true;
+                            AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                             MainScreen.IsModified = true;
                         }
                     }
@@ -945,7 +945,7 @@ namespace TAEDX.TaeEditor
                         {
                             MainScreen.Input.CursorType = MouseCursorType.Arrow;
                             multiDrag.DragBoxToMouse(actualMousePoint);
-                            AnimRef.IsModified = true;
+                            AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
                             MainScreen.IsModified = true;
                             multiDrag.ShiftBoxRow(MathHelper.Max(MouseRow, minimumMouseRow));
                         }
@@ -1029,7 +1029,7 @@ namespace TAEDX.TaeEditor
                                     copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
 
                                     MainScreen.IsModified = true;
-                                    MainScreen.SelectedTaeAnim.IsModified = true;
+                                    MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
                                 },
                                 undoAction: () =>
                                 {
@@ -1038,7 +1038,7 @@ namespace TAEDX.TaeEditor
                                     copyOfBox.MyEvent.Row = copyOfOldBoxRow;
 
                                     MainScreen.IsModified = true;
-                                    MainScreen.SelectedTaeAnim.IsModified = true;
+                                    MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
                                 });
 
                             currentDrag.DragType = BoxDragType.None;
@@ -1082,7 +1082,7 @@ namespace TAEDX.TaeEditor
                                         }
 
                                         MainScreen.IsModified = true;
-                                        MainScreen.SelectedTaeAnim.IsModified = true;
+                                        MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
                                     },
                                     undoAction: () =>
                                     {
@@ -1094,7 +1094,7 @@ namespace TAEDX.TaeEditor
                                         }
 
                                         MainScreen.IsModified = true;
-                                        MainScreen.SelectedTaeAnim.IsModified = true;
+                                        MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
                                     });
 
 
