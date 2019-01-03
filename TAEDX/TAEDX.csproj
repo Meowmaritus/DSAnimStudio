@@ -133,6 +133,17 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MonoGame\v3.0\MonoGame.Content.Builder.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>md "$(TargetDir)lib"
+    for %25%25f in ($(TargetDir)*.dll) do (
+      move "%25%25f" "$(TargetDir)lib"
+      if exist "%25%25~dpnf.xml" (move "%25%25~dpnf.xml" "$(TargetDir)lib")
+      if exist "%25%25~dpnf.pdb" (move "%25%25~dpnf.pdb" "$(TargetDir)lib")
+    )</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>rmdir /S /Q "$(TargetDir)lib"</PreBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
