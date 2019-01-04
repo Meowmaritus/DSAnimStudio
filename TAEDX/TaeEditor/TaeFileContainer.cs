@@ -34,7 +34,7 @@ namespace TAEDX.TaeEditor
                 "TAE|*.TAE|" +
                 "ANIBND DCX|*.ANIBND.DCX|" +
                 "OBJBND DCX|*.OBJBND.DCX|" +
-                //"REMOBND DCX|*.REMOBND.DCX|" +
+                "REMOBND DCX|*.REMOBND.DCX|" +
                 "TAE DCX|*.TAE.DCX|" +
                 "All Files|*.*";
 
@@ -48,10 +48,10 @@ namespace TAEDX.TaeEditor
                 return !IsDcx ?
                     "TAE|*.TAE|TAE DCX|*.TAE.DCX" :
                     "TAE DCX|*.TAE.DCX|TAE|*.TAE";
-            //else if (ContainerType == TaeFileContainerType.Remobnd)
-            //    return !IsDcx ?
-            //        "REMOBND|*.REMOBND|REMOBND DCX|*.REMOBND.DCX" :
-            //        "REMOBND DCX|*.REMOBND.DCX|REMOBND|*.REMOBND";
+            else if (ContainerType == TaeFileContainerType.Remobnd)
+                return !IsDcx ?
+                    "REMOBND|*.REMOBND|REMOBND DCX|*.REMOBND.DCX" :
+                    "REMOBND DCX|*.REMOBND.DCX|REMOBND|*.REMOBND";
             else if (ContainerType == TaeFileContainerType.Objbnd)
                 return !IsDcx ?
                     "OBJBND|*.OBJBND|OBJBND DCX|*.OBJBND.DCX" :
@@ -94,7 +94,7 @@ namespace TAEDX.TaeEditor
                 fileNoDcx = file.Substring(0, file.Length - 4);
             }
 
-            if (file.EndsWith(".ANIBND"))
+            if (fileNoDcx.EndsWith(".ANIBND"))
             {
                 if (IsDcx)
                     dataANIBND = DataFile.LoadFromDcxFile<ANIBND>(file);
@@ -106,7 +106,7 @@ namespace TAEDX.TaeEditor
 
                 ContainerType = TaeFileContainerType.Anibnd;
             }
-            else if (file.EndsWith(".OBJBND"))
+            else if (fileNoDcx.EndsWith(".OBJBND"))
             {
                 if (IsDcx)
                     dataEntityBND = DataFile.LoadFromDcxFile<EntityBND>(file);
@@ -134,15 +134,15 @@ namespace TAEDX.TaeEditor
 
                 ContainerType = TaeFileContainerType.Objbnd;
             }
-            //else if (file.EndsWith(".REMOBND"))
-            //{
-            //    if (IsDcx)
-            //        dataREMOBND = DataFile.LoadFromDcxFile<REMOBND>(file);
-            //    else
-            //        dataREMOBND = DataFile.LoadFromFile<REMOBND>(fileNoDcx);
-            //    ContainerType = TaeFileContainerType.Remobnd;
-            //}
-            else if (file.EndsWith(".TAE"))
+            else if (file.EndsWith(".REMOBND"))
+            {
+                if (IsDcx)
+                    dataREMOBND = DataFile.LoadFromDcxFile<REMOBND>(file);
+                else
+                    dataREMOBND = DataFile.LoadFromFile<REMOBND>(fileNoDcx);
+                ContainerType = TaeFileContainerType.Remobnd;
+            }
+            else if (fileNoDcx.EndsWith(".TAE"))
             {
                 if (IsDcx)
                     dataTAE = DataFile.LoadFromDcxFile<TAE>(file);
@@ -175,13 +175,13 @@ namespace TAEDX.TaeEditor
                 else
                     DataFile.SaveToFile(dataEntityBND, file);
             }
-            //else if (ContainerType == TaeFileContainerType.Remobnd)
-            //{
-            //    if (IsDcx)
-            //        DataFile.SaveToDcxFile(dataREMOBND, file);
-            //    else
-            //        DataFile.SaveToFile(dataREMOBND, file);
-            //}
+            else if (ContainerType == TaeFileContainerType.Remobnd)
+            {
+                if (IsDcx)
+                    DataFile.SaveToDcxFile(dataREMOBND, file);
+                else
+                    DataFile.SaveToFile(dataREMOBND, file);
+            }
             else if (ContainerType == TaeFileContainerType.Tae)
             {
                 if (IsDcx)
