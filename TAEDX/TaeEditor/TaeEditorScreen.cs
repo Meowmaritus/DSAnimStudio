@@ -484,7 +484,7 @@ namespace TAEDX.TaeEditor
             // This might change in the future if I actually add text description attributes to some things.
             inspectorWinFormsControl.propertyGrid.HelpVisible = false;
 
-            inspectorWinFormsControl.propertyGrid.PropertySort = System.Windows.Forms.PropertySort.NoSort;
+            inspectorWinFormsControl.propertyGrid.PropertySort = System.Windows.Forms.PropertySort.Categorized;
             inspectorWinFormsControl.propertyGrid.ToolbarVisible = false;
 
             //inspectorPropertyGrid.ViewBackColor = System.Drawing.Color.FromArgb(

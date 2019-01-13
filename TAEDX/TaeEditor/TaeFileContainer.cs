@@ -97,7 +97,7 @@ namespace TAEDX.TaeEditor
             if (fileNoDcx.EndsWith(".ANIBND"))
             {
                 if (IsDcx)
-                    dataANIBND = DataFile.LoadFromDcxFile<ANIBND>(file);
+                    dataANIBND = DataFile.LoadFromFile<ANIBND>(file, loadDcxVersion: true);
                 else
                     dataANIBND = DataFile.LoadFromFile<ANIBND>(fileNoDcx);
 
@@ -109,7 +109,7 @@ namespace TAEDX.TaeEditor
             else if (fileNoDcx.EndsWith(".OBJBND"))
             {
                 if (IsDcx)
-                    dataEntityBND = DataFile.LoadFromDcxFile<EntityBND>(file);
+                    dataEntityBND = DataFile.LoadFromFile<EntityBND>(file, loadDcxVersion: true);
                 else
                     dataEntityBND = DataFile.LoadFromFile<EntityBND>(fileNoDcx);
 
@@ -137,7 +137,7 @@ namespace TAEDX.TaeEditor
             else if (file.EndsWith(".REMOBND"))
             {
                 if (IsDcx)
-                    dataREMOBND = DataFile.LoadFromDcxFile<REMOBND>(file);
+                    dataREMOBND = DataFile.LoadFromFile<REMOBND>(file, loadDcxVersion: true);
                 else
                     dataREMOBND = DataFile.LoadFromFile<REMOBND>(fileNoDcx);
                 ContainerType = TaeFileContainerType.Remobnd;
@@ -145,7 +145,7 @@ namespace TAEDX.TaeEditor
             else if (fileNoDcx.EndsWith(".TAE"))
             {
                 if (IsDcx)
-                    dataTAE = DataFile.LoadFromDcxFile<TAE>(file);
+                    dataTAE = DataFile.LoadFromFile<TAE>(file, loadDcxVersion: true);
                 else
                     dataTAE = DataFile.LoadFromFile<TAE>(fileNoDcx);
                 ContainerType = TaeFileContainerType.Tae;
@@ -164,28 +164,28 @@ namespace TAEDX.TaeEditor
             if (ContainerType == TaeFileContainerType.Anibnd)
             {
                 if (IsDcx)
-                    DataFile.SaveToDcxFile(dataANIBND, file);
+                    DataFile.SaveToFile(dataANIBND, file);
                 else
                     DataFile.SaveToFile(dataANIBND, file);
             }
             else if (ContainerType == TaeFileContainerType.Objbnd)
             {
                 if (IsDcx)
-                    DataFile.SaveToDcxFile(dataEntityBND, file);
+                    DataFile.SaveToFile(dataEntityBND, file);
                 else
                     DataFile.SaveToFile(dataEntityBND, file);
             }
             else if (ContainerType == TaeFileContainerType.Remobnd)
             {
                 if (IsDcx)
-                    DataFile.SaveToDcxFile(dataREMOBND, file);
+                    DataFile.SaveToFile(dataREMOBND, file);
                 else
                     DataFile.SaveToFile(dataREMOBND, file);
             }
             else if (ContainerType == TaeFileContainerType.Tae)
             {
                 if (IsDcx)
-                    DataFile.SaveToDcxFile(dataTAE, file);
+                    DataFile.SaveToFile(dataTAE, file);
                 else
                     DataFile.SaveToFile(dataTAE, file);
             }
