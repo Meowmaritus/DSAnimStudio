@@ -550,11 +550,11 @@ namespace TAEDX.TaeEditor
                         {
                             if (!isAbsoluteLocation)
                             {
-                                ev.StartTime -= clipboardContents.StartTime;
-                                ev.EndTime -= clipboardContents.StartTime;
+                                float start = ev.StartTime - clipboardContents.StartTime + TimeActEventBase.RoundTimeToFrame(relMouse.X / SecondsPixelSize);
+                                float end = start + (ev.EndTime - ev.StartTime);
 
-                                ev.StartTime += relMouse.X / SecondsPixelSize;
-                                ev.EndTime += relMouse.X / SecondsPixelSize;
+                                ev.StartTime = start;
+                                ev.EndTime = end;
 
                                 ev.Row -= clipboardContents.StartRow;
                                 ev.Row += MouseRow;
