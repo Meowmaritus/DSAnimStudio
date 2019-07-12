@@ -30,13 +30,13 @@
 * Edits the .anibnd or .anibnd.dcx files of the games directly. **No need to use BND rebuilders.**
 
 ## User Instructions:
-  1. Download and extract [the latest version](https://github.com/Meowmaritus/TAE-DX/releases/download/v1.9/TAE.Editor.DX.v1.9.zip)
+  1. Download and extract [the latest version](https://github.com/Meowmaritus/TAE-DX/releases/download/v2.0/TAE.Editor.DX.v2.0.zip)
   1. Run `TAE Editor DX.exe`
   1. Go to File -> Open
   1. Load a .anibnd (PTDE) or .anibnd.dcx (Remastered). [There's a dropdown to change which type of file is shown.](https://lh3.googleusercontent.com/-006qBXK_PwY/W-2OWtSfmrI/AAAAAAAAAmg/9mI1fiRrnFM98Os-skSmn7s3ei8ry2JEQCHMYCw/s0/TAE%2BEditor%2BDX_2018-11-15_09-18-50.png)
   1. Select an animation ID on the left pane
   1. Drag some events around or otherwise mess with things (try the right pane for editing the highlighted event)
-  1. Hit Ctrl+S to save
+  1. Hit Ctrl+S to save. If the `File -> Force Refresh On Save` option is enabled and your game window is open, the character's files will immediately reload ingame and you can focus the game menu and test the TAE event changes. Additionally, you can press F5 or click the `File -> Force Refresh Ingame` option to force the character to reload.
   
 ## Developer Instructions:
   1. Install [MonoGame for Visual Studio - Development Build](http://teamcity.monogame.net/repository/download/MonoGame_PackagingWindows/latest.lastSuccessful/MonoGameSetup.exe?guest=1)
