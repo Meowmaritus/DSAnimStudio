@@ -125,6 +125,8 @@ namespace TAEDX.TaeEditor
         private System.Windows.Forms.ToolStripMenuItem ToolStripFileSave;
         private System.Windows.Forms.ToolStripMenuItem ToolStripFileSaveAs;
         private System.Windows.Forms.ToolStripMenuItem ToolStripFileRecent;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripFileLiveRefresh;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripFileLiveRefreshToggle;
 
         private void PushNewRecentFile(string fileName)
         {
@@ -360,6 +362,7 @@ namespace TAEDX.TaeEditor
                 LoadTaeFileContainer(FileContainer);
 
                 ToolStripFileSaveAs.Enabled = !IsReadOnlyFileMode;
+                ToolStripFileLiveRefresh.Enabled = !IsReadOnlyFileMode && FileContainer.ReloadType != TaeFileContainer.TaeFileContainerReloadType.None;
 
                 return true;
             }
@@ -405,6 +408,11 @@ namespace TAEDX.TaeEditor
             }
             
             IsModified = false;
+
+            if (Config.LiveRefreshOnSave)
+            {
+                LiveRefresh();
+            }
         }
 
         private void LoadTaeFileContainer(TaeFileContainer fileContainer)
@@ -525,7 +533,20 @@ namespace TAEDX.TaeEditor
                 ToolStripFileSaveAs.Click += ToolstripFile_SaveAs_Click;
                 toolstripFile.DropDownItems.Add(ToolStripFileSaveAs);
 
-                
+                toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+
+                ToolStripFileLiveRefresh = new System.Windows.Forms.ToolStripMenuItem("Force Refresh Ingame");
+                ToolStripFileLiveRefresh.Enabled = false;
+                ToolStripFileLiveRefresh.ShortcutKeys = System.Windows.Forms.Keys.F5;
+                ToolStripFileLiveRefresh.Click += ToolStripFileLiveRefresh_Click;
+                toolstripFile.DropDownItems.Add(ToolStripFileLiveRefresh);
+
+                ToolStripFileLiveRefreshToggle = new System.Windows.Forms.ToolStripMenuItem("Force Refresh On Save");
+                ToolStripFileLiveRefreshToggle.Enabled = true;
+                ToolStripFileLiveRefreshToggle.CheckOnClick = true;
+                ToolStripFileLiveRefreshToggle.Checked = Config.LiveRefreshOnSave;
+                ToolStripFileLiveRefreshToggle.CheckedChanged += ToolStripFileLiveRefreshToggle_CheckedChanged;
+                toolstripFile.DropDownItems.Add(ToolStripFileLiveRefreshToggle);
             }
 
             var toolstripEdit = new System.Windows.Forms.ToolStripMenuItem("Edit");
@@ -775,6 +796,39 @@ namespace TAEDX.TaeEditor
             ButtonEditCurrentTaeHeader.Enabled = false;
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
+        }
+
+        private void ToolStripFileLiveRefreshToggle_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.LiveRefreshOnSave = ToolStripFileLiveRefreshToggle.Checked;
+        }
+
+        private void LiveRefresh()
+        {
+            if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE || FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_DS1R)
+            {
+                var chrName = MeowDSIO.MiscUtil.GetFileNameWithoutDirectoryOrExtension(FileContainerName);
+
+                //In case of .anibnd.dcx
+                chrName = MeowDSIO.MiscUtil.GetFileNameWithoutDirectoryOrExtension(chrName);
+
+                if (chrName.ToLower().StartsWith("c") && chrName.Length == 5)
+                {
+                    if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE)
+                    {
+                        TaeLiveRefresh.ForceReloadCHR_PTDE(chrName);
+                    }
+                    else
+                    {
+                        TaeLiveRefresh.ForceReloadCHR_DS1R(chrName);
+                    }
+                }
+            }
+        }
+
+        private void ToolStripFileLiveRefresh_Click(object sender, EventArgs e)
+        {
+            LiveRefresh();
         }
 
         private void ButtonEditCurrentTaeHeader_Click(object sender, EventArgs e)
@@ -1543,6 +1597,19 @@ namespace TAEDX.TaeEditor
                     Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
                     (int)MiddleSectionWidth,
                     Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                var plannedGraphRect = new Rectangle(
+                    (int)MiddleSectionStartX,
+                    Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                    (int)MiddleSectionWidth,
+                    Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
+                    plannedGraphRect.Right - ButtonEditCurrentAnimInfoWidth,
+                    Rect.Top + TopMenuBarMargin,
+                    ButtonEditCurrentAnimInfoWidth,
+                    TopOfGraphAnimInfoMargin);
+
             }
             else
             {
