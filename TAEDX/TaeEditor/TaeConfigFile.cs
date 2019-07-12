@@ -14,5 +14,6 @@ namespace TAEDX.TaeEditor
         public bool FancyTextScrollSnapsToPixels { get; set; } = true;
         public bool AutoCollapseAllTaeSections { get; set; } = false;
         public List<string> RecentFilesList { get; set; } = new List<string>();
+        public bool LiveRefreshOnSave { get; set; } = true;
     }
 }

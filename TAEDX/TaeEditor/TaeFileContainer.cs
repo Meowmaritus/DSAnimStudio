@@ -18,6 +18,13 @@ namespace TAEDX.TaeEditor
             Objbnd,
         }
 
+        public enum TaeFileContainerReloadType
+        {
+            None,
+            CHR_PTDE,
+            CHR_DS1R
+        }
+
         public TaeFileContainerType ContainerType { get; private set; }
         private TAE dataTAE = null;
         private ANIBND dataANIBND = null;
@@ -25,6 +32,8 @@ namespace TAEDX.TaeEditor
         private REMOBND dataREMOBND = null;
 
         public bool IsModified = false;
+
+        public TaeFileContainerReloadType ReloadType = TaeFileContainerReloadType.None;
 
         public bool IsDcx { get; private set; } = false;
 
@@ -82,6 +91,8 @@ namespace TAEDX.TaeEditor
 
         public void LoadFromPath(string file)
         {
+            ReloadType = TaeFileContainerReloadType.None;
+
             StandardTAE = null;
             PlayerTAE = null;
 
@@ -103,6 +114,11 @@ namespace TAEDX.TaeEditor
 
                 StandardTAE = dataANIBND.StandardTAE;
                 PlayerTAE = dataANIBND.PlayerTAE;
+
+                if (dataANIBND.IsRemaster)
+                    ReloadType = TaeFileContainerReloadType.CHR_DS1R;
+                else
+                    ReloadType = TaeFileContainerReloadType.CHR_PTDE;
 
                 ContainerType = TaeFileContainerType.Anibnd;
             }

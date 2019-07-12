@@ -78,6 +78,7 @@
     <Compile Include="TaeEditor\TaeEditAnimList.cs" />
     <Compile Include="TaeEditor\TaeEditorScreen.cs" />
     <Compile Include="TaeEditor\TaeInputHandler.cs" />
+    <Compile Include="TaeEditor\TaeLiveRefresh.cs" />
     <Compile Include="TaeEditor\TaeMiscUtils.cs" />
     <Compile Include="TaeEditor\TaeScrollingString.cs" />
     <Compile Include="TaeEditor\TaeScrollViewer.cs" />
@@ -97,6 +98,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\ModelReloaderDS1R\DS3Hook.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\ModelReloaderDS1R\DS3Hook.pdb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\ModelReloaderDS1R\ModelReloaderDS1R.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\ModelReloaderDS1R\ModelReloaderDS1R.pdb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Icon.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -109,9 +122,16 @@
     <None Include="Content\DbgMenuFontSmall.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\ModelReloaderDS1R\ModelReloaderDS1R.exe.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DarkSoulsScripting\DarkSoulsScripting\DarkSoulsScripting.csproj">
+      <Project>{7d25328e-c261-4315-8131-0cf96153a357}</Project>
+      <Name>DarkSoulsScripting</Name>
+    </ProjectReference>
     <ProjectReference Include="..\MeowDSIO\MeowDSIO\MeowDSIO.csproj">
       <Project>{4ad69470-8146-4d20-94f0-da9844eee5a2}</Project>
       <Name>MeowDSIO</Name>

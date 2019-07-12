@@ -1,0 +1,174 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7D25328E-C261-4315-8131-0CF96153A357}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>DarkSoulsScripting</RootNamespace>
+    <AssemblyName>DarkSoulsScripting</AssemblyName>
+    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\Bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <LangVersion>7.1</LangVersion>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\Bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Activities" />
+    <Reference Include="System.Activities.Core.Presentation" />
+    <Reference Include="System.Activities.Presentation" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ChrAsm.cs" />
+    <Compile Include="ChrUNK1.cs" />
+    <Compile Include="WorldChrMan.cs" />
+    <Compile Include="[General]\CodeHooks.cs" />
+    <Compile Include="CodeHookTypes\CodeHookBase.cs" />
+    <Compile Include="XInput\Gamepad.XboxOne.cs" />
+    <Compile Include="XInput\Gamepad.PS3.cs" />
+    <Compile Include="XInput\Gamepad.PS4.cs" />
+    <Compile Include="XInput\Gamepad.Xbox360.cs" />
+    <Compile Include="XInput\GamepadBase.cs" />
+    <Compile Include="CodeHookTypes\Reg32Recorder.cs" />
+    <Compile Include="XInput\GamepadState.cs" />
+    <Compile Include="Injection\DLL\Kernel32.cs" />
+    <Compile Include="XInput\ButtonState.cs" />
+    <Compile Include="XInput\Button.cs" />
+    <Compile Include="ChrAnimInstance.cs" />
+    <Compile Include="ChrFollowCam.cs" />
+    <Compile Include="ChrMovementCtrl.cs" />
+    <Compile Include="Enemy.cs" />
+    <Compile Include="EnemyAIController.cs" />
+    <Compile Include="EnemyController.cs" />
+    <Compile Include="EnemyMovementCtrl.cs" />
+    <Compile Include="Player.cs" />
+    <Compile Include="PlayerController.cs" />
+    <Compile Include="PlayerMovementCtrl.cs" />
+    <Compile Include="PlayerStats.cs" />
+    <Compile Include="Extra\DebugUI\WpfPropertyGrid.cs" />
+    <Compile Include="Extra\DebugUI\InspectGUI.xaml.cs">
+      <DependentUpon>InspectGUI.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Chr.cs" />
+    <Compile Include="ChrAIController.cs" />
+    <Compile Include="ChrController.cs" />
+    <Compile Include="ChrSlot.cs" />
+    <Compile Include="ChrDbg.cs" />
+    <Compile Include="Game.cs" />
+    <Compile Include="GameOptions.cs" />
+    <Compile Include="GameTendency.cs" />
+    <Compile Include="Global.cs" />
+    <Compile Include="Misc.cs" />
+    <Compile Include="WorldState.cs" />
+    <Compile Include="ChrTransform.cs" />
+    <Compile Include="Functions\FuncAddress.cs" />
+    <Compile Include="Functions\IngameFuncs.cs" />
+    <Compile Include="Functions\IngameFuncs.Unmapped.cs" />
+    <Compile Include="GameStruct.cs" />
+    <Compile Include="Map.cs" />
+    <Compile Include="MapEntry.cs" />
+    <Compile Include="[General]\Memloc.cs" />
+    <Compile Include="[General]\ModuleInitializer.cs" />
+    <Compile Include="MSB.cs" />
+    <Compile Include="MSBEntry.cs" />
+    <Compile Include="[General]\Pointers.cs" />
+    <Compile Include="Injection\DSAsmCaller.cs" />
+    <Compile Include="[General]\Hook.cs" />
+    <Compile Include="Injection\Kernel.cs" />
+    <Compile Include="Injection\PSAPI.cs" />
+    <Compile Include="Injection\Structures\DarkSoulsVersion.cs" />
+    <Compile Include="Injection\Structures\MoveableAddressOffset.cs" />
+    <Compile Include="Injection\Structures\SafeDarkSoulsHandle.cs" />
+    <Compile Include="Injection\Structures\SafeMarshalledHandle.cs" />
+    <Compile Include="Injection\Structures\SafeRemoteHandle.cs" />
+    <Compile Include="Injection\Structures\SafeRemoteThreadHandle.cs" />
+    <Compile Include="Injection\Structures\MutatableDword.cs" />
+    <Compile Include="Extra\Dbg.cs" />
+    <Compile Include="Functions\ExtraFuncs.cs" />
+    <Compile Include="Extra\Utils.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Add.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.AddWithCarry.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Decrement.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Division.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Increment.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Multiply.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Negate.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Not.cs" />
+    <Compile Include="X86AssemblyLib\Arithmetic\X86Writer.Subtract.cs" />
+    <Compile Include="X86AssemblyLib\ControlFlow\X86Writer.Call.cs" />
+    <Compile Include="X86AssemblyLib\ControlFlow\X86Writer.Jump.cs" />
+    <Compile Include="X86AssemblyLib\ControlFlow\X86Writer.Patch.cs" />
+    <Compile Include="X86AssemblyLib\DataTypes\X86Address.cs" />
+    <Compile Include="X86AssemblyLib\DataTypes\X86ConditionCode.cs" />
+    <Compile Include="X86AssemblyLib\DataTypes\X86Label.cs" />
+    <Compile Include="X86AssemblyLib\DataTypes\X86Register16.cs" />
+    <Compile Include="X86AssemblyLib\DataTypes\X86Register32.cs" />
+    <Compile Include="X86AssemblyLib\DataTypes\X86Register8.cs" />
+    <Compile Include="X86AssemblyLib\DataTypes\X86ShiftOpCode.cs" />
+    <Compile Include="X86AssemblyLib\General\X86Writer.Compare.cs" />
+    <Compile Include="X86AssemblyLib\General\X86Writer.Move.cs" />
+    <Compile Include="X86AssemblyLib\Interlock\X86Writer.CompareExchange.cs" />
+    <Compile Include="X86AssemblyLib\IO\X86Writer.In.cs" />
+    <Compile Include="X86AssemblyLib\IO\X86Writer.Out.cs" />
+    <Compile Include="X86AssemblyLib\Logical\X86Writer.And.cs" />
+    <Compile Include="X86AssemblyLib\Logical\X86Writer.Or.cs" />
+    <Compile Include="X86AssemblyLib\Logical\X86Writer.Xor.cs" />
+    <Compile Include="X86AssemblyLib\Prefixes\X86Writer.Lock.cs" />
+    <Compile Include="X86AssemblyLib\Prefixes\X86Writer.Repeat.cs" />
+    <Compile Include="X86AssemblyLib\Shift\X86Writer.ShiftLeft.cs" />
+    <Compile Include="X86AssemblyLib\Shift\X86Writer.ShiftRight.cs" />
+    <Compile Include="X86AssemblyLib\Stack\X86Writer.Pop.cs" />
+    <Compile Include="X86AssemblyLib\Stack\X86Writer.Push.cs" />
+    <Compile Include="X86AssemblyLib\X86Writer.cs" />
+    <Compile Include="[General]\[General Enums].cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Extra\DebugUI\InspectGUI.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="X86AssemblyLib\COPYING" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="InjectModuleInitializer" AfterTargets="AfterBuild">
+    <Exec Command="..\Tools\InjectModuleInitializer.exe &quot;$(TargetPath)&quot;" />
+  </Target>
+</Project>
