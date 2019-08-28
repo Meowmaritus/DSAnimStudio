@@ -210,6 +210,7 @@ namespace TAEDX
                     }
                 }
 
+                CachedTexture = tex;
                 
                 return CachedTexture;
             }
