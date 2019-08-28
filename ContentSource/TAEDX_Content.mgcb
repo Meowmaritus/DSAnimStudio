@@ -1,7 +1,7 @@
 
 #----------------------------- Global Properties ----------------------------#
 
-/outputDir:..\DarkSoulsModelViewerDX\Content
+/outputDir:..\TAEDX\Content
 /intermediateDir:obj
 /platform:Windows
 /config:

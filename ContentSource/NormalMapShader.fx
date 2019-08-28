@@ -30,6 +30,9 @@ float3 EyePosition;
 //
 //float DebugBlend_NormalAsVertexColor;
 
+float AlphaTest;
+float DiffusePower;
+
 //Default 2
 float DEBUG_ValueA;
 
@@ -126,7 +129,7 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 	
 	output.DebugColor.xy = input.AtlasScale.xy;
 	output.DebugColor.zw = input.AtlasOffset.xy;
-
+    
     return output;
 }
 
@@ -134,7 +137,20 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 {
 	float4 color = tex2D(ColorMapSampler, input.TexCoord);
     
-	//color = color * float4(color.w, color.w, color.w, 1);
+    color = color * float4(color.w, color.w, color.w, color.w);
+    
+    if (color.w < AlphaTest)
+    {
+        clip(-1);
+        return color;
+        
+        //DEBUG:
+        //return float4(1,0,1,1);
+    }
+    
+    color = pow(color,DiffusePower);
+    
+	color = color * color.w;
 
     float3 nmapcol = tex2D(NormalMapSampler, input.TexCoord);
     
@@ -159,10 +175,10 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	float4 reflect = normalize(2*diffuse*normal-float4(LightDirection,1.0));
 	float4 specular = pow(saturate(dot(reflect,input.View)),SpecularPower);
 
-	float4 lightmap = tex2D(LightMap1Sampler, input.TexCoord2);
+	//float4 lightmap = tex2D(LightMap1Sampler, input.TexCoord2);
 	
-    float4 outputColor =  color * AmbientColor * AmbientIntensity * lightmap + 
-			color * DiffuseIntensity * DiffuseColor * diffuse * lightmap + 
+    float4 outputColor =  color * AmbientColor * AmbientIntensity + 
+			color * DiffuseIntensity * DiffuseColor * diffuse + 
 			color * tex2D(SpecularMapSampler, input.TexCoord) * specular;
 
 	outputColor = float4(outputColor.xyz * color.w, color.w);

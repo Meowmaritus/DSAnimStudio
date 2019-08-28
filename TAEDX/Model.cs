@@ -19,6 +19,14 @@ namespace TAEDX
         VertexBuffer InstanceBuffer;
         public VertexBufferBinding InstanceBufferBinding { get; private set; }
 
+        public void ApplyWorldToInstances(Matrix world)
+        {
+            foreach (var inst in Instances)
+            {
+                inst.Data.WorldMatrix = world;
+            }
+        }
+
         public enum ModelType
         {
             ModelTypeFlver,
@@ -43,6 +51,13 @@ namespace TAEDX
             if (InstanceBuffer != null)
                 InstanceBuffer.Dispose();
 
+            InstanceBuffer = new VertexBuffer(GFX.Device, instanceVertexDeclaration, Instances.Count, BufferUsage.WriteOnly);
+            InstanceBuffer.SetData(Instances.Select(x => x.Data).ToArray());
+            InstanceBufferBinding = new VertexBufferBinding(InstanceBuffer, 0, 1);
+        }
+
+        public void ReinitInstanceData()
+        {
             InstanceBuffer = new VertexBuffer(GFX.Device, instanceVertexDeclaration, Instances.Count, BufferUsage.WriteOnly);
             InstanceBuffer.SetData(Instances.Select(x => x.Data).ToArray());
             InstanceBufferBinding = new VertexBufferBinding(InstanceBuffer, 0, 1);

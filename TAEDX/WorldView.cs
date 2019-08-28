@@ -319,7 +319,7 @@ namespace TAEDX
             KeyboardState keyboard = DBG.EnableKeyboardInput ? Keyboard.GetState() : DBG.DisabledKeyboardState;
             int currentWheel = mouse.ScrollWheelValue;
 
-            bool mouseInWindow = mousePos.X >= game.ClientBounds.Left && mousePos.X < game.ClientBounds.Right && mousePos.Y > game.ClientBounds.Top && mousePos.Y < game.ClientBounds.Bottom;
+            bool mouseInWindow = Main.Active && mousePos.X >= game.ClientBounds.Left && mousePos.X < game.ClientBounds.Right && mousePos.Y > game.ClientBounds.Top && mousePos.Y < game.ClientBounds.Bottom;
 
             currentClickType = MouseClickType.None;
 

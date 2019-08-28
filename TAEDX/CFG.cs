@@ -30,9 +30,9 @@ namespace TAEDX
             GFX.EnableFrustumCulling = false;
             GFX.EnableTextures = true;
             GFX.Wireframe = false;
-            GFX.EnableLighting = true;
+            //GFX.EnableLighting = true;
             //GFX.TestLightSpin = false;
-            GFX.EnableHeadlight = true;
+            //GFX.EnableHeadlight = true;
 
             DBG.ShowModelNames = true;
             DBG.ShowModelBoundingBoxes = false;
@@ -91,9 +91,9 @@ namespace TAEDX
                 GFX.EnableFrustumCulling = Current.GFX_EnableFrustumCulling;
                 GFX.EnableTextures = Current.GFX_EnableTextures;
                 GFX.Wireframe = Current.GFX_Wireframe;
-                GFX.EnableLighting = Current.GFX_EnableLighting;
+                //GFX.EnableLighting = Current.GFX_EnableLighting;
                 //GFX.TestLightSpin = Current.GFX_TestLightSpin;
-                GFX.EnableHeadlight = Current.GFX_EnableHeadlight;
+                //GFX.EnableHeadlight = Current.GFX_EnableHeadlight;
 
                 DBG.ShowModelNames = Current.DBG_ShowModelNames;
                 DBG.ShowModelBoundingBoxes = Current.DBG_ShowModelBoundingBoxes;
@@ -136,9 +136,9 @@ namespace TAEDX
                 Current.GFX_EnableFrustumCulling = GFX.EnableFrustumCulling;
                 Current.GFX_EnableTextures = GFX.EnableTextures;
                 Current.GFX_Wireframe = GFX.Wireframe;
-                Current.GFX_EnableLighting = GFX.EnableLighting;
+                //Current.GFX_EnableLighting = GFX.EnableLighting;
                 //Current.GFX_TestLightSpin = GFX.TestLightSpin;
-                Current.GFX_EnableHeadlight = GFX.EnableHeadlight;
+                //Current.GFX_EnableHeadlight = GFX.EnableHeadlight;
 
                 Current.DBG_ShowModelNames = DBG.ShowModelNames;
                 Current.DBG_ShowModelBoundingBoxes = DBG.ShowModelBoundingBoxes;
