@@ -1,12 +1,9 @@
-﻿using MeowDSIO.DataTypes.TAE;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TAEDX.TaeEditor
 {
@@ -64,28 +61,23 @@ namespace TAEDX.TaeEditor
             public void ShiftBoxRow(int newMouseRow)
             {
                 if (newMouseRow >= 0)
-                    Box.MyEvent.Row = BoxOriginalRow + (newMouseRow - StartMouseRow);
+                    Box.Row = BoxOriginalRow + (newMouseRow - StartMouseRow);
             }
         }
+
+        public TaePlaybackCursor PlaybackCursor = new TaePlaybackCursor();
+
+        public Color PlaybackCursorColor = Color.Black;
+
+        public float PlaybackCursorThickness = 2;
 
         public int MultiSelectRectOutlineThickness => MainScreen.Config.EnableColorBlindMode ? 4 : 1;
         public Color MultiSelectRectFillColor => Color.LightGray * 0.5f;
         public Color MultiSelectRectOutlineColor => MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White;
 
         public readonly TaeEditorScreen MainScreen;
-        public AnimationRef AnimRef { get; private set; }
+        public TAE.Animation AnimRef { get; private set; }
         public Rectangle Rect;
-
-        private Dictionary<TimeActEventType, MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors> EventTypeColorInfo
-            = new Dictionary<TimeActEventType, MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors>();
-
-        public MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors GetColorInfo(TimeActEventType type)
-        {
-            if (EventTypeColorInfo.ContainsKey(type))
-                return EventTypeColorInfo[type];
-
-            return null;
-        }
 
         public List<TaeEditAnimEventBox> EventBoxes = new List<TaeEditAnimEventBox>();
 
@@ -209,20 +201,19 @@ namespace TAEDX.TaeEditor
             if (!EventBoxes.Contains(box))
                 EventBoxes.Add(box);
 
-            if (!sortedByRow.ContainsKey(box.MyEvent.Row))
-                sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
+            if (!sortedByRow.ContainsKey(box.Row))
+                sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
 
-            sortedByRow[box.MyEvent.Row].Add(box);
+            sortedByRow[box.Row].Add(box);
         }
 
-        public void ChangeToNewAnimRef(AnimationRef newAnimRef)
+        public void ChangeToNewAnimRef(TAE.Animation newAnimRef)
         {
             foreach (var box in EventBoxes)
                 box.RowChanged -= Box_RowChanged;
 
             EventBoxes.Clear();
             sortedByRow.Clear();
-            EventTypeColorInfo.Clear();
             AnimRef = newAnimRef;
 
             void RegisterBoxToRow(TaeEditAnimEventBox box, int row)
@@ -235,30 +226,22 @@ namespace TAEDX.TaeEditor
 
             int currentRow = 0;
             float farthestRightOnCurrentRow = 0;
-            foreach (var ev in AnimRef.EventList)
+            foreach (var ev in AnimRef.Events)
             {
-
-                if (ev is MeowDSIO.DataTypes.TAE.Events.Tae016_SetEventEditorColors colorEvent)
-                {
-                    if (!EventTypeColorInfo.ContainsKey(colorEvent.EventKind))
-                        EventTypeColorInfo.Add(colorEvent.EventKind, colorEvent);
-                    //continue;
-                }
-
                 var newBox = new TaeEditAnimEventBox(this, ev);
 
-                if (ev.Row >= 0)
+                if (newBox.Row >= 0)
                 {
-                    currentRow = ev.Row;
+                    currentRow = newBox.Row;
                     farthestRightOnCurrentRow = newBox.RightFr;
                 }
                 else
                 {
-                    newBox.MyEvent.Row = currentRow;
+                    newBox.Row = currentRow;
 
                     if (newBox.LeftFr < farthestRightOnCurrentRow)
                     {
-                        newBox.MyEvent.Row++;
+                        newBox.Row++;
                         currentRow++;
                         farthestRightOnCurrentRow = newBox.RightFr;
                     }
@@ -287,10 +270,10 @@ namespace TAEDX.TaeEditor
             var box = (TaeEditAnimEventBox)sender;
             if (sortedByRow.ContainsKey(e) && sortedByRow[e].Contains(box))
                 sortedByRow[e].Remove(box);
-            if (!sortedByRow.ContainsKey(box.MyEvent.Row))
-                sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
-            if (!sortedByRow[box.MyEvent.Row].Contains(box))
-                sortedByRow[box.MyEvent.Row].Add(box);
+            if (!sortedByRow.ContainsKey(box.Row))
+                sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
+            if (!sortedByRow[box.Row].Contains(box))
+                sortedByRow[box.Row].Add(box);
         }
 
         public void DeleteMultipleEventBoxes(IEnumerable<TaeEditAnimEventBox> boxes)
@@ -321,15 +304,17 @@ namespace TAEDX.TaeEditor
 
                         box.RowChanged -= Box_RowChanged;
 
-                        if (sortedByRow.ContainsKey(box.MyEvent.Row))
-                            if (sortedByRow[box.MyEvent.Row].Contains(box))
-                                sortedByRow[box.MyEvent.Row].Remove(box);
+                        var r = box.Row;
 
-                        AnimRef.EventList.Remove(box.MyEvent);
+                        if (sortedByRow.ContainsKey(r))
+                            if (sortedByRow[r].Contains(box))
+                                sortedByRow[r].Remove(box);
+
+                        AnimRef.Events.Remove(box.MyEvent);
 
                         EventBoxes.Remove(box);
 
-                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                         MainScreen.IsModified = true;
                     }
                 },
@@ -339,20 +324,22 @@ namespace TAEDX.TaeEditor
                     foreach (var box in copyOfBoxes)
                     {
                         EventBoxes.Add(box);
-                        AnimRef.EventList.Add(box.MyEvent);
+                        AnimRef.Events.Add(box.MyEvent);
 
-                        if (!sortedByRow.ContainsKey(box.MyEvent.Row))
-                            sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
+                        var r = box.Row;
 
-                        if (!sortedByRow[box.MyEvent.Row].Contains(box))
-                            sortedByRow[box.MyEvent.Row].Add(box);
+                        if (!sortedByRow.ContainsKey(r))
+                            sortedByRow.Add(r, new List<TaeEditAnimEventBox>());
+
+                        if (!sortedByRow[r].Contains(box))
+                            sortedByRow[r].Add(box);
 
                         box.RowChanged += Box_RowChanged;
 
                         if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
                             MainScreen.MultiSelectedEventBoxes.Add(box);
 
-                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                         MainScreen.IsModified = true;
                     }
                 });
@@ -373,58 +360,60 @@ namespace TAEDX.TaeEditor
                         MainScreen.SelectedEventBox = null;
                     box.RowChanged -= Box_RowChanged;
 
-                    if (sortedByRow.ContainsKey(box.MyEvent.Row))
-                        if (sortedByRow[box.MyEvent.Row].Contains(box))
-                            sortedByRow[box.MyEvent.Row].Remove(box);
+                    if (sortedByRow.ContainsKey(box.Row))
+                        if (sortedByRow[box.Row].Contains(box))
+                            sortedByRow[box.Row].Remove(box);
 
-                    AnimRef.EventList.Remove(box.MyEvent);
+                    AnimRef.Events.Remove(box.MyEvent);
 
                     EventBoxes.Remove(box);
 
-                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                    AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     MainScreen.IsModified = true;
                 },
                 undoAction: () =>
                 {
                     EventBoxes.Add(box);
-                    AnimRef.EventList.Add(box.MyEvent);
+                    AnimRef.Events.Add(box.MyEvent);
 
-                    if (!sortedByRow.ContainsKey(box.MyEvent.Row))
-                        sortedByRow.Add(box.MyEvent.Row, new List<TaeEditAnimEventBox>());
+                    if (!sortedByRow.ContainsKey(box.Row))
+                        sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
 
-                    if (!sortedByRow[box.MyEvent.Row].Contains(box))
-                        sortedByRow[box.MyEvent.Row].Add(box);
+                    if (!sortedByRow[box.Row].Contains(box))
+                        sortedByRow[box.Row].Add(box);
 
                     box.RowChanged += Box_RowChanged;
 
                     MainScreen.SelectedEventBox = box;
 
-                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                    AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     MainScreen.IsModified = true;
                 });
         }
 
-        private TaeEditAnimEventBox PlaceNewEvent(TimeActEventBase ev)
+        private TaeEditAnimEventBox PlaceNewEvent(TAE.Event ev, int row)
         {
-            ev.Index = MainScreen.SelectedTaeAnim.EventList.Count;
+            //ev.Index = MainScreen.SelectedTaeAnim.EventList.Count;
 
             var newBox = new TaeEditAnimEventBox(this, ev);
+
+            newBox.Row = row;
 
             MainScreen.UndoMan.NewAction(
                 doAction: () =>
                 {
-                    MainScreen.SelectedTaeAnim.EventList.Add(ev);
+                    MainScreen.SelectedTaeAnim.Events.Add(ev);
 
-                    if (!sortedByRow.ContainsKey(newBox.MyEvent.Row))
-                        sortedByRow.Add(newBox.MyEvent.Row, new List<TaeEditAnimEventBox>());
+                    if (!sortedByRow.ContainsKey(newBox.Row))
+                        sortedByRow.Add(newBox.Row, new List<TaeEditAnimEventBox>());
 
-                    sortedByRow[newBox.MyEvent.Row].Add(newBox);
+                    sortedByRow[newBox.Row].Add(newBox);
 
                     newBox.RowChanged += Box_RowChanged;
 
                     EventBoxes.Add(newBox);
 
-                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                    AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     MainScreen.IsModified = true;
                 },
                 undoAction: () =>
@@ -433,13 +422,13 @@ namespace TAEDX.TaeEditor
 
                     newBox.RowChanged -= Box_RowChanged;
 
-                    if (sortedByRow.ContainsKey(newBox.MyEvent.Row))
-                        if (sortedByRow[newBox.MyEvent.Row].Contains(newBox))
-                            sortedByRow[newBox.MyEvent.Row].Remove(newBox);
+                    if (sortedByRow.ContainsKey(newBox.Row))
+                        if (sortedByRow[newBox.Row].Contains(newBox))
+                            sortedByRow[newBox.Row].Remove(newBox);
 
-                    MainScreen.SelectedTaeAnim.EventList.Remove(ev);
+                    MainScreen.SelectedTaeAnim.Events.Remove(ev);
 
-                    AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                    AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     MainScreen.IsModified = true;
                 });
 
@@ -450,27 +439,35 @@ namespace TAEDX.TaeEditor
         {
             float mouseTime = ((MainScreen.Input.MousePosition.X - Rect.X + ScrollViewer.Scroll.X) / SecondsPixelSize);
 
-            TimeActEventBase newEvent = null;
+            TAE.Event newEvent = null;
 
             if (MainScreen.SelectedEventBox != null)
             {
-                newEvent = TimeActEventBase.GetNewEvent(
-                    MainScreen.SelectedEventBox.MyEvent.EventType,
-                    mouseTime, mouseTime + (MainScreen.SelectedEventBox.MyEvent.EndTimeFr 
-                    - MainScreen.SelectedEventBox.MyEvent.StartTimeFr));
+                var curEvent = MainScreen.SelectedEventBox.MyEvent;
 
-                TimeActEventBase.CopyEventParameters(MainScreen.SelectedEventBox.MyEvent, newEvent);
+                var curEventDuration = (curEvent.EndTime - curEvent.StartTime);
+
+                newEvent = new TAE.Event(mouseTime, mouseTime + curEventDuration, 
+                    curEvent.Type, curEvent.Unk04, curEvent.GetParameterBytes(MainScreen.SelectedTae.BigEndian), MainScreen.SelectedTae.BigEndian);
+
+                if (curEvent.Template != null)
+                {
+                    newEvent.ApplyTemplate(MainScreen.SelectedTae.BigEndian, curEvent.Template);
+                }
             }
             else
             {
-                newEvent = TimeActEventBase.GetNewEvent(
-                    TimeActEventType.DoCommand,
-                    mouseTime, mouseTime + 1);
+                if (MainScreen.SelectedTae.BankTemplate != null && MainScreen.SelectedTae.BankTemplate.ContainsKey(0))
+                {
+                    newEvent = new TAE.Event(mouseTime, mouseTime + 1, 0, 0, MainScreen.SelectedTae.BigEndian, MainScreen.SelectedTae.BankTemplate[0]);
+                }
+                else
+                {
+                    return;
+                }
             }
 
-            newEvent.Row = MouseRow;
-
-            PlaceNewEvent(newEvent);
+            PlaceNewEvent(newEvent, MouseRow);
         }
 
         public void DeleteSelectedEvent()
@@ -504,16 +501,17 @@ namespace TAEDX.TaeEditor
 
             if (MainScreen.SelectedEventBox != null)
             {
-                clipboardContents = new TaeClipboardContents(
-                    new List<TimeActEventBase> { MainScreen.SelectedEventBox.MyEvent },
-                    MainScreen.SelectedEventBox.MyEvent.Row, MainScreen.SelectedEventBox.MyEvent.StartTime);
+                clipboardContents = new TaeClipboardContents(this,
+                    new List<TaeEditAnimEventBox> { MainScreen.SelectedEventBox },
+                    MainScreen.SelectedEventBox.Row, MainScreen.SelectedEventBox.MyEvent.StartTime,
+                    MainScreen.SelectedTae.BigEndian);
             }
             else if (MainScreen.MultiSelectedEventBoxes.Count > 0)
             {
-                var events = MainScreen.MultiSelectedEventBoxes.Select(x => x.MyEvent);
-                float startTime = events.OrderBy(x => x.StartTime).First().StartTime;
+                var events = MainScreen.MultiSelectedEventBoxes;
+                float startTime = events.OrderBy(x => x.MyEvent.StartTime).First().MyEvent.StartTime;
                 int startRow = events.OrderBy(x => x.Row).First().Row;
-                clipboardContents = new TaeClipboardContents(events, startRow, startTime);
+                clipboardContents = new TaeClipboardContents(this, events, startRow, startTime, MainScreen.SelectedTae.BigEndian);
             }
             else
             {
@@ -546,21 +544,22 @@ namespace TAEDX.TaeEditor
                         MainScreen.SelectedEventBox = null;
                         MainScreen.MultiSelectedEventBoxes.Clear();
 
-                        foreach (var ev in events)
+                        foreach (var evBox in events)
                         {
+                            var ev = evBox.MyEvent;
                             if (!isAbsoluteLocation)
                             {
-                                float start = ev.StartTime - clipboardContents.StartTime + TimeActEventBase.RoundTimeToFrame(relMouse.X / SecondsPixelSize);
+                                float start = ev.StartTime - clipboardContents.StartTime + TaeExtensionMethods.RoundTimeToFrame(relMouse.X / SecondsPixelSize);
                                 float end = start + (ev.EndTime - ev.StartTime);
 
                                 ev.StartTime = start;
                                 ev.EndTime = end;
 
-                                ev.Row -= clipboardContents.StartRow;
-                                ev.Row += MouseRow;
+                                evBox.Row -= clipboardContents.StartRow;
+                                evBox.Row += MouseRow;
                             }
 
-                            var box = PlaceNewEvent(ev);
+                            var box = PlaceNewEvent(ev, evBox.Row);
 
                             MainScreen.MultiSelectedEventBoxes.Add(box);
                         }
@@ -583,8 +582,15 @@ namespace TAEDX.TaeEditor
             return false;
         }
 
-        public void Update(float elapsedSeconds, bool allowMouseUpdate)
+        public void UpdatePlaybackCursor(GameTime gameTime, bool allowPlayPauseInput)
         {
+            PlaybackCursor.Update(allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space), gameTime, EventBoxes);
+        }
+
+        public void Update(GameTime gameTime, bool allowMouseUpdate)
+        {
+            float elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            
             if (!allowMouseUpdate)
                 return;
 
@@ -594,7 +600,22 @@ namespace TAEDX.TaeEditor
 
             if (ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y)))
             {
-                MouseRow = (int)(relMouse.Y / RowHeight);
+                if (MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight)
+                {
+                    if (MainScreen.Input.LeftClickDown)
+                    {
+                        PlaybackCursor.StartTime = ((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize;
+                        PlaybackCursor.CurrentTime = PlaybackCursor.StartTime;
+                    }
+
+                    MouseRow = -1;
+                }
+                else
+                {
+                    MouseRow = (int)(relMouse.Y / RowHeight);
+                }
+
+                
 
                 MainScreen.Input.CursorType = MouseCursorType.Arrow;
 
@@ -638,7 +659,7 @@ namespace TAEDX.TaeEditor
                                     currentDrag.BoxOriginalWidth = box.Width;
                                     currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
                                     currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
-                                    currentDrag.BoxOriginalRow = box.MyEvent.Row;
+                                    currentDrag.BoxOriginalRow = box.Row;
                                     currentDrag.StartMouseRow = MouseRow;
                                     currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
                                 }
@@ -656,7 +677,7 @@ namespace TAEDX.TaeEditor
                                         newDrag.BoxOriginalWidth = multiBox.Width;
                                         newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
                                         newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
-                                        newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
+                                        newDrag.BoxOriginalRow = multiBox.Row;
                                         newDrag.StartMouseRow = MouseRow;
                                         newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
 
@@ -685,7 +706,7 @@ namespace TAEDX.TaeEditor
                                     currentDrag.BoxOriginalWidth = box.Width;
                                     currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
                                     currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
-                                    currentDrag.BoxOriginalRow = box.MyEvent.Row;
+                                    currentDrag.BoxOriginalRow = box.Row;
                                     currentDrag.StartMouseRow = MouseRow;
                                     currentDrag.StartDragPoint =
                                         currentDrag.CurrentDragPoint = relMouse.ToPoint();
@@ -706,7 +727,7 @@ namespace TAEDX.TaeEditor
                                         newDrag.BoxOriginalWidth = multiBox.Width;
                                         newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
                                         newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
-                                        newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
+                                        newDrag.BoxOriginalRow = multiBox.Row;
                                         newDrag.StartMouseRow = MouseRow;
                                         newDrag.StartDragPoint =
                                             newDrag.CurrentDragPoint = relMouse.ToPoint();
@@ -731,7 +752,7 @@ namespace TAEDX.TaeEditor
                                     currentDrag.BoxOriginalWidth = box.Width;
                                     currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
                                     currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
-                                    currentDrag.BoxOriginalRow = box.MyEvent.Row;
+                                    currentDrag.BoxOriginalRow = box.Row;
                                     currentDrag.StartMouseRow = MouseRow;
                                     currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
                                 }
@@ -751,7 +772,7 @@ namespace TAEDX.TaeEditor
                                             newDrag.BoxOriginalWidth = multiBox.Width;
                                             newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
                                             newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
-                                            newDrag.BoxOriginalRow = multiBox.MyEvent.Row;
+                                            newDrag.BoxOriginalRow = multiBox.Row;
                                             newDrag.StartMouseRow = MouseRow;
                                             newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
 
@@ -879,7 +900,7 @@ namespace TAEDX.TaeEditor
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
                         currentDrag.DragBoxToMouse(relMouse.ToPoint());
-                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                         MainScreen.IsModified = true;
                         //currentDrag.Box.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
                     }
@@ -887,7 +908,7 @@ namespace TAEDX.TaeEditor
                     {
                         MainScreen.Input.CursorType = MouseCursorType.DragX;
                         currentDrag.DragBoxToMouse(relMouse.ToPoint());
-                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                         MainScreen.IsModified = true;
                         //currentDrag.Box.DragRightSide(MainScreen.Input.MousePositionDelta.X);
                     }
@@ -895,7 +916,7 @@ namespace TAEDX.TaeEditor
                     {
                         MainScreen.Input.CursorType = MouseCursorType.Arrow;
                         currentDrag.DragBoxToMouse(relMouse.ToPoint());
-                        AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                         MainScreen.IsModified = true;
                         //currentDrag.Box.DragMiddle(MainScreen.Input.MousePositionDelta.X);
                         currentDrag.ShiftBoxRow(MouseRow);
@@ -903,7 +924,7 @@ namespace TAEDX.TaeEditor
                     else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox)
                     {
                         var earliestEndingDrag = currentMultiDrag.OrderBy(x => x.BoxOriginalEnd).First();
-                        int mouseMaxX = MathHelper.Max((int)earliestEndingDrag.StartDragPoint.X, (int)((earliestEndingDrag.BoxOriginalEnd * SecondsPixelSize) - (TimeActEventBase.FRAME * SecondsPixelSize)));
+                        int mouseMaxX = MathHelper.Max((int)earliestEndingDrag.StartDragPoint.X, (int)((earliestEndingDrag.BoxOriginalEnd * SecondsPixelSize) - (TaeEditAnimEventBox.FRAME * SecondsPixelSize)));
 
                         var earliestDrag_preventNegative = currentMultiDrag.OrderBy(x => x.BoxOriginalStart).First();
                         int mouseMinX_preventNegative = earliestDrag_preventNegative.Offset.X + (int)earliestDrag_preventNegative.BoxOriginalStart;
@@ -914,7 +935,7 @@ namespace TAEDX.TaeEditor
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             multiDrag.DragBoxToMouse(actualMousePoint);
-                            AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                            AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                             MainScreen.IsModified = true;
                         }
                     }
@@ -928,7 +949,7 @@ namespace TAEDX.TaeEditor
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             multiDrag.DragBoxToMouse(actualMousePoint);
-                            AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                            AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                             MainScreen.IsModified = true;
                         }
                     }
@@ -945,7 +966,7 @@ namespace TAEDX.TaeEditor
                         {
                             MainScreen.Input.CursorType = MouseCursorType.Arrow;
                             multiDrag.DragBoxToMouse(actualMousePoint);
-                            AnimRef.IsModified = !MainScreen.IsReadOnlyFileMode;
+                            AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                             MainScreen.IsModified = true;
                             multiDrag.ShiftBoxRow(MathHelper.Max(MouseRow, minimumMouseRow));
                         }
@@ -1019,26 +1040,26 @@ namespace TAEDX.TaeEditor
 
                             float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
                             float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
-                            int copyOfCurrentBoxRow = copyOfBox.MyEvent.Row;
+                            int copyOfCurrentBoxRow = copyOfBox.Row;
 
                             MainScreen.UndoMan.NewAction(
                                 doAction: () =>
                                 {
                                     copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
                                     copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
-                                    copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
+                                    copyOfBox.Row = copyOfCurrentBoxRow;
 
                                     MainScreen.IsModified = true;
-                                    MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
+                                    MainScreen.SelectedTaeAnim.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                                 },
                                 undoAction: () =>
                                 {
                                     copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
                                     copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
-                                    copyOfBox.MyEvent.Row = copyOfOldBoxRow;
+                                    copyOfBox.Row = copyOfOldBoxRow;
 
                                     MainScreen.IsModified = true;
-                                    MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
+                                    MainScreen.SelectedTaeAnim.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                                 });
 
                             currentDrag.DragType = BoxDragType.None;
@@ -1068,7 +1089,7 @@ namespace TAEDX.TaeEditor
 
                                 copiesOfCurrentBoxStart.Add(multiDrag.Box.MyEvent.StartTime);
                                 copiesOfCurrentBoxEnd.Add(multiDrag.Box.MyEvent.EndTime);
-                                copiesOfCurrentBoxRow.Add(multiDrag.Box.MyEvent.Row);
+                                copiesOfCurrentBoxRow.Add(multiDrag.Box.Row);
                             }
 
                             MainScreen.UndoMan.NewAction(
@@ -1078,11 +1099,11 @@ namespace TAEDX.TaeEditor
                                         {
                                             copiesOfBox[i].MyEvent.StartTime = copiesOfCurrentBoxStart[i];
                                             copiesOfBox[i].MyEvent.EndTime = copiesOfCurrentBoxEnd[i];
-                                            copiesOfBox[i].MyEvent.Row = copiesOfCurrentBoxRow[i];
+                                            copiesOfBox[i].Row = copiesOfCurrentBoxRow[i];
                                         }
 
                                         MainScreen.IsModified = true;
-                                        MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
+                                        MainScreen.SelectedTaeAnim.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                                     },
                                     undoAction: () =>
                                     {
@@ -1090,11 +1111,11 @@ namespace TAEDX.TaeEditor
                                         {
                                             copiesOfBox[i].MyEvent.StartTime = copiesOfOldBoxStart[i];
                                             copiesOfBox[i].MyEvent.EndTime = copiesOfOldBoxEnd[i];
-                                            copiesOfBox[i].MyEvent.Row = copiesOfOldBoxRow[i];
+                                            copiesOfBox[i].Row = copiesOfOldBoxRow[i];
                                         }
 
                                         MainScreen.IsModified = true;
-                                        MainScreen.SelectedTaeAnim.IsModified = !MainScreen.IsReadOnlyFileMode;
+                                        MainScreen.SelectedTaeAnim.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                                     });
 
 
@@ -1186,7 +1207,7 @@ namespace TAEDX.TaeEditor
 
             return new Point(
                 (int)EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 64, 
-                (int)EventBoxes.OrderByDescending(x => x.MyEvent.Row).First().Bottom + 64);
+                (int)EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 64);
         }
 
         private Dictionary<int, float> GetSecondVerticalLineXPositions()
@@ -1292,10 +1313,10 @@ namespace TAEDX.TaeEditor
                         Color textFG = Color.White;
                         Color textBG = Color.Black;
 
-                        Color boxOutlineColor = Color.Black;
+                        Color boxOutlineColor = box.ColorOutline;
 
                         Color thisBoxBgColor = new Color(box.ColorBG.ToVector3() * 0.4f);
-                        Color thisBoxBgColorSelected = new Color(box.ColorBG.ToVector3() * 0.8f);
+                        Color thisBoxBgColorSelected = new Color(box.ColorBG.ToVector3() * 0.7f);
                         Color boxOutlineColorSelected = Color.White;
                         
 
@@ -1304,11 +1325,12 @@ namespace TAEDX.TaeEditor
                             thisBoxBgColor = Color.Black;
                             thisBoxBgColorSelected = Color.White;
                             boxOutlineColor = Color.Gray;
-                            boxOutlineColorSelected = Color.Black;
-                            textFG = isBoxSelected ? Color.Black : Color.White;
+                            boxOutlineColorSelected = Color.White;
+                            textFG = box.PlaybackHighlight ? Color.Black : Color.White;
                             textBG = Color.Transparent;
                         }
 
+                        // outline
                         sb.Draw(texture: boxTex,
                             position: pos + new Vector2(0, -1),
                             sourceRectangle: null,
@@ -1325,7 +1347,7 @@ namespace TAEDX.TaeEditor
                         sb.Draw(texture: boxTex,
                             position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
                             sourceRectangle: null,
-                            color: isBoxSelected ? thisBoxBgColorSelected : thisBoxBgColor,
+                            color: (box.PlaybackHighlight) ? thisBoxBgColorSelected : thisBoxBgColor,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
@@ -1401,7 +1423,7 @@ namespace TAEDX.TaeEditor
                             else
                             {
                                 string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
-                                    $"{((int)box.MyEvent.EventType)}";
+                                    $"{(box.MyEvent.Type)}";
                                 sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
                                     textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
                                 sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
@@ -1424,16 +1446,20 @@ namespace TAEDX.TaeEditor
                        layerDepth: 0
                        );
 
-                sb.Draw(texture: boxTex,
-                            position: new Vector2(ScrollViewer.Scroll.X, TimeLineHeight + MouseRow * RowHeight),
-                            sourceRectangle: null,
-                            color: Color.LightGray * 0.25f,
-                            rotation: 0,
-                            origin: Vector2.Zero,
-                            scale: new Vector2(ScrollViewer.Viewport.Width, RowHeight),
-                            effects: SpriteEffects.None,
-                            layerDepth: 0.01f
-                            );
+                //if (MouseRow >= 0)
+                //{
+                //    sb.Draw(texture: boxTex,
+                //            position: new Vector2(ScrollViewer.Scroll.X, TimeLineHeight + MouseRow * RowHeight),
+                //            sourceRectangle: null,
+                //            color: Color.LightGray * 0.25f,
+                //            rotation: 0,
+                //            origin: Vector2.Zero,
+                //            scale: new Vector2(ScrollViewer.Viewport.Width, RowHeight),
+                //            effects: SpriteEffects.None,
+                //            layerDepth: 0.01f
+                //            );
+                //}
+                
 
                 if (SecondsPixelSize >= 4f)
                 {
@@ -1529,6 +1555,22 @@ namespace TAEDX.TaeEditor
                         layerDepth: 0
                         );
                 }
+
+
+                float playbackCursorPixelX = (float)(SecondsPixelSize * PlaybackCursor.CurrentTime);
+
+                //-- BOTTOM Side
+                sb.Draw(texture: boxTex,
+                    position: new Vector2(playbackCursorPixelX - (PlaybackCursorThickness / 2), 0),
+                    sourceRectangle: null,
+                    color: PlaybackCursorColor,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(PlaybackCursorThickness, Rect.Height),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+
 
                 // This would draw a little +/- by the mouse cursor to signify that
                 // you're adding/subtracting selection

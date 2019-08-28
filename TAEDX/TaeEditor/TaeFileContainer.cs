@@ -1,10 +1,6 @@
-﻿using MeowDSIO;
-using MeowDSIO.DataFiles;
-using System;
+﻿using SoulsFormats;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TAEDX.TaeEditor
 {
@@ -12,10 +8,9 @@ namespace TAEDX.TaeEditor
     {
         public enum TaeFileContainerType
         {
-            Tae,
-            Anibnd,
-            Remobnd,
-            Objbnd,
+            TAE,
+            BND3,
+            BND4
         }
 
         public enum TaeFileContainerReloadType
@@ -25,11 +20,17 @@ namespace TAEDX.TaeEditor
             CHR_DS1R
         }
 
+        private string filePath;
+
         public TaeFileContainerType ContainerType { get; private set; }
-        private TAE dataTAE = null;
-        private ANIBND dataANIBND = null;
-        private EntityBND dataEntityBND = null;
-        private REMOBND dataREMOBND = null;
+
+        private BND3 containerBND3;
+        private BND4 containerBND4;
+
+        private Dictionary<string, TAE> taeInBND = new Dictionary<string, TAE>();
+        private Dictionary<string, byte[]> hkxInBND = new Dictionary<string, byte[]>();
+
+        public List<BinderFile> RelatedModelFiles = new List<BinderFile>();
 
         public bool IsModified = false;
 
@@ -49,123 +50,70 @@ namespace TAEDX.TaeEditor
 
         public string GetResaveFilter()
         {
-            if (ContainerType == TaeFileContainerType.Anibnd)
-                return !IsDcx ?
-                    "ANIBND|*.ANIBND|ANIBND DCX|*.ANIBND.DCX" :
-                    "ANIBND DCX|*.ANIBND.DCX|ANIBND|*.ANIBND";
-            else if (ContainerType == TaeFileContainerType.Tae)
-                return !IsDcx ?
-                    "TAE|*.TAE|TAE DCX|*.TAE.DCX" :
-                    "TAE DCX|*.TAE.DCX|TAE|*.TAE";
-            else if (ContainerType == TaeFileContainerType.Remobnd)
-                return !IsDcx ?
-                    "REMOBND|*.REMOBND|REMOBND DCX|*.REMOBND.DCX" :
-                    "REMOBND DCX|*.REMOBND.DCX|REMOBND|*.REMOBND";
-            else if (ContainerType == TaeFileContainerType.Objbnd)
-                return !IsDcx ?
-                    "OBJBND|*.OBJBND|OBJBND DCX|*.OBJBND.DCX" :
-                    "OBJBND DCX|*.OBJBND.DCX|OBJBND|*.OBJBND";
-            else
-                return null;
+            return "*.*|*.*";
         }
 
-        public Dictionary<int, TAE> StandardTAE { get; private set; } = null;
-        public Dictionary<int, TAE> PlayerTAE { get; private set; } = null;
+        //public Dictionary<int, TAE> StandardTAE { get; private set; } = null;
+        //public Dictionary<int, TAE> PlayerTAE { get; private set; } = null;
 
-        public IEnumerable<TAE> AllTAE
-        {
-            get
-            {
-                if (ContainerType == TaeFileContainerType.Anibnd)
-                    return dataANIBND.AllTAE;
-                else if (ContainerType == TaeFileContainerType.Tae)
-                    return new List<TAE> { dataTAE };
-                else if (ContainerType == TaeFileContainerType.Remobnd)
-                    return new List<TAE> { dataREMOBND.Tae };
-                else if (ContainerType == TaeFileContainerType.Objbnd)
-                    return dataEntityBND.GetAllTAE();
-                else
-                    return new List<TAE>();
-            }
-        }
+        public IEnumerable<TAE> AllTAE => taeInBND.Values;
+
+        public IReadOnlyDictionary<string, byte[]> AllHKXDict => hkxInBND;
+
+        public IReadOnlyDictionary<string, TAE> AllTAEDict => taeInBND;
 
         public void LoadFromPath(string file)
         {
             ReloadType = TaeFileContainerReloadType.None;
 
-            StandardTAE = null;
-            PlayerTAE = null;
+            containerBND3 = null;
+            containerBND4 = null;
 
-            file = file.ToUpper();
-            var fileNoDcx = file;
-            IsDcx = false;
-            if (file.EndsWith(".DCX"))
+            taeInBND.Clear();
+            hkxInBND.Clear();
+
+            if (BND3.Is(file))
             {
-                IsDcx = true;
-                fileNoDcx = file.Substring(0, file.Length - 4);
-            }
-
-            if (fileNoDcx.EndsWith(".ANIBND"))
-            {
-                if (IsDcx)
-                    dataANIBND = DataFile.LoadFromFile<ANIBND>(file, loadDcxVersion: true);
-                else
-                    dataANIBND = DataFile.LoadFromFile<ANIBND>(fileNoDcx);
-
-                StandardTAE = dataANIBND.StandardTAE;
-                PlayerTAE = dataANIBND.PlayerTAE;
-
-                if (dataANIBND.IsRemaster)
-                    ReloadType = TaeFileContainerReloadType.CHR_DS1R;
-                else
-                    ReloadType = TaeFileContainerReloadType.CHR_PTDE;
-
-                ContainerType = TaeFileContainerType.Anibnd;
-            }
-            else if (fileNoDcx.EndsWith(".OBJBND"))
-            {
-                if (IsDcx)
-                    dataEntityBND = DataFile.LoadFromFile<EntityBND>(file, loadDcxVersion: true);
-                else
-                    dataEntityBND = DataFile.LoadFromFile<EntityBND>(fileNoDcx);
-
-                StandardTAE = new Dictionary<int, TAE>();
-                PlayerTAE = new Dictionary<int, TAE>();
-
-                foreach (var m in dataEntityBND.Models)
+                ContainerType = TaeFileContainerType.BND3;
+                containerBND3 = BND3.Read(file);
+                foreach (var f in containerBND3.Files)
                 {
-                    if (m.AnimContainer != null)
+                    if (TAE.Is(f.Bytes))
                     {
-                        foreach (var tae in m.AnimContainer.StandardTAE)
-                        {
-                            StandardTAE.Add(tae.Key, tae.Value);
-                        }
-                        foreach (var tae in m.AnimContainer.PlayerTAE)
-                        {
-                            PlayerTAE.Add(tae.Key, tae.Value);
-                        }
+                        taeInBND.Add(f.Name, TAE.Read(f.Bytes));
                     }
-                  
+                    else if (f.Name.ToUpper().EndsWith(".HKX"))
+                    {
+                        hkxInBND.Add(f.Name, f.Bytes);
+                    }
                 }
+            }
+            else if (BND4.Is(file))
+            {
+                ContainerType = TaeFileContainerType.BND4;
+                containerBND4 = BND4.Read(file);
+                foreach (var f in containerBND4.Files)
+                {
+                    if (TAE.Is(f.Bytes))
+                    {
+                        taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                    }
+                    else if (f.Name.ToUpper().EndsWith(".HKX"))
+                    {
+                        hkxInBND.Add(f.Name, f.Bytes);
+                    }
+                }
+            }
+            else if (TAE.Is(file))
+            {
+                ContainerType = TaeFileContainerType.TAE;
+                taeInBND.Add(file, TAE.Read(file));
+            }
 
-                ContainerType = TaeFileContainerType.Objbnd;
-            }
-            else if (file.EndsWith(".REMOBND"))
-            {
-                if (IsDcx)
-                    dataREMOBND = DataFile.LoadFromFile<REMOBND>(file, loadDcxVersion: true);
-                else
-                    dataREMOBND = DataFile.LoadFromFile<REMOBND>(fileNoDcx);
-                ContainerType = TaeFileContainerType.Remobnd;
-            }
-            else if (fileNoDcx.EndsWith(".TAE"))
-            {
-                if (IsDcx)
-                    dataTAE = DataFile.LoadFromFile<TAE>(file, loadDcxVersion: true);
-                else
-                    dataTAE = DataFile.LoadFromFile<TAE>(fileNoDcx);
-                ContainerType = TaeFileContainerType.Tae;
-            }
+            filePath = file;
+
+            //SFTODO
+            ReloadType = TaeFileContainerReloadType.None;
         }
 
         public void SaveToPath(string file)
@@ -177,33 +125,33 @@ namespace TAEDX.TaeEditor
                 IsDcx = true;
             }
 
-            if (ContainerType == TaeFileContainerType.Anibnd)
+            if (ContainerType == TaeFileContainerType.BND3)
             {
-                if (IsDcx)
-                    DataFile.SaveToFile(dataANIBND, file);
-                else
-                    DataFile.SaveToFile(dataANIBND, file);
+                foreach (var f in containerBND3.Files)
+                {
+                    if (taeInBND.ContainsKey(f.Name))
+                        f.Bytes = taeInBND[f.Name].Write();
+                }
+
+                containerBND3.Write(file);
             }
-            else if (ContainerType == TaeFileContainerType.Objbnd)
+            else if (ContainerType == TaeFileContainerType.BND4)
             {
-                if (IsDcx)
-                    DataFile.SaveToFile(dataEntityBND, file);
-                else
-                    DataFile.SaveToFile(dataEntityBND, file);
+                foreach (var f in containerBND4.Files)
+                {
+                    if (taeInBND.ContainsKey(f.Name))
+                        f.Bytes = taeInBND[f.Name].Write();
+                }
+
+                containerBND4.Write(file);
             }
-            else if (ContainerType == TaeFileContainerType.Remobnd)
+            else if (ContainerType == TaeFileContainerType.TAE)
             {
-                if (IsDcx)
-                    DataFile.SaveToFile(dataREMOBND, file);
-                else
-                    DataFile.SaveToFile(dataREMOBND, file);
-            }
-            else if (ContainerType == TaeFileContainerType.Tae)
-            {
-                if (IsDcx)
-                    DataFile.SaveToFile(dataTAE, file);
-                else
-                    DataFile.SaveToFile(dataTAE, file);
+                var tae = taeInBND[filePath];
+                tae.Write(file);
+
+                taeInBND.Clear();
+                taeInBND.Add(file, taeInBND[filePath]);
             }
         }
     }
