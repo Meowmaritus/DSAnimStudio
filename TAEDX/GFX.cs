@@ -52,6 +52,19 @@ namespace TAEDX
             }
         }
 
+        public static void InitFlverMainShader()
+        {
+            FlverShader.Effect.AmbientColor = new Vector4(1, 1, 1, 1);
+            FlverShader.Effect.AmbientIntensity = 0.25f;
+            FlverShader.Effect.DiffuseColor = new Vector4(1, 1, 1, 1);
+            FlverShader.Effect.DiffuseIntensity = 0.85f;
+            FlverShader.Effect.SpecularColor = new Vector4(1, 1, 1, 1);
+            FlverShader.Effect.SpecularPower = 8;
+            FlverShader.Effect.NormalMapCustomZ = 1.0f;
+            FlverShader.Effect.DiffusePower = 1 / 1.5f;
+            FlverShader.Effect.AlphaTest = 0.1f;
+        }
+
         public static GFXDrawStep CurrentStep = GFXDrawStep.Opaque;
 
         public static readonly GFXDrawStep[] DRAW_STEP_LIST;
@@ -80,52 +93,7 @@ namespace TAEDX
 
         public static bool EnableFrustumCulling = false;
         public static bool EnableTextures = true;
-        public static bool EnableLighting
-        {
-            get
-            {
-                return FlverShader.Effect.SpecularPower != float.PositiveInfinity;
-            }
-            set
-            {
-                if (value)
-                {
-                    FlverShader.Effect.AmbientColor = new Vector4(1, 1, 1, 1);
-                    FlverShader.Effect.AmbientIntensity = 0.15f;
-                    FlverShader.Effect.DiffuseColor = new Vector4(1, 1, 1, 1);
-                    FlverShader.Effect.DiffuseIntensity = 1f;
-                    FlverShader.Effect.SpecularColor = new Vector4(1, 1, 1, 1);
-                    FlverShader.Effect.SpecularPower = 2.0f;
-                    FlverShader.Effect.NormalMapCustomZ = 1.0f;
-
-                    //DbgPrimSolidShader.Effect.AmbientLightColor = new Vector3(FlverShader.Effect.AmbientColor.X, FlverShader.Effect.AmbientColor.Y, FlverShader.Effect.AmbientColor.Z) * FlverShader.Effect.AmbientIntensity;
-                    //DbgPrimSolidShader.Effect.DiffuseColor = new Vector3(FlverShader.Effect.DiffuseColor.X, FlverShader.Effect.DiffuseColor.Y, FlverShader.Effect.DiffuseColor.Z) * FlverShader.Effect.DiffuseIntensity;
-                    //DbgPrimSolidShader.Effect.SpecularColor = new Vector3(FlverShader.Effect.SpecularColor.X, FlverShader.Effect.SpecularColor.Y, FlverShader.Effect.SpecularColor.Z);
-                    //DbgPrimSolidShader.Effect.SpecularPower = FlverShader.Effect.SpecularPower;
-                }
-                else
-                {
-                    FlverShader.Effect.AmbientColor = new Vector4(1, 1, 1, 1);
-                    FlverShader.Effect.AmbientIntensity = 1;
-                    FlverShader.Effect.DiffuseColor = new Vector4(0, 0, 0, 0);
-                    FlverShader.Effect.DiffuseIntensity = 0;
-                    FlverShader.Effect.SpecularColor = new Vector4(0, 0, 0, 0);
-                    FlverShader.Effect.SpecularPower = float.PositiveInfinity;
-                    FlverShader.Effect.NormalMapCustomZ = 1.0f;
-
-                    //DbgPrimSolidShader.Effect.AmbientLightColor = new Vector3(FlverShader.Effect.AmbientColor.X, FlverShader.Effect.AmbientColor.Y, FlverShader.Effect.AmbientColor.Z) * FlverShader.Effect.AmbientIntensity;
-                    //DbgPrimSolidShader.Effect.DiffuseColor = new Vector3(FlverShader.Effect.DiffuseColor.X, FlverShader.Effect.DiffuseColor.Y, FlverShader.Effect.DiffuseColor.Z) * FlverShader.Effect.DiffuseIntensity;
-                    //DbgPrimSolidShader.Effect.SpecularColor = new Vector3(FlverShader.Effect.SpecularColor.X, FlverShader.Effect.SpecularColor.Y, FlverShader.Effect.SpecularColor.Z);
-                    //DbgPrimSolidShader.Effect.SpecularPower = FlverShader.Effect.SpecularPower;
-                }
-            }
-        }
-
-        public static bool EnableHeadlight = false;
-
-        public static bool TestLightSpin;
-
-        public static bool EnableLightmapping = true;
+        //public static bool EnableLightmapping = true;
 
         private static RasterizerState HotSwapRasterizerState_BackfaceCullingOff_WireframeOff;
         private static RasterizerState HotSwapRasterizerState_BackfaceCullingOn_WireframeOff;
@@ -259,13 +227,7 @@ namespace TAEDX
 
             FlverShader = new FlverShader(c.Load<Effect>(FlverShader__Name));
 
-            FlverShader.Effect.AmbientColor = new Vector4(1, 1, 1, 1);
-            FlverShader.Effect.AmbientIntensity = 0.35f;
-            FlverShader.Effect.DiffuseColor = new Vector4(1, 1, 1, 1);
-            FlverShader.Effect.DiffuseIntensity = 1f;
-            FlverShader.Effect.SpecularColor = new Vector4(1, 1, 1, 1);
-            FlverShader.Effect.SpecularPower = 1.1f;
-            FlverShader.Effect.NormalMapCustomZ = 1.0f;
+            InitFlverMainShader();
 
             DbgPrimWireShader = new DbgPrimWireShader(Device);
             DbgPrimSolidShader = new DbgPrimSolidShader(Device);
@@ -312,10 +274,17 @@ namespace TAEDX
             World.ApplyViewToShader(FlverShader);
             World.ApplyViewToShader(CollisionShader);
 
+            //foreach (var m in ModelDrawer.Models)
+            //{
+            //    m.ApplyWorldToInstances(World.CameraTransform.RotationMatrix);
+            //    m.ReinitInstanceData();
+            //}
+
             Device.SamplerStates[0] = SamplerState.LinearWrap;
 
             FlverShader.Effect.EyePosition = World.CameraTransform.Position;
-            FlverShader.Effect.LightDirection = World.LightDirectionVector;
+            //FlverShader.Effect.EyePosition = Vector3.Backward;
+            FlverShader.Effect.LightDirection = -Vector3.Normalize(World.CameraTransform.Position);
             //FlverShader.Effect.LightDirection = World.CameraTransform.RotationMatrix;
             FlverShader.Effect.ColorMap = Main.DEFAULT_TEXTURE_DIFFUSE;
             FlverShader.Effect.NormalMap = Main.DEFAULT_TEXTURE_NORMAL;
@@ -387,11 +356,6 @@ namespace TAEDX
         public static void DrawScene(GameTime gameTime)
         {
             //Device.Viewport = new Viewport(new Rectangle(200, 200, 500, 500));
-
-            if (EnableHeadlight)
-            {
-                World.LightRotation = new Vector3(World.CameraTransform.EulerRotation.X, World.CameraTransform.EulerRotation.Y, World.CameraTransform.EulerRotation.Z);
-            }
 
             for (int i = 0; i < DRAW_STEP_LIST.Length; i++)
             {

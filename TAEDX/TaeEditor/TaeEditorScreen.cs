@@ -344,7 +344,7 @@ namespace TAEDX.TaeEditor
             // Even if it fails to load, just always push it to the recent files list
             PushNewRecentFile(FileContainerName);
 
-            string templateName = BrowseForXMLTemplate();
+            //string templateName = BrowseForXMLTemplate();
 
             //if (templateName == null)
             //{
@@ -367,14 +367,15 @@ namespace TAEDX.TaeEditor
                 MenuBar["File/Save As..."].Enabled = !IsReadOnlyFileMode;
                 MenuBar["File/Force Refresh Ingame"].Enabled = !IsReadOnlyFileMode && FileContainer.ReloadType != TaeFileContainer.TaeFileContainerReloadType.None;
 
-                if (templateName != null)
-                {
-                    LoadTAETemplate(templateName);
-                }
+                //if (templateName != null)
+                //{
+                //    LoadTAETemplate(templateName);
+                //}
 
                 if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
                 {
                     GFX.ModelDrawer.ClearScene();
+                    DBG.ClearPrimitives();
                     TaeInterop.OnLoadANIBND();
                 }
 

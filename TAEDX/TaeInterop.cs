@@ -130,23 +130,25 @@ namespace TAEDX
         /// </summary>
         public static void OnLoadANIBND()
         {
+            var transform = new Transform(0, 0, 0, 0, 0, 0);
+
             var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
             if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
             {
-                Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), Transform.Default);
+                Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), transform);
             }
             else if (File.Exists($"{chrNameBase}.chrbnd"))
             {
-                Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), Transform.Default);
+                Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
             }
 
             if (File.Exists($"{chrNameBase}.texbnd.dcx"))
             {
-                Load3DAsset($"{chrNameBase}.texbnd.dcx", File.ReadAllBytes($"{chrNameBase}.texbnd.dcx"), Transform.Default);
+                Load3DAsset($"{chrNameBase}.texbnd.dcx", File.ReadAllBytes($"{chrNameBase}.texbnd.dcx"), transform);
             }
             else if (File.Exists($"{chrNameBase}.texbnd"))
             {
-                Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), Transform.Default);
+                Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), transform);
             }
 
             CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
@@ -202,8 +204,8 @@ namespace TAEDX
                 {
                     var flver = SoulsFormats.FLVER0.Read(assetBytes);
                     var model = new Model(flver);
-                    var modelInstance = new ModelInstance(shortName, model, new Transform(), -1, -1, -1, -1);
-                    GFX.ModelDrawer.AddModelInstance(model, "", Transform.Default);
+                    var modelInstance = new ModelInstance(shortName, model, Transform.Default, -1, -1, -1, -1);
+                    GFX.ModelDrawer.AddModelInstance(model, "", transform);
                     //throw new NotImplementedException();
 
                     Matrix GetBoneParentMatrix(SoulsFormats.FLVER0.Bone b)
@@ -317,8 +319,8 @@ namespace TAEDX
                 {
                     var flver = SoulsFormats.FLVER2.Read(assetBytes);
                     var model = new Model(flver);
-                    var modelInstance = new ModelInstance(shortName, model, transform, -1, -1, -1, -1);
-                    GFX.ModelDrawer.AddModelInstance(model, "", Transform.Default);
+                    var modelInstance = new ModelInstance(shortName, model, Transform.Default, -1, -1, -1, -1);
+                    GFX.ModelDrawer.AddModelInstance(model, "", transform);
                     //throw new NotImplementedException();
 
                     Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b)

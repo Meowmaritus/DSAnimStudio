@@ -297,8 +297,8 @@ namespace TAEDX
                 if (vert.Normal != null && vert.Tangents != null && vert.Tangents.Count > 0)
                 {
                     MeshVertices[i].Normal = Vector3.Normalize(new Vector3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
+                    MeshVertices[i].Binormal = Vector3.Normalize(new Vector3(vert.Bitangent.X, vert.Bitangent.Y, vert.Bitangent.Z));
                     MeshVertices[i].Tangent = Vector3.Normalize(new Vector3(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z));
-                    MeshVertices[i].Binormal = Vector3.Cross(Vector3.Normalize(MeshVertices[i].Normal), Vector3.Normalize(MeshVertices[i].Tangent)) * vert.Tangents[0].W;
                 }
 
                 if (vert.UVs.Count > 0)
@@ -654,10 +654,10 @@ namespace TAEDX
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
             }
 
-            if (GFX.EnableLightmapping && !GFX.EnableLighting)
-            {
-                GFX.FlverShader.Effect.LightMap1 = TexDataDOL1 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
-            }
+            //if (GFX.EnableLightmapping /*&& !GFX.EnableLighting*/)
+            //{
+            //    GFX.FlverShader.Effect.LightMap1 = TexDataDOL1 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+            //}
 
             GFX.Device.SetVertexBuffers(VertBufferBinding, Parent.InstanceBufferBinding);
 
