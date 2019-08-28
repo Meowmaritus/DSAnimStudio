@@ -190,7 +190,7 @@ namespace TAEDX.TaeEditor
         private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth;
         private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + DividerHitboxPad;
 
-        private float RightSectionWidth = 320;
+        private float RightSectionWidth = 420; //weed
         private const float RightSectionWidthMin = 128;
         private float DividerRightGrabStart => Rect.Right - RightSectionWidth - DividerHitboxPad;
         private float DividerRightGrabEnd => Rect.Right - RightSectionWidth;
