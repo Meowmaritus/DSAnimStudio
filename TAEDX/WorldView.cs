@@ -16,16 +16,18 @@ namespace TAEDX
         public Transform CameraOrigin = Transform.Default;
         public Transform CameraPositionDefault = Transform.Default;
 
+        public float OrbitCamDistanceReference = 6;
         public float OrbitCamDistance = 6;
-        public float OrbitCamY = 2;
+        public Vector3 OrbitCamCanterReference = Vector3.Zero;
+        public Vector3 OrbitCamCenter = new Vector3(0, 2, 0);
         public bool IsOrbitCam = true;
 
         
 
         public void OrbitCamReset()
         {
-            OrbitCamDistance = 6;
-            OrbitCamY = 2;
+            OrbitCamDistance = OrbitCamDistanceReference;
+            OrbitCamCenter = OrbitCamCanterReference;
             CameraTransform.EulerRotation = CameraDefaultRot;
         }
 
@@ -248,9 +250,38 @@ namespace TAEDX
             CameraTransform.EulerRotation.Z = 0;
         }
 
-        public void MoveCamera_OrbitOriginVertical(float y, float speed)
+        
+
+        public void MoveCamera_OrbitCenterPoint_MouseDelta(Vector2 curMouse, Vector2 oldMouse)
         {
-            OrbitCamY -= y * speed;
+            var curMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(curMouse.X, TaeInterop.ModelViewerWindowRect.Height / 2f, 0),
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+
+            var curMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(TaeInterop.ModelViewerWindowRect.Width / 2f, curMouse.Y, 0),
+               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+
+            var oldMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(oldMouse.X, TaeInterop.ModelViewerWindowRect.Height / 2f, 0),
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+
+            var oldMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(TaeInterop.ModelViewerWindowRect.Width / 2f, oldMouse.Y, 0),
+               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+
+            float hDist = (curMouse3DX - oldMouse3DX).Length();
+            float vDist = (curMouse3DY - oldMouse3DY).Length();
+
+            bool isNegH = (curMouse.X - oldMouse.X) < 0;
+            bool isNegV = (curMouse.Y - oldMouse.Y) < 0;
+
+            MoveCamera_OrbitCenterPoint(-hDist * (isNegH ? -1 : 1), vDist * (isNegV ? -1 : 1), 0, 50);
+        }
+
+        public void MoveCamera_OrbitCenterPoint(float x, float y, float z, float speed)
+        {
+            OrbitCamCenter += Vector3.Transform(new Vector3(x, y, z),
+                Matrix.CreateRotationX(-CameraTransform.EulerRotation.X)
+                * Matrix.CreateRotationY(-CameraTransform.EulerRotation.Y)
+                * Matrix.CreateRotationZ(-CameraTransform.EulerRotation.Z)
+                ) * speed;
         }
 
         public void PointCameraToLocation(Vector3 location)
@@ -367,7 +398,7 @@ namespace TAEDX
                     OrbitCamDistance = Math.Max(OrbitCamDistance, SHITTY_CAM_ZOOM_MIN_DIST);
 
                     var distanceVectorAfterMove = -Vector3.Transform(Vector3.Forward, CameraTransform.RotationMatrixXYZ * Matrix.CreateRotationY(MathHelper.Pi)) * new Vector3(-1, 1, 1);
-                    CameraTransform.Position = (new Vector3(0, OrbitCamY, 0) + (distanceVectorAfterMove * OrbitCamDistance));
+                    CameraTransform.Position = (OrbitCamCenter + (distanceVectorAfterMove * OrbitCamDistance));
 
                     
                 }
@@ -497,7 +528,7 @@ namespace TAEDX
 
 
                     //PointCameraToModel();
-                    MoveCamera_OrbitOriginVertical(gamepad.ThumbSticks.Right.Y, moveMult);
+                    MoveCamera_OrbitCenterPoint(gamepad.ThumbSticks.Right.X, gamepad.ThumbSticks.Right.Y, 0, moveMult);
                 }
                 else
                 {
@@ -532,6 +563,7 @@ namespace TAEDX
             {
                 if (currentMouseClickL)
                 {
+                    float x = 0;
                     float z = 0;
                     float y = 0;
 
@@ -543,6 +575,10 @@ namespace TAEDX
                         y += 1;
                     if (keyboard.IsKeyDown(Keys.Q))
                         y -= 1;
+                    if (keyboard.IsKeyDown(Keys.A))
+                        x -= 1;
+                    if (keyboard.IsKeyDown(Keys.D))
+                        x += 1;
 
 
                     if (Math.Abs(cameraDist.Length()) <= SHITTY_CAM_ZOOM_MIN_DIST)
@@ -552,12 +588,13 @@ namespace TAEDX
 
                     OrbitCamDistance -= z * moveMult;
 
-                    MoveCamera_OrbitOriginVertical(y, moveMult);
+                    MoveCamera_OrbitCenterPoint(x, y, 0, moveMult);
                 }
                 else if (currentMouseClickR)
                 {
-                    Vector2 mouseDelta = mousePos - oldMouse;
-                    MoveCamera_OrbitOriginVertical(-mouseDelta.Y, moveMult);
+                    MoveCamera_OrbitCenterPoint_MouseDelta(mousePos, oldMouse);
+                    //Vector2 mouseDelta = mousePos - oldMouse;
+                    //MoveCamera_OrbitCenterPoint(-mouseDelta.X, mouseDelta.Y, 0, moveMult);
                 }
 
 
@@ -688,7 +725,7 @@ namespace TAEDX
                 OrbitCamDistance = Math.Max(OrbitCamDistance, SHITTY_CAM_ZOOM_MIN_DIST);
 
                 var distanceVectorAfterMove = -Vector3.Transform(Vector3.Forward, CameraTransform.RotationMatrixXYZ * Matrix.CreateRotationY(MathHelper.Pi)) * new Vector3(-1, 1, 1);
-                CameraTransform.Position = (new Vector3(0, OrbitCamY, 0) + (distanceVectorAfterMove * OrbitCamDistance));
+                CameraTransform.Position = (OrbitCamCenter + (distanceVectorAfterMove * OrbitCamDistance));
             }
             else
             {

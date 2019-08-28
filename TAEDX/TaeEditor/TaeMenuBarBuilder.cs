@@ -244,6 +244,11 @@ namespace TAEDX.TaeEditor
             baseItem.DropDownItems.Add(new ToolStripSeparator());
         }
 
+        public void ClearItem(string fullPath)
+        {
+            if (items.ContainsKey(fullPath))
+                items[fullPath].DropDownItems.Clear();
+        }
 
     }
 }

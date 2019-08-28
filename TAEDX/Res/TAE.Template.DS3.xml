@@ -158,7 +158,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-	<!--Does Nothing since bloodborne-->
+    <!--Does Nothing since bloodborne-->
     <event id="24" name="AnimationQueue">
       <s32/>
       <s32/>
@@ -173,65 +173,65 @@
       </s32>
       <s32 assert="0"/>
     </event>
-	<!-- For c0000 -->
+    <!-- For c0000 -->
     <event id="33" name="SwitchWeapon">
       <s32 name="WeaponSlotID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-	<!-- For c0000 -->
+    <!-- For c0000 -->
     <event id="34" name="Unequip Crossbow Bolt">
       <s32 name="HandType">
-	    <entry value="0" name="0: LeftHand"/>
+        <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>
-	  </s32>
+      </s32>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-	<!-- For c0000 -->
+    <!-- For c0000 -->
     <event id="35" name="Equip Crossbow Bolt">
       <s32 name="HandType">
-	    <entry value="0" name="0: LeftHand"/>
+        <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>
-	  </s32>
+      </s32>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-	<!-- For c0000 -->
+    <!-- For c0000 -->
     <event id="64" name="CastHighlightedMagic">
       <s32 name="DummyPolyID"/>
       <b name="Is???"/>
-	  <u8/>
-	  <!-- Formula at 0x142341E40, func 0x142342100-->
-    <u16 name="ChrBulletSharedHitSlot"/>
-    <u8 name="RefType">
-	    <entry value="0" name="0 : RefId1"/>
-		  <entry value="1" name="1 : RefId2"/>
-		  <entry value="2" name="2 : RefId3"/>
-		  <entry value="3" name="3 : RefId4"/>
-	  </u8>
-	  <s8 name="Is!??"/>
-    <s8 name="Is!!?"/>
-    <u16/>
-    <s32 assert="0"/>
+      <u8/>
+      <!-- Formula at 0x142341E40, func 0x142342100-->
+      <u16 name="ChrBulletSharedHitSlot"/>
+      <u8 name="RefType">
+        <entry value="0" name="0 : RefId1"/>
+        <entry value="1" name="1 : RefId2"/>
+        <entry value="2" name="2 : RefId3"/>
+        <entry value="3" name="3 : RefId4"/>
+      </u8>
+      <s8 name="Is!??"/>
+      <s8 name="Is!!?"/>
+      <u16/>
+      <s32 assert="0"/>
     </event>
-	<!-- For c0000 -->
+    <!-- For c0000 -->
     <event id="65" name="ConsumeCurrentGoods">
       <s32/>
       <u8 name="HandType">
-	    <entry value="0" name="0: RightHand"/>
+        <entry value="0" name="0: RightHand"/>
         <entry value="1" name="1: LeftHand"/>
-	  </u8>
-	  <!-- Should always be 0 -->
+      </u8>
+      <!-- Should always be 0 -->
       <u8 name="DirectionChanger"/>
       <u16 name="ChrBulletSharedHitSlot"/>
-	  <b name="Is???"/>
-      <u8 assert="0"/>  
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
+      <b name="Is???"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
       <s32 assert="0"/>
     </event>
     <!-- During attacks -->
@@ -665,7 +665,38 @@
     </event>
     <!-- RTTI: ChrPrimDispMask -->
     <event id="233" name="ChangeChrDrawMask">
-      <aob length="32" name="Mask"/>
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
     <!-- Havok? -->
     <event id="234">
@@ -674,7 +705,38 @@
     </event>
     <!-- RTTI: ChrPrimDispMask -->
     <event id="235">
-      <aob length="32" name="Mask"/>
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
     <event id="236" name="MovementReduction">
       <f32/>
@@ -738,456 +800,564 @@
       <s32 name="BehaviorParamSubID"/>
       <s32 assert="0"/>
     </event>
-	<!-- RTTI : ArrowTurnAnim-->
-	<event id="308">
+    <!-- RTTI : ArrowTurnAnim-->
+    <event id="308">
       <f32/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<!-- RTTI : SfxType-->
-	<event id="310">
+    <!-- RTTI : SfxType-->
+    <event id="310">
       <u8/>
       <u8/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<!-- RTTI : ChrThrowDirectionSfxSlot -->
-	<event id="311">
+    <!-- RTTI : ChrThrowDirectionSfxSlot -->
+    <event id="311">
       <u8/>
       <u8/>
-	  <u8/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      <u8/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <!-- RTTI : SprjChrActionFlagModule -->
-	<event id="312">
-      <aob length="32" name="Mask"/>
+    <event id="312">
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
-	<event id="320">
+    <event id="320">
       <b name="ActRequest1"/>
-	  <b name="ActRequest2"/>
-	  <b name="ActRequest3"/>
-	  <b name="ActRequest4"/>
-	  <b name="ActRequest5"/>
-	  <b name="ActRequest6"/>
-	  <b name="ActRequest7"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="330" name="SwordArtMpConsume">
+      <b name="ActRequest2"/>
+      <b name="ActRequest3"/>
+      <b name="ActRequest4"/>
+      <b name="ActRequest5"/>
+      <b name="ActRequest6"/>
+      <b name="ActRequest7"/>
+      <u8 assert="0"/>
       <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="331" name="InvokeSpEffect_SwordArt">
-	  <s32 name="SpEffectID"/>
+    <event id="330" name="SwordArtMpConsume">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="331" name="InvokeSpEffect_SwordArt">
+      <s32 name="SpEffectID"/>
       <s32 name="SpEffectID_ForWeaponArt"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="332">
       <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="401" name="InvokeSpEffect">
-	  <s32 name="SpEffectID"/>
       <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
     </event>
-	<event id="402" name="InvokeWind">
-	  <s32 name="WindParamID"/>
+    <event id="332">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="401" name="InvokeSpEffect">
+      <s32 name="SpEffectID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="402" name="InvokeWind">
+      <s32 name="WindParamID"/>
       <u16/>
-	  <u16 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<!-- RTTI : IgnoreHitsPartsMask -->
-	<event id="500">
-	  <!-- 0 - 31 -->
-	  <u8 name="MaskIndex"/>
-	  <!-- 0 - (float) 0.64; 1 - (float) 0.21; 2 - (float) 0.00; 3 - (float) 0.17 -->
-	  <u8 name="FloatIndex"/>
-	  <u16 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="510">
+      <u16 assert="0"/>
       <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="520">
       <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
     </event>
-	<event id="521" name="SetChrTurnRateExtra">
+    <!-- RTTI : IgnoreHitsPartsMask -->
+    <event id="500">
+      <!-- 0 - 31 -->
+      <u8 name="MaskIndex"/>
+      <!-- 0 - (float) 0.64; 1 - (float) 0.21; 2 - (float) 0.00; 3 - (float) 0.17 -->
+      <u8 name="FloatIndex"/>
+      <u16 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="510">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="520">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="521" name="SetChrTurnRateExtra">
       <f32 name="TurnRate"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="522" name="SetSpecialLockOnParameter">
-      <f32 name="TargetChrParameter"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="600" name="EnableBehavior">
-      <s32 name="Mask"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="601">
-	  <!-- 0 - 10 -->
-      <s32 name="StayAnimType"/>
-	  <f32/>
-	  <f32/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="602">
-	  <!-- 0 - 5 -->
-      <s32 name="StayAnimType"/>
-	  <f32/>
-	  <f32/>
-	  <s32 assert="0"/>
-    </event>
-	<!-- Needs Exe Patch -->
-	<event id="603" name="DebugAnimSpeed">
-      <u32 name="AnimSpeed"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<!-- Needs Exe Patch -->
-	<event id="604" name="TestParam">
       <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="605">
-      <b name="IsCompareGender"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 name="TimeActEditorID"/>
-	  <f32/>
-	  <f32/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="522" name="SetSpecialLockOnParameter">
+      <f32 name="TargetChrParameter"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="606">
-      <u8 name="JigglerDampingRate"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u16/>
-	  <u16/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="600" name="EnableBehavior">
+      <s32 name="Mask"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="700">
+    <event id="601">
+      <!-- 0 - 10 -->
+      <s32 name="StayAnimType"/>
       <f32/>
-	  <f32/>
-	  <f32/>
-	  <f32/>
-	  <s32/>
-	  <s8/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <f32/>
-	  <f32/>
-	  <f32/>
-	  <f32/>
-	  <!-- Padding should be always aligned by 0x10?-->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      <f32/>
+      <s32 assert="0"/>
     </event>
-	<event id="703" name="EnableTurningDirection">
+    <event id="602">
+      <!-- 0 - 5 -->
+      <s32 name="StayAnimType"/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+    <!-- Needs Exe Patch -->
+    <event id="603" name="DebugAnimSpeed">
+      <u32 name="AnimSpeed"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <!-- Needs Exe Patch -->
+    <event id="604" name="TestParam">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="605">
+      <b name="IsCompareGender"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 name="TimeActEditorID"/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="606">
+      <u8 name="JigglerDampingRate"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u16/>
+      <u16/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="700">
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <s32/>
+      <s8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <!-- Padding should be always aligned by 0x10?-->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="703" name="EnableTurningDirection">
       <b name="State"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="704">
-	  <f32/>
-	  <f32/>
-	  <f32/>
-	  <s32 assert="0"/>
+    <event id="704">
+      <f32/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
     </event>
-	<event id="705" name="FacingAngleCorrection">
-	  <f32 name="CorrectionRate"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="705" name="FacingAngleCorrection">
+      <f32 name="CorrectionRate"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="706">
-	  <f32/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="706">
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="707">
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="707">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="710">
-	  <u8/>
-	  <u8/>
-	  <u8/>
-	  <u8/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="711" name="HideModelMask">
-      <aob length="32" name="Mask"/>
-    </event>
-	<event id="712" name="StaggerModuleMask">
-      <aob length="16" name="Mask"/>
-	  <u8/>
-	  <u8/>
-	  <u8/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-    </event>
-	<event id="713" name="ModelMask">
-      <aob length="32" name="Mask"/>
-    </event>
-	<event id="714" name="staggerModuleUnk">
+    <event id="710">
       <u8/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="715" name="WepAbsorpPosData">
-	  <u8/>
-	  <u8/>
-    <b/>
-	  <b/>
-	  <b/>
-	  <u8/>
-	  <u8/>
-	  <u8/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="711" name="HideModelMask">
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
-	<event id="720" name="CultStart">
-	  <u8/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="712" name="StaggerModuleMask">
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="730">
-	  <f32/>
-	  <f32/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="713" name="ModelMask">
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
-	<event id="740">
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="714" name="staggerModuleUnk">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="760" name="IframeStateSomething">
-	  <u8/>
-	  <u8/>
-	  <u8/>
-	  <u8/>
-	  <f32/>
-	  <f32/>
-	  <f32/>
-	  <f32/>
-	  <f32/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="715" name="WepAbsorpPosData">
+      <u8/>
+      <u8/>
+      <b/>
+      <b/>
+      <b/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="770" name="BonePos">
-	  <s32/>
-	  <f32/>
-	  <u8/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="720" name="CultStart">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="771" name="BoneFixOn1">
-	  <u8/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="730">
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="772" name="BoneFixOn2">
-	  <s32/>
-	  <f32/>
-	  <u8/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="740">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="780" name="AddHeight">
-	  <f32 name="Height"/>
-	  <s32 assert="0"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="760" name="IframeStateSomething">
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="781" name="TurnLowerBody">
-	  <u8 name="TurnState"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="770" name="BonePos">
+      <s32/>
+      <f32/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="782">
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="771" name="BoneFixOn1">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="785" name="SpawnChrFinderBullet">
-	  <f32 name="DetectionRange"/>
-	  <s32 name="DummypolyID"/>
-	  <s32 name="BulletID"/>
-	  <b name="IsCompareChrType"/>
-	  <u8 name="TargetNum"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
+    <event id="772" name="BoneFixOn2">
+      <s32/>
+      <f32/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="786" name="SetMaxUndurationAngle">
-	  <f32 name="MaxUndurationAngle"/>
-	  <s32 assert="0"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="780" name="AddHeight">
+      <f32 name="Height"/>
+      <s32 assert="0"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="790">
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="781" name="TurnLowerBody">
+      <u8 name="TurnState"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="791">
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="782">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="792" name="HitEffect2">
-	  <u16 name="FootSFXIndex"/>
-	  <u16 assert="0"/>
-	  <s32/>
-	  <s32/>
-	  <b/>
-	  <b/>
-	  <b/>
-	  <u8/>
+    <event id="785" name="SpawnChrFinderBullet">
+      <f32 name="DetectionRange"/>
+      <s32 name="DummypolyID"/>
+      <s32 name="BulletID"/>
+      <b name="IsCompareChrType"/>
+      <u8 name="TargetNum"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
     </event>
-	<event id="793" name="CultSacrifice1">
-	  <s32 name="SacrificeVal"/>
-	  <s32 assert="0"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="786" name="SetMaxUndurationAngle">
+      <f32 name="MaxUndurationAngle"/>
+      <s32 assert="0"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="794" name="SacrificeFlag">
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="790">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="795" name="InvokeToughness">
-	  <u8 name="ToughnessParamID"/>
-	  <u8 name="ToughnessType"/>
-	  <u16 assert="0"/>
-	  <f32 name="DamageRatio"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="791">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="796" name="InvokeMenu">
-	  <u8 name="MenuType">
-	    <entry value="0"   name="0: LevelUp"/>
+    <event id="792" name="HitEffect2">
+      <u16 name="FootSFXIndex"/>
+      <u16 assert="0"/>
+      <s32/>
+      <s32/>
+      <b/>
+      <b/>
+      <b/>
+      <u8/>
+    </event>
+    <event id="793" name="CultSacrifice1">
+      <s32 name="SacrificeVal"/>
+      <s32 assert="0"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="794" name="SacrificeFlag">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="795" name="InvokeToughness">
+      <u8 name="ToughnessParamID"/>
+      <u8 name="ToughnessType"/>
+      <u16 assert="0"/>
+      <f32 name="DamageRatio"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="796" name="InvokeMenu">
+      <u8 name="MenuType">
+        <entry value="0"   name="0: LevelUp"/>
         <entry value="1"   name="1: Rebirth Stats"/>
-	  </u8>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <u8 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+      </u8>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="797" name="CultCeremony">
-	  <s32 name="Id"/>
-	  <s32 assert="0"/>
-	  <!-- Padding should be always aligned by 0x10? -->
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="797" name="CultCeremony">
+      <s32 name="Id"/>
+      <s32 assert="0"/>
+      <!-- Padding should be always aligned by 0x10? -->
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="798" name="CultValue">
-	  <f32/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="798" name="CultValue">
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<event id="799" name="CultFlag">
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
-	  <s32 assert="0"/>
+    <event id="799" name="CultFlag">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-	<!-- Needs Exe Patch -->
-	<event id="800" name="DebugMovementMultiplier">
-	  <f32 name="MovDistMultiplier"/>
-	  <f32 name="CamTurnDistMultiplier"/>
-	  <f32 name="LadderDistMultiplier"/>
-	  <s32 assert="0"/>
+    <!-- Needs Exe Patch -->
+    <event id="800" name="DebugMovementMultiplier">
+      <f32 name="MovDistMultiplier"/>
+      <f32 name="CamTurnDistMultiplier"/>
+      <f32 name="LadderDistMultiplier"/>
+      <s32 assert="0"/>
     </event>
   </bank>
 </event_template>

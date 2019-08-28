@@ -365,7 +365,7 @@ namespace TAEDX
             }
 
             GFX.UpdateFPS((float)FpsStopwatch.Elapsed.TotalSeconds);
-            DBG.DrawOutlinedText($"FPS: {(Math.Round(GFX.AverageFPS))}", new Vector2(0, GFX.Device.Viewport.Height - 30), Color.Yellow);
+            DBG.DrawOutlinedText($"FPS: {(Math.Round(GFX.AverageFPS))}", new Vector2(0, GFX.Device.Viewport.Height - 16), Color.Yellow, scale: 0.75f);
             FpsStopwatch.Restart();
         }
 

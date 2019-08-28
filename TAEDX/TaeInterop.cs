@@ -12,6 +12,51 @@ namespace TAEDX
 {
     public static class TaeInterop
     {
+        public static void CreateMenuBarViewportSettings(TaeEditor.TaeMenuBarBuilder menu)
+        {
+            menu.ClearItem("3D Preview");
+
+            menu.AddItem("3D Preview", "Render Meshes", !GFX.HideFLVERs,
+                b => GFX.HideFLVERs = !b);
+
+            foreach (var model in GFX.ModelDrawer.Models)
+            {
+                int i = 0;
+                foreach (var sm in model.GetSubmeshes())
+                    menu.AddItem("3D Preview/Toggle Individual Meshes", $"Mesh {++i}", sm.IsVisible, b => sm.IsVisible = b);
+            }
+
+            menu.AddItem("3D Preview", "Render Skeleton", DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone],
+                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = b);
+
+            menu.AddItem("3D Preview", "Render DummyPoly", DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+            menu.AddItem("3D Preview", "Render DummyPoly ID Tags", DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+            Dictionary<string, List<DebugPrimitives.IDbgPrim>> dmyMap = new Dictionary<string, List<DebugPrimitives.IDbgPrim>>();
+            foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+            {
+                if (dmyMap.ContainsKey(prim.Name))
+                    dmyMap[prim.Name].Add(prim);
+                else
+                    dmyMap.Add(prim.Name, new List<DebugPrimitives.IDbgPrim>() { prim });
+            }
+
+            foreach (var kvp in dmyMap.OrderBy(asdf => int.Parse(asdf.Key)))
+            {
+                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{kvp.Key}", kvp.Value.Any(pr => pr.EnableDraw),
+                    b =>
+                    {
+                        foreach (var pr in kvp.Value)
+                        {
+                            pr.EnableDraw = b;
+                        }
+                    });
+            }
+        }
+
         /// <summary>
         /// The current ANIBND path, if one is loaded.
         /// </summary>
@@ -171,7 +216,7 @@ namespace TAEDX
             sb.AppendLine($"Previewing: {CurrentAnimationName ?? "None"}");
             if (CurrentAnimationHKXBytes != null)
                 sb.AppendLine($"HKX Filesize: {(CurrentAnimationHKXBytes.Length / 1024.0f):0.00} KB");
-            DBG.DrawOutlinedText(sb.ToString(), Vector2.One * 2, Color.Yellow);
+            DBG.DrawOutlinedText(sb.ToString(), Vector2.One * 2, Color.Yellow, scale: 0.75f);
         }
 
         private static void Load3DAsset(string assetUri, byte[] assetBytes, Transform transform)
@@ -311,9 +356,9 @@ namespace TAEDX
                     }
 
                     var halfHeight = model.Bounds.GetCenter().Y;
+                    GFX.World.OrbitCamCanterReference = new Vector3(0, model.Bounds.GetCenter().Y, 0);
+                    GFX.World.OrbitCamDistanceReference = halfHeight * 4;
                     GFX.World.OrbitCamReset();
-                    GFX.World.OrbitCamY = model.Bounds.GetCenter().Y;
-                    GFX.World.OrbitCamDistance = halfHeight * 4;
                 }
                 else
                 {
@@ -426,9 +471,9 @@ namespace TAEDX
                     }
 
                     var halfHeight = model.Bounds.GetCenter().Y;
+                    GFX.World.OrbitCamCanterReference = new Vector3(0, model.Bounds.GetCenter().Y, 0);
+                    GFX.World.OrbitCamDistanceReference = halfHeight * 4;
                     GFX.World.OrbitCamReset();
-                    GFX.World.OrbitCamY = model.Bounds.GetCenter().Y;
-                    GFX.World.OrbitCamDistance = halfHeight * 4;
                 }
             }
             else if (upper.EndsWith(".TPF") || upper.EndsWith(".TPF.DCX"))
