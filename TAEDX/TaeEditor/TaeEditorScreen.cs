@@ -120,15 +120,11 @@ namespace TAEDX.TaeEditor
             set
             {
                 _IsModified = value && !IsReadOnlyFileMode;
-                ToolStripFileSave.Enabled = value && !IsReadOnlyFileMode;
+                MenuBar["File/Save"].Enabled = value && !IsReadOnlyFileMode;
             }
         }
 
-        private System.Windows.Forms.ToolStripMenuItem ToolStripFileSave;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripFileSaveAs;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripFileRecent;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripFileLiveRefresh;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripFileLiveRefreshToggle;
+        private TaeMenuBarBuilder MenuBar;
 
         private void PushNewRecentFile(string fileName)
         {
@@ -147,7 +143,7 @@ namespace TAEDX.TaeEditor
 
         private void CreateRecentFilesList()
         {
-            ToolStripFileRecent.DropDownItems.Clear();
+            MenuBar["File/Recent Files"].DropDownItems.Clear();
             var toolStripFileRecentClear = new System.Windows.Forms.ToolStripMenuItem("Clear All Recent Files...");
             toolStripFileRecentClear.Click += (s, e) =>
             {
@@ -162,8 +158,8 @@ namespace TAEDX.TaeEditor
                     SaveConfig();
                 }
             };
-            ToolStripFileRecent.DropDownItems.Add(toolStripFileRecentClear);
-            ToolStripFileRecent.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+            MenuBar["File/Recent Files"].DropDownItems.Add(toolStripFileRecentClear);
+            MenuBar["File/Recent Files"].DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
             foreach (var f in Config.RecentFilesList)
             {
                 var thisRecentFileEntry = new System.Windows.Forms.ToolStripMenuItem(f);
@@ -171,31 +167,23 @@ namespace TAEDX.TaeEditor
                 {
                     DirectOpenFile(f);
                 };
-                ToolStripFileRecent.DropDownItems.Add(thisRecentFileEntry);
+                MenuBar["File/Recent Files"].DropDownItems.Add(thisRecentFileEntry);
             }
         }
 
         private void UndoMan_CanRedoMaybeChanged(object sender, EventArgs e)
         {
-            ToolStripEditRedo.Enabled = UndoMan.CanRedo;
+            MenuBar["Edit/Redo"].Enabled = UndoMan.CanRedo;
         }
 
         private void UndoMan_CanUndoMaybeChanged(object sender, EventArgs e)
         {
-            ToolStripEditUndo.Enabled = UndoMan.CanUndo;
+            MenuBar["Edit/Undo"].Enabled = UndoMan.CanUndo;
         }
 
 
         private TaeButtonRepeater UndoButton = new TaeButtonRepeater(0.4f, 0.05f);
         private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.4f, 0.05f);
-        private System.Windows.Forms.ToolStripMenuItem ToolStripEditUndo;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripEditRedo;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripEditFind;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripEditGoto;
-
-        //private System.Windows.Forms.ToolStripMenuItem ToolStripAccessibilityDisableRainbow;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripConfigColorBlindMode;
-        private System.Windows.Forms.ToolStripMenuItem ToolStripConfigFancyTextScroll;
 
         private float LeftSectionWidth = 150;
         private const float LeftSectionWidthMin = 150;
@@ -356,12 +344,12 @@ namespace TAEDX.TaeEditor
             // Even if it fails to load, just always push it to the recent files list
             PushNewRecentFile(FileContainerName);
 
-            string templateName = BrowseForXMLTemplateLoop();
+            string templateName = BrowseForXMLTemplate();
 
-            if (templateName == null)
-            {
-                return false;
-            }
+            //if (templateName == null)
+            //{
+            //    return false;
+            //}
 
             if (System.IO.File.Exists(FileContainerName))
             {
@@ -376,10 +364,21 @@ namespace TAEDX.TaeEditor
 
                 LoadTaeFileContainer(FileContainer);
 
-                ToolStripFileSaveAs.Enabled = !IsReadOnlyFileMode;
-                ToolStripFileLiveRefresh.Enabled = !IsReadOnlyFileMode && FileContainer.ReloadType != TaeFileContainer.TaeFileContainerReloadType.None;
+                MenuBar["File/Save As..."].Enabled = !IsReadOnlyFileMode;
+                MenuBar["File/Force Refresh Ingame"].Enabled = !IsReadOnlyFileMode && FileContainer.ReloadType != TaeFileContainer.TaeFileContainerReloadType.None;
 
-                LoadTAETemplate(templateName);
+                if (templateName != null)
+                {
+                    try
+                    {
+                        LoadTAETemplate(templateName);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Windows.Forms.MessageBox.Show($"Failed to apply TAE template:\n\n{ex}",
+                            "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                    }
+                }
 
                 if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
                     TaeInterop.OnLoadANIBND();
@@ -446,8 +445,11 @@ namespace TAEDX.TaeEditor
             editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
             SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
             ButtonEditCurrentAnimInfo.Enabled = true;
-            ToolStripEditFind.Enabled = true;
-            ToolStripEditGoto.Enabled = true;
+            MenuBar["Edit/Find..."].Enabled = true;
+            MenuBar["Edit/Go To Animation ID..."].Enabled = true;
+            MenuBar["Edit/Collapse All TAE Sections"].Enabled = true;
+            MenuBar["Edit/Expand All TAE Sections"].Enabled = true;
+            MenuBar["Edit/Go To Anim ID..."].Enabled = true;
         }
 
         public void RecreateAnimList()
@@ -539,275 +541,67 @@ namespace TAEDX.TaeEditor
 
             GameWindowAsForm.Controls.Add(inspectorWinFormsControl);
 
-            var toolstripFile = new System.Windows.Forms.ToolStripMenuItem("File");
-            {
-                var toolstripFile_Open = new System.Windows.Forms.ToolStripMenuItem("Open");
-                toolstripFile_Open.Click += ToolstripFile_Open_Click;
-                toolstripFile.DropDownItems.Add(toolstripFile_Open);
-
-                toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-
-                ToolStripFileRecent = new System.Windows.Forms.ToolStripMenuItem("Recent Files");
-                CreateRecentFilesList();
-                toolstripFile.DropDownItems.Add(ToolStripFileRecent);
-
-                toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-
-                ToolStripFileSave = new System.Windows.Forms.ToolStripMenuItem("Save");
-                ToolStripFileSave.Enabled = false;
-                ToolStripFileSave.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S;
-                ToolStripFileSave.Click += ToolstripFile_Save_Click;
-                toolstripFile.DropDownItems.Add(ToolStripFileSave);
-
-                ToolStripFileSaveAs = new System.Windows.Forms.ToolStripMenuItem("Save As...");
-                ToolStripFileSaveAs.Enabled = false;
-                ToolStripFileSaveAs.Click += ToolstripFile_SaveAs_Click;
-                toolstripFile.DropDownItems.Add(ToolStripFileSaveAs);
-
-                toolstripFile.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-
-                ToolStripFileLiveRefresh = new System.Windows.Forms.ToolStripMenuItem("Force Refresh Ingame");
-                ToolStripFileLiveRefresh.Enabled = false;
-                ToolStripFileLiveRefresh.ShortcutKeys = System.Windows.Forms.Keys.F5;
-                ToolStripFileLiveRefresh.Click += ToolStripFileLiveRefresh_Click;
-                toolstripFile.DropDownItems.Add(ToolStripFileLiveRefresh);
-
-                ToolStripFileLiveRefreshToggle = new System.Windows.Forms.ToolStripMenuItem("Force Refresh On Save");
-                ToolStripFileLiveRefreshToggle.Enabled = true;
-                ToolStripFileLiveRefreshToggle.CheckOnClick = true;
-                ToolStripFileLiveRefreshToggle.Checked = Config.LiveRefreshOnSave;
-                ToolStripFileLiveRefreshToggle.CheckedChanged += ToolStripFileLiveRefreshToggle_CheckedChanged;
-                toolstripFile.DropDownItems.Add(ToolStripFileLiveRefreshToggle);
-            }
-
-            var toolstripEdit = new System.Windows.Forms.ToolStripMenuItem("Edit");
-            {
-                ToolStripEditUndo = new System.Windows.Forms.ToolStripMenuItem("Undo");
-                ToolStripEditUndo.ShortcutKeyDisplayString = "Ctrl+Z";
-                ToolStripEditUndo.Click += ToolStripEditUndo_Click;
-                toolstripEdit.DropDownItems.Add(ToolStripEditUndo);
-
-                ToolStripEditRedo = new System.Windows.Forms.ToolStripMenuItem("Redo");
-                ToolStripEditRedo.ShortcutKeyDisplayString = "Ctrl+Y";
-                ToolStripEditRedo.Click += ToolStripEditRedo_Click;
-                toolstripEdit.DropDownItems.Add(ToolStripEditRedo);
-
-                toolstripEdit.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-
-                var toolStripEditCollapseAllTaeSections = new System.Windows.Forms.ToolStripMenuItem("Collapse All TAE Sections");
-                toolStripEditCollapseAllTaeSections.Click += (s, e) =>
-                {
-                    foreach (var kvp in editScreenAnimList.AnimTaeSections)
-                    {
-                        kvp.Collapsed = true;
-                    }
-                };
-                toolstripEdit.DropDownItems.Add(toolStripEditCollapseAllTaeSections);
-
-                var toolStripEditExpandAllTaeSections = new System.Windows.Forms.ToolStripMenuItem("Expand All TAE Sections");
-                toolStripEditExpandAllTaeSections.Click += (s, e) =>
-                {
-                    foreach (var kvp in editScreenAnimList.AnimTaeSections)
-                    {
-                        kvp.Collapsed = false;
-                    }
-                };
-                toolstripEdit.DropDownItems.Add(toolStripEditExpandAllTaeSections);
-
-                toolstripEdit.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-
-                ToolStripEditFind = new System.Windows.Forms.ToolStripMenuItem("Find...");
-                ToolStripEditFind.ShortcutKeyDisplayString = "Ctrl+F";
-                ToolStripEditFind.Enabled = false;
-                ToolStripEditFind.Click += (s, e) =>
-                {
-                    ShowDialogFind();
-                };
-                //toolstripEdit.DropDownItems.Add(ToolStripEditFind);
-
-                ToolStripEditGoto = new System.Windows.Forms.ToolStripMenuItem("Goto Anim...");
-                ToolStripEditGoto.ShortcutKeyDisplayString = "Ctrl+G";
-                ToolStripEditGoto.Enabled = false;
-                ToolStripEditGoto.Click += (s, e) =>
-                {
-                    ShowDialogGoto();
-                };
-                toolstripEdit.DropDownItems.Add(ToolStripEditGoto);
-            }
-
-            var toolstripConfig = new System.Windows.Forms.ToolStripMenuItem("Config");
-            {
-                //ToolStripAccessibilityDisableRainbow = new System.Windows.Forms.ToolStripMenuItem("Use brightness for selection instead of rainbow pulsing");
-                //ToolStripAccessibilityDisableRainbow.CheckOnClick = true;
-                //ToolStripAccessibilityDisableRainbow.CheckedChanged += ToolStripAccessibilityDisableRainbow_CheckedChanged;
-                //ToolStripAccessibilityDisableRainbow.Checked = Config.DisableRainbow;
-                //toolstripAccessibility.DropDownItems.Add(ToolStripAccessibilityDisableRainbow);
-
-                ToolStripConfigColorBlindMode = new System.Windows.Forms.ToolStripMenuItem("Color-Blind + High Contrast Mode");
-                ToolStripConfigColorBlindMode.CheckOnClick = true;
-                ToolStripConfigColorBlindMode.CheckedChanged += (s, e) =>
-                {
-                    Config.EnableColorBlindMode = ToolStripConfigColorBlindMode.Checked;
-                    SaveConfig();
-                };
-                ToolStripConfigColorBlindMode.Checked = Config.EnableColorBlindMode;
-                toolstripConfig.DropDownItems.Add(ToolStripConfigColorBlindMode);
-
-                toolstripConfig.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-
-                ToolStripConfigFancyTextScroll = new System.Windows.Forms.ToolStripMenuItem("Use Fancy Text Scrolling");
-                ToolStripConfigFancyTextScroll.CheckOnClick = true;
-                ToolStripConfigFancyTextScroll.CheckedChanged += (s, e) =>
-                {
-                    Config.EnableFancyScrollingStrings = ToolStripConfigFancyTextScroll.Checked;
-                    SaveConfig();
-                };
-                ToolStripConfigFancyTextScroll.Checked = Config.EnableFancyScrollingStrings;
-                toolstripConfig.DropDownItems.Add(ToolStripConfigFancyTextScroll);
-
-                var toolStripConfigFancyScrollSpeed = new System.Windows.Forms.ToolStripMenuItem("Fancy Text Scroll Speed");
-                {
-                    
-
-                    var toolStripConfigFancyScrollSpeed_ExtremelySlow 
-                        = new System.Windows.Forms.ToolStripMenuItem("Extremely Slow (4 px/s)");
-                    var toolStripConfigFancyScrollSpeed_VerySlow
-                        = new System.Windows.Forms.ToolStripMenuItem("Very Slow (8 px/s)");
-                    var toolStripConfigFancyScrollSpeed_Slow
-                        = new System.Windows.Forms.ToolStripMenuItem("Slow (16 px/s)");
-                    var toolStripConfigFancyScrollSpeed_Medium
-                        = new System.Windows.Forms.ToolStripMenuItem("Medium Speed (32 px/s)");
-                    var toolStripConfigFancyScrollSpeed_Fast
-                        = new System.Windows.Forms.ToolStripMenuItem("Fast (64 px/s)");
-                    var toolStripConfigFancyScrollSpeed_VeryFast
-                        = new System.Windows.Forms.ToolStripMenuItem("Very Fast (128 px/s)");
-                    var toolStripConfigFancyScrollSpeed_ExtremelyFast
-                        = new System.Windows.Forms.ToolStripMenuItem("Extremely Fast (256 px/s)");
-
-                    void updateToolStripConfigFancyScrollSpeedChecks()
-                    {
-                        toolStripConfigFancyScrollSpeed_ExtremelySlow.Checked = Config.FancyScrollingStringsScrollSpeed == 4;
-                        toolStripConfigFancyScrollSpeed_VerySlow.Checked = Config.FancyScrollingStringsScrollSpeed == 8;
-                        toolStripConfigFancyScrollSpeed_Slow.Checked = Config.FancyScrollingStringsScrollSpeed == 16;
-                        toolStripConfigFancyScrollSpeed_Medium.Checked = Config.FancyScrollingStringsScrollSpeed == 32;
-                        toolStripConfigFancyScrollSpeed_Fast.Checked = Config.FancyScrollingStringsScrollSpeed == 64;
-                        toolStripConfigFancyScrollSpeed_VeryFast.Checked = Config.FancyScrollingStringsScrollSpeed == 128;
-                        toolStripConfigFancyScrollSpeed_ExtremelyFast.Checked = Config.FancyScrollingStringsScrollSpeed == 256;
-                    }
-
-                    toolStripConfigFancyScrollSpeed_ExtremelySlow.Click += (s, e) =>
-                    {
-                        Config.FancyScrollingStringsScrollSpeed = 4;
-                        SaveConfig();
-                        updateToolStripConfigFancyScrollSpeedChecks();
-                    };
-                    toolStripConfigFancyScrollSpeed.DropDownItems
-                        .Add(toolStripConfigFancyScrollSpeed_ExtremelySlow);
-
-                    
-                    toolStripConfigFancyScrollSpeed_VerySlow.Click += (s, e) =>
-                    {
-                        Config.FancyScrollingStringsScrollSpeed = 8;
-                        SaveConfig();
-                        updateToolStripConfigFancyScrollSpeedChecks();
-                    };
-                    toolStripConfigFancyScrollSpeed.DropDownItems
-                        .Add(toolStripConfigFancyScrollSpeed_VerySlow);
-
-                    
-                    toolStripConfigFancyScrollSpeed_Slow.Click += (s, e) =>
-                    {
-                        Config.FancyScrollingStringsScrollSpeed = 16;
-                        SaveConfig();
-                        updateToolStripConfigFancyScrollSpeedChecks();
-                    };
-                    toolStripConfigFancyScrollSpeed.DropDownItems
-                        .Add(toolStripConfigFancyScrollSpeed_Slow);
-
-                    
-                    toolStripConfigFancyScrollSpeed_Medium.Click += (s, e) =>
-                    {
-                        Config.FancyScrollingStringsScrollSpeed = 32;
-                        SaveConfig();
-                        updateToolStripConfigFancyScrollSpeedChecks();
-                    };
-                    toolStripConfigFancyScrollSpeed.DropDownItems
-                        .Add(toolStripConfigFancyScrollSpeed_Medium);
-
-                    
-                    toolStripConfigFancyScrollSpeed_Fast.Click += (s, e) =>
-                    {
-                        Config.FancyScrollingStringsScrollSpeed = 64;
-                        SaveConfig();
-                        updateToolStripConfigFancyScrollSpeedChecks();
-                    };
-                    toolStripConfigFancyScrollSpeed.DropDownItems
-                        .Add(toolStripConfigFancyScrollSpeed_Fast);
-
-                    
-                    toolStripConfigFancyScrollSpeed_VeryFast.Click += (s, e) =>
-                    {
-                        Config.FancyScrollingStringsScrollSpeed = 128;
-                        SaveConfig();
-                        updateToolStripConfigFancyScrollSpeedChecks();
-                    };
-                    toolStripConfigFancyScrollSpeed.DropDownItems
-                        .Add(toolStripConfigFancyScrollSpeed_VeryFast);
-
-                    
-                    toolStripConfigFancyScrollSpeed_ExtremelyFast.Click += (s, e) =>
-                    {
-                        Config.FancyScrollingStringsScrollSpeed = 256;
-                        SaveConfig();
-                        updateToolStripConfigFancyScrollSpeedChecks();
-                    };
-                    toolStripConfigFancyScrollSpeed.DropDownItems
-                        .Add(toolStripConfigFancyScrollSpeed_ExtremelyFast);
-
-                    updateToolStripConfigFancyScrollSpeedChecks();
-                }
-                toolstripConfig.DropDownItems.Add(toolStripConfigFancyScrollSpeed);
-
-                var toolStripConfigFancyScrollSnapsToPixels = 
-                    new System.Windows.Forms.ToolStripMenuItem("Fancy Scroll Snaps to Pixels");
-
-                toolStripConfigFancyScrollSnapsToPixels.CheckedChanged += (s, e) =>
-                {
-                    Config.FancyTextScrollSnapsToPixels = toolStripConfigFancyScrollSnapsToPixels.Checked;
-                    SaveConfig();
-                };
-
-                toolStripConfigFancyScrollSnapsToPixels.CheckOnClick = true;
-
-                toolStripConfigFancyScrollSnapsToPixels.Checked = Config.FancyTextScrollSnapsToPixels;
-
-                toolstripConfig.DropDownItems.Add(toolStripConfigFancyScrollSnapsToPixels);
-
-                toolstripConfig.DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-
-                var toolStripConfigCollapseAllTaeSectionsByDefault = new System.Windows.Forms.ToolStripMenuItem("Auto Collapse All TAE Sections");
-
-                toolStripConfigCollapseAllTaeSectionsByDefault.CheckOnClick = true;
-
-                toolStripConfigCollapseAllTaeSectionsByDefault.CheckedChanged += (s, e) =>
-                {
-                    Config.AutoCollapseAllTaeSections = toolStripConfigCollapseAllTaeSectionsByDefault.Checked;
-                    SaveConfig();
-                };
-
-                toolStripConfigCollapseAllTaeSectionsByDefault.Checked = Config.AutoCollapseAllTaeSections;
-
-                toolstripConfig.DropDownItems.Add(toolStripConfigCollapseAllTaeSectionsByDefault);
-            }
-
-            var toolstripHelp = new System.Windows.Forms.ToolStripMenuItem("Help");
-            toolstripHelp.Click += ToolstripHelp_Click;
-
             WinFormsMenuStrip = new System.Windows.Forms.MenuStrip();
-            WinFormsMenuStrip.Items.Add(toolstripFile);
-            WinFormsMenuStrip.Items.Add(toolstripEdit);
-            WinFormsMenuStrip.Items.Add(toolstripConfig);
-            WinFormsMenuStrip.Items.Add(toolstripHelp);
+
+            MenuBar = new TaeMenuBarBuilder(WinFormsMenuStrip);
+
+            // File
+            MenuBar.AddItem("File", "Open", () => File_Open());
+            MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Recent Files");
+            CreateRecentFilesList();
+            MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
+            MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
+            MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Force Refresh Ingame", () => LiveRefresh(), startDisabled: true);
+            MenuBar.AddItem("File", "Force Refresh On Save", Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
+            MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
+
+            // Edit
+            MenuBar.AddItem("Edit", "Undo|Ctrl+Z", () => UndoMan.Undo(), startDisabled: true);
+            MenuBar.AddItem("Edit", "Redo|Ctrl+Y", () => UndoMan.Redo(), startDisabled: true);
+            MenuBar.AddSeparator("Edit");
+            MenuBar.AddItem("Edit", "Collapse All TAE Sections", () =>
+            {
+                foreach (var kvp in editScreenAnimList.AnimTaeSections)
+                {
+                    kvp.Collapsed = true;
+                }
+            }, startDisabled: true);
+            MenuBar.AddItem("Edit", "Expand All TAE Sections", () =>
+            {
+                foreach (var kvp in editScreenAnimList.AnimTaeSections)
+                {
+                    kvp.Collapsed = false;
+                }
+            }, startDisabled: true);
+            MenuBar.AddSeparator("Edit");
+            //menuBuilder.AddItem("Edit", "Find...|Ctrl+F", () => ShowDialogFind());
+            MenuBar.AddItem("Edit", "Go To Anim ID...|Ctrl+G", () => ShowDialogGoto());
+
+
+            // Config
+            MenuBar.AddItem("Config", "High Contrast Mode", Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
+            MenuBar.AddSeparator("Config");
+            MenuBar.AddItem("Config", "Use Fancy Text Scrolling", Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
+            MenuBar.AddItem("Config", "Fancy Text Scroll Speed", new Dictionary<string, Action>
+                {
+                    { "Extremely Slow (4 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 4 },
+                    { "Very Slow (8 px/s)",       () => Config.FancyScrollingStringsScrollSpeed = 8 },
+                    { "Slow (16 px/s)",           () => Config.FancyScrollingStringsScrollSpeed = 16 },
+                    { "Medium Speed (32 px/s)",   () => Config.FancyScrollingStringsScrollSpeed = 32 },
+                    { "Fast (64 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 64 },
+                    { "Very Fast (128 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 128 },
+                    {  "Extremely Fast (256 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 256 },
+                },
+                defaultChoice: "Fast (64 px/s)");
+            MenuBar.AddSeparator("Config");
+            MenuBar.AddItem("Config", "Start with all TAE sections collapsed", Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
+
+            MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
+                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
 
             WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
@@ -863,11 +657,6 @@ namespace TAEDX.TaeEditor
             //gridReference.Refresh();
         }
 
-        private void ToolStripFileLiveRefreshToggle_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.LiveRefreshOnSave = ToolStripFileLiveRefreshToggle.Checked;
-        }
-
         private void LiveRefresh()
         {
             if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE || FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_DS1R)
@@ -889,11 +678,6 @@ namespace TAEDX.TaeEditor
                     }
                 }
             }
-        }
-
-        private void ToolStripFileLiveRefresh_Click(object sender, EventArgs e)
-        {
-            LiveRefresh();
         }
 
         private void ButtonEditCurrentTaeHeader_Click(object sender, EventArgs e)
@@ -1046,22 +830,6 @@ namespace TAEDX.TaeEditor
             
         }
 
-        private void ToolStripEditRedo_Click(object sender, EventArgs e)
-        {
-            UndoMan.Redo();
-        }
-
-        private void ToolStripEditUndo_Click(object sender, EventArgs e)
-        {
-            UndoMan.Undo();
-        }
-
-        private void ToolstripHelp_Click(object sender, EventArgs e)
-        {
-            System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
-                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-        }
-
         private void WinFormsMenuStrip_MenuDeactivate(object sender, EventArgs e)
         {
             PauseUpdate = false;
@@ -1122,7 +890,7 @@ namespace TAEDX.TaeEditor
             }
         }
 
-        private void ToolstripFile_Open_Click(object sender, EventArgs e)
+        public void File_Open()
         {
             if (FileContainer != null && !IsReadOnlyFileMode && FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified())))
             {
@@ -1227,13 +995,7 @@ namespace TAEDX.TaeEditor
             return null;
         }
 
-
-        private void ToolstripFile_Save_Click(object sender, EventArgs e)
-        {
-            SaveCurrentFile();
-        }
-
-        private void ToolstripFile_SaveAs_Click(object sender, EventArgs e)
+        private void File_SaveAs()
         {
             var browseDlg = new System.Windows.Forms.SaveFileDialog()
             {
@@ -1377,8 +1139,8 @@ namespace TAEDX.TaeEditor
 
             if (SelectedTaeAnim != null)
             {
-                ToolStripEditUndo.Enabled = UndoMan.CanUndo;
-                ToolStripEditRedo.Enabled = UndoMan.CanRedo;
+                MenuBar["Edit/Undo"].Enabled = UndoMan.CanUndo;
+                MenuBar["Edit/Redo"].Enabled = UndoMan.CanRedo;
                 SelectedEventBox = null;
 
                 if (editScreenCurrentAnim == null)
@@ -1394,8 +1156,8 @@ namespace TAEDX.TaeEditor
             }
             else
             {
-                ToolStripEditUndo.Enabled = false;
-                ToolStripEditRedo.Enabled = false;
+                MenuBar["Edit/Undo"].Enabled = false;
+                MenuBar["Edit/Redo"].Enabled = false;
                 SelectedEventBox = null;
 
                 editScreenCurrentAnim = null;

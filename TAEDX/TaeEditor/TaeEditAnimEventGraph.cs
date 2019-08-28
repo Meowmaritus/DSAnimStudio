@@ -446,6 +446,8 @@ namespace TAEDX.TaeEditor
 
         private void PlaceNewEventAtMouse()
         {
+
+
             float mouseTime = ((MainScreen.Input.MousePosition.X - Rect.X + ScrollViewer.Scroll.X) / SecondsPixelSize);
 
             TAE.Event newEvent = null;
