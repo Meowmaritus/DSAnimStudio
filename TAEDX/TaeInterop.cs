@@ -307,6 +307,11 @@ namespace TAEDX
 
                         boneIndex++;
                     }
+
+                    var halfHeight = model.Bounds.GetCenter().Y;
+                    GFX.World.OrbitCamReset();
+                    GFX.World.OrbitCamY = model.Bounds.GetCenter().Y;
+                    GFX.World.OrbitCamDistance = halfHeight * 4;
                 }
                 else
                 {
@@ -417,9 +422,12 @@ namespace TAEDX
 
                         boneIndex++;
                     }
+
+                    var halfHeight = model.Bounds.GetCenter().Y;
+                    GFX.World.OrbitCamReset();
+                    GFX.World.OrbitCamY = model.Bounds.GetCenter().Y;
+                    GFX.World.OrbitCamDistance = halfHeight * 4;
                 }
-
-
             }
             else if (upper.EndsWith(".TPF") || upper.EndsWith(".TPF.DCX"))
             {

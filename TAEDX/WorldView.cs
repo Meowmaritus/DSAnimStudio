@@ -561,7 +561,8 @@ namespace TAEDX
                 }
 
 
-                OrbitCamDistance -= (currentWheel - oldWheel) / 150f;
+                if (TaeInterop.ModelViewerWindowRect.Contains(mouse.Position))
+                    OrbitCamDistance -= (currentWheel - oldWheel) / 150f;
                 
             }
             else

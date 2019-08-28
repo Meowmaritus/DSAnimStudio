@@ -38,14 +38,8 @@ namespace TAEDX.TaeEditor
 
         public bool IsDcx { get; private set; } = false;
 
-        public static readonly string DefaultSaveFilter = "ANIBND|*.ANIBND|" +
-                "OBJBND|*.OBJBND|" +
-                "REMOBND|*.REMOBND|" +
-                "TAE|*.TAE|" +
-                "ANIBND DCX|*.ANIBND.DCX|" +
-                "OBJBND DCX|*.OBJBND.DCX|" +
-                "REMOBND DCX|*.REMOBND.DCX|" +
-                "TAE DCX|*.TAE.DCX|" +
+        public static readonly string DefaultSaveFilter = ".(ANI)BND(.DCX)|*.*BND*|" +
+                ".TAE(.DCX)|*.TAE*|" +
                 "All Files|*.*";
 
         public string GetResaveFilter()
