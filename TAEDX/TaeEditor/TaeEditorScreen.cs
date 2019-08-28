@@ -220,6 +220,7 @@ namespace TAEDX.TaeEditor
 
         private ScreenMouseHoverKind MouseHoverKind = ScreenMouseHoverKind.None;
         private ScreenMouseHoverKind oldMouseHoverKind = ScreenMouseHoverKind.None;
+        private ScreenMouseHoverKind WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
 
         public TaeFileContainer FileContainer;
 
@@ -1631,12 +1632,17 @@ namespace TAEDX.TaeEditor
                 else
                     MouseHoverKind = ScreenMouseHoverKind.None;
 
-                if (MouseHoverKind == ScreenMouseHoverKind.AnimList)
+                if (Input.LeftClickDown)
+                {
+                    WhereCurrentMouseClickStarted = MouseHoverKind;
+                }
+
+                if (MouseHoverKind == ScreenMouseHoverKind.AnimList || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
                     editScreenAnimList.Update(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                 else
                     editScreenAnimList.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
 
-                if (MouseHoverKind == ScreenMouseHoverKind.EventGraph)
+                if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
                     editScreenCurrentAnim.Update(gameTime, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                 else
                     editScreenCurrentAnim.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);

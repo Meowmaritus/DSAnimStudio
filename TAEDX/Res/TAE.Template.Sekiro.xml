@@ -1,0 +1,1230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<event_template game="SDT">
+  <!-- Bank 14: Characters -->
+  <bank id="14" name="Characters">
+    <event id="1">
+      <s32/>
+      <s32/>
+      <s32 name="Condition"/>
+      <u8/>
+      <u8/>
+      <s16 name="StateInfo"/>
+    </event>
+    <event id="2">
+      <s32/>
+      <s32/>
+      <s32 name="ChrAsmStyle"/>
+      <u8/>
+      <u8/>
+      <u16/>
+      <u16/>
+      <s16 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="4">
+      <s32/>
+      <s32/>
+      <s32/>
+      <u8/>
+      <b/>
+      <s16/>
+      <s16/>
+      <s16 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="5">
+      <s32/>
+      <s32/>
+    </event>
+    <event id="16">
+    </event>
+    <event id="17">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="24">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+    </event>
+    <event id="32" name="SwitchWeapon1">
+      <s32 name="SwitchState"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="33" name="SwitchWeapon2">
+      <s32 name="SwitchState"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="34">
+      <s32 name="State"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="35">
+      <s32 name="State"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="64">
+      <s32/>
+      <u16/>
+      <u16/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s32 assert="0"/>
+    </event>
+    <event id="65">
+      <s32/>
+      <u8/>
+      <u8/>
+      <u16/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="66" name="CreateBehaviorSpEffect1">
+      <s32 name="SpEffectID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="67" name="CreateBehaviorSpEffect2">
+      <s32 name="SpEffectID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="95">
+      <s32 name="FFXID"/>
+      <s32/>
+      <s32/>
+      <s8 name="State0"/>
+      <s8 name="State1"/>
+      <s8 name="GhostFFXCondition"/>
+      <u8/>
+    </event>
+    <event id="96" name="PlayFFX">
+      <s32 name="FFXID"/>
+      <s32/>
+      <s32/>
+      <s8 name="State0"/>
+      <s8 name="State1"/>
+      <s8 name="GhostFFXCondition"/>
+      <u8/>
+    </event>
+    <event id="99">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="110">
+      <s32 name="ID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="112" name="HitEffect">
+      <s32 name="Size"/>
+      <s32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="113">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="114">
+      <s32/>
+      <u16/>
+      <u16/>
+      <s32/>
+      <u8/>
+      <s8/>
+      <s8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s16/>
+      <s32 assert="0"/>
+    </event>
+    <event id="115">
+      <s32/>
+      <u16/>
+      <u16/>
+      <s32/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s16/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="116">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+    </event>
+    <event id="117">
+      <s32/>
+      <s32/>
+      <s32/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+    </event>
+    <event id="118">
+      <s32/>
+      <u16/>
+      <u16/>
+      <u16/>
+      <u16/>
+      <s32 assert="0"/>
+    </event>
+    <event id="119">
+      <s32/>
+      <s32/>
+      <s32/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="120" name="PlayFFX">
+      <s32 name="FFXID_MAIN"/>
+      <s32 name="FFXID_GreyGhost"/>
+      <s32 name="FFXID_WhiteGhost"/>
+      <s32 name="FFXID_BlackGhost"/>
+      <s32 name="FFXID_WhiteGhost_Sun"/>
+      <s32 name="FFXID_BlackGhost_Sun"/>
+      <s32 name="FFXID_WhiteGhost_Berserker"/>
+      <s32 name="FFXID_BlackGhost_Berserker"/>
+      <s32 name="FFXID_WhiteGhost_DarkmoonAlter"/>
+      <s32 name="FFXID_WhiteGhost_Darkmoon"/>
+      <s32 name="FFXID_BlackGhost_FarronWolf"/>
+      <s32 name="FFXID_BlackGhost_Aldrich"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID"/>
+      <b name="IsRepeat"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="121">
+      <s32 name="FFXID"/>
+      <s16 name="DummyPolyID"/>
+      <u8 name="SpType"/>
+      <u8/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="122" name="PlayFFXIfSpEffect">
+      <s32 name="FFXID"/>
+      <s16 name="DummyPolyID"/>
+      <s16/>
+      <u8/>
+      <b name="IsEnable"/>
+      <s16 name="CompareSpEffectID"/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="128" name="PlaySound1">
+      <s32 name="SoundType"/>
+      <s32 name="SoundID"/>
+    </event>
+    <event id="129" name="PlaySound2">
+      <s32 name="SoundType"/>
+      <s32 name="SoundID"/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="130" name="PlaySound3">
+      <s32 name="SoundType"/>
+      <s32 name="SoundID"/>
+      <f32/>
+      <f32/>
+      <u8/>
+      <u8/>
+      <s16 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="131" name="PlaySound4">
+      <s32 name="SoundType"/>
+      <s32 name="SoundID"/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="132" name="PlaySound5">
+      <s32 name="SoundType"/>
+      <s32 name="SoundID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="137" name="CreateDecal1">
+      <s32 name="DecalParamID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="138" name="CreateDecal2">
+      <s32 name="DecalParamID"/>
+      <s32 name="FlverParameterID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="139" name="CreateDecal3">
+      <s32 name="DecalParamID"/>
+      <s16/>
+      <s16/>
+      <s16/>
+      <s16/>
+      <s16/>
+      <s16/>
+    </event>
+    <event id="144">
+      <u16/>
+      <u16/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="145">
+      <s16/>
+      <s16 name="Condition"/>
+      <b/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="146">
+      <s16/>
+      <s16 name="Condition"/>
+      <b/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="147">
+      <s16/>
+      <s16/>
+      <f32/>
+      <f32/>
+      <b/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="150" name="SetLockCamParam1">
+      <s32 name="LockCamParamID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="151" name="CameraParameters">
+      <s32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+    </event>
+    <event id="152">
+      <s32/>
+      <f32/>
+      <f32/>
+      <f32/>
+    </event>
+    <event id="153">
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <u8/>
+      <b/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 name="pad1"/>
+      <s32 name="pad2"/>
+      <s32 name="pad3"/>
+    </event>
+    <event id="155" name="CameraParamUnk1">
+      <u8 name="CameraParamUnk00"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="156">
+      <f32/>
+      <f32/>
+      <s32/>
+      <b/>
+      <u8/>
+      <s16 assert="0"/>
+    </event>
+    <event id="160">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="161">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="192" name="SetDebugGhost">
+      <f32 name="Ghost"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="193" name="FadeOut">
+      <f32 name="GhostVal1"/>
+      <f32 name="GhostVal2"/>
+    </event>
+    <event id="194">
+      <u16/>
+      <u16/>
+      <u16/>
+      <u16/>
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="195" name="EnableBlurFeedback">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="196" name="C">
+      <s64/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="197" name="Ghost">
+      <f32 name="GhostMain"/>
+      <f32 name="GhostSub"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="224">
+      <f32/>
+      <b name="IsCheckForLockOnState"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="225" name="DisableStaminaRegen">
+      <u8 name="State"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="226">
+      <u8 name="State"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="227">
+      <s32 name="Mask"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="228" name="RagdollReviveTime">
+      <f32/>
+      <f32 name="ReviveTimer"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="229" name="CreateAISound1">
+      <s32 name="AiSoundID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="230">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="231" name="SetEzStateRequestID">
+      <s32 name="EzStateRequestID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="232">
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s32 assert="0"/>
+    </event>
+    <event id="233" name="ChangeDrawMask">
+      <aob name="DrawMask" length="32"/>
+    </event>
+    <event id="234">
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="235">
+      <aob name="Mask" length="32"/>
+    </event>
+    <event id="236" name="RollDistanceReduction">
+      <f32/>
+      <f32/>
+      <b name="RollType"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="237" name="CreateAISound2">
+      <s32 name="AISoundID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="238">
+      <s32/>
+      <f32/>
+      <f32/>
+      <f32/>
+    </event>
+    <event id="300">
+      <s16 name="JumpTableID_ActionRequest"/>
+      <s16 name="JumpTableID_GetFloat"/>
+      <f32/>
+      <f32/>
+      <s32/>
+    </event>
+    <event id="301" name="Padding">
+      <s32 name="pad"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="302" name="AddSpEffectDragonForm">
+      <s32 name="SpEffectID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="303" name="PlayAnimation">
+      <s32 name="AnimationID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="304" name="BehaviorThing">
+      <u16/>
+      <s16/>
+      <s32 name="BehaviorParamSubID"/>
+    </event>
+    <event id="305">
+      <f32 name="CompareFloat"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="306">
+      <f32/>
+      <f32/>
+      <u8 name="flags"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="307" name="CreateBehaviorPC">
+      <s16/>
+      <s16/>
+      <s32 name="Condition"/>
+      <s32 name="BehaviorParamSubID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="308">
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="310">
+      <u8/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="311">
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="312">
+      <aob name="BehaviorMask" length="32"/>
+    </event>
+    <event id="313">
+      <u8 name="Flags"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="320" name="ActionRequest">
+      <b name="ActRequest1"/>
+      <b name="ActRequest2"/>
+      <b name="ActRequest3"/>
+      <b name="ActRequest4"/>
+      <b name="ActRequest5"/>
+      <b name="ActRequest6"/>
+      <b name="ActRequest7"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="330" name="WeaponArtMpConsume">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="331" name="CreateSpEffect">
+      <s32 name="SpEffectID"/>
+      <s32 name="SpEffectID_ForWeaponArt"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="332">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="401" name="CreateSpEffect">
+      <s32 name="SpEffectID"/>
+      <s32 assert="0"/>
+      <s32 name="pad1"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="402">
+      <s32/>
+      <s16/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="500">
+      <u8/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="510">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="520">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="521">
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="522" name="SetSpecialLockOnParameter">
+      <f32 name="TargetChrParameter"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="600" name="EnableBehavior">
+      <s32 name="Mask"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="601">
+      <s32 name="StayAnimType"/>
+      <f32/>
+      <f32/>
+      <s32/>
+    </event>
+    <event id="602">
+      <s32 name="StayAnimType"/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="603" name="DebugAnimSpeed">
+      <u32 name="AnimSpeed"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="604" name="TestParam">
+      <s32 assert="0"/>
+    </event>
+    <event id="605">
+      <b name="IsCompareGender"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="606">
+      <u8 name="JigglerDampingRate"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s16/>
+      <s16/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="607">
+      <s32/>
+      <s32/>
+      <f32/>
+      <f32/>
+    </event>
+    <event id="700">
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <s32/>
+      <s8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+    </event>
+    <event id="703" name="EnableTurningDirection">
+      <b name="State"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="704">
+      <f32/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="705" name="FacingAngleCorrection">
+      <f32 name="CorrectionRate"/>
+      <s32 assert="0"/>
+      <s32 name="pad"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="706">
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="707">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="708">
+      <s32 assert="0"/>
+      <f32/>
+      <s32 assert="0"/>
+      <f32/>
+      <f32/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <s32 name="Padding1"/>
+      <s32 name="Padding2"/>
+      <s32 name="Padding3"/>
+    </event>
+    <event id="710" name="HideWeapon">
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="711" name="HideModelMask">
+      <aob name="Mask" length="32"/>
+    </event>
+    <event id="712" name="DamageLevelModule">
+      <aob name="Mask" length="32"/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="713" name="ModelMask">
+      <aob name="Mask" length="32"/>
+    </event>
+    <event id="714" name="DamageLevelFunction">
+      <b/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="715">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="717">
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="720" name="CultStart">
+      <u8 name="CultType"/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="730">
+      <f32/>
+      <f32/>
+      <s32 name="pad"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="731">
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="740">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="760" name="IFrameState">
+      <u8/>
+      <u8 name="Pad1"/>
+      <u8 name="Pad2"/>
+      <u8 name="Pad3"/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+    </event>
+    <event id="770" name="BonePos">
+      <s32/>
+      <f32/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="771" name="BoneFixOn1">
+      <u8 name="BoneID"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="772" name="BoneFixOn2">
+      <s32/>
+      <f32/>
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="780" name="AddHeight">
+      <f32 name="Height"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="781" name="TurnLowerBody">
+      <u8 name="TurnState"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="782">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="785" name="SpawnChrFinderBullet">
+      <f32 name="DetectionRange"/>
+      <s32 name="DummyPointID"/>
+      <s32 name="BulletID"/>
+      <b name="IsCompareChrType"/>
+      <u8 name="TargetNum"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="786" name="SetMaxUndurationAngle">
+      <f32 name="UndurationAngle"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="790">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="791">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="792" name="HitEffect2">
+      <s16 name="FootSFXIndex"/>
+      <s16 assert="0"/>
+      <s32/>
+      <s32/>
+      <b/>
+      <b/>
+      <b/>
+      <u8/>
+    </event>
+    <event id="793" name="CultSacrifice1">
+      <s32 name="SacrificeValue"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="794" name="SacrificeEmpty">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="795" name="Toughness">
+      <u8 name="ToughnessParamID"/>
+      <u8 name="ToughnessType"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <f32 name="DamageRatio"/>
+    </event>
+    <event id="796" name="CreateMenu">
+      <u8 name="MenuType"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="797" name="CeremonyParamID">
+      <s32 name="ParamID"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="798" name="CultSingle">
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="799" name="CultEmpty2">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="800">
+      <f32 name="MetersPerTick"/>
+      <f32 name="MetersOnTurn"/>
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="900">
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="901" name="WireEventUnk1">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="902">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="903">
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="904">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="905">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="910">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="911">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="912">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="913">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="920">
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="921">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="922">
+      <s32/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="930">
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="931">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="932">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 name="pad1"/>
+      <s32 name="pad2"/>
+      <s32 name="pad3"/>
+    </event>
+    <event id="933">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="936">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="940">
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="942">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="943">
+    </event>
+    <event id="944">
+      <f32/>
+      <f32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="945">
+      <f32/>
+      <f32/>
+      <u8/>
+      <u8/>
+      <b/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="946">
+      <b name="State"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="947">
+      <f32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="950">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="951">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 name="pad"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="952">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="953">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="954">
+      <u8 name="JumpTableID"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="960">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="970">
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <s32 assert="0"/>
+    </event>
+  </bank>
+
+  <!-- TODO: MAP THIS BANK. FOUND IN SEKIRO OBJ AND STUFF -->
+  <bank id="13" name="Unknown">
+    
+  </bank>
+</event_template>

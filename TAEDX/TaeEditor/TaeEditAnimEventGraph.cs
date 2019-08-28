@@ -65,6 +65,15 @@ namespace TAEDX.TaeEditor
             }
         }
 
+        public enum UnselectedMouseDragType
+        {
+            None,
+            EventSelect,
+            PlaybackCursorScrub
+        }
+
+        UnselectedMouseDragType currentUnselectedMouseDragType = UnselectedMouseDragType.None;
+
         public TaePlaybackCursor PlaybackCursor = new TaePlaybackCursor();
 
         public Color PlaybackCursorColor = Color.Black;
@@ -590,32 +599,54 @@ namespace TAEDX.TaeEditor
         public void Update(GameTime gameTime, bool allowMouseUpdate)
         {
             float elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            
-            if (!allowMouseUpdate)
-                return;
 
             ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !MainScreen.CtrlHeld);
 
+            if (MainScreen.CtrlHeld)
+            {
+                Zoom(MainScreen.Input.ScrollDelta, MainScreen.Input.MousePosition.X - Rect.X);
+            }
+
+            if (currentUnselectedMouseDragType == UnselectedMouseDragType.PlaybackCursorScrub)
+            {
+                PlaybackCursor.StartTime = ((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize;
+                PlaybackCursor.CurrentTime = PlaybackCursor.StartTime;
+                MouseRow = -1;
+
+                if (!MainScreen.Input.LeftClickHeld)
+                    currentUnselectedMouseDragType = UnselectedMouseDragType.None;
+
+                return;
+            }
+            else if (currentUnselectedMouseDragType == UnselectedMouseDragType.EventSelect)
+            {
+                if (!MainScreen.Input.LeftClickHeld)
+                    currentUnselectedMouseDragType = UnselectedMouseDragType.None;
+            }
             
 
-            if (ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y)))
+            if (ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y))
+                || MainScreen.Input.LeftClickHeld)
             {
-                if (MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight)
+                if (currentUnselectedMouseDragType == UnselectedMouseDragType.None)
                 {
-                    if (MainScreen.Input.LeftClickDown)
+                    if (MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight)
                     {
-                        PlaybackCursor.StartTime = ((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize;
-                        PlaybackCursor.CurrentTime = PlaybackCursor.StartTime;
+                        if (MainScreen.Input.LeftClickDown)
+                        {
+                            currentUnselectedMouseDragType = UnselectedMouseDragType.PlaybackCursorScrub;
+                        }
                     }
+                    else
+                    {
+                        MouseRow = (int)(relMouse.Y / RowHeight);
 
-                    MouseRow = -1;
+                        if (MainScreen.Input.LeftClickDown)
+                        {
+                            currentUnselectedMouseDragType = UnselectedMouseDragType.EventSelect;
+                        }
+                    }
                 }
-                else
-                {
-                    MouseRow = (int)(relMouse.Y / RowHeight);
-                }
-
-                
 
                 MainScreen.Input.CursorType = MouseCursorType.Arrow;
 
@@ -693,7 +724,7 @@ namespace TAEDX.TaeEditor
                             relMouse.X <= box.RightFr + BoxSideScrollMarginSize)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
-                            if (MainScreen.Input.LeftClickDown)
+                            if (MainScreen.Input.LeftClickDown && currentUnselectedMouseDragType == UnselectedMouseDragType.EventSelect)
                             {
                                 if (MainScreen.MultiSelectedEventBoxes.Count == 0)
                                 {
@@ -824,7 +855,7 @@ namespace TAEDX.TaeEditor
                         (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.StartDragPoint == currentDrag.CurrentDragPoint);
 
 
-                    if (isSingleSelect && MainScreen.Input.LeftClickDown)
+                    if (isSingleSelect && MainScreen.Input.LeftClickDown && !(MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight))
                     {
                         if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
                         {
@@ -871,10 +902,10 @@ namespace TAEDX.TaeEditor
 
                 }
 
-
-
                 if (currentDrag.DragType == BoxDragType.None && 
-                    MainScreen.Input.LeftClickDown)
+                    MainScreen.Input.LeftClickDown
+                    && !(MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight)
+                    )
                 {
                     if (MainScreen.SelectedEventBox != null)
                     {
@@ -1174,10 +1205,7 @@ namespace TAEDX.TaeEditor
                     }
                 }
 
-                if (MainScreen.CtrlHeld)
-                {
-                    Zoom(MainScreen.Input.ScrollDelta, MainScreen.Input.MousePosition.X - Rect.X);
-                }
+                
             }
 
             
@@ -1556,14 +1584,24 @@ namespace TAEDX.TaeEditor
                         );
                 }
 
-
-                float playbackCursorPixelX = (float)(SecondsPixelSize * PlaybackCursor.CurrentTime);
-
-                //-- BOTTOM Side
+                //-- BOTTOM Side <-- I have no idea what I meant by this
+                // Draw PlaybackCursor CurrentTime vertical line
                 sb.Draw(texture: boxTex,
-                    position: new Vector2(playbackCursorPixelX - (PlaybackCursorThickness / 2), 0),
+                    position: new Vector2((float)(SecondsPixelSize * PlaybackCursor.CurrentTime) - (PlaybackCursorThickness / 2), 0),
                     sourceRectangle: null,
                     color: PlaybackCursorColor,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(PlaybackCursorThickness, Rect.Height),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+
+                // Draw PlaybackCursor StartTime vertical line
+                sb.Draw(texture: boxTex,
+                    position: new Vector2((float)(SecondsPixelSize * PlaybackCursor.StartTime) - (PlaybackCursorThickness / 2), 0),
+                    sourceRectangle: null,
+                    color: PlaybackCursorColor * 0.25f,
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(PlaybackCursorThickness, Rect.Height),
