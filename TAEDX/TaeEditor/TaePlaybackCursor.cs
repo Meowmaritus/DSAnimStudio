@@ -70,8 +70,6 @@ namespace TAEDX.TaeEditor
             {
                 CurrentTime += gameTime.ElapsedGameTime.TotalSeconds;
 
-                
-
                 bool justReachedAnimEnd = (CurrentTime >= MaxTime);
 
                 if (!HkxAnimationLength.HasValue)
@@ -120,7 +118,7 @@ namespace TAEDX.TaeEditor
                     }
                     else
                     {
-                        if (IsRepeat)
+                        if (IsRepeat && MaxTime > 0)
                         {
                             while (CurrentTime >= MaxTime)
                             {

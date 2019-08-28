@@ -69,7 +69,9 @@ namespace TAEDX.TaeEditor
         {
             None,
             EventSelect,
-            PlaybackCursorScrub
+            PlaybackCursorScrub,
+            HorizontalScroll,
+            VerticalScroll,
         }
 
         UnselectedMouseDragType currentUnselectedMouseDragType = UnselectedMouseDragType.None;
@@ -620,6 +622,16 @@ namespace TAEDX.TaeEditor
 
                 return;
             }
+            else if (currentUnselectedMouseDragType == UnselectedMouseDragType.HorizontalScroll
+                || currentUnselectedMouseDragType == UnselectedMouseDragType.VerticalScroll)
+            {
+                if (!MainScreen.Input.LeftClickHeld)
+                    currentUnselectedMouseDragType = UnselectedMouseDragType.None;
+
+                // Prevent any updates to anything on the graph except scrolling when your current drag
+                // began on a scrollbar, so return here
+                return;
+            }
             else if (currentUnselectedMouseDragType == UnselectedMouseDragType.EventSelect)
             {
                 if (!MainScreen.Input.LeftClickHeld)
@@ -634,9 +646,23 @@ namespace TAEDX.TaeEditor
                     if (MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight)
                     {
                         if (MainScreen.Input.LeftClickDown)
-                        {
                             currentUnselectedMouseDragType = UnselectedMouseDragType.PlaybackCursorScrub;
-                        }
+                    }
+                    else if (MainScreen.Input.MousePosition.Y > ScrollViewer.Viewport.Bottom - ScrollViewer.ScrollBarThickness && !ScrollViewer.DisableHorizontalScroll)
+                    {
+                        if (MainScreen.Input.LeftClickDown)
+                            currentUnselectedMouseDragType = UnselectedMouseDragType.HorizontalScroll;
+
+                        // Return so our initial click down doesn't select events.
+                        return;
+                    }
+                    else if (MainScreen.Input.MousePosition.X > ScrollViewer.Viewport.Right - ScrollViewer.ScrollBarThickness && !ScrollViewer.DisableVerticalScroll)
+                    {
+                        if (MainScreen.Input.LeftClickDown)
+                            currentUnselectedMouseDragType = UnselectedMouseDragType.VerticalScroll;
+
+                        // Return so our initial click down doesn't select events.
+                        return;
                     }
                     else
                     {

@@ -190,7 +190,7 @@ namespace TAEDX.TaeEditor
         private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth;
         private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + DividerHitboxPad;
 
-        private float RightSectionWidth = 420; //weed
+        private float RightSectionWidth = 512; //not weed
         private const float RightSectionWidthMin = 128;
         private float DividerRightGrabStart => Rect.Right - RightSectionWidth - DividerHitboxPad;
         private float DividerRightGrabEnd => Rect.Right - RightSectionWidth;
@@ -258,8 +258,7 @@ namespace TAEDX.TaeEditor
             get => _selectedEventBox;
             set
             {
-                if (!inspectorWinFormsControl.CheckIfEventBoxSelectionCanBeChanged())
-                    return;
+                inspectorWinFormsControl.DumpDataGridValuesToEvent();
 
                 _selectedEventBox = value;
 
@@ -377,6 +376,10 @@ namespace TAEDX.TaeEditor
                     GFX.ModelDrawer.ClearScene();
                     DBG.ClearPrimitives();
                     TaeInterop.OnLoadANIBND();
+                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = false;
+                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+                    DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+                    TaeInterop.CreateMenuBarViewportSettings(MenuBar);
                 }
 
                 return true;

@@ -31,14 +31,6 @@ namespace TAEDX.TaeEditor
             }
         }
 
-        public bool CheckIfEventBoxSelectionCanBeChanged()
-        {
-            if (SelectedEventBox == null && dataGridView1.RowCount == 0)
-                return true;
-
-            return DumpDataGridValuesToEvent();
-        }
-
         private void ReconstructDataGrid()
         {
             dataGridView1.Rows.Clear();
@@ -218,7 +210,7 @@ namespace TAEDX.TaeEditor
             return true;
         }
 
-        private bool DumpDataGridValuesToEvent()
+        public bool DumpDataGridValuesToEvent()
         {
             bool failed = false;
 

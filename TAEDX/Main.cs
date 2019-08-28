@@ -259,13 +259,13 @@ namespace TAEDX
             var strSize_managed = DBG.DEBUG_FONT_SMALL.MeasureString(str_managed);
             var strSize_unmanaged = DBG.DEBUG_FONT_SMALL.MeasureString(str_unmanaged);
 
-            DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 8, 
-                GFX.Device.Viewport.Height - 8 - strSize_managed.Y - strSize_unmanaged.Y),
-                Color.Yellow, DBG.DEBUG_FONT_SMALL, scaleOrigin: new Vector2(strSize_managed.X, 0));
+            DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
+                GFX.Device.Viewport.Height - 2 - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
+                Color.Yellow, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
 
-            DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 8, 
-                GFX.Device.Viewport.Height - 8 - strSize_unmanaged.Y),
-                Color.Yellow, DBG.DEBUG_FONT_SMALL, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
+            DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2, 
+                GFX.Device.Viewport.Height - 2 - (strSize_unmanaged.Y * 0.75f)),
+                Color.Yellow, DBG.DEBUG_FONT_SMALL, scale:0.75f, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
         }
 
         private void UpdateMemoryUsage()
