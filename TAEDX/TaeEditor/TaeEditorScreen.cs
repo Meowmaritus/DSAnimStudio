@@ -369,19 +369,14 @@ namespace TAEDX.TaeEditor
 
                 if (templateName != null)
                 {
-                    try
-                    {
-                        LoadTAETemplate(templateName);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Windows.Forms.MessageBox.Show($"Failed to apply TAE template:\n\n{ex}",
-                            "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                    }
+                    LoadTAETemplate(templateName);
                 }
 
                 if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
+                {
+                    GFX.ModelDrawer.ClearScene();
                     TaeInterop.OnLoadANIBND();
+                }
 
                 return true;
             }
@@ -445,11 +440,11 @@ namespace TAEDX.TaeEditor
             editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
             SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
             ButtonEditCurrentAnimInfo.Enabled = true;
-            MenuBar["Edit/Find..."].Enabled = true;
+            MenuBar["Edit/Find First Event of Type..."].Enabled = true;
             MenuBar["Edit/Go To Animation ID..."].Enabled = true;
             MenuBar["Edit/Collapse All TAE Sections"].Enabled = true;
             MenuBar["Edit/Expand All TAE Sections"].Enabled = true;
-            MenuBar["Edit/Go To Anim ID..."].Enabled = true;
+            MenuBar["Edit/Go To Animation ID..."].Enabled = true;
         }
 
         public void RecreateAnimList()
@@ -487,19 +482,26 @@ namespace TAEDX.TaeEditor
 
         public void LoadTAETemplate(string xmlFile)
         {
-            foreach (var tae in FileContainer.AllTAE)
+            try
             {
-                tae.ApplyTemplate(TAE.Template.ReadXMLFile(xmlFile));
-            }
+                foreach (var tae in FileContainer.AllTAE)
+                {
+                    tae.ApplyTemplate(TAE.Template.ReadXMLFile(xmlFile));
+                }
 
-            foreach (var box in editScreenCurrentAnim.EventBoxes)
+                foreach (var box in editScreenCurrentAnim.EventBoxes)
+                {
+                    box.UpdateEventText();
+                }
+
+                if (SelectedTae.BankTemplate != null)
+                    inspectorWinFormsControl.buttonChangeType.Enabled = true;
+            }
+            catch (Exception ex)
             {
-                box.UpdateEventText();
+                System.Windows.Forms.MessageBox.Show($"Failed to apply TAE template:\n\n{ex}",
+                    "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
-
-            if (SelectedTae.BankTemplate != null)
-                inspectorWinFormsControl.buttonChangeType.Enabled = true;
-
         }
 
         public TaeEditorScreen(System.Windows.Forms.Form gameWindowAsForm)
@@ -548,6 +550,13 @@ namespace TAEDX.TaeEditor
             // File
             MenuBar.AddItem("File", "Open", () => File_Open());
             MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Load Template...", () =>
+            {
+                var selectedTemplate = BrowseForXMLTemplate();
+                if (selectedTemplate != null)
+                    LoadTAETemplate(selectedTemplate);
+            });
+            MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Recent Files");
             CreateRecentFilesList();
             MenuBar.AddSeparator("File");
@@ -578,8 +587,8 @@ namespace TAEDX.TaeEditor
                 }
             }, startDisabled: true);
             MenuBar.AddSeparator("Edit");
-            //menuBuilder.AddItem("Edit", "Find...|Ctrl+F", () => ShowDialogFind());
-            MenuBar.AddItem("Edit", "Go To Anim ID...|Ctrl+G", () => ShowDialogGoto());
+            MenuBar.AddItem("Edit", "Find First Event of Type...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
+            MenuBar.AddItem("Edit", "Go To Animation ID...|Ctrl+G", () => ShowDialogGoto(), startDisabled: true);
 
 
             // Config
@@ -1162,34 +1171,33 @@ namespace TAEDX.TaeEditor
 
                 editScreenCurrentAnim = null;
             }
-            
-
         }
 
 
         public void ShowDialogFind()
         {
-            //if (Anibnd == null || SelectedTae == null)
-            //    return;
-            //PauseUpdate = true;
-            //var find = KeyboardInput.Show("Quick Find Event ID", "Finds the very first animation containing the event with the specified ID", "");
-            //if (int.TryParse(find.Result, out int typeID))
-            //{
-            //    var gotoAnim = SelectedTae.Animations.Where(x => x.EventList.Any(ev => (int)ev.EventType == typeID));
-            //    if (gotoAnim.Any())
-            //        SelectNewAnimRef(SelectedTae, gotoAnim.First());
-            //}
-            //else if (Enum.TryParse<TimeActEventType>(find.Result, out TimeActEventType type))
-            //{
-            //    var gotoAnim = SelectedTae.Animations.Where(x => x.EventList.Any(ev => ev.EventType == type));
-            //    if (gotoAnim.Any())
-            //        SelectNewAnimRef(SelectedTae, gotoAnim.First());
-            //}
-            //else
-            //{
-            //    MessageBox.Show("None Found", "No events found with that ID in the current TAE.", new[] { "OK" });
-            //}
-            //PauseUpdate = false;
+            if (FileContainerName == null || SelectedTae == null)
+                return;
+            PauseUpdate = true;
+            var find = KeyboardInput.Show("Quick Find Event", "Finds the very first animation containing the event with the specified ID number or name (according to template).", "");
+            if (int.TryParse(find.Result, out int typeID))
+            {
+                var gotoAnim = SelectedTae.Animations.Where(x => x.Events.Any(ev => (int)ev.Type == typeID));
+                if (gotoAnim.Any())
+                    SelectNewAnimRef(SelectedTae, gotoAnim.First());
+                else
+                    MessageBox.Show("None Found", "No events of that type found within the currently loaded files.", new[] { "OK" });
+            }
+            else 
+            {
+                var gotoAnim = SelectedTae.Animations.Where(x => x.Events.Any(ev => ev.TypeName == find.Result));
+                if (gotoAnim.Any())
+                    SelectNewAnimRef(SelectedTae, gotoAnim.First());
+                else
+                    MessageBox.Show("None Found", "No events of that type found within the currently loaded files.", new[] { "OK" });
+            }
+            
+            PauseUpdate = false;
         }
 
         public void ShowDialogGoto()
