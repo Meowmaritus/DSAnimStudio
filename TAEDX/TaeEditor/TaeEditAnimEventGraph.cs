@@ -623,7 +623,6 @@ namespace TAEDX.TaeEditor
                 if (!MainScreen.Input.LeftClickHeld)
                     currentUnselectedMouseDragType = UnselectedMouseDragType.None;
             }
-            
 
             if (ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y))
                 || MainScreen.Input.LeftClickHeld)
