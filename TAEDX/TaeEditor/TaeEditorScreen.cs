@@ -393,9 +393,7 @@ namespace TAEDX.TaeEditor
                 System.Windows.Forms.MessageBox.Show("Read-only mode is" +
                     " active so nothing was saved. To open a file in re-saveable mode," +
                     " make sure the Read-Only checkbox is unchecked in the open" +
-                    " file dialog.\n\nNOTE: Loose TAE files currently only" +
-                    " load in read-only mode. This is due to editor" +
-                    " programming limitations.", "Read-Only Mode Active",
+                    " file dialog.", "Read-Only Mode Active",
                     System.Windows.Forms.MessageBoxButtons.OK,
                     System.Windows.Forms.MessageBoxIcon.Stop);
                 return;
