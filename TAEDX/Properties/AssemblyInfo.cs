@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Tae Editor DX")]
-[assembly: AssemblyProduct("Tae Editor DX")]
+[assembly: AssemblyTitle("Dark Souls Model Viewer DX")]
+[assembly: AssemblyProduct("Dark Souls Model Viewer DX")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyDescription("Direct3D-Accelerated TAE Editor for Dark Souls 1")]
-[assembly: AssemblyCompany("Meowmaritus")]
-[assembly: AssemblyCopyright("Copyright © Meowmaritus 2018")]
+[assembly: AssemblyDescription("")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("c7e5c033-ada1-4030-9cbc-42b810df5d81")]
+[assembly: Guid("830e7b6d-a061-4fca-be97-a2485f7ec87b")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.3.0.0")]
-[assembly: AssemblyFileVersion("1.3.0.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]

@@ -1,11 +1,7 @@
-﻿using MeowDSIO;
-using MeowDSIO.DataTypes.TAE;
-using System;
+﻿using SoulsFormats;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TAEDX.TaeEditor
 {
@@ -13,7 +9,8 @@ namespace TAEDX.TaeEditor
     {
         public class Clip
         {
-            public TimeActEventType EventType { get; set; }
+            public int EventType { get; set; }
+            public int EventUnk04 { get; set; }
             public float EventStartTime { get; set; }
             public float EventEndTime { get; set; }
             public int EventRow { get; set; }
@@ -23,54 +20,47 @@ namespace TAEDX.TaeEditor
         public IEnumerable<Clip> EventClips { get; set; }
         public int StartRow { get; set; } = 0;
         public float StartTime { get; set; } = 0;
+        public bool IsBigEndian { get; set; }
 
-        public TaeClipboardContents()
+        public TaeEditAnimEventGraph ParentGraph { get; set; }
+
+        public TaeClipboardContents(TaeEditAnimEventGraph graph)
         {
-
+            ParentGraph = graph;
         }
 
-        public TaeClipboardContents(IEnumerable<TimeActEventBase> events, int startRow, float startTime)
+        public TaeClipboardContents(TaeEditAnimEventGraph graph, IEnumerable<TaeEditAnimEventBox> events, int startRow, float startTime, bool isBigEndian)
         {
+            ParentGraph = graph;
             StartRow = startRow;
             StartTime = startTime;
-            EventClips = events.Select(x => EventToClip(x));
+            EventClips = events.Select(x => EventToClip(x, isBigEndian));
+            IsBigEndian = isBigEndian;
         }
 
-        public IEnumerable<TimeActEventBase> GetEvents()
+        public IEnumerable<TaeEditAnimEventBox> GetEvents()
         {
-            return EventClips.Select(x => ClipToEvent(x));
+            return EventClips.Select(x => ClipToEvent(ParentGraph, x, IsBigEndian));
         }
 
-        public static Clip EventToClip(TimeActEventBase ev)
+        public static Clip EventToClip(TaeEditAnimEventBox ev, bool isBigEndian)
         {
             var clip = new Clip();
-            clip.EventType = ev.EventType;
-            clip.EventStartTime = ev.StartTime;
-            clip.EventEndTime = ev.EndTime;
+            clip.EventType = ev.MyEvent.Type;
+            clip.EventUnk04 = ev.MyEvent.Unk04;
+            clip.EventStartTime = ev.MyEvent.StartTime;
+            clip.EventEndTime = ev.MyEvent.EndTime;
             clip.EventRow = ev.Row;
-            using (var paramMemStream = new MemoryStream())
-            {
-                using (var bin = new DSBinaryWriter("", paramMemStream))
-                {
-                    ev.WriteParameters(bin);
-                }
-                clip.EventParamBytes = paramMemStream.ToArray();
-            }
+            clip.EventParamBytes = ev.MyEvent.GetParameterBytes(isBigEndian);
             return clip;
         }
 
-        public static TimeActEventBase ClipToEvent(Clip c)
+        public static TaeEditAnimEventBox ClipToEvent(TaeEditAnimEventGraph graph, Clip c, bool isBigEndian)
         {
-            var newEvent = TimeActEventBase.GetNewEvent(c.EventType, c.EventStartTime, c.EventEndTime);
-            using(var paramMemStream = new MemoryStream(c.EventParamBytes))
-            {
-                using (var bin = new DSBinaryReader("", paramMemStream))
-                {
-                    newEvent.ReadParameters(bin);
-                }
-            }
-            newEvent.Row = c.EventRow;
-            return newEvent;
+            var newEvent = new TAE.Event(c.EventStartTime, c.EventEndTime, c.EventType, c.EventUnk04, c.EventParamBytes, isBigEndian);
+            var newEventBox = new TaeEditAnimEventBox(graph, newEvent);
+            newEventBox.Row = c.EventRow;
+            return newEventBox;
         }
 
         
