@@ -350,7 +350,7 @@ namespace TAEDX
 
         public static void DrawBegin(GameTime gameTime)
         {
-            Device.Clear(Color.Gray);
+            Device.Clear(new Color(80, 80, 80, 255));
         }
 
         public static void DrawScene(GameTime gameTime)

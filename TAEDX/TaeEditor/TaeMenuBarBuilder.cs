@@ -12,9 +12,24 @@ namespace TAEDX.TaeEditor
         private Dictionary<string, ToolStripMenuItem> items = new Dictionary<string, ToolStripMenuItem>();
 
         private MenuStrip Menustrip;
+
+        static System.Drawing.Color BackColor;
+        static System.Drawing.Color BackColor_Selected = System.Drawing.Color.DimGray;
+        static System.Drawing.Color OutlineColor = System.Drawing.Color.FromArgb(255, 80, 80, 80);
+        static System.Drawing.Color ForeColor;
+
+        static int BorderThickness = 2;
+
+        static System.Drawing.Bitmap CustomCheck = null;
+
         public TaeMenuBarBuilder(MenuStrip toolStrip)
         {
             Menustrip = toolStrip;
+
+            BackColor = Menustrip.BackColor;
+            ForeColor = Menustrip.ForeColor;
+
+            Menustrip.Renderer = new CoolDarkToolStripRenderer();
         }
 
         public ToolStripMenuItem this[string path]
@@ -30,8 +45,8 @@ namespace TAEDX.TaeEditor
 
         void SetColorOfItem(ToolStripMenuItem item)
         {
-            //item.BackColor = Menustrip.BackColor;
-            //item.ForeColor = Menustrip.ForeColor;
+            item.BackColor = Menustrip.BackColor;
+            item.ForeColor = Menustrip.ForeColor;
 
             foreach (ToolStripMenuItem subItem in item.DropDownItems.OfType<ToolStripMenuItem>())
             {
@@ -42,8 +57,8 @@ namespace TAEDX.TaeEditor
 
         public void SetColorsOfAll(System.Drawing.Color backColor, System.Drawing.Color foreColor)
         {
-            //Menustrip.BackColor = backColor;
-            //Menustrip.ForeColor = foreColor;
+            Menustrip.BackColor = backColor;
+            Menustrip.ForeColor = foreColor;
 
             //ToolStripManager.VisualStylesEnabled = true;
             //ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new CustomProfessionalColors());
@@ -51,6 +66,112 @@ namespace TAEDX.TaeEditor
             foreach (ToolStripMenuItem topItem in Menustrip.Items)
             {
                 SetColorOfItem(topItem);
+            }
+        }
+
+        class CoolDarkToolStripRenderer : ToolStripSystemRenderer
+        {
+            protected override void InitializeItem(ToolStripItem item)
+            {
+                base.InitializeItem(item);
+            }
+
+            protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+            {
+                using (var brush = new System.Drawing.SolidBrush(BackColor))
+                {
+                    e.Graphics.FillRectangle(brush, 0, 0, e.Item.Bounds.Width, e.Item.Bounds.Height);
+                }
+
+                using (var brush = new System.Drawing.SolidBrush(BackColor_Selected))
+                {
+                    e.Graphics.FillRectangle(brush, 0, (e.Item.Bounds.Height / 2.0f) - 1, e.Item.Bounds.Width, 2);
+                }
+            }
+
+            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+            {
+                if (e.Item.Selected)
+                {
+                    using (var brush = new System.Drawing.SolidBrush(BackColor_Selected))
+                    {
+                        e.Graphics.FillRectangle(brush, -2, -2, e.Item.Bounds.Width + 4, e.Item.Bounds.Height + 4);
+                    }
+                }
+                else
+                {
+                    using (var brush = new System.Drawing.SolidBrush(BackColor))
+                    {
+                        e.Graphics.FillRectangle(brush, -2, -2, e.Item.Bounds.Width + 4, e.Item.Bounds.Height + 4);
+                    }
+                }
+            }
+
+            protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+            {
+                if (!e.Item.Enabled)
+                {
+                    //using (var brush = new System.Drawing.SolidBrush(System.Drawing.Color.Gray))
+                    //    e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, e.Item.Padding.Size.Width, e.Item.Padding.Top);
+
+                    e.Item.ForeColor = System.Drawing.Color.Gray;
+                }
+                else
+                {
+                    e.Item.ForeColor = ForeColor;
+
+                    //using (var brush = new System.Drawing.SolidBrush(ForeColor))
+                    //    e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, e.Item.Padding.Size.Width, e.Item.Padding.Top);
+                }
+
+                base.OnRenderItemText(e);
+            }
+
+            protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+            {
+                //base.OnRenderToolStripBackground(e);
+                using (var brush = new System.Drawing.SolidBrush(BackColor))
+                {
+                    e.Graphics.FillRectangle(brush, 0, 0, e.ToolStrip.Bounds.Width, e.ToolStrip.Bounds.Height);
+                }
+
+                using (var brush = new System.Drawing.SolidBrush(OutlineColor))
+                {
+                    e.Graphics.FillRectangle(brush, 0, 0, e.ToolStrip.Bounds.Width, BorderThickness);
+                    e.Graphics.FillRectangle(brush, 0, 0, BorderThickness, e.ToolStrip.Bounds.Height);
+                    e.Graphics.FillRectangle(brush, 0, e.ToolStrip.Bounds.Height - BorderThickness, e.ToolStrip.Bounds.Width, BorderThickness);
+                    e.Graphics.FillRectangle(brush, e.ToolStrip.Bounds.Width - BorderThickness, 0, BorderThickness, e.ToolStrip.Bounds.Height);
+                }
+            }
+
+            protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+            {
+                using (var brush = new System.Drawing.SolidBrush(OutlineColor))
+                {
+                    e.Graphics.FillRectangle(brush, 0, 0, e.ToolStrip.Bounds.Width, BorderThickness);
+                    e.Graphics.FillRectangle(brush, 0, 0, BorderThickness, e.ToolStrip.Bounds.Height);
+                    e.Graphics.FillRectangle(brush, 0, e.ToolStrip.Bounds.Height - BorderThickness, e.ToolStrip.Bounds.Width, BorderThickness);
+                    e.Graphics.FillRectangle(brush, e.ToolStrip.Bounds.Width - BorderThickness, 0, BorderThickness, e.ToolStrip.Bounds.Height);
+                }
+                //base.OnRenderToolStripBorder(e);
+            }
+
+            protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
+            {
+                if (CustomCheck == null)
+                {
+                    CustomCheck = new System.Drawing.Bitmap(e.Image);
+                    for (int y = 0; (y <= (CustomCheck.Height - 1)); y++)
+                    {
+                        for (int x = 0; (x <= (CustomCheck.Width - 1)); x++)
+                        {
+                            var c = CustomCheck.GetPixel(x, y);
+                            CustomCheck.SetPixel(x, y, System.Drawing.Color.FromArgb(c.A, 255 - c.R, 255 - c.G, 255 - c.B));
+                        }
+                    }
+                }
+
+                e.Graphics.DrawImage(CustomCheck, e.ImageRectangle);
             }
         }
 
