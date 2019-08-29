@@ -210,6 +210,8 @@ namespace TAEDX
                     }
                 }
 
+                CachedTexture?.Dispose();
+
                 CachedTexture = tex;
                 
                 return CachedTexture;

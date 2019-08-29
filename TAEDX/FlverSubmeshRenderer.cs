@@ -1,6 +1,5 @@
 ﻿using TAEDX.GFXShaders;
 using TAEDX.DebugPrimitives;
-using MeowDSIO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 //using MeowDSIO.DataTypes.FLVER;
@@ -76,7 +75,7 @@ namespace TAEDX
 
             MaterialName = flvr.Materials[mesh.MaterialIndex].Name;
 
-            var shortMaterialName = MiscUtil.GetFileNameWithoutDirectoryOrExtension(flvr.Materials[mesh.MaterialIndex].MTD);
+            var shortMaterialName = Utils.GetFileNameWithoutDirectoryOrExtension(flvr.Materials[mesh.MaterialIndex].MTD);
             if (shortMaterialName.EndsWith("_Alp") ||
                 shortMaterialName.Contains("_Edge") ||
                 shortMaterialName.Contains("_Decal") ||
@@ -257,7 +256,7 @@ namespace TAEDX
 
             MaterialName = flvr.Materials[mesh.MaterialIndex].Name;
 
-            var shortMaterialName = MiscUtil.GetFileNameWithoutDirectoryOrExtension(flvr.Materials[mesh.MaterialIndex].MTD);
+            var shortMaterialName = Utils.GetFileNameWithoutDirectoryOrExtension(flvr.Materials[mesh.MaterialIndex].MTD);
             if (shortMaterialName.EndsWith("_Alp") ||
                 shortMaterialName.Contains("_Edge") ||
                 shortMaterialName.Contains("_Decal") ||

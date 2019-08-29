@@ -42,11 +42,16 @@ namespace TAEDX.TaeEditor
             }
         }
 
+        public bool Scrubbing = false;
+
         private bool isFirstFrameAfterLooping = false;
 
         public void Update(bool playPauseBtnDown, GameTime gameTime, IEnumerable<TaeEditAnimEventBox> eventBoxes)
         {
             bool prevPlayState = IsPlaying;
+
+            if (CurrentTime < 0)
+                CurrentTime = 0;
 
             if (playPauseBtnDown)
             {
@@ -58,7 +63,6 @@ namespace TAEDX.TaeEditor
                         box.PlaybackHighlight = false;
                     }
                 }
-                
             }
 
             bool justStartedPlaying = !prevPlayState && IsPlaying;
@@ -68,7 +72,8 @@ namespace TAEDX.TaeEditor
 
             if (IsPlaying)
             {
-                CurrentTime += gameTime.ElapsedGameTime.TotalSeconds;
+                if (!Scrubbing)
+                    CurrentTime += gameTime.ElapsedGameTime.TotalSeconds;
 
                 bool justReachedAnimEnd = (CurrentTime >= MaxTime);
 
@@ -110,7 +115,7 @@ namespace TAEDX.TaeEditor
 
                 }
 
-                if (justReachedAnimEnd)
+                if (justReachedAnimEnd && !Scrubbing)
                 {
                     if (justStartedPlaying)
                     {
@@ -120,11 +125,15 @@ namespace TAEDX.TaeEditor
                     {
                         if (IsRepeat && MaxTime > 0)
                         {
-                            while (CurrentTime >= MaxTime)
-                            {
-                                CurrentTime -= MaxTime;
-                                //previousFrameTime -= MaxTime;
-                            }
+                            //while (CurrentTime >= MaxTime)
+                            //{
+                            //    CurrentTime -= MaxTime;
+                            //    //previousFrameTime -= MaxTime;
+                            //}
+
+                            // way simpler
+                            if (CurrentTime > MaxTime)
+                                CurrentTime %= MaxTime;
                         }
                         else
                         {

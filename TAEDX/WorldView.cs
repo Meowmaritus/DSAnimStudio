@@ -17,10 +17,8 @@ namespace TAEDX
         public Transform CameraTransform = Transform.Default;
         public Transform CameraOrigin = Transform.Default;
         public Transform CameraPositionDefault = Transform.Default;
-
-        public Func<float> OrbitCamDistanceReference;
         public float OrbitCamDistance = 6;
-        public Func<Vector3> OrbitCamCanterReference;
+        public float ModelHeight_ForOrbitCam = 1;
         public Vector3 OrbitCamCenter = new Vector3(0, 2, 0);
         public bool IsOrbitCam = true;
 
@@ -28,8 +26,11 @@ namespace TAEDX
 
         public void OrbitCamReset()
         {
-            OrbitCamDistance = OrbitCamDistanceReference?.Invoke() ?? 6;
-            OrbitCamCenter = OrbitCamCanterReference?.Invoke() ?? new Vector3(0, 2, 0);
+            if (TaeInterop.ModelViewerAspectRatio < 1)
+                OrbitCamDistance = (ModelHeight_ForOrbitCam * 2) / (TaeInterop.ModelViewerAspectRatio * 0.66f);
+            else
+                OrbitCamDistance = (ModelHeight_ForOrbitCam * 2);
+            OrbitCamCenter = new Vector3(0, ModelHeight_ForOrbitCam / 2, 0);
             CameraTransform.EulerRotation = CameraDefaultRot;
         }
 

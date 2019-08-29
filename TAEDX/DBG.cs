@@ -1,7 +1,5 @@
 ﻿using TAEDX.DebugPrimitives;
 using TAEDX.GFXShaders;
-using MeowDSIO;
-using MeowDSIO.DataFiles;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;

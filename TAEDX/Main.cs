@@ -1,7 +1,5 @@
 ﻿using TAEDX.DbgMenus;
 using TAEDX.DebugPrimitives;
-using MeowDSIO;
-using MeowDSIO.DataFiles;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -260,11 +258,11 @@ namespace TAEDX
             var strSize_unmanaged = DBG.DEBUG_FONT_SMALL.MeasureString(str_unmanaged);
 
             DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
-                GFX.Device.Viewport.Height - 2 - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
+                GFX.Device.Viewport.Height - 32 - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
                 Color.Yellow, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
 
             DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2, 
-                GFX.Device.Viewport.Height - 2 - (strSize_unmanaged.Y * 0.75f)),
+                GFX.Device.Viewport.Height - 32 - (strSize_unmanaged.Y * 0.75f)),
                 Color.Yellow, DBG.DEBUG_FONT_SMALL, scale:0.75f, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
         }
 
@@ -319,7 +317,8 @@ namespace TAEDX
             GFX.World.CameraOrigin.Position = new Vector3(GFX.World.CameraPositionDefault.Position.X, 
                 GFX.World.CameraOrigin.Position.Y, GFX.World.CameraPositionDefault.Position.Z);
 
-            DBG.DbgPrim_Grid.Transform = GFX.World.CameraPositionDefault;
+            if (DBG.DbgPrim_Grid != null)
+                DBG.DbgPrim_Grid.Transform = GFX.World.CameraPositionDefault;
 
             if (REQUEST_EXIT)
                 Exit();

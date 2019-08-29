@@ -12,7 +12,7 @@ namespace TAEDX
     {
         private static object _lock_SaveLoadCFG = new object();
 
-        public const string FileName = "DarkSoulsModelViewerDX_UserConfig.json";
+        public const string FileName = "TimeActEditorDX_3DPreview_Config.json";
         private static CFG Current = null;
 
         public static string GetConfigFilePath()

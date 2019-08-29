@@ -60,6 +60,7 @@
             this.buttonChangeType.Name = "buttonChangeType";
             this.buttonChangeType.Size = new System.Drawing.Size(108, 23);
             this.buttonChangeType.TabIndex = 3;
+            this.buttonChangeType.TabStop = false;
             this.buttonChangeType.Text = "Change Type...";
             this.buttonChangeType.UseVisualStyleBackColor = true;
             // 
@@ -94,6 +95,7 @@
             this.dataGridView1.RowsDefaultCellStyle = dataGridViewCellStyle2;
             this.dataGridView1.Size = new System.Drawing.Size(321, 417);
             this.dataGridView1.TabIndex = 4;
+            this.dataGridView1.TabStop = false;
             // 
             // columnType
             // 
