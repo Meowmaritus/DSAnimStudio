@@ -16,23 +16,48 @@ namespace TAEDX
         {
             menu.ClearItem("3D Preview");
 
-            menu.AddItem("3D Preview", "Render Meshes", !GFX.HideFLVERs,
+            menu.AddItem("3D Preview", "Render Meshes", () => !GFX.HideFLVERs,
                 b => GFX.HideFLVERs = !b);
 
             foreach (var model in GFX.ModelDrawer.Models)
             {
                 int i = 0;
                 foreach (var sm in model.GetSubmeshes())
-                    menu.AddItem("3D Preview/Toggle Individual Meshes", $"Mesh {++i}", sm.IsVisible, b => sm.IsVisible = b);
+                    menu.AddItem("3D Preview/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
             }
 
-            menu.AddItem("3D Preview", "Render Skeleton", DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone],
+            Dictionary<int, List<FlverSubmeshRenderer>> modelMaskMap = new Dictionary<int, List<FlverSubmeshRenderer>>();
+            foreach (var model in GFX.ModelDrawer.Models)
+            {
+                foreach (var sm in model.GetSubmeshes())
+                {
+                    if (modelMaskMap.ContainsKey(sm.ModelMaskIndex))
+                        modelMaskMap[sm.ModelMaskIndex].Add(sm);
+                    else
+                        modelMaskMap.Add(sm.ModelMaskIndex, new List<FlverSubmeshRenderer>() { sm });
+                }
+                
+            }
+
+            foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
+            {
+                menu.AddItem("3D Preview/Toggle By Model Mask", kvp.Key >= 0 ? $"Model Mask {kvp.Key}" : "Default", () => kvp.Value.All(sm => sm.IsVisible),
+                    b =>
+                    {
+                        foreach (var sm in kvp.Value)
+                        {
+                            sm.IsVisible = b;
+                        }
+                    });
+            }
+
+            menu.AddItem("3D Preview", "Render Skeleton", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone],
                 b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = b);
 
-            menu.AddItem("3D Preview", "Render DummyPoly", DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+            menu.AddItem("3D Preview", "Render DummyPoly", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                 b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-            menu.AddItem("3D Preview", "Render DummyPoly ID Tags", DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+            menu.AddItem("3D Preview", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                 b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
             Dictionary<string, List<DebugPrimitives.IDbgPrim>> dmyMap = new Dictionary<string, List<DebugPrimitives.IDbgPrim>>();
@@ -46,7 +71,7 @@ namespace TAEDX
 
             foreach (var kvp in dmyMap.OrderBy(asdf => int.Parse(asdf.Key)))
             {
-                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{kvp.Key}", kvp.Value.Any(pr => pr.EnableDraw),
+                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{kvp.Key}", () => kvp.Value.Any(pr => pr.EnableDraw),
                     b =>
                     {
                         foreach (var pr in kvp.Value)
@@ -102,6 +127,9 @@ namespace TAEDX
         /// Rectangle of the model viewer relative to window top-left
         /// </summary>
         public static Rectangle ModelViewerWindowRect => Main.TAE_EDITOR.ModelViewerBounds;
+
+        public static float ModelViewerAspectRatio =>
+            1.0f * ModelViewerWindowRect.Width / ModelViewerWindowRect.Height;
 
         public static void Init()
         {
@@ -355,9 +383,14 @@ namespace TAEDX
                         boneIndex++;
                     }
 
-                    var halfHeight = model.Bounds.GetCenter().Y;
-                    GFX.World.OrbitCamCanterReference = new Vector3(0, model.Bounds.GetCenter().Y, 0);
-                    GFX.World.OrbitCamDistanceReference = halfHeight * 4;
+                    GFX.World.OrbitCamCanterReference = () => new Vector3(0, model.Bounds.GetCenter().Y, 0);
+                    GFX.World.OrbitCamDistanceReference = () =>
+                    {
+                        if (ModelViewerAspectRatio < 1)
+                            return (model.Bounds.GetCenter().Y * 4) / (ModelViewerAspectRatio * 0.66f);
+                        else
+                            return (model.Bounds.GetCenter().Y * 4);
+                    };
                     GFX.World.OrbitCamReset();
                 }
                 else
@@ -471,8 +504,14 @@ namespace TAEDX
                     }
 
                     var halfHeight = model.Bounds.GetCenter().Y;
-                    GFX.World.OrbitCamCanterReference = new Vector3(0, model.Bounds.GetCenter().Y, 0);
-                    GFX.World.OrbitCamDistanceReference = halfHeight * 4;
+                    GFX.World.OrbitCamCanterReference = () => new Vector3(0, model.Bounds.GetCenter().Y, 0);
+                    GFX.World.OrbitCamDistanceReference = () =>
+                    {
+                        if (ModelViewerAspectRatio < 1)
+                            return (model.Bounds.GetCenter().Y * 4) / (ModelViewerAspectRatio * 0.66f);
+                        else
+                            return (model.Bounds.GetCenter().Y * 4);
+                    };
                     GFX.World.OrbitCamReset();
                 }
             }

@@ -179,7 +179,7 @@ namespace TAEDX.TaeEditor
 
             if (Rect.Contains(MainScreen.Input.MousePositionPoint))
             {
-                MainScreen.Input.CursorType = MouseCursorType.Arrow;
+               // MainScreen.Input.CursorType = MouseCursorType.Arrow;
 
                 if (MainScreen.Input.LeftClickDown)
                 {

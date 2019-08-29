@@ -9,6 +9,7 @@ namespace TAEDX.TaeEditor
         StopUpdating,
         Arrow,
         DragX,
+        DragY,
     }
 
     public class TaeInputHandler
@@ -112,6 +113,10 @@ namespace TAEDX.TaeEditor
                         break;
                     case MouseCursorType.DragX:
                         Microsoft.Xna.Framework.Input.Mouse.SetCursor(MouseCursor.SizeWE);
+                        //System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.SizeWE;
+                        break;
+                    case MouseCursorType.DragY:
+                        Microsoft.Xna.Framework.Input.Mouse.SetCursor(MouseCursor.SizeNS);
                         //System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.SizeWE;
                         break;
                 }

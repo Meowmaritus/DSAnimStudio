@@ -117,7 +117,7 @@ namespace TAEDX.DebugPrimitives
 
         protected override void DisposeBuffers()
         {
-            VertBuffer.Dispose();
+            VertBuffer?.Dispose();
         }
 
         public override DbgPrim<DbgPrimWireShader> Instantiate(string newName, Transform newLocation, Color? newNameColor = null)
