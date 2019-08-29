@@ -383,14 +383,7 @@ namespace TAEDX
                         boneIndex++;
                     }
 
-                    GFX.World.OrbitCamCanterReference = () => new Vector3(0, model.Bounds.GetCenter().Y, 0);
-                    GFX.World.OrbitCamDistanceReference = () =>
-                    {
-                        if (ModelViewerAspectRatio < 1)
-                            return (model.Bounds.GetCenter().Y * 4) / (ModelViewerAspectRatio * 0.66f);
-                        else
-                            return (model.Bounds.GetCenter().Y * 4);
-                    };
+                    GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
                     GFX.World.OrbitCamReset();
                 }
                 else
@@ -503,15 +496,7 @@ namespace TAEDX
                         boneIndex++;
                     }
 
-                    var halfHeight = model.Bounds.GetCenter().Y;
-                    GFX.World.OrbitCamCanterReference = () => new Vector3(0, model.Bounds.GetCenter().Y, 0);
-                    GFX.World.OrbitCamDistanceReference = () =>
-                    {
-                        if (ModelViewerAspectRatio < 1)
-                            return (model.Bounds.GetCenter().Y * 4) / (ModelViewerAspectRatio * 0.66f);
-                        else
-                            return (model.Bounds.GetCenter().Y * 4);
-                    };
+                    GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
                     GFX.World.OrbitCamReset();
                 }
             }

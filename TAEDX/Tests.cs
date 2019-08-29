@@ -1,7 +1,5 @@
 ﻿using TAEDX.DbgMenus;
 using TAEDX.DebugPrimitives;
-using MeowDSIO;
-using MeowDSIO.DataFiles;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;

@@ -296,9 +296,6 @@
     <Reference Include="System.Xml.ReaderWriter, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Xml.ReaderWriter.4.3.0\lib\net46\System.Xml.ReaderWriter.dll</HintPath>
     </Reference>
-    <Reference Include="TeximpNet, Version=1.4.0.0, Culture=neutral, PublicKeyToken=978ca55aa4aa29a3, processorArchitecture=MSIL">
-      <HintPath>..\packages\TeximpNet.1.4.0\lib\net40\TeximpNet.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Icon.ico" />
@@ -335,10 +332,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MeowDSIO\MeowDSIO\MeowDSIO.csproj">
-      <Project>{4ad69470-8146-4d20-94f0-da9844eee5a2}</Project>
-      <Name>MeowDSIO</Name>
-    </ProjectReference>
     <ProjectReference Include="..\SoulsFormats\SoulsFormats\SoulsFormats.csproj">
       <Project>{22c664bd-877b-44df-8ecf-2808522469a8}</Project>
       <Name>SoulsFormats</Name>
@@ -360,13 +353,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MonoGame\v3.0\MonoGame.Content.Builder.targets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\TeximpNet.1.4.0\build\TeximpNet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\TeximpNet.1.4.0\build\TeximpNet.targets'))" />
-  </Target>
-  <Import Project="..\packages\TeximpNet.1.4.0\build\TeximpNet.targets" Condition="Exists('..\packages\TeximpNet.1.4.0\build\TeximpNet.targets')" />
   <PropertyGroup>
     <PostBuildEvent>md "$(TargetDir)lib"
 for %25%25f in ($(TargetDir)*.dll) do (

@@ -339,7 +339,7 @@ namespace TAEDX.TaeEditor
             {
                 var currentAssemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 var currentAssemblyDir = System.IO.Path.GetDirectoryName(currentAssemblyPath);
-                ConfigFilePath = System.IO.Path.Combine(currentAssemblyDir, "TAE Editor DX - Configuration.json");
+                ConfigFilePath = System.IO.Path.Combine(currentAssemblyDir, "TimeActEditorDX_Config.json");
             }
         }
 
@@ -634,17 +634,16 @@ namespace TAEDX.TaeEditor
             MenuBar.AddItem("Edit", "Find First Event of Type...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
             MenuBar.AddItem("Edit", "Go To Animation ID...|Ctrl+G", () => ShowDialogGoto(), startDisabled: true);
 
-
             // Config
             MenuBar.AddItem("Config", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
             MenuBar.AddSeparator("Config");
             MenuBar.AddItem("Config", "Use Fancy Text Scrolling", () => Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
             MenuBar.AddItem("Config", "Fancy Text Scroll Speed", new Dictionary<string, Action>
                 {
-                    { "Extremely Slow (4 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 4 },
-                    { "Very Slow (8 px/s)",       () => Config.FancyScrollingStringsScrollSpeed = 8 },
-                    { "Slow (16 px/s)",           () => Config.FancyScrollingStringsScrollSpeed = 16 },
-                    { "Medium Speed (32 px/s)",   () => Config.FancyScrollingStringsScrollSpeed = 32 },
+                    { "Extremely Slow (4 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 4 },
+                    { "Very Slow (8 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 8 },
+                    { "Slow (16 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 16 },
+                    { "Medium Speed (32 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 32 },
                     { "Fast (64 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 64 },
                     { "Very Fast (128 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 128 },
                     {  "Extremely Fast (256 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 256 },
@@ -652,7 +651,8 @@ namespace TAEDX.TaeEditor
                 defaultChoice: "Fast (64 px/s)");
             MenuBar.AddSeparator("Config");
             MenuBar.AddItem("Config", "Start with all TAE sections collapsed", () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
-
+            MenuBar.AddSeparator("Config");
+            MenuBar.AddItem("Config", "Auto-scroll During Anim Playback", () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
 
@@ -662,6 +662,7 @@ namespace TAEDX.TaeEditor
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
 
             ButtonEditCurrentAnimInfo = new System.Windows.Forms.Button();
+            ButtonEditCurrentAnimInfo.TabStop = false;
             ButtonEditCurrentAnimInfo.Text = "Edit Anim Info...";
             ButtonEditCurrentAnimInfo.Click += ButtonEditCurrentAnimInfo_Click;
             ButtonEditCurrentAnimInfo.BackColor = inspectorWinFormsControl.BackColor;
@@ -672,6 +673,7 @@ namespace TAEDX.TaeEditor
             GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
 
             ButtonEditCurrentTaeHeader = new System.Windows.Forms.Button();
+            ButtonEditCurrentTaeHeader.TabStop = false;
             ButtonEditCurrentTaeHeader.Text = "Edit TAE Header...";
             ButtonEditCurrentTaeHeader.Click += ButtonEditCurrentTaeHeader_Click;
             ButtonEditCurrentTaeHeader.BackColor = inspectorWinFormsControl.BackColor;
@@ -1291,6 +1293,9 @@ namespace TAEDX.TaeEditor
             }
 
             Input.Update(Rect);
+
+            if (!Input.LeftClickHeld)
+                editScreenCurrentAnim?.MouseReleaseStuff();
 
             // Always update playback regardless of GUI memes.
             // Still only allow hitting spacebar to play/pause
