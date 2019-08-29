@@ -100,10 +100,25 @@ namespace TAEDX
         /// </summary>
         public static byte[] CurrentAnimationHKXBytes = null;
 
+        public static HKX CurrentSkeletonHKX = null;
+        public static HKX CurrentAnimationHKX = null;
+        public static Havok.SplineCompressedAnimation.TransformTrack[] CurrentAnimationTracks = null;
+        public static float CurrentAnimationLength = 0.0f;
+
         /// <summary>
         /// Name of currently-selected animation.
         /// </summary>
         public static string CurrentAnimationName = null;
+
+        /// <summary>
+        /// Debug draw the havok skeleton instead of the flver skeleton
+        /// </summary>
+        public static bool DrawHavokSkeleton = true;
+
+        /// <summary>
+        /// Apply loaded animation to the model
+        /// </summary>
+        public static bool ApplyAnimation = true;
 
         /// <summary>
         /// The true HKX animation length from the file.
@@ -193,9 +208,23 @@ namespace TAEDX
                     TryToLoadAnimFile(anim.Unknown1);
                 }
             }
-            
+
             //TAE_TODO: Read HKX bytes here.
+            CurrentAnimationHKX = HKX.Read(CurrentAnimationHKXBytes, HKX.HKXVariation.HKXDS3);
+
+            // TEST
+            HKX.HKASplineCompressedAnimation anime = null;
+            foreach (var cl in CurrentAnimationHKX.DataSection.Objects)
+            {
+                if (cl is HKX.HKASplineCompressedAnimation)
+                {
+                    anime = (HKX.HKASplineCompressedAnimation)cl;
+                }
+            }
+            CurrentAnimationTracks = Havok.SplineCompressedAnimation.ReadSplineCompressedAnimByteBlock(false, anime.GetData(), anime.TransformTrackCount, anime.BlockCount);
+            CurrentAnimationLength = anime.FrameCount;
         }
+
 
         /// <summary>
         /// Runs once the TAE shit loads an ANIBND (doesn't run if a loose TAE is selected)
@@ -204,6 +233,9 @@ namespace TAEDX
         public static void OnLoadANIBND()
         {
             var transform = new Transform(0, 0, 0, 0, 0, 0);
+            // Attempt to load the skeleton hkx file first
+            CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
+            CurrentSkeletonHKX = HKX.Read(CurrentSkeletonHKXBytes, HKX.HKXVariation.HKXDS3);
 
             var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
             if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
@@ -223,8 +255,6 @@ namespace TAEDX
             {
                 Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), transform);
             }
-
-            CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
         }
 
         /// <summary>
@@ -232,7 +262,8 @@ namespace TAEDX
         /// </summary>
         public static void TaeViewportDrawPre(GameTime gameTime)
         {
-
+            if (CurrentSkeletonHKX != null && CurrentAnimationHKX != null)
+                DrawHavokBones();
         }
 
         /// <summary>
@@ -245,6 +276,136 @@ namespace TAEDX
             if (CurrentAnimationHKXBytes != null)
                 sb.AppendLine($"HKX Filesize: {(CurrentAnimationHKXBytes.Length / 1024.0f):0.00} KB");
             DBG.DrawOutlinedText(sb.ToString(), Vector2.One * 2, Color.Yellow, scale: 0.75f);
+        }
+
+        private static void DrawHavokBones()
+        {
+            DBG.ClearPrimitives();
+
+            List<Matrix> parentBoneMatrices = new List<Matrix>();
+            List<Vector3> bonePos = new List<Vector3>();
+            float frame = Math.Min((float)PlaybackCursor.CurrentFrame30FPS, CurrentAnimationLength);
+
+            Matrix GetBoneParentMatrixHavok(HKX.HKASkeleton s, short b)
+            {
+                short parentBone = b;
+                var result = Matrix.Identity;
+
+                do
+                {
+                    if (ApplyAnimation && parentBone < CurrentAnimationTracks.Count())
+                    {
+                        // Apply frame 0 of the animation
+                        var track = CurrentAnimationTracks[parentBone];
+                        var position = track.StaticPosition;
+                        if (track.HasSplinePosition)
+                        {
+                            position.X = track.SplinePosition.ChannelX == null ? 0.0f : track.SplinePosition.GetValueX(frame);
+                            position.Y = track.SplinePosition.ChannelY == null ? 0.0f : track.SplinePosition.GetValueY(frame);
+                            position.Z = track.SplinePosition.ChannelZ == null ? 0.0f : track.SplinePosition.GetValueZ(frame);
+                        }
+                        var rotation = track.StaticRotation;
+                        if (track.HasSplineRotation)
+                        {
+                            //rotation = track.SplineRotation.Channel.Values[0];
+                            rotation = track.SplineRotation.GetValue(frame);
+                            //rotation = track.SplineRotation.GetValue(0);
+                        }
+                        var scale = track.StaticScale;
+                        if (track.HasSplineScale)
+                        {
+                            scale.X = track.SplineScale.ChannelX == null ? 1.0f : track.SplineScale.GetValueX(frame);
+                            scale.Y = track.SplineScale.ChannelY == null ? 1.0f : track.SplineScale.GetValueY(frame);
+                            scale.Z = track.SplineScale.ChannelZ == null ? 1.0f : track.SplineScale.GetValueZ(frame);
+                        }
+                        //result = Matrix.Identity;
+                        // Keep animation centered from root motion
+                        if (parentBone != 0)
+                        {
+                            result *= Matrix.CreateScale(scale);
+                            result *= Matrix.CreateFromQuaternion(rotation);
+                            result *= Matrix.CreateTranslation(position);
+                        }
+                        //break;
+                    }
+                    else
+                    {
+                        HKX.Transform t = s.Transforms.GetArrayData().Elements[parentBone];
+                        result *= Matrix.CreateScale(t.Scale.Vector.X, t.Scale.Vector.Y, t.Scale.Vector.Z);
+                        result *= Matrix.CreateFromQuaternion(new Quaternion(t.Rotation.Vector.X, t.Rotation.Vector.Y, t.Rotation.Vector.Z, t.Rotation.Vector.W));
+                        result *= Matrix.CreateTranslation(t.Position.Vector.X, t.Position.Vector.Y, t.Position.Vector.Z);
+                    }
+
+                    if (s.ParentIndices.GetArrayData().Elements[parentBone].data >= 0)
+                    {
+                        parentBone = s.ParentIndices.GetArrayData().Elements[parentBone].data;
+                    }
+                    else
+                    {
+                        parentBone = -1;
+                    }
+                }
+                while (parentBone != -1);
+
+                return result;
+            }
+
+            if (DrawHavokSkeleton)
+            {
+                HKX.HKASkeleton skel = null;
+                foreach (var cl in CurrentSkeletonHKX.DataSection.Objects)
+                {
+                    if (cl is HKX.HKASkeleton)
+                    {
+                        skel = (HKX.HKASkeleton)cl;
+                    }
+                }
+
+                for (int i = 0; i < skel.Transforms.Size; i++)
+                {
+                    var parentMatrix = GetBoneParentMatrixHavok(skel, (short)i);
+
+                    parentBoneMatrices.Add(parentMatrix);
+
+                    bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
+
+
+                }
+                int boneIndex = 0;
+                for (int i = 0; i < skel.Transforms.Size - 1; i++)
+                {
+                    if (skel.ParentIndices.GetArrayData().Elements[i].data >= 0)
+                    {
+                        if (parentBoneMatrices[skel.ParentIndices.GetArrayData().Elements[i].data].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
+                        {
+                            var realMatrix = Matrix.CreateFromQuaternion(boneRot) * Matrix.CreateTranslation(bonePos[skel.ParentIndices.GetArrayData().Elements[i].data]);
+
+                            if (realMatrix.Decompose(out Vector3 realBoneScale, out Quaternion realBoneRot, out Vector3 realBoneTranslation))
+                            {
+                                var boneTransform = new Transform(realBoneTranslation, Vector3.Zero, realBoneScale);
+                                var boneLength = (bonePos[boneIndex] - bonePos[skel.ParentIndices.GetArrayData().Elements[i].data]).Length();
+                                DBG.AddPrimitive(new DbgPrimSolidBone("", boneTransform, realBoneRot, Math.Min(boneLength / 8, 0.25f), boneLength, Color.Yellow));
+                            }
+                        }
+
+
+                    }
+                    else
+                    {
+                        if (parentBoneMatrices[boneIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
+                        {
+                            var boneTransform = new Transform(boneTranslation, Vector3.Zero, boneScale);
+                            DBG.AddPrimitive(new DbgPrimWireBox(boneTransform, Vector3.One * 0.05f, Color.Yellow)
+                            {
+                                Name = "",
+                                Category = DbgPrimCategory.Bone
+                            });
+                        }
+                    }
+
+                    boneIndex++;
+                }
+            }
         }
 
         private static void Load3DAsset(string assetUri, byte[] assetBytes, Transform transform)
@@ -422,6 +583,68 @@ namespace TAEDX
                         return result;
                     }
 
+                    Matrix GetBoneParentMatrixHavok(HKX.HKASkeleton s, short b)
+                    {
+                        short parentBone = b;
+                        var result = Matrix.Identity;
+
+                        do
+                        {
+                            if (ApplyAnimation)
+                            {
+                                // Apply frame 0 of the animation
+                                var track = CurrentAnimationTracks[parentBone];
+                                var position = track.StaticPosition;
+                                if (track.HasSplinePosition)
+                                {
+                                    position.X = track.SplinePosition.ChannelX == null ? 0.0f : track.SplinePosition.ChannelX.Values[0];
+                                    position.Y = track.SplinePosition.ChannelY == null ? 0.0f : track.SplinePosition.ChannelY.Values[0];
+                                    position.Z = track.SplinePosition.ChannelZ == null ? 0.0f : track.SplinePosition.ChannelZ.Values[0];
+                                }
+                                var rotation = track.StaticRotation;
+                                if (track.HasSplineRotation)
+                                {
+                                    rotation = track.SplineRotation.Channel.Values[0];
+                                }
+                                var scale = track.StaticScale;
+                                if (track.HasSplineScale)
+                                {
+                                    scale.X = track.SplineScale.ChannelX == null ? 1.0f : track.SplineScale.ChannelX.Values[0];
+                                    scale.Y = track.SplineScale.ChannelY == null ? 1.0f : track.SplineScale.ChannelY.Values[0];
+                                    scale.Z = track.SplineScale.ChannelZ == null ? 1.0f : track.SplineScale.ChannelZ.Values[0];
+                                }
+                                //result = Matrix.Identity;
+                                // Keep animation centered from root motion
+                                if (parentBone != 0)
+                                {
+                                    result *= Matrix.CreateScale(scale);
+                                    result *= Matrix.CreateFromQuaternion(rotation);
+                                    result *= Matrix.CreateTranslation(position);
+                                }
+                                //break;
+                            }
+                            else
+                            {
+                                HKX.Transform t = s.Transforms.GetArrayData().Elements[parentBone];
+                                result *= Matrix.CreateScale(t.Scale.Vector.X, t.Scale.Vector.Y, t.Scale.Vector.Z);
+                                result *= Matrix.CreateFromQuaternion(new Quaternion(t.Rotation.Vector.X, t.Rotation.Vector.Y, t.Rotation.Vector.Z, t.Rotation.Vector.W));
+                                result *= Matrix.CreateTranslation(t.Position.Vector.X, t.Position.Vector.Y, t.Position.Vector.Z);
+                            }
+
+                            if (s.ParentIndices.GetArrayData().Elements[parentBone].data >= 0)
+                            {
+                                parentBone = s.ParentIndices.GetArrayData().Elements[parentBone].data;
+                            }
+                            else
+                            {
+                                parentBone = -1;
+                            }
+                        }
+                        while (parentBone != -1);
+
+                        return result;
+                    }
+
                     foreach (var dmy in flver.Dummies)
                     {
                         DBG.AddPrimitive(new DbgPrimWireSphere(new Transform(dmy.Position.X, dmy.Position.Y, dmy.Position.Z, 0, 0, 0), 0.01f, 8, 8, Color.Cyan)
@@ -449,51 +672,110 @@ namespace TAEDX
                     List<Matrix> parentBoneMatrices = new List<Matrix>();
                     List<Vector3> bonePos = new List<Vector3>();
 
-                    foreach (var b in flver.Bones)
+                    if (false) //DrawHavokSkeleton)
                     {
-                        var parentMatrix = GetBoneParentMatrix(b);
-
-                        parentBoneMatrices.Add(parentMatrix);
-
-                        bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
-
-
-                    }
-                    int boneIndex = 0;
-                    foreach (var b in flver.Bones)
-                    {
-
-
-                        if (b.ParentIndex >= 0)
+                        HKX.HKASkeleton skel = null;
+                        foreach (var cl in CurrentSkeletonHKX.DataSection.Objects)
                         {
-                            if (parentBoneMatrices[b.ParentIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
+                            if (cl is HKX.HKASkeleton)
                             {
-                                var realMatrix = Matrix.CreateFromQuaternion(boneRot) * Matrix.CreateTranslation(bonePos[b.ParentIndex]);
+                                skel = (HKX.HKASkeleton)cl;
+                            }
+                        }
 
-                                if (realMatrix.Decompose(out Vector3 realBoneScale, out Quaternion realBoneRot, out Vector3 realBoneTranslation))
+                        for (int i = 0; i < skel.Transforms.Size; i++)
+                        {
+                            var parentMatrix = GetBoneParentMatrixHavok(skel, (short)i);
+
+                            parentBoneMatrices.Add(parentMatrix);
+
+                            bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
+
+
+                        }
+                        int boneIndex = 0;
+                        for (int i = 0; i < skel.Transforms.Size-1; i++)
+                        {
+                            if (skel.ParentIndices.GetArrayData().Elements[i].data >= 0)
+                            {
+                                if (parentBoneMatrices[skel.ParentIndices.GetArrayData().Elements[i].data].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
                                 {
-                                    var boneTransform = new Transform(realBoneTranslation, Vector3.Zero, realBoneScale);
-                                    var boneLength = (bonePos[boneIndex] - bonePos[b.ParentIndex]).Length();
-                                    DBG.AddPrimitive(new DbgPrimSolidBone(getBoneSpacePrefix(b) + b.Name, boneTransform, realBoneRot, boneLength / 8, boneLength, Color.Yellow));
+                                    var realMatrix = Matrix.CreateFromQuaternion(boneRot) * Matrix.CreateTranslation(bonePos[skel.ParentIndices.GetArrayData().Elements[i].data]);
+
+                                    if (realMatrix.Decompose(out Vector3 realBoneScale, out Quaternion realBoneRot, out Vector3 realBoneTranslation))
+                                    {
+                                        var boneTransform = new Transform(realBoneTranslation, Vector3.Zero, realBoneScale);
+                                        var boneLength = (bonePos[boneIndex] - bonePos[skel.ParentIndices.GetArrayData().Elements[i].data]).Length();
+                                        DBG.AddPrimitive(new DbgPrimSolidBone("", boneTransform, realBoneRot, Math.Min(boneLength / 8, 2.0f), boneLength, Color.Yellow));
+                                    }
+                                }
+
+
+                            }
+                            else
+                            {
+                                if (parentBoneMatrices[boneIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
+                                {
+                                    var boneTransform = new Transform(boneTranslation, Vector3.Zero, boneScale);
+                                    DBG.AddPrimitive(new DbgPrimWireBox(boneTransform, Vector3.One * 0.05f, Color.Yellow)
+                                    {
+                                        Name = "",
+                                        Category = DbgPrimCategory.Bone
+                                    });
                                 }
                             }
 
-
+                            boneIndex++;
                         }
-                        else
+                    }
+                    else
+                    {
+                        foreach (var b in flver.Bones)
                         {
-                            if (parentBoneMatrices[boneIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
-                            {
-                                var boneTransform = new Transform(boneTranslation, Vector3.Zero, boneScale);
-                                DBG.AddPrimitive(new DbgPrimWireBox(boneTransform, Vector3.One * 0.05f, Color.Yellow)
-                                {
-                                    Name = getBoneSpacePrefix(b) + b.Name,
-                                    Category = DbgPrimCategory.Bone
-                                });
-                            }
-                        }
+                            var parentMatrix = GetBoneParentMatrix(b);
 
-                        boneIndex++;
+                            parentBoneMatrices.Add(parentMatrix);
+
+                            bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
+
+
+                        }
+                        int boneIndex = 0;
+                        foreach (var b in flver.Bones)
+                        {
+
+
+                            if (b.ParentIndex >= 0)
+                            {
+                                if (parentBoneMatrices[b.ParentIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
+                                {
+                                    var realMatrix = Matrix.CreateFromQuaternion(boneRot) * Matrix.CreateTranslation(bonePos[b.ParentIndex]);
+
+                                    if (realMatrix.Decompose(out Vector3 realBoneScale, out Quaternion realBoneRot, out Vector3 realBoneTranslation))
+                                    {
+                                        var boneTransform = new Transform(realBoneTranslation, Vector3.Zero, realBoneScale);
+                                        var boneLength = (bonePos[boneIndex] - bonePos[b.ParentIndex]).Length();
+                                        DBG.AddPrimitive(new DbgPrimSolidBone(getBoneSpacePrefix(b) + b.Name, boneTransform, realBoneRot, boneLength / 8, boneLength, Color.Yellow));
+                                    }
+                                }
+
+
+                            }
+                            else
+                            {
+                                if (parentBoneMatrices[boneIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
+                                {
+                                    var boneTransform = new Transform(boneTranslation, Vector3.Zero, boneScale);
+                                    DBG.AddPrimitive(new DbgPrimWireBox(boneTransform, Vector3.One * 0.05f, Color.Yellow)
+                                    {
+                                        Name = getBoneSpacePrefix(b) + b.Name,
+                                        Category = DbgPrimCategory.Bone
+                                    });
+                                }
+                            }
+
+                            boneIndex++;
+                        }
                     }
 
                     GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
