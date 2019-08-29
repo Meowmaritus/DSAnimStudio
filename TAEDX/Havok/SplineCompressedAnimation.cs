@@ -1,4 +1,23 @@
-﻿using Microsoft.Xna.Framework;
+﻿//	This is an adaptation of code from the Havok Format Library
+//  https://github.com/PredatorCZ/HavokLib/blob/master/source/hkaSplineDecompressor.cpp
+//	Original code Copyright(C) 2016-2019 Lukas Cone
+//  Adapted to C# by Meowmaritus and Katalash
+//
+//	This program is free software : you can redistribute it and / or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation, either version 3 of the License, or
+//	(at your option) any later version.
+//
+//	This program is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with this program.If not, see <https://www.gnu.org/licenses/>.
+
+
+using Microsoft.Xna.Framework;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -79,6 +98,13 @@ namespace TAEDX.Havok
             return min + ((max - min) * ratio);
         }
 
+        // Because C# can't static cast an int to a float natively
+        static float CastToFloat(uint src)
+        {
+            var floatbytes = BitConverter.GetBytes(src);
+            return BitConverter.ToSingle(floatbytes, 0);
+        }
+
         static Quaternion ReadQuatPOLAR32(BinaryReaderEx br)
         {
             const ulong rMask = (1 << 10) - 1;
@@ -90,14 +116,12 @@ namespace TAEDX.Havok
 
             uint cVal = br.ReadUInt32();
 
-            /*
-
-            float R = static_cast<float>((cVal >> 18) & rMask) * rFrac;
+            float R = CastToFloat((cVal >> 18) & (uint)(rMask & 0xFFFFFFFF)) * rFrac;
             R = 1.0f - (R * R);
 
-            float phiTheta = static_cast<float>((cVal & 0x3FFFF));
+            float phiTheta = (float)((cVal & 0x3FFFF));
 
-            float phi = floorf(sqrtf(phiTheta));
+            float phi = (float)Math.Floor(Math.Sqrt(phiTheta));
             float theta = 0;
 
             if (phi > 0.0f)
@@ -106,31 +130,27 @@ namespace TAEDX.Havok
                 phi = phiFrac * phi;
             }
 
-            float magnitude = sqrtf(1.0f - R * R);
+            float magnitude = (float)Math.Sqrt(1.0f - R * R);
 
-            Vector4 retVal;
-            retVal.X = sinf(phi) * cosf(theta) * magnitude;
-            retVal.Y = sinf(phi) * sinf(theta) * magnitude;
-            retVal.Z = cosf(phi) * magnitude;
+            Quaternion retVal;
+            retVal.X = (float)(Math.Sin(phi) * Math.Cos(theta) * magnitude);
+            retVal.Y = (float)(Math.Sin(phi) * Math.Sin(theta) * magnitude);
+            retVal.Z = (float)(Math.Cos(phi) * magnitude);
             retVal.W = R;
 
-            if (cVal & 0x10000000)
+            if ((cVal & 0x10000000) > 0)
                 retVal.X *= -1;
 
-            if (cVal & 0x20000000)
+            if ((cVal & 0x20000000) > 0)
                 retVal.Y *= -1;
 
-            if (cVal & 0x40000000)
+            if ((cVal & 0x40000000) > 0)
                 retVal.Z *= -1;
 
-            if (cVal & 0x80000000)
+            if ((cVal & 0x80000000) > 0)
                 retVal.W *= -1;
 
             return retVal;
-
-            */
-
-            throw new NotImplementedException();
         }
 
         static Quaternion ReadQuatTHREECOMP48(BinaryReaderEx br)
@@ -138,44 +158,46 @@ namespace TAEDX.Havok
             const ulong mask = (1 << 15) - 1;
             const float fractal = 0.000043161f;
 
-            //SVector cVal = *reinterpret_cast<SVector *>(buffer);
+            short x = br.ReadInt16();
+            short y = br.ReadInt16();
+            short z = br.ReadInt16();
 
-            //What the fuck is an SVector
+            char resultShift = (char)(((y >> 14) & 2) | ((x >> 15) & 1));
+            bool rSign = (z >> 15) != 0;
 
-            /*
-	            char resultShift = ((cVal.Y >> 14) & 2) | ((cVal.X >> 15) & 1);
-	            bool rSign = (cVal.Z >> 15) != 0;
+            x &= (short)mask;
+            x -= (short)(mask >> 1);
+            y &= (short)mask;
+            y -= (short)(mask >> 1);
+            z &= (short)mask;
+            z -= (short)(mask >> 1);
 
-	            cVal &= mask;
-	            cVal -= mask >> 1;
+            float[] tempValF = new float[3];
+            tempValF[0] = (float)x * fractal;
+            tempValF[1] = (float)y * fractal;
+            tempValF[2] = (float)z * fractal;
 
-	            Vector tempValF = cVal.Convert<float>() * fractal;
+            float[] retval = new float[4];
 
-	            Vector4 retval;
+            for (int i = 0; i < 4; i++)
+            {
+                if (i < resultShift)
+                    retval[i] = tempValF[i];
+                else if (i > resultShift)
+                    retval[i] = tempValF[i - 1];
+            }
 
-	            for (int i = 0; i < 4; i++)
-	            {
-		            if (i < resultShift)
-			            retval[i] = tempValF[i];
-		            else if (i > resultShift)
-			            retval[i] = tempValF[i - 1];
-	            }
+            retval[resultShift] = 1.0f - tempValF[0] * tempValF[0] - tempValF[1] * tempValF[1] - tempValF[2] * tempValF[2];
 
-	            retval[resultShift] = 1.0f - tempValF.X * tempValF.X - tempValF.Y * tempValF.Y - tempValF.Z * tempValF.Z;
+            if (retval[resultShift] <= 0.0f)
+                retval[resultShift] = 0.0f;
+            else
+                retval[resultShift] = (float)Math.Sqrt(retval[resultShift]);
 
-	            if (retval[resultShift] <= 0.0f)
-		            retval[resultShift] = 0.0f;
-	            else
-		            retval[resultShift] = sqrtf(retval[resultShift]);
+            if (rSign)
+                retval[resultShift] *= -1;
 
-	            if (rSign)
-		            retval[resultShift] *= -1;
-
-	            buffer += 6;
-	            return retval;
-            */
-
-            throw new NotImplementedException();
+            return new Quaternion(retval[0], retval[1], retval[2], retval[3]);
         }
 
         static Quaternion ReadQuatTHREECOMP40(BinaryReaderEx br)
@@ -184,42 +206,45 @@ namespace TAEDX.Havok
             const ulong positiveMask = mask >> 1;
             const float fractal = 0.000345436f;
             ulong cVal = br.ReadUInt64();
+                        br.Position -= 3; // Total size is 5 bytes
 
-            /*
-	            IVector tempVal;
-	            tempVal.X = cVal & mask;
-	            tempVal.Y = (cVal >> 12) & mask;
-	            tempVal.Z = (cVal >> 24) & mask;
+            int x = (int)(cVal & mask);
+            int y = (int)((cVal >> 12) & mask);
+            int z = (int)((cVal >> 24) & mask);
 
-	            int resultShift = (cVal >> 36) & 3;
+            int resultShift = (int)((cVal >> 36) & 3);
 
-	            tempVal -= positiveMask;
+            x -= (int)positiveMask;
+            y -= (int)positiveMask;
+            z -= (int)positiveMask;
 
-	            Vector tempValF = tempVal.Convert<float>() * fractal;
+            float[] tempValF = new float[3];
+            tempValF[0] = (float)x * fractal;
+            tempValF[1] = (float)y * fractal;
+            tempValF[2] = (float)z * fractal;
 
-	            Vector4 retval;
 
-	            for (int i = 0; i < 4; i++)
-	            {
-		            if (i < resultShift)
-			            retval[i] = tempValF[i];
-		            else if (i > resultShift)
-			            retval[i] = tempValF[i - 1];
-	            }
+            float[] retval = new float[4];
 
-	            retval[resultShift] = 1.0f - tempValF.X * tempValF.X - tempValF.Y * tempValF.Y - tempValF.Z * tempValF.Z;
+            for (int i = 0; i < 4; i++)
+            {
+                if (i < resultShift)
+                    retval[i] = tempValF[i];
+                else if (i > resultShift)
+                    retval[i] = tempValF[i - 1];
+            }
 
-	            if (retval[resultShift] <= 0.0f)
-		            retval[resultShift] = 0.0f;
-	            else
-		            retval[resultShift] = sqrtf(retval[resultShift]);
+            retval[resultShift] = 1.0f - tempValF[0] * tempValF[0] - tempValF[1] * tempValF[1] - tempValF[2] * tempValF[2];
 
-	            if ((cVal >> 38) & 1)
-		            retval[resultShift] *= -1;
-	            return retval;
-            */
+            if (retval[resultShift] <= 0.0f)
+                retval[resultShift] = 0.0f;
+            else
+                retval[resultShift] = (float)Math.Sqrt(retval[resultShift]);
 
-            throw new NotImplementedException();
+            if (((cVal >> 38) & 1) > 0)
+                retval[resultShift] *= -1;
+            return new Quaternion(retval[0], retval[1], retval[2], retval[3]);
+
         }
 
         static Quaternion ReadQuantizedQuaternion(BinaryReaderEx br, RotationQuantizationType type)
@@ -240,6 +265,71 @@ namespace TAEDX.Havok
                 default:
                     return Quaternion.Identity;
             }
+        }
+
+        // Algorithm A2.1 The NURBS Book 2nd edition, page 68
+        static int FindKnotSpan(int degree, float value, int cPointsSize, byte[] knots)
+        {
+            if (value >= knots[cPointsSize])
+                return cPointsSize - 1;
+
+            int low = degree;
+            int high = cPointsSize;
+            int mid = (low + high) / 2;
+
+            while (value < knots[mid] || value >= knots[mid + 1])
+            {
+                if (value < knots[mid])
+                    high = mid;
+                else
+                    low = mid;
+
+                mid = (low + high) / 2;
+            }
+
+            return mid;
+        }
+
+        static float GetSinglePoint(int knotSpanIndex, int degree, float frame, byte[] knots, float[] cPoints)
+        {
+            float[] N = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+
+            for (int i = 1; i <= degree; i++)
+                for (int j = i - 1; j >= 0; j--)
+                {
+                    float A = (frame - knots[knotSpanIndex - j]) / (knots[knotSpanIndex + i - j] - knots[knotSpanIndex - j]);
+                    float tmp = N[j] * A;
+                    N[j + 1] += N[j] - tmp;
+                    N[j] = tmp;
+                }
+
+            float retVal = 0.0f;
+
+            for (int i = 0; i <= degree; i++)
+                retVal += cPoints[knotSpanIndex - i] * N[i];
+
+            return retVal;
+        }
+
+        static Quaternion GetSinglePoint(int knotSpanIndex, int degree, float frame, byte[] knots, Quaternion[] cPoints)
+        {
+            float[] N = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+
+            for (int i = 1; i <= degree; i++)
+                for (int j = i - 1; j >= 0; j--)
+                {
+                    float A = (frame - knots[knotSpanIndex - j]) / (knots[knotSpanIndex + i - j] - knots[knotSpanIndex - j]);
+                    float tmp = N[j] * A;
+                    N[j + 1] += N[j] - tmp;
+                    N[j] = tmp;
+                }
+
+            Quaternion retVal = new Quaternion(Vector3.Zero, 0.0f);
+
+            for (int i = 0; i <= degree; i++)
+                retVal += cPoints[knotSpanIndex - i] * N[i];
+
+            return retVal;
         }
 
         public class SplineChannel<T>
@@ -274,6 +364,12 @@ namespace TAEDX.Havok
                 {
                     Channel.Values.Add(ReadQuantizedQuaternion(br, quantizationType));
                 }
+            }
+
+            public Quaternion GetValue(float frame)
+            {
+                int knotspan = FindKnotSpan(Degree, frame, Channel.Values.Count(), Knots.ToArray());
+                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), Channel.Values.ToArray());
             }
         }
 
@@ -373,6 +469,30 @@ namespace TAEDX.Havok
                     }
                 }
             }
+
+            public float GetValueX(float frame)
+            {
+                if (ChannelX.Values.Count() == 1)
+                    return ChannelX.Values[0];
+                int knotspan = FindKnotSpan(Degree, frame, ChannelX.Values.Count(), Knots.ToArray());
+                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), ChannelX.Values.ToArray());
+            }
+
+            public float GetValueY(float frame)
+            {
+                if (ChannelY.Values.Count() == 1)
+                    return ChannelY.Values[0];
+                int knotspan = FindKnotSpan(Degree, frame, ChannelY.Values.Count(), Knots.ToArray());
+                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), ChannelY.Values.ToArray());
+            }
+
+            public float GetValueZ(float frame)
+            {
+                if (ChannelZ.Values.Count() == 1)
+                    return ChannelZ.Values[0];
+                int knotspan = FindKnotSpan(Degree, frame, ChannelZ.Values.Count(), Knots.ToArray());
+                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), ChannelZ.Values.ToArray());
+            }
         }
 
         public class TransformMask
@@ -430,9 +550,9 @@ namespace TAEDX.Havok
 
             public Vector3 StaticPosition = Vector3.Zero;
 
-            //public Vector4 StaticRotation;
+            public Quaternion StaticRotation = Quaternion.Identity;
             //TEMP; DONT FEEL LIKE DOING QUATERNION READ
-            public byte[] StaticRotation;
+            //public byte[] StaticRotation;
             public Vector3 StaticScale = Vector3.One;
             public SplineTrackVector3 SplinePosition = null;
             public SplineTrackQuaternion SplineRotation = null;
@@ -518,7 +638,7 @@ namespace TAEDX.Havok
                         if (track.HasStaticRotation)
                         {
                             br.Pad(GetRotationAlign(m.RotationQuantizationType));
-                            track.StaticRotation = br.ReadBytes(GetRotationByteCount(m.RotationQuantizationType));
+                            track.StaticRotation = ReadQuantizedQuaternion(br, m.RotationQuantizationType); //br.ReadBytes(GetRotationByteCount(m.RotationQuantizationType));
                         }
                     }
 
