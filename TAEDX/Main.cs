@@ -279,8 +279,13 @@ namespace TAEDX
 
         protected override void Update(GameTime gameTime)
         {
+            if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
+                TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+
             if (IsActive)
                 TAE_EDITOR.Update(gameTime);
+            else
+                TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
 
             if (!string.IsNullOrWhiteSpace(TAE_EDITOR.FileContainerName))
                 Window.Title = $"{System.IO.Path.GetFileName(TAE_EDITOR.FileContainerName)}" +
@@ -337,7 +342,7 @@ namespace TAEDX
 
             GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
 
-            TAE_EDITOR.Rect = new Rectangle(8, 0, GraphicsDevice.Viewport.Width - 16, GraphicsDevice.Viewport.Height - 20);
+            TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
 
             TAE_EDITOR.Draw(gameTime, GraphicsDevice, GFX.SpriteBatch,
                 TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT, (float)gameTime.ElapsedGameTime.TotalSeconds);

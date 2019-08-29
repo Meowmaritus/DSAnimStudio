@@ -15,8 +15,9 @@ namespace TAEDX.TaeEditor
         enum DividerDragMode
         {
             None,
-            //Left,
-            Right,
+            LeftVertical,
+            RightVertical,
+            RightPaneHorizontal,
         }
 
         enum ScreenMouseHoverKind
@@ -24,7 +25,11 @@ namespace TAEDX.TaeEditor
             None,
             AnimList,
             EventGraph,
-            Inspector
+            Inspector,
+            ModelViewer,
+            DividerBetweenCenterAndLeftPane,
+            DividerBetweenCenterAndRightPane,
+            DividerRightPaneHorizontal,
         }
 
         public TaePlaybackCursor PlaybackCursor => editScreenCurrentAnim.PlaybackCursor;
@@ -187,22 +192,44 @@ namespace TAEDX.TaeEditor
 
         private float LeftSectionWidth = 150;
         private const float LeftSectionWidthMin = 150;
-        private float DividerLeftGrabStart => Rect.Left + LeftSectionWidth;
-        private float DividerLeftGrabEnd => Rect.Left + LeftSectionWidth + DividerHitboxPad;
+        private float DividerLeftVisibleStartX => Rect.Left + LeftSectionWidth;
+        private float DividerLeftVisibleEndX => Rect.Left + LeftSectionWidth + DividerVisiblePad;
 
-        private float RightSectionWidth = 512; //not weed
-        private const float RightSectionWidthMin = 128;
-        private float DividerRightGrabStart => Rect.Right - RightSectionWidth - DividerHitboxPad;
-        private float DividerRightGrabEnd => Rect.Right - RightSectionWidth;
+        private float RightSectionWidth = 600; //not weed
+        private const float RightSectionWidthMin = 320;
+        private float DividerRightVisibleStartX => Rect.Right - RightSectionWidth - DividerVisiblePad;
+        private float DividerRightVisibleEndX => Rect.Right - RightSectionWidth;
+
+
+        private float DividerRightCenterX => DividerRightVisibleStartX + ((DividerRightVisibleEndX - DividerRightVisibleStartX) / 2);
+        private float DividerLeftCenterX => DividerLeftVisibleStartX + ((DividerLeftVisibleEndX - DividerLeftVisibleStartX) / 2);
+
+        private float DividerRightGrabStartX => DividerRightCenterX - (DividerHitboxPad / 2);
+        private float DividerRightGrabEndX => DividerRightCenterX + (DividerHitboxPad / 2);
+
+        private float DividerLeftGrabStartX => DividerLeftCenterX - (DividerHitboxPad / 2);
+        private float DividerLeftGrabEndX => DividerLeftCenterX + (DividerHitboxPad / 2);
+
+        private float TopRightPaneHeight = 400;
+        private const float TopRightPaneHeightMinNew = 128;
+        private const float BottomRightPaneHeightNew = 256;
+
+        private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight;
+        private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad;
+        private float DividerRightPaneHorizontalCenterY => DividerRightPaneHorizontalVisibleStartY + ((DividerRightPaneHorizontalVisibleEndY - DividerRightPaneHorizontalVisibleStartY) / 2);
+
+        private float DividerRightPaneHorizontalGrabStartY => DividerRightPaneHorizontalCenterY - (DividerHitboxPad / 2);
+        private float DividerRightPaneHorizontalGrabEndY => DividerRightPaneHorizontalCenterY + (DividerHitboxPad / 2);
 
         private float LeftSectionStartX => Rect.Left;
-        private float MiddleSectionStartX => DividerLeftGrabEnd;
+        private float MiddleSectionStartX => DividerLeftVisibleEndX;
         private float RightSectionStartX => Rect.Right - RightSectionWidth;
 
-        private float MiddleSectionWidth => DividerRightGrabStart - DividerLeftGrabEnd;
+        private float MiddleSectionWidth => DividerRightVisibleStartX - DividerLeftVisibleEndX;
+        private const float MiddleSectionWidthMin = 500;
 
-        //private float DividerVisiblePad = 12;
-        private float DividerHitboxPad = 4;
+        private float DividerVisiblePad = 3;
+        private float DividerHitboxPad = 10;
 
         private DividerDragMode CurrentDividerDragMode = DividerDragMode.None;
 
@@ -235,11 +262,13 @@ namespace TAEDX.TaeEditor
                 {
                     inspectorWinFormsControl.labelEventType.Text = "(Multiple Selected)";
                     inspectorWinFormsControl.buttonChangeType.Enabled = false;
+                    inspectorWinFormsControl.buttonChangeType.Visible = false;
                 }
                 else
                 {
                     inspectorWinFormsControl.labelEventType.Text = "(Nothing Selected)";
                     inspectorWinFormsControl.buttonChangeType.Enabled = false;
+                    inspectorWinFormsControl.buttonChangeType.Visible = false;
                 }
             }
             else
@@ -247,6 +276,7 @@ namespace TAEDX.TaeEditor
                 inspectorWinFormsControl.labelEventType.Text =
                     (SelectedEventBox.MyEvent.TypeName ?? SelectedEventBox.MyEvent.Type.ToString());
                 inspectorWinFormsControl.buttonChangeType.Enabled = true;
+                inspectorWinFormsControl.buttonChangeType.Visible = true;
             }
         }
 
@@ -258,7 +288,7 @@ namespace TAEDX.TaeEditor
             get => _selectedEventBox;
             set
             {
-                inspectorWinFormsControl.DumpDataGridValuesToEvent();
+                //inspectorWinFormsControl.DumpDataGridValuesToEvent();
 
                 _selectedEventBox = value;
 
@@ -442,6 +472,7 @@ namespace TAEDX.TaeEditor
             editScreenCurrentAnim = new TaeEditAnimEventGraph(this);
             SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
             ButtonEditCurrentAnimInfo.Enabled = true;
+            ButtonEditCurrentAnimInfo.Visible = true;
             MenuBar["Edit/Find First Event of Type..."].Enabled = true;
             MenuBar["Edit/Go To Animation ID..."].Enabled = true;
             MenuBar["Edit/Collapse All TAE Sections"].Enabled = true;
@@ -496,8 +527,15 @@ namespace TAEDX.TaeEditor
                     box.UpdateEventText();
                 }
 
+                var wasSelecting = SelectedEventBox;
+                SelectedEventBox = null;
+                SelectedEventBox = wasSelecting;
+
                 if (SelectedTae.BankTemplate != null)
+                {
                     inspectorWinFormsControl.buttonChangeType.Enabled = true;
+                    inspectorWinFormsControl.buttonChangeType.Visible = true;
+                }
             }
             catch (Exception ex)
             {
@@ -538,6 +576,7 @@ namespace TAEDX.TaeEditor
             //inspectorWinFormsControl.propertyGrid.CanShowVisualStyleGlyphs = false;
 
             inspectorWinFormsControl.buttonChangeType.Enabled = false;
+            inspectorWinFormsControl.buttonChangeType.Visible = false;
 
             inspectorWinFormsControl.buttonChangeType.Click += ButtonChangeType_Click;
 
@@ -546,6 +585,9 @@ namespace TAEDX.TaeEditor
             GameWindowAsForm.Controls.Add(inspectorWinFormsControl);
 
             WinFormsMenuStrip = new System.Windows.Forms.MenuStrip();
+
+            //WinFormsMenuStrip.BackColor = inspectorWinFormsControl.BackColor;
+            //WinFormsMenuStrip.ForeColor = inspectorWinFormsControl.ForeColor;
 
             MenuBar = new TaeMenuBarBuilder(WinFormsMenuStrip);
 
@@ -566,7 +608,7 @@ namespace TAEDX.TaeEditor
             MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Force Refresh Ingame", () => LiveRefresh(), startDisabled: true);
-            MenuBar.AddItem("File", "Force Refresh On Save", Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
+            MenuBar.AddItem("File", "Force Refresh On Save", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
 
@@ -594,9 +636,9 @@ namespace TAEDX.TaeEditor
 
 
             // Config
-            MenuBar.AddItem("Config", "High Contrast Mode", Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
+            MenuBar.AddItem("Config", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
             MenuBar.AddSeparator("Config");
-            MenuBar.AddItem("Config", "Use Fancy Text Scrolling", Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
+            MenuBar.AddItem("Config", "Use Fancy Text Scrolling", () => Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
             MenuBar.AddItem("Config", "Fancy Text Scroll Speed", new Dictionary<string, Action>
                 {
                     { "Extremely Slow (4 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 4 },
@@ -609,7 +651,7 @@ namespace TAEDX.TaeEditor
                 },
                 defaultChoice: "Fast (64 px/s)");
             MenuBar.AddSeparator("Config");
-            MenuBar.AddItem("Config", "Start with all TAE sections collapsed", Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
+            MenuBar.AddItem("Config", "Start with all TAE sections collapsed", () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
 
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
@@ -617,18 +659,26 @@ namespace TAEDX.TaeEditor
             WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
 
+            //MenuBar.SetColorsOfAll(inspectorWinFormsControl.BackColor, inspectorWinFormsControl.ForeColor);
+
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
 
             ButtonEditCurrentAnimInfo = new System.Windows.Forms.Button();
             ButtonEditCurrentAnimInfo.Text = "Edit Anim Info...";
             ButtonEditCurrentAnimInfo.Click += ButtonEditCurrentAnimInfo_Click;
+            ButtonEditCurrentAnimInfo.BackColor = inspectorWinFormsControl.BackColor;
+            ButtonEditCurrentAnimInfo.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonEditCurrentAnimInfo.Enabled = false;
+            ButtonEditCurrentAnimInfo.Visible = false;
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
 
             ButtonEditCurrentTaeHeader = new System.Windows.Forms.Button();
             ButtonEditCurrentTaeHeader.Text = "Edit TAE Header...";
             ButtonEditCurrentTaeHeader.Click += ButtonEditCurrentTaeHeader_Click;
+            ButtonEditCurrentTaeHeader.BackColor = inspectorWinFormsControl.BackColor;
+            ButtonEditCurrentTaeHeader.ForeColor = inspectorWinFormsControl.ForeColor;
+            ButtonEditCurrentTaeHeader.Enabled = false;
             ButtonEditCurrentTaeHeader.Enabled = false;
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
@@ -929,7 +979,7 @@ namespace TAEDX.TaeEditor
                 ValidateNames = true,
                 CheckFileExists = true,
                 CheckPathExists = true,
-                ShowReadOnly = true,
+                //ShowReadOnly = true,
             };
 
             if (System.IO.File.Exists(FileContainerName))
@@ -1143,6 +1193,7 @@ namespace TAEDX.TaeEditor
             SelectedTae = tae;
 
             ButtonEditCurrentTaeHeader.Enabled = true;
+            ButtonEditCurrentTaeHeader.Enabled = true;
 
             SelectedTaeAnim = animRef;
 
@@ -1243,6 +1294,12 @@ namespace TAEDX.TaeEditor
 
             Input.Update(Rect);
 
+            // Always update playback regardless of GUI memes.
+            // Still only allow hitting spacebar to play/pause
+            // if the window is in focus.
+            if (editScreenCurrentAnim != null)
+                editScreenCurrentAnim.UpdatePlaybackCursor(gameTime, allowPlayPauseInput: Main.Active);
+
             if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
                 ChangeTypeOfSelectedEvent();
 
@@ -1336,119 +1393,251 @@ namespace TAEDX.TaeEditor
                 UndoMan.Redo();
             }
 
-            if (CurrentDividerDragMode == DividerDragMode.None)
+            if (!Input.LeftClickHeld)
+                WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
+
+
+            if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.None)
             {
-                //if (Input.MousePosition.X >= DividerLeftGrabStart && Input.MousePosition.X <= DividerLeftGrabEnd)
-                //{
-                //    MouseHoverKind = ScreenMouseHoverKind.None;
-                //    //Input.CursorType = MouseCursorType.DragX;
-                //    if (Input.LeftClickDown)
-                //    {
-                //        CurrentDividerDragMode = DividerDragMode.Left;
-                //    }
-                //}
-                if (Input.MousePosition.X >= DividerRightGrabStart && Input.MousePosition.X <= DividerRightGrabEnd)
+                if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
+                    && Input.MousePosition.X >= DividerLeftGrabStartX && Input.MousePosition.X <= DividerLeftGrabEndX)
                 {
-                    MouseHoverKind = ScreenMouseHoverKind.None;
+                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
                     //Input.CursorType = MouseCursorType.DragX;
                     if (Input.LeftClickDown)
                     {
-                        CurrentDividerDragMode = DividerDragMode.Right;
+                        CurrentDividerDragMode = DividerDragMode.LeftVertical;
+                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
                     }
                 }
+                else if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
+                    && Input.MousePosition.X >= DividerRightGrabStartX && Input.MousePosition.X <= DividerRightGrabEndX)
+                {
+                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                    //Input.CursorType = MouseCursorType.DragX;
+                    if (Input.LeftClickDown)
+                    {
+                        CurrentDividerDragMode = DividerDragMode.RightVertical;
+                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                    }
+                }
+                else if (Input.MousePosition.X >= RightSectionStartX && Input.MousePosition.X <= Rect.Right 
+                    && Input.MousePosition.Y >= DividerRightPaneHorizontalGrabStartY && Input.MousePosition.Y <= DividerRightPaneHorizontalGrabEndY)
+                {
+                    MouseHoverKind = ScreenMouseHoverKind.DividerRightPaneHorizontal;
+                    //Input.CursorType = MouseCursorType.DragX;
+                    if (Input.LeftClickDown)
+                    {
+                        CurrentDividerDragMode = DividerDragMode.RightPaneHorizontal;
+                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerRightPaneHorizontal;
+                    }
+                }
+                else if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                    || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
+                    || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal)
+                {
+                    MouseHoverKind = ScreenMouseHoverKind.None;
+                }
             }
-            //else if (CurrentDividerDragMode == DividerDragMode.Left)
-            //{
-            //    if (Input.LeftClickHeld)
-            //    {
-            //        //Input.CursorType = MouseCursorType.DragX;
-            //        LeftSectionWidth = MathHelper.Max(Input.MousePosition.X - (DividerHitboxPad / 2), LeftSectionWidthMin);
-            //    }
-            //    else
-            //    {
-            //        //Input.CursorType = MouseCursorType.Arrow;
-            //        CurrentDividerDragMode = DividerDragMode.None;
-            //    }
-            //}
-            else if (CurrentDividerDragMode == DividerDragMode.Right)
+
+            if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane 
+                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane 
+                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
+            {
+                Input.CursorType = MouseCursorType.DragX;
+            }
+            else if (MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal 
+                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
+            {
+                Input.CursorType = MouseCursorType.DragY;
+            }
+
+            if (CurrentDividerDragMode == DividerDragMode.LeftVertical)
             {
                 if (Input.LeftClickHeld)
                 {
                     //Input.CursorType = MouseCursorType.DragX;
-                    RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerHitboxPad / 2), RightSectionWidthMin);
+                    LeftSectionWidth = MathHelper.Max((Input.MousePosition.X - Rect.X) - (DividerVisiblePad / 2), LeftSectionWidthMin);
+                    LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidth - (DividerVisiblePad * 2));
+                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
                 }
                 else
                 {
                     //Input.CursorType = MouseCursorType.Arrow;
                     CurrentDividerDragMode = DividerDragMode.None;
+                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
                 }
             }
-
-            if (editScreenAnimList != null && editScreenCurrentAnim != null)
+            else if (CurrentDividerDragMode == DividerDragMode.RightVertical)
             {
-                editScreenCurrentAnim.UpdatePlaybackCursor(gameTime, Main.Active);
-
-                if (editScreenAnimList.Rect.Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.AnimList;
-                else if (editScreenCurrentAnim.Rect.Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.EventGraph;
-                else if (
-                    new Rectangle(
-                        inspectorWinFormsControl.Bounds.Left,
-                        inspectorWinFormsControl.Bounds.Top,
-                        inspectorWinFormsControl.Bounds.Width,
-                        inspectorWinFormsControl.Bounds.Height
-                        )
-                        .Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.Inspector;
-                else
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-
-                if (Input.LeftClickDown)
+                if (Input.LeftClickHeld)
                 {
-                    WhereCurrentMouseClickStarted = MouseHoverKind;
+                    //Input.CursorType = MouseCursorType.DragX;
+                    RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerVisiblePad / 2), RightSectionWidthMin);
+                    RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidth - (DividerVisiblePad * 2));
+                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
                 }
-
-                if (MouseHoverKind == ScreenMouseHoverKind.AnimList || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
-                    editScreenAnimList.Update(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                 else
-                    editScreenAnimList.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-
-                if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
-                    editScreenCurrentAnim.Update(gameTime, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-                else
-                    editScreenCurrentAnim.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-
+                {
+                    //Input.CursorType = MouseCursorType.Arrow;
+                    CurrentDividerDragMode = DividerDragMode.None;
+                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
+                }
             }
-            else
+            else if (CurrentDividerDragMode == DividerDragMode.RightPaneHorizontal)
             {
-                if (new Rectangle(
-                inspectorWinFormsControl.Bounds.Left,
-                inspectorWinFormsControl.Bounds.Top,
-                inspectorWinFormsControl.Bounds.Width,
-                inspectorWinFormsControl.Bounds.Height)
-                .Contains(Input.MousePositionPoint))
+                if (Input.LeftClickHeld)
                 {
-                    MouseHoverKind = ScreenMouseHoverKind.Inspector;
+                    //Input.CursorType = MouseCursorType.DragY;
+                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
+                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightNew - DividerVisiblePad);
+                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
                 }
                 else
                 {
-                    MouseHoverKind = ScreenMouseHoverKind.None;
+                    //Input.CursorType = MouseCursorType.Arrow;
+                    CurrentDividerDragMode = DividerDragMode.None;
+                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
                 }
-
-                Input.CursorType = MouseCursorType.StopUpdating;
             }
+
+            if (!Rect.Contains(Input.MousePositionPoint))
+            {
+                MouseHoverKind = ScreenMouseHoverKind.None;
+            }
+
+            // Check if currently dragging to resize panes.
+            if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
+            {
+                Input.CursorType = MouseCursorType.DragX;
+                GFX.World.DisableAllInput = true;
+                return;
+            }
+            else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
+            {
+                Input.CursorType = MouseCursorType.DragY;
+                GFX.World.DisableAllInput = true;
+                return;
+            }
+            else if (!(MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
+                || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal))
+            {
+                if (editScreenAnimList != null && editScreenCurrentAnim != null)
+                {
+                    if (editScreenAnimList.Rect.Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.AnimList;
+                    else if (editScreenCurrentAnim.Rect.Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.EventGraph;
+                    else if (
+                        new Rectangle(
+                            inspectorWinFormsControl.Bounds.Left,
+                            inspectorWinFormsControl.Bounds.Top,
+                            inspectorWinFormsControl.Bounds.Width,
+                            inspectorWinFormsControl.Bounds.Height
+                            )
+                            .Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.Inspector;
+                    else if (
+                        TaeInterop.ModelViewerWindowRect.Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
+                    else
+                        MouseHoverKind = ScreenMouseHoverKind.None;
+
+                    if (Input.LeftClickDown)
+                    {
+                        WhereCurrentMouseClickStarted = MouseHoverKind;
+                    }
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.AnimList || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
+                    {
+                        Input.CursorType = MouseCursorType.Arrow;
+                        editScreenAnimList.Update(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                    }
+                    else
+                    {
+                        editScreenAnimList.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                    }
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
+                        editScreenCurrentAnim.Update(gameTime, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                    else
+                        editScreenCurrentAnim.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
+                    {
+                        Input.CursorType = MouseCursorType.Arrow;
+                        GFX.World.DisableAllInput = false;
+                    }
+                    else
+                    {
+                        //GFX.World.DisableAllInput = true;
+                    }
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.Inspector || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
+                    {
+                        Input.CursorType = MouseCursorType.Arrow;
+                    }
+
+                }
+                else
+                {
+                    if (new Rectangle(
+                    inspectorWinFormsControl.Bounds.Left,
+                    inspectorWinFormsControl.Bounds.Top,
+                    inspectorWinFormsControl.Bounds.Width,
+                    inspectorWinFormsControl.Bounds.Height)
+                    .Contains(Input.MousePositionPoint))
+                    {
+                        MouseHoverKind = ScreenMouseHoverKind.Inspector;
+                    }
+                    else if (
+                        TaeInterop.ModelViewerWindowRect.Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
+                    //else
+                    //{
+                    //    MouseHoverKind = ScreenMouseHoverKind.None;
+                    //}
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.Inspector || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
+                    {
+                        Input.CursorType = MouseCursorType.Arrow;
+                    }
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
+                    {
+                        Input.CursorType = MouseCursorType.Arrow;
+                        GFX.World.DisableAllInput = false;
+                    }
+                    else
+                    {
+                        //GFX.World.DisableAllInput = true;
+                    }
+
+                    if (Input.LeftClickDown)
+                    {
+                        WhereCurrentMouseClickStarted = MouseHoverKind;
+                    }
+
+                    //Input.CursorType = MouseCursorType.StopUpdating;
+                }
+            }
+
+                
 
             
 
 
-            if (MouseHoverKind != ScreenMouseHoverKind.None && oldMouseHoverKind == ScreenMouseHoverKind.None)
-            {
-                //Input.CursorType = MouseCursorType.Arrow;
-            }
+            
+            //else
+            //{
+            //    Input.CursorType = MouseCursorType.Arrow;
+            //}
 
-            if (MouseHoverKind == ScreenMouseHoverKind.Inspector)
-                Input.CursorType = MouseCursorType.StopUpdating;
+            //if (MouseHoverKind == ScreenMouseHoverKind.Inspector)
+            //    Input.CursorType = MouseCursorType.StopUpdating;
 
             //if (editScreenGraphInspector.Rect.Contains(Input.MousePositionPoint))
             //    editScreenGraphInspector.Update(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
@@ -1509,14 +1698,23 @@ namespace TAEDX.TaeEditor
                     EditTaeHeaderButtonHeight);
 
             //editScreenGraphInspector.Rect = new Rectangle(Rect.Width - LayoutInspectorWidth, 0, LayoutInspectorWidth, Rect.Height);
-            inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(Rect.Height - TopMenuBarMargin - RightSectionWidth));
-            ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Height - RightSectionWidth), (int)RightSectionWidth, (int)(RightSectionWidth));
+
+
+            //inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(Rect.Height - TopMenuBarMargin - BottomRightPaneHeight - DividerVisiblePad));
+            //ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Bottom - BottomRightPaneHeight), (int)RightSectionWidth, (int)(BottomRightPaneHeight));
+
+            ModelViewerBounds = new Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(TopRightPaneHeight));
+            inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, (int)(Rect.Top + TopRightPaneHeight + DividerVisiblePad), (int)RightSectionWidth, (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad));
         }
 
         public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
         {
             sb.Begin();
             sb.Draw(boxTex, Rect, Config.EnableColorBlindMode ? Color.Black : new Color(0.2f, 0.2f, 0.2f));
+
+            // Draw model viewer background lel
+            sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
+
             sb.End();
             //throw new Exception("TaeUndoMan");
 

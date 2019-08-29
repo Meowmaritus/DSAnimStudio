@@ -12,13 +12,15 @@ namespace TAEDX
 {
     public class WorldView
     {
+        public bool DisableAllInput = false;
+
         public Transform CameraTransform = Transform.Default;
         public Transform CameraOrigin = Transform.Default;
         public Transform CameraPositionDefault = Transform.Default;
 
-        public float OrbitCamDistanceReference = 6;
+        public Func<float> OrbitCamDistanceReference;
         public float OrbitCamDistance = 6;
-        public Vector3 OrbitCamCanterReference = Vector3.Zero;
+        public Func<Vector3> OrbitCamCanterReference;
         public Vector3 OrbitCamCenter = new Vector3(0, 2, 0);
         public bool IsOrbitCam = true;
 
@@ -26,8 +28,8 @@ namespace TAEDX
 
         public void OrbitCamReset()
         {
-            OrbitCamDistance = OrbitCamDistanceReference;
-            OrbitCamCenter = OrbitCamCanterReference;
+            OrbitCamDistance = OrbitCamDistanceReference?.Invoke() ?? 6;
+            OrbitCamCenter = OrbitCamCanterReference?.Invoke() ?? new Vector3(0, 2, 0);
             CameraTransform.EulerRotation = CameraDefaultRot;
         }
 
@@ -337,6 +339,9 @@ namespace TAEDX
 
         public void UpdateInput(Main game, GameTime gameTime)
         {
+            if (DisableAllInput)
+                return;
+
             //if (GFX.TestLightSpin)
             //{
             //    LightRotation.Y += MathHelper.PiOver4 * (float)gameTime.ElapsedGameTime.TotalSeconds;

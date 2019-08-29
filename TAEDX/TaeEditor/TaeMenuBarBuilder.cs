@@ -11,10 +11,10 @@ namespace TAEDX.TaeEditor
     {
         private Dictionary<string, ToolStripMenuItem> items = new Dictionary<string, ToolStripMenuItem>();
 
-        private ToolStrip Toolstrip;
-        public TaeMenuBarBuilder(ToolStrip toolStrip)
+        private MenuStrip Menustrip;
+        public TaeMenuBarBuilder(MenuStrip toolStrip)
         {
-            Toolstrip = toolStrip;
+            Menustrip = toolStrip;
         }
 
         public ToolStripMenuItem this[string path]
@@ -28,6 +28,32 @@ namespace TAEDX.TaeEditor
             }
         }
 
+        void SetColorOfItem(ToolStripMenuItem item)
+        {
+            //item.BackColor = Menustrip.BackColor;
+            //item.ForeColor = Menustrip.ForeColor;
+
+            foreach (ToolStripMenuItem subItem in item.DropDownItems.OfType<ToolStripMenuItem>())
+            {
+                SetColorOfItem(subItem);
+            }
+        }
+
+
+        public void SetColorsOfAll(System.Drawing.Color backColor, System.Drawing.Color foreColor)
+        {
+            //Menustrip.BackColor = backColor;
+            //Menustrip.ForeColor = foreColor;
+
+            //ToolStripManager.VisualStylesEnabled = true;
+            //ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new CustomProfessionalColors());
+
+            foreach (ToolStripMenuItem topItem in Menustrip.Items)
+            {
+                SetColorOfItem(topItem);
+            }
+        }
+
         private ToolStripMenuItem FindOrCreateItem(string path, ToolStripMenuItem parent, string itemName)
         {
             foreach (ToolStripMenuItem c in parent.DropDownItems)
@@ -37,6 +63,8 @@ namespace TAEDX.TaeEditor
             }
 
             var newItem = new ToolStripMenuItem(itemName);
+
+            SetColorOfItem(newItem);
 
             parent.DropDownItems.Add(newItem);
 
@@ -56,6 +84,8 @@ namespace TAEDX.TaeEditor
 
             var newItem = new ToolStripMenuItem(itemName);
 
+            SetColorOfItem(newItem);
+
             parent.Items.Add(newItem);
 
             if (!items.ContainsKey(path))
@@ -70,7 +100,7 @@ namespace TAEDX.TaeEditor
 
             string currentPath = pathStops[0];
 
-            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Toolstrip, pathStops[0]);
+            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Menustrip, pathStops[0]);
 
             for (int i = 1; i < pathStops.Length; i++)
             {
@@ -117,10 +147,12 @@ namespace TAEDX.TaeEditor
             if (!items.ContainsKey(currentPath))
                 items.Add(currentPath, newItem);
 
+            SetColorOfItem(newItem);
+
             baseItem.DropDownItems.Add(newItem);
         }
 
-        public void AddItem(string path, string itemName, bool checkState, Action<bool> onCheckChange)
+        public void AddItem(string path, string itemName, Func<bool> checkState, Action<bool> onCheckChange)
         {
             string[] pathStops = path.Split('/');
 
@@ -128,7 +160,7 @@ namespace TAEDX.TaeEditor
 
             string currentPath = pathStops[0];
 
-            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Toolstrip, pathStops[0]);
+            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Menustrip, pathStops[0]);
 
             for (int i = 1; i < pathStops.Length; i++)
             {
@@ -150,15 +182,24 @@ namespace TAEDX.TaeEditor
             if (shortcutText != null)
                 newItem.ShortcutKeyDisplayString = shortcutText;
 
-            newItem.CheckOnClick = true;
+            //newItem.CheckOnClick = true;
 
-            newItem.Checked = checkState;
+            baseItem.DropDownOpening += (o, e) =>
+            {
+                newItem.Checked = checkState.Invoke();
+            };
 
-            newItem.CheckedChanged += (o, e) => onCheckChange(newItem.Checked);
+            newItem.Click += (o, e) =>
+            {
+                newItem.Checked = !newItem.Checked;
+                onCheckChange(newItem.Checked);
+            };
 
             currentPath += "/" + itemName;
             if (!items.ContainsKey(currentPath))
                 items.Add(currentPath, newItem);
+
+            SetColorOfItem(newItem);
 
             baseItem.DropDownItems.Add(newItem);
         }
@@ -171,7 +212,7 @@ namespace TAEDX.TaeEditor
 
             string currentPath = pathStops[0];
 
-            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Toolstrip, pathStops[0]);
+            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Menustrip, pathStops[0]);
 
             for (int i = 1; i < pathStops.Length; i++)
             {
@@ -203,6 +244,8 @@ namespace TAEDX.TaeEditor
             if (!items.ContainsKey(currentPath))
                 items.Add(currentPath, newItem);
 
+            SetColorOfItem(newItem);
+
             baseItem.DropDownItems.Add(newItem);
         }
 
@@ -212,7 +255,7 @@ namespace TAEDX.TaeEditor
 
             string currentPath = pathStops[0];
 
-            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Toolstrip, pathStops[0]);
+            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Menustrip, pathStops[0]);
 
             for (int i = 1; i < pathStops.Length; i++)
             {
@@ -224,6 +267,8 @@ namespace TAEDX.TaeEditor
             if (!items.ContainsKey(currentPath))
                 items.Add(currentPath, item);
 
+            SetColorOfItem(item);
+
             baseItem.DropDownItems.Add(item);
         }
 
@@ -233,7 +278,7 @@ namespace TAEDX.TaeEditor
 
             string currentPath = pathStops[0];
 
-            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Toolstrip, pathStops[0]);
+            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Menustrip, pathStops[0]);
 
             for (int i = 1; i < pathStops.Length; i++)
             {
@@ -241,7 +286,11 @@ namespace TAEDX.TaeEditor
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
-            baseItem.DropDownItems.Add(new ToolStripSeparator());
+            baseItem.DropDownItems.Add(new ToolStripSeparator()
+            {
+                BackColor = Menustrip.BackColor,
+                ForeColor = Menustrip.ForeColor,
+            });
         }
 
         public void ClearItem(string fullPath)

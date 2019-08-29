@@ -51,9 +51,30 @@ namespace TAEDX
 
         public bool IsVisible { get; set; } = true;
 
+        public string MaterialName;
+
+        public int ModelMaskIndex
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(MaterialName))
+                    return -1;
+
+                if (MaterialName[0] != '#' || MaterialName[3] != '#')
+                    return -1;
+
+                if (int.TryParse(MaterialName.Substring(1, 2), out int mask))
+                    return mask;
+                else
+                    return -1;
+            }
+        }
+
         public FlverSubmeshRenderer(Model parent, FLVER2 flvr, FLVER2.Mesh mesh)
         {
             Parent = parent;
+
+            MaterialName = flvr.Materials[mesh.MaterialIndex].Name;
 
             var shortMaterialName = MiscUtil.GetFileNameWithoutDirectoryOrExtension(flvr.Materials[mesh.MaterialIndex].MTD);
             if (shortMaterialName.EndsWith("_Alp") ||
@@ -233,6 +254,8 @@ namespace TAEDX
         public FlverSubmeshRenderer(Model parent, FLVER0 flvr, FLVER0.Mesh mesh)
         {
             Parent = parent;
+
+            MaterialName = flvr.Materials[mesh.MaterialIndex].Name;
 
             var shortMaterialName = MiscUtil.GetFileNameWithoutDirectoryOrExtension(flvr.Materials[mesh.MaterialIndex].MTD);
             if (shortMaterialName.EndsWith("_Alp") ||
