@@ -586,8 +586,8 @@ namespace TAEDX.TaeEditor
 
             WinFormsMenuStrip = new System.Windows.Forms.MenuStrip();
 
-            //WinFormsMenuStrip.BackColor = inspectorWinFormsControl.BackColor;
-            //WinFormsMenuStrip.ForeColor = inspectorWinFormsControl.ForeColor;
+            WinFormsMenuStrip.BackColor = inspectorWinFormsControl.BackColor;
+            WinFormsMenuStrip.ForeColor = inspectorWinFormsControl.ForeColor;
 
             MenuBar = new TaeMenuBarBuilder(WinFormsMenuStrip);
 
@@ -658,8 +658,6 @@ namespace TAEDX.TaeEditor
 
             WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
-
-            //MenuBar.SetColorsOfAll(inspectorWinFormsControl.BackColor, inspectorWinFormsControl.ForeColor);
 
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
 
