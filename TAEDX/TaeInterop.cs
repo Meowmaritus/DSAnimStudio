@@ -230,6 +230,12 @@ namespace TAEDX
             {
                 Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), transform);
             }
+
+            if (Directory.Exists($"{chrNameBase}"))
+            {
+                TexturePool.AddTPFFolder($"{chrNameBase}");
+                GFX.ModelDrawer.RequestTextureLoad();
+            }
         }
 
         /// <summary>
