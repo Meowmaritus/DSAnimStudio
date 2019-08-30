@@ -10,7 +10,7 @@ namespace TAEDX.GFXShaders
 {
     public class FlverShader : Effect, IGFXShader<FlverShader>
     {
-        public const int NUM_BONES = 100;
+        public const int NUM_BONES = 255;
 
         public FlverShader Effect => this;
 
