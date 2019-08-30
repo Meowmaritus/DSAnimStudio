@@ -9,7 +9,7 @@
 
 cbuffer cbSkinned
 {
-    float4x4 Bones[180]; //parameter incorrect
+    float4x4 Bones[255]; //parameter incorrect
     //float4x3 Bones[512]; //index out of range :MecHands:
 };
 
@@ -122,12 +122,12 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
     
     float4 inPos = input.Position;
     
-    float4 posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[0]]) * input.BoneWeights[0];
-    float4 posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[1]]) * input.BoneWeights[1];
-    float4 posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[2]]) * input.BoneWeights[2];
-    float4 posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[3]]) * input.BoneWeights[3];
+    float4 posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[0])]) * input.BoneWeights[0];
+    float4 posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[1])]) * input.BoneWeights[1];
+    float4 posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[2])]) * input.BoneWeights[2];
+    float4 posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[3])]) * input.BoneWeights[3];
     
-    inPos.xyz = ((posA + posB + posC + posD) / (input.BoneWeights[0] + input.BoneWeights[1] + input.BoneWeights[2] + input.BoneWeights[3])).xyz;
+    inPos = ((posA + posB + posC + posD) / (input.BoneWeights[0] + input.BoneWeights[1] + input.BoneWeights[2] + input.BoneWeights[3]));
 
     //inPos.xyz = mul(inPos, skinning);
 

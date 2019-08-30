@@ -145,10 +145,18 @@ namespace TAEDX
 
                 if (flvr.Header.Version <= 0x2000D)
                 {
-                    throw new NotImplementedException("Need to convert DS1's relative bone indices to absolute ones ree");
+                    MeshVertices[i].BoneIndices = new Vector4(
+                        vert.BoneIndices[0] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] : -1, 
+                        vert.BoneIndices[1] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] : -1, 
+                        vert.BoneIndices[2] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] : -1,
+                        vert.BoneIndices[3] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] : -1);
+                }
+                else
+                {
+                    MeshVertices[i].BoneIndices = new Vector4(vert.BoneIndices[0], vert.BoneIndices[1], vert.BoneIndices[2], vert.BoneIndices[3]);
                 }
 
-                MeshVertices[i].BoneIndices = new Vector4(vert.BoneIndices[0] + 1, vert.BoneIndices[1] + 1, vert.BoneIndices[2] + 1, vert.BoneIndices[3] + 1);
+                
 
                 //if (MeshVertices[i].BoneIndices.X == -1 || MeshVertices[i].BoneIndices.X > (FlverShader.NUM_BONES - 1))
                 //    MeshVertices[i].BoneIndices.X = 0;
@@ -175,6 +183,18 @@ namespace TAEDX
                 //if (MeshVertices[i].BoneWeights.W < 0)
                 //    MeshVertices[i].BoneWeights.W = 1;
                 //MeshVertices[i].BoneWeights = new Vector4(1,0,0,0);
+
+                if (MeshVertices[i].BoneIndices.X < 1)
+                    MeshVertices[i].BoneWeights.X = 0;
+
+                if (MeshVertices[i].BoneIndices.Y < 1)
+                    MeshVertices[i].BoneWeights.Y = 0;
+
+                if (MeshVertices[i].BoneIndices.Z < 1)
+                    MeshVertices[i].BoneWeights.Z = 0;
+
+                if (MeshVertices[i].BoneIndices.W < 1)
+                    MeshVertices[i].BoneWeights.W = 0;
 
                 if (vert.UVs.Count > 0)
                 {

@@ -89,6 +89,8 @@ namespace TAEDX
 
         public static FLVER2 CurrentModel;
 
+        public static Exception HkxAnimException = null;
+
         /// <summary>
         /// The current event graph's playback cursor.
         /// </summary>
@@ -113,6 +115,7 @@ namespace TAEDX
         public static List<DbgPrimSolidBone> HkxBonePrimitives;
         public static List<Matrix> HkxBoneMatrices;
         public static List<Matrix> HkxBoneMatrices_Reference;
+        public static List<Matrix> HkxBoneParentMatrices_Reference;
         public static List<Matrix> HkxBoneParentMatrices;
         public static List<Vector3> HkxBonePositions;
         public static List<Vector3> HkxBoneScales;
@@ -194,11 +197,12 @@ namespace TAEDX
 
         public static void OnAnimFrameChange()
         {
-            UpdateHavokBones((float)PlaybackCursor.GUICurrentTime, (float)PlaybackCursor.GUICurrentFrame);
-            //foreach (var mdl in GFX.ModelDrawer.Models)
-            //{
-            //    mdl.ShittyTransform.Position = GetRootMotion((float)PlaybackCursor.CurrentTime);
-            //}
+            if (CurrentAnimationHKX != null)
+                UpdateHavokBones((float)PlaybackCursor.GUICurrentTime, (float)PlaybackCursor.GUICurrentFrame);
+            foreach (var mdl in GFX.ModelDrawer.Models)
+            {
+                mdl.ShittyTransform.Position = GetRootMotion((float)PlaybackCursor.CurrentTime);
+            }
         }
 
         /// <summary>
@@ -241,88 +245,104 @@ namespace TAEDX
             //TESTING
             //var testtest = HKX.Read(File.ReadAllBytes(@"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game\chr\c6200-anibnd-dcx\chr\c6200\hkx\a000_000020.hkx"), HKX.HKXVariation.HKXDS1);
 
-            CurrentAnimationHKX = HKX.Read(CurrentAnimationHKXBytes, HKX.HKXVariation.HKXDS3);
-
-            // TEST
-            HKX.HKASplineCompressedAnimation anime = null;
-            HKX.HKAAnimationBinding animBinding = null;
-            HKX.HKADefaultAnimatedReferenceFrame animRefFrame = null;
-            foreach (var cl in CurrentAnimationHKX.DataSection.Objects)
+            try
             {
-                if (cl is HKX.HKASplineCompressedAnimation asAnim)
+                CurrentAnimationHKX = HKX.Read(CurrentAnimationHKXBytes, HKX.HKXVariation.HKXDS3);
+
+                // TEST
+                HKX.HKASplineCompressedAnimation anime = null;
+                HKX.HKAAnimationBinding animBinding = null;
+                HKX.HKADefaultAnimatedReferenceFrame animRefFrame = null;
+                foreach (var cl in CurrentAnimationHKX.DataSection.Objects)
                 {
-                    anime = asAnim;
+                    if (cl is HKX.HKASplineCompressedAnimation asAnim)
+                    {
+                        anime = asAnim;
+                    }
+                    else if (cl is HKX.HKAAnimationBinding asBinding)
+                    {
+                        animBinding = asBinding;
+                    }
+                    else if (cl is HKX.HKADefaultAnimatedReferenceFrame asRefFrame)
+                    {
+                        animRefFrame = asRefFrame;
+                    }
                 }
-                else if (cl is HKX.HKAAnimationBinding asBinding)
+
+                CurrentAnimationTracks = Havok.SplineCompressedAnimation.ReadSplineCompressedAnimByteBlock(false, anime.GetData(), anime.TransformTrackCount, anime.BlockCount);
+                CurrentAnimationFrameCount = anime.FrameCount;
+                TrueAnimLenghForPlaybackCursor = anime.Duration;
+
+                TransformTrackToBoneIndices = new short[(int)animBinding.TransformTrackToBoneIndices.Capacity];
+
+                BoneToTransformTrackMap = new Dictionary<int, Havok.SplineCompressedAnimation.TransformTrack>();
+
+                for (int i = 0; i < TransformTrackToBoneIndices.Length; i++)
                 {
-                    animBinding = asBinding;
+                    TransformTrackToBoneIndices[i] = animBinding.TransformTrackToBoneIndices[i].data;
+                    if (TransformTrackToBoneIndices[i] >= 0)
+                    {
+                        BoneToTransformTrackMap.Add(TransformTrackToBoneIndices[i], CurrentAnimationTracks[i]);
+                    }
                 }
-                else if (cl is HKX.HKADefaultAnimatedReferenceFrame asRefFrame)
+
+                RootMotionFrames = new List<Vector3>();
+                RootMotionDuration = 0;
+                if (animRefFrame != null)
                 {
-                    animRefFrame = asRefFrame;
+                    RootMotionDuration = animRefFrame.Duration;
+                    for (int i = 0; i < animRefFrame.ReferenceFrameSamples.Capacity; i++)
+                    {
+                        var refVec4 = animRefFrame.ReferenceFrameSamples[i].Vector;
+                        RootMotionFrames.Add(new Vector3(refVec4.X, refVec4.Y, refVec4.Z));
+                    }
                 }
+
+                HkxSkeleton = null;
+                foreach (var cl in CurrentSkeletonHKX.DataSection.Objects)
+                {
+                    if (cl is HKX.HKASkeleton)
+                    {
+                        HkxSkeleton = (HKX.HKASkeleton)cl;
+                    }
+                }
+
+                FlverBoneToHkxBoneMap = new Dictionary<int, int>();
+                for (int i = 0; i < HkxSkeleton.Bones.Capacity; i++)
+                {
+                    var hkxName = HkxSkeleton.Bones[i].ToString();
+                    var flverBone = CurrentModel.Bones.Last(b => b.Name == hkxName);
+                    if (flverBone == null)
+                        throw new Exception();
+                    FlverBoneToHkxBoneMap.Add(CurrentModel.Bones.IndexOf(flverBone), i);
+                }
+
+                InitHavokBones();
+            }
+            catch (Exception ex)
+            {
+                CurrentAnimationHKX = null;
+                HkxAnimException = ex;
             }
 
-            CurrentAnimationTracks = Havok.SplineCompressedAnimation.ReadSplineCompressedAnimByteBlock(false, anime.GetData(), anime.TransformTrackCount, anime.BlockCount);
-            CurrentAnimationFrameCount = anime.FrameCount;
-            TrueAnimLenghForPlaybackCursor = anime.Duration;
 
-            TransformTrackToBoneIndices = new short[(int)animBinding.TransformTrackToBoneIndices.Capacity];
-
-            BoneToTransformTrackMap = new Dictionary<int, Havok.SplineCompressedAnimation.TransformTrack>();
-
-            for (int i = 0; i < TransformTrackToBoneIndices.Length; i++)
-            {
-                TransformTrackToBoneIndices[i] = animBinding.TransformTrackToBoneIndices[i].data;
-                if (TransformTrackToBoneIndices[i] >= 0)
-                {
-                    BoneToTransformTrackMap.Add(TransformTrackToBoneIndices[i], CurrentAnimationTracks[i]);
-                }
-            }
-
-            RootMotionFrames = new List<Vector3>();
-            RootMotionDuration = 0;
-            if (animRefFrame != null)
-            {
-                RootMotionDuration = animRefFrame.Duration;
-                for (int i = 0; i < animRefFrame.ReferenceFrameSamples.Capacity; i++)
-                {
-                    var refVec4 = animRefFrame.ReferenceFrameSamples[i].Vector;
-                    RootMotionFrames.Add(new Vector3(refVec4.X, refVec4.Y, refVec4.Z));
-                }
-            }
-
-            HkxSkeleton = null;
-            foreach (var cl in CurrentSkeletonHKX.DataSection.Objects)
-            {
-                if (cl is HKX.HKASkeleton)
-                {
-                    HkxSkeleton = (HKX.HKASkeleton)cl;
-                }
-            }
-
-            FlverBoneToHkxBoneMap = new Dictionary<int, int>();
-            for (int i = 0; i < HkxSkeleton.Bones.Capacity; i++)
-            {
-                var hkxName = HkxSkeleton.Bones[i].ToString();
-                var flverBone = CurrentModel.Bones.First(b => b.Name == hkxName);
-                FlverBoneToHkxBoneMap.Add(CurrentModel.Bones.IndexOf(flverBone), i);
-            }
-
-            InitHavokBones();
         }
 
         public static Matrix[] GetFlverShaderBoneMatrix()
         {
             var result = new Matrix[GFXShaders.FlverShader.NUM_BONES];
-            result[0] = Matrix.Identity;
-            for (int i = 0; i < Math.Min(CurrentModel.Bones.Count, GFXShaders.FlverShader.NUM_BONES) - 1; i++)
+            //result[0] = Matrix.Identity;
+            for (int i = 0; i < Math.Min(CurrentModel.Bones.Count, GFXShaders.FlverShader.NUM_BONES); i++)
             {
-                if (FlverBoneToHkxBoneMap.ContainsKey(i))
+                if (CurrentAnimationHKX != null && FlverBoneToHkxBoneMap.ContainsKey(i))
                 {
                     var hkxBoneIndex = FlverBoneToHkxBoneMap[i];
-                    result[i + 1] = Matrix.Invert(HkxBoneMatrices_Reference[hkxBoneIndex]) * HkxBoneMatrices[hkxBoneIndex];
+                    result[i] = Matrix.Invert(HkxBoneParentMatrices_Reference[hkxBoneIndex]) * HkxBoneParentMatrices[hkxBoneIndex];
                     //result[i] = Matrix.Identity;
+                }
+                else
+                {
+                    result[i] = Matrix.Identity;
                 }
             }
             return result;
@@ -378,6 +398,9 @@ namespace TAEDX
             sb.AppendLine($"Previewing: {CurrentAnimationName ?? "None"}");
             if (CurrentAnimationHKXBytes != null)
                 sb.AppendLine($"HKX Filesize: {(CurrentAnimationHKXBytes.Length / 1024.0f):0.00} KB");
+            if (HkxAnimException != null)
+                sb.AppendLine($"HKX failed to load:\n\n{HkxAnimException}");
+
             DBG.DrawOutlinedText(sb.ToString(), Vector2.One * 2, Color.Yellow, scale: 0.75f);
         }
 
@@ -527,12 +550,14 @@ namespace TAEDX
             HkxBonePrimitives = new List<DbgPrimSolidBone>();
             HkxBoneMatrices = new List<Matrix>();
             HkxBoneMatrices_Reference = new List<Matrix>();
+            HkxBoneParentMatrices_Reference = new List<Matrix>();
             float frame = Math.Min((float)PlaybackCursor.GUICurrentFrame, CurrentAnimationFrameCount);
 
             for (int i = 0; i < HkxSkeleton.Transforms.Size; i++)
             {
                 var parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: true, HkxSkeleton, (short)i, frame);
                 HkxBoneParentMatrices.Add(parentMatrix.Item1);
+                HkxBoneParentMatrices_Reference.Add(parentMatrix.Item1);
                 HkxBonePositions.Add(Vector3.Transform(Vector3.Zero, parentMatrix.Item1));
                 HkxBoneScales.Add(parentMatrix.Item2);
             }
