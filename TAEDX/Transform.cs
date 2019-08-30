@@ -17,6 +17,7 @@ namespace TAEDX
             Position = pos;
             EulerRotation = rot;
             Scale = Vector3.One;
+            OverrideMatrixWorld = Matrix.Identity;
         }
 
         public Transform(Vector3 pos, Vector3 rot, Vector3 scale)
@@ -24,6 +25,15 @@ namespace TAEDX
             Position = pos;
             EulerRotation = rot;
             Scale = scale;
+            OverrideMatrixWorld = Matrix.Identity;
+        }
+
+        public Transform(Matrix overrideMatrixWorld)
+        {
+            Position = Vector3.Zero;
+            EulerRotation = Vector3.Zero;
+            Scale = Vector3.One;
+            OverrideMatrixWorld = overrideMatrixWorld;
         }
 
         public Transform(float x, float y, float z, float rx, float ry, float rz)
@@ -54,7 +64,7 @@ namespace TAEDX
             * Matrix.CreateRotationZ(EulerRotation.Z);
 
         
-        public Matrix WorldMatrix => ScaleMatrix * RotationMatrix * TranslationMatrix;
+        public Matrix WorldMatrix => OverrideMatrixWorld != Matrix.Identity ? OverrideMatrixWorld : ScaleMatrix * RotationMatrix * TranslationMatrix;
 
         public Matrix CameraViewMatrix => Matrix.CreateTranslation(-Position.X, -Position.Y, -Position.Z)
             * Matrix.CreateRotationY(EulerRotation.Y)
@@ -70,6 +80,8 @@ namespace TAEDX
                 randomRot ? (randFloat() * MathHelper.PiOver2) : 0,
                 randomRot ? (randFloat() * MathHelper.PiOver2) : 0);
         }
+
+        public Matrix OverrideMatrixWorld;
 
         public override string ToString()
         {

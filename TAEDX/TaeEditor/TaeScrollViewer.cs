@@ -224,7 +224,7 @@ namespace TAEDX.TaeEditor
                 ScrollBarThickness);
         }
 
-        private void ClampScroll()
+        public void ClampScroll()
         {
             Scroll.X = MathHelper.Clamp(Scroll.X, 0, MaxScroll.X);
             Scroll.Y = MathHelper.Clamp(Scroll.Y, 0, MaxScroll.Y);

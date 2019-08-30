@@ -11,20 +11,43 @@ namespace TAEDX.TaeEditor
 {
     public class TaePlaybackCursor
     {
-        public double CurrentTime = 0;
+        public event EventHandler CurrentTimeChanged;
+        protected void OnCurrentTimeChanged()
+        {
+            CurrentTimeChanged?.Invoke(this, EventArgs.Empty);
+        }
 
-        private double previousFrameTime = 0;
+        public bool SnapToFrames = false;
+
+        private double _currentTime;
+        public double CurrentTime
+        {
+            get => _currentTime;
+            set
+            {
+                if (value != _currentTime)
+                {
+                    _currentTime = value;
+                    OnCurrentTimeChanged();
+                }
+            }
+        }
+
+        public double GUICurrentTime => SnapToFrames ? (Math.Round(CurrentTime / FRAME30FPS) * FRAME30FPS) : CurrentTime;
+        public double GUIStartTime => SnapToFrames ? (Math.Round(StartTime / FRAME30FPS) * FRAME30FPS) : StartTime;
+
+        private double oldGUICurrentTime = 0;
 
         public double StartTime = 0;
-        private double MaxTime = 1;
+        public double MaxTime { get; private set; } = 1;
         public double Speed = 1;
 
         public double? HkxAnimationLength = null;
 
-        const double FRAME30FPS = 0.0333333333333333;
+        public const double FRAME30FPS = 1.0 / 30.0;
 
-        public int CurrentFrame30FPS => (int)Math.Round(CurrentTime / FRAME30FPS);
-        public int MaxFrame30FPS => (int)Math.Round(MaxTime / FRAME30FPS);
+        public double GUICurrentFrame => SnapToFrames ? (Math.Round(CurrentTime / FRAME30FPS)) :  (CurrentTime / FRAME30FPS);
+        public double MaxFrame => SnapToFrames ? (Math.Round(MaxTime / FRAME30FPS)) : (MaxTime / FRAME30FPS);
 
         public bool IsRepeat = true;
 
@@ -43,6 +66,7 @@ namespace TAEDX.TaeEditor
         }
 
         public bool Scrubbing = false;
+        public bool prevScrubbing = false;
 
         private bool isFirstFrameAfterLooping = false;
 
@@ -65,12 +89,20 @@ namespace TAEDX.TaeEditor
                 }
             }
 
+            if (prevScrubbing && !Scrubbing)
+            {
+                foreach (var box in eventBoxes)
+                {
+                    box.PlaybackHighlight = false;
+                }
+            }
+
             bool justStartedPlaying = !prevPlayState && IsPlaying;
 
             if (HkxAnimationLength.HasValue)
                 MaxTime = HkxAnimationLength.Value;
 
-            if (IsPlaying)
+            if (IsPlaying || Scrubbing)
             {
                 if (!Scrubbing)
                     CurrentTime += gameTime.ElapsedGameTime.TotalSeconds;
@@ -88,8 +120,8 @@ namespace TAEDX.TaeEditor
                             MaxTime = box.MyEvent.EndTime;
                     }
 
-                    var currentlyInEvent = CurrentTime >= box.MyEvent.StartTime && CurrentTime <= box.MyEvent.EndTime;
-                    var prevFrameInEvent = previousFrameTime >= box.MyEvent.StartTime && previousFrameTime <= box.MyEvent.EndTime;
+                    var currentlyInEvent = GUICurrentTime >= (SnapToFrames ? box.MyEvent.GetStartTimeFr() : box.MyEvent.StartTime) && GUICurrentTime < box.MyEvent.EndTime;
+                    var prevFrameInEvent = oldGUICurrentTime >= (SnapToFrames ? box.MyEvent.GetEndTimeFr() : box.MyEvent.StartTime) && oldGUICurrentTime <= box.MyEvent.EndTime;
 
                     if (currentlyInEvent)
                     {
@@ -108,14 +140,14 @@ namespace TAEDX.TaeEditor
                         box.PlaybackHighlight = false;
                     }
 
-                    if (justReachedAnimEnd)
+                    if (IsPlaying && justReachedAnimEnd)
                     {
                         box.PlaybackHighlight = false;
                     }
 
                 }
 
-                if (justReachedAnimEnd && !Scrubbing)
+                if (justReachedAnimEnd)
                 {
                     if (justStartedPlaying)
                     {
@@ -132,8 +164,7 @@ namespace TAEDX.TaeEditor
                             //}
 
                             // way simpler
-                            if (CurrentTime > MaxTime)
-                                CurrentTime %= MaxTime;
+                            CurrentTime %= MaxTime;
                         }
                         else
                         {
@@ -151,7 +182,8 @@ namespace TAEDX.TaeEditor
                 }
             }
 
-            previousFrameTime = CurrentTime;
+            oldGUICurrentTime = GUICurrentTime;
+            prevScrubbing = Scrubbing;
         }
     }
 }

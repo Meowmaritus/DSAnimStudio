@@ -3,9 +3,15 @@
 	#define VS_SHADERMODEL vs_3_0
 	#define PS_SHADERMODEL ps_3_0
 #else
-	#define VS_SHADERMODEL vs_4_0_level_9_1
-	#define PS_SHADERMODEL ps_4_0_level_9_1
+	#define VS_SHADERMODEL vs_5_0
+	#define PS_SHADERMODEL ps_5_0
 #endif
+
+cbuffer cbSkinned
+{
+    float4x4 Bones[180]; //parameter incorrect
+    //float4x3 Bones[512]; //index out of range :MecHands:
+};
 
 // Matrix
 float4x4 World;
@@ -64,7 +70,7 @@ sampler2D SpecularMapSampler = sampler_state
 	MagFilter = linear;
 	MipFilter = linear;
 };
-
+/*
 texture2D LightMap1;
 sampler2D LightMap1Sampler = sampler_state
 {
@@ -82,7 +88,7 @@ sampler2D LightMap2Sampler = sampler_state
 	MagFilter = linear;
 	MipFilter = linear;
 };
-
+*/
 // The input for the VertexShader
 struct VertexShaderInput
 {
@@ -92,9 +98,10 @@ struct VertexShaderInput
 	float3 Normal : NORMAL0;
 	float3 Binormal : BINORMAL0;
 	float3 Tangent : TANGENT0;
-	float4x4 InstanceWorld : TEXCOORD2;
-	float2 AtlasScale : TEXCOORD6;
-	float2 AtlasOffset : TEXCOORD7;
+    float4 Color : COLOR0;
+	float4 BoneIndices : BLENDINDICES;
+    float4 BoneWeights : BLENDWEIGHT;
+    float4x4 InstanceWorld : TEXCOORD2;
 };
 
 // The output from the vertex shader, used for later processing
@@ -112,12 +119,29 @@ struct VertexShaderOutput
 VertexShaderOutput MainVS(in VertexShaderInput input)
 {
 	VertexShaderOutput output;
+    
+    float4 inPos = input.Position;
+    
+    float4 posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[0]]) * input.BoneWeights[0];
+    float4 posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[1]]) * input.BoneWeights[1];
+    float4 posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[2]]) * input.BoneWeights[2];
+    float4 posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[input.BoneIndices[3]]) * input.BoneWeights[3];
+    
+    inPos.xyz = ((posA + posB + posC + posD) / (input.BoneWeights[0] + input.BoneWeights[1] + input.BoneWeights[2] + input.BoneWeights[3])).xyz;
 
-	float4 worldPosition = mul(mul(input.Position, transpose(input.InstanceWorld)), World);
+    //inPos.xyz = mul(inPos, skinning);
+
+    //inPos.xyz = mul(inPos.xyz, skinning);
+
+	float4 worldPosition = mul(mul(inPos, transpose(input.InstanceWorld)), World);
+    
+    
+    
+    
     float4 viewPosition = mul(worldPosition, View);
     output.Position = mul(viewPosition, Projection);
 	output.TexCoord = input.TexCoord;
-	output.TexCoord2.xy = input.TexCoord2.xy * input.AtlasScale.xy + input.AtlasOffset.xy;
+	output.TexCoord2.xy = input.TexCoord2.xy;// * input.AtlasScale.xy + input.AtlasOffset.xy;
 
 	output.WorldToTangentSpace[0] = mul(normalize(input.Tangent), World);
 	output.WorldToTangentSpace[1] = mul(normalize(input.Binormal), World);
@@ -126,9 +150,13 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 	output.View = normalize(float4(EyePosition,1.0) - worldPosition);
 
 	output.Normal = input.Normal;
-	
-	output.DebugColor.xy = input.AtlasScale.xy;
-	output.DebugColor.zw = input.AtlasOffset.xy;
+	//output.Normal = mul((float3x3)skinning, output.Normal);
+	//output.DebugColor.xy = input.AtlasScale.xy;
+	//output.DebugColor.zw = input.AtlasOffset.xy;
+    
+    //output.Position.xy
+    
+    //output.WorldToTangentSpace = mul(output.WorldToTangentSpace, skinning);
     
     return output;
 }

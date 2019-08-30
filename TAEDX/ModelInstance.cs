@@ -14,8 +14,8 @@ namespace TAEDX
         public struct InstanceData
         {
             public Matrix WorldMatrix;
-            public Vector2 atlasScale;
-            public Vector2 atlasOffset;
+            //public Vector2 atlasScale;
+            //public Vector2 atlasOffset;
         };
 
         public string Name;
@@ -79,8 +79,8 @@ namespace TAEDX
             Data = new InstanceData();
             Transform = transform;
             Data.WorldMatrix = transform.WorldMatrix;
-            Data.atlasScale = new Vector2(1.0f, 1.0f);
-            Data.atlasOffset = new Vector2(0.0f, 0.0f);
+            //Data.atlasScale = new Vector2(1.0f, 1.0f);
+            //Data.atlasOffset = new Vector2(0.0f, 0.0f);
             DrawGroup1 = drawGroup1;
             DrawGroup2 = drawGroup2;
             DrawGroup3 = drawGroup3;

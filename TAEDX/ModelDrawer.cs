@@ -76,11 +76,11 @@ namespace TAEDX
                     Models.Add(model);
 
                 var instance = new ModelInstance(name, model, location, -1, -1, -1, -1);
-                if (LightmapAtlasMap.ContainsKey(name))
-                {
-                    instance.Data.atlasScale = new Vector2(LightmapAtlasMap[name].X, LightmapAtlasMap[name].Y);
-                    instance.Data.atlasOffset = new Vector2(LightmapAtlasMap[name].Z, LightmapAtlasMap[name].W);
-                }
+                //if (LightmapAtlasMap.ContainsKey(name))
+                //{
+                //    instance.Data.atlasScale = new Vector2(LightmapAtlasMap[name].X, LightmapAtlasMap[name].Y);
+                //    instance.Data.atlasOffset = new Vector2(LightmapAtlasMap[name].Z, LightmapAtlasMap[name].W);
+                //}
                 model.AddNewInstance(instance);
             }
 

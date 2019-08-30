@@ -19,6 +19,8 @@ namespace TAEDX
         VertexBuffer InstanceBuffer;
         public VertexBufferBinding InstanceBufferBinding { get; private set; }
 
+        public Transform ShittyTransform = Transform.Default;
+
         public void ApplyWorldToInstances(Matrix world)
         {
             foreach (var inst in Instances)
@@ -210,6 +212,7 @@ namespace TAEDX
         public void Draw()
         {
             var lod = 0;// GFX.World.GetLOD(modelLocation);
+            GFX.World.ApplyViewToShader(GFX.FlverShader, ShittyTransform);
             foreach (var submesh in Submeshes)
             {
                 if (Type == ModelType.ModelTypeFlver)
