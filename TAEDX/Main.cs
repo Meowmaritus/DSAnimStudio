@@ -258,11 +258,11 @@ namespace TAEDX
             var strSize_unmanaged = DBG.DEBUG_FONT_SMALL.MeasureString(str_unmanaged);
 
             DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
-                GFX.Device.Viewport.Height - 32 - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
+                GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
                 Color.Yellow, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
 
             DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2, 
-                GFX.Device.Viewport.Height - 32 - (strSize_unmanaged.Y * 0.75f)),
+                GFX.Device.Viewport.Height - (strSize_unmanaged.Y * 0.75f)),
                 Color.Yellow, DBG.DEBUG_FONT_SMALL, scale:0.75f, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
         }
 

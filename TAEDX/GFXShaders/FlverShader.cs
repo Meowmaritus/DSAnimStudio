@@ -122,6 +122,12 @@ namespace TAEDX.GFXShaders
             set => Parameters["Bones"].SetValue(value);
         }
 
+        public Matrix[] Bones2
+        {
+            get => Parameters["Bones2"].GetValueMatrixArray(NUM_BONES);
+            set => Parameters["Bones2"].SetValue(value);
+        }
+
         //public Texture2D LightMap1
         //{
         //    get => Parameters["LightMap1"].GetValueTexture2D();

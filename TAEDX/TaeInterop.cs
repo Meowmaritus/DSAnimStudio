@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿#define DISABLE_HKX_EXCEPTION_CATCH
+
+using Microsoft.Xna.Framework;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -12,75 +14,45 @@ namespace TAEDX
 {
     public static class TaeInterop
     {
-        public static void CreateMenuBarViewportSettings(TaeEditor.TaeMenuBarBuilder menu)
+        /// <summary>
+        /// After 3D model is drawn.
+        /// </summary>
+        public static void TaeViewportDrawPost(GameTime gameTime)
         {
-            menu.ClearItem("3D Preview");
+            if (HaventLoadedAnythingYet)
+                return;
 
-            menu.AddItem("3D Preview", "Render Meshes", () => !GFX.HideFLVERs,
-                b => GFX.HideFLVERs = !b);
-
-            foreach (var model in GFX.ModelDrawer.Models)
+            var sb = new StringBuilder();
+            if (IncompatibleHavokVersion)
             {
-                int i = 0;
-                foreach (var sm in model.GetSubmeshes())
-                    menu.AddItem("3D Preview/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
+                sb.AppendLine($"[UNSUPPORTED HAVOK VERSION]");
+                sb.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
+            }
+            else
+            {
+                sb.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
+                if (CurrentAnimationHKXBytes == null)
+                    sb.AppendLine($"Could not find valid HKX for this animation.");
             }
 
-            Dictionary<int, List<FlverSubmeshRenderer>> modelMaskMap = new Dictionary<int, List<FlverSubmeshRenderer>>();
-            foreach (var model in GFX.ModelDrawer.Models)
+            var txt = sb.ToString();
+
+            Vector2 errorOffset = DBG.DEBUG_FONT.MeasureString(txt);
+
+            DBG.DrawOutlinedText(txt, Vector2.One * 2, Color.Yellow);
+
+            if (CurrentAnimationHKXBytes != null && HkxAnimException != null)
             {
-                foreach (var sm in model.GetSubmeshes())
-                {
-                    if (modelMaskMap.ContainsKey(sm.ModelMaskIndex))
-                        modelMaskMap[sm.ModelMaskIndex].Add(sm);
-                    else
-                        modelMaskMap.Add(sm.ModelMaskIndex, new List<FlverSubmeshRenderer>() { sm });
-                }
-                
-            }
-
-            foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
-            {
-                menu.AddItem("3D Preview/Toggle By Model Mask", kvp.Key >= 0 ? $"Model Mask {kvp.Key}" : "Default", () => kvp.Value.All(sm => sm.IsVisible),
-                    b =>
-                    {
-                        foreach (var sm in kvp.Value)
-                        {
-                            sm.IsVisible = b;
-                        }
-                    });
-            }
-
-            menu.AddItem("3D Preview", "Render Skeleton", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = b);
-
-            menu.AddItem("3D Preview", "Render DummyPoly", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
-
-            menu.AddItem("3D Preview", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
-
-            Dictionary<string, List<DebugPrimitives.IDbgPrim>> dmyMap = new Dictionary<string, List<DebugPrimitives.IDbgPrim>>();
-            foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
-            {
-                if (dmyMap.ContainsKey(prim.Name))
-                    dmyMap[prim.Name].Add(prim);
-                else
-                    dmyMap.Add(prim.Name, new List<DebugPrimitives.IDbgPrim>() { prim });
-            }
-
-            foreach (var kvp in dmyMap.OrderBy(asdf => int.Parse(asdf.Key)))
-            {
-                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{kvp.Key}", () => kvp.Value.Any(pr => pr.EnableDraw),
-                    b =>
-                    {
-                        foreach (var pr in kvp.Value)
-                        {
-                            pr.EnableDraw = b;
-                        }
-                    });
+                var errTxt = $"HKX failed to load:\n\n{HkxAnimException}";
+                var errTxtSize = DBG.DEBUG_FONT_SMALL.MeasureString(errTxt);
+                DBG.DrawOutlinedText(errTxt, Vector2.One * 2 + new Vector2(0, errorOffset.Y), Color.Red, scale: (ModelViewerWindowRect.Width / errTxtSize.X), font: DBG.DEBUG_FONT_SMALL);
             }
         }
+
+        public static bool HaventLoadedAnythingYet = true;
+
+        public static bool IncompatibleHavokVersion = false;
+        public static HKX.HKXVariation CurrentHkxVariation = HKX.HKXVariation.HKXDS1;
 
         /// <summary>
         /// The current ANIBND path, if one is loaded.
@@ -103,6 +75,8 @@ namespace TAEDX
         /// Currently-selected animation's HKX bytes.
         /// </summary>
         public static byte[] CurrentAnimationHKXBytes = null;
+
+        public static bool EnableRootMotion = true;
 
         public static HKX CurrentSkeletonHKX = null;
         public static HKX CurrentAnimationHKX = null;
@@ -197,6 +171,15 @@ namespace TAEDX
 
         public static void OnAnimFrameChange()
         {
+            if (IncompatibleHavokVersion)
+            {
+                CurrentSkeletonHKX = null;
+                CurrentSkeletonHKXBytes = null;
+                CurrentAnimationHKX = null;
+                CurrentAnimationHKXBytes = null;
+                return;
+            }
+
             if (CurrentAnimationHKX != null)
                 UpdateHavokBones((float)PlaybackCursor.GUICurrentTime, (float)PlaybackCursor.GUICurrentFrame);
             foreach (var mdl in GFX.ModelDrawer.Models)
@@ -205,11 +188,58 @@ namespace TAEDX
             }
         }
 
+
+        /// <summary>
+        /// Runs once the TAE shit loads an ANIBND (doesn't run if a loose TAE is selected)
+        /// Simply looks for shit named similarly to the ANIBND and loads those assets.
+        /// </summary>
+        public static void OnLoadANIBND()
+        {
+            if (HaventLoadedAnythingYet)
+                HaventLoadedAnythingYet = false;
+
+            if (IncompatibleHavokVersion)
+            {
+                CurrentSkeletonHKX = null;
+                CurrentSkeletonHKXBytes = null;
+                CurrentAnimationHKX = null;
+                CurrentAnimationHKXBytes = null;
+                return;
+            }
+
+            var transform = new Transform(0, 0, 0, 0, 0, 0);
+            // Attempt to load the skeleton hkx file first
+            CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
+            CurrentSkeletonHKX = HKX.Read(CurrentSkeletonHKXBytes, CurrentHkxVariation);
+
+            var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
+            if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
+            {
+                Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), transform);
+            }
+            else if (File.Exists($"{chrNameBase}.chrbnd"))
+            {
+                Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
+            }
+
+            if (File.Exists($"{chrNameBase}.texbnd.dcx"))
+            {
+                Load3DAsset($"{chrNameBase}.texbnd.dcx", File.ReadAllBytes($"{chrNameBase}.texbnd.dcx"), transform);
+            }
+            else if (File.Exists($"{chrNameBase}.texbnd"))
+            {
+                Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), transform);
+            }
+        }
+
         /// <summary>
         /// Called when user selects an animation in the lists and loads the event graph for it.
         /// </summary>
         public static void OnAnimationSelected(TAE.Animation anim)
         {
+            if (HaventLoadedAnythingYet)
+                HaventLoadedAnythingYet = false;
+
             void TryToLoadAnimFile(long id)
             {
                 var animID_Lower = Main.TAE_EDITOR.FileContainer.ContainerType == TaeEditor.TaeFileContainer.TaeFileContainerType.BND4
@@ -226,6 +256,15 @@ namespace TAEDX
                 CurrentAnimationHKXBytes = AllHkxFiles.FirstOrDefault(x => x.Key.ToUpper().Contains(animFileName.ToUpper())).Value;
             }
 
+            if (IncompatibleHavokVersion)
+            {
+                CurrentSkeletonHKX = null;
+                CurrentSkeletonHKXBytes = null;
+                CurrentAnimationHKX = null;
+                CurrentAnimationHKXBytes = null;
+                return;
+            }
+
             //Try to load the actual ID in the TAE Animation struct.
             TryToLoadAnimFile(anim.ID);
 
@@ -240,14 +279,22 @@ namespace TAEDX
                 TryToLoadAnimFile(anim.Unknown2);
             }
 
+            // If STILL NULL just give up :MecHands:
+            if (CurrentAnimationHKXBytes == null)
+            {
+                CurrentAnimationName = null;
+                return;
+            }
+
             //TAE_TODO: Read HKX bytes here.
 
             //TESTING
             //var testtest = HKX.Read(File.ReadAllBytes(@"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game\chr\c6200-anibnd-dcx\chr\c6200\hkx\a000_000020.hkx"), HKX.HKXVariation.HKXDS1);
-
+#if !DISABLE_HKX_EXCEPTION_CATCH
             try
             {
-                CurrentAnimationHKX = HKX.Read(CurrentAnimationHKXBytes, HKX.HKXVariation.HKXDS3);
+#endif
+                CurrentAnimationHKX = HKX.Read(CurrentAnimationHKXBytes, CurrentHkxVariation);
 
                 // TEST
                 HKX.HKASplineCompressedAnimation anime = null;
@@ -311,32 +358,36 @@ namespace TAEDX
                 for (int i = 0; i < HkxSkeleton.Bones.Capacity; i++)
                 {
                     var hkxName = HkxSkeleton.Bones[i].ToString();
-                    var flverBone = CurrentModel.Bones.Last(b => b.Name == hkxName);
+                    var flverBone = CurrentModel.Bones.LastOrDefault(b => b.Name == hkxName);
                     if (flverBone == null)
-                        throw new Exception();
-                    FlverBoneToHkxBoneMap.Add(CurrentModel.Bones.IndexOf(flverBone), i);
+                        Console.WriteLine($"FLVER did not have bone '{hkxName}' but HKX did;");
+                    else
+                        FlverBoneToHkxBoneMap.Add(CurrentModel.Bones.IndexOf(flverBone), i);
                 }
 
                 InitHavokBones();
+                HkxAnimException = null;
+#if !DISABLE_HKX_EXCEPTION_CATCH
             }
             catch (Exception ex)
             {
                 CurrentAnimationHKX = null;
                 HkxAnimException = ex;
             }
+#endif
 
 
         }
 
-        public static Matrix[] GetFlverShaderBoneMatrix()
+        public static Matrix[] GetFlverShaderBoneMatrix(int bank)
         {
             var result = new Matrix[GFXShaders.FlverShader.NUM_BONES];
             //result[0] = Matrix.Identity;
             for (int i = 0; i < Math.Min(CurrentModel.Bones.Count, GFXShaders.FlverShader.NUM_BONES); i++)
             {
-                if (CurrentAnimationHKX != null && FlverBoneToHkxBoneMap.ContainsKey(i))
+                if (CurrentAnimationHKX != null && FlverBoneToHkxBoneMap.ContainsKey(i + (bank * GFXShaders.FlverShader.NUM_BONES)))
                 {
-                    var hkxBoneIndex = FlverBoneToHkxBoneMap[i];
+                    var hkxBoneIndex = FlverBoneToHkxBoneMap[i + (bank * GFXShaders.FlverShader.NUM_BONES)];
                     result[i] = Matrix.Invert(HkxBoneParentMatrices_Reference[hkxBoneIndex]) * HkxBoneParentMatrices[hkxBoneIndex];
                     //result[i] = Matrix.Identity;
                 }
@@ -348,38 +399,6 @@ namespace TAEDX
             return result;
         }
 
-
-        /// <summary>
-        /// Runs once the TAE shit loads an ANIBND (doesn't run if a loose TAE is selected)
-        /// Simply looks for shit named similarly to the ANIBND and loads those assets.
-        /// </summary>
-        public static void OnLoadANIBND()
-        {
-            var transform = new Transform(0, 0, 0, 0, 0, 0);
-            // Attempt to load the skeleton hkx file first
-            CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
-            CurrentSkeletonHKX = HKX.Read(CurrentSkeletonHKXBytes, HKX.HKXVariation.HKXDS3);
-
-            var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
-            if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
-            {
-                Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), transform);
-            }
-            else if (File.Exists($"{chrNameBase}.chrbnd"))
-            {
-                Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
-            }
-
-            if (File.Exists($"{chrNameBase}.texbnd.dcx"))
-            {
-                Load3DAsset($"{chrNameBase}.texbnd.dcx", File.ReadAllBytes($"{chrNameBase}.texbnd.dcx"), transform);
-            }
-            else if (File.Exists($"{chrNameBase}.texbnd"))
-            {
-                Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), transform);
-            }
-        }
-
         /// <summary>
         /// Before 3D model is drawn.
         /// </summary>
@@ -387,21 +406,6 @@ namespace TAEDX
         {
             //if (CurrentSkeletonHKX != null && CurrentAnimationHKX != null)
             //    DrawHavokBones();
-        }
-
-        /// <summary>
-        /// After 3D model is drawn.
-        /// </summary>
-        public static void TaeViewportDrawPost(GameTime gameTime)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"Previewing: {CurrentAnimationName ?? "None"}");
-            if (CurrentAnimationHKXBytes != null)
-                sb.AppendLine($"HKX Filesize: {(CurrentAnimationHKXBytes.Length / 1024.0f):0.00} KB");
-            if (HkxAnimException != null)
-                sb.AppendLine($"HKX failed to load:\n\n{HkxAnimException}");
-
-            DBG.DrawOutlinedText(sb.ToString(), Vector2.One * 2, Color.Yellow, scale: 0.75f);
         }
 
         private static Havok.SplineCompressedAnimation.TransformTrack GetTransformTrackOfBone(HKX.HKASkeleton s, int boneIndex)
@@ -414,7 +418,7 @@ namespace TAEDX
 
         private static Vector3 GetRootMotion(float time)
         {
-            if (RootMotionFrames.Count == 0 || RootMotionDuration == 0)
+            if (RootMotionFrames.Count == 0 || RootMotionDuration == 0 || !EnableRootMotion)
                 return Vector3.Zero;
 
             time %= RootMotionDuration;
@@ -904,6 +908,76 @@ namespace TAEDX
                 {
                     Console.WriteLine(e.ToString());
                 }
+            }
+        }
+
+        public static void CreateMenuBarViewportSettings(TaeEditor.TaeMenuBarBuilder menu)
+        {
+            menu.ClearItem("3D Preview");
+
+            menu.AddItem("3D Preview", "Render Meshes", () => !GFX.HideFLVERs,
+                b => GFX.HideFLVERs = !b);
+
+            foreach (var model in GFX.ModelDrawer.Models)
+            {
+                int i = 0;
+                foreach (var sm in model.GetSubmeshes())
+                    menu.AddItem("3D Preview/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
+            }
+
+            Dictionary<int, List<FlverSubmeshRenderer>> modelMaskMap = new Dictionary<int, List<FlverSubmeshRenderer>>();
+            foreach (var model in GFX.ModelDrawer.Models)
+            {
+                foreach (var sm in model.GetSubmeshes())
+                {
+                    if (modelMaskMap.ContainsKey(sm.ModelMaskIndex))
+                        modelMaskMap[sm.ModelMaskIndex].Add(sm);
+                    else
+                        modelMaskMap.Add(sm.ModelMaskIndex, new List<FlverSubmeshRenderer>() { sm });
+                }
+
+            }
+
+            foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
+            {
+                menu.AddItem("3D Preview/Toggle By Model Mask", kvp.Key >= 0 ? $"Model Mask {kvp.Key}" : "Default", () => kvp.Value.All(sm => sm.IsVisible),
+                    b =>
+                    {
+                        foreach (var sm in kvp.Value)
+                        {
+                            sm.IsVisible = b;
+                        }
+                    });
+            }
+
+            menu.AddItem("3D Preview", "Render Skeleton", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone],
+                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = b);
+
+            menu.AddItem("3D Preview", "Render DummyPoly", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+            menu.AddItem("3D Preview", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+            Dictionary<string, List<DebugPrimitives.IDbgPrim>> dmyMap = new Dictionary<string, List<DebugPrimitives.IDbgPrim>>();
+            foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+            {
+                if (dmyMap.ContainsKey(prim.Name))
+                    dmyMap[prim.Name].Add(prim);
+                else
+                    dmyMap.Add(prim.Name, new List<DebugPrimitives.IDbgPrim>() { prim });
+            }
+
+            foreach (var kvp in dmyMap.OrderBy(asdf => int.Parse(asdf.Key)))
+            {
+                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{kvp.Key}", () => kvp.Value.Any(pr => pr.EnableDraw),
+                    b =>
+                    {
+                        foreach (var pr in kvp.Value)
+                        {
+                            pr.EnableDraw = b;
+                        }
+                    });
             }
         }
     }

@@ -21,6 +21,7 @@ namespace TAEDX
         public Vector4 Color;
         public Vector4 BoneIndices;
         public Vector4 BoneWeights;
+        public Vector4 BoneIndicesBank;
 
         /// <summary>
         /// Vertex declaration object.
@@ -55,6 +56,7 @@ namespace TAEDX
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3), VertexElementFormat.Vector4, VertexElementUsage.Color, 0),
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendIndices, 0),
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 0),
+                new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4 + 4 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendIndices, 1),
 
             };
             VertexDeclaration declaration = new VertexDeclaration(elements);
@@ -96,6 +98,7 @@ namespace TAEDX
                 hashCode = (hashCode * 397) ^ Color.GetHashCode();
                 hashCode = (hashCode * 397) ^ BoneIndices.GetHashCode();
                 hashCode = (hashCode * 397) ^ BoneWeights.GetHashCode();
+                hashCode = (hashCode * 397) ^ BoneIndicesBank.GetHashCode();
                 return hashCode;
             }
         }
@@ -117,7 +120,8 @@ namespace TAEDX
                 (left.Tangent == right.Tangent) &&
                 (left.Color == right.Color) &&
                 (left.BoneIndices == right.BoneIndices) &&
-                (left.BoneWeights == right.BoneWeights)
+                (left.BoneWeights == right.BoneWeights) &&
+                (left.BoneIndicesBank == right.BoneIndicesBank)
                 );
         }
 
