@@ -10,6 +10,8 @@ namespace TAEDX.GFXShaders
 {
     public class FlverShader : Effect, IGFXShader<FlverShader>
     {
+        public const int NUM_BONES = 100;
+
         public FlverShader Effect => this;
 
         public Matrix World
@@ -112,6 +114,12 @@ namespace TAEDX.GFXShaders
         {
             get => Parameters["SpecularMap"].GetValueTexture2D();
             set => Parameters["SpecularMap"].SetValue(value);
+        }
+
+        public Matrix[] Bones
+        {
+            get => Parameters["Bones"].GetValueMatrixArray(NUM_BONES);
+            set => Parameters["Bones"].SetValue(value);
         }
 
         //public Texture2D LightMap1

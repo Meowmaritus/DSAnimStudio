@@ -391,6 +391,18 @@ namespace TAEDX.TaeEditor
                     return true;
                 }
 
+                if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
+                {
+                    GFX.ModelDrawer.ClearScene();
+                    DBG.ClearPrimitives();
+                    TaeInterop.OnLoadANIBND();
+                    GFX.HideFLVERs = false;
+                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = false;
+                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+                    DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+                    TaeInterop.CreateMenuBarViewportSettings(MenuBar);
+                }
+
                 LoadTaeFileContainer(FileContainer);
 
                 MenuBar["File/Save As..."].Enabled = !IsReadOnlyFileMode;
@@ -400,17 +412,6 @@ namespace TAEDX.TaeEditor
                 //{
                 //    LoadTAETemplate(templateName);
                 //}
-
-                if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
-                {
-                    GFX.ModelDrawer.ClearScene();
-                    DBG.ClearPrimitives();
-                    TaeInterop.OnLoadANIBND();
-                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = false;
-                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
-                    DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
-                    TaeInterop.CreateMenuBarViewportSettings(MenuBar);
-                }
 
                 return true;
             }
@@ -1327,17 +1328,17 @@ namespace TAEDX.TaeEditor
                 {
                     editScreenCurrentAnim.ResetZoom(0);
                 }
-                else if (Input.KeyDown(Keys.C))
+                else if (Input.KeyDown(Keys.C) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
-                    //editScreenCurrentAnim.DoCopy();
+                    editScreenCurrentAnim.DoCopy();
                 }
-                else if (Input.KeyDown(Keys.X))
+                else if (Input.KeyDown(Keys.X) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
-                    //editScreenCurrentAnim.DoCut();
+                    editScreenCurrentAnim.DoCut();
                 }
-                else if (Input.KeyDown(Keys.V))
+                else if (Input.KeyDown(Keys.V) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
-                    //editScreenCurrentAnim.DoPaste(isAbsoluteLocation: false);
+                    editScreenCurrentAnim.DoPaste(isAbsoluteLocation: false);
                 }
                 else if (Input.KeyDown(Keys.A))
                 {
@@ -1510,6 +1511,17 @@ namespace TAEDX.TaeEditor
                 MouseHoverKind = ScreenMouseHoverKind.None;
             }
 
+            // Very specific edge case to handle before you load an anibnd so that
+            // it won't have the resize cursor randomly. This box spans all the way
+            // from left of screen to the hitbox of the right vertical divider and
+            // just immediately clears the resize cursor in that entire huge region.
+            if (editScreenAnimList == null && editScreenCurrentAnim == null
+                    && new Rectangle(Rect.Left, Rect.Top, (int)(DividerRightGrabStartX - Rect.Left), Rect.Height).Contains(Input.MousePositionPoint))
+            {
+                MouseHoverKind = ScreenMouseHoverKind.None;
+                Input.CursorType = MouseCursorType.Arrow;
+            }
+
             // Check if currently dragging to resize panes.
             if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
                 || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
@@ -1528,31 +1540,32 @@ namespace TAEDX.TaeEditor
                 || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
                 || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal))
             {
-                if (editScreenAnimList != null && editScreenCurrentAnim != null)
-                {
-                    if (editScreenAnimList.Rect.Contains(Input.MousePositionPoint))
-                        MouseHoverKind = ScreenMouseHoverKind.AnimList;
-                    else if (editScreenCurrentAnim.Rect.Contains(Input.MousePositionPoint))
-                        MouseHoverKind = ScreenMouseHoverKind.EventGraph;
-                    else if (
-                        new Rectangle(
-                            inspectorWinFormsControl.Bounds.Left,
-                            inspectorWinFormsControl.Bounds.Top,
-                            inspectorWinFormsControl.Bounds.Width,
-                            inspectorWinFormsControl.Bounds.Height
-                            )
-                            .Contains(Input.MousePositionPoint))
-                        MouseHoverKind = ScreenMouseHoverKind.Inspector;
-                    else if (
-                        TaeInterop.ModelViewerWindowRect.Contains(Input.MousePositionPoint))
-                        MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
-                    else
-                        MouseHoverKind = ScreenMouseHoverKind.None;
+                if (editScreenAnimList != null && editScreenAnimList.Rect.Contains(Input.MousePositionPoint))
+                    MouseHoverKind = ScreenMouseHoverKind.AnimList;
+                else if (editScreenCurrentAnim != null && editScreenCurrentAnim.Rect.Contains(Input.MousePositionPoint))
+                    MouseHoverKind = ScreenMouseHoverKind.EventGraph;
+                else if (
+                    new Rectangle(
+                        inspectorWinFormsControl.Bounds.Left,
+                        inspectorWinFormsControl.Bounds.Top,
+                        inspectorWinFormsControl.Bounds.Width,
+                        inspectorWinFormsControl.Bounds.Height
+                        )
+                        .Contains(Input.MousePositionPoint))
+                    MouseHoverKind = ScreenMouseHoverKind.Inspector;
+                else if (
+                    TaeInterop.ModelViewerWindowRect.Contains(Input.MousePositionPoint))
+                    MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
+                else
+                    MouseHoverKind = ScreenMouseHoverKind.None;
 
-                    if (Input.LeftClickDown)
-                    {
-                        WhereCurrentMouseClickStarted = MouseHoverKind;
-                    }
+                if (Input.LeftClickDown)
+                {
+                    WhereCurrentMouseClickStarted = MouseHoverKind;
+                }
+
+                if (editScreenAnimList != null)
+                {
 
                     if (MouseHoverKind == ScreenMouseHoverKind.AnimList || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
                     {
@@ -1563,77 +1576,32 @@ namespace TAEDX.TaeEditor
                     {
                         editScreenAnimList.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                     }
+                }
 
+                if (editScreenCurrentAnim != null)
+                {
                     if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
                         editScreenCurrentAnim.Update(gameTime, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                     else
                         editScreenCurrentAnim.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                }
 
-                    if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
-                    {
-                        Input.CursorType = MouseCursorType.Arrow;
-                        GFX.World.DisableAllInput = false;
-                    }
-                    else
-                    {
-                        //GFX.World.DisableAllInput = true;
-                    }
-
-                    if (MouseHoverKind == ScreenMouseHoverKind.Inspector || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
-                    {
-                        Input.CursorType = MouseCursorType.Arrow;
-                    }
-
+                if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
+                {
+                    Input.CursorType = MouseCursorType.Arrow;
+                    GFX.World.DisableAllInput = false;
                 }
                 else
                 {
-                    if (new Rectangle(
-                    inspectorWinFormsControl.Bounds.Left,
-                    inspectorWinFormsControl.Bounds.Top,
-                    inspectorWinFormsControl.Bounds.Width,
-                    inspectorWinFormsControl.Bounds.Height)
-                    .Contains(Input.MousePositionPoint))
-                    {
-                        MouseHoverKind = ScreenMouseHoverKind.Inspector;
-                    }
-                    else if (
-                        TaeInterop.ModelViewerWindowRect.Contains(Input.MousePositionPoint))
-                        MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
-                    //else
-                    //{
-                    //    MouseHoverKind = ScreenMouseHoverKind.None;
-                    //}
+                    //GFX.World.DisableAllInput = true;
+                }
 
-                    if (MouseHoverKind == ScreenMouseHoverKind.Inspector || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
-                    {
-                        Input.CursorType = MouseCursorType.Arrow;
-                    }
-
-                    if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
-                    {
-                        Input.CursorType = MouseCursorType.Arrow;
-                        GFX.World.DisableAllInput = false;
-                    }
-                    else
-                    {
-                        //GFX.World.DisableAllInput = true;
-                    }
-
-                    if (Input.LeftClickDown)
-                    {
-                        WhereCurrentMouseClickStarted = MouseHoverKind;
-                    }
-
-                    //Input.CursorType = MouseCursorType.StopUpdating;
+                if (MouseHoverKind == ScreenMouseHoverKind.Inspector || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
+                {
+                    Input.CursorType = MouseCursorType.Arrow;
                 }
             }
 
-                
-
-            
-
-
-            
             //else
             //{
             //    Input.CursorType = MouseCursorType.Arrow;

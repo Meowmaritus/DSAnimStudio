@@ -76,7 +76,7 @@ namespace TAEDX.TaeEditor
 
         UnselectedMouseDragType currentUnselectedMouseDragType = UnselectedMouseDragType.None;
 
-        public TaePlaybackCursor PlaybackCursor = new TaePlaybackCursor();
+        public TaePlaybackCursor PlaybackCursor;
 
         public Color PlaybackCursorColor = Color.Black;
 
@@ -96,6 +96,8 @@ namespace TAEDX.TaeEditor
 
         const float SecondsPixelSizeDefault = 128 * 4;
         public float SecondsPixelSize = SecondsPixelSizeDefault;
+        public float FramePixelSize => SecondsPixelSize / 30.0f;
+        public float MinPixelsBetweenFramesForHelperLines = 8;
         public float SecondsPixelSizeFarAwayModeUpperBound = SecondsPixelSizeDefault;
         public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 2048);
         public float SecondsPixelSizeScrollNotch = 128;
@@ -274,6 +276,14 @@ namespace TAEDX.TaeEditor
         {
             MainScreen = mainScreen;
             ChangeToNewAnimRef(MainScreen.SelectedTaeAnim);
+
+            PlaybackCursor = new TaePlaybackCursor();
+            PlaybackCursor.CurrentTimeChanged += PlaybackCursor_CurrentTimeChanged;
+        }
+
+        private void PlaybackCursor_CurrentTimeChanged(object sender, EventArgs e)
+        {
+            TaeInterop.OnAnimFrameChange();
         }
 
         private void Box_RowChanged(object sender, int e)
@@ -624,6 +634,7 @@ namespace TAEDX.TaeEditor
 
             if (currentUnselectedMouseDragType == UnselectedMouseDragType.PlaybackCursorScrub)
             {
+                ScrollViewer.ClampScroll();
                 PlaybackCursor.CurrentTime = Math.Max(((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize, 0);
 
                 if (!PlaybackCursor.IsPlaying)
@@ -1332,7 +1343,7 @@ namespace TAEDX.TaeEditor
             gd.Viewport = new Viewport(ScrollViewer.Viewport);
             {
                 sb.Begin(transformMatrix: scrollMatrix);
-
+                
                 sb.Draw(texture: boxTex,
                     position: ScrollViewer.Scroll - (Vector2.One * 2),
                     sourceRectangle: null,
@@ -1343,6 +1354,18 @@ namespace TAEDX.TaeEditor
                     effects: SpriteEffects.None,
                     layerDepth: 0
                     );
+
+                sb.Draw(texture: boxTex,
+                      position: new Vector2(0, (int)ScrollViewer.Scroll.Y),
+                      sourceRectangle: null,
+                      color: (MainScreen.Config.EnableColorBlindMode ? Color.White : Color.DarkGray) * 0.5f,
+                      rotation: 0,
+                      origin: Vector2.Zero,
+                      scale: new Vector2((float)PlaybackCursor.MaxTime * SecondsPixelSize, ScrollViewer.Viewport.Height),
+                      effects: SpriteEffects.None,
+                      layerDepth: 0
+                      );
+
 
                 var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
 
@@ -1506,16 +1529,7 @@ namespace TAEDX.TaeEditor
                     }
                 }
 
-                sb.Draw(texture: boxTex,
-                       position: new Vector2((int)ScrollViewer.Scroll.X, (int)ScrollViewer.Scroll.Y),
-                       sourceRectangle: null,
-                       color: MainScreen.Config.EnableColorBlindMode ? Color.White : Color.DarkGray,
-                       rotation: 0,
-                       origin: Vector2.Zero,
-                       scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight),
-                       effects: SpriteEffects.None,
-                       layerDepth: 0
-                       );
+                
 
                 //if (MouseRow >= 0)
                 //{
@@ -1531,6 +1545,25 @@ namespace TAEDX.TaeEditor
                 //            );
                 //}
                 
+                if (SecondsPixelSize >= (30 * MinPixelsBetweenFramesForHelperLines))
+                {
+                    int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / FramePixelSize);
+                    int endFrame = (int)Math.Floor((ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) / FramePixelSize);
+
+                    for (int i = startFrame; i <= endFrame; i++)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(i * FramePixelSize, ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: MainScreen.Config.EnableColorBlindMode ? Color.White * 0.25f : Color.Black * 0.125f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+                }
 
                 if (SecondsPixelSize >= 4f)
                 {
@@ -1627,7 +1660,7 @@ namespace TAEDX.TaeEditor
                         );
                 }
 
-                var playbackCursorPixelX = SecondsPixelSize * (float)PlaybackCursor.CurrentTime;
+                var playbackCursorPixelX = SecondsPixelSize * (float)PlaybackCursor.GUICurrentTime;
 
                 //-- BOTTOM Side <-- I have no idea what I meant by this <-- turns out i just copy pasted the draw call above
                 // Draw PlaybackCursor CurrentTime vertical line
@@ -1642,36 +1675,31 @@ namespace TAEDX.TaeEditor
                     layerDepth: 0
                     );
 
-                if (MainScreen.Config.AutoScrollDuringAnimPlayback && PlaybackCursor.IsPlaying)
+                float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
+
+                if (PlaybackCursor.Scrubbing)
                 {
-                    float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
-
-                    if (PlaybackCursor.Scrubbing)
+                    if (playbackCursorPixelX > ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width)
                     {
-                        if (playbackCursorPixelX > ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width)
-                        {
-                            ScrollViewer.Scroll.X += Math.Max(((playbackCursorPixelX - (ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width)) + 30), 0);
-                        }
-                        else if (playbackCursorPixelX < ScrollViewer.Scroll.X)
-                        {
-                            ScrollViewer.Scroll.X -= Math.Max((ScrollViewer.Scroll.X - playbackCursorPixelX) + 30, 0);
-                        }
+                        ScrollViewer.Scroll.X += Math.Max(((playbackCursorPixelX - (ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width)) + 30), 0);
                     }
-                    else
+                    else if (playbackCursorPixelX < ScrollViewer.Scroll.X)
                     {
-                        
-
-                        float distFromScrollToCursor = playbackCursorPixelX - centerOfScreenX;
-
-                        ScrollViewer.Scroll.X += distFromScrollToCursor * 0.1f;
+                        ScrollViewer.Scroll.X -= Math.Max((ScrollViewer.Scroll.X - playbackCursorPixelX) + 30, 0);
                     }
+                }
+                else if (MainScreen.Config.AutoScrollDuringAnimPlayback && PlaybackCursor.IsPlaying)
+                {
 
-                    
+
+                    float distFromScrollToCursor = playbackCursorPixelX - centerOfScreenX;
+
+                    ScrollViewer.Scroll.X += distFromScrollToCursor * 0.1f;
                 }
 
                 // Draw PlaybackCursor StartTime vertical line
                 sb.Draw(texture: boxTex,
-                    position: new Vector2((float)(SecondsPixelSize * PlaybackCursor.StartTime) - (PlaybackCursorThickness / 2), 0),
+                    position: new Vector2((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2), 0),
                     sourceRectangle: null,
                     color: PlaybackCursorColor * 0.25f,
                     rotation: 0,

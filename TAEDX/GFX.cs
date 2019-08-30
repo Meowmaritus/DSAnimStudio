@@ -225,6 +225,8 @@ namespace TAEDX
                 //TwoSidedStencilMode = Device.DepthStencilState.TwoSidedStencilMode,
             };
 
+            
+
             FlverShader = new FlverShader(c.Load<Effect>(FlverShader__Name));
 
             InitFlverMainShader();

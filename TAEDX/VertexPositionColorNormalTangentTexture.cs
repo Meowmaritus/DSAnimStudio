@@ -19,6 +19,8 @@ namespace TAEDX
         public Vector3 Binormal;
         public Vector3 Tangent;
         public Vector4 Color;
+        public Vector4 BoneIndices;
+        public Vector4 BoneWeights;
 
         /// <summary>
         /// Vertex declaration object.
@@ -51,6 +53,8 @@ namespace TAEDX
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3), VertexElementFormat.Vector3, VertexElementUsage.Binormal, 0),
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3), VertexElementFormat.Vector3, VertexElementUsage.Tangent, 0),
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3), VertexElementFormat.Vector4, VertexElementUsage.Color, 0),
+                new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendIndices, 0),
+                new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 0),
 
             };
             VertexDeclaration declaration = new VertexDeclaration(elements);
@@ -84,11 +88,14 @@ namespace TAEDX
             unchecked
             {
                 var hashCode = Position.GetHashCode();
-                hashCode = (hashCode * 397) ^ Position.GetHashCode();
-                hashCode = (hashCode * 397) ^ Color.GetHashCode();
+                hashCode = (hashCode * 397) ^ TextureCoordinate.GetHashCode();
+                hashCode = (hashCode * 397) ^ TextureCoordinate2.GetHashCode();
                 hashCode = (hashCode * 397) ^ Normal.GetHashCode();
                 hashCode = (hashCode * 397) ^ Binormal.GetHashCode();
                 hashCode = (hashCode * 397) ^ Tangent.GetHashCode();
+                hashCode = (hashCode * 397) ^ Color.GetHashCode();
+                hashCode = (hashCode * 397) ^ BoneIndices.GetHashCode();
+                hashCode = (hashCode * 397) ^ BoneWeights.GetHashCode();
                 return hashCode;
             }
         }
@@ -103,10 +110,14 @@ namespace TAEDX
         {
             return (
                 (left.Position == right.Position) &&
-                (left.Color == right.Color) &&
+                (left.TextureCoordinate == right.TextureCoordinate) &&
+                (left.TextureCoordinate2 == right.TextureCoordinate2) &&
                 (left.Normal == right.Normal) &&
                 (left.Binormal == right.Binormal) &&
-                (left.Tangent == right.Tangent)
+                (left.Tangent == right.Tangent) &&
+                (left.Color == right.Color) &&
+                (left.BoneIndices == right.BoneIndices) &&
+                (left.BoneWeights == right.BoneWeights)
                 );
         }
 

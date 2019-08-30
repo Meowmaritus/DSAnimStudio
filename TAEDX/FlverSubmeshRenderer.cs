@@ -143,6 +143,39 @@ namespace TAEDX
                     MeshVertices[i].Binormal = Vector3.Cross(Vector3.Normalize(MeshVertices[i].Normal), Vector3.Normalize(MeshVertices[i].Tangent)) * vert.Tangents[0].W;
                 }
 
+                if (flvr.Header.Version <= 0x2000D)
+                {
+                    throw new NotImplementedException("Need to convert DS1's relative bone indices to absolute ones ree");
+                }
+
+                MeshVertices[i].BoneIndices = new Vector4(vert.BoneIndices[0] + 1, vert.BoneIndices[1] + 1, vert.BoneIndices[2] + 1, vert.BoneIndices[3] + 1);
+
+                //if (MeshVertices[i].BoneIndices.X == -1 || MeshVertices[i].BoneIndices.X > (FlverShader.NUM_BONES - 1))
+                //    MeshVertices[i].BoneIndices.X = 0;
+
+                //if (MeshVertices[i].BoneIndices.Y == -1 || MeshVertices[i].BoneIndices.Y > (FlverShader.NUM_BONES - 1))
+                //    MeshVertices[i].BoneIndices.Y = 0;
+
+                //if (MeshVertices[i].BoneIndices.Z == -1 || MeshVertices[i].BoneIndices.Z > (FlverShader.NUM_BONES - 1))
+                //    MeshVertices[i].BoneIndices.Z = 0;
+
+                //if (MeshVertices[i].BoneIndices.W == -1 || MeshVertices[i].BoneIndices.W > (FlverShader.NUM_BONES - 1))
+                //    MeshVertices[i].BoneIndices.W = 0;
+
+                MeshVertices[i].BoneWeights = new Vector4(vert.BoneWeights[0], vert.BoneWeights[1], vert.BoneWeights[2], vert.BoneWeights[3]);
+                if (MeshVertices[i].BoneWeights.X < 0)
+                    MeshVertices[i].BoneWeights.X = 1;
+
+                //if (MeshVertices[i].BoneWeights.Y < 0)
+                //    MeshVertices[i].BoneWeights.Y = 1;
+
+                //if (MeshVertices[i].BoneWeights.Z < 0)
+                //    MeshVertices[i].BoneWeights.Z = 1;
+
+                //if (MeshVertices[i].BoneWeights.W < 0)
+                //    MeshVertices[i].BoneWeights.W = 1;
+                //MeshVertices[i].BoneWeights = new Vector4(1,0,0,0);
+
                 if (vert.UVs.Count > 0)
                 {
                     MeshVertices[i].TextureCoordinate = new Vector2(vert.UVs[0].X, vert.UVs[0].Y);
@@ -674,6 +707,11 @@ namespace TAEDX
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+            }
+
+            if (shader == GFX.FlverShader)
+            {
+                ((FlverShader)shader).Bones = TaeInterop.GetFlverShaderBoneMatrix();
             }
 
             //if (GFX.EnableLightmapping /*&& !GFX.EnableLighting*/)
