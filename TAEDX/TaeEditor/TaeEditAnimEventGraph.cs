@@ -416,6 +416,11 @@ namespace TAEDX.TaeEditor
         {
             //ev.Index = MainScreen.SelectedTaeAnim.EventList.Count;
 
+            if (MainScreen.SelectedTae?.BankTemplate != null && ev.Template == null && MainScreen.SelectedTae.BankTemplate.ContainsKey(ev.Type))
+            {
+                ev.ApplyTemplate(MainScreen.SelectedTae.BigEndian, MainScreen.SelectedTae.BankTemplate[ev.Type]);
+            }
+
             var newBox = new TaeEditAnimEventBox(this, ev);
 
             newBox.Row = row;
@@ -524,17 +529,19 @@ namespace TAEDX.TaeEditor
 
             if (MainScreen.SelectedEventBox != null)
             {
-                clipboardContents = new TaeClipboardContents(this,
+                TaeClipboardContents.ParentGraph = this;
+                clipboardContents = new TaeClipboardContents(
                     new List<TaeEditAnimEventBox> { MainScreen.SelectedEventBox },
                     MainScreen.SelectedEventBox.Row, MainScreen.SelectedEventBox.MyEvent.StartTime,
                     MainScreen.SelectedTae.BigEndian);
             }
             else if (MainScreen.MultiSelectedEventBoxes.Count > 0)
             {
+                TaeClipboardContents.ParentGraph = this;
                 var events = MainScreen.MultiSelectedEventBoxes;
                 float startTime = events.OrderBy(x => x.MyEvent.StartTime).First().MyEvent.StartTime;
                 int startRow = events.OrderBy(x => x.Row).First().Row;
-                clipboardContents = new TaeClipboardContents(this, events, startRow, startTime, MainScreen.SelectedTae.BigEndian);
+                clipboardContents = new TaeClipboardContents(events, startRow, startTime, MainScreen.SelectedTae.BigEndian);
             }
             else
             {
@@ -596,9 +603,9 @@ namespace TAEDX.TaeEditor
                         return true;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    System.Windows.Forms.MessageBox.Show(ex.ToString(), "Error During Paste Operation", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 }
             }
 

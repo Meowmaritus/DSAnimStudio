@@ -146,14 +146,30 @@ namespace TAEDX
                 if (flvr.Header.Version <= 0x2000D)
                 {
                     MeshVertices[i].BoneIndices = new Vector4(
-                        vert.BoneIndices[0] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] : -1, 
-                        vert.BoneIndices[1] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] : -1, 
-                        vert.BoneIndices[2] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] : -1,
-                        vert.BoneIndices[3] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] : -1);
+                        vert.BoneIndices[0] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] % FlverShader.NUM_BONES : -1,
+                        vert.BoneIndices[1] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] % FlverShader.NUM_BONES : -1,
+                        vert.BoneIndices[2] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] % FlverShader.NUM_BONES : -1,
+                        vert.BoneIndices[3] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] % FlverShader.NUM_BONES : -1);
+
+                    MeshVertices[i].BoneIndicesBank = new Vector4(
+                        vert.BoneIndices[0] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] / FlverShader.NUM_BONES : 0,
+                        vert.BoneIndices[1] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] / FlverShader.NUM_BONES : 0,
+                        vert.BoneIndices[2] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] / FlverShader.NUM_BONES : 0,
+                        vert.BoneIndices[3] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] / FlverShader.NUM_BONES : 0);
                 }
                 else
                 {
-                    MeshVertices[i].BoneIndices = new Vector4(vert.BoneIndices[0], vert.BoneIndices[1], vert.BoneIndices[2], vert.BoneIndices[3]);
+                    MeshVertices[i].BoneIndices = new Vector4(
+                        vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] % FlverShader.NUM_BONES : -1,
+                        vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] % FlverShader.NUM_BONES : -1,
+                        vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] % FlverShader.NUM_BONES : -1,
+                        vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] % FlverShader.NUM_BONES : -1);
+
+                    MeshVertices[i].BoneIndicesBank = new Vector4(
+                       vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] / FlverShader.NUM_BONES : 0,
+                       vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] / FlverShader.NUM_BONES : 0,
+                       vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] / FlverShader.NUM_BONES : 0,
+                       vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] / FlverShader.NUM_BONES : 0);
                 }
 
                 
@@ -731,7 +747,8 @@ namespace TAEDX
 
             if (shader == GFX.FlverShader)
             {
-                ((FlverShader)shader).Bones = TaeInterop.GetFlverShaderBoneMatrix();
+                ((FlverShader)shader).Bones = TaeInterop.GetFlverShaderBoneMatrix(0);
+                ((FlverShader)shader).Bones2 = TaeInterop.GetFlverShaderBoneMatrix(1);
             }
 
             //if (GFX.EnableLightmapping /*&& !GFX.EnableLighting*/)

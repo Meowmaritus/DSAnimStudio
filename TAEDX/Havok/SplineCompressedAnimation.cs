@@ -362,7 +362,15 @@ namespace TAEDX.Havok
 
                 for (int i = 0; i <= numItems; i++)
                 {
-                    Channel.Values.Add(ReadQuantizedQuaternion(br, quantizationType));
+                    try
+                    {
+                        Channel.Values.Add(ReadQuantizedQuaternion(br, quantizationType));
+                    }
+                    catch (System.IO.EndOfStreamException)
+                    {
+                        // TEST
+                        Channel.Values.Add(Quaternion.Identity);
+                    }
                 }
             }
 

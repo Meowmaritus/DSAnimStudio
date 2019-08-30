@@ -22,16 +22,16 @@ namespace TAEDX.TaeEditor
         public float StartTime { get; set; } = 0;
         public bool IsBigEndian { get; set; }
 
-        public TaeEditAnimEventGraph ParentGraph { get; set; }
+        // Sorry this is ugly
+        public static TaeEditAnimEventGraph ParentGraph;
 
-        public TaeClipboardContents(TaeEditAnimEventGraph graph)
+        public TaeClipboardContents()
         {
-            ParentGraph = graph;
+
         }
 
-        public TaeClipboardContents(TaeEditAnimEventGraph graph, IEnumerable<TaeEditAnimEventBox> events, int startRow, float startTime, bool isBigEndian)
+        public TaeClipboardContents(IEnumerable<TaeEditAnimEventBox> events, int startRow, float startTime, bool isBigEndian)
         {
-            ParentGraph = graph;
             StartRow = startRow;
             StartTime = startTime;
             EventClips = events.Select(x => EventToClip(x, isBigEndian));

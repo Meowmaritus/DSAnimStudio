@@ -32,6 +32,8 @@ namespace TAEDX.TaeEditor
             DividerRightPaneHorizontal,
         }
 
+        public static bool CurrentlyEditingSomethingInInspector;
+
         public TaePlaybackCursor PlaybackCursor => editScreenCurrentAnim.PlaybackCursor;
 
         public Rectangle ModelViewerBounds;
@@ -63,7 +65,7 @@ namespace TAEDX.TaeEditor
             "    Place copy of last highlighted event at mouse cursor\n" +
             "Delete Key:\n" +
             "    Delete highlighted event.\n\n\n" +
-            "The pane on the right shows the parameters of the highlighted event." +
+            "The pane on the bottom-right shows the parameters of the highlighted event." +
             "Click \"Change Type\" on the upper-right corner to change the event type of the highlighted event." +
             "F1 Key:\n" +
             "    Change type of highlighted event.\n";
@@ -214,8 +216,8 @@ namespace TAEDX.TaeEditor
         private const float TopRightPaneHeightMinNew = 128;
         private const float BottomRightPaneHeightNew = 256;
 
-        private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight;
-        private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad;
+        private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight + TopMenuBarMargin;
+        private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad + TopMenuBarMargin;
         private float DividerRightPaneHorizontalCenterY => DividerRightPaneHorizontalVisibleStartY + ((DividerRightPaneHorizontalVisibleEndY - DividerRightPaneHorizontalVisibleStartY) / 2);
 
         private float DividerRightPaneHorizontalGrabStartY => DividerRightPaneHorizontalCenterY - (DividerHitboxPad / 2);
@@ -384,7 +386,20 @@ namespace TAEDX.TaeEditor
             {
                 FileContainer = new TaeFileContainer();
 
-                FileContainer.LoadFromPath(FileContainerName);
+                try
+                {
+                    FileContainer.LoadFromPath(FileContainerName);
+                }
+                catch (System.DllNotFoundException)
+                {
+                    System.Windows.Forms.MessageBox.Show("Cannot open Sekiro files unless you " +
+                        "copy the `oo2core_6_win64.dll` file from the Sekiro folder into the " +
+                        "same folder as this editor's EXE.", "Additional DLL Required", 
+                        System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+
+                    return false;
+                }
+                
 
                 if (!FileContainer.AllTAE.Any())
                 {
@@ -413,12 +428,24 @@ namespace TAEDX.TaeEditor
                 //    LoadTAETemplate(templateName);
                 //}
 
+                CheckAutoLoadXMLTemplate();
+
                 return true;
             }
             else
             {
                 return null;
             }
+        }
+
+        private void CheckAutoLoadXMLTemplate()
+        {
+            var xmlPath = System.IO.Path.Combine(
+                new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
+                $@"Res\TAE.Template.{SelectedTae.Format.ToString()}.xml");
+
+            if (System.IO.File.Exists(xmlPath))
+                LoadTAETemplate(xmlPath);
         }
 
         public void SaveCurrentFile()
@@ -654,6 +681,10 @@ namespace TAEDX.TaeEditor
             MenuBar.AddItem("Config", "Start with all TAE sections collapsed", () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
             MenuBar.AddSeparator("Config");
             MenuBar.AddItem("Config", "Auto-scroll During Anim Playback", () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
+
+            MenuBar.AddItem("Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
+            MenuBar.AddItem("Animation", "Snap To 30 FPS Increments", () => PlaybackCursor.SnapToFrames, b => PlaybackCursor.SnapToFrames = b);
+
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
 
@@ -1328,19 +1359,19 @@ namespace TAEDX.TaeEditor
                 {
                     editScreenCurrentAnim.ResetZoom(0);
                 }
-                else if (Input.KeyDown(Keys.C) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
                     editScreenCurrentAnim.DoCopy();
                 }
-                else if (Input.KeyDown(Keys.X) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
                     editScreenCurrentAnim.DoCut();
                 }
-                else if (Input.KeyDown(Keys.V) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
                     editScreenCurrentAnim.DoPaste(isAbsoluteLocation: false);
                 }
-                else if (Input.KeyDown(Keys.A))
+                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A))
                 {
                     if (editScreenCurrentAnim.currentDrag.DragType == BoxDragType.None)
                     {
@@ -1361,6 +1392,10 @@ namespace TAEDX.TaeEditor
                 {
                     ShowDialogGoto();
                 }
+                else if (Input.KeyDown(Keys.S))
+                {
+                    SaveCurrentFile();
+                }
             }
 
             if (CtrlHeld && ShiftHeld && !AltHeld)
@@ -1368,6 +1403,10 @@ namespace TAEDX.TaeEditor
                 if (Input.KeyDown(Keys.V))
                 {
                     editScreenCurrentAnim.DoPaste(isAbsoluteLocation: true);
+                }
+                if (Input.KeyDown(Keys.S))
+                {
+                    File_SaveAs();
                 }
             }
 
@@ -1494,8 +1533,8 @@ namespace TAEDX.TaeEditor
                 if (Input.LeftClickHeld)
                 {
                     //Input.CursorType = MouseCursorType.DragY;
-                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
-                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightNew - DividerVisiblePad);
+                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
+                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightNew - DividerVisiblePad - TopMenuBarMargin);
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
                 }
                 else
@@ -1675,7 +1714,7 @@ namespace TAEDX.TaeEditor
             //ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Bottom - BottomRightPaneHeight), (int)RightSectionWidth, (int)(BottomRightPaneHeight));
 
             ModelViewerBounds = new Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(TopRightPaneHeight));
-            inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, (int)(Rect.Top + TopRightPaneHeight + DividerVisiblePad), (int)RightSectionWidth, (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad));
+            inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad), (int)RightSectionWidth, (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin));
         }
 
         public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)

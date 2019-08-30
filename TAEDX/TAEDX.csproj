@@ -302,7 +302,7 @@
     <Content Include="Res\TAE.Template.DS3.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Res\TAE.Template.Sekiro.xml">
+    <Content Include="Res\TAE.Template.SDT.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

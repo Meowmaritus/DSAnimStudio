@@ -56,6 +56,44 @@ namespace TAEDX.TaeEditor
 
         public IReadOnlyDictionary<string, TAE> AllTAEDict => taeInBND;
 
+        private void CheckGameVersionForTaeInterop(string filePath)
+        {
+            var check = filePath.ToUpper();
+            if (check.Contains("FRPG2"))
+            {
+                TaeInterop.IncompatibleHavokVersion = true;
+            }
+            else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXX64"))
+            {
+                TaeInterop.IncompatibleHavokVersion = true;
+            }
+            else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXWIN32"))
+            {
+                TaeInterop.IncompatibleHavokVersion = false;
+                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKXDS1;
+            }
+            else if (check.Contains(@"\SPRJ\"))
+            {
+                TaeInterop.IncompatibleHavokVersion = false;
+                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKXBloodBorne;
+            }
+            else if (check.Contains(@"\FDP\"))
+            {
+                TaeInterop.IncompatibleHavokVersion = false;
+                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKXDS3;
+            }
+            else if (check.Contains(@"\DemonsSoul\"))
+            {
+                TaeInterop.IncompatibleHavokVersion = false;
+                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKSDeS;
+            }
+            else if (check.Contains(@"\NTC\"))
+            {
+                TaeInterop.IncompatibleHavokVersion = true;
+                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKSDeS;
+            }
+        }
+
         public void LoadFromPath(string file)
         {
             ReloadType = TaeFileContainerReloadType.None;
@@ -72,6 +110,8 @@ namespace TAEDX.TaeEditor
                 containerBND3 = BND3.Read(file);
                 foreach (var f in containerBND3.Files)
                 {
+                    CheckGameVersionForTaeInterop(f.Name);
+
                     if (TAE.Is(f.Bytes))
                     {
                         taeInBND.Add(f.Name, TAE.Read(f.Bytes));
@@ -88,6 +128,8 @@ namespace TAEDX.TaeEditor
                 containerBND4 = BND4.Read(file);
                 foreach (var f in containerBND4.Files)
                 {
+                    CheckGameVersionForTaeInterop(f.Name);
+
                     if (TAE.Is(f.Bytes))
                     {
                         taeInBND.Add(f.Name, TAE.Read(f.Bytes));
@@ -100,6 +142,8 @@ namespace TAEDX.TaeEditor
             }
             else if (TAE.Is(file))
             {
+                CheckGameVersionForTaeInterop(file);
+
                 ContainerType = TaeFileContainerType.TAE;
                 taeInBND.Add(file, TAE.Read(file));
             }

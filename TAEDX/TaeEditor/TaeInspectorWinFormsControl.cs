@@ -104,10 +104,17 @@ namespace TAEDX.TaeEditor
                         //dataGridView1.Rows[dataGridView1.RowCount - 1].Cells[2].ValueType = typeof(byte);
                     }
                 }
-
-                dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
-                dataGridView1.CellValidating += DataGridView1_CellValidating;
             }
+        }
+
+        private void DataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            TaeEditorScreen.CurrentlyEditingSomethingInInspector = false;
+        }
+
+        private void DataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            TaeEditorScreen.CurrentlyEditingSomethingInInspector = true;
         }
 
         private void DataGridView1_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
@@ -237,6 +244,11 @@ namespace TAEDX.TaeEditor
             dataGridView1.EditingControlShowing += DataGridView1_EditingControlShowing;
 
             dataGridView1.AllowUserToOrderColumns = false;
+
+            dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
+            dataGridView1.CellValidating += DataGridView1_CellValidating;
+            dataGridView1.CellBeginEdit += DataGridView1_CellBeginEdit;
+            dataGridView1.CellEndEdit += DataGridView1_CellEndEdit;
         }
 
         IDataGridViewEditingControl _iDataGridViewEditingControl;
@@ -257,153 +269,156 @@ namespace TAEDX.TaeEditor
 
         private void Control_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (dataGridView1.IsCurrentCellInEditMode)
-            {
-                if (dataGridView1.SelectedCells.Count != 1)
-                    return;
 
-                var selectedCell = dataGridView1.SelectedCells[0];
+            TaeEditorScreen.CurrentlyEditingSomethingInInspector = true;
+
+            //if (dataGridView1.IsCurrentCellInEditMode)
+            //{
+            //    if (dataGridView1.SelectedCells.Count != 1)
+            //        return;
+
+            //    var selectedCell = dataGridView1.SelectedCells[0];
 
                 
 
-                string paramName = selectedCell.OwningRow.Cells[1].FormattedValue.ToString();
-                TAE.Template.ParamType p = TAE.Template.ParamType.x8;
+            //    string paramName = selectedCell.OwningRow.Cells[1].FormattedValue.ToString();
+            //    TAE.Template.ParamType p = TAE.Template.ParamType.x8;
 
-                switch (e.KeyChar)
-                {
-                    case (char)Keys.Back:
-                    case (char)Keys.Enter:
-                        break;
-                    case ' ':
-                        if (SelectedEventBox.MyEvent.Template == null)
-                        {
-                            e.Handled = true;
-                            BEEP();
-                            break;
-                        }
-                        else
-                        {
-                            p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
-                            if (p != TAE.Template.ParamType.aob)
-                            {
-                                e.Handled = true;
-                                BEEP();
-                            }
-                        }
-                        break;
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                        break;
-                    case '-':
-                        if (SelectedEventBox.MyEvent.Template == null)
-                        {
-                            e.Handled = true;
-                            BEEP();
-                            break;
-                        }
-                        else
-                        {
-                            p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
-                            switch (p)
-                            {
-                                case TAE.Template.ParamType.s8:
-                                case TAE.Template.ParamType.s16:
-                                case TAE.Template.ParamType.s32:
-                                case TAE.Template.ParamType.s64:
-                                case TAE.Template.ParamType.f32:
-                                case TAE.Template.ParamType.f64:
-                                    break;
-                                default:
-                                    e.Handled = true;
-                                    BEEP();
-                                    break;
-                            }
-                        }
-                        break;
-                    case 'a':
-                    case 'b':
-                    case 'c':
-                    case 'd':
-                    case 'e':
-                    case 'f':
-                    case 'A':
-                    case 'B':
-                    case 'C':
-                    case 'D':
-                    case 'E':
-                    case 'F':
-                        if (SelectedEventBox.MyEvent.Template == null)
-                        {
-                            switch (e.KeyChar)
-                            {
-                                case 'a': e.KeyChar = 'A'; break;
-                                case 'b': e.KeyChar = 'B'; break;
-                                case 'c': e.KeyChar = 'C'; break;
-                                case 'd': e.KeyChar = 'D'; break;
-                                case 'e': e.KeyChar = 'E'; break;
-                                case 'f': e.KeyChar = 'F'; break;
-                                default: break;
-                            }
+            //    switch (e.KeyChar)
+            //    {
+            //        case (char)Keys.Back:
+            //        case (char)Keys.Enter:
+            //            break;
+            //        case ' ':
+            //            if (SelectedEventBox.MyEvent.Template == null)
+            //            {
+            //                e.Handled = true;
+            //                BEEP();
+            //                break;
+            //            }
+            //            else
+            //            {
+            //                p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
+            //                if (p != TAE.Template.ParamType.aob)
+            //                {
+            //                    e.Handled = true;
+            //                    BEEP();
+            //                }
+            //            }
+            //            break;
+            //        case '0':
+            //        case '1':
+            //        case '2':
+            //        case '3':
+            //        case '4':
+            //        case '5':
+            //        case '6':
+            //        case '7':
+            //        case '8':
+            //        case '9':
+            //            break;
+            //        case '-':
+            //            if (SelectedEventBox.MyEvent.Template == null)
+            //            {
+            //                e.Handled = true;
+            //                BEEP();
+            //                break;
+            //            }
+            //            else
+            //            {
+            //                p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
+            //                switch (p)
+            //                {
+            //                    case TAE.Template.ParamType.s8:
+            //                    case TAE.Template.ParamType.s16:
+            //                    case TAE.Template.ParamType.s32:
+            //                    case TAE.Template.ParamType.s64:
+            //                    case TAE.Template.ParamType.f32:
+            //                    case TAE.Template.ParamType.f64:
+            //                        break;
+            //                    default:
+            //                        e.Handled = true;
+            //                        BEEP();
+            //                        break;
+            //                }
+            //            }
+            //            break;
+            //        case 'a':
+            //        case 'b':
+            //        case 'c':
+            //        case 'd':
+            //        case 'e':
+            //        case 'f':
+            //        case 'A':
+            //        case 'B':
+            //        case 'C':
+            //        case 'D':
+            //        case 'E':
+            //        case 'F':
+            //            if (SelectedEventBox.MyEvent.Template == null)
+            //            {
+            //                switch (e.KeyChar)
+            //                {
+            //                    case 'a': e.KeyChar = 'A'; break;
+            //                    case 'b': e.KeyChar = 'B'; break;
+            //                    case 'c': e.KeyChar = 'C'; break;
+            //                    case 'd': e.KeyChar = 'D'; break;
+            //                    case 'e': e.KeyChar = 'E'; break;
+            //                    case 'f': e.KeyChar = 'F'; break;
+            //                    default: break;
+            //                }
 
-                            break;
-                        }
+            //                break;
+            //            }
 
-                        p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
-                        switch (p)
-                        {
-                            case TAE.Template.ParamType.x8:
-                            case TAE.Template.ParamType.x16:
-                            case TAE.Template.ParamType.x32:
-                            case TAE.Template.ParamType.x64:
-                            case TAE.Template.ParamType.aob:
-                                switch (e.KeyChar)
-                                {
-                                    case 'a': e.KeyChar = 'A'; break;
-                                    case 'b': e.KeyChar = 'B'; break;
-                                    case 'c': e.KeyChar = 'C'; break;
-                                    case 'd': e.KeyChar = 'D'; break;
-                                    case 'e': e.KeyChar = 'E'; break;
-                                    case 'f': e.KeyChar = 'F'; break;
-                                    default: break;
-                                }
-                                break;
-                            default:
-                                e.Handled = true;
-                                BEEP();
-                                break;
-                        }
-                        break;
-                    case ',':
-                    case '.':
-                        if (SelectedEventBox.MyEvent.Template == null)
-                        {
-                            e.Handled = true;
-                            BEEP();
-                            break;
-                        }
+            //            p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
+            //            switch (p)
+            //            {
+            //                case TAE.Template.ParamType.x8:
+            //                case TAE.Template.ParamType.x16:
+            //                case TAE.Template.ParamType.x32:
+            //                case TAE.Template.ParamType.x64:
+            //                case TAE.Template.ParamType.aob:
+            //                    switch (e.KeyChar)
+            //                    {
+            //                        case 'a': e.KeyChar = 'A'; break;
+            //                        case 'b': e.KeyChar = 'B'; break;
+            //                        case 'c': e.KeyChar = 'C'; break;
+            //                        case 'd': e.KeyChar = 'D'; break;
+            //                        case 'e': e.KeyChar = 'E'; break;
+            //                        case 'f': e.KeyChar = 'F'; break;
+            //                        default: break;
+            //                    }
+            //                    break;
+            //                default:
+            //                    e.Handled = true;
+            //                    BEEP();
+            //                    break;
+            //            }
+            //            break;
+            //        case ',':
+            //        case '.':
+            //            if (SelectedEventBox.MyEvent.Template == null)
+            //            {
+            //                e.Handled = true;
+            //                BEEP();
+            //                break;
+            //            }
 
-                        var isValidFloatingPoint = (System.Threading.Thread.CurrentThread.CurrentCulture.NumberFormat.NumberDecimalSeparator.Contains(e.KeyChar));
-                        p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
-                        if ((p != TAE.Template.ParamType.f32 && p != TAE.Template.ParamType.f64) || !isValidFloatingPoint)
-                        {
-                            e.Handled = true;
-                            BEEP();
-                        }
-                        break;
-                    default:
-                        e.Handled = true;
-                        BEEP();
-                        break;
-                }
-            }
+            //            var isValidFloatingPoint = (System.Threading.Thread.CurrentThread.CurrentCulture.NumberFormat.NumberDecimalSeparator.Contains(e.KeyChar));
+            //            p = SelectedEventBox.MyEvent.Parameters.Template[paramName].Type;
+            //            if ((p != TAE.Template.ParamType.f32 && p != TAE.Template.ParamType.f64) || !isValidFloatingPoint)
+            //            {
+            //                e.Handled = true;
+            //                BEEP();
+            //            }
+            //            break;
+            //        default:
+            //            e.Handled = true;
+            //            BEEP();
+            //            break;
+            //    }
+            //}
         }
 
         private void BEEP()

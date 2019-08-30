@@ -10,6 +10,7 @@
 cbuffer cbSkinned
 {
     float4x4 Bones[255]; //parameter incorrect
+    float4x4 Bones2[255]; //parameter incorrect
     //float4x3 Bones[512]; //index out of range :MecHands:
 };
 
@@ -101,6 +102,7 @@ struct VertexShaderInput
     float4 Color : COLOR0;
 	float4 BoneIndices : BLENDINDICES;
     float4 BoneWeights : BLENDWEIGHT;
+    float4 BoneIndicesBank : BLENDINDICES1;
     float4x4 InstanceWorld : TEXCOORD2;
 };
 
@@ -122,10 +124,52 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
     
     float4 inPos = input.Position;
     
-    float4 posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[0])]) * input.BoneWeights[0];
-    float4 posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[1])]) * input.BoneWeights[1];
-    float4 posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[2])]) * input.BoneWeights[2];
-    float4 posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[3])]) * input.BoneWeights[3];
+    float4 posA;
+    float4 posB;
+    float4 posC;
+    float4 posD;
+    
+    if (input.BoneIndicesBank[0] > 0)
+    {
+        posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[0])]) * input.BoneWeights[0];
+    }
+    else
+    {
+        posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[0])]) * input.BoneWeights[0];
+    }
+    
+    if (input.BoneIndicesBank[1] > 0)
+    {
+        posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[1])]) * input.BoneWeights[1];
+    }
+    else
+    {
+        posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[1])]) * input.BoneWeights[1];
+    }
+    
+    if (input.BoneIndicesBank[2] > 0)
+    {
+        posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[2])]) * input.BoneWeights[2];
+    }
+    else
+    {
+        posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[2])]) * input.BoneWeights[2];
+    }
+    
+    if (input.BoneIndicesBank[3] > 0)
+    {
+        posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[3])]) * input.BoneWeights[3];
+    }
+    else
+    {
+        posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[3])]) * input.BoneWeights[3];
+    }
+    
+    
+    //posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[1])]) * input.BoneWeights[1];
+    //posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[2])]) * input.BoneWeights[2];
+    //posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[3])]) * input.BoneWeights[3];
+    
     
     inPos = ((posA + posB + posC + posD) / (input.BoneWeights[0] + input.BoneWeights[1] + input.BoneWeights[2] + input.BoneWeights[3]));
 
