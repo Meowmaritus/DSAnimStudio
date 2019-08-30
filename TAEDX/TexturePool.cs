@@ -34,7 +34,7 @@ namespace TAEDX
             }
         }
 
-        public static void AddFetch(TPF tpf, string texName)
+        public static void AddFetchTPF(TPF tpf, string texName)
         {
             string shortName = Path.GetFileNameWithoutExtension(texName);
             if (!Fetches.ContainsKey(shortName))
@@ -56,11 +56,53 @@ namespace TAEDX
 
         }
 
+        public static void AddFetchDDS(byte[] dds, string texName)
+        {
+            string shortName = Path.GetFileNameWithoutExtension(texName);
+            if (!Fetches.ContainsKey(shortName))
+            {
+                lock (_lock_pool)
+                {
+                    //if (tpf.Platform == TPF.TPFPlatform.PS3)
+                    //{
+                    //    tpf.ConvertPS3ToPC();
+                    //}
+                    //if (tpf.Platform == TPF.TPFPlatform.PS4)
+                    //{
+                    //    tpf.ConvertPS4ToPC();
+                    //}
+                    var newFetch = new TextureFetchRequest(dds, texName);
+                    Fetches.Add(shortName, newFetch);
+                }
+            }
+
+        }
+
         public static void AddTpf(TPF tpf)
         {
             foreach (var tex in tpf.Textures)
             {
-                AddFetch(tpf, tex.Name);
+                AddFetchTPF(tpf, tex.Name);
+            }
+        }
+
+        public static void AddLooseDDSFolder(string folderPath)
+        {
+            var dds = Directory.GetFiles(folderPath, "*.dds");
+            foreach (var d in dds)
+            {
+                string shortName = Path.GetFileNameWithoutExtension(d);
+                AddFetchDDS(File.ReadAllBytes(d), shortName);
+            }
+        }
+
+        public static void AddTPFFolder(string folderPath)
+        {
+            var tpfs = Directory.GetFiles(folderPath, "*.tpf");
+            foreach (var t in tpfs)
+            {
+                string shortName = Path.GetFileNameWithoutExtension(t);
+                AddFetchTPF(TPF.Read(File.ReadAllBytes(t)), shortName);
             }
         }
 

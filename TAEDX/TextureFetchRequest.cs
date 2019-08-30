@@ -14,13 +14,16 @@ namespace TAEDX
 {
     public enum TextureFetchRequestType
     {
-        EntityBnd,
-        Tpf,
-        TexBnd,
+        //EntityBnd,
+        TPF,
+        //TexBnd,
+        DDS,
     }
     public class TextureFetchRequest : IDisposable
     {
+        public TextureFetchRequestType RequestType { get; private set; }
         public TPF TPFReference { get; private set; }
+        public byte[] DDSBytes { get; private set; }
         public string TexName;
         private Texture2D CachedTexture;
         private bool IsDX10;
@@ -28,8 +31,17 @@ namespace TAEDX
 
         public TextureFetchRequest(TPF tpf, string texName)
         {
+            RequestType = TextureFetchRequestType.TPF;
             TPFReference = tpf;
             TexName = texName;
+        }
+
+        public TextureFetchRequest(byte[] ddsBytes, string texName)
+        {
+            RequestType = TextureFetchRequestType.DDS;
+            TPFReference = null;
+            TexName = texName;
+            DDSBytes = ddsBytes;
         }
 
         private byte[] FetchBytes()
@@ -66,30 +78,41 @@ namespace TAEDX
                 return null;
             }
 
-            if (TPFReference == null)
-                return null;
-
-            var matchedTextures = TPFReference.Textures.Where(x => x.Name == TexName).ToList();
-
-            if (matchedTextures.Count > 0)
+            if (RequestType == TextureFetchRequestType.TPF)
             {
-                var tex = matchedTextures.First();
-                var texBytes = tex.Bytes;
-                
-                //foreach (var match in matchedTextures)
-                //{
-                //    match.Bytes = null;
-                //    match.Header = null;
-                //    TPFReference.Textures.Remove(match);
-                //}
+                if (TPFReference == null)
+                    return null;
 
-                //if (TPFReference.Textures.Count == 0)
-                //{
-                //    TPFReference.Textures = null;
-                //    TPFReference = null;
-                //}
+                var matchedTextures = TPFReference.Textures.Where(x => x.Name == TexName).ToList();
 
-                return texBytes;
+                if (matchedTextures.Count > 0)
+                {
+                    var tex = matchedTextures.First();
+                    var texBytes = tex.Bytes;
+
+                    //foreach (var match in matchedTextures)
+                    //{
+                    //    match.Bytes = null;
+                    //    match.Header = null;
+                    //    TPFReference.Textures.Remove(match);
+                    //}
+
+                    //if (TPFReference.Textures.Count == 0)
+                    //{
+                    //    TPFReference.Textures = null;
+                    //    TPFReference = null;
+                    //}
+
+                    return texBytes;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else if (RequestType == TextureFetchRequestType.DDS)
+            {
+                return DDSBytes;
             }
             else
             {
