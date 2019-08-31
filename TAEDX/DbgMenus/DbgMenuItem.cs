@@ -64,9 +64,9 @@ namespace TAEDX.DbgMenus
                 new DbgMenuItemBool("Show Meshes", "Yes", "No",
                 (b) => GFX.HideFLVERs = !b, () => !GFX.HideFLVERs),
                 new DbgMenuItemBool("Show Bones", "Yes", "No",
-                (b) => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = b, () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone]),
+                (b) => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b, () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone]),
                 new DbgMenuItemBool("Show Bones With Names", "Yes", "No",
-                (b) => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.Bone] = b, () => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.Bone]),
+                (b) => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b, () => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.HkxBone]),
                 new DbgMenuItemBool("Show DummyPoly", "Yes", "No",
                 (b) => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b, () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly]),
                 new DbgMenuItemBool("Show DummyPoly With IDs", "Yes", "No",
@@ -97,7 +97,7 @@ namespace TAEDX.DbgMenus
                     ClickAction = m =>
                     {
                         m.Items.Clear();
-                        foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.Bone))
+                        foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.HkxBone))
                         {
                              m.Items.Add(new DbgMenuItemBool($"{prim.Name}", "SHOW", "HIDE",
                               (bv) => prim.EnableDraw = bv, () => prim.EnableDraw));

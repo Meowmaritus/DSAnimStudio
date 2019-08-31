@@ -748,7 +748,8 @@ namespace TAEDX
             if (shader == GFX.FlverShader)
             {
                 ((FlverShader)shader).Bones = TaeInterop.GetFlverShaderBoneMatrix(0);
-                ((FlverShader)shader).Bones2 = TaeInterop.GetFlverShaderBoneMatrix(1);
+                if (TaeInterop.FlverAnimMatrices.Length > FlverShader.NUM_BONES)
+                    ((FlverShader)shader).Bones2 = TaeInterop.GetFlverShaderBoneMatrix(1);
             }
 
             //if (GFX.EnableLightmapping /*&& !GFX.EnableLighting*/)

@@ -16,7 +16,7 @@ namespace TAEDX.GFXShaders
         {
             LightingEnabled = false;
             VertexColorEnabled = true;
-            DiffuseColor = Main.SELECTED_MESH_WIREFRAME_COLOR.ToVector3();
+            DiffuseColor = Vector3.One;
             TextureEnabled = false;
         }
 
@@ -24,7 +24,7 @@ namespace TAEDX.GFXShaders
         {
             LightingEnabled = false;
             VertexColorEnabled = true;
-            DiffuseColor = Main.SELECTED_MESH_WIREFRAME_COLOR.ToVector3();
+            DiffuseColor = Vector3.One;
             TextureEnabled = false;
         }
 

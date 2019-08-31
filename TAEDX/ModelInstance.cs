@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace TAEDX
 {
@@ -14,9 +15,22 @@ namespace TAEDX
         public struct InstanceData
         {
             public Matrix WorldMatrix;
+            //public Matrix WorldMatrixInverse;
             //public Vector2 atlasScale;
             //public Vector2 atlasOffset;
         };
+
+        public static VertexDeclaration InstanceVertexDeclaration = new VertexDeclaration
+        (
+            new VertexElement(16 * 0, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 0),
+            new VertexElement(16 * 1, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 1),
+            new VertexElement(16 * 2, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 2),
+            new VertexElement(16 * 3, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 3)
+            //new VertexElement(16 * 4, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 4),
+            //new VertexElement(16 * 5, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 5),
+            //new VertexElement(16 * 6, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 6),
+            //new VertexElement(16 * 7, VertexElementFormat.Vector4, VertexElementUsage.TextureCoordinate, 7)
+        );
 
         public string Name;
         public readonly Model ModelReference;
@@ -79,6 +93,7 @@ namespace TAEDX
             Data = new InstanceData();
             Transform = transform;
             Data.WorldMatrix = transform.WorldMatrix;
+            //Data.WorldMatrixInverse = Matrix.Invert(transform.WorldMatrix);
             //Data.atlasScale = new Vector2(1.0f, 1.0f);
             //Data.atlasOffset = new Vector2(0.0f, 0.0f);
             DrawGroup1 = drawGroup1;

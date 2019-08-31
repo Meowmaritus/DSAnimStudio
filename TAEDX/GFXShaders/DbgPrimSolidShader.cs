@@ -16,7 +16,7 @@ namespace TAEDX.GFXShaders
         {
             LightingEnabled = true;
             VertexColorEnabled = true;
-            DiffuseColor = Vector3.One * 0.5f;
+            DiffuseColor = Vector3.One;
             TextureEnabled = false;
         }
 
@@ -24,7 +24,7 @@ namespace TAEDX.GFXShaders
         {
             LightingEnabled = true;
             VertexColorEnabled = true;
-            DiffuseColor = Vector3.One * 0.5f;
+            DiffuseColor = Vector3.One;
             TextureEnabled = false;
         }
 

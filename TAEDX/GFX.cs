@@ -316,7 +316,7 @@ namespace TAEDX
                     }
                     break;
                 case GFXDrawStep.DbgPrim:
-                    DBG.DrawPrimitives();
+                    DBG.DrawPrimitives(gameTime);
                     ModelDrawer.DrawSelected();
                     break;
                 case GFXDrawStep.GUI:

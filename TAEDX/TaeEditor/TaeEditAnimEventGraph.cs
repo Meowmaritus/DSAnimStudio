@@ -1333,8 +1333,8 @@ namespace TAEDX.TaeEditor
             foreach (var kvp in secondVerticalLineXPositions)
             {
                 if (!MainScreen.Config.EnableColorBlindMode)
-                    sb.DrawString(font, $"{(kvp.Key * 30)}", new Vector2(kvp.Value + 4 + 1, (int)ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
-                sb.DrawString(font, $"{(kvp.Key * 30)}", new Vector2(kvp.Value + 4, (int)ScrollViewer.Scroll.Y + 1), MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White);
+                    sb.DrawString(font, $"{(kvp.Key)}", new Vector2(kvp.Value + 4 + 1, (int)ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
+                sb.DrawString(font, $"{(kvp.Key)}", new Vector2(kvp.Value + 4, (int)ScrollViewer.Scroll.Y + 1), MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White);
             }
         }
 
@@ -1689,10 +1689,12 @@ namespace TAEDX.TaeEditor
                     if (playbackCursorPixelX > ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width)
                     {
                         ScrollViewer.Scroll.X += Math.Max(((playbackCursorPixelX - (ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width)) + 30), 0);
+                        ScrollViewer.ClampScroll();
                     }
                     else if (playbackCursorPixelX < ScrollViewer.Scroll.X)
                     {
                         ScrollViewer.Scroll.X -= Math.Max((ScrollViewer.Scroll.X - playbackCursorPixelX) + 30, 0);
+                        ScrollViewer.ClampScroll();
                     }
                 }
                 else if (MainScreen.Config.AutoScrollDuringAnimPlayback && PlaybackCursor.IsPlaying)
@@ -1702,6 +1704,7 @@ namespace TAEDX.TaeEditor
                     float distFromScrollToCursor = playbackCursorPixelX - centerOfScreenX;
 
                     ScrollViewer.Scroll.X += distFromScrollToCursor * 0.1f;
+                    ScrollViewer.ClampScroll();
                 }
 
                 // Draw PlaybackCursor StartTime vertical line

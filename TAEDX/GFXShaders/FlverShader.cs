@@ -26,6 +26,12 @@ namespace TAEDX.GFXShaders
             set => Parameters["View"].SetValue(value);
         }
 
+        //public Matrix ViewInverse
+        //{
+        //    get => Parameters["ViewInverse"].GetValueMatrix();
+        //    set => Parameters["ViewInverse"].SetValue(value);
+        //}
+
         public Matrix Projection
         {
             get => Parameters["Projection"].GetValueMatrix();
@@ -157,6 +163,7 @@ namespace TAEDX.GFXShaders
             World = world;
             View = view;
             Projection = projection;
+            //ViewInverse = Matrix.Invert(view);
         }
     }
 }

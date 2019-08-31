@@ -100,13 +100,23 @@ namespace TAEDX
         public void ApplyViewToShader<T>(IGFXShader<T> shader)
             where T : Effect
         {
-            shader.ApplyWorldView(Matrix.Identity, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+            Matrix m = Matrix.Identity;
+
+            if (TaeInterop.CameraFollowsRootMotion)
+                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+
+            shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Transform modelTransform)
             where T : Effect
         {
-            shader.ApplyWorldView(modelTransform.WorldMatrix, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+            Matrix m = modelTransform.WorldMatrix;
+
+            if (TaeInterop.CameraFollowsRootMotion)
+                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+
+            shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
         }
 
         public bool IsInFrustum(BoundingBox objBounds, Transform objTransform)

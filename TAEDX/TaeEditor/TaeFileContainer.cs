@@ -42,6 +42,8 @@ namespace TAEDX.TaeEditor
                 ".TAE(.DCX)|*.TAE*|" +
                 "All Files|*.*";
 
+        public bool IsBloodborne = false;
+
         public string GetResaveFilter()
         {
             return "*.*|*.*";
@@ -76,6 +78,7 @@ namespace TAEDX.TaeEditor
             {
                 TaeInterop.IncompatibleHavokVersion = false;
                 TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKXBloodBorne;
+                IsBloodborne = true;
             }
             else if (check.Contains(@"\FDP\"))
             {
@@ -103,6 +106,8 @@ namespace TAEDX.TaeEditor
 
             taeInBND.Clear();
             hkxInBND.Clear();
+
+            IsBloodborne = false;
 
             if (BND3.Is(file))
             {

@@ -9,9 +9,9 @@ namespace TAEDX.DebugPrimitives
 {
     public class DbgPrimSolidBone : DbgPrimSolid
     {
-        public DbgPrimSolidBone(string name, Transform location, Quaternion rotation, float thickness, float length, Color color)
+        public DbgPrimSolidBone(bool isHkx, string name, Transform location, Quaternion rotation, float thickness, float length, Color color)
         {
-            Category = DbgPrimCategory.Bone;
+            Category = isHkx ? DbgPrimCategory.HkxBone : DbgPrimCategory.FlverBone;
 
             Transform = location;
             NameColor = color;

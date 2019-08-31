@@ -57,8 +57,8 @@ namespace TAEDX
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendIndices, 0),
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 0),
                 new VertexElement(sizeof(float) * (0 + 3 + 2 + 2 + 3 + 3 + 3 + 4 + 4 + 4), VertexElementFormat.Vector4, VertexElementUsage.BlendIndices, 1),
-
             };
+
             VertexDeclaration declaration = new VertexDeclaration(elements);
             VertexDeclaration = declaration;
         }

@@ -35,7 +35,7 @@ namespace TAEDX
         private const float MemoryUsageCheckInterval = 0.5f;
 
         public static readonly Color SELECTED_MESH_COLOR = Color.Yellow * 0.05f;
-        public static readonly Color SELECTED_MESH_WIREFRAME_COLOR = Color.Yellow;
+        //public static readonly Color SELECTED_MESH_WIREFRAME_COLOR = Color.Yellow;
 
         public static Texture2D DEFAULT_TEXTURE_DIFFUSE;
         public static Texture2D DEFAULT_TEXTURE_SPECULAR;

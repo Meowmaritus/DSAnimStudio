@@ -10,6 +10,11 @@ namespace TAEDX
 {
     public static class StructExtensions
     {
+        public static Vector3 XYZ(this Vector4 v)
+        {
+            return new Vector3(v.X, v.Y, v.Z);
+        }
+
         public static Vector3 GetCenter(this BoundingBox bb)
         {
             return (bb.Min + bb.Max) / 2;

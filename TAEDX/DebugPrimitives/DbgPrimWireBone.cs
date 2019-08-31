@@ -11,7 +11,7 @@ namespace TAEDX.DebugPrimitives
     {
         public DbgPrimWireBone(string name, Transform location, Quaternion rotation, float thickness, float length, Color color)
         {
-            Category = DbgPrimCategory.Bone;
+            Category = DbgPrimCategory.HkxBone;
 
             Transform = location;
             NameColor = color;

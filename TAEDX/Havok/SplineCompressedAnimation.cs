@@ -567,20 +567,22 @@ namespace TAEDX.Havok
             public SplineTrackVector3 SplineScale = null;
         }
 
-        public static TransformTrack[] ReadSplineCompressedAnimByteBlock(
+        public static List<TransformTrack[]> ReadSplineCompressedAnimByteBlock(
             bool isBigEndian, byte[] animationData, int numTransformTracks, int numBlocks)
         {
-            var TransformTracks = new TransformTrack[numTransformTracks];
-
-            for (int i = 0; i < numTransformTracks; i++)
-            {
-                TransformTracks[i] = new TransformTrack();
-            }
+            List<TransformTrack[]> blocks = new List<TransformTrack[]>();
 
             var br = new BinaryReaderEx(isBigEndian, animationData);
 
             for (int blockIndex = 0; blockIndex < numBlocks; blockIndex++)
             {
+                var TransformTracks = new TransformTrack[numTransformTracks];
+
+                for (int i = 0; i < numTransformTracks; i++)
+                {
+                    TransformTracks[i] = new TransformTrack();
+                }
+
                 for (int i = 0; i < numTransformTracks; i++)
                 {
                     TransformTracks[i].Mask = new TransformMask(br);
@@ -682,9 +684,11 @@ namespace TAEDX.Havok
                 }
 
                 br.Pad(16);
+
+                blocks.Add(TransformTracks);
             }
 
-            return TransformTracks;
+            return blocks;
         }
     }
 }

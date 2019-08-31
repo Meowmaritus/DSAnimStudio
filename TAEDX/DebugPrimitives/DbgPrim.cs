@@ -11,9 +11,11 @@ namespace TAEDX.DebugPrimitives
 {
     public enum DbgPrimCategory
     {
-        Bone,
+        HkxBone,
+        FlverBone,
         DummyPoly,
-        Other
+        DummyPolyHelper,
+        Other,
     }
 
     public class DbgLabel
@@ -47,6 +49,23 @@ namespace TAEDX.DebugPrimitives
         public bool EnableDbgLabelDraw { get; set; } = true;
         public bool EnableNameDraw { get; set; } = true;
 
+        private float _fadeOutTimer = -1;
+        private float FadeOutTimerMax;
+        public float FadeOutTimer
+        {
+            get => _fadeOutTimer;
+            set
+            {
+                if (_fadeOutTimer == -1 && value >= 0)
+                {
+                    FadeOutTimerMax = value;
+                }
+                _fadeOutTimer = value;
+            }
+        }
+
+        public List<IDbgPrim> Children { get; set; } = new List<IDbgPrim>();
+
         public void AddDbgLabel(Vector3 position, float height, string text, Color color)
         {
             DbgLabels.Add(new DbgLabel(position, height, text, color));
@@ -64,9 +83,41 @@ namespace TAEDX.DebugPrimitives
 
         protected abstract void DrawPrimitive();
 
-        public void Draw()
+        protected virtual void PreDraw(GameTime gameTime)
         {
-            if (!(EnableDraw && DBG.CategoryEnableDraw[Category]))
+
+        }
+
+        public void Draw(GameTime gameTime)
+        {
+            PreDraw(gameTime);
+
+            if (FadeOutTimer > -1)
+            {
+                Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One * (FadeOutTimer / FadeOutTimerMax));
+
+                if (FadeOutTimer > 0)
+                {
+                    FadeOutTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                }
+                else
+                {
+                    DBG.MarkPrimitiveForDeletion(this);
+                    return;
+                }
+            }
+            else
+            {
+                Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One);
+            }
+
+            if (!EnableDraw)
+                return;
+
+            foreach (var c in Children)
+                c.Draw(gameTime);
+
+            if (!DBG.CategoryEnableDraw[Category])
                 return;
 
             var techniques = ShaderTechniquesSelection;
@@ -95,6 +146,8 @@ namespace TAEDX.DebugPrimitives
                     DrawPrimitive();
                 }
             }
+
+            
         }
 
         public void LabelDraw()

@@ -11,6 +11,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Audio;
+using System.IO;
 
 namespace TAEDX
 {
@@ -27,6 +29,25 @@ namespace TAEDX
         public static MouseState DisabledMouseState;
         public static KeyboardState DisabledKeyboardState;
         public static GamePadState DisabledGamePadState;
+
+        public static Dictionary<string, SoundEffect> SE = new Dictionary<string, SoundEffect>();
+
+        private static SoundEffectInstance BeepSound;
+
+        private static float _beepVolume = 0;
+        public static float BeepVolume
+        {
+            get => _beepVolume;
+            set
+            {
+                if (value > 0.01f)
+                    BeepSound.Volume = 1;
+                else
+                    BeepSound.Volume = 0;
+
+                _beepVolume = value;
+            }
+        }
 
         public static void CreateDebugPrimitives()
         {
@@ -52,6 +73,8 @@ namespace TAEDX
 
         private static List<IDbgPrim> Primitives = new List<IDbgPrim>();
 
+        private static List<IDbgPrim> PrimitivesMarkedForDeletion = new List<IDbgPrim>();
+
         private static IEnumerable<IDbgPrim> GetPrimitivesByDistance()
         {
             return Primitives.OrderByDescending(p => (GFX.World.CameraTransform.Position - p.Transform.Position).LengthSquared());
@@ -68,13 +91,14 @@ namespace TAEDX
 
         public static DbgPrimWireGrid DbgPrim_Grid;
 
-        public static void ClearPrimitives()
+        public static void ClearPrimitives(DbgPrimCategory category)
         {
-            foreach (var p in Primitives)
+            var primsToClear = Primitives.Where(p => p.Category == category).ToList();
+            foreach (var p in primsToClear)
             {
+                Primitives.Remove(p);
                 p.Dispose();
             }
-            Primitives.Clear();
         }
 
         public static void AddPrimitive(IDbgPrim primitive)
@@ -85,16 +109,35 @@ namespace TAEDX
             }
         }
 
-        public static void DrawPrimitives()
+        public static void RemovePrimitive(IDbgPrim prim)
         {
+            Primitives.Remove(prim);
+            prim.Dispose();
+        }
+
+        public static void MarkPrimitiveForDeletion(IDbgPrim prim)
+        {
+            if (!PrimitivesMarkedForDeletion.Contains(prim))
+                PrimitivesMarkedForDeletion.Add(prim);
+        }
+
+        public static void DrawPrimitives(GameTime gameTime)
+        {
+            if (BeepVolume > 0)
+                BeepVolume -= ((float)gameTime.ElapsedGameTime.TotalSeconds * 30);
+            else
+                BeepVolume = 0;
+
+            PrimitivesMarkedForDeletion.Clear();
+
             if (ShowGrid)
-                DbgPrim_Grid.Draw();
+                DbgPrim_Grid.Draw(gameTime);
 
             lock (_lock_primitives)
             {
                 foreach (var p in GetPrimitivesByDistance())
                 {
-                    p.Draw();
+                    p.Draw(gameTime);
                 }
             }
 
@@ -109,13 +152,18 @@ namespace TAEDX
                     if (ShowPrimitiveNametags)
                     {
                         if (p.Name != null && p.EnableNameDraw && DBG.CategoryEnableNameDraw[p.Category] && (p.EnableDraw && DBG.CategoryEnableDraw[p.Category]))
-                            DrawTextOn3DLocation(p.Transform.Position, p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
+                            DrawTextOn3DLocation(Vector3.Transform(Vector3.Zero, p.Transform.WorldMatrix), p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
 
                         p.LabelDraw();
                     }
                 }
             }
             GFX.SpriteBatch.End();
+
+            foreach (var p in PrimitivesMarkedForDeletion)
+            {
+                RemovePrimitive(p);
+            }
         }
 
         public static bool ShowModelNames = true;
@@ -138,7 +186,7 @@ namespace TAEDX
             {
                 CategoryEnableDraw.Add(c, true);
                 CategoryEnableDbgLabelDraw.Add(c, true);
-                CategoryEnableNameDraw.Add(c, c != DbgPrimCategory.Bone);
+                CategoryEnableNameDraw.Add(c, true);
             }
         }
 
@@ -202,6 +250,23 @@ namespace TAEDX
             DEBUG_FONT = c.Load<SpriteFont>(DEBUG_FONT_NAME);
             DEBUG_FONT_SMALL = c.Load<SpriteFont>(DEBUG_FONT_SMALL_NAME);
             DEBUG_FONT_SIMPLE = c.Load<SpriteFont>(DEBUG_FONT_SIMPLE_NAME);
+
+            SE = new Dictionary<string, SoundEffect>();
+
+            foreach (var se in Directory.GetFiles("Content\\SE"))
+            {
+                var seInfo = new FileInfo(se);
+                using (var stream = File.OpenRead(se))
+                {
+                    SE.Add(seInfo.Name.ToLower(), SoundEffect.FromStream(stream));
+                }
+            }
+
+            BeepSound = SE["selected_event_loop.wav"].CreateInstance();
+            BeepSound.IsLooped = true;
+            BeepSound.Play();
+            //BeepSound.Pause();
+            BeepVolume = 0;
         }
 
         //public static void DrawLine(Vector3 start, Vector3 end, Color startColor, Color? endColor = null, string startName = null, string endName = null)
@@ -244,7 +309,10 @@ namespace TAEDX
             //    DrawTextOn3DLocation_Fancy(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
             //else
             //    DrawTextOn3DLocation_Fast(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
-            DrawTextOn3DLocation_Fast(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
+
+
+            //TODO: SEE WHY THIS LITERALLY DOESNT FUCKING WORK ANYMORE
+            //DrawTextOn3DLocation_Fast(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
         }
 
         private static void DrawTextOn3DLocation_Fast(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = true)
@@ -291,7 +359,7 @@ namespace TAEDX
 
             float scale = labelHeightInPixels / labelSpritefontSize.Y;
 
-            if (scale < 0.25f)
+            if (scale < 0.05f)
                 return;
 
             //if (startAndEndSpriteBatchForMe)
