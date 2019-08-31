@@ -33,7 +33,7 @@ namespace TAEDX.TaeEditor
         }
 
         public static bool CurrentlyEditingSomethingInInspector;
-
+        
         public TaePlaybackCursor PlaybackCursor => editScreenCurrentAnim.PlaybackCursor;
 
         public Rectangle ModelViewerBounds;
@@ -212,7 +212,7 @@ namespace TAEDX.TaeEditor
         private float DividerLeftGrabStartX => DividerLeftCenterX - (DividerHitboxPad / 2);
         private float DividerLeftGrabEndX => DividerLeftCenterX + (DividerHitboxPad / 2);
 
-        private float TopRightPaneHeight = 400;
+        private float TopRightPaneHeight = 600;
         private const float TopRightPaneHeightMinNew = 128;
         private const float BottomRightPaneHeightNew = 256;
 
@@ -409,12 +409,14 @@ namespace TAEDX.TaeEditor
                 if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
                 {
                     GFX.ModelDrawer.ClearScene();
-                    DBG.ClearPrimitives();
+                    DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.HkxBone);
+                    DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.DummyPoly);
                     TaeInterop.OnLoadANIBND();
                     GFX.HideFLVERs = false;
-                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.Bone] = false;
-                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
-                    DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = false;
+                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = false;
+                    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
+                    DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
                     TaeInterop.CreateMenuBarViewportSettings(MenuBar);
                 }
 
@@ -442,7 +444,7 @@ namespace TAEDX.TaeEditor
         {
             var xmlPath = System.IO.Path.Combine(
                 new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
-                $@"Res\TAE.Template.{SelectedTae.Format.ToString()}.xml");
+                $@"Res\TAE.Template.{(FileContainer.IsBloodborne ? "BB" : SelectedTae.Format.ToString())}.xml");
 
             if (System.IO.File.Exists(xmlPath))
                 LoadTAETemplate(xmlPath);
@@ -683,7 +685,13 @@ namespace TAEDX.TaeEditor
             MenuBar.AddItem("Config", "Auto-scroll During Anim Playback", () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
 
             MenuBar.AddItem("Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
-            MenuBar.AddItem("Animation", "Snap To 30 FPS Increments", () => PlaybackCursor.SnapToFrames, b => PlaybackCursor.SnapToFrames = b);
+            MenuBar.AddItem("Animation", "Snap To 30 FPS Increments", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
+            MenuBar.AddItem("Animation", "Animate DummyPoly", () => TaeInterop.UseDummyPolyAnimation, b => TaeInterop.UseDummyPolyAnimation = b);
+            MenuBar.AddItem("Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
+            MenuBar.AddItem("Event Helpers", "Show SFX Spawn Events With Cyan Markers", () => TaeInterop.ShowSFXSpawnWithCyanMarkers, b => TaeInterop.ShowSFXSpawnWithCyanMarkers = b);
+            MenuBar.AddItem("Event Helpers", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
+            MenuBar.AddItem("Event Helpers", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
+            MenuBar.AddItem("Event Helpers", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
 
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
@@ -1349,31 +1357,31 @@ namespace TAEDX.TaeEditor
             {
                 if (Input.KeyDown(Keys.OemPlus))
                 {
-                    editScreenCurrentAnim.ZoomInOneNotch(0);
+                    editScreenCurrentAnim?.ZoomInOneNotch(0);
                 }
                 else if (Input.KeyDown(Keys.OemMinus))
                 {
-                    editScreenCurrentAnim.ZoomOutOneNotch(0);
+                    editScreenCurrentAnim?.ZoomOutOneNotch(0);
                 }
                 else if (Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0))
                 {
-                    editScreenCurrentAnim.ResetZoom(0);
+                    editScreenCurrentAnim?.ResetZoom(0);
                 }
                 else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
-                    editScreenCurrentAnim.DoCopy();
+                    editScreenCurrentAnim?.DoCopy();
                 }
                 else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
-                    editScreenCurrentAnim.DoCut();
+                    editScreenCurrentAnim?.DoCut();
                 }
                 else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
                 {
-                    editScreenCurrentAnim.DoPaste(isAbsoluteLocation: false);
+                    editScreenCurrentAnim?.DoPaste(isAbsoluteLocation: false);
                 }
                 else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A))
                 {
-                    if (editScreenCurrentAnim.currentDrag.DragType == BoxDragType.None)
+                    if (editScreenCurrentAnim != null && editScreenCurrentAnim.currentDrag.DragType == BoxDragType.None)
                     {
                         SelectedEventBox = null;
                         MultiSelectedEventBoxes.Clear();

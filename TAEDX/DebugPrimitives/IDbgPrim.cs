@@ -19,7 +19,11 @@ namespace TAEDX.DebugPrimitives
         bool EnableDbgLabelDraw { get; set; }
         bool EnableNameDraw { get; set; }
 
-        void Draw();
+        float FadeOutTimer { get; set; }
+
+        List<IDbgPrim> Children { get; set; }
+
+        void Draw(GameTime gameTime);
         void LabelDraw();
 
 

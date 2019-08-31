@@ -104,6 +104,7 @@ struct VertexShaderInput
     float4 BoneWeights : BLENDWEIGHT;
     float4 BoneIndicesBank : BLENDINDICES1;
     float4x4 InstanceWorld : TEXCOORD2;
+    //float4x4 InstanceWorldInverse : TEXCOORD6;
 };
 
 // The output from the vertex shader, used for later processing
@@ -118,12 +119,8 @@ struct VertexShaderOutput
 	float4 DebugColor : TEXCOORD6;
 };
 
-VertexShaderOutput MainVS(in VertexShaderInput input)
+float4 SkinShit(VertexShaderInput input, float4 shit)
 {
-	VertexShaderOutput output;
-    
-    float4 inPos = input.Position;
-    
     float4 posA;
     float4 posB;
     float4 posC;
@@ -131,38 +128,38 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
     
     if (input.BoneIndicesBank[0] > 0)
     {
-        posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[0])]) * input.BoneWeights[0];
+        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[0])]) * input.BoneWeights[0];
     }
     else
     {
-        posA = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[0])]) * input.BoneWeights[0];
+        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[0])]) * input.BoneWeights[0];
     }
     
     if (input.BoneIndicesBank[1] > 0)
     {
-        posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[1])]) * input.BoneWeights[1];
+        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[1])]) * input.BoneWeights[1];
     }
     else
     {
-        posB = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[1])]) * input.BoneWeights[1];
+        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[1])]) * input.BoneWeights[1];
     }
     
     if (input.BoneIndicesBank[2] > 0)
     {
-        posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[2])]) * input.BoneWeights[2];
+        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[2])]) * input.BoneWeights[2];
     }
     else
     {
-        posC = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[2])]) * input.BoneWeights[2];
+        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[2])]) * input.BoneWeights[2];
     }
     
     if (input.BoneIndicesBank[3] > 0)
     {
-        posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[3])]) * input.BoneWeights[3];
+        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices[3])]) * input.BoneWeights[3];
     }
     else
     {
-        posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[3])]) * input.BoneWeights[3];
+        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[3])]) * input.BoneWeights[3];
     }
     
     
@@ -171,7 +168,14 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
     //posD = mul(inPos, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones[int(input.BoneIndices[3])]) * input.BoneWeights[3];
     
     
-    inPos = ((posA + posB + posC + posD) / (input.BoneWeights[0] + input.BoneWeights[1] + input.BoneWeights[2] + input.BoneWeights[3]));
+    return ((posA + posB + posC + posD) / (input.BoneWeights[0] + input.BoneWeights[1] + input.BoneWeights[2] + input.BoneWeights[3]));
+}
+
+VertexShaderOutput MainVS(in VertexShaderInput input)
+{
+	VertexShaderOutput output;
+    
+    float4 inPos = SkinShit(input, input.Position);
 
     //inPos.xyz = mul(inPos, skinning);
 
@@ -179,21 +183,20 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 
 	float4 worldPosition = mul(mul(inPos, transpose(input.InstanceWorld)), World);
     
-    
-    
-    
     float4 viewPosition = mul(worldPosition, View);
     output.Position = mul(viewPosition, Projection);
 	output.TexCoord = input.TexCoord;
 	output.TexCoord2.xy = input.TexCoord2.xy;// * input.AtlasScale.xy + input.AtlasOffset.xy;
 
-	output.WorldToTangentSpace[0] = mul(normalize(input.Tangent), World);
-	output.WorldToTangentSpace[1] = mul(normalize(input.Binormal), World);
-	output.WorldToTangentSpace[2] = mul(normalize(input.Normal), World);
+    output.Normal = normalize(SkinShit(input, float4(input.Normal, 0)).xyz);
+
+	output.WorldToTangentSpace[0] = mul(normalize(SkinShit(input, float4(input.Tangent, 0)).xyz), World);
+	output.WorldToTangentSpace[1] = mul(normalize(SkinShit(input, float4(input.Binormal, 0)).xyz), World);
+	output.WorldToTangentSpace[2] = mul(normalize(output.Normal), World);
 	
 	output.View = normalize(float4(EyePosition,1.0) - worldPosition);
 
-	output.Normal = input.Normal;
+	
 	//output.Normal = mul((float3x3)skinning, output.Normal);
 	//output.DebugColor.xy = input.AtlasScale.xy;
 	//output.DebugColor.zw = input.AtlasOffset.xy;

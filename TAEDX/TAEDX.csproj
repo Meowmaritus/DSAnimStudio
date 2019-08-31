@@ -93,6 +93,7 @@
     <Compile Include="DebugPrimitives\DbgPrimWireBone.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireBox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireCylinder.cs" />
+    <Compile Include="DebugPrimitives\DbgPrimDummyPoly.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireSphere.cs" />
     <Compile Include="DebugPrimitives\IDbgPrim.cs" />
     <Compile Include="DebugPrimitives\VertexPositionColorNormal.cs" />
@@ -298,6 +299,15 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\SE\selected_event_loop.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\SE\sound_event_hit.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\SE\selected_event_hit.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Icon.ico" />
     <Content Include="Res\TAE.Template.DS3.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

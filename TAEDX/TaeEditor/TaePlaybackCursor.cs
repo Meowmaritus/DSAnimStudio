@@ -17,8 +17,6 @@ namespace TAEDX.TaeEditor
             CurrentTimeChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public bool SnapToFrames = false;
-
         private double _currentTime;
         public double CurrentTime
         {
@@ -33,8 +31,8 @@ namespace TAEDX.TaeEditor
             }
         }
 
-        public double GUICurrentTime => SnapToFrames ? (Math.Round(CurrentTime / FRAME30FPS) * FRAME30FPS) : CurrentTime;
-        public double GUIStartTime => SnapToFrames ? (Math.Round(StartTime / FRAME30FPS) * FRAME30FPS) : StartTime;
+        public double GUICurrentTime => TaeInterop.IsSnapTo30FPS ? (Math.Round(CurrentTime / FRAME30FPS) * FRAME30FPS) : CurrentTime;
+        public double GUIStartTime => TaeInterop.IsSnapTo30FPS ? (Math.Round(StartTime / FRAME30FPS) * FRAME30FPS) : StartTime;
 
         private double oldGUICurrentTime = 0;
 
@@ -46,8 +44,8 @@ namespace TAEDX.TaeEditor
 
         public const double FRAME30FPS = 1.0 / 30.0;
 
-        public double GUICurrentFrame => SnapToFrames ? (Math.Round(CurrentTime / FRAME30FPS)) :  (CurrentTime / FRAME30FPS);
-        public double MaxFrame => SnapToFrames ? (Math.Round(MaxTime / FRAME30FPS)) : (MaxTime / FRAME30FPS);
+        public double GUICurrentFrame => TaeInterop.IsSnapTo30FPS ? (Math.Round(CurrentTime / FRAME30FPS)) :  (CurrentTime / FRAME30FPS);
+        public double MaxFrame => TaeInterop.IsSnapTo30FPS ? (Math.Round(MaxTime / FRAME30FPS)) : (MaxTime / FRAME30FPS);
 
         public bool IsRepeat = true;
 
@@ -120,18 +118,34 @@ namespace TAEDX.TaeEditor
                             MaxTime = box.MyEvent.EndTime;
                     }
 
-                    var currentlyInEvent = GUICurrentTime >= (SnapToFrames ? box.MyEvent.GetStartTimeFr() : box.MyEvent.StartTime) && GUICurrentTime < box.MyEvent.EndTime;
-                    var prevFrameInEvent = oldGUICurrentTime >= (SnapToFrames ? box.MyEvent.GetEndTimeFr() : box.MyEvent.StartTime) && oldGUICurrentTime <= box.MyEvent.EndTime;
+                    bool currentlyInEvent = false;
+                    bool prevFrameInEvent = false;
+
+                    if (TaeInterop.IsSnapTo30FPS)
+                    {
+                        int currentFrame = (int)Math.Round(GUICurrentTime / FRAME30FPS);
+                        int prevFrame = (int)Math.Round(oldGUICurrentTime / FRAME30FPS);
+                        int eventStartFrame = (int)Math.Round(box.MyEvent.StartTime / FRAME30FPS);
+                        int eventEndFrame = (int)Math.Round(box.MyEvent.EndTime / FRAME30FPS);
+
+                        currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
+                        prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
+                    }
+                    else
+                    {
+                        currentlyInEvent = GUICurrentTime >= (TaeInterop.IsSnapTo30FPS ? box.MyEvent.GetStartTimeFr() : box.MyEvent.StartTime) && GUICurrentTime < box.MyEvent.EndTime;
+                        prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= (TaeInterop.IsSnapTo30FPS ? box.MyEvent.GetEndTimeFr() : box.MyEvent.StartTime) && oldGUICurrentTime < box.MyEvent.EndTime;
+                    }
 
                     if (currentlyInEvent)
                     {
                         //Also check if we looped playback
                         if (!prevFrameInEvent || isFirstFrameAfterLooping)
                         {
-                            TaeInterop.PlaybackHitEventStart(box.MyEvent);
+                            TaeInterop.PlaybackHitEventStart(box);
                         }
 
-                        TaeInterop.PlaybackDuringEventSpan(box.MyEvent);
+                        TaeInterop.PlaybackDuringEventSpan(box);
 
                         box.PlaybackHighlight = true;
                     }
