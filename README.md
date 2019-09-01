@@ -59,7 +59,7 @@
 * River Nyxx - General .TAE file structure.
 * TKGP - Made some discoveries about the TAE format.
 * Pav - Tons of TimeAct events mapped.
-* [Katalash](https://github.com/katalash - Much help with animation file understanding.
+* [Katalash](https://github.com/katalash) - Much help with animation file understanding.
 * [PredatorCZ](https://github.com/PredatorCZ) - Reverse engineered Spline-Compressed Animation entirely.
 
 ## Libraries Utilized
