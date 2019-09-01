@@ -41,7 +41,7 @@
 
 ## Breakdown of Game Support:
 | Game                                        | Edit Support | Events Mapped / Identified | Anim Viewer Support  |
-| ---                                         | ---          | ---                        |                      |
+| ---                                         | ---          | ---                        | ---                  |
 | **Dark Souls: Prepare to Die Edition**      | **Yes**      | No (Coming Soon)           | **Yes**              |
 | **Dark Souls Remastered**                   | **Yes**      | No (Coming Soon)           | No (Not Soon)        |
 | **Dark Souls II**                           | No           | No                         | No (Never)           |
