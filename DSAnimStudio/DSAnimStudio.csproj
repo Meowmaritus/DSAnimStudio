@@ -86,6 +86,7 @@
     <Compile Include="DbgMenus\DbgMenuPad.cs" />
     <Compile Include="DbgMenus\DbgMenuItem.cs" />
     <Compile Include="DbgMenus\DbgMenuPadRepeater.cs" />
+    <Compile Include="DDSDeswizzler.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolid.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWire.cs" />
     <Compile Include="DebugPrimitives\DbgPrim.cs" />

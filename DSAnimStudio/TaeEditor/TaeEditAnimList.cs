@@ -14,7 +14,8 @@ namespace DSAnimStudio.TaeEditor
             public TAE.Animation Ref;
             public float VerticalOffset;
             public long TaePrefix;
-            public long FullID => (TaePrefix * 10000) + Ref.ID;
+            public bool IsLargeID;
+            public long FullID => (TaePrefix * (IsLargeID ? 1_000000 : 1_0000)) + Ref.ID;
         }
 
         public class TaeEditAnimListTaeSection
@@ -147,18 +148,20 @@ namespace DSAnimStudio.TaeEditor
                 foreach (var anim in tae.Animations)
                 {
                     var animID_Lower = MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
-                        ? (anim.ID % 1000000) : (anim.ID % 10000);
+                        ? (anim.ID % 1_000000) : (anim.ID % 1_0000);
 
-                    var animID_Upper = MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
-                        ? (anim.ID / 1000000) : (anim.ID / 10000);
+                    var animID_Upper = taeSection.SectionName.StartsWith("a") ? 
+                        long.Parse(Utils.GetFileNameWithoutAnyExtensions(taeSection.SectionName).Substring(1)) : ((MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
+                        ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
 
                     var info = new TaeEditAnimInfo()
                     {
-                        GetName = () => MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
-                          ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}",
+                        GetName = () => (MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
+                          ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}"),
                         Ref = anim,
                         VerticalOffset = taeSection.HeightOfAllAnims,
                         TaePrefix = animID_Upper,
+                        IsLargeID = MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4
                     };
 
                     taeSection.InfoMap.Add(anim, info);

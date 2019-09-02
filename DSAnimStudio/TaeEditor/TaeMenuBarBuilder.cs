@@ -177,10 +177,14 @@ namespace DSAnimStudio.TaeEditor
 
         private ToolStripMenuItem FindOrCreateItem(string path, ToolStripMenuItem parent, string itemName)
         {
-            foreach (ToolStripMenuItem c in parent.DropDownItems)
+            foreach (var c in parent.DropDownItems)
             {
-                if (c.Text == itemName)
-                    return c;
+                if (c is ToolStripMenuItem item)
+                {
+                    if (item.Text == itemName)
+                        return item;
+                }
+                
             }
 
             var newItem = new ToolStripMenuItem(itemName);
