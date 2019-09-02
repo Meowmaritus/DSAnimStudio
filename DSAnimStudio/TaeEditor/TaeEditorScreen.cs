@@ -341,7 +341,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 var currentAssemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 var currentAssemblyDir = System.IO.Path.GetDirectoryName(currentAssemblyPath);
-                ConfigFilePath = System.IO.Path.Combine(currentAssemblyDir, "TimeActEditorDX_Config.json");
+                ConfigFilePath = System.IO.Path.Combine(currentAssemblyDir, "DSAnimStudio_Config.json");
             }
         }
 

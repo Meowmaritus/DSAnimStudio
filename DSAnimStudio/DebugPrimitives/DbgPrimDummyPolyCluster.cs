@@ -13,6 +13,8 @@ namespace DSAnimStudio.DebugPrimitives
         public List<FLVER2.Dummy> DummyPoly;
         private float RenderSize = 1.0f;
 
+        public int ID { get; private set; }
+
         //private float _helperSize;
         //public float HelperSize
         //{
@@ -76,7 +78,11 @@ namespace DSAnimStudio.DebugPrimitives
             //Transform = new Transform(DummyPolyMatrix);
 
             foreach (var dmy in DummyPoly)
+            {
                 AddDummy(dmy);
+                ID = dmy.ReferenceID;
+            }
+                
         }
 
         public void UpdateWithBoneMatrix(Matrix boneMatrix)

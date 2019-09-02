@@ -422,11 +422,11 @@ namespace DSAnimStudio
 
                 if (is32bit)
                 {
-                    newFaceSet.IndexBuffer.SetData(faceset.Indices.Select(x => (x == 0xFFFF || x > mesh.Vertices.Count) ? -1 : x).ToArray());
+                    newFaceSet.IndexBuffer.SetData(faceset.Indices.Select(x => (x == 0xFFFF && x > mesh.Vertices.Count) ? -1 : x).ToArray());
                 }
                 else
                 {
-                    newFaceSet.IndexBuffer.SetData(faceset.Indices.Select(x => (x == 0xFFFF || x > mesh.Vertices.Count) ? -1 : (ushort)x).ToArray());
+                    newFaceSet.IndexBuffer.SetData(faceset.Indices.Select(x => (x == 0xFFFF && x > mesh.Vertices.Count) ? -1 : (ushort)x).ToArray());
                 }
 
                 MeshFacesets.Add(newFaceSet);

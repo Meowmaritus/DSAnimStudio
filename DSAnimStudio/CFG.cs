@@ -12,7 +12,7 @@ namespace DSAnimStudio
     {
         private static object _lock_SaveLoadCFG = new object();
 
-        public const string FileName = "TimeActEditorDX_3DPreview_Config.json";
+        public const string FileName = "DSAnimStudio_3DPreview_Config.json";
         private static CFG Current = null;
 
         public static string GetConfigFilePath()

@@ -9,6 +9,9 @@ namespace DSAnimStudio
 {
     public static class TexturePool
     {
+        public static Dictionary<TextureFetchRequest.TextureInfo, Exception> Failures 
+            = new Dictionary<TextureFetchRequest.TextureInfo, Exception>();
+
         private static object _lock_IO = new object();
         private static object _lock_pool = new object();
         //This might be weird because it doesn't follow convention :fatcat:
@@ -31,6 +34,7 @@ namespace DSAnimStudio
                     fetch.Value.Dispose();
                 }
                 Fetches.Clear();
+                Failures.Clear();
             }
         }
 

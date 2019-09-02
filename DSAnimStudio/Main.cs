@@ -19,7 +19,7 @@ namespace DSAnimStudio
     {
         //public static Form WinForm;
 
-        public const string VERSION = "v0.8";
+        public const string VERSION = "v0.9";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -209,7 +209,7 @@ namespace DSAnimStudio
 
             GFX.World.ResetCameraLocation();
 
-            DbgMenuItem.Init();
+            //DbgMenuItem.Init();
 
             UpdateMemoryUsage();
 

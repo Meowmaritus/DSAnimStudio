@@ -38,7 +38,7 @@ namespace DSAnimStudio
                 printer.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
                 if (CurrentAnimationHKX == null)
                 {
-                    printer.AppendLine($"Could not find valid HKX for this animation.");
+                    printer.AppendLine($"Could not find valid HKX for this animation.", Color.Red);
                 }
                 else
                 {
@@ -52,6 +52,11 @@ namespace DSAnimStudio
             {
                 var errTxt = $"HKX failed to load:\n\n{HkxAnimException}";
                 printer.AppendLine(errTxt, Color.Red);
+            }
+
+            foreach (var fail in TexturePool.Failures)
+            {
+                printer.AppendLine($"Texture '{fail.Key.Texture.Name}' failed to load.", Color.Red);
             }
 
             printer.Draw();
@@ -182,6 +187,26 @@ namespace DSAnimStudio
             AnimatedDummyPolyClusters[flverBoneIndex]?.UpdateWithBoneMatrix(finalMatrix);
 
             FlverBonePrims[flverBoneIndex].Transform = new Transform(finalMatrix);
+        }
+
+        private static void RevertToTPose()
+        {
+            for (int i = 0; i < FlverBoneTPoseMatrices.Count; i++)
+            {
+                var matrixBank = i / GFXShaders.FlverShader.NUM_BONES;
+                var relativeMatrixIndex = i % GFXShaders.FlverShader.NUM_BONES;
+
+                if (matrixBank == 0)
+                    ShaderMatrix0[relativeMatrixIndex] = Matrix.Identity;
+                else if (matrixBank == 1)
+                    ShaderMatrix1[relativeMatrixIndex] = Matrix.Identity;
+                else if (matrixBank == 2)
+                    ShaderMatrix2[relativeMatrixIndex] = Matrix.Identity;
+
+                AnimatedDummyPolyClusters[i]?.UpdateWithBoneMatrix(Matrix.Identity);
+
+                FlverBonePrims[i].Transform = new Transform(Matrix.Identity);
+            }
         }
 
         public static List<Matrix> FlverBoneTPoseMatrices;
@@ -366,7 +391,6 @@ namespace DSAnimStudio
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = false;
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
             DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
-            TaeInterop.CreateMenuBarViewportSettings(menuBar);
 
             if (HaventLoadedAnythingYet)
                 HaventLoadedAnythingYet = false;
@@ -377,6 +401,8 @@ namespace DSAnimStudio
                 CurrentSkeletonHKXBytes = null;
                 CurrentAnimationHKX = null;
                 CurrentAnimationHKXBytes = null;
+                TrueAnimLenghForPlaybackCursor = null;
+                RevertToTPose();
                 return;
             }
 
@@ -419,6 +445,17 @@ namespace DSAnimStudio
             else if (File.Exists($"{possibleSharedTexPack}.texbnd"))
             {
                 Load3DAsset($"{possibleSharedTexPack}.texbnd", File.ReadAllBytes($"{possibleSharedTexPack}.texbnd"), transform);
+            }
+
+            string extraBloodborneTextures = $"{chrNameBase}_2";
+
+            if (File.Exists($"{extraBloodborneTextures}.tpf.dcx"))
+            {
+                Load3DAsset($"{extraBloodborneTextures}.tpf.dcx", File.ReadAllBytes($"{extraBloodborneTextures}.tpf.dcx"), transform);
+            }
+            else if (File.Exists($"{extraBloodborneTextures}.tpf"))
+            {
+                Load3DAsset($"{extraBloodborneTextures}.tpf", File.ReadAllBytes($"{extraBloodborneTextures}.ypf"), transform);
             }
 
             if (Directory.Exists($"{chrNameBase}"))
@@ -471,48 +508,7 @@ namespace DSAnimStudio
             GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
             GFX.World.OrbitCamReset();
 
-        }
-
-        public static Matrix GetFlverBoneMatrix(FLVER2.Bone b)
-        {
-            Matrix result = Matrix.Identity;
-            result *= Matrix.CreateScale(b.Scale.X, b.Scale.Y, b.Scale.Z);
-            result *= Matrix.CreateRotationX(b.Rotation.X);
-            result *= Matrix.CreateRotationZ(b.Rotation.Z);
-            result *= Matrix.CreateRotationY(b.Rotation.Y);
-            result *= Matrix.CreateTranslation(b.Translation.X, b.Translation.Y, b.Translation.Z);
-            return result;
-        }
-
-        public static Matrix GetFlverBoneFullChainMatrix(List<FLVER2.Bone> bones, FLVER2.Bone b)
-        {
-            FLVER2.Bone parentBone = b;
-
-            var result = Matrix.Identity;
-
-            do
-            {
-                result *= GetFlverBoneMatrix(parentBone);
-
-                if (parentBone.ParentIndex >= 0)
-                {
-                    parentBone = bones[parentBone.ParentIndex];
-                    
-                }
-                else
-                {
-                    parentBone = null;
-                }
-            }
-            while (parentBone != null);
-
-            return result;
-        }
-
-        public static Matrix CalculateFlverTposeToHkxTposeMatrix(List<FLVER2.Bone> allFlverBones, FLVER2.Bone flverBone, Matrix hkxBone)
-        {
-            Matrix flverBoneMatrix = GetFlverBoneFullChainMatrix(allFlverBones, flverBone);
-            return flverBoneMatrix;
+            CreateMenuBarViewportSettings(menuBar);
         }
 
         /// <summary>
@@ -545,6 +541,8 @@ namespace DSAnimStudio
                 CurrentSkeletonHKXBytes = null;
                 CurrentAnimationHKX = null;
                 CurrentAnimationHKXBytes = null;
+                TrueAnimLenghForPlaybackCursor = null;
+                RevertToTPose();
                 return;
             }
 
@@ -567,6 +565,7 @@ namespace DSAnimStudio
             {
                 CurrentAnimationName = null;
                 CurrentAnimationHKX = null;
+                TrueAnimLenghForPlaybackCursor = null;
                 return;
             }
 
@@ -832,7 +831,7 @@ namespace DSAnimStudio
 
                     alreadyCalculatedBones.Add(parentBone, thisBone);
 
-                    
+
                 }
 
                 result *= thisBone.Item1;
@@ -1312,6 +1311,30 @@ namespace DSAnimStudio
             menu.AddItem("3D Preview", "Render Meshes", () => !GFX.HideFLVERs,
                 b => GFX.HideFLVERs = !b);
 
+            menu.AddItem("3D Preview/Toggle Individual Meshes", "Show All", () =>
+            {
+                foreach (var model in GFX.ModelDrawer.Models)
+                {
+                    foreach (var sm in model.GetSubmeshes())
+                    {
+                        sm.IsVisible = true;
+                    }
+                }
+            });
+
+            menu.AddItem("3D Preview/Toggle Individual Meshes", "Hide All", () =>
+            {
+                foreach (var model in GFX.ModelDrawer.Models)
+                {
+                    foreach (var sm in model.GetSubmeshes())
+                    {
+                        sm.IsVisible = false;
+                    }
+                }
+            });
+
+            menu.AddSeparator("3D Preview/Toggle Individual Meshes");
+
             foreach (var model in GFX.ModelDrawer.Models)
             {
                 int i = 0;
@@ -1331,6 +1354,30 @@ namespace DSAnimStudio
                 }
 
             }
+
+            menu.AddItem("3D Preview/Toggle By Model Mask", "Show All", () =>
+            {
+                foreach (var kvp in modelMaskMap)
+                {
+                    foreach (var sm in kvp.Value)
+                    {
+                        sm.IsVisible = true;
+                    }
+                }
+            });
+
+            menu.AddItem("3D Preview/Toggle By Model Mask", "Hide All", () =>
+            {
+                foreach (var kvp in modelMaskMap)
+                {
+                    foreach (var sm in kvp.Value)
+                    {
+                        sm.IsVisible = false;
+                    }
+                }
+            });
+
+            menu.AddSeparator("3D Preview/Toggle By Model Mask");
 
             foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
             {
@@ -1359,25 +1406,36 @@ namespace DSAnimStudio
             //menu.AddItem("3D Preview", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
             //    b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-            Dictionary<string, List<DebugPrimitives.IDbgPrim>> dmyMap = new Dictionary<string, List<DebugPrimitives.IDbgPrim>>();
+            menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Show All", () =>
+            {
+                foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+                {
+                    if (prim is DbgPrimDummyPolyCluster cluster)
+                    {
+                        cluster.EnableDraw = true;
+                    }
+                }
+            });
+
+            menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Hide All", () =>
+            {
+                foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+                {
+                    if (prim is DbgPrimDummyPolyCluster cluster)
+                    {
+                        cluster.EnableDraw = false;
+                    }
+                }
+            });
+
+            menu.AddSeparator("3D Preview/Toggle DummyPoly By ID");
+
             foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
             {
-                if (dmyMap.ContainsKey(prim.Name))
-                    dmyMap[prim.Name].Add(prim);
-                else
-                    dmyMap.Add(prim.Name, new List<DebugPrimitives.IDbgPrim>() { prim });
-            }
-
-            foreach (var kvp in dmyMap.OrderBy(asdf => int.Parse(asdf.Key)))
-            {
-                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{kvp.Key}", () => kvp.Value.Any(pr => pr.EnableDraw),
-                    b =>
-                    {
-                        foreach (var pr in kvp.Value)
-                        {
-                            pr.EnableDraw = b;
-                        }
-                    });
+                if (prim is DbgPrimDummyPolyCluster cluster)
+                {
+                    menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{cluster.ID}", () => cluster.EnableDraw, b => cluster.EnableDraw = b);
+                }
             }
         }
     }
