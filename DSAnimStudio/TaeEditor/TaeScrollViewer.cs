@@ -42,8 +42,8 @@ namespace DSAnimStudio.TaeEditor
         private Rectangle VerticalBox;
         private Point VerticalBoxGrabOffset;
 
-        public int ScrollWheelVirtualScrollAmountX = 128;
-        public int ScrollWheelVirtualScrollAmountY = 32;
+        public int ScrollWheelVirtualScrollAmountX = 200; //was 128
+        public int ScrollWheelVirtualScrollAmountY = 100; //was 32
 
         public int ScrollArrowButtonVirtualScrollAmountX = 64;
         public int ScrollArrowButtonVirtualScrollAmountY = 32;

@@ -239,7 +239,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 {
 	float4 color = tex2D(ColorMapSampler, input.TexCoord);
     
-    color = color * float4(color.w, color.w, color.w, color.w);
+    //color = color * float4(color.w, color.w, color.w, color.w);
     
     if (color.w < AlphaTest)
     {

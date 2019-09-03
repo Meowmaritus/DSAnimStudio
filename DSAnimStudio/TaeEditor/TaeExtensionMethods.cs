@@ -30,6 +30,11 @@ namespace DSAnimStudio.TaeEditor
             if (!isModified.ContainsKey(ev))
                 isModified.Add(ev, false);
 
+            //if (v)
+            //{
+            //    Console.WriteLine("REEE");
+            //}
+
             isModified[ev] = v;
         }
 
@@ -43,6 +48,16 @@ namespace DSAnimStudio.TaeEditor
         public static float GetStartTimeFr(this TAE.Event ev)
         {
             return RoundTimeToFrame(ev.StartTime);
+        }
+
+        public static int GetStartFrame(this TAE.Event ev)
+        {
+            return (int)Math.Round(ev.StartTime / FRAME);
+        }
+
+        public static int GetEndFrame(this TAE.Event ev)
+        {
+            return (int)Math.Round(ev.EndTime / FRAME);
         }
 
         public static float GetEndTimeFr(this TAE.Event ev)

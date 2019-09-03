@@ -1,7 +1,7 @@
 
 #----------------------------- Global Properties ----------------------------#
 
-/outputDir:..\TAEDX\Content
+/outputDir:..\DSAnimStudio\Content
 /intermediateDir:obj
 /platform:Windows
 /config:

@@ -36,14 +36,17 @@ namespace DSAnimStudio.DebugPrimitives
         //    }
         //}
 
-        Matrix GetDummyPolyMatrix(FLVER2.Dummy dummy)
+        Matrix GetDummyPolyMatrix(FLVER2.Dummy dummy, List<FLVER2.Bone> bones)
         {
+            var dummyMatrix = GetBoneParentMatrix(bones[dummy.DummyBoneIndex], bones);
+
             return Matrix.CreateScale(RenderSize) *
             Matrix.CreateLookAt(
             Vector3.Zero,
             new Vector3(dummy.Forward.X, dummy.Forward.Y, dummy.Forward.Z),
             dummy.UseUpwardVector ? new Vector3(dummy.Upward.X, dummy.Upward.Y, dummy.Upward.Z) : Vector3.Up)
-            * Matrix.CreateTranslation(new Vector3(dummy.Position.X, dummy.Position.Y, dummy.Position.Z));
+            * Matrix.CreateTranslation(new Vector3(dummy.Position.X, dummy.Position.Y, dummy.Position.Z))
+            * dummyMatrix;
         }
 
         protected override void PreDraw(GameTime gameTime)
@@ -59,16 +62,44 @@ namespace DSAnimStudio.DebugPrimitives
             //UpdateHelper();
         }
 
-        private void AddDummy(FLVER2.Dummy dummy)
+        private Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b, List<FLVER2.Bone> bones)
+        {
+            SoulsFormats.FLVER2.Bone parentBone = b;
+
+            var result = Matrix.Identity;
+
+            do
+            {
+                result *= Matrix.CreateScale(parentBone.Scale.X, parentBone.Scale.Y, parentBone.Scale.Z);
+                result *= Matrix.CreateRotationX(parentBone.Rotation.X);
+                result *= Matrix.CreateRotationZ(parentBone.Rotation.Z);
+                result *= Matrix.CreateRotationY(parentBone.Rotation.Y);
+                result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
+
+                if (parentBone.ParentIndex >= 0)
+                {
+                    parentBone = bones[parentBone.ParentIndex];
+                }
+                else
+                {
+                    parentBone = null;
+                }
+            }
+            while (parentBone != null);
+
+            return result;
+        }
+
+        private void AddDummy(FLVER2.Dummy dummy, List<FLVER2.Bone> bones)
         {
             float forwardLength = dummy.Forward.Length();
-            var m = GetDummyPolyMatrix(dummy);
+            var m = GetDummyPolyMatrix(dummy, bones);
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Up * forwardLength * 1.5f, m), Color.Lime);
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Forward * forwardLength * 1.5f, m), Color.Blue);
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Left * forwardLength * 1.5f, m), Color.Red);
         }
 
-        public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies)
+        public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies, List<FLVER2.Bone> bones)
         {
             RenderSize = size;
             //NameColor = new Color(dummy.Color.R, dummy.Color.G, dummy.Color.B, (byte)255);
@@ -79,7 +110,7 @@ namespace DSAnimStudio.DebugPrimitives
 
             foreach (var dmy in DummyPoly)
             {
-                AddDummy(dmy);
+                AddDummy(dmy, bones);
                 ID = dmy.ReferenceID;
             }
                 
