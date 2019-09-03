@@ -44,22 +44,26 @@ namespace DSAnimStudio.TaeEditor
             if (anim == null)
                 return;
             float verticalOffset = 0;
+            float subOffset = 0;
             foreach (var section in AnimTaeSections)
             {
-                verticalOffset += AnimHeight;
+                verticalOffset += AnimHeight; //section header
                 if (section.InfoMap.ContainsKey(anim))
                 {
                     // Un-collapse section where anim is.
                     if (section.Collapsed)
                         section.Collapsed = false;
-                    verticalOffset += section.InfoMap[anim].VerticalOffset;
+                    subOffset = section.InfoMap[anim].VerticalOffset;
                     break;
                 }
-                else if (!section.Collapsed)
+
+                if (!section.Collapsed)
                 {
                     verticalOffset += section.HeightOfAllAnims;
                 }
             }
+
+            verticalOffset += subOffset;
 
             if (scrollOnCenter)
             {
@@ -171,6 +175,8 @@ namespace DSAnimStudio.TaeEditor
             }
 
             ScrollViewer = new TaeScrollViewer();
+
+            UpdateScrollViewerRect();
         }
 
         public void Update(float elapsedSeconds, bool allowMouseUpdate)
@@ -235,7 +241,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        public void UpdateScrollViewerRect()
         {
             float EntireListHeight = 0;
             foreach (var section in AnimTaeSections)
@@ -248,6 +254,11 @@ namespace DSAnimStudio.TaeEditor
             EntireListHeight += AnimHeight;
 
             ScrollViewer.SetDisplayRect(Rect, new Point(Rect.Width, (int)EntireListHeight));
+        }
+
+        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        {
+            UpdateScrollViewerRect();
 
             ScrollViewer.Draw(gd, sb, boxTex, font);
 

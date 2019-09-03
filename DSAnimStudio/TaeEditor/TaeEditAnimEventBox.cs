@@ -2,6 +2,7 @@
 using SoulsFormats;
 using System;
 using System.Linq;
+using System.Text;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -59,23 +60,38 @@ namespace DSAnimStudio.TaeEditor
 
         public bool PlaybackHighlight = false;
 
-        public void DragWholeBoxToVirtualUnitX(float x)
+        public bool DragWholeBoxToVirtualUnitX(float x)
         {
             x = MathHelper.Max(x, 0);
+
+            int originalStartFrame = MyEvent.GetStartFrame();
+            int originalEndFrame = MyEvent.GetEndFrame();
+
             float eventLength = MyEvent.GetEndTimeFr() - MyEvent.GetStartTimeFr();
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
             MyEvent.EndTime = MyEvent.GetStartTimeFr() + eventLength;
+
+            return (MyEvent.GetStartFrame() != originalStartFrame || 
+                MyEvent.GetEndFrame() != originalEndFrame);
         }
 
-        public void DragLeftSideOfBoxToVirtualUnitX(float x)
+        public bool DragLeftSideOfBoxToVirtualUnitX(float x)
         {
+            int originalStartFrame = MyEvent.GetStartFrame();
+
             x = MathHelper.Min(x, (RightFr - (float)(FRAME * OwnerPane.SecondsPixelSize)) - OwnerPane.ScrollViewer.Scroll.X);
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
+
+            return (MyEvent.GetStartFrame() != originalStartFrame);
         }
 
-        public void DragRightSideOfBoxToVirtualUnitX(float x)
+        public bool DragRightSideOfBoxToVirtualUnitX(float x)
         {
+            float originalEndFrame = MyEvent.GetEndFrame();
+
             MyEvent.EndTime = (float)Math.Max(x / OwnerPane.SecondsPixelSize, MyEvent.StartTime + FRAME);
+
+            return (MyEvent.GetEndFrame() != originalEndFrame);
         }
 
         public TaeEditAnimEventBox(TaeEditAnimEventGraph owner, TAE.Event myEvent)
@@ -102,7 +118,22 @@ namespace DSAnimStudio.TaeEditor
         {
             if (MyEvent.Template != null)
             {
-                EventText.SetText($"{MyEvent.TypeName.ToString()}({string.Join(", ", MyEvent.Parameters.Values.Select(kvp => $"{MyEvent.Parameters.Template[kvp.Key].ValueToString(kvp.Value)}"))})");
+                var sb = new StringBuilder($"{MyEvent.Template.Name}(");
+                bool first = true;
+                foreach (var kvp in MyEvent.Parameters.Template)
+                {
+                    if (kvp.Value.ValueToAssert == null)
+                    {
+                        if (first)
+                            first = false;
+                        else
+                            sb.Append(", ");
+
+                        sb.Append(MyEvent.Parameters[kvp.Key].ToString());
+                    }
+                }
+                sb.Append(")");
+                EventText.SetText(sb.ToString());
             }
             else
             {
@@ -110,9 +141,9 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void DeleteMe()
-        {
-            OwnerPane.DeleteEventBox(this);
-        }
+        //public void DeleteMe()
+        //{
+        //    OwnerPane.DeleteEventBox(this);
+        //}
     }
 }

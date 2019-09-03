@@ -61,10 +61,19 @@ namespace DSAnimStudio
                 if (string.IsNullOrEmpty(MaterialName))
                     return -1;
 
-                if (MaterialName[0] != '#' || MaterialName[3] != '#')
+                int firstHashtag = MaterialName.IndexOf("#");
+                if (firstHashtag == -1)
                     return -1;
+                int secondHashtagSearchStart = firstHashtag + 1;
+                int secondHashtag = MaterialName.Substring(secondHashtagSearchStart).IndexOf("#");
+                if (secondHashtag == -1)
+                    return -1;
+                else
+                    secondHashtag += secondHashtagSearchStart;
 
-                if (int.TryParse(MaterialName.Substring(1, 2), out int mask))
+                string maskText = MaterialName.Substring(secondHashtagSearchStart, secondHashtag - secondHashtagSearchStart);
+
+                if (int.TryParse(maskText, out int mask))
                     return mask;
                 else
                     return -1;
@@ -148,11 +157,12 @@ namespace DSAnimStudio
             {
                 var paramNameCheck = matParam.Type.ToUpper();
                 // DS3/BB
-                if (paramNameCheck == "G_DIFFUSETEXTURE")
+                if (paramNameCheck.Contains("DIFFUSE") || paramNameCheck.Contains("ALBEDO"))
                     TexNameDiffuse = matParam.Path;
-                else if (paramNameCheck == "G_SPECULARTEXTURE")
+                else if (paramNameCheck.Contains("SPECULAR") || paramNameCheck.Contains("REFLECTANCE"))
                     TexNameSpecular = matParam.Path;
-                else if (paramNameCheck == "G_BUMPMAPTEXTURE")
+                else if ((paramNameCheck.Contains("BUMPMAP") && !paramNameCheck.Contains("DETAILBUMP"))
+                    || paramNameCheck.Contains("NORMALMAP"))
                     TexNameNormal = matParam.Path;
                 else if (paramNameCheck == "G_DOLTEXTURE1")
                 {
@@ -162,19 +172,16 @@ namespace DSAnimStudio
                 else if (paramNameCheck == "G_DOLTEXTURE2")
                     TexNameDOL2 = matParam.Path;
                 // DS1 params
-                else if (paramNameCheck == "G_DIFFUSE")
-                    TexNameDiffuse = matParam.Path;
-                else if (paramNameCheck == "G_SPECULAR")
-                    TexNameSpecular = matParam.Path;
-                else if (paramNameCheck == "G_BUMPMAP")
-                    TexNameNormal = matParam.Path;
                 else if (paramNameCheck == "G_LIGHTMAP")
                 {
                     TexNameDOL1 = matParam.Path;
                     hasLightmap = true;
                 }
+                else
+                {
+                    Console.WriteLine($"\nUnrecognized Material Param:\n    [{matParam.Type}]\n    [{matParam.Path}]\n");
+                }
                 // Alternate material params that work as diffuse
-
             }
 
             // MTD lookup

@@ -32,13 +32,16 @@ namespace DSAnimStudio.TaeEditor
             DividerRightPaneHorizontal,
         }
 
+        public DbgMenus.DbgMenuPadRepeater NextAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.05f);
+        public DbgMenus.DbgMenuPadRepeater PrevAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadUp, 0.4f, 0.05f);
+
         public static bool CurrentlyEditingSomethingInInspector;
         
         public TaePlaybackCursor PlaybackCursor => editScreenCurrentAnim?.PlaybackCursor;
 
         public Rectangle ModelViewerBounds;
 
-        private const int RECENT_FILES_MAX = 24;
+        private const int RECENT_FILES_MAX = 32;
 
         private int TopMenuBarMargin = 32;
 
@@ -802,6 +805,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void ButtonEditCurrentTaeHeader_Click(object sender, EventArgs e)
         {
+            inspectorWinFormsControl.Focus();
             ShowDialogEditTaeHeader();
         }
 
@@ -872,20 +876,26 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
+                bool needsAnimReload = false;
                 if (editForm.WasAnimIDChanged)
                 {
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                    IsModified = true;
+                    IsModified = !IsReadOnlyFileMode;
                     RecreateAnimList();
                     UpdateSelectedTaeAnimInfoText();
+                    needsAnimReload = true;
                 }
 
                 if (editForm.WereThingsChanged)
                 {
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                    IsModified = true;
+                    IsModified = !IsReadOnlyFileMode;
                     UpdateSelectedTaeAnimInfoText();
+                    needsAnimReload = true;
                 }
+
+                if (needsAnimReload)
+                    TaeInterop.OnAnimationSelected(SelectedTaeAnim);
             }
 
             PauseUpdate = false;
@@ -893,6 +903,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void ButtonEditCurrentAnimInfo_Click(object sender, EventArgs e)
         {
+            inspectorWinFormsControl.Focus();
             ShowDialogEditCurrentAnimInfo();
         }
 
@@ -900,7 +911,7 @@ namespace DSAnimStudio.TaeEditor
         {
             SaveConfig();
 
-            var unsavedChanges = IsModified;
+            var unsavedChanges = IsModified && !IsReadOnlyFileMode;
 
             if (!unsavedChanges && FileContainer != null)
             {
@@ -963,7 +974,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void DirectOpenFile(string fileName)
         {
-            if (FileContainer != null && !IsReadOnlyFileMode && FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified())))
+            if (FileContainer != null && !IsReadOnlyFileMode && (IsModified || FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified()))))
             {
                 var yesNoCancel = System.Windows.Forms.MessageBox.Show(
                     $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
@@ -1147,6 +1158,8 @@ namespace DSAnimStudio.TaeEditor
             PauseUpdate = true;
 
             var changeTypeDlg = new TaeInspectorFormChangeEventType();
+            changeTypeDlg.TAEReference = SelectedTae;
+            changeTypeDlg.CurrentTemplate = SelectedEventBox.MyEvent.Template;
             changeTypeDlg.NewEventType = SelectedEventBox.MyEvent.Type;
 
             if (changeTypeDlg.ShowDialog(GameWindowAsForm) == System.Windows.Forms.DialogResult.OK)
@@ -1269,6 +1282,8 @@ namespace DSAnimStudio.TaeEditor
 
                 editScreenCurrentAnim.ChangeToNewAnimRef(SelectedTaeAnim);
 
+                UpdateLayout(); // Fixes scroll when you first open anibnd (hopefully)
+
                 editScreenAnimList.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
 
                 editScreenCurrentAnim.PlaybackCursor.CurrentTime = 0;
@@ -1338,6 +1353,94 @@ namespace DSAnimStudio.TaeEditor
             PauseUpdate = false;
         }
 
+        private void NextAnim()
+        {
+            try
+            {
+                if (SelectedTae != null)
+                {
+                    if (SelectedTaeAnim != null)
+                    {
+                        var taeList = FileContainer.AllTAE.ToList();
+
+                        int currentAnimIndex = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
+                        int currentTaeIndex = taeList.IndexOf(SelectedTae);
+
+                        if (currentAnimIndex >= SelectedTae.Animations.Count - 1)
+                        {
+                            currentAnimIndex = 0;
+
+                            if (taeList.Count > 1)
+                            {
+                                if (currentTaeIndex >= taeList.Count - 1)
+                                {
+                                    currentTaeIndex = 0;
+                                }
+                                else
+                                {
+                                    currentTaeIndex++;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            currentAnimIndex++;
+                        }
+
+                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: false);
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
+        public void PrevAnim()
+        {
+            try
+            {
+                if (SelectedTae != null)
+                {
+                    if (SelectedTaeAnim != null)
+                    {
+                        var taeList = FileContainer.AllTAE.ToList();
+
+                        int currentAnimIndex = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
+                        int currentTaeIndex = taeList.IndexOf(SelectedTae);
+
+                        if (currentAnimIndex <= 0)
+                        {
+                            if (taeList.Count > 1)
+                            {
+                                if (currentTaeIndex <= 0)
+                                {
+                                    currentTaeIndex = taeList.Count - 1;
+                                }
+                                else
+                                {
+                                    currentTaeIndex--;
+                                }
+                            }
+
+                            currentAnimIndex = taeList[currentTaeIndex].Animations.Count - 1;
+                        }
+                        else
+                        {
+                            currentAnimIndex--;
+                        }
+
+                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: false);
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
         public void Update(GameTime gameTime)
         {
             float elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -1376,11 +1479,17 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (Input.KeyDown(Keys.OemPlus))
                 {
-                    editScreenCurrentAnim?.ZoomInOneNotch(0);
+                    editScreenCurrentAnim?.ZoomInOneNotch(
+                        (float)(
+                        (editScreenCurrentAnim.PlaybackCursor.GUICurrentTime * editScreenCurrentAnim.SecondsPixelSize)
+                        - editScreenCurrentAnim.ScrollViewer.Scroll.X));
                 }
                 else if (Input.KeyDown(Keys.OemMinus))
                 {
-                    editScreenCurrentAnim?.ZoomOutOneNotch(0);
+                    editScreenCurrentAnim?.ZoomOutOneNotch(
+                        (float)(
+                        (editScreenCurrentAnim.PlaybackCursor.GUICurrentTime * editScreenCurrentAnim.SecondsPixelSize)
+                        - editScreenCurrentAnim.ScrollViewer.Scroll.X));
                 }
                 else if (Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0))
                 {
@@ -1451,6 +1560,32 @@ namespace DSAnimStudio.TaeEditor
             if (Input.KeyDown(Keys.Delete))
             {
                 editScreenCurrentAnim.DeleteSelectedEvent();
+            }
+
+            if (Input.KeyDown(Keys.Home) && !editScreenCurrentAnim.PlaybackCursor.Scrubbing)
+            {
+                editScreenCurrentAnim.PlaybackCursor.IsPlaying = false;
+                editScreenCurrentAnim.PlaybackCursor.CurrentTime = editScreenCurrentAnim.PlaybackCursor.StartTime;
+            }
+
+            if (Input.KeyDown(Keys.End) && !editScreenCurrentAnim.PlaybackCursor.Scrubbing)
+            {
+                editScreenCurrentAnim.PlaybackCursor.IsPlaying = false;
+                editScreenCurrentAnim.PlaybackCursor.CurrentTime = editScreenCurrentAnim.PlaybackCursor.MaxTime;
+            }
+
+            NextAnimRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.PageDown));
+            
+            if (NextAnimRepeaterButton.State)
+            {
+                NextAnim();
+            }
+
+            PrevAnimRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.PageUp));
+
+            if (PrevAnimRepeaterButton.State)
+            {
+                PrevAnim();
             }
 
             if (UndoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (zHeld && !yHeld)))

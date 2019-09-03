@@ -140,10 +140,14 @@ namespace DSAnimStudio.TaeEditor
             var r = dataGridView1.Rows[row];
             var ev = SelectedEventBox.MyEvent;
 
+            bool isModified = false;
+
             if (ev.Template != null)
             {
                 var name = (string)r.Cells[1].Value;
                 var value = (dataGridView1.IsCurrentCellDirty ? r.Cells[2].EditedFormattedValue.ToString() : r.Cells[2].FormattedValue.ToString());
+
+                var copyOfValue = ev.Parameters[name];
 
                 try
                 {
@@ -174,15 +178,32 @@ namespace DSAnimStudio.TaeEditor
                     dataGridView1.UpdateCellErrorText(2, row);
                     return false;
                 }
+
+                if (!ev.Parameters[name].Equals(copyOfValue))
+                    isModified = true;
             }
             else
             {
+
                 try
                 {
                     byte[] bytes = SelectedEventBox.MyEvent.GetParameterBytes(SelectedEventBox.OwnerPane.MainScreen.SelectedTae.BigEndian);
+                    byte[] copyOfBytes = new byte[bytes.Length];
+                    for (int i = 0; i < bytes.Length; i++)
+                    {
+                        copyOfBytes[i] = bytes[i];
+                    }
                     bytes[row] = byte.Parse(dataGridView1.IsCurrentCellDirty ? r.Cells[2].EditedFormattedValue.ToString() : r.Cells[2].FormattedValue.ToString(), System.Globalization.NumberStyles.HexNumber);
                     SelectedEventBox.MyEvent.SetParameterBytes(SelectedEventBox.OwnerPane.MainScreen.SelectedTae.BigEndian, bytes);
                     r.Cells[2].ErrorText = string.Empty;
+
+                    for (int i = 0; i < bytes.Length; i++)
+                    {
+                        if (copyOfBytes[i] != bytes[i])
+                        {
+                            isModified = true;
+                        }
+                    }
                 }
                 catch (InvalidCastException)
                 {
@@ -212,7 +233,10 @@ namespace DSAnimStudio.TaeEditor
 
             SelectedEventBox.UpdateEventText();
 
-            OnTaeEventValueChanged(EventArgs.Empty);
+            if (isModified)
+            {
+                OnTaeEventValueChanged(EventArgs.Empty);
+            }
 
             return true;
         }

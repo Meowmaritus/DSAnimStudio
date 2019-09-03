@@ -8,9 +8,9 @@
         <entry value="3"   name="3: SetIsGuard(ArgB)"/>
         <entry value="4"   name="4: ?"/>
         <entry value="5"   name="5: SetIsStartbit10(ArgC)"/>
-        <entry value="6"   name="6: SetIs?"/>
-        <entry value="7"   name="7: SetIsStartbit11"/>
-        <entry value="8"   name="8: SetIsDodge"/>
+        <entry value="6"   name="6: InvokeIs?"/>
+        <entry value="7"   name="7: InvokeIsNoMove?"/>
+        <entry value="8"   name="8: InvokeIsDodge"/>
         <entry value="9"   name="9: ?"/>
         <entry value="10"  name="10: ?"/>
         <entry value="11"  name="11: ?"/>
@@ -23,7 +23,7 @@
         <entry value="20"  name="20: Set?"/>
         <entry value="21"  name="21: Set?"/>
         <entry value="22"  name="22: Set?"/>
-        <entry value="23"  name="23: Set?Bool"/>
+        <entry value="23"  name="23: InvokeAiContinousActionType_Default_hks107"/>
         <entry value="24"  name="24: Set?"/>
         <entry value="25"  name="25: ActionRequest?"/>
         <entry value="26"  name="26: ActionRequest?"/>
@@ -44,9 +44,9 @@
         <entry value="42"  name="42: SetStartbit11"/>
         <entry value="43"  name="43: Set?"/>
         <entry value="44"  name="44: Set?"/>
-        <entry value="49"  name="49: Set?"/>
+        <entry value="49"  name="49: SetDeathFlag10x1408841C0"/>
         <entry value="50"  name="50: Set?"/>
-        <entry value="51"  name="51: Set?"/>
+        <entry value="51"  name="51: SetDeathFlag2"/>
         <entry value="52"  name="52: Set?"/>
         <entry value="53"  name="53: Set?"/>
         <entry value="54"  name="54: WeirdCall"/>
@@ -71,15 +71,15 @@
         <entry value="73"  name="73: SetBool32_0x7C"/>
         <entry value="74"  name="74: SetBool32_0x7C"/>
         <entry value="75"  name="75: SetBool32_0x7C"/>
-        <entry value="78"  name="78: SetBool32_0x78"/>
-        <entry value="79"  name="79: SetBool32_0x1E0"/>
+        <entry value="78"  name="78: InvokeDisableCancel_hks2000"/>
+        <entry value="79"  name="79: InvokeAiContinousStepType_Default_hks118"/>
         <entry value="80"  name="80: SetBool32_0x7C"/>
         <entry value="81"  name="81: SetBool32_0x7C"/>
         <entry value="82"  name="82: SetBool32_0x7C"/>
         <entry value="83"  name="83: SetBool32_0x7C"/>
         <entry value="84"  name="84: SetBool32_0x7C"/>
         <entry value="85"  name="85: SetBool32_0x7C"/>
-        <entry value="86"  name="86: SetBool32_0x1E0"/>
+        <entry value="86"  name="86: InvokeAiAtkCancelType_Default_hks120"/>
         <entry value="87"  name="87: ActionRequest"/>
         <entry value="88"  name="88: SetBool32_0x7C_And_0x1A09"/>
         <entry value="89"  name="89: 0x4F4_Set3"/>
@@ -244,7 +244,7 @@
       <s32 name="SpEffectID"/>
       <s32 assert="0"/>
     </event>
-    <event id="95" name="SpawnOneShotFFX_Weapon_Ember">
+    <event id="95" name="SpawnOneShotFFX_Ember">
       <s32 name="FFXID"/>
       <s32 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
@@ -253,7 +253,7 @@
       <b name="IsRestrictToDummyPoly"/>
       <u8 name="ExtraSpawnCondition"/>
     </event>
-    <event id="96" name="SpawnOneShotFFX_Weapon">
+    <event id="96" name="SpawnOneShotFFX">
       <s32 name="FFXID"/>
       <s32 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
@@ -705,38 +705,38 @@
     </event>
     <!-- RTTI: ChrPrimDispMask -->
     <event id="235">
-      <u8 name="Mask1"/>
-      <u8 name="Mask2"/>
-      <u8 name="Mask3"/>
-      <u8 name="Mask4"/>
-      <u8 name="Mask5"/>
-      <u8 name="Mask6"/>
-      <u8 name="Mask7"/>
-      <u8 name="Mask8"/>
-      <u8 name="Mask9"/>
-      <u8 name="Mask10"/>
-      <u8 name="Mask11"/>
-      <u8 name="Mask12"/>
-      <u8 name="Mask13"/>
-      <u8 name="Mask14"/>
-      <u8 name="Mask15"/>
-      <u8 name="Mask16"/>
-      <u8 name="Mask17"/>
-      <u8 name="Mask18"/>
-      <u8 name="Mask19"/>
-      <u8 name="Mask20"/>
-      <u8 name="Mask21"/>
-      <u8 name="Mask22"/>
-      <u8 name="Mask23"/>
-      <u8 name="Mask24"/>
-      <u8 name="Mask25"/>
-      <u8 name="Mask26"/>
-      <u8 name="Mask27"/>
-      <u8 name="Mask28"/>
-      <u8 name="Mask29"/>
-      <u8 name="Mask30"/>
-      <u8 name="Mask31"/>
-      <u8 name="Mask32"/>
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
     <event id="236" name="MovementReduction">
       <f32/>
@@ -827,38 +827,38 @@
     </event>
     <!-- RTTI : SprjChrActionFlagModule -->
     <event id="312">
-      <u8 name="Mask1"/>
-      <u8 name="Mask2"/>
-      <u8 name="Mask3"/>
-      <u8 name="Mask4"/>
-      <u8 name="Mask5"/>
-      <u8 name="Mask6"/>
-      <u8 name="Mask7"/>
-      <u8 name="Mask8"/>
-      <u8 name="Mask9"/>
-      <u8 name="Mask10"/>
-      <u8 name="Mask11"/>
-      <u8 name="Mask12"/>
-      <u8 name="Mask13"/>
-      <u8 name="Mask14"/>
-      <u8 name="Mask15"/>
-      <u8 name="Mask16"/>
-      <u8 name="Mask17"/>
-      <u8 name="Mask18"/>
-      <u8 name="Mask19"/>
-      <u8 name="Mask20"/>
-      <u8 name="Mask21"/>
-      <u8 name="Mask22"/>
-      <u8 name="Mask23"/>
-      <u8 name="Mask24"/>
-      <u8 name="Mask25"/>
-      <u8 name="Mask26"/>
-      <u8 name="Mask27"/>
-      <u8 name="Mask28"/>
-      <u8 name="Mask29"/>
-      <u8 name="Mask30"/>
-      <u8 name="Mask31"/>
-      <u8 name="Mask32"/>
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
     <event id="320">
       <b name="ActRequest1"/>
@@ -1014,8 +1014,8 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="703" name="EnableTurningDirection">
-      <b name="State"/>
+    <event id="703" name="InvokeFixedRotationDirection">
+      <b name="IsEnable"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
@@ -1023,131 +1023,204 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="704">
-      <f32/>
-      <f32/>
-      <f32/>
+    <event id="704" name="InvokeChrTurnSpeed Hks/Engine Flag 0x00020000">
+      <f32 name="SpeedDefault"/>
+      <f32 name="SpeedExtra"/>
+      <f32 name="SpeedBoost"/>
       <s32 assert="0"/>
     </event>
-    <event id="705" name="FacingAngleCorrection">
+    <event id="705" name="FacingAngleCorrection, Hks/Engine flag 0x04000000">
       <f32 name="CorrectionRate"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="706">
-      <f32/>
+    <event id="706" name="InvokeChrTurnSpeed ForLock">
+      <f32 name="TurnSpeed"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="707">
+    <event id="707" name="Hks/Engine Flag 0x0000020000000000">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="710">
-      <u8/>
-      <u8/>
-      <u8/>
-      <u8/>
+    <event id="710" name="HideModelBool">
+      <b name="Flag0"/>
+      <b name="Flag1"/>
+      <b name="Flag2"/>
+      <b name="Flag3"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <event id="711" name="HideModelMask">
-      <u8 name="Mask1"/>
-      <u8 name="Mask2"/>
-      <u8 name="Mask3"/>
-      <u8 name="Mask4"/>
-      <u8 name="Mask5"/>
-      <u8 name="Mask6"/>
-      <u8 name="Mask7"/>
-      <u8 name="Mask8"/>
-      <u8 name="Mask9"/>
-      <u8 name="Mask10"/>
-      <u8 name="Mask11"/>
-      <u8 name="Mask12"/>
-      <u8 name="Mask13"/>
-      <u8 name="Mask14"/>
-      <u8 name="Mask15"/>
-      <u8 name="Mask16"/>
-      <u8 name="Mask17"/>
-      <u8 name="Mask18"/>
-      <u8 name="Mask19"/>
-      <u8 name="Mask20"/>
-      <u8 name="Mask21"/>
-      <u8 name="Mask22"/>
-      <u8 name="Mask23"/>
-      <u8 name="Mask24"/>
-      <u8 name="Mask25"/>
-      <u8 name="Mask26"/>
-      <u8 name="Mask27"/>
-      <u8 name="Mask28"/>
-      <u8 name="Mask29"/>
-      <u8 name="Mask30"/>
-      <u8 name="Mask31"/>
-      <u8 name="Mask32"/>
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
-    <event id="712" name="StaggerModuleMask">
-      <u8 name="Mask1"/>
-      <u8 name="Mask2"/>
-      <u8 name="Mask3"/>
-      <u8 name="Mask4"/>
-      <u8 name="Mask5"/>
-      <u8 name="Mask6"/>
-      <u8 name="Mask7"/>
-      <u8 name="Mask8"/>
-      <u8 name="Mask9"/>
-      <u8 name="Mask10"/>
-      <u8 name="Mask11"/>
-      <u8 name="Mask12"/>
-      <u8 name="Mask13"/>
-      <u8 name="Mask14"/>
-      <u8 name="Mask15"/>
-      <u8 name="Mask16"/>
-      <u8/>
-      <u8/>
-      <u8/>
+    <!-- Function At 0x1409A78B0 : 0x140E349E0 -->
+    <event id="712" name="InvokeWeaponShealthFlags">
+      <u8 name="WepAbsorpPosCondition1"/>
+      <s8 name="ShealthIndex1" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="WepAbsorpPosCondition2"/>
+      <s8 name="ShealthIndex2" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="WepAbsorpPosCondition3"/>
+      <s8 name="ShealthIndex3" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="WepAbsorpPosCondition4"/>
+      <s8 name="ShealthIndex4" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="WepAbsorpPosCondition_NULL1" default="0"/>
+      <s8 name="ShealthIndex5" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="WepAbsorpPosCondition_NULL2" default="0"/>
+      <s8 name="ShealthIndex6" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="WepAbsorpPosCondition_NULL3" default="0"/>
+      <s8 name="ShealthIndex7" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="WepAbsorpPosCondition_NULL4" default="0"/>
+      <s8 name="ShealthIndex8" default="-1">
+        <entry value="0"   name="0: OneHand_Left"/>
+        <entry value="1"   name="1: OneHand_Right"/>
+        <entry value="2"   name="2: BothHand"/>
+        <entry value="3"   name="3: Shealth"/>
+        <entry value="4"   name="4: DontUpdate"/>
+        <entry value="5"   name="5: Friede Scythe"/>
+        <entry value="6"   name="6: Other"/>
+        <entry value="-1"   name="-1: Default"/>
+      </s8>
+      <u8 name="IsValid1?"/>
+      <u8 name="IsValid2?"/>
+      <u8 name="IsValid3?"/>
       <u8 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="713" name="ModelMask">
-      <u8 name="Mask1"/>
-      <u8 name="Mask2"/>
-      <u8 name="Mask3"/>
-      <u8 name="Mask4"/>
-      <u8 name="Mask5"/>
-      <u8 name="Mask6"/>
-      <u8 name="Mask7"/>
-      <u8 name="Mask8"/>
-      <u8 name="Mask9"/>
-      <u8 name="Mask10"/>
-      <u8 name="Mask11"/>
-      <u8 name="Mask12"/>
-      <u8 name="Mask13"/>
-      <u8 name="Mask14"/>
-      <u8 name="Mask15"/>
-      <u8 name="Mask16"/>
-      <u8 name="Mask17"/>
-      <u8 name="Mask18"/>
-      <u8 name="Mask19"/>
-      <u8 name="Mask20"/>
-      <u8 name="Mask21"/>
-      <u8 name="Mask22"/>
-      <u8 name="Mask23"/>
-      <u8 name="Mask24"/>
-      <u8 name="Mask25"/>
-      <u8 name="Mask26"/>
-      <u8 name="Mask27"/>
-      <u8 name="Mask28"/>
-      <u8 name="Mask29"/>
-      <u8 name="Mask30"/>
-      <u8 name="Mask31"/>
-      <u8 name="Mask32"/>
+    <event id="713" name="ShowModelMask">
+      <b name="Mask1"/>
+      <b name="Mask2"/>
+      <b name="Mask3"/>
+      <b name="Mask4"/>
+      <b name="Mask5"/>
+      <b name="Mask6"/>
+      <b name="Mask7"/>
+      <b name="Mask8"/>
+      <b name="Mask9"/>
+      <b name="Mask10"/>
+      <b name="Mask11"/>
+      <b name="Mask12"/>
+      <b name="Mask13"/>
+      <b name="Mask14"/>
+      <b name="Mask15"/>
+      <b name="Mask16"/>
+      <b name="Mask17"/>
+      <b name="Mask18"/>
+      <b name="Mask19"/>
+      <b name="Mask20"/>
+      <b name="Mask21"/>
+      <b name="Mask22"/>
+      <b name="Mask23"/>
+      <b name="Mask24"/>
+      <b name="Mask25"/>
+      <b name="Mask26"/>
+      <b name="Mask27"/>
+      <b name="Mask28"/>
+      <b name="Mask29"/>
+      <b name="Mask30"/>
+      <b name="Mask31"/>
+      <b name="Mask32"/>
     </event>
     <event id="714" name="staggerModuleUnk">
       <u8/>
@@ -1184,33 +1257,33 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="730">
+    <event id="730" name="OnlyForNon_c0000Enemies">
       <f32/>
       <f32/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="740">
+    <event id="740" name="NULL_NOCODE">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="760" name="IframeStateSomething">
-      <u8/>
-      <u8/>
-      <u8/>
-      <u8/>
-      <f32/>
-      <f32/>
-      <f32/>
-      <f32/>
-      <f32/>
+    <event id="760" name="SetMovementMultiplier">
+      <b name="IsEnable"/>
+      <u8 name="null1"/>
+      <u8 name="null2"/>
+      <u8 name="null3"/>
+      <f32 name="0x1BC"/>
+      <f32 name="0x1C0"/>
+      <f32 name="0x1C4"/>
+      <f32 name="0x1C8"/>
+      <f32 name="0x1CC"/>
       <!-- Padding should be always aligned by 0x10? -->
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="770" name="BonePos">
+    <event id="770" name="ChangeBonePos">
       <s32/>
       <f32/>
       <u8/>
@@ -1219,7 +1292,7 @@
       <u8 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="771" name="BoneFixOn1">
+    <event id="771" name="FixBone">
       <u8/>
       <u8 assert="0"/>
       <u8 assert="0"/>
@@ -1228,7 +1301,8 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="772" name="BoneFixOn2">
+    <!-- Has Extra Code which shuffle float inside matrix -->
+    <event id="772" name="ChangeBonePosExtra">
       <s32/>
       <f32/>
       <u8/>

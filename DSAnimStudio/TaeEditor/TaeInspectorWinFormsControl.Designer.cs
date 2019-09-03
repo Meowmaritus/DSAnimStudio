@@ -56,12 +56,12 @@
             this.buttonChangeType.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonChangeType.Enabled = false;
             this.buttonChangeType.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonChangeType.Location = new System.Drawing.Point(219, 4);
+            this.buttonChangeType.Location = new System.Drawing.Point(177, 4);
             this.buttonChangeType.Name = "buttonChangeType";
-            this.buttonChangeType.Size = new System.Drawing.Size(108, 23);
+            this.buttonChangeType.Size = new System.Drawing.Size(150, 23);
             this.buttonChangeType.TabIndex = 3;
             this.buttonChangeType.TabStop = false;
-            this.buttonChangeType.Text = "Change Type...";
+            this.buttonChangeType.Text = "Change Event Type (F1)";
             this.buttonChangeType.UseVisualStyleBackColor = true;
             // 
             // dataGridView1

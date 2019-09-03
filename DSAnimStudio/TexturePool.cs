@@ -23,17 +23,19 @@ namespace DSAnimStudio
         }
 
         //private Dictionary<string, string> OnDemandTexturePaths = new Dictionary<string, string>();
-        private static Dictionary<string, TextureFetchRequest> Fetches = new Dictionary<string, TextureFetchRequest>();
+        private static Dictionary<string, TextureFetchRequest> fetches = new Dictionary<string, TextureFetchRequest>();
+
+        public static IReadOnlyDictionary<string, TextureFetchRequest> Fetches => fetches;
 
         public static void Flush()
         {
             lock (_lock_pool)
             {
-                foreach (var fetch in Fetches)
+                foreach (var fetch in fetches)
                 {
                     fetch.Value.Dispose();
                 }
-                Fetches.Clear();
+                fetches.Clear();
                 Failures.Clear();
             }
         }
@@ -41,7 +43,7 @@ namespace DSAnimStudio
         public static void AddFetchTPF(TPF tpf, string texName)
         {
             string shortName = Path.GetFileNameWithoutExtension(texName);
-            if (!Fetches.ContainsKey(shortName))
+            if (!fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
                 {
@@ -54,7 +56,7 @@ namespace DSAnimStudio
                     //    tpf.ConvertPS4ToPC();
                     //}
                     var newFetch = new TextureFetchRequest(tpf, texName);
-                    Fetches.Add(shortName, newFetch);
+                    fetches.Add(shortName, newFetch);
                 }
             }
 
@@ -63,7 +65,7 @@ namespace DSAnimStudio
         public static void AddFetchDDS(byte[] dds, string texName)
         {
             string shortName = Path.GetFileNameWithoutExtension(texName);
-            if (!Fetches.ContainsKey(shortName))
+            if (!fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
                 {
@@ -76,7 +78,7 @@ namespace DSAnimStudio
                     //    tpf.ConvertPS4ToPC();
                     //}
                     var newFetch = new TextureFetchRequest(dds, texName);
-                    Fetches.Add(shortName, newFetch);
+                    fetches.Add(shortName, newFetch);
                 }
             }
 
@@ -168,20 +170,20 @@ namespace DSAnimStudio
             if (name == null)
                 return null;
             var shortName = Path.GetFileNameWithoutExtension(name);
-            if (Fetches.ContainsKey(shortName))
+            if (fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
                 {
-                    return Fetches[shortName].Fetch();
+                    return fetches[shortName].Fetch();
                 }
             }
             else
             {
-                if (Fetches.ContainsKey(shortName + "_atlas000"))
+                if (fetches.ContainsKey(shortName + "_atlas000"))
                 {
                     lock (_lock_pool)
                     {
-                        return Fetches[shortName + "_atlas000"].Fetch();
+                        return fetches[shortName + "_atlas000"].Fetch();
                     }
                 }
                 return null;

@@ -30,27 +30,14 @@ namespace DSAnimStudio.TaeEditor
         public double MaxFrame => TaeInterop.IsSnapTo30FPS ? (Math.Round(MaxTime / SnapInterval)) : (MaxTime / SnapInterval);
 
         public bool IsRepeat = true;
-
-        private bool _isPlaying = false;
-        public bool IsPlaying
-        {
-            get => _isPlaying;
-            set
-            {
-                if (value != _isPlaying)
-                {
-                    CurrentTime = StartTime;
-                    _isPlaying = value;
-                }
-            }
-        }
+        public bool IsPlaying = false;
 
         public bool Scrubbing = false;
         public bool prevScrubbing = false;
 
         private bool isFirstFrameAfterLooping = false;
 
-        public void Update(bool playPauseBtnDown, GameTime gameTime, IEnumerable<TaeEditAnimEventBox> eventBoxes)
+        public void Update(bool playPauseBtnDown, bool shiftDown, GameTime gameTime, IEnumerable<TaeEditAnimEventBox> eventBoxes)
         {
             bool prevPlayState = IsPlaying;
 
@@ -62,12 +49,21 @@ namespace DSAnimStudio.TaeEditor
             if (playPauseBtnDown)
             {
                 IsPlaying = !IsPlaying;
-                if (!IsPlaying)
+
+                StartTime = CurrentTime;
+
+                if (IsPlaying) // Just started playing
+                {
+                    if (shiftDown)
+                    {
+                        StartTime = 0;
+                        CurrentTime = 0;
+                    }
+                }
+                else // Just stoppped playing
                 {
                     foreach (var box in eventBoxes)
-                    {
                         box.PlaybackHighlight = false;
-                    }
                 }
             }
 
