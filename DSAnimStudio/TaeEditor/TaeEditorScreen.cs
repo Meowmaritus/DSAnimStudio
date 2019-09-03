@@ -1454,6 +1454,19 @@ namespace DSAnimStudio.TaeEditor
                 //PauseUpdateTotalTime = 0;
             }
 
+            //bad hotfix warning
+            if (editScreenCurrentAnim != null && 
+                !editScreenCurrentAnim.ScrollViewer.DisableVerticalScroll && 
+                Input.MousePosition.X >= 
+                  editScreenCurrentAnim.Rect.Right - 
+                  editScreenCurrentAnim.ScrollViewer.ScrollBarThickness && 
+                Input.MousePosition.X < DividerRightGrabStartX && 
+                Input.MousePosition.Y >= editScreenCurrentAnim.Rect.Top && 
+                Input.MousePosition.Y < editScreenCurrentAnim.Rect.Bottom)
+            {
+                Input.CursorType = MouseCursorType.Arrow;
+            }
+
             Input.Update(Rect);
 
             if (!Input.LeftClickHeld)

@@ -76,6 +76,8 @@ namespace DSAnimStudio.TaeEditor
             VerticalScroll,
         }
 
+        private Dictionary<int, TAE.EventGroup> EventGroupsByRow = new Dictionary<int, TAE.EventGroup>();
+
         public float ZoomSpeed = 1.25f;
 
         public float AfterAutoScrollHorizontalMargin = 48;
@@ -248,8 +250,11 @@ namespace DSAnimStudio.TaeEditor
 
             int currentRow = 0;
             float farthestRightOnCurrentRow = 0;
+            int eventIndex = 0;
             foreach (var ev in AnimRef.Events)
             {
+                int groupIndex = AnimRef.EventGroups.IndexOf(AnimRef.EventGroups.FirstOrDefault(eg => eg.Indices.Contains(eventIndex)));
+
                 var newBox = new TaeEditAnimEventBox(this, ev);
 
                 if (newBox.Row >= 0)
@@ -259,26 +264,42 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else
                 {
-                    newBox.Row = currentRow;
-
-                    if (newBox.LeftFr < farthestRightOnCurrentRow)
-                    {
-                        newBox.Row++;
-                        currentRow++;
-                        farthestRightOnCurrentRow = newBox.RightFr;
-                    }
+                    //newBox.Row = currentRow;
+                    //TESTING:
+                    if (groupIndex >= 0)
+                        newBox.Row = currentRow = groupIndex;
                     else
-                    {
-                        if (newBox.RightFr > farthestRightOnCurrentRow)
-                            farthestRightOnCurrentRow = newBox.RightFr;
-                    }
+                        newBox.Row = currentRow = 20;
+
+                    //if (newBox.LeftFr < farthestRightOnCurrentRow)
+                    //{
+                    //    newBox.Row++;
+                    //    currentRow++;
+                    //    farthestRightOnCurrentRow = newBox.RightFr;
+                    //}
+                    //else
+                    //{
+                    //    if (newBox.RightFr > farthestRightOnCurrentRow)
+                    //        farthestRightOnCurrentRow = newBox.RightFr;
+                    //}
                 }
 
                 newBox.RowChanged += Box_RowChanged;
 
                 RegisterBoxToRow(newBox, currentRow);
                 EventBoxes.Add(newBox);
+
+                eventIndex++;
             }
+
+            Console.WriteLine("EventGroups Start");
+            for (int i = 0; i < AnimRef.EventGroups.Count; i++)
+            {
+                
+                Console.WriteLine(AnimRef.EventGroups[i].EventType);
+                
+            }
+            Console.WriteLine("EventGroups End");
         }
 
         public TaeEditAnimEventGraph(TaeEditorScreen mainScreen)
@@ -782,7 +803,7 @@ namespace DSAnimStudio.TaeEditor
                             return;
                         }
                     }
-                    else if (MainScreen.Input.MousePosition.Y > ScrollViewer.Viewport.Bottom - ScrollViewer.ScrollBarThickness && !ScrollViewer.DisableHorizontalScroll)
+                    else if (MainScreen.Input.MousePosition.Y > Rect.Bottom - ScrollViewer.ScrollBarThickness && !ScrollViewer.DisableHorizontalScroll)
                     {
                         if (MainScreen.Input.LeftClickDown)
                             currentUnselectedMouseDragType = UnselectedMouseDragType.HorizontalScroll;
@@ -790,7 +811,7 @@ namespace DSAnimStudio.TaeEditor
                         // Return so our initial click down doesn't select events.
                         return;
                     }
-                    else if (MainScreen.Input.MousePosition.X > ScrollViewer.Viewport.Right - ScrollViewer.ScrollBarThickness && !ScrollViewer.DisableVerticalScroll)
+                    else if (MainScreen.Input.MousePosition.X > Rect.Right - ScrollViewer.ScrollBarThickness && !ScrollViewer.DisableVerticalScroll)
                     {
                         if (MainScreen.Input.LeftClickDown)
                             currentUnselectedMouseDragType = UnselectedMouseDragType.VerticalScroll;
@@ -1878,7 +1899,7 @@ namespace DSAnimStudio.TaeEditor
                 //-- BOTTOM Side <-- I have no idea what I meant by this <-- turns out i just copy pasted the draw call above
                 // Draw PlaybackCursor CurrentTime vertical line
                 sb.Draw(texture: boxTex,
-                    position: new Vector2(playbackCursorPixelX - (PlaybackCursorThickness / 2), 0),
+                    position: new Vector2(playbackCursorPixelX - (PlaybackCursorThickness / 2), ScrollViewer.Scroll.Y),
                     sourceRectangle: null,
                     color: PlaybackCursorColor,
                     rotation: 0,

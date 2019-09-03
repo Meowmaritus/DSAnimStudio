@@ -228,9 +228,9 @@ namespace DSAnimStudio
 
                 var br = new BinaryReaderEx(false, texInfo.DDSBytes);
 
-                int blockSize = GetBlockSize(texInfo.Texture.Format);
-
                 bool hasHeader = br.ReadASCII(4) == "DDS ";
+
+                int blockSize = !hasHeader ? GetBlockSize(texInfo.Texture.Format) : -1;
 
                 if (hasHeader)
                 {
