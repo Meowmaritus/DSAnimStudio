@@ -29,6 +29,7 @@ namespace DSAnimStudio.TaeEditor
         private Rectangle ViewportDisplayRect;
 
         public Rectangle Viewport => ViewportDisplayRect;
+
         public Rectangle RelativeViewport => new Rectangle((int)Scroll.X, (int)Scroll.Y, ViewportDisplayRect.Width, ViewportDisplayRect.Height);
 
         public Vector2 Scroll;
