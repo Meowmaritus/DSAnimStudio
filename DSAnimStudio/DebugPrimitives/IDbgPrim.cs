@@ -26,6 +26,7 @@ namespace DSAnimStudio.DebugPrimitives
         void Draw(GameTime gameTime);
         void LabelDraw();
 
+        void LabelDraw_Billboard();
 
     }
 }

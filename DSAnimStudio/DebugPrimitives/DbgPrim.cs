@@ -160,8 +160,22 @@ namespace DSAnimStudio.DebugPrimitives
             {
                 foreach (var label in DbgLabels)
                 {
-                    DBG.DrawTextOn3DLocation(Vector3.Transform(label.Position, Transform.WorldMatrix), 
+                    DBG.DrawTextOn3DLocation(Vector3.Transform(label.Position, Transform.WorldMatrix),
                         label.Text, label.Color, label.Height, startAndEndSpriteBatchForMe: false);
+                }
+            }
+        }
+
+        public void LabelDraw_Billboard()
+        {
+            if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category] && (EnableDraw && DBG.CategoryEnableDraw[Category])))
+                return;
+
+            if (DbgLabels.Count > 0)
+            {
+                foreach (var label in DbgLabels)
+                {
+                    DBG.Draw3DBillboard(label.Text, Matrix.CreateTranslation(label.Position) * Transform.WorldMatrix, label.Color);
                 }
             }
         }

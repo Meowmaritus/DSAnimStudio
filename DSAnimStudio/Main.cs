@@ -19,7 +19,7 @@ namespace DSAnimStudio
     {
         //public static Form WinForm;
 
-        public const string VERSION = "v0.9.1";
+        public const string VERSION = "v0.9.2";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -137,6 +137,8 @@ namespace DSAnimStudio
         protected override void OnExiting(object sender, EventArgs args)
         {
             CFG.Save();
+
+            TAE_EDITOR.SaveConfig();
 
             TaeSoundManager.DisposeAll();
 

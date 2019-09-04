@@ -34,6 +34,8 @@ namespace DSAnimStudio
 
         private static SoundEffectInstance BeepSound;
 
+        private static BasicEffect SpriteBatch3DBillboardEffect;
+
         private static float _beepVolume = 0;
         public static float BeepVolume
         {
@@ -141,9 +143,9 @@ namespace DSAnimStudio
                 }
             }
 
-            GFX.SpriteBatch.Begin();
+            //GFX.SpriteBatch.Begin();
             if (ShowGrid)
-                DbgPrim_Grid.LabelDraw();
+                DbgPrim_Grid.LabelDraw_Billboard();
 
             lock (_lock_primitives)
             {
@@ -152,13 +154,17 @@ namespace DSAnimStudio
                     if (ShowPrimitiveNametags)
                     {
                         if (p.Name != null && p.EnableNameDraw && DBG.CategoryEnableNameDraw[p.Category] && (p.EnableDraw && DBG.CategoryEnableDraw[p.Category]))
-                            DrawTextOn3DLocation(Vector3.Transform(Vector3.Zero, p.Transform.WorldMatrix), p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
+                        {
+                            //DrawTextOn3DLocation(Vector3.Transform(Vector3.Zero, p.Transform.WorldMatrix), p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
+                            Draw3DBillboard(p.Name, p.Transform.WorldMatrix, p.NameColor);
+                        }
+                            
 
-                        p.LabelDraw();
+                        p.LabelDraw_Billboard();
                     }
                 }
             }
-            GFX.SpriteBatch.End();
+            //GFX.SpriteBatch.End();
 
             foreach (var p in PrimitivesMarkedForDeletion)
             {
@@ -267,7 +273,50 @@ namespace DSAnimStudio
             BeepVolume = 0;
             BeepSound.Play();
             //BeepSound.Pause();
-            
+
+            SpriteBatch3DBillboardEffect = new BasicEffect(GFX.Device)
+            {
+                TextureEnabled = true,
+                VertexColorEnabled = true,
+            };
+        }
+
+        public static void Draw3DBillboard(string text, Transform t, Color c)
+        {
+            Matrix m = Matrix.CreateScale(1, -1, 1) * t.WorldMatrix;
+
+            if (TaeInterop.CameraFollowsRootMotion)
+                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+
+            SpriteBatch3DBillboardEffect.World = m;
+            SpriteBatch3DBillboardEffect.View = GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld);
+            SpriteBatch3DBillboardEffect.Projection = GFX.World.MatrixProjection;
+
+            GFX.SpriteBatch.Begin(0, null, null, null, null, SpriteBatch3DBillboardEffect);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT, text, Vector2.Zero, c);
+
+            GFX.SpriteBatch.End();
+        }
+
+        public static void Draw3DBillboard(string text, Matrix m, Color c)
+        {
+            return;
+
+            //m = Matrix.CreateScale(1, -1, 1) * m;
+
+            //if (TaeInterop.CameraFollowsRootMotion)
+            //    m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+
+            //SpriteBatch3DBillboardEffect.World = Matrix.CreateScale(0.00025f) * m;
+            //SpriteBatch3DBillboardEffect.View = GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld);
+            //SpriteBatch3DBillboardEffect.Projection = GFX.World.MatrixProjection;
+
+            //GFX.SpriteBatch.Begin(0, null, null, DepthStencilState.DepthRead, RasterizerState.CullNone, SpriteBatch3DBillboardEffect);
+
+            //GFX.SpriteBatch.DrawString(DEBUG_FONT, text, Vector2.Zero, c);
+
+            //GFX.SpriteBatch.End();
         }
 
         //public static void DrawLine(Vector3 start, Vector3 end, Color startColor, Color? endColor = null, string startName = null, string endName = null)
@@ -304,7 +353,7 @@ namespace DSAnimStudio
         //    }
         //}
 
-        public static void DrawTextOn3DLocation(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = true)
+        public static void DrawTextOn3DLocation(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
         {
             //if (ShowFancyTextLabels)
             //    DrawTextOn3DLocation_Fancy(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
@@ -313,27 +362,71 @@ namespace DSAnimStudio
 
 
             //TODO: SEE WHY THIS LITERALLY DOESNT FUCKING WORK ANYMORE
-            //DrawTextOn3DLocation_Fast(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
+            DrawTextOn3DLocation_Fast(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
         }
 
-        private static void DrawTextOn3DLocation_Fast(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = true)
+        private static void DrawTextOn3DLocation_Fast(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
         {
-            //// Project the 3d position first
-            //Vector3 screenPos3D = GFX.Device.Viewport.Project(location,
-            //    GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+            if (startAndEndSpriteBatchForMe)
+                GFX.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
-            //if (screenPos3D.Z >= 1 || screenPos3D.Z >= 1)
+            // Project the 3d position first
+
+            Matrix m = Matrix.Identity;
+
+            if (TaeInterop.CameraFollowsRootMotion)
+                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+
+            Vector3 screenPos3D = GFX.Device.Viewport.Project(location,
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);
+
+            screenPos3D -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
+
+            if (screenPos3D.Z >= 1)
+                return;
+
+            //if (screenPos3D.X < GFX.Device.Viewport.Bounds.Left ||
+            //    screenPos3D.X > GFX.Device.Viewport.Bounds.Right ||
+            //    screenPos3D.Y < GFX.Device.Viewport.Bounds.Top ||
+            //    screenPos3D.Y > GFX.Device.Viewport.Bounds.Bottom)
             //    return;
 
-            //if (screenPos3D.X < 0 || screenPos3D.X > GFX.Device.Viewport.Width || screenPos3D.Y < 0 || screenPos3D.Y > GFX.Device.Viewport.Height)
-            //    return;
+            if (screenPos3D.X < 0 ||
+               screenPos3D.X > GFX.Device.Viewport.Width ||
+               screenPos3D.Y < 0 ||
+               screenPos3D.Y > GFX.Device.Viewport.Height)
+                return;
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
+                new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y + 2),
+                Color.Black, 0, Vector2.Zero, 1.0f, SpriteEffects.None,
+                0.0001f);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
+                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y),
+                color, 0, Vector2.Zero, 1.0f, SpriteEffects.None,
+                0);
+
+            if (startAndEndSpriteBatchForMe)
+                GFX.SpriteBatch.End();
+        }
+
+        private static void DrawTextOn3DLocation_Fast__OLD(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
+        {
+            Matrix m = Matrix.Identity;
+
+            if (TaeInterop.CameraFollowsRootMotion)
+                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
             // Project the 3d position first
             Vector3 screenPos3D_Top = GFX.Device.Viewport.Project(location + new Vector3(0, physicalHeight / 2, 0),
-               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
+               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);
 
             Vector3 screenPos3D_Bottom = GFX.Device.Viewport.Project(location - new Vector3(0, physicalHeight / 2, 0),
-                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);
+
+            screenPos3D_Top -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
+            screenPos3D_Bottom -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
 
             //Vector3 camNormal = Vector3.Transform(Vector3.Forward, CAMERA_ROTATION);
             //Vector3 directionFromCam = Vector3.Normalize(location - Vector3.Transform(WORLD_VIEW.CameraPosition, CAMERA_WORLD));
@@ -345,8 +438,10 @@ namespace DSAnimStudio
             // Just to make it easier to use we create a Vector2 from screenPos3D
             Vector2 screenPos2D_Top = new Vector2(screenPos3D_Top.X, screenPos3D_Top.Y);
             Vector2 screenPos2D_Bottom = new Vector2(screenPos3D_Bottom.X, screenPos3D_Bottom.Y);
+
             Vector2 screenPos2D_Center = (screenPos2D_Top + screenPos2D_Bottom) / 2;
 
+            
             if (screenPos2D_Center.X < 0 || screenPos2D_Center.X > GFX.Device.Viewport.Width || screenPos2D_Center.Y < 0 || screenPos2D_Center.Y > GFX.Device.Viewport.Height)
                 return;
 
@@ -363,8 +458,8 @@ namespace DSAnimStudio
             if (scale < 0.05f)
                 return;
 
-            //if (startAndEndSpriteBatchForMe)
-            //    GFX.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            if (startAndEndSpriteBatchForMe)
+                GFX.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
             //GFX.SpriteBatch.DrawString(DEBUG_FONT_SIMPLE, text, 
             //    new Vector2(screenPos3D.X, screenPos3D.Y) - 
@@ -383,10 +478,16 @@ namespace DSAnimStudio
                 color, 0, !DBG.SimpleTextLabelSize ? labelSpritefontSize / 2 : Vector2.Zero, !DBG.SimpleTextLabelSize ? scale : 1.0f, SpriteEffects.None,
                 ((screenPos3D_Top.Z + screenPos3D_Bottom.Z) / 2));
 
-            
 
-            //if (startAndEndSpriteBatchForMe)
-            //    GFX.SpriteBatch.End();
+            GFX.SpriteBatch.DrawString(DEBUG_FONT, $"<{textPos.X}, {textPos.Y}>",
+                new Vector2(64, 64),
+                Color.Fuchsia, 0, Vector2.Zero, 1,
+                SpriteEffects.None,
+                ((screenPos3D_Top.Z + screenPos3D_Bottom.Z) / 2));
+
+
+            if (startAndEndSpriteBatchForMe)
+                GFX.SpriteBatch.End();
 
         }
 

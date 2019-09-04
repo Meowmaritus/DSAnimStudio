@@ -36,8 +36,6 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeFileContainerReloadType ReloadType = TaeFileContainerReloadType.None;
 
-        public bool IsDcx { get; private set; } = false;
-
         public static readonly string DefaultSaveFilter = "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
                 "All Files|*.*";
 
@@ -152,6 +150,48 @@ namespace DSAnimStudio.TaeEditor
                 taeInBND.Add(file, TAE.Read(file));
             }
 
+            if (ContainerType != TaeFileContainerType.TAE)
+            {
+                var nameBase = Utils.GetFileNameWithoutAnyExtensions(file);
+                var folder = new System.IO.FileInfo(file).DirectoryName;
+
+                if (nameBase.EndsWith("c0000"))
+                {
+                    var anibndFiles = System.IO.Directory.GetFiles(folder, "c0000_*.anibnd*");
+                    foreach (var additionalAnibnd in anibndFiles)
+                    {
+                        if (BND3.Is(additionalAnibnd))
+                        {
+                            ContainerType = TaeFileContainerType.BND3;
+                            var additionalContainerBND3 = BND3.Read(additionalAnibnd);
+                            foreach (var f in additionalContainerBND3.Files)
+                            {
+                                CheckGameVersionForTaeInterop(f.Name);
+                                if (f.Name.ToUpper().EndsWith(".HKX"))
+                                {
+                                    hkxInBND.Add(f.Name, f.Bytes);
+                                }
+                            }
+                        }
+                        else if (BND4.Is(additionalAnibnd))
+                        {
+                            ContainerType = TaeFileContainerType.BND4;
+                            var additionalContainerBND4 = BND4.Read(additionalAnibnd);
+                            foreach (var f in additionalContainerBND4.Files)
+                            {
+                                CheckGameVersionForTaeInterop(f.Name);
+
+                                if (f.Name.ToUpper().EndsWith(".HKX"))
+                                {
+                                    if (!hkxInBND.ContainsKey(f.Name))
+                                        hkxInBND.Add(f.Name, f.Bytes);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             filePath = file;
 
             //SFTODO
@@ -161,11 +201,6 @@ namespace DSAnimStudio.TaeEditor
         public void SaveToPath(string file)
         {
             file = file.ToUpper();
-            IsDcx = false;
-            if (file.EndsWith(".DCX"))
-            {
-                IsDcx = true;
-            }
 
             if (ContainerType == TaeFileContainerType.BND3)
             {
