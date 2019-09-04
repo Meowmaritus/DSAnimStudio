@@ -22,20 +22,50 @@ namespace DSAnimStudio.TaeEditor
         private void InspectorFormChangeEventType_Load(object sender, EventArgs e)
         {
             TemplatesList = new List<TAE.Template.EventTemplate>();
-            listBoxEventTypes.Items.Clear();
+            listViewEventType.Items.Clear();
+
+            //ListViewItem currentEventType = null;
+
             foreach (var v in TAEReference.BankTemplate.Values)
             {
                 TemplatesList.Add(v);
-                listBoxEventTypes.Items.Add($"{(v.ID):D3}: {v.Name}");
+                listViewEventType.Items.Add(new ListViewItem(new string[] { v.ID.ToString(), v.Name } ));
             }
 
-            listBoxEventTypes.SelectedIndex = TemplatesList.IndexOf(CurrentTemplate);
+            //if (currentEventType != null)
+            //{
+            //    listViewEventType.SelectedItems.Clear();
+            //    listViewEventType.Sel
+            //}
 
-            if (listBoxEventTypes.SelectedIndex < 0)
-                listBoxEventTypes.SelectedIndex = 0;
+            var selectedIndex = TemplatesList.IndexOf(CurrentTemplate);
 
-            listBoxEventTypes.Focus();
-            listBoxEventTypes.KeyDown += ListBoxEventTypes_KeyDown;
+            if (selectedIndex >= 0)
+            {
+                listViewEventType.SelectedIndices.Clear();
+                listViewEventType.SelectedIndices.Add(selectedIndex);
+
+                listViewEventType.Items[selectedIndex].Selected = true;
+                listViewEventType.Items[selectedIndex].Focused = true;
+                listViewEventType.Items[selectedIndex].EnsureVisible();
+            }
+            else
+            {
+                listViewEventType.SelectedIndices.Clear();
+                listViewEventType.SelectedIndices.Add(selectedIndex);
+
+                listViewEventType.Items[0].Selected = true;
+                listViewEventType.Items[0].Focused = true;
+                listViewEventType.Items[0].EnsureVisible();
+
+            }
+
+            //if (listBoxEventTypes.SelectedIndex < 0)
+            //    listBoxEventTypes.SelectedIndex = 0;
+
+            listViewEventType.Focus();
+            listViewEventType.Select();
+            listViewEventType.KeyDown += ListBoxEventTypes_KeyDown;
 
             //var eventTypes = (st[])Enum.GetValues(typeof(TimeActEventType));
             //listBoxEventTypes.Items.Clear();
@@ -50,17 +80,17 @@ namespace DSAnimStudio.TaeEditor
 
         private void SelectEventAndClose()
         {
-            NewEventType = TemplatesList[listBoxEventTypes.SelectedIndex].ID;
+            NewEventType = TemplatesList[listViewEventType.SelectedIndices[0]].ID;
             DialogResult = DialogResult.OK;
             Close();
         }
 
         private void ListBoxEventTypes_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
-            {
-                SelectEventAndClose();
-            }
+            //if (e.KeyCode == Keys.Enter)
+            //{
+            //    SelectEventAndClose();
+            //}
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -69,6 +99,11 @@ namespace DSAnimStudio.TaeEditor
         }
 
         private void button1_Click(object sender, EventArgs e)
+        {
+            SelectEventAndClose();
+        }
+
+        private void ListViewEventType_ItemActivate(object sender, EventArgs e)
         {
             SelectEventAndClose();
         }

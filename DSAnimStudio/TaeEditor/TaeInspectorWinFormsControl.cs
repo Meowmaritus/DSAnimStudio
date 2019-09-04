@@ -15,6 +15,8 @@ namespace DSAnimStudio.TaeEditor
             TaeEventValueChanged?.Invoke(this, e);
         }
 
+        private TAE.Event eventIdentityCheck = null;
+
         private TaeEditAnimEventBox _selectedEventBox;
         public TaeEditAnimEventBox SelectedEventBox
         {
@@ -25,9 +27,8 @@ namespace DSAnimStudio.TaeEditor
 
                 dataGridView1.CellValueChanged -= DataGridView1_CellValueChanged;
                 _selectedEventBox = value;
+                eventIdentityCheck = value?.MyEvent;
                 ReconstructDataGrid();
-
-
             }
         }
 
@@ -245,7 +246,7 @@ namespace DSAnimStudio.TaeEditor
         {
             bool failed = false;
 
-            if (SelectedEventBox != null)
+            if (SelectedEventBox != null && SelectedEventBox.MyEvent == eventIdentityCheck)
             {
                 for (int i = 0; i < dataGridView1.RowCount; i++)
                 {

@@ -1,5 +1,5 @@
 ﻿//#define DISABLE_HKX_EXCEPTION_CATCH
-
+//#define DISABLE_SPLINE_CACHE
 using Microsoft.Xna.Framework;
 using SoulsFormats;
 using System;
@@ -59,8 +59,21 @@ namespace DSAnimStudio
                 printer.AppendLine($"Texture '{fail.Key.Texture.Name}' failed to load.", Color.Red);
             }
 
+            //if (Main.TAE_EDITOR.SelectedTaeAnim != null)
+            //{
+            //    foreach (var eg in Main.TAE_EDITOR.SelectedTaeAnim.EventGroups)
+            //    {
+            //        printer.AppendLine($"Group [ID: {eg.EventType}] [Indices Count: {eg.Indices.Count}]", Color.Aqua);
+            //    }
+            //}
+
             printer.Draw();
         }
+
+        public static string PlayerPartsModelHD = "HD_M_1900";
+        public static string PlayerPartsModelBD = "BD_M_1900";
+        public static string PlayerPartsModelAM = "AM_M_1900";
+        public static string PlayerPartsModelLG = "LG_M_1900";
 
         private static int InterleavedCalculationState = 0;
         public static int InterleavedCalculationDivisor = 1;
@@ -408,14 +421,94 @@ namespace DSAnimStudio
             var transform = new Transform(0, 0, 0, 0, 0, 0);
 
             var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
-            if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
+
+            if (chrNameBase.EndsWith("c0000"))
             {
-                Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), transform);
+                var folder = new FileInfo(AnibndPath).DirectoryName;
+
+                var lastSlashInFolder = folder.LastIndexOf("\\");
+
+                var interrootFolder = folder.Substring(0, lastSlashInFolder);
+
+                FLVER2 c0000 = null;
+
+                string c0000Path = $"{chrNameBase}.chrbnd";
+
+                if (File.Exists(c0000Path + ".dcx"))
+                {
+                    c0000Path = c0000Path + ".dcx";
+                }
+
+                if (BND4.Is(c0000Path))
+                {
+                    var bnd = BND4.Read(c0000Path);
+
+                    foreach (var f in bnd.Files)
+                    {
+                        if (FLVER2.Is(f.Bytes))
+                        {
+                            c0000 = FLVER2.Read(f.Bytes);
+                            break;
+                        }
+                    }
+                }
+                else if (BND3.Is(c0000Path))
+                {
+                    var bnd = BND3.Read(c0000Path);
+
+                    foreach (var f in bnd.Files)
+                    {
+                        if (FLVER2.Is(f.Bytes))
+                        {
+                            c0000 = FLVER2.Read(f.Bytes);
+                            break;
+                        }
+                    }
+                }
+
+                //load it
+
+                string partA = $"{interrootFolder}\\parts\\{PlayerPartsModelHD}.partsbnd";
+                string partB = $"{interrootFolder}\\parts\\{PlayerPartsModelBD}.partsbnd";
+                string partC = $"{interrootFolder}\\parts\\{PlayerPartsModelAM}.partsbnd";
+                string partD = $"{interrootFolder}\\parts\\{PlayerPartsModelLG}.partsbnd";
+
+                if (File.Exists(partA + ".dcx"))
+                    partA = partA + ".dcx";
+
+                if (File.Exists(partB + ".dcx"))
+                    partB = partB + ".dcx";
+
+                if (File.Exists(partC + ".dcx"))
+                    partC = partC + ".dcx";
+
+                if (File.Exists(partD + ".dcx"))
+                    partD = partD + ".dcx";
+
+                var parts = LoadFourPartsFiles(c0000, partA, partB, partC, partD);
+
+                LoadFLVER(parts.Item1);
+
+                foreach (var tpf in parts.Item2)
+                {
+                    TexturePool.AddTpf(tpf);
+                }
+
+                GFX.ModelDrawer.RequestTextureLoad();
             }
-            else if (File.Exists($"{chrNameBase}.chrbnd"))
+            else
             {
-                Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
+                if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
+                {
+                    Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), transform);
+                }
+                else if (File.Exists($"{chrNameBase}.chrbnd"))
+                {
+                    Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
+                }
             }
+
+            
 
             if (File.Exists($"{chrNameBase}.texbnd.dcx"))
             {
@@ -549,12 +642,12 @@ namespace DSAnimStudio
             TryToLoadAnimFile(anim.ID);
 
             //For some reference animations, we have to use the anim they are referencing
-            if (CurrentAnimationHKXBytes == null)
+            if (CurrentAnimationHKXBytes == null && anim.Unknown1 > 0)
             {
                 TryToLoadAnimFile(anim.Unknown1);
             }
 
-            if (CurrentAnimationHKXBytes == null)
+            if (CurrentAnimationHKXBytes == null && anim.Unknown2 > 0)
             {
                 TryToLoadAnimFile(anim.Unknown2);
             }
@@ -744,6 +837,7 @@ namespace DSAnimStudio
             {
                 (Matrix, Vector3) thisBone = (Matrix.Identity, Vector3.One);
 
+#if !DISABLE_SPLINE_CACHE
                 if (alreadyCalculatedBones.ContainsKey(parentBone))
                 {
                     thisBone.Item1 *= alreadyCalculatedBones[parentBone].Item1;
@@ -751,6 +845,7 @@ namespace DSAnimStudio
                 }
                 else
                 {
+#endif
                     HKX.Transform skeleTransform = s.Transforms.GetArrayData().Elements[parentBone];
 
                     var track = !isJustSkeleton ? GetTransformTrackOfBone(s, parentBone) : null;
@@ -880,9 +975,12 @@ namespace DSAnimStudio
                         }
 
                         thisBone.Item1 *= Matrix.CreateTranslation(posX, posY, posZ);
-                    }
-
+#if !DISABLE_SPLINE_CACHE
+                }
                     alreadyCalculatedBones.Add(parentBone, thisBone);
+#endif
+
+
 
 
                 }
@@ -1159,250 +1257,12 @@ namespace DSAnimStudio
                 if (SoulsFormats.FLVER0.Is(assetBytes))
                 {
                     var flver = SoulsFormats.FLVER0.Read(assetBytes);
-                    var model = new Model(flver);
-                    var modelInstance = new ModelInstance(shortName, model, Transform.Default, -1, -1, -1, -1);
-                    GFX.ModelDrawer.AddModelInstance(model, "", transform);
-                    //throw new NotImplementedException();
-
-                    Matrix GetBoneParentMatrix(SoulsFormats.FLVER0.Bone b)
-                    {
-                        SoulsFormats.FLVER0.Bone parentBone = b;
-
-                        var result = Matrix.Identity;
-
-                        do
-                        {
-                            result *= Matrix.CreateScale(parentBone.Scale.X, parentBone.Scale.Y, parentBone.Scale.Z);
-                            result *= Matrix.CreateRotationX(parentBone.Rotation.X);
-                            result *= Matrix.CreateRotationZ(parentBone.Rotation.Z);
-                            result *= Matrix.CreateRotationY(parentBone.Rotation.Y);
-                            result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
-
-                            if (parentBone.ParentIndex >= 0)
-                            {
-                                parentBone = flver.Bones[parentBone.ParentIndex];
-                            }
-                            else
-                            {
-                                parentBone = null;
-                            }
-                        }
-                        while (parentBone != null);
-
-                        return result;
-                    }
-
-                    foreach (var dmy in flver.Dummies)
-                    {
-                        DBG.AddPrimitive(new DbgPrimWireSphere(new Transform(dmy.Position.X, dmy.Position.Y, dmy.Position.Z, 0, 0, 0), 0.01f, 8, 8, Color.Cyan)
-                        {
-                            Name = $"{dmy.ReferenceID}",
-                            Category = DbgPrimCategory.DummyPoly,
-                        });
-
-                    }
-
-                    string getBoneSpacePrefix(SoulsFormats.FLVER0.Bone b)
-                    {
-                        SoulsFormats.FLVER0.Bone currentBone = b;
-                        string prefix = "";
-                        int parentIndex = b.ParentIndex;
-                        while (parentIndex >= 0)
-                        {
-                            prefix += "  ";
-                            currentBone = flver.Bones[parentIndex];
-                            parentIndex = currentBone.ParentIndex;
-                        }
-                        return prefix;
-                    }
-
-                    List<Matrix> parentBoneMatrices = new List<Matrix>();
-                    List<Vector3> bonePos = new List<Vector3>();
-
-                    foreach (var b in flver.Bones)
-                    {
-                        var parentMatrix = GetBoneParentMatrix(b);
-
-                        parentBoneMatrices.Add(parentMatrix);
-
-                        bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
-
-
-                    }
-                    int boneIndex = 0;
-                    foreach (var b in flver.Bones)
-                    {
-
-
-                        if (b.ParentIndex >= 0)
-                        {
-                            if (parentBoneMatrices[b.ParentIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
-                            {
-                                var realMatrix = Matrix.CreateFromQuaternion(boneRot) * Matrix.CreateTranslation(bonePos[b.ParentIndex]);
-
-                                if (realMatrix.Decompose(out Vector3 realBoneScale, out Quaternion realBoneRot, out Vector3 realBoneTranslation))
-                                {
-                                    var boneTransform = new Transform(realBoneTranslation, Vector3.Zero, realBoneScale);
-                                    var boneLength = (bonePos[boneIndex] - bonePos[b.ParentIndex]).Length();
-                                    DBG.AddPrimitive(new DbgPrimSolidBone(isHkx: false, getBoneSpacePrefix(b) + b.Name, boneTransform, realBoneRot, boneLength / 8, boneLength, Color.Purple));
-                                }
-                            }
-
-
-                        }
-                        else
-                        {
-                            if (parentBoneMatrices[boneIndex].Decompose(out Vector3 boneScale, out Quaternion boneRot, out Vector3 boneTranslation))
-                            {
-                                var boneTransform = new Transform(boneTranslation, Vector3.Zero, boneScale);
-                                DBG.AddPrimitive(new DbgPrimWireBox(boneTransform, Vector3.One * 0.05f, Color.Purple)
-                                {
-                                    Name = getBoneSpacePrefix(b) + b.Name,
-                                    Category = DbgPrimCategory.FlverBone
-                                });
-                            }
-                        }
-
-                        boneIndex++;
-                    }
-
-                    GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
-                    GFX.World.OrbitCamReset();
+                    LoadFLVER(flver);
                 }
                 else
                 {
                     var flver = SoulsFormats.FLVER2.Read(assetBytes);
-                    CurrentModel = flver;
-
-                    FlverBoneCount = flver.Bones.Count;
-
-                    //throw new NotImplementedException();
-
-                    FlverBonePrims = new List<IDbgPrim>();
-
-                    Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b)
-                    {
-                        SoulsFormats.FLVER2.Bone parentBone = b;
-
-                        var result = Matrix.Identity;
-
-                        do
-                        {
-                            result *= Matrix.CreateScale(parentBone.Scale.X, parentBone.Scale.Y, parentBone.Scale.Z);
-                            result *= Matrix.CreateRotationX(parentBone.Rotation.X);
-                            result *= Matrix.CreateRotationZ(parentBone.Rotation.Z);
-                            result *= Matrix.CreateRotationY(parentBone.Rotation.Y);
-                            result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
-
-                            if (parentBone.ParentIndex >= 0)
-                            {
-                                parentBone = flver.Bones[parentBone.ParentIndex];
-                            }
-                            else
-                            {
-                                parentBone = null;
-                            }
-                        }
-                        while (parentBone != null);
-
-                        return result;
-                    }
-
-                    AnimatedDummyPolyClusters = new DbgPrimDummyPolyCluster[FlverBoneCount];
-
-                    var dummiesByID = new Dictionary<int, List<FLVER2.Dummy>>();
-
-                    foreach (var dmy in flver.Dummies)
-                    {
-                        if (dmy.AttachBoneIndex < 0)
-                            continue;
-
-                        if (dummiesByID.ContainsKey(dmy.AttachBoneIndex))
-                        {
-                            dummiesByID[dmy.AttachBoneIndex].Add(dmy);
-                        }
-                        else
-                        {
-                            dummiesByID.Add(dmy.AttachBoneIndex, new List<FLVER2.Dummy> { dmy });
-                        }
-                    }
-
-                    foreach (var kvp in dummiesByID)
-                    {
-                        var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, kvp.Value, flver.Bones);
-                        DBG.AddPrimitive(dmyPrim);
-                        AnimatedDummyPolyClusters[kvp.Key] = dmyPrim;
-                    }
-
-                    string getBoneSpacePrefix(SoulsFormats.FLVER2.Bone b)
-                    {
-                        SoulsFormats.FLVER2.Bone currentBone = b;
-                        string prefix = "";
-                        int parentIndex = b.ParentIndex;
-                        while (parentIndex >= 0)
-                        {
-                            prefix += "  ";
-                            currentBone = flver.Bones[parentIndex];
-                            parentIndex = currentBone.ParentIndex;
-                        }
-                        return prefix;
-                    }
-
-                    FlverBoneTPoseMatrices = new List<Matrix>();
-                    List<Vector3> bonePos = new List<Vector3>();
-
-
-                    foreach (var b in flver.Bones)
-                    {
-                        var parentMatrix = GetBoneParentMatrix(b);
-
-                        FlverBoneTPoseMatrices.Add(parentMatrix);
-
-                        bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
-                    }
-                    int boneIndex = 0;
-                    foreach (var b in flver.Bones)
-                    {
-                        if (b.ParentIndex >= 0)
-                        {
-                            var boneTransform = new Transform(FlverBoneTPoseMatrices[boneIndex]);
-                            var boneLength = (bonePos[boneIndex] - bonePos[b.ParentIndex]).Length();
-                            var prim = new DbgPrimSolidBone(isHkx: false, getBoneSpacePrefix(b) + b.Name, boneTransform, Quaternion.Identity, Math.Min(boneLength / 4, 0.25f), boneLength, Color.Purple);
-
-                            prim.Children.Add(new DbgPrimWireBox(new Transform(FlverBoneTPoseMatrices[boneIndex]),
-                                new Vector3(b.BoundingBoxMin.X, b.BoundingBoxMin.Y, b.BoundingBoxMin.Z),
-                                new Vector3(b.BoundingBoxMax.X, b.BoundingBoxMax.Y, b.BoundingBoxMax.Z),
-                                Color.Orange)
-                            {
-                                Category = DbgPrimCategory.FlverBoneBoundingBox
-                            });
-
-                            DBG.AddPrimitive(prim);
-                            FlverBonePrims.Add(prim);
-                        }
-                        else
-                        {
-                            var boneTransform = new Transform(FlverBoneTPoseMatrices[boneIndex]);
-                            var prim = new DbgPrimWireBox(boneTransform, Vector3.One * 0.05f, Color.Purple)
-                            {
-                                Name = getBoneSpacePrefix(b) + b.Name,
-                                Category = DbgPrimCategory.FlverBone
-                            };
-
-                            prim.Children.Add(new DbgPrimWireBox(new Transform(FlverBoneTPoseMatrices[boneIndex]),
-                                    new Vector3(b.BoundingBoxMin.X, b.BoundingBoxMin.Y, b.BoundingBoxMin.Z),
-                                    new Vector3(b.BoundingBoxMax.X, b.BoundingBoxMax.Y, b.BoundingBoxMax.Z),
-                                    Color.Orange)
-                            {
-                                Category = DbgPrimCategory.FlverBoneBoundingBox
-                            });
-
-                            DBG.AddPrimitive(prim);
-                            FlverBonePrims.Add(prim);
-                        }
-
-                        boneIndex++;
-                    }
+                    LoadFLVER(flver);
                 }
             }
             else if (upper.EndsWith(".TPF") || upper.EndsWith(".TPF.DCX"))
@@ -1416,6 +1276,146 @@ namespace DSAnimStudio
                 {
                     Console.WriteLine(e.ToString());
                 }
+            }
+        }
+
+        private static void LoadFLVER(FLVER0 flver)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static void LoadFLVER(FLVER2 flver)
+        {
+            CurrentModel = flver;
+
+            FlverBoneCount = flver.Bones.Count;
+
+            //throw new NotImplementedException();
+
+            FlverBonePrims = new List<IDbgPrim>();
+
+            Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b)
+            {
+                SoulsFormats.FLVER2.Bone parentBone = b;
+
+                var result = Matrix.Identity;
+
+                do
+                {
+                    result *= Matrix.CreateScale(parentBone.Scale.X, parentBone.Scale.Y, parentBone.Scale.Z);
+                    result *= Matrix.CreateRotationX(parentBone.Rotation.X);
+                    result *= Matrix.CreateRotationZ(parentBone.Rotation.Z);
+                    result *= Matrix.CreateRotationY(parentBone.Rotation.Y);
+                    result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
+
+                    if (parentBone.ParentIndex >= 0)
+                    {
+                        parentBone = flver.Bones[parentBone.ParentIndex];
+                    }
+                    else
+                    {
+                        parentBone = null;
+                    }
+                }
+                while (parentBone != null);
+
+                return result;
+            }
+
+            AnimatedDummyPolyClusters = new DbgPrimDummyPolyCluster[FlverBoneCount];
+
+            var dummiesByID = new Dictionary<int, List<FLVER2.Dummy>>();
+
+            foreach (var dmy in flver.Dummies)
+            {
+                if (dmy.AttachBoneIndex < 0)
+                    continue;
+
+                if (dummiesByID.ContainsKey(dmy.AttachBoneIndex))
+                {
+                    dummiesByID[dmy.AttachBoneIndex].Add(dmy);
+                }
+                else
+                {
+                    dummiesByID.Add(dmy.AttachBoneIndex, new List<FLVER2.Dummy> { dmy });
+                }
+            }
+
+            foreach (var kvp in dummiesByID)
+            {
+                var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, kvp.Value, flver.Bones);
+                DBG.AddPrimitive(dmyPrim);
+                AnimatedDummyPolyClusters[kvp.Key] = dmyPrim;
+            }
+
+            string getBoneSpacePrefix(SoulsFormats.FLVER2.Bone b)
+            {
+                SoulsFormats.FLVER2.Bone currentBone = b;
+                string prefix = "";
+                int parentIndex = b.ParentIndex;
+                while (parentIndex >= 0)
+                {
+                    prefix += "  ";
+                    currentBone = flver.Bones[parentIndex];
+                    parentIndex = currentBone.ParentIndex;
+                }
+                return prefix;
+            }
+
+            FlverBoneTPoseMatrices = new List<Matrix>();
+            List<Vector3> bonePos = new List<Vector3>();
+
+
+            foreach (var b in flver.Bones)
+            {
+                var parentMatrix = GetBoneParentMatrix(b);
+
+                FlverBoneTPoseMatrices.Add(parentMatrix);
+
+                bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
+            }
+            int boneIndex = 0;
+            foreach (var b in flver.Bones)
+            {
+                if (b.ParentIndex >= 0)
+                {
+                    var boneTransform = new Transform(FlverBoneTPoseMatrices[boneIndex]);
+                    var boneLength = (bonePos[boneIndex] - bonePos[b.ParentIndex]).Length();
+                    var prim = new DbgPrimSolidBone(isHkx: false, getBoneSpacePrefix(b) + b.Name, boneTransform, Quaternion.Identity, Math.Min(boneLength / 4, 0.25f), boneLength, Color.Purple);
+
+                    prim.Children.Add(new DbgPrimWireBox(new Transform(FlverBoneTPoseMatrices[boneIndex]),
+                        new Vector3(b.BoundingBoxMin.X, b.BoundingBoxMin.Y, b.BoundingBoxMin.Z),
+                        new Vector3(b.BoundingBoxMax.X, b.BoundingBoxMax.Y, b.BoundingBoxMax.Z),
+                        Color.Orange)
+                    {
+                        Category = DbgPrimCategory.FlverBoneBoundingBox
+                    });
+
+                    DBG.AddPrimitive(prim);
+                    FlverBonePrims.Add(prim);
+                }
+                else
+                {
+                    var boneTransform = new Transform(FlverBoneTPoseMatrices[boneIndex]);
+                    var prim = new DbgPrimWireBox(boneTransform, Vector3.One * 0.05f, Color.Purple)
+                    {
+                        Name = getBoneSpacePrefix(b) + b.Name,
+                        Category = DbgPrimCategory.FlverBone
+                    };
+
+                    prim.Children.Add(new DbgPrimWireBox(new Transform(FlverBoneTPoseMatrices[boneIndex]),
+                            new Vector3(b.BoundingBoxMin.X, b.BoundingBoxMin.Y, b.BoundingBoxMin.Z),
+                            new Vector3(b.BoundingBoxMax.X, b.BoundingBoxMax.Y, b.BoundingBoxMax.Z),
+                            Color.Orange)
+                    {
+                        Category = DbgPrimCategory.FlverBoneBoundingBox
+                    });
+
+                    DBG.AddPrimitive(prim);
+                    FlverBonePrims.Add(prim);
+                }
+
+                boneIndex++;
             }
         }
 
@@ -1558,6 +1558,130 @@ namespace DSAnimStudio
                     menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{cluster.ID}", () => cluster.EnableDraw, b => cluster.EnableDraw = b);
                 }
             }
+        }
+
+        private static (FLVER2, List<TPF>) LoadFourPartsFiles(FLVER2 baseChr, string part1Name, string part2Name, string part3Name, string part4Name)
+        {
+            Dictionary<string, int> baseChrBoneMap = new Dictionary<string, int>();
+            for (int i = 0; i < baseChr.Bones.Count; i++)
+            {
+                baseChrBoneMap.Add(baseChr.Bones[i].Name, i);
+            }
+
+            List<TPF> tpfsUsed = new List<TPF>();
+
+            void DoPart(string p)
+            {
+                if (!File.Exists(p))
+                {
+                    Console.WriteLine($"Parts model '{p}' did not exist");
+                    return;
+                }
+
+                FLVER2 partFlver = null;
+                string debug_PartFlverName = null;
+
+                if (BND4.Is(p))
+                {
+                    var bnd = BND4.Read(p);
+
+                    foreach (var f in bnd.Files)
+                    {
+                        if (partFlver == null && FLVER2.Is(f.Bytes))
+                        {
+                            partFlver = FLVER2.Read(f.Bytes);
+                            debug_PartFlverName = f.Name;
+                        }
+                        else if (TPF.Is(f.Bytes))
+                        {
+                            tpfsUsed.Add(TPF.Read(f.Bytes));
+                        }
+                    }
+                }
+                else if (BND3.Is(p))
+                {
+                    var bnd = BND3.Read(p);
+
+                    foreach (var f in bnd.Files)
+                    {
+                        if (partFlver == null && FLVER2.Is(f.Bytes))
+                        {
+                            partFlver = FLVER2.Read(f.Bytes);
+                            debug_PartFlverName = f.Name;
+                        }
+                        else if (TPF.Is(f.Bytes))
+                        {
+                            tpfsUsed.Add(TPF.Read(f.Bytes));
+                        }
+                    }
+                }
+
+                int RemapBone(int boneIndex)
+                {
+                    if (boneIndex == -1)
+                        return -1;
+
+                    if (baseChrBoneMap.ContainsKey(partFlver.Bones[boneIndex].Name))
+                        return baseChrBoneMap[partFlver.Bones[boneIndex].Name];
+                    else
+                        return -1;
+                }
+
+                foreach (var mesh in partFlver.Meshes)
+                {
+                    // Check if DS1 memes
+                    if (partFlver.Header.Version <= 0x2000D)
+                    {
+                        for (int i = 0; i < mesh.BoneIndices.Count; i++)
+                        {
+                            mesh.BoneIndices[i] = RemapBone(mesh.BoneIndices[i]);
+                        }
+
+                        mesh.DefaultBoneIndex = RemapBone(mesh.DefaultBoneIndex);
+                    }
+                    else
+                    {
+                        foreach (var vert in mesh.Vertices)
+                        {
+                            for (int i = 0; i < vert.BoneIndices.Length; i++)
+                            {
+                                vert.BoneIndices[i] = RemapBone(vert.BoneIndices[i]);
+                            }
+                        }
+                    }
+
+                    if (mesh.MaterialIndex >= partFlver.Materials.Count)
+                    {
+                        mesh.MaterialIndex = partFlver.Materials.Count - 1;
+                    }
+
+                    baseChr.Materials.Add(partFlver.Materials[mesh.MaterialIndex]);
+                    
+
+                    if (partFlver.Materials[mesh.MaterialIndex].GXIndex >= 0)
+                    {
+                        baseChr.GXLists.Add(partFlver.GXLists[partFlver.Materials[mesh.MaterialIndex].GXIndex]);
+                        partFlver.Materials[mesh.MaterialIndex].GXIndex = baseChr.GXLists.Count - 1;
+                    }
+
+                    mesh.MaterialIndex = baseChr.Materials.Count - 1;
+
+                    foreach (var vb in mesh.VertexBuffers)
+                    {
+                        baseChr.BufferLayouts.Add(partFlver.BufferLayouts[vb.LayoutIndex]);
+                        vb.LayoutIndex = baseChr.BufferLayouts.Count - 1;
+                    }
+
+                    baseChr.Meshes.Add(mesh);
+                }
+            }
+
+            DoPart(part1Name);
+            DoPart(part2Name);
+            DoPart(part3Name);
+            DoPart(part4Name);
+
+            return (baseChr, tpfsUsed);
         }
     }
 }

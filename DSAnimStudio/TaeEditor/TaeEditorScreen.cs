@@ -37,6 +37,16 @@ namespace DSAnimStudio.TaeEditor
 
         public static bool CurrentlyEditingSomethingInInspector;
         
+        public class FindInfoKeep
+        {
+            public string SearchQuery;
+            public bool MatchEntireString;
+            public List<TaeFindResult> Results;
+            public int HighlightedIndex;
+        }
+
+        public FindInfoKeep LastFindInfo = null;
+
         public TaePlaybackCursor PlaybackCursor => editScreenCurrentAnim?.PlaybackCursor;
 
         public Rectangle ModelViewerBounds;
@@ -217,7 +227,7 @@ namespace DSAnimStudio.TaeEditor
 
         private float TopRightPaneHeight = 600;
         private const float TopRightPaneHeightMinNew = 128;
-        private const float BottomRightPaneHeightNew = 256;
+        private const float BottomRightPaneHeightMinNew = 256;
 
         private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight + TopMenuBarMargin;
         private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad + TopMenuBarMargin;
@@ -411,6 +421,10 @@ namespace DSAnimStudio.TaeEditor
 
                 if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
                 {
+                    TaeInterop.PlayerPartsModelHD = Config.PartsHD;
+                    TaeInterop.PlayerPartsModelBD = Config.PartsBD;
+                    TaeInterop.PlayerPartsModelAM = Config.PartsAM;
+                    TaeInterop.PlayerPartsModelLG = Config.PartsLG;
                     TaeInterop.OnLoadANIBND(MenuBar);
                 }
 
@@ -497,7 +511,8 @@ namespace DSAnimStudio.TaeEditor
             SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
             ButtonEditCurrentAnimInfo.Enabled = true;
             ButtonEditCurrentAnimInfo.Visible = true;
-            MenuBar["Edit/Find First Event of Type..."].Enabled = true;
+            //MenuBar["Edit/Find First Event of Type..."].Enabled = true;
+            MenuBar["Edit/Find Value..."].Enabled = true;
             MenuBar["Edit/Go To Animation ID..."].Enabled = true;
             MenuBar["Edit/Collapse All TAE Sections"].Enabled = true;
             MenuBar["Edit/Expand All TAE Sections"].Enabled = true;
@@ -576,7 +591,7 @@ namespace DSAnimStudio.TaeEditor
 
             GameWindowAsForm = gameWindowAsForm;
 
-            GameWindowAsForm.MinimumSize = new System.Drawing.Size(720, 480);
+            GameWindowAsForm.MinimumSize = new System.Drawing.Size(1280  - 64, 720 - 64);
 
             Input = new TaeInputHandler();
 
@@ -630,7 +645,7 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
             MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
-            MenuBar.AddSeparator("File");
+            //MenuBar.AddSeparator("File");
             //MenuBar.AddItem("File", "Force Refresh Ingame", () => LiveRefresh(), startDisabled: true);
             //MenuBar.AddItem("File", "Force Refresh On Save", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
             MenuBar.AddSeparator("File");
@@ -655,7 +670,8 @@ namespace DSAnimStudio.TaeEditor
                 }
             }, startDisabled: true);
             MenuBar.AddSeparator("Edit");
-            MenuBar.AddItem("Edit", "Find First Event of Type...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
+            //MenuBar.AddItem("Edit", "Find First Event of Type...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
+            MenuBar.AddItem("Edit", "Find Value...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
             MenuBar.AddItem("Edit", "Go To Animation ID...|Ctrl+G", () => ShowDialogGoto(), startDisabled: true);
 
             // Config
@@ -724,6 +740,7 @@ namespace DSAnimStudio.TaeEditor
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
 
             ButtonEditCurrentAnimInfo = new System.Windows.Forms.Button();
+            ButtonEditCurrentAnimInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             ButtonEditCurrentAnimInfo.TabStop = false;
             ButtonEditCurrentAnimInfo.Text = "Edit Anim Info...";
             ButtonEditCurrentAnimInfo.Click += ButtonEditCurrentAnimInfo_Click;
@@ -735,13 +752,14 @@ namespace DSAnimStudio.TaeEditor
             GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
 
             ButtonEditCurrentTaeHeader = new System.Windows.Forms.Button();
+            ButtonEditCurrentTaeHeader.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             ButtonEditCurrentTaeHeader.TabStop = false;
             ButtonEditCurrentTaeHeader.Text = "Edit TAE Header...";
             ButtonEditCurrentTaeHeader.Click += ButtonEditCurrentTaeHeader_Click;
             ButtonEditCurrentTaeHeader.BackColor = inspectorWinFormsControl.BackColor;
             ButtonEditCurrentTaeHeader.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonEditCurrentTaeHeader.Enabled = false;
-            ButtonEditCurrentTaeHeader.Enabled = false;
+            ButtonEditCurrentTaeHeader.Visible = false;
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
 
@@ -1001,6 +1019,52 @@ namespace DSAnimStudio.TaeEditor
                 FileContainerName = "";
                 return;
             }
+            else if (loadFileResult == null)
+            {
+                System.Windows.Forms.ToolStripMenuItem matchingRecentFileItem = null;
+
+                foreach (var x in MenuBar["File/Recent Files"].DropDownItems)
+                {
+                    if (x is System.Windows.Forms.ToolStripMenuItem item)
+                    {
+                        if (item.Text == fileName)
+                        {
+                            matchingRecentFileItem = item;
+                        }
+                    }
+                }
+
+                if (matchingRecentFileItem == null)
+                {
+                    System.Windows.Forms.MessageBox.Show(
+                        $"File '{fileName}' no longer exists.",
+                        "File Does Not Exist",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    var ask = System.Windows.Forms.MessageBox.Show(
+                        $"File '{fileName}' no longer exists. Would you like to " +
+                        $"remove it from the recent files list?", 
+                        "File Does Not Exist", 
+                        System.Windows.Forms.MessageBoxButtons.YesNo, 
+                        System.Windows.Forms.MessageBoxIcon.Warning) 
+                          == System.Windows.Forms.DialogResult.Yes;
+
+                    if (ask)
+                    {
+                        if (MenuBar["File/Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
+                            MenuBar["File/Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
+
+                        if (Config.RecentFilesList.Contains(fileName))
+                            Config.RecentFilesList.Remove(fileName);
+                    }
+                }
+
+                FileContainerName = "";
+                return;
+            }
 
             if (!FileContainer.AllTAE.Any())
             {
@@ -1183,6 +1247,7 @@ namespace DSAnimStudio.TaeEditor
 
                             SelectedTaeAnim.Events.Insert(index, referenceToEventBox.MyEvent);
 
+                            SelectedEventBox = null;
                             SelectedEventBox = referenceToEventBox;
 
                             SelectedEventBox.Row = row;
@@ -1198,6 +1263,7 @@ namespace DSAnimStudio.TaeEditor
                             referenceToEventBox.ChangeEvent(referenceToPreviousEvent);
                             SelectedTaeAnim.Events.Insert(index, referenceToPreviousEvent);
 
+                            SelectedEventBox = null;
                             SelectedEventBox = referenceToEventBox;
 
                             SelectedEventBox.Row = row;
@@ -1215,6 +1281,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void ButtonChangeType_Click(object sender, EventArgs e)
         {
+            inspectorWinFormsControl.dataGridView1.Focus();
             ChangeTypeOfSelectedEvent();
         }
 
@@ -1260,12 +1327,27 @@ namespace DSAnimStudio.TaeEditor
             SelectedTaeAnimInfoScrollingText.SetText(stringBuilder.ToString());
         }
 
+        public void SelectEvent(TAE.Event ev)
+        {
+            var box = editScreenCurrentAnim.EventBoxes.First(x => x.MyEvent == ev);
+            SelectedEventBox = box;
+
+            float left = editScreenCurrentAnim.ScrollViewer.Scroll.X;
+            float top = editScreenCurrentAnim.ScrollViewer.Scroll.Y;
+            float right = editScreenCurrentAnim.ScrollViewer.Scroll.X + editScreenCurrentAnim.ScrollViewer.Viewport.Width;
+            float bottom = editScreenCurrentAnim.ScrollViewer.Scroll.Y + editScreenCurrentAnim.ScrollViewer.Viewport.Height;
+
+            editScreenCurrentAnim.ScrollViewer.Scroll.X = box.LeftFr - (editScreenCurrentAnim.ScrollViewer.Viewport.Width / 2f);
+            editScreenCurrentAnim.ScrollViewer.Scroll.Y = (box.Row * editScreenCurrentAnim.RowHeight) - (editScreenCurrentAnim.ScrollViewer.Viewport.Height / 2f);
+            editScreenCurrentAnim.ScrollViewer.ClampScroll();
+        }
+
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
             SelectedTae = tae;
 
             ButtonEditCurrentTaeHeader.Enabled = true;
-            ButtonEditCurrentTaeHeader.Enabled = true;
+            ButtonEditCurrentTaeHeader.Visible = true;
 
             SelectedTaeAnim = animRef;
 
@@ -1306,23 +1388,32 @@ namespace DSAnimStudio.TaeEditor
             if (FileContainerName == null || SelectedTae == null)
                 return;
             PauseUpdate = true;
-            var find = KeyboardInput.Show("Quick Find Event", "Finds the very first animation containing the event with the specified ID number or name (according to template).", "");
-            if (int.TryParse(find.Result, out int typeID))
-            {
-                var gotoAnim = SelectedTae.Animations.Where(x => x.Events.Any(ev => (int)ev.Type == typeID));
-                if (gotoAnim.Any())
-                    SelectNewAnimRef(SelectedTae, gotoAnim.First());
-                else
-                    MessageBox.Show("None Found", "No events of that type found within the currently loaded files.", new[] { "OK" });
-            }
-            else 
-            {
-                var gotoAnim = SelectedTae.Animations.Where(x => x.Events.Any(ev => ev.TypeName == find.Result));
-                if (gotoAnim.Any())
-                    SelectNewAnimRef(SelectedTae, gotoAnim.First());
-                else
-                    MessageBox.Show("None Found", "No events of that type found within the currently loaded files.", new[] { "OK" });
-            }
+
+            var findWindow = new TaeFindValueDialog();
+            findWindow.LastFindInfo = LastFindInfo;
+            findWindow.EditorRef = this;
+            findWindow.Owner = GameWindowAsForm;
+            findWindow.ShowDialog();
+
+            //var find = KeyboardInput.Show("Quick Find Event", "Finds the very first animation containing the event with the specified ID number or name (according to template).", "");
+            //if (int.TryParse(find.Result, out int typeID))
+            //{
+            //    var gotoAnim = SelectedTae.Animations.Where(x => x.Events.Any(ev => (int)ev.Type == typeID));
+            //    if (gotoAnim.Any())
+            //        SelectNewAnimRef(SelectedTae, gotoAnim.First());
+            //    else
+            //        MessageBox.Show("None Found", "No events of that type found within the currently loaded files.", new[] { "OK" });
+            //}
+            //else 
+            //{
+            //    var gotoAnim = SelectedTae.Animations.Where(x => x.Events.Any(ev => ev.TypeName == find.Result));
+            //    if (gotoAnim.Any())
+            //        SelectNewAnimRef(SelectedTae, gotoAnim.First());
+            //    else
+            //        MessageBox.Show("None Found", "No events of that type found within the currently loaded files.", new[] { "OK" });
+            //}
+
+
             
             PauseUpdate = false;
         }
@@ -1709,7 +1800,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     //Input.CursorType = MouseCursorType.DragY;
                     TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
-                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightNew - DividerVisiblePad - TopMenuBarMargin);
+                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin);
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
                 }
                 else
@@ -1834,8 +1925,37 @@ namespace DSAnimStudio.TaeEditor
 
         private void UpdateLayout()
         {
+            if (Rect.IsEmpty)
+            {
+                return;
+            }
+
+            if (TopRightPaneHeight < TopRightPaneHeightMinNew)
+                TopRightPaneHeight = TopRightPaneHeightMinNew;
+
+
+
+
+            if (RightSectionWidth < RightSectionWidthMin)
+                RightSectionWidth = RightSectionWidthMin;
+
+            if (TopRightPaneHeight > (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin))
+            {
+                TopRightPaneHeight = (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin);
+            }
+
             if (editScreenAnimList != null && editScreenCurrentAnim != null)
             {
+                if (LeftSectionWidth < LeftSectionWidthMin)
+                    LeftSectionWidth = LeftSectionWidthMin;
+
+
+                if (MiddleSectionWidth < MiddleSectionWidthMin)
+                {
+                    var adjustment = MiddleSectionWidthMin - MiddleSectionWidth;
+                    RightSectionWidth -= adjustment;
+                }
+
                 editScreenAnimList.Rect = new Rectangle(
                     (int)LeftSectionStartX,
                     Rect.Top + TopMenuBarMargin, 

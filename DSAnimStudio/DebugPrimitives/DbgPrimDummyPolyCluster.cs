@@ -97,6 +97,7 @@ namespace DSAnimStudio.DebugPrimitives
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Up * forwardLength * 1.5f, m), Color.Lime);
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Forward * forwardLength * 1.5f, m), Color.Blue);
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Left * forwardLength * 1.5f, m), Color.Red);
+            AddDbgLabel(Vector3.Transform(Vector3.Zero, m), 0.25f, dummy.ReferenceID.ToString(), new Color(dummy.Color.R, dummy.Color.G, dummy.Color.B, dummy.Color.A));
         }
 
         public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies, List<FLVER2.Bone> bones)
