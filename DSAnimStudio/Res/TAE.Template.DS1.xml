@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="utf-8"?>
+<event_template game="DS1">
+  <!-- DS1 doesn't have banks :fatcat: -->
+  <bank id="0" name="Default">
+    <event id="0" name="DoCommand">
+      <s32 name="CommandType">
+        <entry value="0" name="0: ?"/>
+        <entry value="1" name="1: ?"/>
+        <entry value="3" name="3: ?"/>
+        <entry value="4" name="4: ExitOnRightHandAtk"/>
+        <entry value="5" name="5: GetParriedWindow"/>
+        <entry value="7" name="7: LockCharacterRotation"/>
+        <entry value="8" name="8: InvincibilityFrames"/>
+        <entry value="9" name="9: ?"/>
+        <entry value="10" name="10: ?"/>
+        <entry value="11" name="11: ExitOnLeftStickMove"/>
+        <entry value="12" name="12: ForceDeath"/>
+        <entry value="13" name="13: ?"/>
+        <entry value="15" name="15: ?"/>
+        <entry value="16" name="16: ExitOnLeftHandAtk"/>
+        <entry value="18" name="18: ?"/>
+        <entry value="19" name="19: DisableCollisionWithMap"/>
+        <entry value="20" name="20: ?"/>
+        <entry value="21" name="21: ?"/>
+        <entry value="22" name="22: ExitOnGuard"/>
+        <entry value="23" name="23: ExitOnAiComboAtk"/>
+        <entry value="24" name="24: ?"/>
+        <entry value="25" name="25: ?"/>
+        <entry value="26" name="26: ExitOnDodge"/>
+        <entry value="27" name="27: SetGravity"/>
+        <entry value="28" name="28: ?"/>
+        <entry value="29" name="29: ?"/>
+        <entry value="30" name="30: ?"/>
+        <entry value="31" name="31: ExitOnGoodsUse"/>
+        <entry value="32" name="32: ExitOnTwoHandWeapon"/>
+        <entry value="37" name="37: ?"/>
+        <entry value="38" name="38: ?"/>
+        <entry value="39" name="39: ?"/>
+        <entry value="41" name="41: ?"/>
+        <entry value="42" name="42: ?"/>
+        <entry value="43" name="43: ?"/>
+        <entry value="44" name="44: ?"/>
+        <entry value="45" name="45: ?"/>
+        <entry value="46" name="46: DisableCharacter"/>
+        <entry value="49" name="49: DisableBeingLockedOnto"/>
+        <entry value="50" name="50: DisableCollisionWithCharacters"/>
+        <entry value="51" name="51: ?"/>
+        <entry value="53" name="53: ?"/>
+        <entry value="54" name="54: ?"/>
+        <entry value="55" name="55: CancelLockOn"/>
+        <entry value="56" name="56: ?"/>
+        <entry value="57" name="57: ?"/>
+        <entry value="59" name="59: ?"/>
+        <entry value="60" name="60: ?"/>
+        <entry value="61" name="61: ?"/>
+        <entry value="62" name="62: ?"/>
+        <entry value="63" name="63: ?"/>
+        <entry value="64" name="64: ?"/>
+        <entry value="65" name="65: ?"/>
+        <entry value="66" name="66: ?"/>
+        <entry value="67" name="67: PerfectHyperArmor"/>
+        <entry value="68" name="68: ExitOnMashingTriggersDuringThrow"/>
+        <entry value="69" name="69: ?"/>
+        <entry value="70" name="70: ?"/>
+        <entry value="71" name="71: ?"/>
+        <entry value="72" name="72: ?"/>
+        <entry value="73" name="73: ?"/>
+        <entry value="74" name="74: DisableCollision"/>
+        <entry value="75" name="75: ?"/>
+        <entry value="76" name="76: ?"/>
+        <entry value="78" name="78: ExitOnLeftStickB"/>
+        <entry value="79" name="79: ?"/>
+        <entry value="80" name="80: ?"/>
+        <entry value="81" name="81: ?"/>
+        <entry value="82" name="82: ?"/>
+        <entry value="83" name="83: ?"/>
+        <entry value="84" name="84: ?"/>
+        <entry value="85" name="85: ?"/>
+        <entry value="86" name="86: ?"/>
+        <entry value="87" name="87: StartQueueingNextAction"/>
+        <entry value="88" name="88: ?"/>
+        <entry value="89" name="89: ?"/>
+        <entry value="90" name="90: ?"/>
+        <entry value="91" name="91: ?"/>
+        <entry value="92" name="92: ?"/>
+        <entry value="94" name="94: ?"/>
+        <entry value="95" name="95: DisableShadow"/>
+        <entry value="97" name="97: ?"/>
+      </s32>
+      <f32 name="ParamFloat"/>
+      <s32 name="SomeID" default="-1"/>
+    </event>
+    <event id="1" name="InvokeAttackBehavior">
+      <s32 name="AtkType">
+        <entry value="0" name="0: Standard"/>
+        <entry value="1" name="1: InfestedGhoulJumpSlash"/>
+        <entry value="2" name="2: ForwardR1"/>
+        <entry value="62" name="62: PlungingAttack"/>
+        <entry value="64" name="64: Parry"/>
+      </s32>
+      <s32 name="AttackIndex"/>
+      <s32 name="BehaviorJudgeID"/>
+    </event>
+    <event id="2" name="InvokeBulletBehavior">
+      <s32 name="DummyPolyID"/>
+      <s32 name="BulletIndex"/>
+      <s32 name="BehaviorJudgeID"/>
+      <s32/>
+    </event>
+    <event id="5" name="InvokeCommonBehavior">
+      <s32 name="AttackIndex"/>
+      <s32 name="BehaviorParamID"/>
+    </event>
+    <event id="8">
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+      <f32/>
+    </event>
+    <!-- Can be 0 bytes, 12 bytes, or 16 depending on the context because fuck you -->
+    <event id="16">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+    </event>
+    <event id="24">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+    </event>
+    <event id="32">
+      <s32/>
+    </event>
+    <event id="33">
+      <s32/>
+    </event>
+    <event id="64" name="CastSelectedSpell">
+      <s32 name="DummyPolyID"/>
+      <s32/>
+    </event>
+    <event id="65">
+      <s32/>
+    </event>
+    <event id="66" name="ApplySpEffect">
+      <s32 name="SpEffect"/>
+    </event>
+    <event id="67" name="ApplySpEffectB">
+      <s32 name="SpEffect"/>
+    </event>
+    <event id="96" name="SpawnSFXAtDmy">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID"/>
+    </event>
+    <event id="99" name="SpawnSFXAtDmyB">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID"/>
+    </event>
+    <event id="100" name="SpawnSFXAtDmyC">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID"/>
+    </event>
+    <event id="101" name="ModifyFFXTimer_UNK">
+      <s32 name="TimerID"/>
+    </event>
+    <event id="104" name="SpawnSFXAtDmyD">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID"/>
+    </event>
+    <event id="108" name="SpawnSFXAtDmyAndFollow">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID"/>
+    </event>
+    <event id="109" name="SpawnSFXAtDmyE">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID"/>
+    </event>
+    <event id="110" name="ModifyFFXTimer_UNK">
+      <s32 name="TimerID"/>
+    </event>
+    <event id="112" name="[NEEDS CHECK] SpawnFFX_Foot">
+      <s32 name="FFXID"/>
+      <s32 name="Size"/>
+    </event>
+    <event id="114" name="[NEEDS CHECK]SpawnFFX_GoodsAndMagic">
+      <s32 name="FFXID"/>
+      <s16 name="CStyleType">
+        <entry value="0" name="0: Type0"/>
+        <entry value="1" name="1: Type1"/>
+        <entry value="2" name="2: Type2"/>
+      </s16>
+      <s16 name="DummyPolyID"/>
+      <s32 name="TimerNumber"/>
+    </event>
+    <event id="115" name="[NEEDS CHECK] SpawnFFX_GoodsAndMagic_Extra">
+      <s32 name="FFXID"/>
+      <s16 name="CStyleType">
+        <entry value="0" name="0: Type0"/>
+        <entry value="1" name="1: Type1"/>
+        <entry value="2" name="2: Type2"/>
+      </s16>
+      <s16 name="DummyPolyID"/>
+    </event>
+    <event id="116" name="[NEEDS CHECK] SpawnFFX_Throw">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="RepeatType">
+        <entry value="0" name="0: PlayOnce"/>
+        <entry value="1" name="1: PlayTwice"/>
+      </s32>
+    </event>
+    <event id="118" name="SpawnFFX_Blade">
+      <s32 name="FFXID"/>
+      <s16 name="CStyleType">
+        <entry value="0" name="0: Type0"/>
+        <entry value="1" name="1: Type1"/>
+        <entry value="2" name="2: Type2"/>
+      </s16>
+      <s16 name="DummyPolyBladeBaseID"/>
+      <s16 name="DummyPolyBladeTipID"/>
+      <s16 name="TimerID (probably)"/>
+    </event>
+    <event id="119" name="[NEEDS CHEC] SpawnFFX_ReinforcedWeapon">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="RepeatType">
+        <entry value="0" name="0: PlayOnce"/>
+        <entry value="1" name="1: PlayTwice"/>
+      </s32>
+    </event>
+    <event id="120" name="SpawnFFX_ChrType">
+      <s32 name="FFXID_MAIN"/>
+      <s32 name="FFXID_GreyGhost"/>
+      <s32 name="FFXID_WhiteGhost"/>
+      <s32 name="FFXID_BlackGhost"/>
+      <s32 name="FFXID_WhiteGhost_Sun"/>
+    </event>
+    <event id="121" name="[NEEDS CHECK] SpawnFFX_121">
+      <s32 name="FFXID"/>
+      <s16 name="DummyPolyID"/>
+      <u8/>
+      <u8/>
+    </event>
+    <!-- Can be 8 or 16 bytes depending on context -->
+    <event id="128" name="PlaySound_CenterBody">
+      <s32 name="SoundType">
+        <entry value="0" name="0: (a) Environment"/>
+        <entry value="1" name="1: (c) Character"/>
+        <entry value="2" name="2: (f) Menu SE"/>
+        <entry value="3" name="3: (o) Object"/>
+        <entry value="4" name="4: (p) Cutscene SE"/>
+        <entry value="5" name="5: (s) SFX"/>
+        <entry value="6" name="6: (m) BGM"/>
+        <entry value="7" name="7: (v) Voice"/>
+        <entry value="8" name="8: (x) Floor Material Determined"/>
+        <entry value="9" name="9: (b) Armor Material Determined"/>
+        <entry value="10" name="10: (g) Ghost"/>
+      </s32>
+      <s32 name="SoundID"/>
+      <s32/>
+      <s32/>
+    </event>
+    <event id="129" name="PlaySound_ByDummyPoly">
+      <s32 name="SoundType">
+        <entry value="0" name="0: (a) Environment"/>
+        <entry value="1" name="1: (c) Character"/>
+        <entry value="2" name="2: (f) Menu SE"/>
+        <entry value="3" name="3: (o) Object"/>
+        <entry value="4" name="4: (p) Cutscene SE"/>
+        <entry value="5" name="5: (s) SFX"/>
+        <entry value="6" name="6: (m) BGM"/>
+        <entry value="7" name="7: (v) Voice"/>
+        <entry value="8" name="8: (x) Floor Material Determined"/>
+        <entry value="9" name="9: (b) Armor Material Determined"/>
+        <entry value="10" name="10: (g) Ghost"/>
+      </s32>
+      <s32 name="SoundID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID (probably)"/>
+    </event>
+    <event id="130" name="PlaySound_ByDummyPolyExtra">
+      <s32 name="SoundType">
+        <entry value="0" name="0: (a) Environment"/>
+        <entry value="1" name="1: (c) Character"/>
+        <entry value="2" name="2: (f) Menu SE"/>
+        <entry value="3" name="3: (o) Object"/>
+        <entry value="4" name="4: (p) Cutscene SE"/>
+        <entry value="5" name="5: (s) SFX"/>
+        <entry value="6" name="6: (m) BGM"/>
+        <entry value="7" name="7: (v) Voice"/>
+        <entry value="8" name="8: (x) Floor Material Determined"/>
+        <entry value="9" name="9: (b) Armor Material Determined"/>
+        <entry value="10" name="10: (g) Ghost"/>
+      </s32>
+      <s32 name="SoundID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerID (probably)"/>
+    </event>
+    <event id="144" name="RumbleCam_DummyPoly">
+      <s16 name="RumbleCamID"/>
+      <s16 name="DummyPolyID"/>
+      <f32 name="FalloffStart"/>
+      <f32 name="FalloffEnd"/>
+    </event>
+    <event id="145" name="InvokeRumbleCam_Global">
+      <s32 name="RumbleCamID"/>
+    </event>
+    <event id="193" name="SetChrOpacity">
+      <f32 name="Opacity"/>
+      <f32 name="FadeDuration"/>
+    </event>
+    <event id="224" name="SetChrTurnRate">
+      <f32 name="TurnRate"/>
+    </event>
+    <event id="225" name="SetSPRegenRatePercent">
+      <u8 name="RegenRatePercent"/>
+      <u8/>
+      <u8/>
+      <u8/>
+      <s16/>
+    </event>
+    <event id="226" name="SetKnockbackPercent">
+      <u8 name="KnockbackPercent"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <!-- Can be 12 or 16 bytes depending on the context -->
+    <event id="228">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+    </event>
+    <event id="229">
+      <s32/>
+    </event>
+    <event id="231" name="[NEEDS CHECK] SendEzStateRequest">
+      <s32 name="EzStateRequestID"/>
+    </event>
+    <event id="232">
+      <u8/>
+      <u8/>
+      <u8/>
+      <u8/>
+    </event>
+    <event id="233">
+      <s16/>
+      <s16/>
+      <s32/>
+    </event>
+    <event id="236" name="[NEEDS CHECK] MovementReduction">
+      <f32/>
+      <f32/>
+      <u8 name="ReductionType"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="300" name="SupportJumpTable">
+      <u16 name="JumpTableID_ActionRequest"/>
+      <u16 name="JumpTableID_GetFloat"/>
+      <f32/>
+      <f32/>
+      <s16/>
+      <u16 name="StateInfo"/>
+    </event>
+    <event id="301">
+      <s32/>
+    </event>
+    <event id="302" name="[NEEDS CHECK] InvokeSpEffect_Multiplayer">
+      <s32 name="SpEffectID"/>
+    </event>
+    <event id="303" name="PlayAnimation">
+      <s32 name="AnimationID"/>
+    </event>
+    <event id="304" name="InvokeThrowDamageBehavior">
+      <u16/>
+      <s16/>
+      <s32 name="BehaviorParamSubID"/>
+    </event>
+    <event id="306">
+      <f32/>
+      <f32/>
+      <u8 name="Flags"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="307" name="InvokePCBehavior">
+      <u16/>
+      <u16/>
+      <s32 name="Condition"/>
+      <s32 name="BehaviorParamSubID"/>
+    </event>
+    <event id="308">
+      <s32/>
+    </event>
+    <event id="400">
+      <s32/>
+      <s32/>
+      <s32/>
+    </event>
+    <event id="401" name="InvokeSpEffect">
+      <s32 name="SpEffectID"/>
+    </event>
+    <event id="500">
+      <s32/>
+    </event>
+  </bank>
+  <!-- 
+      Someday I might implement a thing where the editor
+      would set the bank in teh TAE to 0 (characters),
+      1 (objects), or 2 (remo) then actually have those 
+      in here as banks, since there are some meme events 
+      in them
+  
+      Object TAE byte counts:
+        0: 12
+        96: 12
+        128: 8
+        129: 16
+        193: 8
+        400: 4
+        
+      Remo TAE byte counts:
+        0: 16
+        1: 16
+        16: -1
+        20: 16
+        21: 16
+        24: 16
+        96: 16
+        102: 16
+        128: 16
+        130: 16
+        160: 16
+        161: -1
+        162: 16
+        176: 32
+        180: 16
+        181: 16
+        182: 16
+        183: 16
+        196: 16
+        197: 16
+        198: 16
+        199: 16
+        200: 16
+        208: 32
+        209: 32
+        210: 32
+        216: 16
+        217: 16
+        218: 16
+        219: 16
+        224: 16
+        225: 16
+        226: 16
+        232: 16
+        233: 16
+        234: 16
+  -->
+</event_template>

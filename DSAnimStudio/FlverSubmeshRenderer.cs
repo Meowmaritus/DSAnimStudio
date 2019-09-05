@@ -111,13 +111,13 @@ namespace DSAnimStudio
                     flverTposeToHkxTposeMatrices.ContainsKey(i4) ? flverTposeToHkxTposeMatrices[i4] : Matrix.Identity,
                 }, new float[] { w1, w2, w3, w4, });
 
-            vert.Tangent = SkinVector3(vert.Tangent, new Matrix[]
+            vert.Bitangent = new Vector4(SkinVector3(new Vector3(vert.Bitangent.X, vert.Bitangent.Y, vert.Bitangent.Z), new Matrix[]
                 {
                     flverTposeToHkxTposeMatrices.ContainsKey(i1) ? flverTposeToHkxTposeMatrices[i1] : Matrix.Identity,
                     flverTposeToHkxTposeMatrices.ContainsKey(i2) ? flverTposeToHkxTposeMatrices[i2] : Matrix.Identity,
                     flverTposeToHkxTposeMatrices.ContainsKey(i3) ? flverTposeToHkxTposeMatrices[i3] : Matrix.Identity,
                     flverTposeToHkxTposeMatrices.ContainsKey(i4) ? flverTposeToHkxTposeMatrices[i4] : Matrix.Identity,
-                }, new float[] { w1, w2, w3, w4, });
+                }, new float[] { w1, w2, w3, w4, }), vert.Bitangent.W);
 
             vert.Binormal = SkinVector3(vert.Binormal, new Matrix[]
                 {
@@ -206,8 +206,8 @@ namespace DSAnimStudio
                 if (vert.Normal != null && vert.Tangents != null && vert.Tangents.Count > 0)
                 {
                     MeshVertices[i].Normal = Vector3.Normalize(new Vector3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
-                    MeshVertices[i].Tangent = Vector3.Normalize(new Vector3(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z));
-                    MeshVertices[i].Binormal = Vector3.Cross(Vector3.Normalize(MeshVertices[i].Normal), Vector3.Normalize(MeshVertices[i].Tangent)) * vert.Tangents[0].W;
+                    MeshVertices[i].Bitangent = new Vector4(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z, vert.Tangents[0].W);
+                    MeshVertices[i].Binormal = Vector3.Cross(Vector3.Normalize(MeshVertices[i].Normal), Vector3.Normalize(new Vector3(MeshVertices[i].Bitangent.X, MeshVertices[i].Bitangent.Y, MeshVertices[i].Bitangent.Z))) * vert.Tangents[0].W;
                 }
 
                 MeshVertices[i].BoneWeights = new Vector4(vert.BoneWeights[0], vert.BoneWeights[1], vert.BoneWeights[2], vert.BoneWeights[3]);
@@ -519,8 +519,8 @@ namespace DSAnimStudio
                 if (vert.Normal != null && vert.Tangents != null && vert.Tangents.Count > 0)
                 {
                     MeshVertices[i].Normal = Vector3.Normalize(new Vector3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
-                    MeshVertices[i].Binormal = Vector3.Normalize(new Vector3(vert.Bitangent.X, vert.Bitangent.Y, vert.Bitangent.Z));
-                    MeshVertices[i].Tangent = Vector3.Normalize(new Vector3(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z));
+                    MeshVertices[i].Bitangent = new Vector4(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z, vert.Tangents[0].W);
+                    MeshVertices[i].Binormal = Vector3.Cross(Vector3.Normalize(MeshVertices[i].Normal), Vector3.Normalize(new Vector3(MeshVertices[i].Bitangent.X, MeshVertices[i].Bitangent.Y, MeshVertices[i].Bitangent.Z))) * vert.Tangents[0].W;
                 }
 
                 if (vert.UVs.Count > 0)

@@ -310,6 +310,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\cubegen.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Content\SE\selected_event_loop.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -320,6 +323,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="DSAnimStudio_Icon.ico" />
+    <Content Include="Res\TAE.Template.DS1.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Res\TAE.Template.DS3.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -330,6 +336,9 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="Content\CollisionShader.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\cubegen.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Content\DbgMenuFont.xnb">

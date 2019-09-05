@@ -9,34 +9,63 @@ namespace DSAnimStudio.TaeEditor
 {
     public static class TaeExtensionMethods
     {
-        static Dictionary<TAE.Animation, bool> isModified = new Dictionary<TAE.Animation, bool>();
+        static Dictionary<TAE.Animation, bool> isModified_Anim = new Dictionary<TAE.Animation, bool>();
+        static Dictionary<TAE, bool> isModified_TAE = new Dictionary<TAE, bool>();
 
         public static void ClearMemes()
         {
-            isModified.Clear();
+            isModified_Anim.Clear();
+            isModified_TAE.Clear();
         }
 
 
         public static bool GetIsModified(this TAE.Animation ev)
         {
-            if (!isModified.ContainsKey(ev))
-                isModified.Add(ev, false);
+            if (!isModified_Anim.ContainsKey(ev))
+                isModified_Anim.Add(ev, false);
 
-            return isModified[ev];
+            return isModified_Anim[ev];
+        }
+
+        public static bool GetIsModified(this TAE tae)
+        {
+            if (!isModified_TAE.ContainsKey(tae))
+                isModified_TAE.Add(tae, false);
+
+            return isModified_TAE[tae];
         }
 
         public static void SetIsModified(this TAE.Animation ev, bool v)
         {
-            if (!isModified.ContainsKey(ev))
-                isModified.Add(ev, false);
+            if (!isModified_Anim.ContainsKey(ev))
+                isModified_Anim.Add(ev, false);
 
             //if (v)
             //{
             //    Console.WriteLine("REEE");
             //}
 
-            isModified[ev] = v;
+            isModified_Anim[ev] = v;
+
+            Main.TAE_EDITOR.UpdateIsModifiedStuff();
         }
+
+        public static void SetIsModified(this TAE tae, bool v)
+        {
+            if (!isModified_TAE.ContainsKey(tae))
+                isModified_TAE.Add(tae, false);
+
+            //if (v)
+            //{
+            //    Console.WriteLine("REEE");
+            //}
+
+            isModified_TAE[tae] = v;
+
+            Main.TAE_EDITOR.UpdateIsModifiedStuff();
+        }
+
+
 
         const double FRAME = 0.0333333333333333;
 

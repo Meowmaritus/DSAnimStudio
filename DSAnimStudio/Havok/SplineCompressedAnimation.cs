@@ -200,13 +200,20 @@ namespace DSAnimStudio.Havok
             return new Quaternion(retval[0], retval[1], retval[2], retval[3]);
         }
 
+        static ulong Read40BitValue(BinaryReaderEx br)
+        {
+            byte[] bytes = br.ReadBytes(5);
+            Array.Resize(ref bytes, 8);
+            return BitConverter.ToUInt64(bytes, 0);
+        }
+
         static Quaternion ReadQuatTHREECOMP40(BinaryReaderEx br)
         {
             const ulong mask = (1 << 12) - 1;
             const ulong positiveMask = mask >> 1;
             const float fractal = 0.000345436f;
-            ulong cVal = br.ReadUInt64();
-                        br.Position -= 3; // Total size is 5 bytes
+            // Read only the 5 bytes needed to prevent EndOfStreamException :fatcat:
+            ulong cVal = Read40BitValue(br);
 
             int x = (int)(cVal & mask);
             int y = (int)((cVal >> 12) & mask);
@@ -222,7 +229,6 @@ namespace DSAnimStudio.Havok
             tempValF[0] = (float)x * fractal;
             tempValF[1] = (float)y * fractal;
             tempValF[2] = (float)z * fractal;
-
 
             float[] retval = new float[4];
 
@@ -243,7 +249,10 @@ namespace DSAnimStudio.Havok
 
             if (((cVal >> 38) & 1) > 0)
                 retval[resultShift] *= -1;
-            return new Quaternion(retval[0], retval[1], retval[2], retval[3]);
+
+            var finalQuat = new Quaternion(retval[0], retval[1], retval[2], retval[3]);
+
+            return finalQuat;
 
         }
 
@@ -362,15 +371,17 @@ namespace DSAnimStudio.Havok
 
                 for (int i = 0; i <= numItems; i++)
                 {
-                    try
-                    {
-                        Channel.Values.Add(ReadQuantizedQuaternion(br, quantizationType));
-                    }
-                    catch (System.IO.EndOfStreamException)
-                    {
-                        // TEST
-                        Channel.Values.Add(Quaternion.Identity);
-                    }
+                    Channel.Values.Add(ReadQuantizedQuaternion(br, quantizationType));
+
+                    //try
+                    //{
+                        
+                    //}
+                    //catch (System.IO.EndOfStreamException)
+                    //{
+                    //    // TEST
+                    //    Channel.Values.Add(Quaternion.Identity);
+                    //}
                 }
             }
 
