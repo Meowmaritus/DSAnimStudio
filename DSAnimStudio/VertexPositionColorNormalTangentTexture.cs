@@ -18,7 +18,7 @@ namespace DSAnimStudio
         public Vector2 TextureCoordinate2;
         public Vector3 Normal;
         public Vector3 Binormal;
-        public Vector3 Tangent;
+        public Vector4 Bitangent;
         public Vector4 Color;
         public Vector4 BoneIndices;
         public Vector4 BoneWeights;
@@ -65,8 +65,8 @@ namespace DSAnimStudio
             elements.Add(new VertexElement(offset, VertexElementFormat.Vector3, VertexElementUsage.Binormal, 0));
             offset += sizeof(float) * 3;
 
-            elements.Add(new VertexElement(offset, VertexElementFormat.Vector3, VertexElementUsage.Tangent, 0));
-            offset += sizeof(float) * 3;
+            elements.Add(new VertexElement(offset, VertexElementFormat.Vector4, VertexElementUsage.Tangent, 0));
+            offset += sizeof(float) * 4;
 
             elements.Add(new VertexElement(offset, VertexElementFormat.Vector4, VertexElementUsage.Color, 0));
             offset += sizeof(float) * 4;
@@ -114,7 +114,7 @@ namespace DSAnimStudio
                 hashCode = (hashCode * 397) ^ TextureCoordinate2.GetHashCode();
                 hashCode = (hashCode * 397) ^ Normal.GetHashCode();
                 hashCode = (hashCode * 397) ^ Binormal.GetHashCode();
-                hashCode = (hashCode * 397) ^ Tangent.GetHashCode();
+                hashCode = (hashCode * 397) ^ Bitangent.GetHashCode();
                 hashCode = (hashCode * 397) ^ Color.GetHashCode();
                 hashCode = (hashCode * 397) ^ BoneIndices.GetHashCode();
                 hashCode = (hashCode * 397) ^ BoneWeights.GetHashCode();
@@ -137,7 +137,7 @@ namespace DSAnimStudio
                 (left.TextureCoordinate2 == right.TextureCoordinate2) &&
                 (left.Normal == right.Normal) &&
                 (left.Binormal == right.Binormal) &&
-                (left.Tangent == right.Tangent) &&
+                (left.Bitangent == right.Bitangent) &&
                 (left.Color == right.Color) &&
                 (left.BoneIndices == right.BoneIndices) &&
                 (left.BoneWeights == right.BoneWeights) &&

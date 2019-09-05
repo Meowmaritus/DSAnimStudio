@@ -13,6 +13,8 @@ namespace DSAnimStudio.GFXShaders
         public const int NUM_BONES = 255;
         public const int MAX_ALL_BONE_ARRAYS = NUM_BONES * 3;
 
+        public const int DS3_MAXLIGHTS = 40;
+
         public FlverShader Effect => this;
 
         public Matrix World
@@ -123,22 +125,28 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters["SpecularMap"]?.SetValue(value);
         }
 
+        public TextureCube EnvironmentMap
+        {
+            get => Parameters["EnvironmentMap"].GetValueTextureCube();
+            set => Parameters["EnvironmentMap"]?.SetValue(value);
+        }
+
         public Matrix[] Bones0
         {
             get => Parameters["Bones0"].GetValueMatrixArray(NUM_BONES);
-            set => Parameters["Bones0"].SetValue(value);
+            set => Parameters["Bones0"]?.SetValue(value);
         }
 
         public Matrix[] Bones1
         {
             get => Parameters["Bones1"].GetValueMatrixArray(NUM_BONES);
-            set => Parameters["Bones1"].SetValue(value);
+            set => Parameters["Bones1"]?.SetValue(value);
         }
 
         public Matrix[] Bones2
         {
             get => Parameters["Bones2"].GetValueMatrixArray(NUM_BONES);
-            set => Parameters["Bones2"].SetValue(value);
+            set => Parameters["Bones2"]?.SetValue(value);
         }
 
         //public Texture2D LightMap1
@@ -152,6 +160,24 @@ namespace DSAnimStudio.GFXShaders
         //    get => Parameters["LightMap2"].GetValueTexture2D();
         //    set => Parameters["LightMap2"].SetValue(value);
         //}
+
+        public bool EnableGhettoDS3Renderer
+        {
+            get => Parameters["EnableGhettoDS3Renderer"].GetValueBoolean();
+            set => Parameters["EnableGhettoDS3Renderer"]?.SetValue(value);
+        }
+
+        public Vector3[] DS3LightDirection
+        {
+            get => Parameters["DS3LightDirection"].GetValueVector3Array();
+            set => Parameters["DS3LightDirection"].SetValue(value);
+        }
+
+        public float[] DS3LightRadiance
+        {
+            get => Parameters["DS3LightRadiance"].GetValueSingleArray();
+            set => Parameters["DS3LightRadiance"].SetValue(value);
+        }
 
         public FlverShader(GraphicsDevice graphicsDevice, byte[] effectCode) : base(graphicsDevice, effectCode)
         {

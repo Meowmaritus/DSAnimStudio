@@ -169,7 +169,8 @@ namespace DSAnimStudio.TaeEditor
                                 CheckGameVersionForTaeInterop(f.Name);
                                 if (f.Name.ToUpper().EndsWith(".HKX"))
                                 {
-                                    hkxInBND.Add(f.Name, f.Bytes);
+                                    if (!hkxInBND.ContainsKey(f.Name))
+                                        hkxInBND.Add(f.Name, f.Bytes);
                                 }
                             }
                         }

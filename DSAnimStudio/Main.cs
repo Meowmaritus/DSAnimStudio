@@ -1,6 +1,7 @@
 ﻿using DSAnimStudio.DbgMenus;
 using DSAnimStudio.DebugPrimitives;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
@@ -25,6 +26,8 @@ namespace DSAnimStudio
 
         public static bool REQUEST_EXIT = false;
 
+        public static IServiceProvider ContentServiceProvider = null;
+
         public static bool Active { get; private set; }
 
         public static bool DISABLE_DRAW_ERROR_HANDLE = true;
@@ -46,6 +49,8 @@ namespace DSAnimStudio
         public static TaeEditor.TaeEditorScreen TAE_EDITOR;
         public static Texture2D TAE_EDITOR_BLANK_TEX;
         public static SpriteFont TAE_EDITOR_FONT;
+
+        public static ContentManager CM = null;
 
         public Rectangle TAEScreenBounds
         {
@@ -203,6 +208,9 @@ namespace DSAnimStudio
 
         protected override void LoadContent()
         {
+            ContentServiceProvider = Content.ServiceProvider;
+            CM = Content;
+
             GFX.Init(Content);
             DBG.LoadContent(Content);
             //InterrootLoader.OnLoadError += InterrootLoader_OnLoadError;
@@ -223,7 +231,7 @@ namespace DSAnimStudio
 
             TAE_EDITOR = new TaeEditor.TaeEditorScreen((System.Windows.Forms.Form)System.Windows.Forms.Form.FromHandle(Window.Handle));
 
-            TaeInterop.Init();
+            TaeInterop.LoadContent();
 
             if (Program.ARGS.Length > 0)
             {

@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using DSAnimStudio.GFXShaders;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using SoulsFormats;
@@ -12,6 +14,61 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditorScreen
     {
+        private ContentManager DebugReloadContentManager = null;
+        private void BuildDebugMenuBar()
+        {
+            //MenuBar.AddItem("Debug", "Scan All TAE Test", () =>
+            //{
+            //    var dir = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr";
+            //    var anibndNames = System.IO.Directory.GetFiles(dir, "*.anibnd");
+            //    foreach (var anibnd in anibndNames)
+            //    {
+            //        var bnd = BND3.Read(anibnd);
+            //        foreach (var bndFile in bnd.Files)
+            //        {
+            //            if (TAE.Is(bndFile.Bytes))
+            //            {
+            //                var tae = TAE.Read(bndFile.Bytes);
+            //                tae.ApplyTemplate(TAE.Template.ReadXMLFile("Res\\TAE.Template.DS1.xml"));
+            //                foreach (var anim in tae.Animations)
+            //                {
+            //                    foreach (var ev in anim.Events)
+            //                    {
+            //                        if (ev.Type == 120)
+            //                        {
+            //                            //Console.WriteLine("Breakpoint hit");
+            //                        }
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //});
+
+            MenuBar.AddItem("GFX", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
+            MenuBar.AddItem("GFX", "Slow Light Spin", () => GFX.AutoRotateLight, b => GFX.AutoRotateLight = b);
+            MenuBar.AddItem("GFX", "Light Follows Camera (disables Slow Light Spin btw)", () => GFX.LightFollowsCamera, b => GFX.LightFollowsCamera = b);
+            MenuBar.AddItem("GFX", "Use New Shader", () => GFX.UseDS3Shader, b => GFX.UseDS3Shader = b);
+            MenuBar.AddItem("GFX", "Reload FLVER Shader (Content\\NormalMapShader.xnb)", () =>
+            {
+                if (DebugReloadContentManager != null)
+                {
+                    DebugReloadContentManager.Unload();
+                    DebugReloadContentManager.Dispose();
+                }
+
+                DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+
+                GFX.FlverShader.Effect.Dispose();
+                GFX.FlverShader = null;
+                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(@"Content\NormalMapShader"));
+
+                GFX.InitFlverMainShader();
+            });
+
+            
+        }
+
         enum DividerDragMode
         {
             None,
@@ -133,15 +190,13 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private bool _IsModified = false;
-        public bool IsModified
+        public bool IsModified => 
+            (SelectedTae?.Animations.Any(a => a.GetIsModified()) ?? false) || 
+            (FileContainer?.AllTAE.Any(t => t.GetIsModified()) ?? false);
+
+        public void UpdateIsModifiedStuff()
         {
-            get => _IsModified;
-            set
-            {
-                _IsModified = value && !IsReadOnlyFileMode;
-                MenuBar["File/Save"].Enabled = value && !IsReadOnlyFileMode;
-            }
+            MenuBar["File/Save"].Enabled = IsModified;
         }
 
         private TaeMenuBarBuilder MenuBar;
@@ -421,10 +476,41 @@ namespace DSAnimStudio.TaeEditor
 
                 if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
                 {
-                    TaeInterop.PlayerPartsModelHD = Config.PartsHD;
-                    TaeInterop.PlayerPartsModelBD = Config.PartsBD;
-                    TaeInterop.PlayerPartsModelAM = Config.PartsAM;
-                    TaeInterop.PlayerPartsModelLG = Config.PartsLG;
+                    if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
+                    {
+                        TaeInterop.c0000_Parts_HD = Config.DS1_Parts_HD;
+                        TaeInterop.c0000_Parts_BD = Config.DS1_Parts_BD;
+                        TaeInterop.c0000_Parts_AM = Config.DS1_Parts_AM;
+                        TaeInterop.c0000_Parts_LG = Config.DS1_Parts_LG;
+                        TaeInterop.c0000_Parts_WP_L = Config.DS1_Parts_WP_L;
+                        TaeInterop.c0000_Parts_WP_R = Config.DS1_Parts_WP_R;
+                        TaeInterop.c0000_Parts_WP_L_ModelIndex = Config.DS1_Parts_WP_L_ModelIndex;
+                        TaeInterop.c0000_Parts_WP_R_ModelIndex = Config.DS1_Parts_WP_R_ModelIndex;
+                    }
+                    else if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne)
+                    {
+                        TaeInterop.c0000_Parts_HD = Config.BB_Parts_HD;
+                        TaeInterop.c0000_Parts_BD = Config.BB_Parts_BD;
+                        TaeInterop.c0000_Parts_AM = Config.BB_Parts_AM;
+                        TaeInterop.c0000_Parts_LG = Config.BB_Parts_LG;
+                        TaeInterop.c0000_Parts_WP_L = Config.BB_Parts_WP_L;
+                        TaeInterop.c0000_Parts_WP_R = Config.BB_Parts_WP_R;
+                        TaeInterop.c0000_Parts_WP_L_ModelIndex = Config.BB_Parts_WP_L_ModelIndex;
+                        TaeInterop.c0000_Parts_WP_R_ModelIndex = Config.BB_Parts_WP_R_ModelIndex;
+                    }
+                    else if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS3)
+                    {
+                        TaeInterop.c0000_Parts_HD = Config.DS3_Parts_HD;
+                        TaeInterop.c0000_Parts_BD = Config.DS3_Parts_BD;
+                        TaeInterop.c0000_Parts_AM = Config.DS3_Parts_AM;
+                        TaeInterop.c0000_Parts_LG = Config.DS3_Parts_LG;
+                        TaeInterop.c0000_Parts_WP_L = Config.DS3_Parts_WP_L;
+                        TaeInterop.c0000_Parts_WP_R = Config.DS3_Parts_WP_R;
+                        TaeInterop.c0000_Parts_WP_L_ModelIndex = Config.DS3_Parts_WP_L_ModelIndex;
+                        TaeInterop.c0000_Parts_WP_R_ModelIndex = Config.DS3_Parts_WP_R_ModelIndex;
+                    }
+
+
                     TaeInterop.OnLoadANIBND(MenuBar);
                 }
 
@@ -490,8 +576,6 @@ namespace DSAnimStudio.TaeEditor
                     animRef.SetIsModified(false);
                 }
             }
-            
-            IsModified = false;
 
             if (Config.LiveRefreshOnSave)
             {
@@ -517,6 +601,7 @@ namespace DSAnimStudio.TaeEditor
             MenuBar["Edit/Collapse All TAE Sections"].Enabled = true;
             MenuBar["Edit/Expand All TAE Sections"].Enabled = true;
             MenuBar["Edit/Go To Animation ID..."].Enabled = true;
+            LastFindInfo = null;
         }
 
         public void RecreateAnimList()
@@ -734,7 +819,10 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
 
-            WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
+            BuildDebugMenuBar();
+
+
+           WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
 
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
@@ -793,7 +881,6 @@ namespace DSAnimStudio.TaeEditor
             //});
 
             SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-            IsModified = true;
 
             //gridReference.Refresh();
         }
@@ -836,7 +923,8 @@ namespace DSAnimStudio.TaeEditor
 
             if (editForm.WereThingsChanged)
             {
-                IsModified = true;
+                SelectedTae.SetIsModified(true);
+
                 UpdateSelectedTaeAnimInfoText();
             }
 
@@ -889,7 +977,7 @@ namespace DSAnimStudio.TaeEditor
                     else
                         SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
 
-                    IsModified = true;
+                    SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                 }
             }
             else
@@ -898,7 +986,7 @@ namespace DSAnimStudio.TaeEditor
                 if (editForm.WasAnimIDChanged)
                 {
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                    IsModified = !IsReadOnlyFileMode;
+                    SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     RecreateAnimList();
                     UpdateSelectedTaeAnimInfoText();
                     needsAnimReload = true;
@@ -907,7 +995,7 @@ namespace DSAnimStudio.TaeEditor
                 if (editForm.WereThingsChanged)
                 {
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                    IsModified = !IsReadOnlyFileMode;
+                    SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     UpdateSelectedTaeAnimInfoText();
                     needsAnimReload = true;
                 }
@@ -1255,7 +1343,7 @@ namespace DSAnimStudio.TaeEditor
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
 
                             SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                            IsModified = true;
+                            SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                         },
                         undoAction: () =>
                         {
@@ -1271,7 +1359,7 @@ namespace DSAnimStudio.TaeEditor
                             editScreenCurrentAnim.RegisterEventBoxExistance(SelectedEventBox);
 
                             SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                            IsModified = true;
+                            SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                         });
                 }
             }

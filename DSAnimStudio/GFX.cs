@@ -63,7 +63,19 @@ namespace DSAnimStudio
             FlverShader.Effect.NormalMapCustomZ = 1.0f;
             FlverShader.Effect.DiffusePower = 1 / 1.5f;
             FlverShader.Effect.AlphaTest = 0.1f;
+
+            FlverShader.Effect.EnableGhettoDS3Renderer = UseDS3Shader;
+            FlverShader.Effect.DS3LightDirection = new Vector3[] { Vector3.Backward, Vector3.Right, Vector3.Left };
+            FlverShader.Effect.DS3LightRadiance = new float[] { 3,0,0 };
+            FlverShader.Effect.EnvironmentMap = CubeMap;
         }
+
+        public static TextureCube CubeMap = null;
+
+        public static bool UseDS3Shader = true;
+
+        public static bool AutoRotateLight = false;
+        public static bool LightFollowsCamera = true;
 
         public static GFXDrawStep CurrentStep = GFXDrawStep.Opaque;
 
@@ -264,9 +276,11 @@ namespace DSAnimStudio
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.MultiSampleAntiAlias = true;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.CullMode = CullMode.CullClockwiseFace;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.FillMode = FillMode.WireFrame;
+
+            CubeMap = c.Load<TextureCube>("Content\\cubegen");
         }
 
-        public static void BeginDraw()
+        public static void BeginDraw(GameTime gameTime)
         {
             InitDepthStencil();
             //InitBlendState();
@@ -286,11 +300,38 @@ namespace DSAnimStudio
 
             FlverShader.Effect.EyePosition = World.CameraTransform.Position;
             //FlverShader.Effect.EyePosition = Vector3.Backward;
-            FlverShader.Effect.LightDirection = -Vector3.Normalize(World.CameraTransform.Position);
+            
+
+            if (AutoRotateLight)
+            {
+                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * (float)gameTime.TotalGameTime.TotalSeconds));
+
+                FlverShader.Effect.DS3LightDirection = new Vector3[]
+                {
+                     Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * (float)gameTime.TotalGameTime.TotalSeconds)),
+                     Vector3.Zero,
+                     Vector3.Zero,
+                };
+            }
+            else if (LightFollowsCamera)
+            {
+                FlverShader.Effect.LightDirection = -Vector3.Normalize(World.CameraTransform.Position);
+
+                FlverShader.Effect.DS3LightDirection = new Vector3[]
+                {
+                     -Vector3.Normalize(World.CameraTransform.Position),
+                     Vector3.Zero,
+                     Vector3.Zero,
+                };
+
+            }
+            
+
             //FlverShader.Effect.LightDirection = World.CameraTransform.RotationMatrix;
             FlverShader.Effect.ColorMap = Main.DEFAULT_TEXTURE_DIFFUSE;
             FlverShader.Effect.NormalMap = Main.DEFAULT_TEXTURE_NORMAL;
             FlverShader.Effect.SpecularMap = Main.DEFAULT_TEXTURE_SPECULAR;
+            FlverShader.Effect.EnableGhettoDS3Renderer = UseDS3Shader;
 
             DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;
@@ -362,7 +403,7 @@ namespace DSAnimStudio
             for (int i = 0; i < DRAW_STEP_LIST.Length; i++)
             {
                 CurrentStep = DRAW_STEP_LIST[i];
-                BeginDraw();
+                BeginDraw(gameTime);
                 DoDraw(gameTime);
             }
 

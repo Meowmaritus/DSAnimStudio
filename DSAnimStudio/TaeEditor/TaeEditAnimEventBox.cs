@@ -49,7 +49,8 @@ namespace DSAnimStudio.TaeEditor
 
         public Rectangle GetTextRect(int outlineThickness)
         {
-            return new Rectangle((int)LeftFr + 2 + outlineThickness, (int)Top + 1, (int)WidthFr - 4 - (outlineThickness * 2), (int)HeightFr - 2);
+            return new Rectangle((int)LeftFr + 2 + 2/*outlineThickness*/, 
+                (int)Top + 1, (int)WidthFr - 4 - (2/*outlineThickness*/ * 2), (int)HeightFr - 2);
         }
 
         public TaeScrollingString EventText { get; private set; } = new TaeScrollingString();

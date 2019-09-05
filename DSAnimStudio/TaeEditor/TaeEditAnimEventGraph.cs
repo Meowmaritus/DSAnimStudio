@@ -468,7 +468,6 @@ namespace DSAnimStudio.TaeEditor
                     EventBoxes.Remove(box);
 
                     AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-                    MainScreen.IsModified = true;
                 }
 
                 RecreateAllAnimGroups();
@@ -509,7 +508,6 @@ namespace DSAnimStudio.TaeEditor
                         AddBoxToEventGroups(box);
 
                         AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-                        MainScreen.IsModified = true;
                     }
                 });
         }
@@ -537,7 +535,6 @@ namespace DSAnimStudio.TaeEditor
                 EventBoxes.Remove(box);
 
                 AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-                MainScreen.IsModified = true;
 
                 RecreateAllAnimGroups();
             }
@@ -571,7 +568,6 @@ namespace DSAnimStudio.TaeEditor
                     AddBoxToEventGroups(box);
 
                     AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-                    MainScreen.IsModified = true;
                 });
         }
 
@@ -604,7 +600,6 @@ namespace DSAnimStudio.TaeEditor
                 AddBoxToEventGroups(newBox);
 
                 AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-                MainScreen.IsModified = true;
             }
 
             if (notUndoable)
@@ -633,7 +628,6 @@ namespace DSAnimStudio.TaeEditor
                     MainScreen.SelectedTaeAnim.Events.Remove(ev);
 
                     AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-                    MainScreen.IsModified = true;
                 });
 
             return newBox;
@@ -1241,7 +1235,6 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                            MainScreen.IsModified = MainScreen.IsModified || isModified;
                             //currentDrag.Box.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
                         }
                         else if (currentDrag.DragType == BoxDragType.RightOfEventBox && currentDrag.Box != null)
@@ -1249,7 +1242,6 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                            MainScreen.IsModified = MainScreen.IsModified || isModified;
                             //currentDrag.Box.DragRightSide(MainScreen.Input.MousePositionDelta.X);
                         }
                         else if (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.Box != null)
@@ -1257,7 +1249,6 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragXY;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                            MainScreen.IsModified = MainScreen.IsModified || isModified;
                             //currentDrag.Box.DragMiddle(MainScreen.Input.MousePositionDelta.X);
                             currentDrag.ShiftBoxRow(MouseRow);
                         }
@@ -1276,7 +1267,6 @@ namespace DSAnimStudio.TaeEditor
                                 MainScreen.Input.CursorType = MouseCursorType.DragX;
                                 bool isModified = multiDrag.DragBoxToMouseAndCheckIsModified(actualMousePoint);
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                                MainScreen.IsModified = MainScreen.IsModified || isModified;
                             }
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox)
@@ -1290,7 +1280,6 @@ namespace DSAnimStudio.TaeEditor
                                 MainScreen.Input.CursorType = MouseCursorType.DragX;
                                 bool isModified = multiDrag.DragBoxToMouseAndCheckIsModified(actualMousePoint);
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                                MainScreen.IsModified = MainScreen.IsModified || isModified;
                             }
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
@@ -1307,7 +1296,6 @@ namespace DSAnimStudio.TaeEditor
                                 var isModified = multiDrag.DragBoxToMouseAndCheckIsModified(actualMousePoint);
 
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                                MainScreen.IsModified = MainScreen.IsModified || isModified;
 
                                 multiDrag.ShiftBoxRow(MathHelper.Max(MouseRow, minimumMouseRow));
                             }
@@ -1460,11 +1448,6 @@ namespace DSAnimStudio.TaeEditor
                                         copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
                                         copyOfBox.Row = copyOfCurrentBoxRow;
 
-                                        MainScreen.IsModified = MainScreen.IsModified ||
-                                        ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
-                                        (copyOfCurrentBoxEnd != copyOfOldBoxEnd) ||
-                                        (copyOfCurrentBoxRow != copyOfOldBoxRow));
-
                                         MainScreen.SelectedTaeAnim.SetIsModified(
                                             MainScreen.SelectedTaeAnim.GetIsModified() ||
                                             (!MainScreen.IsReadOnlyFileMode && ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
@@ -1476,20 +1459,6 @@ namespace DSAnimStudio.TaeEditor
                                         copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
                                         copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
                                         copyOfBox.Row = copyOfOldBoxRow;
-
-                                    // Check if user saved, to flag as modified from the value changing
-                                    // Otherwise, if it was still modified afterwards we can un-modified it
-                                    if (!MainScreen.IsModified)
-                                        {
-                                            MainScreen.IsModified = MainScreen.IsModified ||
-                                                ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
-                                                (copyOfCurrentBoxEnd != copyOfOldBoxEnd) ||
-                                                (copyOfCurrentBoxRow != copyOfOldBoxRow));
-                                        }
-                                        else
-                                        {
-                                            MainScreen.IsModified = copyOfIsMainScreenModified;
-                                        }
 
                                     // Check if user saved, to flag as modified from the value changing
                                     // Otherwise, if it was still modified afterwards we can un-modified it
@@ -1549,11 +1518,6 @@ namespace DSAnimStudio.TaeEditor
                                                 copiesOfBox[i].MyEvent.EndTime = copiesOfCurrentBoxEnd[i];
                                                 copiesOfBox[i].Row = copiesOfCurrentBoxRow[i];
 
-                                                MainScreen.IsModified = MainScreen.IsModified ||
-                                                ((copiesOfCurrentBoxStart[i] != copiesOfOldBoxStart[i]) ||
-                                                (copiesOfCurrentBoxEnd[i] != copiesOfOldBoxEnd[i]) ||
-                                                (copiesOfCurrentBoxRow[i] != copiesOfOldBoxRow[i]));
-
                                                 MainScreen.SelectedTaeAnim.SetIsModified(
                                                     MainScreen.SelectedTaeAnim.GetIsModified() ||
                                                     (!MainScreen.IsReadOnlyFileMode && ((copiesOfCurrentBoxStart[i] != copiesOfOldBoxStart[i]) ||
@@ -1568,20 +1532,6 @@ namespace DSAnimStudio.TaeEditor
                                                 copiesOfBox[i].MyEvent.StartTime = copiesOfOldBoxStart[i];
                                                 copiesOfBox[i].MyEvent.EndTime = copiesOfOldBoxEnd[i];
                                                 copiesOfBox[i].Row = copiesOfOldBoxRow[i];
-
-                                            // Check if user saved, to flag as modified from the value changing
-                                            // Otherwise, if it was still modified afterwards we can un-modified it
-                                            if (!MainScreen.IsModified)
-                                                {
-                                                    MainScreen.IsModified = MainScreen.IsModified ||
-                                                    ((copiesOfCurrentBoxStart[i] != copiesOfOldBoxStart[i]) ||
-                                                    (copiesOfCurrentBoxEnd[i] != copiesOfOldBoxEnd[i]) ||
-                                                    (copiesOfCurrentBoxRow[i] != copiesOfOldBoxRow[i]));
-                                                }
-                                                else
-                                                {
-                                                    MainScreen.IsModified = copyOfIsMainScreenModified;
-                                                }
 
                                             // Check if user saved, to flag as modified from the value changing
                                             // Otherwise, if it was still modified afterwards we can un-modified it
@@ -1941,7 +1891,7 @@ namespace DSAnimStudio.TaeEditor
                         {
                             box.EventText.ResetScroll(startImmediatelyNextTime: true);
 
-                            var thicknessOffset = new Vector2(boxOutlineThickness * 2, 0);
+                            var thicknessOffset = new Vector2(2/*boxOutlineThickness*/ * 2, 0);
 
                             string fullTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}{box.EventText.Text}";
 

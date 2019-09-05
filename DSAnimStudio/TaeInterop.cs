@@ -1,5 +1,6 @@
 ﻿//#define DISABLE_HKX_EXCEPTION_CATCH
 //#define DISABLE_SPLINE_CACHE
+//#define IGNORE_FLVER_REFERENCE_POSE
 using Microsoft.Xna.Framework;
 using SoulsFormats;
 using System;
@@ -14,6 +15,32 @@ namespace DSAnimStudio
 {
     public static class TaeInterop
     {
+        public static void Init()
+        {
+            // This allows you to use the debug menu with the gamepad for testing.
+            // Final release will have no gamepad support or menu.
+            //DBG.EnableGamePadInput = true;
+            //DBG.EnableMenu = true;
+
+            GFX.ModelDrawer.ClearScene();
+            DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.HkxBone);
+            DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.DummyPoly);
+            GFX.HideFLVERs = false;
+            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = false;
+            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = false;
+            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = false;
+            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
+
+
+        }
+
+        public static void LoadContent()
+        {
+            
+            TaeSoundManager.LoadSoundsFromDir("Content\\SE\\CHR");
+        }
+
         /// <summary>
         /// After 3D model is drawn.
         /// </summary>
@@ -70,10 +97,16 @@ namespace DSAnimStudio
             printer.Draw();
         }
 
-        public static string PlayerPartsModelHD = "HD_M_1900";
-        public static string PlayerPartsModelBD = "BD_M_1900";
-        public static string PlayerPartsModelAM = "AM_M_1900";
-        public static string PlayerPartsModelLG = "LG_M_1900";
+        public static bool Debug_LockToTPose = false;
+
+        public static string c0000_Parts_HD = "AM_A_9220";
+        public static string c0000_Parts_BD = "AM_M_9510";
+        public static string c0000_Parts_AM = "AM_M_9400";
+        public static string c0000_Parts_LG = "AM_M_9220";
+        public static string c0000_Parts_WP_L = "WP_A_1504";
+        public static string c0000_Parts_WP_R = "WP_A_0220";
+        public static int c0000_Parts_WP_R_ModelIndex = 0;
+        public static int c0000_Parts_WP_L_ModelIndex = 0;
 
         private static int InterleavedCalculationState = 0;
         public static int InterleavedCalculationDivisor = 1;
@@ -183,12 +216,17 @@ namespace DSAnimStudio
             var flverBoneIndex = HkxBoneToFlverBoneMap[havokMatrixIndex];
             var matrixBank = flverBoneIndex / GFXShaders.FlverShader.NUM_BONES;
             var relativeMatrixIndex = flverBoneIndex % GFXShaders.FlverShader.NUM_BONES;
-
+#if IGNORE_FLVER_REFERENCE_POSE
+            var finalMatrix =
+                Matrix.Invert(HkxBoneParentMatrices_Reference[havokMatrixIndex])
+                * HkxBoneParentMatrices[havokMatrixIndex]
+                * CurrentRootMotionMatrix;
+#else
             var finalMatrix = 
                 Matrix.Invert(FlverBoneTPoseMatrices[flverBoneIndex])
                 * HkxBoneParentMatrices[havokMatrixIndex]
                 * CurrentRootMotionMatrix;
-
+#endif
             if (matrixBank == 0)
                 ShaderMatrix0[relativeMatrixIndex] = finalMatrix;
             else if (matrixBank == 1)
@@ -275,26 +313,15 @@ namespace DSAnimStudio
         public static float ModelViewerAspectRatio =>
             1.0f * ModelViewerWindowRect.Width / ModelViewerWindowRect.Height;
 
-        public static void Init()
-        {
-            // This allows you to use the debug menu with the gamepad for testing.
-            // Final release will have no gamepad support or menu.
-            //DBG.EnableGamePadInput = true;
-            //DBG.EnableMenu = true;
-
-            DBG.PrimitiveNametagSize = 0.25f;
-            
-            DBG.SimpleTextLabelSize = false;
-
-            TaeSoundManager.LoadSoundsFromDir("Content\\SE\\CHR");
-        }
-
         /// <summary>
         /// Called one time when the playback cursor first hits
         /// an event's start.
         /// </summary>
         public static void PlaybackHitEventStart(TaeEditor.TaeEditAnimEventBox evBox)
         {
+            if (evBox.MyEvent.Template == null)
+                return;
+
             // epic
             if (PlaySoundEffectOnSoundEvents && evBox.MyEvent.TypeName.ToUpper().Contains("SOUND"))
             {
@@ -394,15 +421,7 @@ namespace DSAnimStudio
         /// </summary>
         public static void OnLoadANIBND(TaeEditor.TaeMenuBarBuilder menuBar)
         {
-            GFX.ModelDrawer.ClearScene();
-            DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.HkxBone);
-            DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.DummyPoly);
-            GFX.HideFLVERs = false;
-            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = false;
-            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = false;
-            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = false;
-            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
-            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
+            Init();
 
             if (HaventLoadedAnythingYet)
                 HaventLoadedAnythingYet = false;
@@ -468,24 +487,32 @@ namespace DSAnimStudio
 
                 //load it
 
-                string partA = $"{interrootFolder}\\parts\\{PlayerPartsModelHD}.partsbnd";
-                string partB = $"{interrootFolder}\\parts\\{PlayerPartsModelBD}.partsbnd";
-                string partC = $"{interrootFolder}\\parts\\{PlayerPartsModelAM}.partsbnd";
-                string partD = $"{interrootFolder}\\parts\\{PlayerPartsModelLG}.partsbnd";
+                string partHD = $"{interrootFolder}\\parts\\{c0000_Parts_HD}.partsbnd";
+                string partBD = $"{interrootFolder}\\parts\\{c0000_Parts_BD}.partsbnd";
+                string partAM = $"{interrootFolder}\\parts\\{c0000_Parts_AM}.partsbnd";
+                string partLG = $"{interrootFolder}\\parts\\{c0000_Parts_LG}.partsbnd";
+                string partWP_L = $"{interrootFolder}\\parts\\{c0000_Parts_WP_L}.partsbnd";
+                string partWP_R = $"{interrootFolder}\\parts\\{c0000_Parts_WP_R}.partsbnd";
 
-                if (File.Exists(partA + ".dcx"))
-                    partA = partA + ".dcx";
+                if (File.Exists(partHD + ".dcx"))
+                    partHD = partHD + ".dcx";
 
-                if (File.Exists(partB + ".dcx"))
-                    partB = partB + ".dcx";
+                if (File.Exists(partBD + ".dcx"))
+                    partBD = partBD + ".dcx";
 
-                if (File.Exists(partC + ".dcx"))
-                    partC = partC + ".dcx";
+                if (File.Exists(partAM + ".dcx"))
+                    partAM = partAM + ".dcx";
 
-                if (File.Exists(partD + ".dcx"))
-                    partD = partD + ".dcx";
+                if (File.Exists(partLG + ".dcx"))
+                    partLG = partLG + ".dcx";
 
-                var parts = LoadFourPartsFiles(c0000, partA, partB, partC, partD);
+                if (File.Exists(partWP_L + ".dcx"))
+                    partWP_L = partWP_L + ".dcx";
+
+                if (File.Exists(partWP_R + ".dcx"))
+                    partWP_R = partWP_R + ".dcx";
+
+                var parts = LoadFourPartsFiles(c0000, partHD, partBD, partAM, partLG, partWP_L, partWP_R, c0000_Parts_WP_L_ModelIndex, c0000_Parts_WP_R_ModelIndex);
 
                 LoadFLVER(parts.Item1);
 
@@ -618,6 +645,20 @@ namespace DSAnimStudio
 
                 var animID_Upper = Main.TAE_EDITOR.FileContainer.ContainerType == TaeEditor.TaeFileContainer.TaeFileContainerType.BND4
                     ? (id / 1000000) : (id / 10000);
+
+                foreach (var kvp in Main.TAE_EDITOR.FileContainer.AllTAEDict)
+                {
+                    if (kvp.Value == Main.TAE_EDITOR.SelectedTae)
+                    {
+                        var taeName = Utils.GetFileNameWithoutDirectoryOrExtension(kvp.Key);
+
+                        if (taeName.ToLower().StartsWith("a"))
+                        {
+                            animID_Upper = int.Parse(Utils.GetFileNameWithoutAnyExtensions(taeName).Substring(1));
+                        }
+                        break;
+                    }
+                }
 
                 string animFileName = Main.TAE_EDITOR.FileContainer.ContainerType == TaeEditor.TaeFileContainer.TaeFileContainerType.BND4
                       ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}";
@@ -1057,9 +1098,9 @@ namespace DSAnimStudio
         {
             float frame = frameNum % CurrentAnimationFrameCount;
 
-            if (frame != LastHkxFrameCalculated)
+            if (frame != LastHkxFrameCalculated || Debug_LockToTPose)
             {
-                if (!(RootMotionFrames.Count == 0 || RootMotionDuration == 0 || !EnableRootMotion))
+                if (!Debug_LockToTPose && !(RootMotionFrames.Count == 0 || RootMotionDuration == 0 || !EnableRootMotion))
                 {
                     float rootMotionTime = totalTime % RootMotionDuration;
                     float sampleDuration = RootMotionDuration / RootMotionFrames.Count;
@@ -1121,7 +1162,7 @@ namespace DSAnimStudio
 
                 for (int i = thisFrameRange.Start; i <= thisFrameRange.End; i++)
                 {
-                    parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: false,
+                    parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: Debug_LockToTPose,
                         HkxSkeleton, (short)i, frame % CurrentAnimFramesPerBlock,
                         alreadyCalculatedBones,
                         additiveBlend: CurrentAnimBlendHint == HKX.AnimationBlendHint.ADDITIVE ||
@@ -1560,8 +1601,89 @@ namespace DSAnimStudio
             }
         }
 
-        private static (FLVER2, List<TPF>) LoadFourPartsFiles(FLVER2 baseChr, string part1Name, string part2Name, string part3Name, string part4Name)
+        private enum PartWeaponType
         {
+            None,
+            Right,
+            Left,
+        }
+
+        private static (FLVER2, List<TPF>) LoadFourPartsFiles(FLVER2 baseChr, 
+            string partHDName, string partBDName, string partAMName, string partLGName,
+                string partWPLName, string partWPRName, int partWPLIndex, int partWPRIndex)
+        {
+            System.Numerics.Vector4 TransformVertVec4ByBone(SoulsFormats.FLVER2.Bone b, 
+                System.Numerics.Vector4 vertVec4, bool upsideDown = true, bool isNormals = false)
+            {
+                SoulsFormats.FLVER2.Bone parentBone = b;
+
+                var result = upsideDown ? Matrix.CreateRotationZ(MathHelper.Pi) * Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity;
+
+                do
+                {
+                    result *= Matrix.CreateScale(parentBone.Scale.X, parentBone.Scale.Y, parentBone.Scale.Z);
+                    result *= Matrix.CreateRotationX(parentBone.Rotation.X);
+                    result *= Matrix.CreateRotationZ(parentBone.Rotation.Z);
+                    result *= Matrix.CreateRotationY(parentBone.Rotation.Y);
+                    result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
+
+                    if (parentBone.ParentIndex >= 0)
+                    {
+                        parentBone = baseChr.Bones[parentBone.ParentIndex];
+                    }
+                    else
+                    {
+                        parentBone = null;
+                    }
+                }
+                while (parentBone != null);
+
+                Vector4 newPos = Vector4.Zero;
+
+                if (isNormals)
+                {
+                    var thing = Vector3.TransformNormal(new Vector3(vertVec4.X, vertVec4.Y, vertVec4.Z), result);
+                    newPos = new Vector4(thing.X, thing.Y, thing.Z, vertVec4.W);
+                }
+                else
+                {
+                    newPos = Vector4.Transform(new Vector4(vertVec4.X, vertVec4.Y, vertVec4.Z, vertVec4.W), result);
+                }
+
+                return new System.Numerics.Vector4(newPos.X, newPos.Y, newPos.Z, newPos.W);
+            }
+
+            System.Numerics.Vector3 TransformVertVec3ByBone(SoulsFormats.FLVER2.Bone b, 
+                System.Numerics.Vector3 vertVec3, bool upsideDown = true, bool isNormals = false)
+            {
+                SoulsFormats.FLVER2.Bone parentBone = b;
+
+                var result = upsideDown ? Matrix.CreateRotationZ(MathHelper.Pi) * Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity;
+
+                do
+                {
+                    result *= Matrix.CreateScale(parentBone.Scale.X, parentBone.Scale.Y, parentBone.Scale.Z);
+                    result *= Matrix.CreateRotationX(parentBone.Rotation.X);
+                    result *= Matrix.CreateRotationZ(parentBone.Rotation.Z);
+                    result *= Matrix.CreateRotationY(parentBone.Rotation.Y);
+                    result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
+
+                    if (parentBone.ParentIndex >= 0)
+                    {
+                        parentBone = baseChr.Bones[parentBone.ParentIndex];
+                    }
+                    else
+                    {
+                        parentBone = null;
+                    }
+                }
+                while (parentBone != null);
+
+                var newPos = isNormals ? Vector3.TransformNormal(new Vector3(vertVec3.X, vertVec3.Y, vertVec3.Z), result) 
+                    : Vector3.Transform(new Vector3(vertVec3.X, vertVec3.Y, vertVec3.Z), result);
+                return new System.Numerics.Vector3(newPos.X, newPos.Y, newPos.Z);
+            }
+
             Dictionary<string, int> baseChrBoneMap = new Dictionary<string, int>();
             for (int i = 0; i < baseChr.Bones.Count; i++)
             {
@@ -1570,7 +1692,7 @@ namespace DSAnimStudio
 
             List<TPF> tpfsUsed = new List<TPF>();
 
-            void DoPart(string p)
+            void DoPart(string p, PartWeaponType t)
             {
                 if (!File.Exists(p))
                 {
@@ -1581,13 +1703,25 @@ namespace DSAnimStudio
                 FLVER2 partFlver = null;
                 string debug_PartFlverName = null;
 
+                bool CheckFlverName(string flverName)
+                {
+                    var toUpper = flverName.ToUpper();
+
+                    if (t == PartWeaponType.Left && partWPLIndex > 0)
+                        return toUpper.EndsWith($"_{partWPLIndex}.FLVER");
+                    else if (t == PartWeaponType.Right && partWPRIndex > 0)
+                        return toUpper.EndsWith($"_{partWPRIndex}.FLVER");
+                    else
+                        return toUpper.EndsWith($".FLVER");
+                }
+
                 if (BND4.Is(p))
                 {
                     var bnd = BND4.Read(p);
 
                     foreach (var f in bnd.Files)
                     {
-                        if (partFlver == null && FLVER2.Is(f.Bytes))
+                        if (partFlver == null && FLVER2.Is(f.Bytes) && CheckFlverName(f.Name))
                         {
                             partFlver = FLVER2.Read(f.Bytes);
                             debug_PartFlverName = f.Name;
@@ -1616,6 +1750,18 @@ namespace DSAnimStudio
                     }
                 }
 
+                int weaponLBoneIndex = baseChr.Bones.IndexOf(baseChr.Bones.FirstOrDefault(b => b.Name == "L_Weapon"));
+                int weaponRBoneIndex = baseChr.Bones.IndexOf(baseChr.Bones.FirstOrDefault(b => b.Name == "R_Weapon"));
+
+                FLVER2.Bone weaponLBone = null;
+                FLVER2.Bone weaponRBone = null;
+
+                if (weaponLBoneIndex >= 0)
+                    weaponLBone = baseChr.Bones[weaponLBoneIndex];
+
+                if (weaponRBoneIndex >= 0)
+                    weaponRBone = baseChr.Bones[weaponRBoneIndex];
+
                 int RemapBone(int boneIndex)
                 {
                     if (boneIndex == -1)
@@ -1632,20 +1778,114 @@ namespace DSAnimStudio
                     // Check if DS1 memes
                     if (partFlver.Header.Version <= 0x2000D)
                     {
-                        for (int i = 0; i < mesh.BoneIndices.Count; i++)
+                        if (t != PartWeaponType.None)
                         {
-                            mesh.BoneIndices[i] = RemapBone(mesh.BoneIndices[i]);
-                        }
+                            foreach (var vert in mesh.Vertices)
+                            {
+                                if (vert.BoneIndices != null)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(partFlver.Bones[mesh.BoneIndices[vert.BoneIndices[0]]], vert.Position, false);
+                                    vert.Normal = TransformVertVec4ByBone(partFlver.Bones[mesh.BoneIndices[vert.BoneIndices[0]]], vert.Normal, false, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[mesh.BoneIndices[vert.BoneIndices[0]]], vert.Tangents[0], false, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[mesh.BoneIndices[vert.BoneIndices[0]]], vert.Bitangent, false, true);
+                                }
+                                else if (mesh.DefaultBoneIndex >= 0)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Position, false);
+                                    vert.Normal = TransformVertVec4ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Normal, false, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Tangents[0], false, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Bitangent, false, true);
+                                }
 
-                        mesh.DefaultBoneIndex = RemapBone(mesh.DefaultBoneIndex);
+                                if (t == PartWeaponType.Right)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(weaponRBone, vert.Position, true);
+                                    vert.Normal = TransformVertVec4ByBone(weaponRBone, vert.Normal, true, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(weaponRBone, vert.Tangents[0], true, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(weaponRBone, vert.Bitangent, true, true);
+                                }
+                                else if (t == PartWeaponType.Left)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(weaponLBone, vert.Position, true);
+                                    vert.Normal = TransformVertVec4ByBone(weaponLBone, vert.Normal, true, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(weaponLBone, vert.Tangents[0], true, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(weaponLBone, vert.Bitangent, true, true);
+                                }
+
+                                vert.BoneIndices = new int[] { 0, 0, 0, 0 };
+                                vert.BoneWeights = new float[] { 1, 0, 0, 0 };
+                            }
+
+                            if (t == PartWeaponType.Right)
+                            {
+                                mesh.BoneIndices = new List<int> { weaponRBoneIndex };
+                                mesh.DefaultBoneIndex = weaponRBoneIndex;
+                            }
+                            else if (t == PartWeaponType.Left)
+                            {
+                                mesh.BoneIndices = new List<int> { weaponLBoneIndex };
+                                mesh.DefaultBoneIndex = weaponLBoneIndex;
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < mesh.BoneIndices.Count; i++)
+                            {
+                                mesh.BoneIndices[i] = RemapBone(mesh.BoneIndices[i]);
+                            }
+
+                            mesh.DefaultBoneIndex = RemapBone(mesh.DefaultBoneIndex);
+                        }    
                     }
                     else
                     {
                         foreach (var vert in mesh.Vertices)
                         {
-                            for (int i = 0; i < vert.BoneIndices.Length; i++)
+                            if (t != PartWeaponType.None)
                             {
-                                vert.BoneIndices[i] = RemapBone(vert.BoneIndices[i]);
+                                if (vert.BoneIndices != null)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(partFlver.Bones[vert.BoneIndices[0]], vert.Position, false);
+                                    vert.Normal = TransformVertVec4ByBone(partFlver.Bones[vert.BoneIndices[0]], vert.Normal, false, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[vert.BoneIndices[0]], vert.Tangents[0], false, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[vert.BoneIndices[0]], vert.Bitangent, false, true);
+                                }
+                                else if (mesh.DefaultBoneIndex >= 0)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Position, false);
+                                    vert.Normal = TransformVertVec4ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Normal, false, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Tangents[0], false, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Bitangent, false, true);
+                                }
+
+                                if (t == PartWeaponType.Right)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(weaponRBone, vert.Position, true);
+                                    vert.Normal = TransformVertVec4ByBone(weaponRBone, vert.Normal, true, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(weaponRBone, vert.Tangents[0], true, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(weaponRBone, vert.Bitangent, true, true);
+                                }
+                                else if (t == PartWeaponType.Left)
+                                {
+                                    vert.Position = TransformVertVec3ByBone(weaponLBone, vert.Position, true);
+                                    vert.Normal = TransformVertVec4ByBone(weaponLBone, vert.Normal, true, true);
+                                    vert.Tangents[0] = TransformVertVec4ByBone(weaponLBone, vert.Tangents[0], true, true);
+                                    vert.Bitangent = TransformVertVec4ByBone(weaponLBone, vert.Bitangent, true, true);
+                                }
+
+                                if (t == PartWeaponType.Right)
+                                    vert.BoneIndices = new int[] { weaponRBoneIndex, 0, 0, 0 };
+                                else if (t == PartWeaponType.Left)
+                                    vert.BoneIndices = new int[] { weaponLBoneIndex, 0, 0, 0 };
+
+                                vert.BoneWeights = new float[] { 1, 0, 0, 0 };
+                            }
+                            else
+                            {
+                                for (int i = 0; i < vert.BoneIndices.Length; i++)
+                                {
+                                    vert.BoneIndices[i] = RemapBone(vert.BoneIndices[i]);
+                                }
                             }
                         }
                     }
@@ -1658,7 +1898,7 @@ namespace DSAnimStudio
                     baseChr.Materials.Add(partFlver.Materials[mesh.MaterialIndex]);
                     
 
-                    if (partFlver.Materials[mesh.MaterialIndex].GXIndex >= 0)
+                    if (partFlver.Materials[mesh.MaterialIndex].GXIndex >= 0 && partFlver.Materials[mesh.MaterialIndex].GXIndex < partFlver.GXLists.Count)
                     {
                         baseChr.GXLists.Add(partFlver.GXLists[partFlver.Materials[mesh.MaterialIndex].GXIndex]);
                         partFlver.Materials[mesh.MaterialIndex].GXIndex = baseChr.GXLists.Count - 1;
@@ -1676,10 +1916,12 @@ namespace DSAnimStudio
                 }
             }
 
-            DoPart(part1Name);
-            DoPart(part2Name);
-            DoPart(part3Name);
-            DoPart(part4Name);
+            DoPart(partHDName, PartWeaponType.None);
+            DoPart(partBDName, PartWeaponType.None);
+            DoPart(partAMName, PartWeaponType.None);
+            DoPart(partLGName, PartWeaponType.None);
+            DoPart(partWPLName, PartWeaponType.Left);
+            DoPart(partWPRName, PartWeaponType.Right);
 
             return (baseChr, tpfsUsed);
         }
