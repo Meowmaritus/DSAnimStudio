@@ -88,6 +88,7 @@
     <Compile Include="DbgMenus\DbgMenuPadRepeater.cs" />
     <Compile Include="DDSDeswizzler.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolid.cs" />
+    <Compile Include="DebugPrimitives\DbgPrimSolidSkybox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWire.cs" />
     <Compile Include="DebugPrimitives\DbgPrim.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidBone.cs" />
@@ -100,9 +101,16 @@
     <Compile Include="DebugPrimitives\VertexPositionColorNormal.cs" />
     <Compile Include="GFXShaders\CollisionShader.cs" />
     <Compile Include="GFXShaders\DbgPrimSolidShader.cs" />
+    <Compile Include="GFXShaders\SkyboxShader.cs" />
     <Compile Include="Havok\SplineCompressedAnimation.cs" />
     <Compile Include="LoadingTaskMan.cs" />
     <Compile Include="StatusPrinter.cs" />
+    <Compile Include="TaeEditor\LightShaderAdjuster.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="TaeEditor\LightShaderAdjuster.Designer.cs">
+      <DependentUpon>LightShaderAdjuster.cs</DependentUpon>
+    </Compile>
     <Compile Include="TaeEditor\TaeButtonRepeater.cs" />
     <Compile Include="TaeEditor\TaeClipboardContents.cs" />
     <Compile Include="TaeEditor\TaeConfigFile.cs" />
@@ -350,10 +358,22 @@
     <None Include="Content\DbgMenuFontSmall.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\FlverShader.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Lothric_Cubemap_2000.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\m32_00_GILM0004.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\m37_00_GILM0204.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Content\MissingTexture.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\NormalMapShader.xnb">
+    <None Include="Content\SkyboxShader.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Content\WP_A_0221.partsbnd">
@@ -368,6 +388,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="TaeEditor\LightShaderAdjuster.resx">
+      <DependentUpon>LightShaderAdjuster.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TaeEditor\TaeEditAnimPropertiesForm.resx">
       <DependentUpon>TaeEditAnimPropertiesForm.cs</DependentUpon>
     </EmbeddedResource>

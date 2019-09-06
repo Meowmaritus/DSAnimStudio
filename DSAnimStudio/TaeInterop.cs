@@ -46,45 +46,54 @@ namespace DSAnimStudio
         /// </summary>
         public static void TaeViewportDrawPost(GameTime gameTime)
         {
-            if (HaventLoadedAnythingYet)
-                return;
-
             var printer = new StatusPrinter(Vector2.One * 4);
-            if (IncompatibleHavokVersion)
-            {
-                printer.AppendLine($"[UNSUPPORTED HAVOK VERSION]");
-                printer.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
-            }
-            else
-            {
-                if (HkxSkeleton != null)
-                {
-                    printer.AppendLine($"HKX Bone Count: {HkxSkeleton.Bones.Capacity} (Max Supported By Viewer: {GFXShaders.FlverShader.MAX_ALL_BONE_ARRAYS})", (HkxSkeleton.Bones.Capacity > GFXShaders.FlverShader.MAX_ALL_BONE_ARRAYS) ? Color.Red : Color.Yellow);
-                }
 
-                printer.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
-                if (CurrentAnimationHKX == null)
+            //printer.AppendLine($"Current Indirect Lighting Value: {GFX.IndirectLightMult}");
+            //printer.AppendLine($"Mouse Click Start Type: {Main.TAE_EDITOR.WhereCurrentMouseClickStarted}");
+
+            if (!HaventLoadedAnythingYet)
+            {
+                if (IncompatibleHavokVersion)
                 {
-                    printer.AppendLine($"Could not find valid HKX for this animation.", Color.Red);
+                    printer.AppendLine($"[UNSUPPORTED HAVOK VERSION]");
+                    printer.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
                 }
                 else
                 {
-                    printer.AppendLine($"Anim BlendHint: {CurrentAnimBlendHint}", CurrentAnimBlendHint == HKX.AnimationBlendHint.NORMAL ? Color.Yellow : Color.Lime);
-                    int fps = (int)Math.Round(1 / CurrentAnimationFrameDuration);
-                    printer.AppendLine($"Anim Frame Rate: {fps} FPS", fps == 30 ? Color.Yellow : Color.Cyan);
+                    if (HkxSkeleton != null)
+                    {
+                        printer.AppendLine($"HKX Bone Count: {HkxSkeleton.Bones.Capacity} (Max Supported By Viewer: {GFXShaders.FlverShader.MAX_ALL_BONE_ARRAYS})", (HkxSkeleton.Bones.Capacity > GFXShaders.FlverShader.MAX_ALL_BONE_ARRAYS) ? Color.Red : Color.Cyan);
+                    }
+
+                    printer.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
+                    if (CurrentAnimationHKX == null)
+                    {
+                        printer.AppendLine($"Could not find valid HKX for this animation.", Color.Red);
+                    }
+                    else
+                    {
+                        printer.AppendLine($"Anim BlendHint: {CurrentAnimBlendHint}", CurrentAnimBlendHint == HKX.AnimationBlendHint.NORMAL ? Color.Cyan : Color.Turquoise);
+                        int fps = (int)Math.Round(1 / CurrentAnimationFrameDuration);
+                        printer.AppendLine($"Anim Frame Rate: {fps} FPS", fps == 30 ? Color.Cyan : Color.Fuchsia);
+                    }
+                }
+
+                if (HkxAnimException != null)
+                {
+                    var errTxt = $"HKX failed to load:\n\n{HkxAnimException}";
+                    printer.AppendLine(errTxt, Color.Red);
+                }
+
+                foreach (var fail in TexturePool.Failures)
+                {
+                    printer.AppendLine($"Texture '{fail.Key.Texture.Name}' failed to load.", Color.Red);
                 }
             }
 
-            if (HkxAnimException != null)
-            {
-                var errTxt = $"HKX failed to load:\n\n{HkxAnimException}";
-                printer.AppendLine(errTxt, Color.Red);
-            }
+            
+            
 
-            foreach (var fail in TexturePool.Failures)
-            {
-                printer.AppendLine($"Texture '{fail.Key.Texture.Name}' failed to load.", Color.Red);
-            }
+            
 
             //if (Main.TAE_EDITOR.SelectedTaeAnim != null)
             //{
@@ -583,6 +592,7 @@ namespace DSAnimStudio
                 GFX.ModelDrawer.RequestTextureLoad();
             }
 
+
             // Attempt to load the skeleton hkx file first
             CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
             CurrentSkeletonHKX = HKX.Read(CurrentSkeletonHKXBytes, CurrentHkxVariation);
@@ -628,6 +638,21 @@ namespace DSAnimStudio
             GFX.World.OrbitCamReset();
 
             CreateMenuBarViewportSettings(menuBar);
+
+            if (CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
+            {
+                if (GFX.FlverShaderWorkflowType != GFXShaders.FlverShader.FSWorkflowType.Ass)
+                    GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Ass;
+
+                GFX.DrawSkybox = false;
+            }
+            else
+            {
+                if (GFX.FlverShaderWorkflowType == GFXShaders.FlverShader.FSWorkflowType.Ass)
+                    GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
+
+                GFX.DrawSkybox = true;
+            }
         }
 
         /// <summary>

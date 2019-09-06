@@ -20,7 +20,7 @@ namespace DSAnimStudio
     {
         //public static Form WinForm;
 
-        public const string VERSION = "v0.9.2";
+        public const string VERSION = "v0.9.3";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -44,11 +44,16 @@ namespace DSAnimStudio
         public static Texture2D DEFAULT_TEXTURE_SPECULAR;
         public static Texture2D DEFAULT_TEXTURE_NORMAL;
         public static Texture2D DEFAULT_TEXTURE_MISSING;
+        public static Texture2D DEFAULT_TEXTURE_EMISSIVE;
         public const string DEFAULT_TEXTURE_MISSING_NAME = "Content\\MissingTexture";
 
         public static TaeEditor.TaeEditorScreen TAE_EDITOR;
         public static Texture2D TAE_EDITOR_BLANK_TEX;
         public static SpriteFont TAE_EDITOR_FONT;
+
+        //public static Stopwatch UpdateStopwatch = new Stopwatch();
+        //public static TimeSpan MeasuredTotalTime = TimeSpan.Zero;
+        //public static TimeSpan MeasuredElapsedTime = TimeSpan.Zero;
 
         public static ContentManager CM = null;
 
@@ -105,7 +110,7 @@ namespace DSAnimStudio
             graphics.DeviceCreated += Graphics_DeviceCreated;
             graphics.DeviceReset += Graphics_DeviceReset;
 
-            IsFixedTimeStep = true;
+            IsFixedTimeStep = false;
             TargetElapsedTime = TimeSpan.FromTicks(166667);
             // Setting this max higher allows it to skip frames instead of do slow motion.
             MaxElapsedTime = TimeSpan.FromTicks(166667);
@@ -121,7 +126,7 @@ namespace DSAnimStudio
             {
                 System.Windows.Forms.MessageBox.Show("MonoGame is detecting your GPU as too " +
                     "low-end and refusing to enter the non-mobile Graphics Profile, " +
-                    "which is needed for Soulsborne files. It will likely crash.");
+                    "which is needed for the model viewer. The app will likely crash now.");
 
                 graphics.GraphicsProfile = GraphicsProfile.Reach;
             }
@@ -177,6 +182,9 @@ namespace DSAnimStudio
 
             DEFAULT_TEXTURE_NORMAL = new Texture2D(GraphicsDevice, 1, 1);
             DEFAULT_TEXTURE_NORMAL.SetData(new Color[] { new Color(0.5f, 0.5f, 1.0f) });
+
+            DEFAULT_TEXTURE_EMISSIVE = new Texture2D(GraphicsDevice, 1, 1);
+            DEFAULT_TEXTURE_EMISSIVE.SetData(new Color[] { Color.Black });
 
             DEFAULT_TEXTURE_MISSING = Content.Load<Texture2D>(DEFAULT_TEXTURE_MISSING_NAME);
 
@@ -272,11 +280,11 @@ namespace DSAnimStudio
 
             DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
                 GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
-                Color.Yellow, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
+                Color.Cyan, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
 
             DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2, 
                 GFX.Device.Viewport.Height - (strSize_unmanaged.Y * 0.75f)),
-                Color.Yellow, DBG.DEBUG_FONT_SMALL, scale:0.75f, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
+                Color.Cyan, DBG.DEBUG_FONT_SMALL, scale:0.75f, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
         }
 
         private void UpdateMemoryUsage()
@@ -290,6 +298,11 @@ namespace DSAnimStudio
 
         protected override void Update(GameTime gameTime)
         {
+            //MeasuredElapsedTime = UpdateStopwatch.Elapsed;
+            //MeasuredTotalTime = MeasuredTotalTime.Add(MeasuredElapsedTime);
+
+            //UpdateStopwatch.Restart();
+
             if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
                 TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
 

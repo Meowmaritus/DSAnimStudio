@@ -47,8 +47,9 @@ namespace DSAnimStudio
             foreach (var line in statusLines)
             {
                 var font = line.Font ?? Font ?? DBG.DEBUG_FONT_SMALL;
-                var color = line.Color ?? Color ?? Microsoft.Xna.Framework.Color.Yellow;
+                var color = line.Color ?? Color ?? Microsoft.Xna.Framework.Color.Cyan;
                 var textSize = font.MeasureString(line.Text);
+                GFX.SpriteBatch.DrawString(font, line.Text, currentPos + Vector2.One * 2, Microsoft.Xna.Framework.Color.Black);
                 GFX.SpriteBatch.DrawString(font, line.Text, currentPos, color);
                 currentPos.Y += textSize.Y;
             }

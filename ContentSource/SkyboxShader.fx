@@ -3,37 +3,59 @@
 	#define VS_SHADERMODEL vs_3_0
 	#define PS_SHADERMODEL ps_3_0
 #else
-	#define VS_SHADERMODEL vs_4_0_level_9_1
-	#define PS_SHADERMODEL ps_4_0_level_9_1
+	#define VS_SHADERMODEL vs_5_0
+	#define PS_SHADERMODEL ps_5_0
 #endif
 
-matrix WorldViewProjection;
+// Matrix
+float4x4 World;
+float4x4 View;
+float4x4 Projection;
+
+float3 EyePosition;
+
+float DS3AmbientBrightness;
+
+textureCUBE EnvironmentMap;
+samplerCUBE EnvironmentMapSampler = sampler_state
+{
+	Texture = <EnvironmentMap>;
+	MinFilter = linear;
+	MagFilter = linear;
+	MipFilter = linear;
+};
 
 struct VertexShaderInput
 {
 	float4 Position : POSITION0;
-	float4 Color : COLOR0;
 };
 
 struct VertexShaderOutput
 {
-	float4 Position : SV_POSITION;
-	float4 Color : COLOR0;
+	float4 Position : POSITION0;
+	float3 View : TEXCOORD0;
 };
 
 VertexShaderOutput MainVS(in VertexShaderInput input)
 {
 	VertexShaderOutput output = (VertexShaderOutput)0;
 
-	output.Position = mul(input.Position, WorldViewProjection);
-	output.Color = input.Color;
-
+	float4 worldPosition = mul(input.Position, World);
+    float4 viewPosition = mul(worldPosition, View);
+    output.Position = mul(viewPosition, Projection);
+    output.View = normalize(EyePosition - worldPosition);
+    
 	return output;
 }
 
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
-	return input.Color;
+	float3 viewVec = normalize(input.View);
+    float3 mipA = texCUBElod(EnvironmentMapSampler, float4(viewVec, 0));
+    float3 mipB = texCUBElod(EnvironmentMapSampler, float4(viewVec, 2));
+    float3 mipC = texCUBElod(EnvironmentMapSampler, float4(viewVec, 4));
+    
+    return float4(((mipA + mipB + mipC) / 3) * DS3AmbientBrightness, 1);
 }
 
 technique BasicColorDrawing

@@ -35,12 +35,14 @@ namespace DSAnimStudio
         public string TexNameDiffuse { get; private set; } = null;
         public string TexNameSpecular { get; private set; } = null;
         public string TexNameNormal { get; private set; } = null;
+        public string TexNameEmissive { get; private set; } = null;
         public string TexNameDOL1 { get; private set; } = null;
         public string TexNameDOL2 { get; private set; } = null;
 
         public Texture2D TexDataDiffuse { get; private set; } = null;
         public Texture2D TexDataSpecular { get; private set; } = null;
         public Texture2D TexDataNormal { get; private set; } = null;
+        public Texture2D TexDataEmissive { get; private set; } = null;
         public Texture2D TexDataDOL1 { get; private set; } = null;
         public Texture2D TexDataDOL2 { get; private set; } = null;
 
@@ -164,6 +166,8 @@ namespace DSAnimStudio
                 else if ((paramNameCheck.Contains("BUMPMAP") && !paramNameCheck.Contains("DETAILBUMP"))
                     || paramNameCheck.Contains("NORMALMAP"))
                     TexNameNormal = matParam.Path;
+                else if (paramNameCheck.Contains("EMISSIVE"))
+                    TexNameEmissive = matParam.Path;
                 else if (paramNameCheck == "G_DOLTEXTURE1")
                 {
                     TexNameDOL1 = matParam.Path;
@@ -849,6 +853,9 @@ namespace DSAnimStudio
             if (TexDataNormal == null && TexNameNormal != null)
                 TexDataNormal = TexturePool.FetchTexture(TexNameNormal);
 
+            if (TexDataEmissive == null && TexNameEmissive != null)
+                TexDataEmissive = TexturePool.FetchTexture(TexNameEmissive);
+
             if (TexDataDOL1 == null && TexNameDOL1 != null)
             {
                 TexDataDOL1 = TexturePool.FetchTexture(TexNameDOL1);
@@ -873,6 +880,7 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
+                GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
             }
 

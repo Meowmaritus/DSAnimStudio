@@ -54,8 +54,11 @@ namespace DSAnimStudio
         public static void CreateDebugPrimitives()
         {
             // This is the green grid, which is just hardcoded lel
-            DbgPrim_Grid = new DbgPrimWireGrid(Color.Green, Color.Green * 0.5f, 50, 0.25f);
+            DbgPrim_Grid = new DbgPrimWireGrid(Color.Green, Color.Green, 100, 1);
+            DbgPrim_Skybox = new DbgPrimSolidSkybox();
+
             DbgPrim_Grid.Transform = Transform.Default;
+            DbgPrim_Skybox.Transform = Transform.Default;
 
 
             // If you want to disable the grid on launch uncomment the next line.
@@ -92,6 +95,7 @@ namespace DSAnimStudio
         public static float PrimitiveNametagSize = 1f;
 
         public static DbgPrimWireGrid DbgPrim_Grid;
+        public static DbgPrimSolidSkybox DbgPrim_Skybox;
 
         public static void ClearPrimitives(DbgPrimCategory category)
         {
@@ -131,6 +135,12 @@ namespace DSAnimStudio
                 BeepVolume = 0;
 
             PrimitivesMarkedForDeletion.Clear();
+
+            if (GFX.DrawSkybox)
+            {
+                GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
+                DbgPrim_Skybox.Draw(gameTime);
+            }
 
             if (ShowGrid)
                 DbgPrim_Grid.Draw(gameTime);

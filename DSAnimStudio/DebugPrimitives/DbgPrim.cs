@@ -16,6 +16,7 @@ namespace DSAnimStudio.DebugPrimitives
         FlverBoneBoundingBox,
         DummyPoly,
         DummyPolyHelper,
+        Skybox,
         Other,
     }
 
@@ -93,23 +94,26 @@ namespace DSAnimStudio.DebugPrimitives
         {
             PreDraw(gameTime);
 
-            if (FadeOutTimer > -1)
+            if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
             {
-                Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One * (FadeOutTimer / FadeOutTimerMax));
-
-                if (FadeOutTimer > 0)
+                if (FadeOutTimer > -1)
                 {
-                    FadeOutTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One * (FadeOutTimer / FadeOutTimerMax));
+
+                    if (FadeOutTimer > 0)
+                    {
+                        FadeOutTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    }
+                    else
+                    {
+                        DBG.MarkPrimitiveForDeletion(this);
+                        return;
+                    }
                 }
                 else
                 {
-                    DBG.MarkPrimitiveForDeletion(this);
-                    return;
+                    Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One);
                 }
-            }
-            else
-            {
-                Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One);
             }
 
             if (!EnableDraw)
@@ -132,7 +136,8 @@ namespace DSAnimStudio.DebugPrimitives
                     effect.CurrentTechnique = effect.Techniques[techniqueName];
                     foreach (var pass in effect.CurrentTechnique.Passes)
                     {
-                        GFX.World.ApplyViewToShader(Shader, Transform);
+                        if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
+                            GFX.World.ApplyViewToShader(Shader, Transform);
                         pass.Apply();
                         DrawPrimitive();
                     }
@@ -142,7 +147,8 @@ namespace DSAnimStudio.DebugPrimitives
             {
                 foreach (var pass in effect.CurrentTechnique.Passes)
                 {
-                    GFX.World.ApplyViewToShader(Shader, Transform);
+                    if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
+                        GFX.World.ApplyViewToShader(Shader, Transform);
                     pass.Apply();
                     DrawPrimitive();
                 }
