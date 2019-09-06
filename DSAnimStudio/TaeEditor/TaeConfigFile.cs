@@ -13,10 +13,10 @@ namespace DSAnimStudio.TaeEditor
         public List<string> RecentFilesList { get; set; } = new List<string>();
         public bool LiveRefreshOnSave { get; set; } = true;
 
-        public string DS1_Parts_HD { get; set; } = "AM_A_9220";
-        public string DS1_Parts_BD { get; set; } = "AM_M_9510";
+        public string DS1_Parts_HD { get; set; } = "HD_A_9220";
+        public string DS1_Parts_BD { get; set; } = "BD_M_9510";
         public string DS1_Parts_AM { get; set; } = "AM_M_9400";
-        public string DS1_Parts_LG { get; set; } = "AM_M_9220";
+        public string DS1_Parts_LG { get; set; } = "LG_M_9220";
         public string DS1_Parts_WP_L { get; set; } = "WP_A_1504";
         public int DS1_Parts_WP_L_ModelIndex { get; set; } = 0;
         public string DS1_Parts_WP_R { get; set; } = "WP_A_0220";

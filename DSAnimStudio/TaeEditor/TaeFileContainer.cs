@@ -1,4 +1,5 @@
 ﻿using SoulsFormats;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -94,7 +95,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void LoadFromPath(string file)
+        public void LoadFromPath(string file, IProgress<double> progress)
         {
             ReloadType = TaeFileContainerReloadType.None;
 
@@ -109,38 +110,54 @@ namespace DSAnimStudio.TaeEditor
             if (BND3.Is(file))
             {
                 ContainerType = TaeFileContainerType.BND3;
-                containerBND3 = BND3.Read(file);
-                foreach (var f in containerBND3.Files)
+                LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBND", "Loading all TAE files in ANIBND...", innerProgress =>
                 {
-                    CheckGameVersionForTaeInterop(f.Name);
+                    containerBND3 = BND3.Read(file);
+                    double i = 0;
+                    foreach (var f in containerBND3.Files)
+                    {
+                        innerProgress.Report(++i / containerBND3.Files.Count);
 
-                    if (TAE.Is(f.Bytes))
-                    {
-                        taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                        CheckGameVersionForTaeInterop(f.Name);
+
+                        if (TAE.Is(f.Bytes))
+                        {
+                            taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                        }
+                        else if (f.Name.ToUpper().EndsWith(".HKX"))
+                        {
+                            hkxInBND.Add(f.Name, f.Bytes);
+                        }
                     }
-                    else if (f.Name.ToUpper().EndsWith(".HKX"))
-                    {
-                        hkxInBND.Add(f.Name, f.Bytes);
-                    }
-                }
+                    innerProgress.Report(1);
+                });
+                
             }
             else if (BND4.Is(file))
             {
                 ContainerType = TaeFileContainerType.BND4;
-                containerBND4 = BND4.Read(file);
-                foreach (var f in containerBND4.Files)
+                LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBND", "Loading all TAE files in ANIBND...", innerProgress =>
                 {
-                    CheckGameVersionForTaeInterop(f.Name);
+                    containerBND4 = BND4.Read(file);
+                    double i = 0;
+                    foreach (var f in containerBND4.Files)
+                    {
+                        innerProgress.Report(++i / containerBND4.Files.Count);
 
-                    if (TAE.Is(f.Bytes))
-                    {
-                        taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                        CheckGameVersionForTaeInterop(f.Name);
+
+                        if (TAE.Is(f.Bytes))
+                        {
+                            taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                        }
+                        else if (f.Name.ToUpper().EndsWith(".HKX"))
+                        {
+                            hkxInBND.Add(f.Name, f.Bytes);
+                        }
                     }
-                    else if (f.Name.ToUpper().EndsWith(".HKX"))
-                    {
-                        hkxInBND.Add(f.Name, f.Bytes);
-                    }
-                }
+                    innerProgress.Report(1);
+                });
+                   
             }
             else if (TAE.Is(file))
             {
@@ -150,6 +167,8 @@ namespace DSAnimStudio.TaeEditor
                 taeInBND.Add(file, TAE.Read(file));
             }
 
+            progress.Report(0.25);
+
             if (ContainerType != TaeFileContainerType.TAE)
             {
                 var nameBase = Utils.GetFileNameWithoutAnyExtensions(file);
@@ -157,41 +176,48 @@ namespace DSAnimStudio.TaeEditor
 
                 if (nameBase.EndsWith("c0000"))
                 {
-                    var anibndFiles = System.IO.Directory.GetFiles(folder, "c0000_*.anibnd*");
-                    foreach (var additionalAnibnd in anibndFiles)
+                    LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBND", "Loading additional player animations...", innerProgress =>
                     {
-                        if (BND3.Is(additionalAnibnd))
+                        var anibndFiles = System.IO.Directory.GetFiles(folder, "c0000_*.anibnd*");
+                        double i = 0;
+                        foreach (var additionalAnibnd in anibndFiles)
                         {
-                            ContainerType = TaeFileContainerType.BND3;
-                            var additionalContainerBND3 = BND3.Read(additionalAnibnd);
-                            foreach (var f in additionalContainerBND3.Files)
+                            innerProgress.Report(++i / anibndFiles.Length);
+                            if (BND3.Is(additionalAnibnd))
                             {
-                                CheckGameVersionForTaeInterop(f.Name);
-                                if (f.Name.ToUpper().EndsWith(".HKX"))
+                                var additionalContainerBND3 = BND3.Read(additionalAnibnd);
+                                foreach (var f in additionalContainerBND3.Files)
                                 {
-                                    if (!hkxInBND.ContainsKey(f.Name))
-                                        hkxInBND.Add(f.Name, f.Bytes);
+                                    CheckGameVersionForTaeInterop(f.Name);
+                                    if (f.Name.ToUpper().EndsWith(".HKX"))
+                                    {
+                                        if (!hkxInBND.ContainsKey(f.Name))
+                                            hkxInBND.Add(f.Name, f.Bytes);
+                                    }
                                 }
                             }
-                        }
-                        else if (BND4.Is(additionalAnibnd))
-                        {
-                            ContainerType = TaeFileContainerType.BND4;
-                            var additionalContainerBND4 = BND4.Read(additionalAnibnd);
-                            foreach (var f in additionalContainerBND4.Files)
+                            else if (BND4.Is(additionalAnibnd))
                             {
-                                CheckGameVersionForTaeInterop(f.Name);
+                                var additionalContainerBND4 = BND4.Read(additionalAnibnd);
+                                foreach (var f in additionalContainerBND4.Files)
+                                {
+                                    CheckGameVersionForTaeInterop(f.Name);
 
-                                if (f.Name.ToUpper().EndsWith(".HKX"))
-                                {
-                                    if (!hkxInBND.ContainsKey(f.Name))
-                                        hkxInBND.Add(f.Name, f.Bytes);
+                                    if (f.Name.ToUpper().EndsWith(".HKX"))
+                                    {
+                                        if (!hkxInBND.ContainsKey(f.Name))
+                                            hkxInBND.Add(f.Name, f.Bytes);
+                                    }
                                 }
                             }
+                            
                         }
-                    }
+                        innerProgress.Report(1);
+                    });
                 }
             }
+
+            progress.Report(0.5);
 
             filePath = file;
 
@@ -199,29 +225,37 @@ namespace DSAnimStudio.TaeEditor
             ReloadType = TaeFileContainerReloadType.None;
         }
 
-        public void SaveToPath(string file)
+        public void SaveToPath(string file, IProgress<double> progress)
         {
             file = file.ToUpper();
 
             if (ContainerType == TaeFileContainerType.BND3)
             {
+                double i = 0;
                 foreach (var f in containerBND3.Files)
                 {
+                    progress.Report((++i / containerBND3.Files.Count) * 0.9);
                     if (taeInBND.ContainsKey(f.Name))
                         f.Bytes = taeInBND[f.Name].Write();
                 }
 
                 containerBND3.Write(file);
+
+                progress.Report(1.0);
             }
             else if (ContainerType == TaeFileContainerType.BND4)
             {
+                double i = 0;
                 foreach (var f in containerBND4.Files)
                 {
+                    progress.Report((++i / containerBND4.Files.Count) * 0.9);
                     if (taeInBND.ContainsKey(f.Name))
                         f.Bytes = taeInBND[f.Name].Write();
                 }
 
                 containerBND4.Write(file);
+
+                progress.Report(1.0);
             }
             else if (ContainerType == TaeFileContainerType.TAE)
             {
@@ -230,6 +264,8 @@ namespace DSAnimStudio.TaeEditor
 
                 taeInBND.Clear();
                 taeInBND.Add(file, taeInBND[filePath]);
+
+                progress.Report(1.0);
             }
         }
     }

@@ -35,6 +35,8 @@ namespace DSAnimStudio
 
         }
 
+        public static bool IsLoadingAnimation = false;
+
         public static void LoadContent()
         {
             
@@ -46,6 +48,11 @@ namespace DSAnimStudio
         /// </summary>
         public static void TaeViewportDrawPost(GameTime gameTime)
         {
+            if (IsLoadingAnimation)
+            {
+                return;
+            }
+
             var printer = new StatusPrinter(Vector2.One * 4);
 
             //printer.AppendLine($"Current Indirect Lighting Value: {GFX.IndirectLightMult}");
@@ -72,9 +79,9 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        printer.AppendLine($"Anim BlendHint: {CurrentAnimBlendHint}", CurrentAnimBlendHint == HKX.AnimationBlendHint.NORMAL ? Color.Cyan : Color.Turquoise);
+                        printer.AppendLine($"Anim BlendHint: {CurrentAnimBlendHint}", CurrentAnimBlendHint == HKX.AnimationBlendHint.NORMAL ? Color.Cyan : Color.LightGreen);
                         int fps = (int)Math.Round(1 / CurrentAnimationFrameDuration);
-                        printer.AppendLine($"Anim Frame Rate: {fps} FPS", fps == 30 ? Color.Cyan : Color.Fuchsia);
+                        printer.AppendLine($"Anim Frame Rate: {fps} FPS", fps == 30 ? Color.Cyan : Color.LightGreen);
                     }
                 }
 
@@ -219,6 +226,11 @@ namespace DSAnimStudio
         // ! BLESSED METHOD !
         private static void CopyHavokMatrixToOtherMatrices(int havokMatrixIndex)
         {
+            if (IsLoadingAnimation)
+            {
+                return;
+            }
+
             if (!HkxBoneToFlverBoneMap.ContainsKey(havokMatrixIndex))
                 return;
 
@@ -250,6 +262,11 @@ namespace DSAnimStudio
 
         private static void RevertToTPose()
         {
+            if (IsLoadingAnimation)
+            {
+                return;
+            }
+
             for (int i = 0; i < FlverBoneTPoseMatrices.Count; i++)
             {
                 var matrixBank = i / GFXShaders.FlverShader.NUM_BONES;
@@ -328,6 +345,11 @@ namespace DSAnimStudio
         /// </summary>
         public static void PlaybackHitEventStart(TaeEditor.TaeEditAnimEventBox evBox)
         {
+            if (IsLoadingAnimation)
+            {
+                return;
+            }
+
             if (evBox.MyEvent.Template == null)
                 return;
 
@@ -355,6 +377,11 @@ namespace DSAnimStudio
         /// </summary>
         public static void PlaybackDuringEventSpan(TaeEditor.TaeEditAnimEventBox evBox)
         {
+            if (IsLoadingAnimation)
+            {
+                return;
+            }
+
             if (ShowSFXSpawnWithCyanMarkers && evBox.MyEvent.Template != null)
             {
                 //foreach (var key in evBox.MyEvent.Parameters.Template.Keys)
@@ -383,6 +410,11 @@ namespace DSAnimStudio
 
         public static void OnAnimFrameChange(bool isScrubbing)
         {
+            if (IsLoadingAnimation)
+            {
+                return;
+            }
+
             if (IncompatibleHavokVersion)
             {
                 CurrentSkeletonHKX = null;
@@ -428,230 +460,265 @@ namespace DSAnimStudio
         /// Runs once the TAE shit loads an ANIBND (doesn't run if a loose TAE is selected)
         /// Simply looks for shit named similarly to the ANIBND and loads those assets.
         /// </summary>
-        public static void OnLoadANIBND(TaeEditor.TaeMenuBarBuilder menuBar)
+        public static void OnLoadANIBND(TaeEditor.TaeMenuBarBuilder menuBar, IProgress<double> progress)
         {
             Init();
 
-            if (HaventLoadedAnythingYet)
-                HaventLoadedAnythingYet = false;
-
-            if (IncompatibleHavokVersion)
+            IsLoadingAnimation = true;
+            try
             {
-                CurrentSkeletonHKX = null;
-                CurrentSkeletonHKXBytes = null;
-                CurrentAnimationHKX = null;
-                CurrentAnimationHKXBytes = null;
-                TrueAnimLenghForPlaybackCursor = null;
-                RevertToTPose();
-                return;
-            }
-
-            var transform = new Transform(0, 0, 0, 0, 0, 0);
-
-            var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
-
-            if (chrNameBase.EndsWith("c0000"))
-            {
-                var folder = new FileInfo(AnibndPath).DirectoryName;
-
-                var lastSlashInFolder = folder.LastIndexOf("\\");
-
-                var interrootFolder = folder.Substring(0, lastSlashInFolder);
-
-                FLVER2 c0000 = null;
-
-                string c0000Path = $"{chrNameBase}.chrbnd";
-
-                if (File.Exists(c0000Path + ".dcx"))
+                LoadingTaskMan.DoLoadingTaskSynchronous("LoadModels", "Loading model(s)...", innerProgress =>
                 {
-                    c0000Path = c0000Path + ".dcx";
-                }
+                    if (HaventLoadedAnythingYet)
+                        HaventLoadedAnythingYet = false;
 
-                if (BND4.Is(c0000Path))
-                {
-                    var bnd = BND4.Read(c0000Path);
-
-                    foreach (var f in bnd.Files)
+                    if (IncompatibleHavokVersion)
                     {
-                        if (FLVER2.Is(f.Bytes))
+                        CurrentSkeletonHKX = null;
+                        CurrentSkeletonHKXBytes = null;
+                        CurrentAnimationHKX = null;
+                        CurrentAnimationHKXBytes = null;
+                        TrueAnimLenghForPlaybackCursor = null;
+                        RevertToTPose();
+                        return;
+                    }
+
+                    var transform = new Transform(0, 0, 0, 0, 0, 0);
+
+                    var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
+
+                    if (chrNameBase.EndsWith("c0000"))
+                    {
+                        var folder = new FileInfo(AnibndPath).DirectoryName;
+
+                        var lastSlashInFolder = folder.LastIndexOf("\\");
+
+                        var interrootFolder = folder.Substring(0, lastSlashInFolder);
+
+                        FLVER2 c0000 = null;
+
+                        string c0000Path = $"{chrNameBase}.chrbnd";
+
+                        if (File.Exists(c0000Path + ".dcx"))
                         {
-                            c0000 = FLVER2.Read(f.Bytes);
-                            break;
+                            c0000Path = c0000Path + ".dcx";
+                        }
+
+                        if (BND4.Is(c0000Path))
+                        {
+                            var bnd = BND4.Read(c0000Path);
+
+                            foreach (var f in bnd.Files)
+                            {
+                                if (FLVER2.Is(f.Bytes))
+                                {
+                                    c0000 = FLVER2.Read(f.Bytes);
+                                    break;
+                                }
+                            }
+                        }
+                        else if (BND3.Is(c0000Path))
+                        {
+                            var bnd = BND3.Read(c0000Path);
+
+                            foreach (var f in bnd.Files)
+                            {
+                                if (FLVER2.Is(f.Bytes))
+                                {
+                                    c0000 = FLVER2.Read(f.Bytes);
+                                    break;
+                                }
+                            }
+                        }
+
+                        //load it
+
+                        string partHD = $"{interrootFolder}\\parts\\{c0000_Parts_HD}.partsbnd";
+                        string partBD = $"{interrootFolder}\\parts\\{c0000_Parts_BD}.partsbnd";
+                        string partAM = $"{interrootFolder}\\parts\\{c0000_Parts_AM}.partsbnd";
+                        string partLG = $"{interrootFolder}\\parts\\{c0000_Parts_LG}.partsbnd";
+                        string partWP_L = $"{interrootFolder}\\parts\\{c0000_Parts_WP_L}.partsbnd";
+                        string partWP_R = $"{interrootFolder}\\parts\\{c0000_Parts_WP_R}.partsbnd";
+
+                        if (File.Exists(partHD + ".dcx"))
+                            partHD = partHD + ".dcx";
+
+                        if (File.Exists(partBD + ".dcx"))
+                            partBD = partBD + ".dcx";
+
+                        if (File.Exists(partAM + ".dcx"))
+                            partAM = partAM + ".dcx";
+
+                        if (File.Exists(partLG + ".dcx"))
+                            partLG = partLG + ".dcx";
+
+                        if (File.Exists(partWP_L + ".dcx"))
+                            partWP_L = partWP_L + ".dcx";
+
+                        if (File.Exists(partWP_R + ".dcx"))
+                            partWP_R = partWP_R + ".dcx";
+
+                        var parts = LoadFourPartsFiles(c0000, 
+                            partHD, partBD, partAM, partLG, 
+                            partWP_L, partWP_R, c0000_Parts_WP_L_ModelIndex, 
+                            c0000_Parts_WP_R_ModelIndex,
+                            innerProgress, 0, 1.0 / 5.0);
+
+                        LoadFLVER(parts.Item1);
+
+                        foreach (var tpf in parts.Item2)
+                        {
+                            TexturePool.AddTpf(tpf);
+                        }
+
+                        GFX.ModelDrawer.RequestTextureLoad();
+                    }
+                    else
+                    {
+                        if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
+                        {
+                            Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), transform);
+                        }
+                        else if (File.Exists($"{chrNameBase}.chrbnd"))
+                        {
+                            Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
+                        }
+
+                        innerProgress.Report(1.0 / 5.0);
+                    }
+
+                    if (File.Exists($"{chrNameBase}.texbnd.dcx"))
+                    {
+                        Load3DAsset($"{chrNameBase}.texbnd.dcx", File.ReadAllBytes($"{chrNameBase}.texbnd.dcx"), transform);
+                    }
+                    else if (File.Exists($"{chrNameBase}.texbnd"))
+                    {
+                        Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), transform);
+                    }
+                    innerProgress.Report(2.0 / 5.0);
+
+                    string possibleSharedTexPack = chrNameBase.Substring(0, chrNameBase.Length - 1) + "9";
+
+                    if (File.Exists($"{possibleSharedTexPack}.chrbnd.dcx"))
+                    {
+                        Load3DAsset($"{possibleSharedTexPack}.chrbnd.dcx", File.ReadAllBytes($"{possibleSharedTexPack}.chrbnd.dcx"), transform, dontLoadModels: true);
+                    }
+                    else if (File.Exists($"{possibleSharedTexPack}.chrbnd"))
+                    {
+                        Load3DAsset($"{possibleSharedTexPack}.chrbnd", File.ReadAllBytes($"{possibleSharedTexPack}.chrbnd"), transform, dontLoadModels: true);
+                    }
+                    innerProgress.Report(3.0 / 5.0);
+
+                    if (File.Exists($"{possibleSharedTexPack}.texbnd.dcx"))
+                    {
+                        Load3DAsset($"{possibleSharedTexPack}.texbnd.dcx", File.ReadAllBytes($"{possibleSharedTexPack}.texbnd.dcx"), transform);
+                    }
+                    else if (File.Exists($"{possibleSharedTexPack}.texbnd"))
+                    {
+                        Load3DAsset($"{possibleSharedTexPack}.texbnd", File.ReadAllBytes($"{possibleSharedTexPack}.texbnd"), transform);
+                    }
+                    innerProgress.Report(4.0 / 5.0);
+
+                    string extraBloodborneTextures = $"{chrNameBase}_2";
+
+                    if (File.Exists($"{extraBloodborneTextures}.tpf.dcx"))
+                    {
+                        Load3DAsset($"{extraBloodborneTextures}.tpf.dcx", File.ReadAllBytes($"{extraBloodborneTextures}.tpf.dcx"), transform);
+                    }
+                    else if (File.Exists($"{extraBloodborneTextures}.tpf"))
+                    {
+                        Load3DAsset($"{extraBloodborneTextures}.tpf", File.ReadAllBytes($"{extraBloodborneTextures}.ypf"), transform);
+                    }
+                    innerProgress.Report(4.5 / 5.0);
+
+                    if (Directory.Exists($"{chrNameBase}"))
+                    {
+                        TexturePool.AddTPFFolder($"{chrNameBase}");
+                        GFX.ModelDrawer.RequestTextureLoad();
+                    }
+
+                    innerProgress.Report(1.0);
+
+                });
+
+                progress.Report(0.75);
+
+                LoadingTaskMan.DoLoadingTaskSynchronous("LoadAnimations", "Loading animation(s)...", innerProgress =>
+                {
+                    // Attempt to load the skeleton hkx file first
+                    CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
+                    CurrentSkeletonHKX = HKX.Read(CurrentSkeletonHKXBytes, CurrentHkxVariation);
+
+                    HkxSkeleton = null;
+                    foreach (var cl in CurrentSkeletonHKX.DataSection.Objects)
+                    {
+                        if (cl is HKX.HKASkeleton)
+                        {
+                            HkxSkeleton = (HKX.HKASkeleton)cl;
                         }
                     }
-                }
-                else if (BND3.Is(c0000Path))
-                {
-                    var bnd = BND3.Read(c0000Path);
 
-                    foreach (var f in bnd.Files)
+                    innerProgress.Report(0.25);
+
+
+                    FlverBoneToHkxBoneMap = new Dictionary<int, int>();
+                    HkxBoneToFlverBoneMap = new Dictionary<int, int>();
+                    for (int i = 0; i < HkxSkeleton.Bones.Capacity; i++)
                     {
-                        if (FLVER2.Is(f.Bytes))
+                        var hkxName = HkxSkeleton.Bones[i].ToString();
+                        var flverBone = CurrentModel.Bones.LastOrDefault(b => b.Name == hkxName);
+                        if (flverBone == null)
                         {
-                            c0000 = FLVER2.Read(f.Bytes);
-                            break;
+                            Console.WriteLine($"FLVER did not have bone '{hkxName}' but HKX did;");
+                        }
+                        //else if (hkxName.EndsWith("Nub"))
+                        //{
+                        //    Console.WriteLine($"DEBUG: Ignoring nub '{hkxName}'...");
+                        //}
+                        else
+                        {
+                            FlverBoneToHkxBoneMap.Add(CurrentModel.Bones.IndexOf(flverBone), i);
+                            HkxBoneToFlverBoneMap.Add(i, CurrentModel.Bones.IndexOf(flverBone));
                         }
                     }
-                }
 
-                //load it
+                    innerProgress.Report(0.5);
 
-                string partHD = $"{interrootFolder}\\parts\\{c0000_Parts_HD}.partsbnd";
-                string partBD = $"{interrootFolder}\\parts\\{c0000_Parts_BD}.partsbnd";
-                string partAM = $"{interrootFolder}\\parts\\{c0000_Parts_AM}.partsbnd";
-                string partLG = $"{interrootFolder}\\parts\\{c0000_Parts_LG}.partsbnd";
-                string partWP_L = $"{interrootFolder}\\parts\\{c0000_Parts_WP_L}.partsbnd";
-                string partWP_R = $"{interrootFolder}\\parts\\{c0000_Parts_WP_R}.partsbnd";
+                    InitHavokBones();
 
-                if (File.Exists(partHD + ".dcx"))
-                    partHD = partHD + ".dcx";
+                    innerProgress.Report(0.75);
 
-                if (File.Exists(partBD + ".dcx"))
-                    partBD = partBD + ".dcx";
+                    var model = new Model(CurrentModel, new Dictionary<int, Matrix>());
+                    var modelInstance = new ModelInstance("Character Model", model, Transform.Default, -1, -1, -1, -1);
+                    GFX.ModelDrawer.AddModelInstance(model, "", Transform.Default);
+                    GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
+                    GFX.World.OrbitCamReset();
 
-                if (File.Exists(partAM + ".dcx"))
-                    partAM = partAM + ".dcx";
+                    CreateMenuBarViewportSettings(menuBar);
 
-                if (File.Exists(partLG + ".dcx"))
-                    partLG = partLG + ".dcx";
+                    if (CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
+                    {
+                        if (GFX.FlverShaderWorkflowType != GFXShaders.FlverShader.FSWorkflowType.Ass)
+                            GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Ass;
 
-                if (File.Exists(partWP_L + ".dcx"))
-                    partWP_L = partWP_L + ".dcx";
+                        GFX.DrawSkybox = false;
+                    }
+                    else
+                    {
+                        if (GFX.FlverShaderWorkflowType == GFXShaders.FlverShader.FSWorkflowType.Ass)
+                            GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
 
-                if (File.Exists(partWP_R + ".dcx"))
-                    partWP_R = partWP_R + ".dcx";
+                        GFX.DrawSkybox = true;
+                    }
 
-                var parts = LoadFourPartsFiles(c0000, partHD, partBD, partAM, partLG, partWP_L, partWP_R, c0000_Parts_WP_L_ModelIndex, c0000_Parts_WP_R_ModelIndex);
+                    innerProgress.Report(1);
+                });
 
-                LoadFLVER(parts.Item1);
-
-                foreach (var tpf in parts.Item2)
-                {
-                    TexturePool.AddTpf(tpf);
-                }
-
-                GFX.ModelDrawer.RequestTextureLoad();
+                progress.Report(0.95);
             }
-            else
+            finally
             {
-                if (File.Exists($"{chrNameBase}.chrbnd.dcx"))
-                {
-                    Load3DAsset($"{chrNameBase}.chrbnd.dcx", File.ReadAllBytes($"{chrNameBase}.chrbnd.dcx"), transform);
-                }
-                else if (File.Exists($"{chrNameBase}.chrbnd"))
-                {
-                    Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
-                }
-            }
-
-            
-
-            if (File.Exists($"{chrNameBase}.texbnd.dcx"))
-            {
-                Load3DAsset($"{chrNameBase}.texbnd.dcx", File.ReadAllBytes($"{chrNameBase}.texbnd.dcx"), transform);
-            }
-            else if (File.Exists($"{chrNameBase}.texbnd"))
-            {
-                Load3DAsset($"{chrNameBase}.texbnd", File.ReadAllBytes($"{chrNameBase}.texbnd"), transform);
-            }
-
-            string possibleSharedTexPack = chrNameBase.Substring(0, chrNameBase.Length - 1) + "9";
-
-            if (File.Exists($"{possibleSharedTexPack}.chrbnd.dcx"))
-            {
-                Load3DAsset($"{possibleSharedTexPack}.chrbnd.dcx", File.ReadAllBytes($"{possibleSharedTexPack}.chrbnd.dcx"), transform, dontLoadModels: true);
-            }
-            else if (File.Exists($"{possibleSharedTexPack}.chrbnd"))
-            {
-                Load3DAsset($"{possibleSharedTexPack}.chrbnd", File.ReadAllBytes($"{possibleSharedTexPack}.chrbnd"), transform, dontLoadModels: true);
-            }
-
-            if (File.Exists($"{possibleSharedTexPack}.texbnd.dcx"))
-            {
-                Load3DAsset($"{possibleSharedTexPack}.texbnd.dcx", File.ReadAllBytes($"{possibleSharedTexPack}.texbnd.dcx"), transform);
-            }
-            else if (File.Exists($"{possibleSharedTexPack}.texbnd"))
-            {
-                Load3DAsset($"{possibleSharedTexPack}.texbnd", File.ReadAllBytes($"{possibleSharedTexPack}.texbnd"), transform);
-            }
-
-            string extraBloodborneTextures = $"{chrNameBase}_2";
-
-            if (File.Exists($"{extraBloodborneTextures}.tpf.dcx"))
-            {
-                Load3DAsset($"{extraBloodborneTextures}.tpf.dcx", File.ReadAllBytes($"{extraBloodborneTextures}.tpf.dcx"), transform);
-            }
-            else if (File.Exists($"{extraBloodborneTextures}.tpf"))
-            {
-                Load3DAsset($"{extraBloodborneTextures}.tpf", File.ReadAllBytes($"{extraBloodborneTextures}.ypf"), transform);
-            }
-
-            if (Directory.Exists($"{chrNameBase}"))
-            {
-                TexturePool.AddTPFFolder($"{chrNameBase}");
-                GFX.ModelDrawer.RequestTextureLoad();
-            }
-
-
-            // Attempt to load the skeleton hkx file first
-            CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
-            CurrentSkeletonHKX = HKX.Read(CurrentSkeletonHKXBytes, CurrentHkxVariation);
-
-            HkxSkeleton = null;
-            foreach (var cl in CurrentSkeletonHKX.DataSection.Objects)
-            {
-                if (cl is HKX.HKASkeleton)
-                {
-                    HkxSkeleton = (HKX.HKASkeleton)cl;
-                }
-            }
-
-            
-
-            FlverBoneToHkxBoneMap = new Dictionary<int, int>();
-            HkxBoneToFlverBoneMap = new Dictionary<int, int>();
-            for (int i = 0; i < HkxSkeleton.Bones.Capacity; i++)
-            {
-                var hkxName = HkxSkeleton.Bones[i].ToString();
-                var flverBone = CurrentModel.Bones.LastOrDefault(b => b.Name == hkxName);
-                if (flverBone == null)
-                {
-                    Console.WriteLine($"FLVER did not have bone '{hkxName}' but HKX did;");
-                }
-                //else if (hkxName.EndsWith("Nub"))
-                //{
-                //    Console.WriteLine($"DEBUG: Ignoring nub '{hkxName}'...");
-                //}
-                else
-                {
-                    FlverBoneToHkxBoneMap.Add(CurrentModel.Bones.IndexOf(flverBone), i);
-                    HkxBoneToFlverBoneMap.Add(i, CurrentModel.Bones.IndexOf(flverBone));
-                }
-            }
-
-            InitHavokBones();
-
-            var model = new Model(CurrentModel, new Dictionary<int, Matrix>());
-            var modelInstance = new ModelInstance("Character Model", model, Transform.Default, -1, -1, -1, -1);
-            GFX.ModelDrawer.AddModelInstance(model, "", Transform.Default);
-            GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
-            GFX.World.OrbitCamReset();
-
-            CreateMenuBarViewportSettings(menuBar);
-
-            if (CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
-            {
-                if (GFX.FlverShaderWorkflowType != GFXShaders.FlverShader.FSWorkflowType.Ass)
-                    GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Ass;
-
-                GFX.DrawSkybox = false;
-            }
-            else
-            {
-                if (GFX.FlverShaderWorkflowType == GFXShaders.FlverShader.FSWorkflowType.Ass)
-                    GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
-
-                GFX.DrawSkybox = true;
+                IsLoadingAnimation = false;
             }
         }
 
@@ -1125,7 +1192,8 @@ namespace DSAnimStudio
 
             if (frame != LastHkxFrameCalculated || Debug_LockToTPose)
             {
-                if (!Debug_LockToTPose && !(RootMotionFrames.Count == 0 || RootMotionDuration == 0 || !EnableRootMotion))
+                if (RootMotionFrames != null && !Debug_LockToTPose && 
+                    !(RootMotionFrames.Count == 0 || RootMotionDuration == 0 || !EnableRootMotion))
                 {
                     float rootMotionTime = totalTime % RootMotionDuration;
                     float sampleDuration = RootMotionDuration / RootMotionFrames.Count;
@@ -1487,143 +1555,146 @@ namespace DSAnimStudio
 
         public static void CreateMenuBarViewportSettings(TaeEditor.TaeMenuBarBuilder menu)
         {
-            var vsync = menu["3D Preview/Vsync"];
-
-            menu.ClearItem("3D Preview");
-
-            menu.AddItem("3D Preview", vsync);
-
-            menu.AddSeparator("3D Preview");
-
-            menu.AddItem("3D Preview", "Render Meshes", () => !GFX.HideFLVERs,
-                b => GFX.HideFLVERs = !b);
-
-            menu.AddItem("3D Preview/Toggle Individual Meshes", "Show All", () =>
+            Main.TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
             {
+                var vsync = menu["3D Preview/Vsync"];
+
+                menu.ClearItem("3D Preview");
+
+                menu.AddItem("3D Preview", vsync);
+
+                menu.AddSeparator("3D Preview");
+
+                menu.AddItem("3D Preview", "Render Meshes", () => !GFX.HideFLVERs,
+                    b => GFX.HideFLVERs = !b);
+
+                menu.AddItem("3D Preview/Toggle Individual Meshes", "Show All", () =>
+                {
+                    foreach (var model in GFX.ModelDrawer.Models)
+                    {
+                        foreach (var sm in model.GetSubmeshes())
+                        {
+                            sm.IsVisible = true;
+                        }
+                    }
+                });
+
+                menu.AddItem("3D Preview/Toggle Individual Meshes", "Hide All", () =>
+                {
+                    foreach (var model in GFX.ModelDrawer.Models)
+                    {
+                        foreach (var sm in model.GetSubmeshes())
+                        {
+                            sm.IsVisible = false;
+                        }
+                    }
+                });
+
+                menu.AddSeparator("3D Preview/Toggle Individual Meshes");
+
+                foreach (var model in GFX.ModelDrawer.Models)
+                {
+                    int i = 0;
+                    foreach (var sm in model.GetSubmeshes())
+                        menu.AddItem("3D Preview/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
+                }
+
+                Dictionary<int, List<FlverSubmeshRenderer>> modelMaskMap = new Dictionary<int, List<FlverSubmeshRenderer>>();
                 foreach (var model in GFX.ModelDrawer.Models)
                 {
                     foreach (var sm in model.GetSubmeshes())
                     {
-                        sm.IsVisible = true;
+                        if (modelMaskMap.ContainsKey(sm.ModelMaskIndex))
+                            modelMaskMap[sm.ModelMaskIndex].Add(sm);
+                        else
+                            modelMaskMap.Add(sm.ModelMaskIndex, new List<FlverSubmeshRenderer>() { sm });
                     }
-                }
-            });
 
-            menu.AddItem("3D Preview/Toggle Individual Meshes", "Hide All", () =>
-            {
-                foreach (var model in GFX.ModelDrawer.Models)
+                }
+
+                menu.AddItem("3D Preview/Toggle By Model Mask", "Show All", () =>
                 {
-                    foreach (var sm in model.GetSubmeshes())
-                    {
-                        sm.IsVisible = false;
-                    }
-                }
-            });
-
-            menu.AddSeparator("3D Preview/Toggle Individual Meshes");
-
-            foreach (var model in GFX.ModelDrawer.Models)
-            {
-                int i = 0;
-                foreach (var sm in model.GetSubmeshes())
-                    menu.AddItem("3D Preview/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
-            }
-
-            Dictionary<int, List<FlverSubmeshRenderer>> modelMaskMap = new Dictionary<int, List<FlverSubmeshRenderer>>();
-            foreach (var model in GFX.ModelDrawer.Models)
-            {
-                foreach (var sm in model.GetSubmeshes())
-                {
-                    if (modelMaskMap.ContainsKey(sm.ModelMaskIndex))
-                        modelMaskMap[sm.ModelMaskIndex].Add(sm);
-                    else
-                        modelMaskMap.Add(sm.ModelMaskIndex, new List<FlverSubmeshRenderer>() { sm });
-                }
-
-            }
-
-            menu.AddItem("3D Preview/Toggle By Model Mask", "Show All", () =>
-            {
-                foreach (var kvp in modelMaskMap)
-                {
-                    foreach (var sm in kvp.Value)
-                    {
-                        sm.IsVisible = true;
-                    }
-                }
-            });
-
-            menu.AddItem("3D Preview/Toggle By Model Mask", "Hide All", () =>
-            {
-                foreach (var kvp in modelMaskMap)
-                {
-                    foreach (var sm in kvp.Value)
-                    {
-                        sm.IsVisible = false;
-                    }
-                }
-            });
-
-            menu.AddSeparator("3D Preview/Toggle By Model Mask");
-
-            foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
-            {
-                menu.AddItem("3D Preview/Toggle By Model Mask", kvp.Key >= 0 ? $"Model Mask {kvp.Key}" : "Default", () => kvp.Value.All(sm => sm.IsVisible),
-                    b =>
+                    foreach (var kvp in modelMaskMap)
                     {
                         foreach (var sm in kvp.Value)
                         {
-                            sm.IsVisible = b;
+                            sm.IsVisible = true;
                         }
-                    });
-            }
+                    }
+                });
 
-            menu.AddItem("3D Preview", "Render HKX Skeleton (Yellow)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
+                menu.AddItem("3D Preview/Toggle By Model Mask", "Hide All", () =>
+                {
+                    foreach (var kvp in modelMaskMap)
+                    {
+                        foreach (var sm in kvp.Value)
+                        {
+                            sm.IsVisible = false;
+                        }
+                    }
+                });
 
-            menu.AddItem("3D Preview", "Render FLVER Skeleton (Purple)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = b);
+                menu.AddSeparator("3D Preview/Toggle By Model Mask");
 
-            menu.AddItem("3D Preview", "Render FLVER Skeleton Bounding Boxes (Orange)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
+                foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
+                {
+                    menu.AddItem("3D Preview/Toggle By Model Mask", kvp.Key >= 0 ? $"Model Mask {kvp.Key}" : "Default", () => kvp.Value.All(sm => sm.IsVisible),
+                        b =>
+                        {
+                            foreach (var sm in kvp.Value)
+                            {
+                                sm.IsVisible = b;
+                            }
+                        });
+                }
 
-            menu.AddItem("3D Preview", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+                menu.AddItem("3D Preview", "Render HKX Skeleton (Yellow)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
+                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
 
-            //menu.AddItem("3D Preview", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-            //    b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+                menu.AddItem("3D Preview", "Render FLVER Skeleton (Purple)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
+                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = b);
 
-            menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Show All", () =>
-            {
+                menu.AddItem("3D Preview", "Render FLVER Skeleton Bounding Boxes (Orange)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
+                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
+
+                menu.AddItem("3D Preview", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+                //menu.AddItem("3D Preview", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                //    b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Show All", () =>
+                {
+                    foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+                    {
+                        if (prim is DbgPrimDummyPolyCluster cluster)
+                        {
+                            cluster.EnableDraw = true;
+                        }
+                    }
+                });
+
+                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Hide All", () =>
+                {
+                    foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+                    {
+                        if (prim is DbgPrimDummyPolyCluster cluster)
+                        {
+                            cluster.EnableDraw = false;
+                        }
+                    }
+                });
+
+                menu.AddSeparator("3D Preview/Toggle DummyPoly By ID");
+
                 foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
                 {
                     if (prim is DbgPrimDummyPolyCluster cluster)
                     {
-                        cluster.EnableDraw = true;
+                        menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{cluster.ID}", () => cluster.EnableDraw, b => cluster.EnableDraw = b);
                     }
                 }
-            });
-
-            menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Hide All", () =>
-            {
-                foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
-                {
-                    if (prim is DbgPrimDummyPolyCluster cluster)
-                    {
-                        cluster.EnableDraw = false;
-                    }
-                }
-            });
-
-            menu.AddSeparator("3D Preview/Toggle DummyPoly By ID");
-
-            foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
-            {
-                if (prim is DbgPrimDummyPolyCluster cluster)
-                {
-                    menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{cluster.ID}", () => cluster.EnableDraw, b => cluster.EnableDraw = b);
-                }
-            }
+            }));
         }
 
         private enum PartWeaponType
@@ -1635,7 +1706,8 @@ namespace DSAnimStudio
 
         private static (FLVER2, List<TPF>) LoadFourPartsFiles(FLVER2 baseChr, 
             string partHDName, string partBDName, string partAMName, string partLGName,
-                string partWPLName, string partWPRName, int partWPLIndex, int partWPRIndex)
+                string partWPLName, string partWPRName, int partWPLIndex, int partWPRIndex,
+                IProgress<double> progress, double progMin, double progMax)
         {
             System.Numerics.Vector4 TransformVertVec4ByBone(SoulsFormats.FLVER2.Bone b, 
                 System.Numerics.Vector4 vertVec4, bool upsideDown = true, bool isNormals = false)
@@ -1942,11 +2014,17 @@ namespace DSAnimStudio
             }
 
             DoPart(partHDName, PartWeaponType.None);
+            progress.Report(progMin + (progMax - progMin) * 1.0 / 6.0);
             DoPart(partBDName, PartWeaponType.None);
+            progress.Report(progMin + (progMax - progMin) * 2.0 / 6.0);
             DoPart(partAMName, PartWeaponType.None);
+            progress.Report(progMin + (progMax - progMin) * 3.0 / 6.0);
             DoPart(partLGName, PartWeaponType.None);
+            progress.Report(progMin + (progMax - progMin) * 4.0 / 6.0);
             DoPart(partWPLName, PartWeaponType.Left);
+            progress.Report(progMin + (progMax - progMin) * 5.0 / 6.0);
             DoPart(partWPRName, PartWeaponType.Right);
+            progress.Report(progMax);
 
             return (baseChr, tpfsUsed);
         }

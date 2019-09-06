@@ -23,12 +23,15 @@ namespace DSAnimStudio.TaeEditor
             get => _selectedEventBox;
             set
             {
-                DumpDataGridValuesToEvent();
+                Invoke(new Action(() =>
+                {
+                    DumpDataGridValuesToEvent();
 
-                dataGridView1.CellValueChanged -= DataGridView1_CellValueChanged;
-                _selectedEventBox = value;
-                eventIdentityCheck = value?.MyEvent;
-                ReconstructDataGrid();
+                    dataGridView1.CellValueChanged -= DataGridView1_CellValueChanged;
+                    _selectedEventBox = value;
+                    eventIdentityCheck = value?.MyEvent;
+                    ReconstructDataGrid();
+                }));
             }
         }
 
@@ -454,6 +457,28 @@ namespace DSAnimStudio.TaeEditor
         private void label1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void DataGridView1_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            var paramName = (string)dataGridView1.Rows[e.RowIndex].Cells[1].Value;
+            var cell = dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex];
+            if (cell is DataGridViewComboBoxCell cmb)
+            {
+                if (SelectedEventBox.MyEvent.Template[paramName].EnumEntries != null && SelectedEventBox.MyEvent.Template[paramName].EnumEntries.Count > 0)
+                {
+                    var enumVal = SelectedEventBox.MyEvent.Parameters[paramName];
+                    string genericKey = $"{enumVal}: Value {enumVal}";
+                    if (!SelectedEventBox.MyEvent.Template[paramName].EnumEntries.ContainsKey(genericKey))
+                    {
+                        SelectedEventBox.MyEvent.Template[paramName].EnumEntries.Add(genericKey, enumVal);
+                        SelectedEventBox.MyEvent.Template[paramName].SortEnumEntries();
+                    }
+                    e.Cancel = true;
+                    cmb.DataSource = SelectedEventBox.MyEvent.Template[paramName].EnumEntries.Keys.ToList();
+                    cmb.Value = genericKey;
+                }
+            }
         }
     }
 }

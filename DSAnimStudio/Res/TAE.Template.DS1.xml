@@ -2,8 +2,8 @@
 <event_template game="DS1">
   <!-- DS1 doesn't have banks :fatcat: -->
   <bank id="0" name="Default">
-    <event id="0" name="DoCommand">
-      <s32 name="CommandType">
+    <event id="0" name="JumpTale">
+      <s32 name="JumpTableID">
         <entry value="0" name="0: ?"/>
         <entry value="1" name="1: ?"/>
         <entry value="3" name="3: ?"/>
@@ -87,8 +87,8 @@
         <entry value="95" name="95: DisableShadow"/>
         <entry value="97" name="97: ?"/>
       </s32>
-      <f32 name="ParamFloat"/>
-      <s32 name="SomeID" default="-1"/>
+      <f32 name="ArgA"/>
+      <s32 name="ArgB" default="-1"/>
     </event>
     <event id="1" name="InvokeAttackBehavior">
       <s32 name="AtkType">
