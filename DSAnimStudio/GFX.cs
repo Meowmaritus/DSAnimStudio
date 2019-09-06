@@ -133,10 +133,10 @@ namespace DSAnimStudio
         //public static FlverShader FlverShader;
         //public static DbgPrimShader DbgPrimShader;
         public static SpriteBatch SpriteBatch;
-        public const string FlverShader__Name = @"Content\FlverShader";
-        public const string CollisionShader__Name = @"Content\CollisionShader";
-        public const string SkyboxShader__Name = @"Content\SkyboxShader";
-        public const string SkyboxTextureName = @"Content\m32_00_GILM0004";
+        public static string FlverShader__Name => $@"{Main.Directory}\\Content\FlverShader";
+        public static string CollisionShader__Name => $@"{Main.Directory}\\Content\CollisionShader";
+        public static string SkyboxShader__Name => $@"{Main.Directory}\\Content\SkyboxShader";
+        public static string SkyboxTextureName => $@"{Main.Directory}\\Content\m32_00_GILM0004";
 
         private static bool _wireframe = false;
         public static bool Wireframe

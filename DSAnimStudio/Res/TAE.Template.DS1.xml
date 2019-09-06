@@ -2,7 +2,7 @@
 <event_template game="DS1">
   <!-- DS1 doesn't have banks :fatcat: -->
   <bank id="0" name="Default">
-    <event id="0" name="JumpTale">
+    <event id="0" name="JumpTable">
       <s32 name="JumpTableID">
         <entry value="0" name="0: ?"/>
         <entry value="1" name="1: ?"/>

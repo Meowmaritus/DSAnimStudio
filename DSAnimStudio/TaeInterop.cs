@@ -40,7 +40,7 @@ namespace DSAnimStudio
         public static void LoadContent()
         {
             
-            TaeSoundManager.LoadSoundsFromDir("Content\\SE\\CHR");
+            TaeSoundManager.LoadSoundsFromDir($"{Main.Directory}\\Content\\SE\\CHR");
         }
 
         /// <summary>

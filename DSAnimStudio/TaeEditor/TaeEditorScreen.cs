@@ -67,7 +67,7 @@ namespace DSAnimStudio.TaeEditor
                     default: return "";
                 }
             });
-            MenuBar.AddItem("GFX", $"Reload FLVER Shader (.\\{GFX.FlverShader__Name})", () =>
+            MenuBar.AddItem("GFX", $"Reload FLVER Shader (.\\Content\\FlverShader.xnb", () =>
             {
                 if (DebugReloadContentManager != null)
                 {
