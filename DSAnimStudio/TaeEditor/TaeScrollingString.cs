@@ -85,9 +85,13 @@ namespace DSAnimStudio.TaeEditor
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Matrix spriteBatchMatrix, Rectangle rect, SpriteFont font, float elapsedSeconds)
         {
+            if (Text == null)
+                return;
+
             // If string is literally not visible then return;
             if ((rect.Right - rect.Left) <= 0)
                 return;
+
 
             if (TextSize.X < 0 || TextSize.Y < 0)
             {

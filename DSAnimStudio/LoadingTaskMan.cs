@@ -57,6 +57,16 @@ namespace DSAnimStudio
 
         public static Dictionary<string, LoadingTask> TaskDict = new Dictionary<string, LoadingTask>();
 
+        public static bool AnyTasksRunning()
+        {
+            bool result = false;
+            lock (_lock_TaskDictEdit)
+            {
+                result = TaskDict.Count > 0;
+            }
+            return result;
+        }
+
         /// <summary>
         /// Starts a loading task if that task wasn't already running.
         /// </summary>
@@ -71,9 +81,50 @@ namespace DSAnimStudio
                 if (TaskDict.ContainsKey(taskKey))
                     return false;
                 // As soon as the LoadingTask is created it starts.
-                TaskDict.Add(taskKey, new LoadingTask(displayString, taskDelegate));
+                TaskDict.Add(taskKey, new LoadingTask(displayString, progress =>
+                {
+                    taskDelegate.Invoke(progress);
+                    Thread.Sleep(100);
+                }));
             }
-            
+
+            return true;
+        }
+
+        /// <summary>
+        /// Starts a loading task if that task wasn't already running.
+        /// </summary>
+        /// <param name="taskKey">String key to reference task by. This is what determines if it's running already.</param>
+        /// <param name="displayString">String to actually show onscreen next to the progress bar.</param>
+        /// <param name="taskDelegate">The actual task to perform. Be sure to report a progress of 1.0 in the IProgress when done.</param>
+        /// <returns>True if the task was just started. False if it was already running.</returns>
+        public static bool DoLoadingTaskSynchronous(string taskKey, string displayString, Action<IProgress<double>> taskDelegate)
+        {
+            lock (_lock_TaskDictEdit)
+            {
+                if (TaskDict.ContainsKey(taskKey))
+                    return false;
+                // As soon as the LoadingTask is created it starts.
+                TaskDict.Add(taskKey, new LoadingTask(displayString, progress =>
+                {
+                    taskDelegate.Invoke(progress);
+                    Thread.Sleep(100);
+                }));
+            }
+
+            bool isTaskDone = false;
+            while (!isTaskDone)
+            {
+                // Lock here when checking to prevent it from freaking out trying to enumerate
+                // a dictionary which is being modified :fatcat:
+                lock (_lock_TaskDictEdit)
+                {
+                    isTaskDone = !TaskDict.ContainsKey(taskKey);
+                }
+
+                Thread.Sleep(100);
+            }
+
             return true;
         }
 
@@ -138,7 +189,8 @@ namespace DSAnimStudio
             }
         }
 
-        public const int GuiDistFromEdgesOfScreen = 8;
+        public const int GuiDistFromEdgesOfScreenX = 8;
+        public const int GuiDistFromEdgesOfScreenY = 20;
         public const int GuiDistBetweenProgressRects = 8;
         public const int GuiTaskRectWidth = 360;
         public const int GuiTaskRectHeight = 64;
@@ -160,8 +212,8 @@ namespace DSAnimStudio
                     {
                         // Draw Task Rect
                         Rectangle thisTaskRect = new Rectangle(
-                            GFX.Device.Viewport.Width - GuiTaskRectWidth - GuiDistFromEdgesOfScreen,
-                            GuiDistFromEdgesOfScreen + ((GuiDistBetweenProgressRects + GuiTaskRectHeight) * i),
+                            GFX.Device.Viewport.Width - GuiTaskRectWidth - GuiDistFromEdgesOfScreenX,
+                            GuiDistFromEdgesOfScreenY + ((GuiDistBetweenProgressRects + GuiTaskRectHeight) * i),
                             GuiTaskRectWidth, GuiTaskRectHeight);
 
                         GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, thisTaskRect, Color.Black * 0.75f);

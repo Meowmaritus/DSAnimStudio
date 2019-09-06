@@ -99,11 +99,14 @@ namespace DSAnimStudio
 
         public static void ClearPrimitives(DbgPrimCategory category)
         {
-            var primsToClear = Primitives.Where(p => p.Category == category).ToList();
-            foreach (var p in primsToClear)
+            lock (_lock_primitives)
             {
-                Primitives.Remove(p);
-                p.Dispose();
+                var primsToClear = Primitives.Where(p => p.Category == category).ToList();
+                foreach (var p in primsToClear)
+                {
+                    Primitives.Remove(p);
+                    p.Dispose();
+                }
             }
         }
 
@@ -117,8 +120,11 @@ namespace DSAnimStudio
 
         public static void RemovePrimitive(IDbgPrim prim)
         {
-            Primitives.Remove(prim);
-            prim.Dispose();
+            lock (_lock_primitives)
+            {
+                Primitives.Remove(prim);
+                prim.Dispose();
+            }
         }
 
         public static void MarkPrimitiveForDeletion(IDbgPrim prim)

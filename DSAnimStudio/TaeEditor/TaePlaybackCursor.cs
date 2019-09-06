@@ -46,6 +46,7 @@ namespace DSAnimStudio.TaeEditor
 
             TaeInterop.OnAnimFrameChange(Scrubbing);
 
+
             if (playPauseBtnDown)
             {
                 IsPlaying = !IsPlaying;
@@ -86,6 +87,11 @@ namespace DSAnimStudio.TaeEditor
                     CurrentTime += gameTime.ElapsedGameTime.TotalSeconds;
 
                 bool justReachedAnimEnd = (CurrentTime >= MaxTime);
+
+                if (Math.Round(MaxTime / TaeInterop.CurrentAnimationFrameDuration) == 1)
+                {
+                    CurrentTime = 0;
+                }
 
                 if (!HkxAnimationLength.HasValue)
                     MaxTime = 0;

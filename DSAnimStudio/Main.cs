@@ -20,13 +20,15 @@ namespace DSAnimStudio
     {
         //public static Form WinForm;
 
-        public const string VERSION = "v0.9.3";
+        public const string VERSION = "v0.9.4";
 
         public static bool FIXED_TIME_STEP = false;
 
         public static bool REQUEST_EXIT = false;
 
         public static IServiceProvider ContentServiceProvider = null;
+
+        private bool prevFrameWasLoadingTaskRunning = false;
 
         public static bool Active { get; private set; }
 
@@ -54,6 +56,8 @@ namespace DSAnimStudio
         //public static Stopwatch UpdateStopwatch = new Stopwatch();
         //public static TimeSpan MeasuredTotalTime = TimeSpan.Zero;
         //public static TimeSpan MeasuredElapsedTime = TimeSpan.Zero;
+
+        public bool IsLoadingTaskRunning = false;
 
         public static ContentManager CM = null;
 
@@ -244,7 +248,12 @@ namespace DSAnimStudio
             if (Program.ARGS.Length > 0)
             {
                 TAE_EDITOR.FileContainerName = Program.ARGS[0];
-                TAE_EDITOR.LoadCurrentFile();
+
+                LoadingTaskMan.DoLoadingTask("ProgramArgsLoad", "Loading ANIBND and associated model(s)...", progress =>
+                {
+                    TAE_EDITOR.LoadCurrentFile(progress);
+                });
+
                 //LoadDragDroppedFiles(Program.ARGS.ToDictionary(f => f, f => File.ReadAllBytes(f)));
             }
         }
@@ -298,28 +307,54 @@ namespace DSAnimStudio
 
         protected override void Update(GameTime gameTime)
         {
-            //MeasuredElapsedTime = UpdateStopwatch.Elapsed;
-            //MeasuredTotalTime = MeasuredTotalTime.Add(MeasuredElapsedTime);
-
-            //UpdateStopwatch.Restart();
-
-            if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
-                TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
-
-            if (IsActive)
-                TAE_EDITOR.Update(gameTime);
-            else
-                TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
-
-            if (!string.IsNullOrWhiteSpace(TAE_EDITOR.FileContainerName))
-                Window.Title = $"{System.IO.Path.GetFileName(TAE_EDITOR.FileContainerName)}" +
-                    $"{(TAE_EDITOR.IsModified ? "*" : "")}" +
-                    $"{(TAE_EDITOR.IsReadOnlyFileMode ? " !READ ONLY!" : "")}" +
-                    $" - DS Anim Studio {VERSION}";
-            else
-                Window.Title = $"DS Anim Studio {VERSION}";
+            IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
 
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            LoadingTaskMan.Update(elapsed);
+
+            if (IsLoadingTaskRunning != prevFrameWasLoadingTaskRunning)
+            {
+                TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
+                {
+                    if (IsLoadingTaskRunning)
+                    {
+                        Mouse.SetCursor(MouseCursor.Wait);
+                    }
+
+                    foreach (Control c in TAE_EDITOR.GameWindowAsForm.Controls)
+                    {
+                        c.Enabled = !IsLoadingTaskRunning;
+                    }
+
+                    
+                }));
+            }
+
+            if (!IsLoadingTaskRunning)
+            {
+                //MeasuredElapsedTime = UpdateStopwatch.Elapsed;
+                //MeasuredTotalTime = MeasuredTotalTime.Add(MeasuredElapsedTime);
+
+                //UpdateStopwatch.Restart();
+
+                if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
+                    TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+
+                if (IsActive)
+                    TAE_EDITOR.Update(gameTime);
+                else
+                    TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+
+                if (!string.IsNullOrWhiteSpace(TAE_EDITOR.FileContainerName))
+                    Window.Title = $"{System.IO.Path.GetFileName(TAE_EDITOR.FileContainerName)}" +
+                        $"{(TAE_EDITOR.IsModified ? "*" : "")}" +
+                        $"{(TAE_EDITOR.IsReadOnlyFileMode ? " !READ ONLY!" : "")}" +
+                        $" - DS Anim Studio {VERSION}";
+                else
+                    Window.Title = $"DS Anim Studio {VERSION}";
+            }
+
             IsFixedTimeStep = FIXED_TIME_STEP;
 
             Active = IsActive;
@@ -356,7 +391,7 @@ namespace DSAnimStudio
                 UpdateMemoryUsage();
             }
 
-            LoadingTaskMan.Update(elapsed);
+            prevFrameWasLoadingTaskRunning = IsLoadingTaskRunning;
 
             base.Update(gameTime);
         }
@@ -371,6 +406,11 @@ namespace DSAnimStudio
 
             TAE_EDITOR.Draw(gameTime, GraphicsDevice, GFX.SpriteBatch,
                 TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT, (float)gameTime.ElapsedGameTime.TotalSeconds);
+
+            if (IsLoadingTaskRunning)
+            {
+                TAE_EDITOR.DrawDimmingRect(GraphicsDevice, GFX.SpriteBatch, TAE_EDITOR_BLANK_TEX);
+            }
 
             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
 
