@@ -22,8 +22,6 @@ namespace DSAnimStudio
         public Vector3 OrbitCamCenter = new Vector3(0, 0.5f, 0);
         public bool IsOrbitCam = true;
 
-        
-
         public void OrbitCamReset()
         {
             if (TaeInterop.ModelViewerAspectRatio < 1)
@@ -106,6 +104,17 @@ namespace DSAnimStudio
                 m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
             shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+        }
+
+        public void ApplyViewToShader_Skybox<T>(IGFXShader<T> shader)
+            where T : Effect
+        {
+            Matrix m = Matrix.Identity;
+
+            //if (TaeInterop.CameraFollowsRootMotion)
+            //    m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+
+            shader.ApplyWorldView(m, CameraTransform.RotationMatrixNeg * Matrix.CreateScale(-1), MatrixProjection);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Transform modelTransform)
@@ -351,7 +360,13 @@ namespace DSAnimStudio
         public void UpdateInput(Main game, GameTime gameTime)
         {
             if (DisableAllInput)
+            {
+                oldWheel = Mouse.GetState(game.Window).ScrollWheelValue;
                 return;
+            }
+
+            // Kinda lazy but I really don't wanna go replace instances of gameTime and shit
+            //gameTime = new GameTime(Main.MeasuredTotalTime, Main.MeasuredElapsedTime);
 
             //if (GFX.TestLightSpin)
             //{
@@ -673,14 +688,18 @@ namespace DSAnimStudio
                     Vector2 mouseDelta = mousePos - oldMouse;
 
                     if (mouseDelta.LengthSquared() == 0)
+                    {
+                        // Prevents a meme
+                        oldWheel = currentWheel;
                         return;
+                    }
 
                     //Mouse.SetPosition(game.ClientBounds.X + game.ClientBounds.Width / 2, game.ClientBounds.Y + game.ClientBounds.Height / 2);
 
                     
 
-                    float camH = mouseDelta.X * 2 * CameraTurnSpeedMouse * (float)gameTime.ElapsedGameTime.TotalSeconds;
-                    float camV = mouseDelta.Y * -2 * CameraTurnSpeedMouse * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    float camH = mouseDelta.X * 1 * CameraTurnSpeedMouse * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    float camV = mouseDelta.Y * -1 * CameraTurnSpeedMouse * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
                     if (IsOrbitCam && !isMoveLightKeyPressed)
                     {

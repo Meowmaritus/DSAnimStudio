@@ -277,6 +277,71 @@ namespace DSAnimStudio.TaeEditor
             baseItem.DropDownItems.Add(newItem);
         }
 
+        public void AddItem(string path, string itemName, Dictionary<string, Action> choicesAndChooseAction, Func<string> getWhichIsSelected)
+        {
+            string[] pathStops = path.Split('/');
+
+            string currentPath = pathStops[0];
+
+            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Menustrip, pathStops[0]);
+
+            for (int i = 1; i < pathStops.Length; i++)
+            {
+                currentPath += "/" + pathStops[i];
+                baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
+            }
+
+            string shortcutText = null;
+
+            if (itemName.Contains("|"))
+            {
+                var split = itemName.Split('|');
+                shortcutText = split[1];
+                itemName = split[0];
+            }
+
+            var newItem = new ToolStripMenuItem(itemName);
+
+            if (shortcutText != null)
+                newItem.ShortcutKeyDisplayString = shortcutText;
+
+            foreach (var kvp in choicesAndChooseAction)
+            {
+                var newSubItem = new ToolStripMenuItem(kvp.Key);
+                newItem.DropDownItems.Add(newSubItem);
+            }
+
+            newItem.DropDownOpening += (o, e) =>
+            {
+                string selected = getWhichIsSelected.Invoke();
+                foreach (ToolStripMenuItem h in newItem.DropDownItems)
+                {
+                    h.Checked = h.Text == selected;
+                }
+            };
+
+            foreach (ToolStripMenuItem newSubItem in newItem.DropDownItems)
+            {
+                newSubItem.Click += (o, e) =>
+                {
+                    foreach (ToolStripMenuItem h in newItem.DropDownItems)
+                    {
+                        h.Checked = false;
+                    }
+                    newSubItem.Checked = true;
+                    choicesAndChooseAction[newSubItem.Text].Invoke();
+                };
+            }
+
+            currentPath += "/" + itemName;
+            if (!items.ContainsKey(currentPath))
+                items.Add(currentPath, newItem);
+
+            SetColorOfItem(newItem);
+
+            baseItem.DropDownItems.Add(newItem);
+        }
+
         public void AddItem(string path, string itemName, Func<bool> checkState, Action<bool> onCheckChange)
         {
             string[] pathStops = path.Split('/');

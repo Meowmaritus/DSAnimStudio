@@ -10,6 +10,14 @@ namespace DSAnimStudio.GFXShaders
 {
     public class FlverShader : Effect, IGFXShader<FlverShader>
     {
+        public enum FSWorkflowType
+        {
+            Ass = 0,
+            Gloss = 1,
+            Roughness = 2,
+            Metalness = 3,
+        }
+
         public const int NUM_BONES = 255;
         public const int MAX_ALL_BONE_ARRAYS = NUM_BONES * 3;
 
@@ -17,167 +25,182 @@ namespace DSAnimStudio.GFXShaders
 
         public FlverShader Effect => this;
 
-        public Matrix World
+        public FSWorkflowType WorkflowType
         {
-            get => Parameters["World"].GetValueMatrix();
-            set => Parameters["World"].SetValue(value);
-        }
-
-        public Matrix View
-        {
-            get => Parameters["View"].GetValueMatrix();
-            set => Parameters["View"].SetValue(value);
-        }
-
-        //public Matrix ViewInverse
-        //{
-        //    get => Parameters["ViewInverse"].GetValueMatrix();
-        //    set => Parameters["ViewInverse"].SetValue(value);
-        //}
-
-        public Matrix Projection
-        {
-            get => Parameters["Projection"].GetValueMatrix();
-            set => Parameters["Projection"].SetValue(value);
-        }
-
-        public Vector4 AmbientColor
-        {
-            get => Parameters["AmbientColor"].GetValueVector4();
-            set => Parameters["AmbientColor"].SetValue(value);
-        }
-
-        public float AmbientIntensity
-        {
-            get => Parameters["AmbientIntensity"].GetValueSingle();
-            set => Parameters["AmbientIntensity"].SetValue(value);
+            get => (FSWorkflowType)Parameters[nameof(WorkflowType)].GetValueInt32();
+            set => Parameters[nameof(WorkflowType)].SetValue((int)value);
         }
 
         public Vector3 LightDirection
         {
-            get => Parameters["LightDirection"].GetValueVector3();
-            set => Parameters["LightDirection"].SetValue(value);
-        }
-
-        public Vector4 DiffuseColor
-        {
-            get => Parameters["DiffuseColor"].GetValueVector4();
-            set => Parameters["DiffuseColor"].SetValue(value);
-        }
-
-        public float DiffuseIntensity
-        {
-            get => Parameters["DiffuseIntensity"].GetValueSingle();
-            set => Parameters["DiffuseIntensity"].SetValue(value);
+            get => Parameters[nameof(LightDirection)].GetValueVector3();
+            set => Parameters[nameof(LightDirection)].SetValue(value);
         }
 
         public float AlphaTest
         {
-            get => Parameters["AlphaTest"].GetValueSingle();
-            set => Parameters["AlphaTest"].SetValue(value);
-        }
-
-        public float DiffusePower
-        {
-            get => Parameters["DiffusePower"].GetValueSingle();
-            set => Parameters["DiffusePower"].SetValue(value);
-        }
-
-        public Vector4 SpecularColor
-        {
-            get => Parameters["SpecularColor"].GetValueVector4();
-            set => Parameters["SpecularColor"].SetValue(value);
-        }
-
-        public float SpecularPower
-        {
-            get => Parameters["SpecularPower"].GetValueSingle();
-            set => Parameters["SpecularPower"].SetValue(value);
+            get => Parameters[nameof(AlphaTest)].GetValueSingle();
+            set => Parameters[nameof(AlphaTest)].SetValue(value);
         }
 
         public Vector3 EyePosition
         {
-            get => Parameters["EyePosition"].GetValueVector3();
-            set => Parameters["EyePosition"].SetValue(value);
+            get => Parameters[nameof(EyePosition)].GetValueVector3();
+            set => Parameters[nameof(EyePosition)].SetValue(value);
         }
 
-        public float NormalMapCustomZ
+        public float AmbientLightMult
         {
-            get => Parameters["NormalMapCustomZ"].GetValueSingle();
-            set => Parameters["NormalMapCustomZ"].SetValue(value);
+            get => Parameters[nameof(AmbientLightMult)].GetValueSingle();
+            set => Parameters[nameof(AmbientLightMult)].SetValue(value);
         }
 
+        public float DirectLightMult
+        {
+            get => Parameters[nameof(DirectLightMult)].GetValueSingle();
+            set => Parameters[nameof(DirectLightMult)].SetValue(value);
+        }
+
+        public float IndirectLightMult
+        {
+            get => Parameters[nameof(IndirectLightMult)].GetValueSingle();
+            set => Parameters[nameof(IndirectLightMult)].SetValue(value);
+        }
+
+        public float EmissiveMapMult
+        {
+            get => Parameters[nameof(EmissiveMapMult)].GetValueSingle();
+            set => Parameters[nameof(EmissiveMapMult)].SetValue(value);
+        }
+
+        #region MATRICES
+        public Matrix World
+        {
+            get => Parameters[nameof(World)].GetValueMatrix();
+            set => Parameters[nameof(World)].SetValue(value);
+        }
+
+        public Matrix View
+        {
+            get => Parameters[nameof(View)].GetValueMatrix();
+            set => Parameters[nameof(View)].SetValue(value);
+        }
+
+        //public Matrix ViewInverse
+        //{
+        //    get => Parameters[nameof(ViewInverse)].GetValueMatrix();
+        //    set => Parameters[nameof(ViewInverse)].SetValue(value);
+        //}
+
+        public Matrix Projection
+        {
+            get => Parameters[nameof(Projection)].GetValueMatrix();
+            set => Parameters[nameof(Projection)].SetValue(value);
+        }
+        #endregion
+
+
+        #region LEGACY
+        public float Legacy_NormalMapCustomZ
+        {
+            get => Parameters[nameof(Legacy_NormalMapCustomZ)].GetValueSingle();
+            set => Parameters[nameof(Legacy_NormalMapCustomZ)].SetValue(value);
+        }
+
+        public float Legacy_DiffusePower
+        {
+            get => Parameters[nameof(Legacy_DiffusePower)].GetValueSingle();
+            set => Parameters[nameof(Legacy_DiffusePower)].SetValue(value);
+        }
+
+        public Vector4 Legacy_SpecularColor
+        {
+            get => Parameters[nameof(Legacy_SpecularColor)].GetValueVector4();
+            set => Parameters[nameof(Legacy_SpecularColor)].SetValue(value);
+        }
+
+        public float Legacy_SpecularPower
+        {
+            get => Parameters[nameof(Legacy_SpecularPower)].GetValueSingle();
+            set => Parameters[nameof(Legacy_SpecularPower)].SetValue(value);
+        }
+
+        public Vector4 Legacy_AmbientColor
+        {
+            get => Parameters[nameof(Legacy_AmbientColor)].GetValueVector4();
+            set => Parameters[nameof(Legacy_AmbientColor)].SetValue(value);
+        }
+
+        public float Legacy_AmbientIntensity
+        {
+            get => Parameters[nameof(Legacy_AmbientIntensity)].GetValueSingle();
+            set => Parameters[nameof(Legacy_AmbientIntensity)].SetValue(value);
+        }
+
+        public Vector4 Legacy_DiffuseColor
+        {
+            get => Parameters[nameof(Legacy_DiffuseColor)].GetValueVector4();
+            set => Parameters[nameof(Legacy_DiffuseColor)].SetValue(value);
+        }
+
+        public float Legacy_DiffuseIntensity
+        {
+            get => Parameters[nameof(Legacy_DiffuseIntensity)].GetValueSingle();
+            set => Parameters[nameof(Legacy_DiffuseIntensity)].SetValue(value);
+        }
+        #endregion
+
+        #region TEXTURE MAPS
         public Texture2D ColorMap
         {
-            get => Parameters["ColorMap"].GetValueTexture2D();
-            set => Parameters["ColorMap"]?.SetValue(value);
+            get => Parameters[nameof(ColorMap)].GetValueTexture2D();
+            set => Parameters[nameof(ColorMap)]?.SetValue(value);
         }
 
         public Texture2D NormalMap
         {
-            get => Parameters["NormalMap"].GetValueTexture2D();
-            set => Parameters["NormalMap"]?.SetValue(value);
+            get => Parameters[nameof(NormalMap)].GetValueTexture2D();
+            set => Parameters[nameof(NormalMap)]?.SetValue(value);
         }
 
         public Texture2D SpecularMap
         {
-            get => Parameters["SpecularMap"].GetValueTexture2D();
-            set => Parameters["SpecularMap"]?.SetValue(value);
+            get => Parameters[nameof(SpecularMap)].GetValueTexture2D();
+            set => Parameters[nameof(SpecularMap)]?.SetValue(value);
+        }
+
+        public Texture2D EmissiveMap
+        {
+            get => Parameters[nameof(EmissiveMap)].GetValueTexture2D();
+            set => Parameters[nameof(EmissiveMap)]?.SetValue(value);
         }
 
         public TextureCube EnvironmentMap
         {
-            get => Parameters["EnvironmentMap"].GetValueTextureCube();
-            set => Parameters["EnvironmentMap"]?.SetValue(value);
+            get => Parameters[nameof(EnvironmentMap)].GetValueTextureCube();
+            set => Parameters[nameof(EnvironmentMap)]?.SetValue(value);
         }
+        #endregion
 
+        #region SKINNING
         public Matrix[] Bones0
         {
-            get => Parameters["Bones0"].GetValueMatrixArray(NUM_BONES);
-            set => Parameters["Bones0"]?.SetValue(value);
+            get => Parameters[nameof(Bones0)].GetValueMatrixArray(NUM_BONES);
+            set => Parameters[nameof(Bones0)]?.SetValue(value);
         }
 
         public Matrix[] Bones1
         {
-            get => Parameters["Bones1"].GetValueMatrixArray(NUM_BONES);
-            set => Parameters["Bones1"]?.SetValue(value);
+            get => Parameters[nameof(Bones1)].GetValueMatrixArray(NUM_BONES);
+            set => Parameters[nameof(Bones1)]?.SetValue(value);
         }
 
         public Matrix[] Bones2
         {
-            get => Parameters["Bones2"].GetValueMatrixArray(NUM_BONES);
-            set => Parameters["Bones2"]?.SetValue(value);
+            get => Parameters[nameof(Bones2)].GetValueMatrixArray(NUM_BONES);
+            set => Parameters[nameof(Bones2)]?.SetValue(value);
         }
-
-        //public Texture2D LightMap1
-        //{
-        //    get => Parameters["LightMap1"].GetValueTexture2D();
-        //    set => Parameters["LightMap1"].SetValue(value);
-        //}
-
-        //public Texture2D LightMap2
-        //{
-        //    get => Parameters["LightMap2"].GetValueTexture2D();
-        //    set => Parameters["LightMap2"].SetValue(value);
-        //}
-
-        public bool EnableGhettoDS3Renderer
-        {
-            get => Parameters["EnableGhettoDS3Renderer"].GetValueBoolean();
-            set => Parameters["EnableGhettoDS3Renderer"]?.SetValue(value);
-        }
-
-        public Vector3[] DS3LightDirection
-        {
-            get => Parameters["DS3LightDirection"].GetValueVector3Array();
-            set => Parameters["DS3LightDirection"].SetValue(value);
-        }
-
-        public float[] DS3LightRadiance
-        {
-            get => Parameters["DS3LightRadiance"].GetValueSingleArray();
-            set => Parameters["DS3LightRadiance"].SetValue(value);
-        }
+        #endregion
 
         public FlverShader(GraphicsDevice graphicsDevice, byte[] effectCode) : base(graphicsDevice, effectCode)
         {

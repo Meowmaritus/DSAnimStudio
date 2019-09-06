@@ -17,7 +17,7 @@ namespace DSAnimStudio
         public float AverageFramesPerSecond { get; private set; }
         public float CurrentFramesPerSecond { get; private set; }
 
-        public const int MAXIMUM_SAMPLES = 8;
+        public const int MAXIMUM_SAMPLES = 32;
 
         private Queue<float> _sampleBuffer = new Queue<float>();
 

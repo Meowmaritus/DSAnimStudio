@@ -14,6 +14,8 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditorScreen
     {
+        public LightShaderAdjuster ShaderAdjuster = null;
+
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
@@ -46,10 +48,26 @@ namespace DSAnimStudio.TaeEditor
             //});
 
             MenuBar.AddItem("GFX", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
-            MenuBar.AddItem("GFX", "Slow Light Spin", () => GFX.AutoRotateLight, b => GFX.AutoRotateLight = b);
-            MenuBar.AddItem("GFX", "Light Follows Camera (disables Slow Light Spin btw)", () => GFX.LightFollowsCamera, b => GFX.LightFollowsCamera = b);
-            MenuBar.AddItem("GFX", "Use New Shader", () => GFX.UseDS3Shader, b => GFX.UseDS3Shader = b);
-            MenuBar.AddItem("GFX", "Reload FLVER Shader (Content\\NormalMapShader.xnb)", () =>
+            MenuBar.AddItem("GFX", "Slow Light Spin (overrides below option)", () => GFX.AutoRotateLight, b => GFX.AutoRotateLight = b);
+            MenuBar.AddItem("GFX", "Light Follows Camera", () => GFX.LightFollowsCamera, b => GFX.LightFollowsCamera = b);
+            MenuBar.AddItem("GFX", "Shader Workflow Type", new Dictionary<string, Action>
+            {
+                { "Legacy (Epic 2005 Style)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Ass },
+                { "Modern (Gloss Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Gloss },
+                { "Modern (Roughness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Roughness },
+                { "Modern (Metalness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Metalness },
+            }, () =>
+            {
+                switch (GFX.FlverShaderWorkflowType)
+                {
+                    case FlverShader.FSWorkflowType.Ass: return "Legacy (Epic 2005 Style)";
+                    case FlverShader.FSWorkflowType.Gloss: return "Modern (Gloss Channel)";
+                    case FlverShader.FSWorkflowType.Metalness: return "Modern (Roughness Channel)";
+                    case FlverShader.FSWorkflowType.Roughness: return "Modern (Metalness Channel)";
+                    default: return "";
+                }
+            });
+            MenuBar.AddItem("GFX", $"Reload FLVER Shader (.\\{GFX.FlverShader__Name})", () =>
             {
                 if (DebugReloadContentManager != null)
                 {
@@ -61,12 +79,11 @@ namespace DSAnimStudio.TaeEditor
 
                 GFX.FlverShader.Effect.Dispose();
                 GFX.FlverShader = null;
-                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(@"Content\NormalMapShader"));
+                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
 
-                GFX.InitFlverMainShader();
+                GFX.InitShaders();
             });
 
-            
         }
 
         enum DividerDragMode
@@ -77,7 +94,7 @@ namespace DSAnimStudio.TaeEditor
             RightPaneHorizontal,
         }
 
-        enum ScreenMouseHoverKind
+        public enum ScreenMouseHoverKind
         {
             None,
             AnimList,
@@ -87,6 +104,7 @@ namespace DSAnimStudio.TaeEditor
             DividerBetweenCenterAndLeftPane,
             DividerBetweenCenterAndRightPane,
             DividerRightPaneHorizontal,
+            ShaderAdjuster
         }
 
         public DbgMenus.DbgMenuPadRepeater NextAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.05f);
@@ -303,9 +321,9 @@ namespace DSAnimStudio.TaeEditor
 
         private DividerDragMode CurrentDividerDragMode = DividerDragMode.None;
 
-        private ScreenMouseHoverKind MouseHoverKind = ScreenMouseHoverKind.None;
+        public ScreenMouseHoverKind MouseHoverKind = ScreenMouseHoverKind.None;
         private ScreenMouseHoverKind oldMouseHoverKind = ScreenMouseHoverKind.None;
-        private ScreenMouseHoverKind WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
+        public ScreenMouseHoverKind WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
 
         public TaeFileContainer FileContainer;
 
@@ -850,6 +868,17 @@ namespace DSAnimStudio.TaeEditor
             ButtonEditCurrentTaeHeader.Visible = false;
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
+
+            ShaderAdjuster = new LightShaderAdjuster();
+
+            //ShaderAdjuster.BackColor = inspectorWinFormsControl.BackColor;
+            //ShaderAdjuster.ForeColor = inspectorWinFormsControl.ForeColor;
+
+            //GameWindowAsForm.BackColor = System.Drawing.Color.Fuchsia;
+            GameWindowAsForm.AllowTransparency = true;
+            GameWindowAsForm.TransparencyKey = System.Drawing.Color.Fuchsia;
+
+            GameWindowAsForm.Controls.Add(ShaderAdjuster);
 
             UpdateLayout();
         }
@@ -1929,6 +1958,11 @@ namespace DSAnimStudio.TaeEditor
                 GFX.World.DisableAllInput = true;
                 return;
             }
+            else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ShaderAdjuster)
+            {
+                GFX.World.DisableAllInput = true;
+                return;
+            }
             else if (!(MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
                 || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
                 || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal))
@@ -1946,9 +1980,13 @@ namespace DSAnimStudio.TaeEditor
                         )
                         .Contains(Input.MousePositionPoint))
                     MouseHoverKind = ScreenMouseHoverKind.Inspector;
+                else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
+                    MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
                 else if (
                     TaeInterop.ModelViewerWindowRect.Contains(Input.MousePositionPoint))
+                {
                     MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
+                }
                 else
                     MouseHoverKind = ScreenMouseHoverKind.None;
 
@@ -2096,8 +2134,10 @@ namespace DSAnimStudio.TaeEditor
             //inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(Rect.Height - TopMenuBarMargin - BottomRightPaneHeight - DividerVisiblePad));
             //ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Bottom - BottomRightPaneHeight), (int)RightSectionWidth, (int)(BottomRightPaneHeight));
 
+            //ShaderAdjuster.Size = new System.Drawing.Size((int)RightSectionWidth, ShaderAdjuster.Size.Height);
             ModelViewerBounds = new Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(TopRightPaneHeight));
             inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad), (int)RightSectionWidth, (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin));
+            ShaderAdjuster.Location = new System.Drawing.Point(Rect.Right - ShaderAdjuster.Size.Width, Rect.Top + TopMenuBarMargin);
         }
 
         public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)

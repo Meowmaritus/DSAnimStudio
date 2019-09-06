@@ -52,30 +52,38 @@ namespace DSAnimStudio
             }
         }
 
-        public static void InitFlverMainShader()
+        public static void InitShaders()
         {
-            FlverShader.Effect.AmbientColor = new Vector4(1, 1, 1, 1);
-            FlverShader.Effect.AmbientIntensity = 0.25f;
-            FlverShader.Effect.DiffuseColor = new Vector4(1, 1, 1, 1);
-            FlverShader.Effect.DiffuseIntensity = 0.85f;
-            FlverShader.Effect.SpecularColor = new Vector4(1, 1, 1, 1);
-            FlverShader.Effect.SpecularPower = 8;
-            FlverShader.Effect.NormalMapCustomZ = 1.0f;
-            FlverShader.Effect.DiffusePower = 1 / 1.5f;
+            FlverShader.Effect.Legacy_AmbientColor = new Vector4(1, 1, 1, 1);
+            FlverShader.Effect.Legacy_AmbientIntensity = 0.25f;
+            FlverShader.Effect.Legacy_DiffuseColor = new Vector4(1, 1, 1, 1);
+            FlverShader.Effect.Legacy_DiffuseIntensity = 0.85f;
+            FlverShader.Effect.Legacy_SpecularColor = new Vector4(1, 1, 1, 1);
+            FlverShader.Effect.Legacy_SpecularPower = 8;
+            FlverShader.Effect.Legacy_NormalMapCustomZ = 1.0f;
+            FlverShader.Effect.Legacy_DiffusePower = 1 / 1.5f;
             FlverShader.Effect.AlphaTest = 0.1f;
 
-            FlverShader.Effect.EnableGhettoDS3Renderer = UseDS3Shader;
-            FlverShader.Effect.DS3LightDirection = new Vector3[] { Vector3.Backward, Vector3.Right, Vector3.Left };
-            FlverShader.Effect.DS3LightRadiance = new float[] { 3,0,0 };
+            FlverShader.Effect.WorkflowType = FlverShaderWorkflowType;
+            FlverShader.Effect.LightDirection = Vector3.Forward;
+
             FlverShader.Effect.EnvironmentMap = CubeMap;
+
+            FlverShader.Effect.EmissiveMapMult = 1;
+
+            SkyboxShader.Effect.EnvironmentMap = CubeMap;
         }
 
         public static TextureCube CubeMap = null;
 
-        public static bool UseDS3Shader = true;
+        public static FlverShader.FSWorkflowType FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
 
         public static bool AutoRotateLight = false;
         public static bool LightFollowsCamera = true;
+
+        //public static float AmbientLightMult = 1.0f;
+        public static float DirectLightMult = 1.0f;
+        public static float IndirectLightMult = 1.0f;
 
         public static GFXDrawStep CurrentStep = GFXDrawStep.Opaque;
 
@@ -93,10 +101,10 @@ namespace DSAnimStudio
         public static float LOD2Distance = 400;
 
         public static IGFXShader<FlverShader> FlverShader;
+        public static IGFXShader<SkyboxShader> SkyboxShader;
         public static IGFXShader<CollisionShader> CollisionShader;
         public static IGFXShader<DbgPrimWireShader> DbgPrimWireShader;
         public static IGFXShader<DbgPrimSolidShader> DbgPrimSolidShader;
-
         public static Stopwatch FpsStopwatch = new Stopwatch();
         private static FrameCounter FpsCounter = new FrameCounter();
 
@@ -117,14 +125,18 @@ namespace DSAnimStudio
 
         public static WorldView World = new WorldView();
 
+        public static bool DrawSkybox = false;
+
         public static ModelDrawer ModelDrawer = new ModelDrawer();
 
         public static GraphicsDevice Device;
         //public static FlverShader FlverShader;
         //public static DbgPrimShader DbgPrimShader;
         public static SpriteBatch SpriteBatch;
-        const string FlverShader__Name = @"Content\NormalMapShader";
-        const string CollisionShader__Name = @"Content\CollisionShader";
+        public const string FlverShader__Name = @"Content\FlverShader";
+        public const string CollisionShader__Name = @"Content\CollisionShader";
+        public const string SkyboxShader__Name = @"Content\SkyboxShader";
+        public const string SkyboxTextureName = @"Content\m32_00_GILM0004";
 
         private static bool _wireframe = false;
         public static bool Wireframe
@@ -237,19 +249,20 @@ namespace DSAnimStudio
                 //TwoSidedStencilMode = Device.DepthStencilState.TwoSidedStencilMode,
             };
 
-            
+            CubeMap = c.Load<TextureCube>(SkyboxTextureName);
 
             FlverShader = new FlverShader(c.Load<Effect>(FlverShader__Name));
+            SkyboxShader = new SkyboxShader(c.Load<Effect>(SkyboxShader__Name));
 
-            InitFlverMainShader();
+            InitShaders();
 
             DbgPrimWireShader = new DbgPrimWireShader(Device);
             DbgPrimSolidShader = new DbgPrimSolidShader(Device);
 
-            DbgPrimSolidShader.Effect.AmbientLightColor = new Vector3(FlverShader.Effect.AmbientColor.X, FlverShader.Effect.AmbientColor.Y, FlverShader.Effect.AmbientColor.Z) * FlverShader.Effect.AmbientIntensity;
-            DbgPrimSolidShader.Effect.DiffuseColor = new Vector3(FlverShader.Effect.DiffuseColor.X, FlverShader.Effect.DiffuseColor.Y, FlverShader.Effect.DiffuseColor.Z) * FlverShader.Effect.DiffuseIntensity;
-            DbgPrimSolidShader.Effect.SpecularColor = new Vector3(FlverShader.Effect.SpecularColor.X, FlverShader.Effect.SpecularColor.Y, FlverShader.Effect.SpecularColor.Z);
-            DbgPrimSolidShader.Effect.SpecularPower = FlverShader.Effect.SpecularPower;
+            DbgPrimSolidShader.Effect.AmbientLightColor = new Vector3(FlverShader.Effect.Legacy_AmbientColor.X, FlverShader.Effect.Legacy_AmbientColor.Y, FlverShader.Effect.Legacy_AmbientColor.Z) * FlverShader.Effect.Legacy_AmbientIntensity;
+            DbgPrimSolidShader.Effect.DiffuseColor = new Vector3(FlverShader.Effect.Legacy_DiffuseColor.X, FlverShader.Effect.Legacy_DiffuseColor.Y, FlverShader.Effect.Legacy_DiffuseColor.Z) * FlverShader.Effect.Legacy_DiffuseIntensity;
+            DbgPrimSolidShader.Effect.SpecularColor = new Vector3(FlverShader.Effect.Legacy_SpecularColor.X, FlverShader.Effect.Legacy_SpecularColor.Y, FlverShader.Effect.Legacy_SpecularColor.Z);
+            DbgPrimSolidShader.Effect.SpecularPower = FlverShader.Effect.Legacy_SpecularPower;
 
             CollisionShader = new CollisionShader(c.Load<Effect>(CollisionShader__Name));
             CollisionShader.Effect.AmbientColor = new Vector4(0.2f, 0.5f, 0.9f, 1.0f);
@@ -276,8 +289,6 @@ namespace DSAnimStudio
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.MultiSampleAntiAlias = true;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.CullMode = CullMode.CullClockwiseFace;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.FillMode = FillMode.WireFrame;
-
-            CubeMap = c.Load<TextureCube>("Content\\cubegen");
         }
 
         public static void BeginDraw(GameTime gameTime)
@@ -299,31 +310,18 @@ namespace DSAnimStudio
             Device.SamplerStates[0] = SamplerState.LinearWrap;
 
             FlverShader.Effect.EyePosition = World.CameraTransform.Position;
+            //SkyboxShader.Effect.EyePosition = World.CameraTransform.Position;
+            SkyboxShader.Effect.EyePosition = Vector3.Zero;
             //FlverShader.Effect.EyePosition = Vector3.Backward;
-            
+
 
             if (AutoRotateLight)
             {
-                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * (float)gameTime.TotalGameTime.TotalSeconds));
-
-                FlverShader.Effect.DS3LightDirection = new Vector3[]
-                {
-                     Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * (float)gameTime.TotalGameTime.TotalSeconds)),
-                     Vector3.Zero,
-                     Vector3.Zero,
-                };
+                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * (float)gameTime.TotalGameTime.TotalSeconds * 0.25f));
             }
             else if (LightFollowsCamera)
             {
                 FlverShader.Effect.LightDirection = -Vector3.Normalize(World.CameraTransform.Position);
-
-                FlverShader.Effect.DS3LightDirection = new Vector3[]
-                {
-                     -Vector3.Normalize(World.CameraTransform.Position),
-                     Vector3.Zero,
-                     Vector3.Zero,
-                };
-
             }
             
 
@@ -331,7 +329,14 @@ namespace DSAnimStudio
             FlverShader.Effect.ColorMap = Main.DEFAULT_TEXTURE_DIFFUSE;
             FlverShader.Effect.NormalMap = Main.DEFAULT_TEXTURE_NORMAL;
             FlverShader.Effect.SpecularMap = Main.DEFAULT_TEXTURE_SPECULAR;
-            FlverShader.Effect.EnableGhettoDS3Renderer = UseDS3Shader;
+            FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
+            FlverShader.Effect.WorkflowType = FlverShaderWorkflowType;
+
+            FlverShader.Effect.AmbientLightMult = IndirectLightMult * 0.175f;
+            FlverShader.Effect.DirectLightMult = DirectLightMult;
+            FlverShader.Effect.IndirectLightMult = 1.0f;
+
+            SkyboxShader.Effect.DS3AmbientBrightness = IndirectLightMult * 0.5f;
 
             DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;
@@ -408,7 +413,8 @@ namespace DSAnimStudio
             }
 
             GFX.UpdateFPS((float)FpsStopwatch.Elapsed.TotalSeconds);
-            DBG.DrawOutlinedText($"FPS: {(Math.Round(GFX.AverageFPS))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Yellow, font: DBG.DEBUG_FONT_SMALL);
+            DBG.DrawOutlinedText($"FPS: {(Math.Round(GFX.AverageFPS))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
+            //DBG.DrawOutlinedText($"FPS: {(Math.Round(1 / (float)gameTime.ElapsedGameTime.TotalSeconds))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
             FpsStopwatch.Restart();
         }
 
