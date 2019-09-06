@@ -20,6 +20,8 @@ namespace DSAnimStudio
     {
         //public static Form WinForm;
 
+        public static string Directory = null;
+
         public const string VERSION = "v0.9.4";
 
         public static bool FIXED_TIME_STEP = false;
@@ -47,7 +49,7 @@ namespace DSAnimStudio
         public static Texture2D DEFAULT_TEXTURE_NORMAL;
         public static Texture2D DEFAULT_TEXTURE_MISSING;
         public static Texture2D DEFAULT_TEXTURE_EMISSIVE;
-        public const string DEFAULT_TEXTURE_MISSING_NAME = "Content\\MissingTexture";
+        public string DEFAULT_TEXTURE_MISSING_NAME => $"{Main.Directory}\\Content\\MissingTexture";
 
         public static TaeEditor.TaeEditorScreen TAE_EDITOR;
         public static Texture2D TAE_EDITOR_BLANK_TEX;
@@ -110,6 +112,8 @@ namespace DSAnimStudio
 
         public Main()
         {
+            Directory = new FileInfo(typeof(Main).Assembly.Location).DirectoryName;
+
             graphics = new GraphicsDeviceManager(this);
             graphics.DeviceCreated += Graphics_DeviceCreated;
             graphics.DeviceReset += Graphics_DeviceReset;
@@ -237,7 +241,7 @@ namespace DSAnimStudio
 
             CFG.Init();
 
-            TAE_EDITOR_FONT = Content.Load<SpriteFont>("Content\\DbgMenuFontSmall");
+            TAE_EDITOR_FONT = Content.Load<SpriteFont>($"{Main.Directory}\\Content\\DbgMenuFontSmall");
             TAE_EDITOR_BLANK_TEX = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
             TAE_EDITOR_BLANK_TEX.SetData(new Color[] { Color.White }, 0, 1);
 

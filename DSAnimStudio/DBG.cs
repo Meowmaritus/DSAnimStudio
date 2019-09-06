@@ -231,13 +231,13 @@ namespace DSAnimStudio
         }
 
         public static SpriteFont DEBUG_FONT { get; private set; }
-        const string DEBUG_FONT_NAME = "Content\\DbgMenuFontSmall";
+        static string DEBUG_FONT_NAME => $"{Main.Directory}\\Content\\DbgMenuFontSmall";
 
         public static SpriteFont DEBUG_FONT_SMALL { get; private set; }
-        const string DEBUG_FONT_SMALL_NAME = "Content\\DbgMenuFontSmall";
+        static string DEBUG_FONT_SMALL_NAME => $"{Main.Directory}\\Content\\DbgMenuFontSmall";
 
         public static SpriteFont DEBUG_FONT_SIMPLE { get; private set; }
-        const string DEBUG_FONT_SIMPLE_NAME = "Content\\DbgMenuFontSimple";
+        static string DEBUG_FONT_SIMPLE_NAME => $"{Main.Directory}\\Content\\DbgMenuFontSimple";
 
 
 
@@ -275,7 +275,7 @@ namespace DSAnimStudio
 
             SE = new Dictionary<string, SoundEffect>();
 
-            foreach (var se in Directory.GetFiles("Content\\SE"))
+            foreach (var se in Directory.GetFiles($"{Main.Directory}\\Content\\SE"))
             {
                 var seInfo = new FileInfo(se);
                 using (var stream = File.OpenRead(se))
