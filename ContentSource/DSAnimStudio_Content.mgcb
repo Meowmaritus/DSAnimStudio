@@ -70,6 +70,18 @@
 /processorParam:TextureFormat=Color
 /build:Lothric_Cubemap_2000.dds
 
+#begin m32_00_GILM0000.dds
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:m32_00_GILM0000.dds
+
 #begin m32_00_GILM0004.dds
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -93,6 +105,18 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:m37_00_GILM0204.dds
+
+#begin m54_00_GILM0100.dds
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:m54_00_GILM0100.dds
 
 #begin MissingTexture.png
 /importer:TextureImporter

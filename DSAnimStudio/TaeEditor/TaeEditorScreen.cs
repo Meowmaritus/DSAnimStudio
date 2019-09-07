@@ -46,44 +46,6 @@ namespace DSAnimStudio.TaeEditor
             //        }
             //    }
             //});
-
-            MenuBar.AddItem("GFX", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
-            MenuBar.AddItem("GFX", "Slow Light Spin (overrides below option)", () => GFX.AutoRotateLight, b => GFX.AutoRotateLight = b);
-            MenuBar.AddItem("GFX", "Light Follows Camera", () => GFX.LightFollowsCamera, b => GFX.LightFollowsCamera = b);
-            MenuBar.AddItem("GFX", "Shader Workflow Type", new Dictionary<string, Action>
-            {
-                { "Legacy (Epic 2005 Style)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Ass },
-                { "Modern (Gloss Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Gloss },
-                { "Modern (Roughness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Roughness },
-                { "Modern (Metalness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Metalness },
-            }, () =>
-            {
-                switch (GFX.FlverShaderWorkflowType)
-                {
-                    case FlverShader.FSWorkflowType.Ass: return "Legacy (Epic 2005 Style)";
-                    case FlverShader.FSWorkflowType.Gloss: return "Modern (Gloss Channel)";
-                    case FlverShader.FSWorkflowType.Roughness: return "Modern (Roughness Channel)";
-                    case FlverShader.FSWorkflowType.Metalness: return "Modern (Metalness Channel)";
-                    default: return "";
-                }
-            });
-            MenuBar.AddItem("GFX", $"Reload FLVER Shader (.\\Content\\FlverShader.xnb", () =>
-            {
-                if (DebugReloadContentManager != null)
-                {
-                    DebugReloadContentManager.Unload();
-                    DebugReloadContentManager.Dispose();
-                }
-
-                DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
-
-                GFX.FlverShader.Effect.Dispose();
-                GFX.FlverShader = null;
-                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
-
-                GFX.InitShaders();
-            });
-
         }
 
         enum DividerDragMode
@@ -775,7 +737,10 @@ namespace DSAnimStudio.TaeEditor
 
             MenuBar = new TaeMenuBarBuilder(WinFormsMenuStrip);
 
-            // File
+            //////////
+            // File //
+            //////////
+
             MenuBar.AddItem("File", "Open...", () => File_Open());
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Load Template...", () =>
@@ -796,7 +761,17 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
 
-            // Edit
+            //////////////////
+            // NPC Settings //
+            //////////////////
+
+            MenuBar.AddItem("NPC Settings", "No NPC loaded.");
+            MenuBar["NPC Settings"].Enabled = false;
+
+            //////////
+            // Edit //
+            //////////
+
             MenuBar.AddItem("Edit", "Undo|Ctrl+Z", () => UndoMan.Undo(), startDisabled: true);
             MenuBar.AddItem("Edit", "Redo|Ctrl+Y", () => UndoMan.Redo(), startDisabled: true);
             MenuBar.AddSeparator("Edit");
@@ -819,11 +794,14 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("Edit", "Find Value...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
             MenuBar.AddItem("Edit", "Go To Animation ID...|Ctrl+G", () => ShowDialogGoto(), startDisabled: true);
 
-            // Config
-            MenuBar.AddItem("Config", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
-            MenuBar.AddSeparator("Config");
-            MenuBar.AddItem("Config", "Use Fancy Text Scrolling", () => Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
-            MenuBar.AddItem("Config", "Fancy Text Scroll Speed", new Dictionary<string, Action>
+            /////////////////
+            // Event Graph //
+            /////////////////
+
+            MenuBar.AddItem("Event Graph", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
+            MenuBar.AddSeparator("Event Graph");
+            MenuBar.AddItem("Event Graph", "Use Fancy Text Scrolling", () => Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
+            MenuBar.AddItem("Event Graph", "Fancy Text Scroll Speed", new Dictionary<string, Action>
                 {
                     { "Extremely Slow (4 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 4 },
                     { "Very Slow (8 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 8 },
@@ -834,26 +812,37 @@ namespace DSAnimStudio.TaeEditor
                     {  "Extremely Fast (256 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 256 },
                 },
                 defaultChoice: "Fast (64 px/s)");
-            MenuBar.AddSeparator("Config");
-            MenuBar.AddItem("Config", "Start with all TAE sections collapsed", () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
-            MenuBar.AddSeparator("Config");
-            MenuBar.AddItem("Config", "Auto-scroll During Anim Playback", () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
+            MenuBar.AddSeparator("Event Graph");
+            MenuBar.AddItem("Event Graph", "Start with all TAE sections collapsed", () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
+            MenuBar.AddSeparator("Event Graph");
+            MenuBar.AddItem("Event Graph", "Auto-scroll During Anim Playback", () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
 
-            MenuBar.AddItem("Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
-            MenuBar.AddItem("Animation", "Lock To Original Framerate In Anim File", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
-            MenuBar.AddItem("Animation", "Animate DummyPoly", () => TaeInterop.UseDummyPolyAnimation, b => TaeInterop.UseDummyPolyAnimation = b);
-            MenuBar.AddItem("Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
-            MenuBar.AddItem("Animation", "Reset to Reference Pose", () =>
+            MenuBar.AddSeparator("Event Graph");
+
+            MenuBar.AddItem("Event Graph", "Show SFX Spawn Events With Cyan Markers", () => TaeInterop.ShowSFXSpawnWithCyanMarkers, b => TaeInterop.ShowSFXSpawnWithCyanMarkers = b);
+            MenuBar.AddItem("Event Graph", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
+            MenuBar.AddItem("Event Graph", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
+            MenuBar.AddItem("Event Graph", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
+
+            ////////////////
+            // 3D Preview //
+            ////////////////
+
+            MenuBar.AddItem("3D Preview", "Vsync", () => GFX.Display.Vsync, b =>
             {
-                if (TaeInterop.HkxSkeleton != null)
-                {
-                    TaeInterop.InitHavokBones();
-                    //TaeInterop.UpdateFlverMatrices();
-                    //TaeInterop.UpdateDummies();
-                }
+                GFX.Display.Vsync = b;
+                GFX.Display.Apply();
             });
-            MenuBar.AddSeparator("Animation");
-            MenuBar.AddItem("Animation", "Spread Bone Update Across Multiple Frames (Reduces Stuttering)", new Dictionary<string, Action>
+
+            MenuBar.AddItem("3D Preview", "Items In Scene");
+
+            MenuBar.AddItem("3D Preview/Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
+            MenuBar.AddItem("3D Preview/Animation", "Lock To Original Framerate In Anim File", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
+            MenuBar.AddItem("3D Preview/Animation", "Animate DummyPoly", () => TaeInterop.UseDummyPolyAnimation, b => TaeInterop.UseDummyPolyAnimation = b);
+            MenuBar.AddItem("3D Preview/Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
+            MenuBar.AddItem("3D Preview/Animation", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
+            MenuBar.AddSeparator("3D Preview/Animation");
+            MenuBar.AddItem("3D Preview/Animation", "Spread Bone Update Across Multiple Frames (Reduces Stuttering)", new Dictionary<string, Action>
             {
                 { "Update All Bones Every Frame", () => TaeInterop.InterleavedCalculationDivisor = 1 },
                 { "Takes 2 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 2 },
@@ -865,15 +854,42 @@ namespace DSAnimStudio.TaeEditor
                 { "Takes 30 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 30 },
                 { "Takes 60 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 60 },
             }, "Update All Bones Every Frame");
-            MenuBar.AddItem("Event Helpers", "Show SFX Spawn Events With Cyan Markers", () => TaeInterop.ShowSFXSpawnWithCyanMarkers, b => TaeInterop.ShowSFXSpawnWithCyanMarkers = b);
-            MenuBar.AddItem("Event Helpers", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
-            MenuBar.AddItem("Event Helpers", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
-            MenuBar.AddItem("Event Helpers", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
 
-            MenuBar.AddItem("3D Preview", "Vsync", () => GFX.Display.Vsync, b =>
+            MenuBar.AddItem("3D Preview/Renderer", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
+            MenuBar.AddItem("3D Preview/Renderer", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
+            MenuBar.AddItem("3D Preview/Renderer", "Shader Workflow Type", new Dictionary<string, Action>
             {
-                GFX.Display.Vsync = b;
-                GFX.Display.Apply();
+                { "Legacy (Epic 2005 Style)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Ass },
+                { "Modern (Gloss Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Gloss },
+                { "Modern (Roughness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Roughness },
+                { "Modern (Metalness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Metalness },
+            }, () =>
+            {
+                switch (GFX.FlverShaderWorkflowType)
+                {
+                    case FlverShader.FSWorkflowType.Ass: return "Legacy (Epic 2005 Style)";
+                    case FlverShader.FSWorkflowType.Gloss: return "Modern (Gloss Channel)";
+                    case FlverShader.FSWorkflowType.Roughness: return "Modern (Roughness Channel)";
+                    case FlverShader.FSWorkflowType.Metalness: return "Modern (Metalness Channel)";
+                    default: return "";
+                }
+            });
+
+            MenuBar.AddItem("3D Preview/Renderer", $"Reload FLVER Shader (.\\Content\\FlverShader.xnb", () =>
+            {
+                if (DebugReloadContentManager != null)
+                {
+                    DebugReloadContentManager.Unload();
+                    DebugReloadContentManager.Dispose();
+                }
+
+                DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+
+                GFX.FlverShader.Effect.Dispose();
+                GFX.FlverShader = null;
+                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
+
+                GFX.InitShaders();
             });
 
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
@@ -881,8 +897,7 @@ namespace DSAnimStudio.TaeEditor
 
             BuildDebugMenuBar();
 
-
-           WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
+            WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
 
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
@@ -2113,7 +2128,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void UpdateLayout()
         {
-            if (Rect.IsEmpty)
+            if (Rect.IsEmpty || !Main.Active)
             {
                 return;
             }
@@ -2212,10 +2227,10 @@ namespace DSAnimStudio.TaeEditor
         public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
         {
             sb.Begin();
-            sb.Draw(boxTex, Rect, Config.EnableColorBlindMode ? Color.Black : new Color(0.2f, 0.2f, 0.2f));
+            sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), Config.EnableColorBlindMode ? Color.Black : new Color(0.2f, 0.2f, 0.2f));
 
             // Draw model viewer background lel
-            sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
+            //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
 
             sb.End();
             //throw new Exception("TaeUndoMan");

@@ -14,7 +14,8 @@ float4x4 Projection;
 
 float3 EyePosition;
 
-float DS3AmbientBrightness;
+float AmbientLightMult;
+float SceneBrightness;
 
 textureCUBE EnvironmentMap;
 samplerCUBE EnvironmentMapSampler = sampler_state
@@ -55,7 +56,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     float3 mipB = texCUBElod(EnvironmentMapSampler, float4(viewVec, 2));
     float3 mipC = texCUBElod(EnvironmentMapSampler, float4(viewVec, 4));
     
-    return float4(((mipA + mipB + mipC) / 3) * DS3AmbientBrightness, 1);
+    return float4(((mipA + mipB + mipC) / 3) * AmbientLightMult * SceneBrightness, 1);
 }
 
 technique BasicColorDrawing

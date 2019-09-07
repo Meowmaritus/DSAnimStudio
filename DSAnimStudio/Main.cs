@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public const string VERSION = "v0.9.4";
 
-        public static bool FIXED_TIME_STEP = false;
+        public static bool FIXED_TIME_STEP = true;
 
         public static bool REQUEST_EXIT = false;
 
@@ -118,10 +118,10 @@ namespace DSAnimStudio
             graphics.DeviceCreated += Graphics_DeviceCreated;
             graphics.DeviceReset += Graphics_DeviceReset;
 
-            IsFixedTimeStep = false;
+            IsFixedTimeStep = true;
             TargetElapsedTime = TimeSpan.FromTicks(166667);
             // Setting this max higher allows it to skip frames instead of do slow motion.
-            MaxElapsedTime = TimeSpan.FromTicks(166667);
+            MaxElapsedTime = TimeSpan.FromSeconds(0.5);
 
             //IsFixedTimeStep = false;
             graphics.SynchronizeWithVerticalRetrace = GFX.Display.Vsync;
@@ -311,6 +311,8 @@ namespace DSAnimStudio
 
         protected override void Update(GameTime gameTime)
         {
+            TargetElapsedTime = IsActive ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
+
             IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
 
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;

@@ -78,6 +78,9 @@ namespace DSAnimStudio.TaeEditor
 
             bool justStartedPlaying = !prevPlayState && IsPlaying;
 
+            if (justStartedPlaying || isFirstFrameAfterLooping)
+                TaeInterop.PlaybackJustStarted();
+
             if (HkxAnimationLength.HasValue)
                 MaxTime = HkxAnimationLength.Value;
 

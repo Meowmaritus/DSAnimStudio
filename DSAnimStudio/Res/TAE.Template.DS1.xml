@@ -320,9 +320,9 @@
     <event id="145" name="InvokeRumbleCam_Global">
       <s32 name="RumbleCamID"/>
     </event>
-    <event id="193" name="SetChrOpacity">
-      <f32 name="Opacity"/>
-      <f32 name="FadeDuration"/>
+    <event id="193" name="SetOpacityKeyframe">
+      <f32 name="GhostVal1"/>
+      <f32 name="GhostVal2"/>
     </event>
     <event id="224" name="SetChrTurnRate">
       <f32 name="TurnRate"/>

@@ -1,4 +1,6 @@
-﻿//using MeowDSIO;
+﻿//#define NO_EXCEPTION_CATCH
+
+//using MeowDSIO;
 //using MeowDSIO.DataFiles;
 using SoulsFormats;
 using Microsoft.Xna.Framework;
@@ -58,8 +60,9 @@ namespace DSAnimStudio
 
         private TextureInfo FetchTexInfo()
         {
-            if (TPFReference == null)
-                return null;
+            //if (TPFReference == null)
+            //    return null;
+
             //if (TPFReference.Platform == TPF.TPFPlatform.PS4)
             //{
             //    lock (_lock_conversion)
@@ -214,15 +217,16 @@ namespace DSAnimStudio
                 return null;
 
             //DDS header = null;
-
+#if !NO_EXCEPTION_CATCH
             try
             {
-                int height = texInfo.Texture.Header?.Height ?? 0;
-                int width = texInfo.Texture.Header?.Width ?? 0;
-                int dxgiFormat = texInfo.Texture.Header?.DXGIFormat ?? 0;
-                int mipmapCount = texInfo.Texture.Mipmaps;
+#endif
+                int height = texInfo.Texture?.Header?.Height ?? 0;
+                int width = texInfo.Texture?.Header?.Width ?? 0;
+                int dxgiFormat = texInfo.Texture?.Header?.DXGIFormat ?? 0;
+                int mipmapCount = texInfo.Texture?.Mipmaps ?? 0;
                 uint fourCC = DDS.PIXELFORMAT.FourCCDX10;
-                int arraySize = texInfo.Texture.Header?.TextureCount ?? 0;
+                int arraySize = texInfo.Texture?.Header?.TextureCount ?? 0;
 
                 int dataStartOffset = 0;
 
@@ -561,6 +565,7 @@ namespace DSAnimStudio
                 CachedTexture = tex;
 
                 return CachedTexture;
+#if !NO_EXCEPTION_CATCH
             }
             catch (Exception ex)
             {
@@ -569,6 +574,7 @@ namespace DSAnimStudio
 
                 return null;
             }
+#endif
         }
 
         public void Dispose()

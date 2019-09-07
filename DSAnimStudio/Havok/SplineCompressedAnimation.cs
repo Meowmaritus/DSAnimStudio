@@ -277,7 +277,7 @@ namespace DSAnimStudio.Havok
         }
 
         // Algorithm A2.1 The NURBS Book 2nd edition, page 68
-        static int FindKnotSpan(int degree, float value, int cPointsSize, byte[] knots)
+        static int FindKnotSpan(int degree, float value, int cPointsSize, List<byte> knots)
         {
             if (value >= knots[cPointsSize])
                 return cPointsSize - 1;
@@ -299,16 +299,22 @@ namespace DSAnimStudio.Havok
             return mid;
         }
 
-        static float GetSinglePoint(int knotSpanIndex, int degree, float frame, byte[] knots, float[] cPoints)
+        //Basis_ITS1, GetPoint_NR1, TIME-EFFICIENT NURBS CURVE EVALUATION ALGORITHMS, pages 64 & 65
+        static float GetSinglePoint(int knotSpanIndex, int degree, float frame, List<byte> knots, List<float> cPoints)
         {
-            float[] N = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+            float[] N = { 1, 0, 0, 0, 0 };
 
             for (int i = 1; i <= degree; i++)
                 for (int j = i - 1; j >= 0; j--)
                 {
+                    
                     float A = (frame - knots[knotSpanIndex - j]) / (knots[knotSpanIndex + i - j] - knots[knotSpanIndex - j]);
+                    // without multiplying A, model jitters slightly
                     float tmp = N[j] * A;
+                    // without subtracting tmp, model flies away then resets to origin every few frames
                     N[j + 1] += N[j] - tmp;
+                    // without setting to tmp, model either is moved from origin or grows very long limbs
+                    // depending on the animation
                     N[j] = tmp;
                 }
 
@@ -320,7 +326,8 @@ namespace DSAnimStudio.Havok
             return retVal;
         }
 
-        static Quaternion GetSinglePoint(int knotSpanIndex, int degree, float frame, byte[] knots, Quaternion[] cPoints)
+        //Basis_ITS1, GetPoint_NR1, TIME-EFFICIENT NURBS CURVE EVALUATION ALGORITHMS, pages 64 & 65
+        static Quaternion GetSinglePoint(int knotSpanIndex, int degree, float frame, List<byte> knots, List<Quaternion> cPoints)
         {
             float[] N = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
@@ -387,8 +394,8 @@ namespace DSAnimStudio.Havok
 
             public Quaternion GetValue(float frame)
             {
-                int knotspan = FindKnotSpan(Degree, frame, Channel.Values.Count(), Knots.ToArray());
-                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), Channel.Values.ToArray());
+                int knotspan = FindKnotSpan(Degree, frame, Channel.Values.Count, Knots);
+                return GetSinglePoint(knotspan, Degree, frame, Knots, Channel.Values);
             }
         }
 
@@ -491,26 +498,26 @@ namespace DSAnimStudio.Havok
 
             public float GetValueX(float frame)
             {
-                if (ChannelX.Values.Count() == 1)
+                if (ChannelX.Values.Count == 1)
                     return ChannelX.Values[0];
-                int knotspan = FindKnotSpan(Degree, frame, ChannelX.Values.Count(), Knots.ToArray());
-                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), ChannelX.Values.ToArray());
+                int knotspan = FindKnotSpan(Degree, frame, ChannelX.Values.Count, Knots);
+                return GetSinglePoint(knotspan, Degree, frame, Knots, ChannelX.Values);
             }
 
             public float GetValueY(float frame)
             {
-                if (ChannelY.Values.Count() == 1)
+                if (ChannelY.Values.Count == 1)
                     return ChannelY.Values[0];
-                int knotspan = FindKnotSpan(Degree, frame, ChannelY.Values.Count(), Knots.ToArray());
-                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), ChannelY.Values.ToArray());
+                int knotspan = FindKnotSpan(Degree, frame, ChannelY.Values.Count, Knots);
+                return GetSinglePoint(knotspan, Degree, frame, Knots, ChannelY.Values);
             }
 
             public float GetValueZ(float frame)
             {
-                if (ChannelZ.Values.Count() == 1)
+                if (ChannelZ.Values.Count == 1)
                     return ChannelZ.Values[0];
-                int knotspan = FindKnotSpan(Degree, frame, ChannelZ.Values.Count(), Knots.ToArray());
-                return GetSinglePoint(knotspan, Degree, frame, Knots.ToArray(), ChannelZ.Values.ToArray());
+                int knotspan = FindKnotSpan(Degree, frame, ChannelZ.Values.Count, Knots);
+                return GetSinglePoint(knotspan, Degree, frame, Knots, ChannelZ.Values);
             }
         }
 
@@ -540,13 +547,13 @@ namespace DSAnimStudio.Havok
 
                 foreach (var flagOffset in (FlagOffset[])Enum.GetValues(typeof(FlagOffset)))
                 {
-                    if (bytePositionTypes.HasFlag(flagOffset))
+                    if ((bytePositionTypes & flagOffset) != 0)
                         PositionTypes.Add(flagOffset);
 
-                    if (byteRotationTypes.HasFlag(flagOffset))
+                    if ((byteRotationTypes & flagOffset) != 0)
                         RotationTypes.Add(flagOffset);
 
-                    if (byteScaleTypes.HasFlag(flagOffset))
+                    if ((byteScaleTypes & flagOffset) != 0)
                         ScaleTypes.Add(flagOffset);
                 }
             }
@@ -568,10 +575,7 @@ namespace DSAnimStudio.Havok
             public bool HasStaticRotation;
 
             public Vector3 StaticPosition = Vector3.Zero;
-
             public Quaternion StaticRotation = Quaternion.Identity;
-            //TEMP; DONT FEEL LIKE DOING QUATERNION READ
-            //public byte[] StaticRotation;
             public Vector3 StaticScale = Vector3.One;
             public SplineTrackVector3 SplinePosition = null;
             public SplineTrackQuaternion SplineRotation = null;

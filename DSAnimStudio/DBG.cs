@@ -142,11 +142,14 @@ namespace DSAnimStudio
 
             PrimitivesMarkedForDeletion.Clear();
 
+            //if (GFX.DrawSkybox)
+            //{
+            //    GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
+            //    DbgPrim_Skybox.Draw(gameTime);
+            //}
+
             if (GFX.DrawSkybox)
-            {
-                GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
-                DbgPrim_Skybox.Draw(gameTime);
-            }
+                GFX.ModelDrawer.DrawSkyboxes();
 
             if (ShowGrid)
                 DbgPrim_Grid.Draw(gameTime);
