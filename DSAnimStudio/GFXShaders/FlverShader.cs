@@ -73,6 +73,24 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(EmissiveMapMult)].SetValue(value);
         }
 
+        public float SceneBrightness
+        {
+            get => Parameters[nameof(SceneBrightness)].GetValueSingle();
+            set => Parameters[nameof(SceneBrightness)].SetValue(value);
+        }
+
+        public float Opacity
+        {
+            get => Parameters[nameof(Opacity)].GetValueSingle();
+            set => Parameters[nameof(Opacity)].SetValue(value);
+        }
+
+        public bool IsSkybox
+        {
+            get => Parameters[nameof(IsSkybox)].GetValueBoolean();
+            set => Parameters[nameof(IsSkybox)].SetValue(value);
+        }
+
         #region MATRICES
         public Matrix World
         {
@@ -148,6 +166,13 @@ namespace DSAnimStudio.GFXShaders
             get => Parameters[nameof(Legacy_DiffuseIntensity)].GetValueSingle();
             set => Parameters[nameof(Legacy_DiffuseIntensity)].SetValue(value);
         }
+
+        public float Legacy_SceneBrightness
+        {
+            get => Parameters[nameof(Legacy_SceneBrightness)].GetValueSingle();
+            set => Parameters[nameof(Legacy_SceneBrightness)].SetValue(value);
+        }
+
         #endregion
 
         #region TEXTURE MAPS
@@ -167,6 +192,18 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(SpecularMap)].GetValueTexture2D();
             set => Parameters[nameof(SpecularMap)]?.SetValue(value);
+        }
+
+        public Texture2D SpecularMapBB
+        {
+            get => Parameters[nameof(SpecularMapBB)].GetValueTexture2D();
+            set => Parameters[nameof(SpecularMapBB)]?.SetValue(value);
+        }
+
+        public bool UseSpecularMapBB
+        {
+            get => Parameters[nameof(UseSpecularMapBB)].GetValueBoolean();
+            set => Parameters[nameof(UseSpecularMapBB)]?.SetValue(value);
         }
 
         public Texture2D EmissiveMap

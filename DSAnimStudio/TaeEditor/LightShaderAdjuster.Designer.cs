@@ -34,6 +34,7 @@
             this.trackBarIndirectMult = new System.Windows.Forms.TrackBar();
             this.checkBoxDrawSkybox = new System.Windows.Forms.CheckBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.buttonReset = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarDirectMult)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarIndirectMult)).BeginInit();
             this.SuspendLayout();
@@ -120,11 +121,23 @@
             this.label4.Text = "[Shader Config]";
             this.label4.Click += new System.EventHandler(this.Label4_Click);
             // 
+            // buttonReset
+            // 
+            this.buttonReset.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonReset.Location = new System.Drawing.Point(103, 79);
+            this.buttonReset.Name = "buttonReset";
+            this.buttonReset.Size = new System.Drawing.Size(75, 23);
+            this.buttonReset.TabIndex = 8;
+            this.buttonReset.Text = "Reset";
+            this.buttonReset.UseVisualStyleBackColor = true;
+            this.buttonReset.Click += new System.EventHandler(this.ButtonReset_Click);
+            // 
             // LightShaderAdjuster
             // 
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.Controls.Add(this.buttonReset);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.checkBoxDrawSkybox);
             this.Controls.Add(this.trackBarIndirectMult);
@@ -134,7 +147,7 @@
             this.Cursor = System.Windows.Forms.Cursors.Default;
             this.ForeColor = System.Drawing.Color.White;
             this.Name = "LightShaderAdjuster";
-            this.Size = new System.Drawing.Size(185, 75);
+            this.Size = new System.Drawing.Size(185, 112);
             this.Load += new System.EventHandler(this.LightShaderAdjuster_Load);
             ((System.ComponentModel.ISupportInitialize)(this.trackBarDirectMult)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarIndirectMult)).EndInit();
@@ -150,5 +163,6 @@
         private System.Windows.Forms.TrackBar trackBarIndirectMult;
         private System.Windows.Forms.CheckBox checkBoxDrawSkybox;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Button buttonReset;
     }
 }

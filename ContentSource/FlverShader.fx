@@ -45,6 +45,7 @@ int WorkflowType = 0;
 float4x4 World;
 float4x4 View;
 float4x4 Projection;
+bool IsSkybox = false;
 
 // Legacy
 float4 Legacy_AmbientColor;
@@ -56,17 +57,21 @@ float Legacy_SpecularPower;
 float Legacy_DiffusePower;
 float Legacy_DEBUG_ValueA;
 float Legacy_NormalMapCustomZ;
+float Legacy_SceneBrightness = 1.0;
 
 // Shared
 float3 LightDirection;
 float3 EyePosition;
 float AlphaTest;
+float Opacity;
 
 // Modern
 float AmbientLightMult = 1.0;
 float DirectLightMult = 1.0;
 float IndirectLightMult = 1.0;
 float EmissiveMapMult = 1.0;
+float SceneBrightness = 1.0;
+bool UseSpecularMapBB = false;
 
 // Textures
 texture2D ColorMap;
@@ -91,6 +96,15 @@ texture2D SpecularMap;
 sampler2D SpecularMapSampler = sampler_state
 {
 	Texture = <SpecularMap>;
+	MinFilter = linear;
+	MagFilter = linear;
+	MipFilter = linear;
+};
+
+texture2D SpecularMapBB;
+sampler2D SpecularMapBBSampler = sampler_state
+{
+	Texture = <SpecularMapBB>;
 	MinFilter = linear;
 	MagFilter = linear;
 	MipFilter = linear;
@@ -148,6 +162,12 @@ struct VertexShaderOutput
 
 float4 SkinShit(VertexShaderInput input, float4 shit)
 {
+    [branch]
+    if (IsSkybox)
+    {
+        return shit;
+    }
+    
     //TEMP DISABLED FOR COLOR TESTING
     #ifndef NO_SKINNING
     float4 posA;
@@ -264,6 +284,12 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
 {
 	float4 color = tex2D(ColorMapSampler, input.TexCoord);
     
+    [branch]
+    if (IsSkybox)
+    {
+        return color;
+    }
+    
     float4 specularMapColor = tex2D(SpecularMapSampler, input.TexCoord);
     
     float4 emissiveMapColor = tex2D(EmissiveMapSampler, input.TexCoord);
@@ -289,6 +315,12 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //float3 normal = input.Normal;
         
         float normalMapBlueChannel = nmapcol.z;
+        
+        [branch]
+        if (UseSpecularMapBB)
+        {
+            normalMapBlueChannel = tex2D(SpecularMapBBSampler, input.TexCoord).r;
+        }
         
         float roughness = normalMapBlueChannel;
         float metalness = normalMapBlueChannel;
@@ -378,7 +410,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float3 direct = diffuse + specular;
         float3 indirect = indirectDiffuse + indirectSpecular;
         
-        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult)) * 3.75 * color.w) + (emissiveMapColor.xyz * EmissiveMapMult), color.w);
+        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult)) * 3.75 * SceneBrightness), Opacity);
     }
     else
     {
@@ -416,8 +448,8 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
                 color * Legacy_DiffuseIntensity * Legacy_DiffuseColor * diffuse + 
                 color * tex2D(SpecularMapSampler, input.TexCoord) * specular;
 
-        outputColor = float4(outputColor.xyz * color.w, color.w);
-        outputColor = outputColor;// * 0.001;
+        outputColor = float4(outputColor.xyz * Legacy_SceneBrightness, Opacity);
+        //outputColor = outputColor;// * 0.001;
         //outputColor += input.DebugColor;
         
         //return float4(input.DebugColor.xyz, outputColor.w);
@@ -442,6 +474,9 @@ technique BasicColorDrawing
 {
 	pass P0
 	{
+        AlphaBlendEnable = TRUE;
+        DestBlend = INVSRCALPHA;
+        SrcBlend = SRCALPHA;
 		VertexShader = compile VS_SHADERMODEL MainVS();
 		PixelShader = compile PS_SHADERMODEL MainPS();
 	}

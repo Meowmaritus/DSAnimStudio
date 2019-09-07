@@ -19,7 +19,7 @@
     </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -104,6 +104,7 @@
     <Compile Include="GFXShaders\SkyboxShader.cs" />
     <Compile Include="Havok\SplineCompressedAnimation.cs" />
     <Compile Include="LoadingTaskMan.cs" />
+    <Compile Include="ParamManager.cs" />
     <Compile Include="StatusPrinter.cs" />
     <Compile Include="TaeEditor\LightShaderAdjuster.cs">
       <SubType>UserControl</SubType>
@@ -364,13 +365,25 @@
     <None Include="Content\Lothric_Cubemap_2000.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\m32_00_GILM0000.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Content\m32_00_GILM0004.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Content\m37_00_GILM0204.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\m54_00_GILM0100.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Content\MissingTexture.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\o329000.flver">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\o329000.tpf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Content\SkyboxShader.xnb">
@@ -407,6 +420,7 @@
       <DependentUpon>TaeInspectorWinFormsControl.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MonoGame\v3.0\MonoGame.Content.Builder.targets" />
   <PropertyGroup>

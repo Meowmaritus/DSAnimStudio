@@ -19,12 +19,12 @@ namespace DSAnimStudio.TaeEditor
 
         private void TrackBarDirectMult_ValueChanged(object sender, EventArgs e)
         {
-            GFX.DirectLightMult = trackBarDirectMult.Value / 100f;
+            GFX.FlverDirectLightMult = trackBarDirectMult.Value / 100f;
         }
 
         private void TrackBarIndirectMult_ValueChanged(object sender, EventArgs e)
         {
-            GFX.IndirectLightMult = trackBarIndirectMult.Value / 100f;
+            GFX.FlverIndirectLightMult = trackBarIndirectMult.Value / 100f;
         }
 
         private void CheckBoxDrawSkybox_CheckedChanged(object sender, EventArgs e)
@@ -42,10 +42,10 @@ namespace DSAnimStudio.TaeEditor
             if (Height == 18)
             {
                 checkBoxDrawSkybox.Checked = GFX.DrawSkybox;
-                trackBarDirectMult.Value = (int)(GFX.DirectLightMult * 100);
-                trackBarIndirectMult.Value = (int)(GFX.IndirectLightMult * 100);
+                trackBarDirectMult.Value = (int)(GFX.FlverDirectLightMult * 100);
+                trackBarIndirectMult.Value = (int)(GFX.FlverIndirectLightMult * 100);
 
-                Height = 75;
+                Height = 112;
                 Width = 185;
 
             }
@@ -70,6 +70,21 @@ namespace DSAnimStudio.TaeEditor
         private void TrackBarIndirectMult_KeyPress(object sender, KeyPressEventArgs e)
         {
             e.Handled = true;
+        }
+
+        private void ButtonReset_Click(object sender, EventArgs e)
+        {
+            if (TaeInterop.CurrentHkxVariation == SoulsFormats.HKX.HKXVariation.HKXDS1)
+            {
+                checkBoxDrawSkybox.Checked = false;
+            }
+            else
+            {
+                checkBoxDrawSkybox.Checked = true;
+            }
+
+            trackBarDirectMult.Value = 100;
+            trackBarIndirectMult.Value = 100;
         }
 
         //protected override void OnPaintBackground(PaintEventArgs pevent)

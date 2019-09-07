@@ -35,7 +35,6 @@ namespace DSAnimStudio
             ModelTypeCollision,
         };
         ModelType Type;
-
         
         public void AddNewInstance(ModelInstance ins)
         {
@@ -63,7 +62,7 @@ namespace DSAnimStudio
             return Submeshes;
         }
 
-        public Model(FLVER2 flver, Dictionary<int, Matrix> flverTposeToHkxTposeMatrices)
+        public Model(FLVER2 flver)
         {
             Type = ModelType.ModelTypeFlver;
 
@@ -80,7 +79,7 @@ namespace DSAnimStudio
                     if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
                         continue;
                 }
-                var smm = new FlverSubmeshRenderer(this, flver, submesh, flverTposeToHkxTposeMatrices);
+                var smm = new FlverSubmeshRenderer(this, flver, submesh);
                 Submeshes.Add(smm);
                 subBoundsPoints.Add(smm.Bounds.Min);
                 subBoundsPoints.Add(smm.Bounds.Max);
@@ -200,19 +199,18 @@ namespace DSAnimStudio
             //TODO
         }
 
-        public void Draw()
+        public void Draw(bool[] mask, int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
-            var lod = 0;// GFX.World.GetLOD(modelLocation);
             GFX.World.ApplyViewToShader(GFX.FlverShader, ShittyTransform);
             foreach (var submesh in Submeshes)
             {
                 if (Type == ModelType.ModelTypeFlver)
                 {
-                    submesh.Draw(lod, false, GFX.FlverShader);
+                    submesh.Draw(lod, motionBlur, GFX.FlverShader, mask, forceNoBackfaceCulling, isSkyboxLol);
                 }
                 else
                 {
-                    submesh.Draw(lod, false, GFX.CollisionShader);
+                    submesh.Draw(lod, motionBlur, GFX.CollisionShader, mask, forceNoBackfaceCulling, isSkyboxLol);
                 }
             }
         }

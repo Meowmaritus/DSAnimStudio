@@ -27,6 +27,11 @@ namespace DSAnimStudio
 
         public static IReadOnlyDictionary<string, TextureFetchRequest> Fetches => fetches;
 
+        public static void RemoveFetchRefsWithoutFlushing()
+        {
+            fetches.Clear();
+        }
+
         public static void Flush()
         {
             lock (_lock_pool)
@@ -102,13 +107,23 @@ namespace DSAnimStudio
             }
         }
 
-        public static void AddTPFFolder(string folderPath)
+        public static void AddTPFFolder(string folderPath, bool dcx = false, bool directDdsFetches = false)
         {
-            var tpfs = Directory.GetFiles(folderPath, "*.tpf");
+            var tpfs = Directory.GetFiles(folderPath, dcx ? "*.tpf.dcx" : "*.tpf");
             foreach (var t in tpfs)
             {
                 string shortName = Path.GetFileNameWithoutExtension(t);
-                AddFetchTPF(TPF.Read(File.ReadAllBytes(t)), shortName);
+                if (directDdsFetches)
+                {
+                    foreach (var tex in TPF.Read(t).Textures)
+                    {
+                        AddFetchDDS(tex.Bytes, tex.Name);
+                    }
+                }
+                else
+                {
+                    AddFetchTPF(TPF.Read(File.ReadAllBytes(t)), shortName);
+                }
             }
         }
 

@@ -113,6 +113,9 @@ namespace DSAnimStudio
             printer.Draw();
         }
 
+        public static bool EventSim_Opacity = true;
+        public static bool EventSim_ModelMasks = true;
+
         public static bool Debug_LockToTPose = false;
 
         public static string c0000_Parts_HD = "AM_A_9220";
@@ -371,6 +374,12 @@ namespace DSAnimStudio
             }
         }
 
+        public static void PlaybackJustStarted()
+        {
+            GFX.FlverOpacity = 1.0f;
+            GFX.ModelDrawer.DefaultAllMaskValues();
+        }
+
         /// <summary>
         /// Called every frame during playback while the playback
         /// cursor is within the timeframe of an event.
@@ -382,7 +391,59 @@ namespace DSAnimStudio
                 return;
             }
 
-            if (ShowSFXSpawnWithCyanMarkers && evBox.MyEvent.Template != null)
+            if (EventSim_Opacity && evBox.MyEvent.TypeName == "SetOpacityKeyframe")
+            {
+                //TODO
+                var sortedByStartTime = evBox.OwnerPane.EventBoxes.OrderBy(b => b.MyEvent.StartTime).ToList();
+                var thisIndexInOrdered = sortedByStartTime.IndexOf(evBox);
+                var nextOpacityEvent = sortedByStartTime.Skip(thisIndexInOrdered + 1).FirstOrDefault(b => b.MyEvent.TypeName == "SetOpacityKeyframe");
+
+                if (nextOpacityEvent != null)
+                {
+                    float fadeDuration = nextOpacityEvent.MyEvent.StartTime - evBox.MyEvent.StartTime;
+                    float timeSinceFadeStart = (float)PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
+                    float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
+                    float fadeEndOpacity = (float)nextOpacityEvent.MyEvent.Parameters["GhostVal1"];
+                    GFX.FlverOpacity = fadeStartOpacity + ((timeSinceFadeStart / fadeDuration) * (fadeEndOpacity - fadeStartOpacity));
+                }
+                else
+                {
+                    float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
+                    GFX.FlverOpacity = fadeStartOpacity;
+                }
+            }
+
+            if (EventSim_ModelMasks && evBox.MyEvent.TypeName == "HideModelMask" ||
+                evBox.MyEvent.TypeName == "ShowModelMask" ||
+                evBox.MyEvent.TypeName == "ChangeChrDrawMask")
+            {
+                for (int i = 0; i < 32; i++)
+                {
+                    if (evBox.MyEvent.TypeName == "ShowModelMask")
+                    {
+                        if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                            GFX.ModelDrawer.Mask[i] = true;
+                    }
+                    else if (evBox.MyEvent.TypeName == "HideModelMask")
+                    {
+                        if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                            GFX.ModelDrawer.Mask[i] = false;
+                    }
+                    else if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
+                    {
+                        var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
+
+                        // Before you get out the torch, the game 
+                        // uses some value other than 0 to SKIP
+                        if (maskByte == 0)
+                            GFX.ModelDrawer.Mask[i] = false;
+                        else if (maskByte == 1)
+                            GFX.ModelDrawer.Mask[i] = true;
+                    }
+                }
+            }
+
+                if (ShowSFXSpawnWithCyanMarkers && evBox.MyEvent.Template != null)
             {
                 //foreach (var key in evBox.MyEvent.Parameters.Template.Keys)
                 //{
@@ -410,6 +471,13 @@ namespace DSAnimStudio
 
         public static void OnAnimFrameChange(bool isScrubbing)
         {
+            if (isScrubbing)
+            {
+                GFX.FlverOpacity = 1;
+                //GFX.ModelDrawer.SetAllMask(true);
+                GFX.ModelDrawer.DefaultAllMaskValues();
+            }
+
             if (IsLoadingAnimation)
             {
                 return;
@@ -487,14 +555,14 @@ namespace DSAnimStudio
 
                     var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
 
+                    var folder = new FileInfo(AnibndPath).DirectoryName;
+
+                    var lastSlashInFolder = folder.LastIndexOf("\\");
+
+                    var interrootFolder = folder.Substring(0, lastSlashInFolder);
+
                     if (chrNameBase.EndsWith("c0000"))
                     {
-                        var folder = new FileInfo(AnibndPath).DirectoryName;
-
-                        var lastSlashInFolder = folder.LastIndexOf("\\");
-
-                        var interrootFolder = folder.Substring(0, lastSlashInFolder);
-
                         FLVER2 c0000 = null;
 
                         string c0000Path = $"{chrNameBase}.chrbnd";
@@ -643,7 +711,7 @@ namespace DSAnimStudio
 
                 progress.Report(0.75);
 
-                LoadingTaskMan.DoLoadingTaskSynchronous("LoadAnimations", "Loading animation(s)...", innerProgress =>
+                LoadingTaskMan.DoLoadingTaskSynchronous("LoadAnimations", "Loading animation(s) and GameParam...", innerProgress =>
                 {
                     // Attempt to load the skeleton hkx file first
                     CurrentSkeletonHKXBytes = AllHkxFiles.FirstOrDefault(kvp => kvp.Key.ToUpper().Contains("SKELETON.HKX")).Value;
@@ -688,7 +756,7 @@ namespace DSAnimStudio
 
                     innerProgress.Report(0.75);
 
-                    var model = new Model(CurrentModel, new Dictionary<int, Matrix>());
+                    var model = new Model(CurrentModel);
                     var modelInstance = new ModelInstance("Character Model", model, Transform.Default, -1, -1, -1, -1);
                     GFX.ModelDrawer.AddModelInstance(model, "", Transform.Default);
                     GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
@@ -711,6 +779,25 @@ namespace DSAnimStudio
                         GFX.DrawSkybox = true;
                     }
 
+                    ReadParamsForSelectedCharacter();
+
+                    GFX.ModelDrawer.SelectedMaskPreset = ModelDrawer.DEFAULT_PRESET_NAME;
+
+                    if (GFX.ModelDrawer.MaskPresets.Count > 1)
+                    {
+                        foreach (var kvp in GFX.ModelDrawer.MaskPresets.Skip(1))
+                        {
+                            if (!GFX.ModelDrawer.MaskPresetsInvisibility[kvp.Key])
+                            {
+                                GFX.ModelDrawer.SelectedMaskPreset = kvp.Key;
+                                GFX.ModelDrawer.DefaultAllMaskValues();
+                                break;
+                            }
+                        }
+                    }
+
+                    CreateMenuBarNPCSettings(menuBar);
+
                     innerProgress.Report(1);
                 });
 
@@ -722,11 +809,29 @@ namespace DSAnimStudio
             }
         }
 
+        public static void ReadParamsForSelectedCharacter()
+        {
+            var folder = new FileInfo(AnibndPath).DirectoryName;
+            var lastSlashInFolder = folder.LastIndexOf("\\");
+            ParamManager.LoadParamBND(CurrentHkxVariation, folder.Substring(0, lastSlashInFolder));
+
+            GFX.ModelDrawer.ReadDrawMaskPresets(
+                ParamManager.GetParam(CurrentHkxVariation, "NpcParam"),
+                CurrentHkxVariation,
+                AnibndPath);
+
+            var maskPresets = GFX.ModelDrawer.MaskPresets;
+
+
+        }
+
         /// <summary>
         /// Called when user selects an animation in the lists and loads the event graph for it.
         /// </summary>
         public static void OnAnimationSelected(TAE.Animation anim)
         {
+            GFX.FlverOpacity = 1.0f;
+
             if (HaventLoadedAnythingYet)
                 HaventLoadedAnythingYet = false;
 
@@ -966,6 +1071,8 @@ namespace DSAnimStudio
             var result = Matrix.Identity;
             Vector3 resultScale = Vector3.One;
 
+            
+
             do
             {
                 (Matrix, Vector3) thisBone = (Matrix.Identity, Vector3.One);
@@ -987,7 +1094,7 @@ namespace DSAnimStudio
                     {
                         HKX.Transform t = skeleTransform;
 
-                        thisBone.Item1 *= Matrix.CreateScale(
+                        thisBone.Item2 *= new Vector3(
                             t.Scale.Vector.X, t.Scale.Vector.Y, t.Scale.Vector.Z);
                         thisBone.Item1 *= Matrix.CreateFromQuaternion(new Quaternion(
                             t.Rotation.Vector.X, 
@@ -1079,11 +1186,11 @@ namespace DSAnimStudio
                         thisBone.Item1 *= Matrix.CreateFromQuaternion(rotation);
 
                         var posX = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) 
-                            ? (track.StaticPosition.X) : track.SplinePosition.GetValueX(frame);
+                            ? (skeleTransform.Position.Vector.X) : track.SplinePosition.GetValueX(frame);
                         var posY = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) 
-                            ? (track.StaticPosition.Y) : track.SplinePosition.GetValueY(frame);
+                            ? (skeleTransform.Position.Vector.Y) : track.SplinePosition.GetValueY(frame);
                         var posZ = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) 
-                            ? (track.StaticPosition.Z) : track.SplinePosition.GetValueZ(frame);
+                            ? (skeleTransform.Position.Vector.Z) : track.SplinePosition.GetValueZ(frame);
 
                         //if (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) && !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
                         //{
@@ -1139,7 +1246,7 @@ namespace DSAnimStudio
         {
             DBG.ClearPrimitives(DbgPrimCategory.HkxBone);
             HkxBoneParentMatrices = new List<Matrix>();
-            var HkxBonePositions = new List<Vector3>();
+            //var HkxBonePositions = new List<Vector3>();
             HkxBoneScales = new List<Vector3>();
             HkxBonePrimitives = new List<DbgPrimSolidBone>();
             HkxBoneMatrices = new List<Matrix>();
@@ -1154,19 +1261,23 @@ namespace DSAnimStudio
                 var parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: true, HkxSkeleton, (short)i, frame % CurrentAnimFramesPerBlock, alreadyCalculatedBones);
                 HkxBoneParentMatrices.Add(parentMatrix.Item1);
                 HkxBoneParentMatrices_Reference.Add(parentMatrix.Item1);
-                HkxBonePositions.Add(Vector3.Transform(Vector3.Zero, parentMatrix.Item1));
+                //HkxBonePositions.Add(Vector3.Transform(Vector3.Zero, parentMatrix.Item1));
                 HkxBoneScales.Add(parentMatrix.Item2);
             }
             //int boneIndex = 0;
             for (int i = 0; i < HkxSkeleton.Transforms.Size; i++)
             {
+                var sktr = HkxSkeleton.Transforms[i];
+                var boneLength = new Vector3(sktr.Position.Vector.X, sktr.Position.Vector.Y, sktr.Position.Vector.Z).Length();
+
                 if (HkxSkeleton.ParentIndices.GetArrayData().Elements[i].data >= 0)
                 {
                     var realMatrix = HkxBoneParentMatrices[HkxSkeleton.ParentIndices.GetArrayData().Elements[i].data];//Matrix.CreateFromQuaternion(boneRot) * Matrix.CreateTranslation(HkxBonePositions[HkxSkeleton.ParentIndices.GetArrayData().Elements[i].data]);
                     var m = Matrix.CreateScale(HkxBoneScales[i]) * realMatrix;
                     HkxBoneMatrices.Add(m);
                     HkxBoneMatrices_Reference.Add(m);
-                    var boneLength = (HkxBonePositions[i/*boneIndex*/] - HkxBonePositions[HkxSkeleton.ParentIndices.GetArrayData().Elements[i].data]).Length();
+                    //var boneLength = (HkxBonePositions[i/*boneIndex*/] - HkxBonePositions[HkxSkeleton.ParentIndices.GetArrayData().Elements[i].data]).Length();
+                    
                     var newBonePrim = new DbgPrimSolidBone(isHkx: true, HkxSkeleton.Bones[i].Name.GetString(), new Transform(realMatrix), Quaternion.Identity, Math.Min(boneLength / 8, 0.25f), boneLength, Color.Yellow);
                     DBG.AddPrimitive(newBonePrim);
                     HkxBonePrimitives.Add(newBonePrim);
@@ -1174,9 +1285,9 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    HkxBoneMatrices.Add(HkxBoneParentMatrices[i/*boneIndex*/]);
-                    HkxBoneMatrices_Reference.Add(HkxBoneParentMatrices[i/*boneIndex*/]);
-                    var newBonePrim = new DbgPrimSolidBone(isHkx: true, HkxSkeleton.Bones[i].Name.GetString(), new Transform(HkxBoneParentMatrices[i/*boneIndex*/]), Quaternion.CreateFromYawPitchRoll(0, 0, 0), 0.15f, 0.3f, Color.Yellow);
+                    HkxBoneMatrices.Add(Matrix.CreateScale(HkxBoneScales[i]) * HkxBoneParentMatrices[i]);
+                    HkxBoneMatrices_Reference.Add(Matrix.CreateScale(HkxBoneScales[i]) * HkxBoneParentMatrices[i]);
+                    var newBonePrim = new DbgPrimSolidBone(isHkx: true, HkxSkeleton.Bones[i].Name.GetString(), new Transform(HkxBoneParentMatrices[i]), Quaternion.Identity, Math.Min(boneLength / 8, 0.25f), boneLength, Color.Yellow);
                     DBG.AddPrimitive(newBonePrim);
                     HkxBonePrimitives.Add(newBonePrim);
                 }
@@ -1290,7 +1401,7 @@ namespace DSAnimStudio
                         {
                             var realMatrix = HkxBoneParentMatrices[parentIndex];// Matrix.CreateFromQuaternion(boneRot) * Matrix.CreateTranslation(HkxBonePositions[HkxSkeleton.ParentIndices.GetArrayData().Elements[i].data]);
                                                                                                                               //var realMatrix = HkxBoneParentMatrices[i];
-                            HkxBoneMatrices[i] = 
+                            HkxBoneMatrices[i] =
                                 Matrix.CreateScale(HkxBoneScales[i])
                                 * realMatrix
                                 * CurrentRootMotionMatrix;
@@ -1321,7 +1432,7 @@ namespace DSAnimStudio
                         {
                             HkxBoneMatrices[i] =
                                 Matrix.CreateScale(HkxBoneScales[i])
-                                * HkxBoneParentMatrices[i/*boneIndex*/]
+                                * HkxBoneParentMatrices[i]
                                 * CurrentRootMotionMatrix;
 
                             //if (CurrentAnimBlendHint == HKX.AnimationBlendHint.ADDITIVE ||
@@ -1421,6 +1532,14 @@ namespace DSAnimStudio
         private static void LoadFLVER(FLVER2 flver)
         {
             CurrentModel = flver;
+
+            foreach (var b in flver.Bones)
+            {
+                if (Math.Abs(b.Scale.X - 1) > 0.01f || Math.Abs(b.Scale.Y - 1) > 0.01f || Math.Abs(b.Scale.Z - 1) > 0.01f)
+                {
+                    Console.WriteLine("asdf");
+                }
+            }
 
             FlverBoneCount = flver.Bones.Count;
 
@@ -1553,22 +1672,43 @@ namespace DSAnimStudio
             }
         }
 
+        public static void CreateMenuBarNPCSettings(TaeEditor.TaeMenuBarBuilder menu)
+        {
+            Main.TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
+            {
+                menu.ClearItem("NPC Settings");
+
+                var modelMaskPresetDict = new Dictionary<string, Action>();
+
+                foreach (var kvp in GFX.ModelDrawer.MaskPresets)
+                {
+                    modelMaskPresetDict.Add(kvp.Key, () =>
+                    {
+                        GFX.ModelDrawer.SelectedMaskPreset = kvp.Key;
+                        GFX.ModelDrawer.DefaultAllMaskValues();
+                    });
+                }
+
+                menu.AddItem("NPC Settings", "Model Mask Preset", modelMaskPresetDict, () => GFX.ModelDrawer.SelectedMaskPreset);
+
+                menu["NPC Settings"].Enabled = true;
+                menu["NPC Settings"].Font = new System.Drawing.Font(
+                    menu["NPC Settings"].Font.Name,
+                    menu["NPC Settings"].Font.Size, 
+                    System.Drawing.FontStyle.Bold);
+            }));
+        }
+
         public static void CreateMenuBarViewportSettings(TaeEditor.TaeMenuBarBuilder menu)
         {
             Main.TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
             {
-                var vsync = menu["3D Preview/Vsync"];
+                menu.ClearItem("3D Preview/Items In Scene");
 
-                menu.ClearItem("3D Preview");
-
-                menu.AddItem("3D Preview", vsync);
-
-                menu.AddSeparator("3D Preview");
-
-                menu.AddItem("3D Preview", "Render Meshes", () => !GFX.HideFLVERs,
+                menu.AddItem("3D Preview/Items In Scene", "Render Meshes", () => !GFX.HideFLVERs,
                     b => GFX.HideFLVERs = !b);
 
-                menu.AddItem("3D Preview/Toggle Individual Meshes", "Show All", () =>
+                menu.AddItem("3D Preview/Items In Scene/Toggle Individual Meshes", "Show All", () =>
                 {
                     foreach (var model in GFX.ModelDrawer.Models)
                     {
@@ -1579,7 +1719,7 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddItem("3D Preview/Toggle Individual Meshes", "Hide All", () =>
+                menu.AddItem("3D Preview/Items In Scene/Toggle Individual Meshes", "Hide All", () =>
                 {
                     foreach (var model in GFX.ModelDrawer.Models)
                     {
@@ -1590,13 +1730,13 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddSeparator("3D Preview/Toggle Individual Meshes");
+                menu.AddSeparator("3D Preview/Items In Scene/Toggle Individual Meshes");
 
                 foreach (var model in GFX.ModelDrawer.Models)
                 {
                     int i = 0;
                     foreach (var sm in model.GetSubmeshes())
-                        menu.AddItem("3D Preview/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
+                        menu.AddItem("3D Preview/Items In Scene/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
                 }
 
                 Dictionary<int, List<FlverSubmeshRenderer>> modelMaskMap = new Dictionary<int, List<FlverSubmeshRenderer>>();
@@ -1612,7 +1752,7 @@ namespace DSAnimStudio
 
                 }
 
-                menu.AddItem("3D Preview/Toggle By Model Mask", "Show All", () =>
+                menu.AddItem("3D Preview/Items In Scene/Toggle By Model Mask", "Show All", () =>
                 {
                     foreach (var kvp in modelMaskMap)
                     {
@@ -1623,7 +1763,7 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddItem("3D Preview/Toggle By Model Mask", "Hide All", () =>
+                menu.AddItem("3D Preview/Items In Scene/Toggle By Model Mask", "Hide All", () =>
                 {
                     foreach (var kvp in modelMaskMap)
                     {
@@ -1634,66 +1774,66 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddSeparator("3D Preview/Toggle By Model Mask");
+                menu.AddSeparator("3D Preview/Items In Scene/Toggle By Model Mask");
 
                 foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
                 {
-                    menu.AddItem("3D Preview/Toggle By Model Mask", kvp.Key >= 0 ? $"Model Mask {kvp.Key}" : "Default", () => kvp.Value.All(sm => sm.IsVisible),
-                        b =>
-                        {
-                            foreach (var sm in kvp.Value)
-                            {
-                                sm.IsVisible = b;
-                            }
-                        });
+                    if (kvp.Key >= 0)
+                    {
+                        menu.AddItem("3D Preview/Items In Scene/Toggle By Model Mask",
+                        $"Model Mask {kvp.Key}",
+                        () => GFX.ModelDrawer.Mask[kvp.Key],
+                        b => GFX.ModelDrawer.Mask[kvp.Key] = b);
+                    }
+                    
                 }
 
-                menu.AddItem("3D Preview", "Render HKX Skeleton (Yellow)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
+                menu.AddItem("3D Preview/Items In Scene", "Render HKX Skeleton (Yellow)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
 
-                menu.AddItem("3D Preview", "Render FLVER Skeleton (Purple)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
+                menu.AddItem("3D Preview/Items In Scene", "Render FLVER Skeleton (Purple)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = b);
 
-                menu.AddItem("3D Preview", "Render FLVER Skeleton Bounding Boxes (Orange)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
+                menu.AddItem("3D Preview/Items In Scene", "Render FLVER Skeleton Bounding Boxes (Orange)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
 
-                menu.AddItem("3D Preview", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                menu.AddItem("3D Preview/Items In Scene", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-                //menu.AddItem("3D Preview", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                //menu.AddItem("3D Preview/Items In Scene", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                 //    b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Show All", () =>
-                {
-                    foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
-                    {
-                        if (prim is DbgPrimDummyPolyCluster cluster)
-                        {
-                            cluster.EnableDraw = true;
-                        }
-                    }
-                });
+                //menu.AddItem("3D Preview/Items In Scene/Toggle DummyPoly By ID", $"Show All", () =>
+                //{
+                //    foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+                //    {
+                //        if (prim is DbgPrimDummyPolyCluster cluster)
+                //        {
+                //            cluster.EnableDraw = true;
+                //        }
+                //    }
+                //});
 
-                menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"Hide All", () =>
-                {
-                    foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
-                    {
-                        if (prim is DbgPrimDummyPolyCluster cluster)
-                        {
-                            cluster.EnableDraw = false;
-                        }
-                    }
-                });
+                //menu.AddItem("3D Preview/Items In Scene/Toggle DummyPoly By ID", $"Hide All", () =>
+                //{
+                //    foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+                //    {
+                //        if (prim is DbgPrimDummyPolyCluster cluster)
+                //        {
+                //            cluster.EnableDraw = false;
+                //        }
+                //    }
+                //});
 
-                menu.AddSeparator("3D Preview/Toggle DummyPoly By ID");
+                //menu.AddSeparator("3D Preview/Items In Scene/Toggle DummyPoly By ID");
 
-                foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
-                {
-                    if (prim is DbgPrimDummyPolyCluster cluster)
-                    {
-                        menu.AddItem("3D Preview/Toggle DummyPoly By ID", $"{cluster.ID}", () => cluster.EnableDraw, b => cluster.EnableDraw = b);
-                    }
-                }
+                //foreach (var prim in DBG.GetPrimitives().Where(p => p.Category == DebugPrimitives.DbgPrimCategory.DummyPoly))
+                //{
+                //    if (prim is DbgPrimDummyPolyCluster cluster)
+                //    {
+                //        menu.AddItem("3D Preview/Items In Scene/Toggle DummyPoly By ID", $"{cluster.ID}", () => cluster.EnableDraw, b => cluster.EnableDraw = b);
+                //    }
+                //}
             }));
         }
 

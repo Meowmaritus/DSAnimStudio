@@ -15,9 +15,9 @@ namespace DSAnimStudio
 {
     public enum GFXDrawStep : byte
     {
-        Opaque = 1,
-        AlphaEdge = 2,
-        DbgPrim = 3,
+        DbgPrim = 1,
+        Opaque = 2,
+        AlphaEdge = 3,
         GUI = 4,
         GUILoadingTasks = 5,
     }
@@ -72,18 +72,23 @@ namespace DSAnimStudio
             FlverShader.Effect.EmissiveMapMult = 1;
 
             SkyboxShader.Effect.EnvironmentMap = CubeMap;
+
+            //GFX.FlverOpacity = 0.15f;
         }
 
         public static TextureCube CubeMap = null;
 
         public static FlverShader.FSWorkflowType FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
 
-        public static bool AutoRotateLight = false;
-        public static bool LightFollowsCamera = true;
+        public static bool FlverAutoRotateLight = false;
+        public static bool FlverLightFollowsCamera = true;
 
         //public static float AmbientLightMult = 1.0f;
-        public static float DirectLightMult = 1.0f;
-        public static float IndirectLightMult = 1.0f;
+        public static float FlverDirectLightMult = 1.0f;
+        public static float FlverIndirectLightMult = 1.0f;
+        public static float FlverSceneBrightness = 1.0f;
+
+        public static float FlverOpacity = 1.0f;
 
         public static GFXDrawStep CurrentStep = GFXDrawStep.Opaque;
 
@@ -136,7 +141,7 @@ namespace DSAnimStudio
         public static string FlverShader__Name => $@"{Main.Directory}\\Content\FlverShader";
         public static string CollisionShader__Name => $@"{Main.Directory}\\Content\CollisionShader";
         public static string SkyboxShader__Name => $@"{Main.Directory}\\Content\SkyboxShader";
-        public static string SkyboxTextureName => $@"{Main.Directory}\\Content\m32_00_GILM0004";
+        public static string SkyboxTextureName => $@"{Main.Directory}\\Content\m32_00_GILM0000";
 
         private static bool _wireframe = false;
         public static bool Wireframe
@@ -289,6 +294,8 @@ namespace DSAnimStudio
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.MultiSampleAntiAlias = true;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.CullMode = CullMode.CullClockwiseFace;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.FillMode = FillMode.WireFrame;
+
+            ModelDrawer.LoadContent(c);
         }
 
         public static void BeginDraw(GameTime gameTime)
@@ -315,11 +322,11 @@ namespace DSAnimStudio
             //FlverShader.Effect.EyePosition = Vector3.Backward;
 
 
-            if (AutoRotateLight)
+            if (FlverAutoRotateLight)
             {
                 FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * (float)gameTime.TotalGameTime.TotalSeconds * 0.25f));
             }
-            else if (LightFollowsCamera)
+            else if (FlverLightFollowsCamera)
             {
                 FlverShader.Effect.LightDirection = -Vector3.Normalize(World.CameraTransform.Position);
             }
@@ -332,11 +339,15 @@ namespace DSAnimStudio
             FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
             FlverShader.Effect.WorkflowType = FlverShaderWorkflowType;
 
-            FlverShader.Effect.AmbientLightMult = IndirectLightMult * 0.175f;
-            FlverShader.Effect.DirectLightMult = DirectLightMult;
+            FlverShader.Effect.AmbientLightMult = FlverIndirectLightMult * 0.125f;
+            FlverShader.Effect.DirectLightMult = FlverDirectLightMult;
             FlverShader.Effect.IndirectLightMult = 1.0f;
+            FlverShader.Effect.SceneBrightness = FlverSceneBrightness * 1.5f;
+            FlverShader.Effect.Legacy_SceneBrightness = FlverSceneBrightness * 1.5f;
+            FlverShader.Effect.Opacity = FlverOpacity;
 
-            SkyboxShader.Effect.DS3AmbientBrightness = IndirectLightMult * 0.5f;
+            SkyboxShader.Effect.AmbientLightMult = FlverIndirectLightMult * 0.75f;
+            SkyboxShader.Effect.SceneBrightness = FlverSceneBrightness * 1.5f;
 
             DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;

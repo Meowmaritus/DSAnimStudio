@@ -1,7 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DSAnimStudio
 {
@@ -26,6 +29,177 @@ namespace DSAnimStudio
         //public long Debug_VertexCount = 0;
         //public long Debug_SubmeshCount = 0;
 
+        const int MASK_SIZE = 32;
+
+        public bool[] Mask = new bool[MASK_SIZE];
+
+        public bool[] DefaultMask => maskPresets[SelectedMaskPreset];
+
+        private Dictionary<string, bool[]> maskPresets = new Dictionary<string, bool[]>();
+        private Dictionary<string, bool> maskPresetsInvisibility = new Dictionary<string, bool>();
+
+        public List<Model> Skybox { get; private set; } = new List<Model>();
+
+
+
+        public IReadOnlyDictionary<string, bool[]> MaskPresets => maskPresets;
+        public IReadOnlyDictionary<string, bool> MaskPresetsInvisibility => maskPresetsInvisibility;
+
+        public const string DEFAULT_PRESET_NAME = "None (Show All Submeshes)";
+
+        public string SelectedMaskPreset = DEFAULT_PRESET_NAME;
+
+        public ModelDrawer()
+        {
+            maskPresets.Clear();
+            maskPresets.Add(DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
+
+            maskPresetsInvisibility.Clear();
+            maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);
+        }
+
+        private void LoadSkybox(string path, Transform t)
+        {
+            var skybox = new Model(FLVER2.Read(path));
+            skybox.AddNewInstance(new ModelInstance(path, skybox, t, -1, -1, -1, -1));
+
+            skybox.GetSubmeshes().ToList()[2].IsVisible = false;
+
+            skybox.TryToLoadTextures();
+            Skybox.Add(skybox);
+        }
+
+        public void DrawSkyboxes()
+        {
+            foreach (var s in Skybox)
+            {
+                s.Draw(GFX.ModelDrawer.Mask, 0, false, true, true);
+            }
+        }
+
+        public void LoadContent(ContentManager c)
+        {
+            //TexturePool.AddTPFFolder($"{Main.Directory}\\Content", dcx: true, directDdsFetches: true);
+
+            TexturePool.AddTpfFromPath($"{Main.Directory}\\Content\\o329000.tpf");
+            LoadSkybox($"{Main.Directory}\\Content\\o329000.flver", new Transform(new Vector3(0, -400, 0), Vector3.Zero, Vector3.One));
+            //var flvers = System.IO.Directory.GetFiles($"{Main.Directory}\\Content\\m54", "*.flver");
+
+            // Skybox
+            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_009000.flver");
+
+            // Mountains
+            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_012501.flver");
+
+            // Plaza
+            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_001000.flver");
+
+            // Junk
+            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_001100.flver");
+
+            TexturePool.RemoveFetchRefsWithoutFlushing();
+        }
+
+        public void ReadDrawMaskPresets(PARAM npcParam, HKX.HKXVariation game, string anibndPath)
+        {
+            int chrId = int.Parse(Utils.GetFileNameWithoutAnyExtensions(
+                Utils.GetFileNameWithoutDirectoryOrExtension(anibndPath)).Substring(1));
+
+            maskPresets.Clear();
+            maskPresets.Add(DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
+
+            maskPresetsInvisibility.Clear();
+            maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);
+
+            foreach (var r in npcParam.Rows)
+            {
+                // 123400 and 123401 should both be true for c1234
+                if (r.ID / 100 == chrId)
+                {
+                    var br = npcParam.GetRowReader(r);
+                    var rowStart = br.Position;
+                    bool[] maskBools = new bool[MASK_SIZE];
+                    br.Position = rowStart + 0x146;
+
+                    bool allMasksEmpty = true;
+
+                    byte mask1 = br.ReadByte();
+                    byte mask2 = br.ReadByte();
+                    for (int i = 0; i < 8; i++)
+                        maskBools[i] = ((mask1 & (1 << i)) != 0);
+                    for (int i = 0; i < 8; i++)
+                        maskBools[8 + i] = ((mask2 & (1 << i)) != 0);
+
+                    if (mask1 != 0 || mask2 != 0)
+                        allMasksEmpty = false;
+
+                    if (game == HKX.HKXVariation.HKXBloodBorne || game == HKX.HKXVariation.HKXDS3)
+                    {
+                        br.Position = rowStart + 0x14A;
+                        byte mask3 = br.ReadByte();
+                        byte mask4 = br.ReadByte();
+
+                        for (int i = 0; i < 8; i++)
+                            maskBools[16 + i] = ((mask3 & (1 << i)) != 0);
+                        for (int i = 0; i < 8; i++)
+                            maskBools[24 + i] = ((mask4 & (1 << i)) != 0);
+
+                        if (mask3 != 0 || mask4 != 0)
+                            allMasksEmpty = false;
+                    }
+
+                    string entryName = $"{r.ID}";
+
+                    if (!string.IsNullOrWhiteSpace(r.Name))
+                        entryName += $": {r.Name}";
+
+                    if (allMasksEmpty)
+                    {
+                        entryName += " (Invisible)";
+                    }
+                    else
+                    {
+                        entryName += " (";
+                        bool isFirstOneListed = true;
+                        for (int i = 0; i < MASK_SIZE; i++)
+                        {
+                            if (maskBools[i])
+                            {
+                                if (!isFirstOneListed)
+                                    entryName += ", ";
+                                else
+                                    isFirstOneListed = false;
+
+                                entryName += $"{(i + 1)}";
+                            }
+                        }
+                        entryName += ")";
+                    }
+
+                   
+
+                    maskPresets.Add(entryName, maskBools);
+                    maskPresetsInvisibility.Add(entryName, allMasksEmpty);
+                }
+            }
+        }
+
+        public void SetAllMaskValue(bool val)
+        {
+            for (int i = 0; i < MASK_SIZE; i++)
+            {
+                Mask[i] = val;
+            }
+        }
+
+        public void DefaultAllMaskValues()
+        {
+            for (int i = 0; i < MASK_SIZE; i++)
+            {
+                Mask[i] = DefaultMask[i];
+            }
+        }
+
         public void ClearScene()
         {
             lock (_lock_ModelLoad_Draw)
@@ -39,6 +213,8 @@ namespace DSAnimStudio
                 Models?.Clear();
                 GC.Collect();
             }
+
+            DefaultAllMaskValues();
         }
 
         public void InvertVisibility()
@@ -221,6 +397,7 @@ namespace DSAnimStudio
                 {
                     foreach (var ins in Models)
                         ins.TryToLoadTextures();
+
                     IsTextureLoadRequested = false;
                 }
 
@@ -246,7 +423,7 @@ namespace DSAnimStudio
 
                 foreach (var mdl in Models)
                 {
-                    mdl.Draw();
+                    mdl.Draw(Mask);
                 }
 
             }

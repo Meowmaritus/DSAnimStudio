@@ -36,6 +36,7 @@ namespace DSAnimStudio
         public string TexNameSpecular { get; private set; } = null;
         public string TexNameNormal { get; private set; } = null;
         public string TexNameEmissive { get; private set; } = null;
+        public string TexNameShininess { get; private set; } = null;
         public string TexNameDOL1 { get; private set; } = null;
         public string TexNameDOL2 { get; private set; } = null;
 
@@ -43,6 +44,7 @@ namespace DSAnimStudio
         public Texture2D TexDataSpecular { get; private set; } = null;
         public Texture2D TexDataNormal { get; private set; } = null;
         public Texture2D TexDataEmissive { get; private set; } = null;
+        public Texture2D TexDataShininess { get; private set; } = null;
         public Texture2D TexDataDOL1 { get; private set; } = null;
         public Texture2D TexDataDOL2 { get; private set; } = null;
 
@@ -132,7 +134,7 @@ namespace DSAnimStudio
             return vert;
         }
 
-        public FlverSubmeshRenderer(Model parent, FLVER2 flvr, FLVER2.Mesh mesh, Dictionary<int, Matrix> flverTposeToHkxTposeMatrices)
+        public FlverSubmeshRenderer(Model parent, FLVER2 flvr, FLVER2.Mesh mesh)
         {
             Parent = parent;
 
@@ -168,6 +170,8 @@ namespace DSAnimStudio
                     TexNameNormal = matParam.Path;
                 else if (paramNameCheck.Contains("EMISSIVE"))
                     TexNameEmissive = matParam.Path;
+                else if (paramNameCheck.Contains("SHININESS"))
+                    TexNameShininess = matParam.Path;
                 else if (paramNameCheck == "G_DOLTEXTURE1")
                 {
                     TexNameDOL1 = matParam.Path;
@@ -213,8 +217,58 @@ namespace DSAnimStudio
                     MeshVertices[i].Bitangent = new Vector4(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z, vert.Tangents[0].W);
                     MeshVertices[i].Binormal = Vector3.Cross(Vector3.Normalize(MeshVertices[i].Normal), Vector3.Normalize(new Vector3(MeshVertices[i].Bitangent.X, MeshVertices[i].Bitangent.Y, MeshVertices[i].Bitangent.Z))) * vert.Tangents[0].W;
                 }
+                if (vert.BoneWeights != null)
+                {
+                    MeshVertices[i].BoneWeights = new Vector4(vert.BoneWeights[0], vert.BoneWeights[1], vert.BoneWeights[2], vert.BoneWeights[3]);
 
-                MeshVertices[i].BoneWeights = new Vector4(vert.BoneWeights[0], vert.BoneWeights[1], vert.BoneWeights[2], vert.BoneWeights[3]);
+                    if (flvr.Header.Version <= 0x2000D)
+                    {
+                        MeshVertices[i].BoneIndices = new Vector4(
+                            (int)(mesh.BoneIndices[vert.BoneIndices[0]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] % FlverShader.NUM_BONES : 0),
+                            (int)(mesh.BoneIndices[vert.BoneIndices[1]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] % FlverShader.NUM_BONES : 0),
+                            (int)(mesh.BoneIndices[vert.BoneIndices[2]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] % FlverShader.NUM_BONES : 0),
+                            (int)(mesh.BoneIndices[vert.BoneIndices[3]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] % FlverShader.NUM_BONES : 0));
+
+                        MeshVertices[i].BoneIndicesBank = new Vector4(
+                            (vert.BoneIndices[0] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] / FlverShader.NUM_BONES : 0),
+                            (vert.BoneIndices[1] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] / FlverShader.NUM_BONES : 0),
+                            (vert.BoneIndices[2] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] / FlverShader.NUM_BONES : 0),
+                            (vert.BoneIndices[3] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] / FlverShader.NUM_BONES : 0));
+
+                        if (vert.BoneIndices[0] < 0)
+                            MeshVertices[i].BoneWeights.X = 0;
+
+                        if (vert.BoneIndices[1] < 0)
+                            MeshVertices[i].BoneWeights.Y = 0;
+
+                        if (vert.BoneIndices[2] < 0)
+                            MeshVertices[i].BoneWeights.Z = 0;
+
+                        if (vert.BoneIndices[3] < 0)
+                            MeshVertices[i].BoneWeights.W = 0;
+                    }
+                    else
+                    {
+                        MeshVertices[i].BoneIndices = new Vector4(
+                            (int)(vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] % FlverShader.NUM_BONES : -1),
+                            (int)(vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] % FlverShader.NUM_BONES : -1),
+                            (int)(vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] % FlverShader.NUM_BONES : -1),
+                            (int)(vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] % FlverShader.NUM_BONES : -1));
+
+                        MeshVertices[i].BoneIndicesBank = new Vector4(
+                           vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] / FlverShader.NUM_BONES : 0,
+                           vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] / FlverShader.NUM_BONES : 0,
+                           vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] / FlverShader.NUM_BONES : 0,
+                           vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] / FlverShader.NUM_BONES : 0);
+                    }
+                }
+                else
+                {
+                    MeshVertices[i].BoneIndices.X = 0;
+                    MeshVertices[i].BoneIndicesBank.X = 0;
+                    MeshVertices[i].BoneWeights.X = 1;
+                }
+                    
 
                 //if (vert.BoneWeights[0] < debug_LowestBoneWeight)
                 //    debug_LowestBoneWeight = vert.BoneWeights[0];
@@ -241,46 +295,7 @@ namespace DSAnimStudio
                 //if (vert.BoneWeights[3] > debug_HighestBoneWeight)
                 //    debug_HighestBoneWeight = vert.BoneWeights[3];
 
-                if (flvr.Header.Version <= 0x2000D)
-                {
-                    MeshVertices[i].BoneIndices = new Vector4(
-                        (int)(mesh.BoneIndices[vert.BoneIndices[0]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] % FlverShader.NUM_BONES : 0),
-                        (int)(mesh.BoneIndices[vert.BoneIndices[1]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] % FlverShader.NUM_BONES : 0),
-                        (int)(mesh.BoneIndices[vert.BoneIndices[2]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] % FlverShader.NUM_BONES : 0),
-                        (int)(mesh.BoneIndices[vert.BoneIndices[3]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] % FlverShader.NUM_BONES : 0));
-
-                    MeshVertices[i].BoneIndicesBank = new Vector4(
-                        (vert.BoneIndices[0] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] / FlverShader.NUM_BONES : 0),
-                        (vert.BoneIndices[1] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] / FlverShader.NUM_BONES : 0),
-                        (vert.BoneIndices[2] >= 0 ? mesh.BoneIndices[vert.BoneIndices[2]] / FlverShader.NUM_BONES : 0),
-                        (vert.BoneIndices[3] >= 0 ? mesh.BoneIndices[vert.BoneIndices[3]] / FlverShader.NUM_BONES : 0));
-
-                    if (vert.BoneIndices[0] < 0)
-                        MeshVertices[i].BoneWeights.X = 0;
-
-                    if (vert.BoneIndices[1] < 0)
-                        MeshVertices[i].BoneWeights.Y = 0;
-
-                    if (vert.BoneIndices[2] < 0)
-                        MeshVertices[i].BoneWeights.Z = 0;
-
-                    if (vert.BoneIndices[3] < 0)
-                        MeshVertices[i].BoneWeights.W = 0;
-                }
-                else
-                {
-                    MeshVertices[i].BoneIndices = new Vector4(
-                        (int)(vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] % FlverShader.NUM_BONES : -1),
-                        (int)(vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] % FlverShader.NUM_BONES : -1),
-                        (int)(vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] % FlverShader.NUM_BONES : -1),
-                        (int)(vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] % FlverShader.NUM_BONES : -1));
-
-                    MeshVertices[i].BoneIndicesBank = new Vector4(
-                       vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] / FlverShader.NUM_BONES : 0,
-                       vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] / FlverShader.NUM_BONES : 0,
-                       vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] / FlverShader.NUM_BONES : 0,
-                       vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] / FlverShader.NUM_BONES : 0);
-                }
+                
 
                 //TESTING
                 //if (MeshVertices[i].BoneIndices.X != 42)
@@ -338,7 +353,7 @@ namespace DSAnimStudio
                     //    vert.BoneIndices[0], vert.BoneIndices[1], vert.BoneIndices[2], vert.BoneIndices[3],
                     //    flverTposeToHkxTposeMatrices);
 
-                    if (vert.UVs.Count > 0)
+                if (vert.UVs.Count > 0)
                 {
                     MeshVertices[i].TextureCoordinate = new Vector2(vert.UVs[0].X, vert.UVs[0].Y);
                     if (vert.UVs.Count > 1 && hasLightmap)
@@ -856,6 +871,9 @@ namespace DSAnimStudio
             if (TexDataEmissive == null && TexNameEmissive != null)
                 TexDataEmissive = TexturePool.FetchTexture(TexNameEmissive);
 
+            if (TexDataShininess == null && TexNameShininess != null)
+                TexDataShininess = TexturePool.FetchTexture(TexNameShininess);
+
             if (TexDataDOL1 == null && TexNameDOL1 != null)
             {
                 TexDataDOL1 = TexturePool.FetchTexture(TexNameDOL1);
@@ -869,10 +887,13 @@ namespace DSAnimStudio
                 TexDataDOL2 = TexturePool.FetchTexture(TexNameDOL2);
         }
 
-        public void Draw<T>(int lod, bool motionBlur, IGFXShader<T> shader, bool forceNoBackfaceCulling = false)
+        public void Draw<T>(int lod, bool motionBlur, IGFXShader<T> shader, bool[] mask, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
             where T : Effect
         {
             if (!IsVisible)
+                return;
+
+            if (ModelMaskIndex >= 0 && !mask[ModelMaskIndex])
                 return;
 
             if (GFX.EnableTextures && shader == GFX.FlverShader)
@@ -881,10 +902,18 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
                 GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
             }
 
-            if (shader == GFX.FlverShader)
+            GFX.FlverShader.Effect.UseSpecularMapBB = TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne;
+
+            if (isSkyboxLol)
+            {
+                //((FlverShader)shader).Bones0 = new Matrix[] { Matrix.Identity };
+                ((FlverShader)shader).IsSkybox = true;
+            }
+            else if (shader == GFX.FlverShader)
             {
                 ((FlverShader)shader).Bones0 = TaeInterop.ShaderMatrix0;
 
@@ -897,6 +926,8 @@ namespace DSAnimStudio
                         ((FlverShader)shader).Bones2 = TaeInterop.ShaderMatrix2;
                     }
                 }
+
+                 ((FlverShader)shader).IsSkybox = false;
             }
 
             //if (GFX.EnableLightmapping /*&& !GFX.EnableLighting*/)
