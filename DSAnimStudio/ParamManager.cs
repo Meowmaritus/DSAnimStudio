@@ -43,24 +43,30 @@ namespace DSAnimStudio
             throw new InvalidOperationException($"Param '{paramName}' not found :tremblecat:");
         }
 
-        public static void LoadParamBND(HKX.HKXVariation game, string interroot)
+        public static bool LoadParamBND(HKX.HKXVariation game, string interroot)
         {
             if (ParamBNDs.ContainsKey(game))
-                return;
+                return true;
             
             ParamBNDs.Add(game, null);
 
             if (game == HKX.HKXVariation.HKXDS1)
             {
-                ParamBNDs[game] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd");
+                if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd"))
+                    ParamBNDs[game] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd");
+                else
+                    return false;
             }
             else if (game == HKX.HKXVariation.HKXBloodBorne)
             {
-                ParamBNDs[game] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
+                if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
+                    ParamBNDs[game] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
+                else
+                    return false;
             }
             else if (game == HKX.HKXVariation.HKXDS3)
             {
-                if (File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
+                if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
                 {
                     ParamBNDs[game] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
                 }
@@ -68,11 +74,17 @@ namespace DSAnimStudio
                 {
                     ParamBNDs[game] = SFUtil.DecryptDS3Regulation($"{interroot}\\Data0.bdt");
                 }
+                else
+                {
+                    return false;
+                }
             }
             else
             {
                 throw new NotImplementedException();
             }
+
+            return true;
         }
     }
 }

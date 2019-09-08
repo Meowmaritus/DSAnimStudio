@@ -114,11 +114,17 @@ namespace DSAnimStudio.TaeEditor
             "Right Click:\n" +
             "    Place copy of last highlighted event at mouse cursor\n" +
             "Delete Key:\n" +
-            "    Delete highlighted event.\n\n\n" +
-            "The pane on the bottom-right shows the parameters of the highlighted event." +
-            "Click \"Change Type\" on the upper-right corner to change the event type of the highlighted event." +
+            "    Delete highlighted event.\n" +
+            "Ctrl+X/Ctrl+C/Ctrl+V:\n" +
+            "    CUT/COPY/PASTE\n" +
+            "Ctrl+Z/Ctrl+Y:\n" +
+            "    UNDO/REDO\n" +
             "F1 Key:\n" +
-            "    Change type of highlighted event.\n";
+            "    Change type of highlighted event.\n" +
+            "Space Bar:\n" +
+            "    Play/Pause Anim.\n" +
+            "Shift+Space Bar:\n" +
+            "    Play Anim from beginning.\n";
 
         private static object _lock_PauseUpdate = new object();
         private bool _PauseUpdate;
@@ -831,6 +837,9 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("3D Preview", "Vsync", () => GFX.Display.Vsync, b =>
             {
                 GFX.Display.Vsync = b;
+                GFX.Display.Width = GFX.Device.Viewport.Width;
+                GFX.Display.Height = GFX.Device.Viewport.Height;
+                GFX.Display.Fullscreen = false;
                 GFX.Display.Apply();
             });
 
@@ -875,7 +884,7 @@ namespace DSAnimStudio.TaeEditor
                 }
             });
 
-            MenuBar.AddItem("3D Preview/Renderer", $"Reload FLVER Shader (.\\Content\\FlverShader.xnb", () =>
+            MenuBar.AddItem("3D Preview/Renderer", $@"Reload FLVER Shader (.\Content\Shaders\FlverShader.xnb)", () =>
             {
                 if (DebugReloadContentManager != null)
                 {
@@ -891,6 +900,31 @@ namespace DSAnimStudio.TaeEditor
 
                 GFX.InitShaders();
             });
+
+            MenuBar.AddItem("3D Preview", "Cubemap", () =>
+            {
+                var result = new Dictionary<string, Action>();
+                foreach (var kvp in Environment.Cubemaps)
+                {
+                    result.Add(kvp.Key, () => Environment.CurrentCubemapName = kvp.Key);
+                }
+                return result;
+            }, 
+            () => Environment.CurrentCubemapName);
+
+            MenuBar.AddItem("3D Preview", "Viewport Resolution Multiplier", new Dictionary<string, Action>
+            {
+                { "1x", () => GFX.SSAA = 1 },
+                { "2x", () => GFX.SSAA = 2 },
+                { "3x", () => GFX.SSAA = 3 },
+                { "4x", () => GFX.SSAA = 4 },
+                { "5x", () => GFX.SSAA = 5 },
+                { "6x", () => GFX.SSAA = 6 },
+                { "7x", () => GFX.SSAA = 7 },
+                { "8x", () => GFX.SSAA = 8 },
+                { "16x", () => GFX.SSAA = 16 },
+                { "32x", () => GFX.SSAA = 32 },
+            }, () => $"{GFX.SSAA}x");
 
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
@@ -932,8 +966,8 @@ namespace DSAnimStudio.TaeEditor
             //ShaderAdjuster.ForeColor = inspectorWinFormsControl.ForeColor;
 
             //GameWindowAsForm.BackColor = System.Drawing.Color.Fuchsia;
-            GameWindowAsForm.AllowTransparency = true;
-            GameWindowAsForm.TransparencyKey = System.Drawing.Color.Fuchsia;
+            GameWindowAsForm.AllowTransparency = false;
+            //GameWindowAsForm.TransparencyKey = System.Drawing.Color.Fuchsia;
 
             GameWindowAsForm.Controls.Add(ShaderAdjuster);
 
@@ -1618,11 +1652,11 @@ namespace DSAnimStudio.TaeEditor
                 return;
             PauseUpdate = true;
             var anim = KeyboardInput.Show("Goto Anim", "Goes to the animation with the ID\n" +
-                "entered, if applicable \n" +
-                (FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 ? "(for aXXX_YYYYYY, type XXXYYYYYY)" : "(for aXX_YYYY, type XXYYYY)"), "");
+                "entered, if applicable.");
+
             if (!anim.IsCanceled && anim.Result != null)
             {
-                if (int.TryParse(anim.Result, out int id))
+                if (int.TryParse(anim.Result.Replace("a", "").Replace("_", ""), out int id))
                 {
                     if (!GotoAnimID(id, scrollOnCenter: true))
                     {

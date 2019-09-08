@@ -21,11 +21,13 @@ namespace DSAnimStudio.TaeEditor
                 {
                     foreach (var ev in anim.Events)
                     {
+                        if (ev.Parameters == null)
+                            continue;
                         foreach (var kvp in ev.Parameters.Template)
                         {
                             if (kvp.Value.ValueToAssert == null)
                             {
-                                var thisVal = ev.Parameters[kvp.Key].ToString();
+                                var thisVal = kvp.Value.ValueToString(ev.Parameters[kvp.Key]);
                                 if (requireWholeValue ? thisVal.Equals(paramVal) : thisVal.Contains(paramVal))
                                 {
                                     var animID_Lower = editor.FileContainer.ContainerType 

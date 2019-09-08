@@ -19,17 +19,17 @@ namespace DSAnimStudio.TaeEditor
 
         private void TrackBarDirectMult_ValueChanged(object sender, EventArgs e)
         {
-            GFX.FlverDirectLightMult = trackBarDirectMult.Value / 100f;
+            Environment.FlverDirectLightMult = trackBarDirectMult.Value / 100f;
         }
 
         private void TrackBarIndirectMult_ValueChanged(object sender, EventArgs e)
         {
-            GFX.FlverIndirectLightMult = trackBarIndirectMult.Value / 100f;
+            Environment.FlverIndirectLightMult = trackBarIndirectMult.Value / 100f;
         }
 
         private void CheckBoxDrawSkybox_CheckedChanged(object sender, EventArgs e)
         {
-            GFX.DrawSkybox = checkBoxDrawSkybox.Checked;
+            Environment.DrawCubemap = checkBoxDrawSkybox.Checked;
         }
 
         private void Button1_Click(object sender, EventArgs e)
@@ -41,9 +41,9 @@ namespace DSAnimStudio.TaeEditor
         {
             if (Height == 18)
             {
-                checkBoxDrawSkybox.Checked = GFX.DrawSkybox;
-                trackBarDirectMult.Value = (int)(GFX.FlverDirectLightMult * 100);
-                trackBarIndirectMult.Value = (int)(GFX.FlverIndirectLightMult * 100);
+                checkBoxDrawSkybox.Checked = Environment.DrawCubemap;
+                trackBarDirectMult.Value = (int)(Environment.FlverDirectLightMult * 100);
+                trackBarIndirectMult.Value = (int)(Environment.FlverIndirectLightMult * 100);
 
                 Height = 112;
                 Width = 185;

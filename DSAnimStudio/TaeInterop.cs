@@ -40,7 +40,7 @@ namespace DSAnimStudio
         public static void LoadContent()
         {
             
-            TaeSoundManager.LoadSoundsFromDir($"{Main.Directory}\\Content\\SE\\CHR");
+            TaeSoundManager.LoadSoundsFromDir($@"{Main.Directory}\Content\Sounds\Character");
         }
 
         /// <summary>
@@ -365,12 +365,12 @@ namespace DSAnimStudio
                 int soundID = (int)evBox.MyEvent.Parameters["SoundID"];
                 if (!TaeSoundManager.Play(soundType, soundID, 0.35f))
                 {
-                    DBG.SE["sound_event_hit.wav"].Play();
+                    DBG.Sounds["sound_event_hit.wav"].Play();
                 }
             }
             else if (PlaySoundEffectOnHighlightedEvents && (Main.TAE_EDITOR.SelectedEventBox == evBox || Main.TAE_EDITOR.MultiSelectedEventBoxes.Contains(evBox)))
             {
-                DBG.SE["sound_event_hit.wav"].Play();
+                DBG.Sounds["sound_event_hit.wav"].Play();
             }
         }
 
@@ -537,6 +537,13 @@ namespace DSAnimStudio
             {
                 LoadingTaskMan.DoLoadingTaskSynchronous("LoadModels", "Loading model(s)...", innerProgress =>
                 {
+                    for (int i = 0; i < GFXShaders.FlverShader.NUM_BONES; i++)
+                    {
+                        ShaderMatrix0[i] = Matrix.Identity;
+                        ShaderMatrix1[i] = Matrix.Identity;
+                        ShaderMatrix2[i] = Matrix.Identity;
+                    }
+
                     if (HaventLoadedAnythingYet)
                         HaventLoadedAnythingYet = false;
 
@@ -769,14 +776,14 @@ namespace DSAnimStudio
                         if (GFX.FlverShaderWorkflowType != GFXShaders.FlverShader.FSWorkflowType.Ass)
                             GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Ass;
 
-                        GFX.DrawSkybox = false;
+                        Environment.DrawCubemap = false;
                     }
                     else
                     {
                         if (GFX.FlverShaderWorkflowType == GFXShaders.FlverShader.FSWorkflowType.Ass)
                             GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
 
-                        GFX.DrawSkybox = true;
+                        Environment.DrawCubemap = true;
                     }
 
                     ReadParamsForSelectedCharacter();
@@ -813,15 +820,13 @@ namespace DSAnimStudio
         {
             var folder = new FileInfo(AnibndPath).DirectoryName;
             var lastSlashInFolder = folder.LastIndexOf("\\");
-            ParamManager.LoadParamBND(CurrentHkxVariation, folder.Substring(0, lastSlashInFolder));
-
-            GFX.ModelDrawer.ReadDrawMaskPresets(
+            if (ParamManager.LoadParamBND(CurrentHkxVariation, folder.Substring(0, lastSlashInFolder)))
+            {
+                GFX.ModelDrawer.ReadDrawMaskPresets(
                 ParamManager.GetParam(CurrentHkxVariation, "NpcParam"),
                 CurrentHkxVariation,
                 AnibndPath);
-
-            var maskPresets = GFX.ModelDrawer.MaskPresets;
-
+            }
 
         }
 
@@ -1186,11 +1191,11 @@ namespace DSAnimStudio
                         thisBone.Item1 *= Matrix.CreateFromQuaternion(rotation);
 
                         var posX = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) 
-                            ? (skeleTransform.Position.Vector.X) : track.SplinePosition.GetValueX(frame);
+                            ? (additiveBlend ? 0 : skeleTransform.Position.Vector.X) : track.SplinePosition.GetValueX(frame);
                         var posY = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) 
-                            ? (skeleTransform.Position.Vector.Y) : track.SplinePosition.GetValueY(frame);
+                            ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Y) : track.SplinePosition.GetValueY(frame);
                         var posZ = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) 
-                            ? (skeleTransform.Position.Vector.Z) : track.SplinePosition.GetValueZ(frame);
+                            ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Z) : track.SplinePosition.GetValueZ(frame);
 
                         //if (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) && !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
                         //{
