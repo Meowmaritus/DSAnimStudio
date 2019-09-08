@@ -340,7 +340,7 @@ namespace DSAnimStudio
             int dxgiFormat = texInfo.Texture?.Header?.DXGIFormat ?? 0;
             int mipmapCount = texInfo.Texture?.Mipmaps ?? 0;
             uint fourCC = DDS.PIXELFORMAT.FourCCDX10;
-            int arraySize = texInfo.Texture?.Header?.TextureCount ?? 0;
+            int arraySize = texInfo.Texture?.Header?.TextureCount ?? 1;
 
             DDS ppDdsHeader_ForDebug = null;
 
