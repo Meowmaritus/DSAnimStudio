@@ -9,7 +9,7 @@ namespace DSAnimStudio.TaeEditor
         {
             //var info = new System.Diagnostics.ProcessStartInfo()
             //{
-            //    FileName = $"{Main.Directory}\\Content\\ModelReloaderDS1R\\ModelReloaderDS1R.exe",
+            //    FileName = $@"{Main.Directory}\Content\ModelReloaderDS1R\ModelReloaderDS1R.exe",
             //    Arguments = chrName,
             //    CreateNoWindow = true,
             //    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,

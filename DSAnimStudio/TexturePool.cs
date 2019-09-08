@@ -9,6 +9,8 @@ namespace DSAnimStudio
 {
     public static class TexturePool
     {
+        public static bool DisableErrorHandling = true;
+
         public static Dictionary<TextureFetchRequest.TextureInfo, Exception> Failures 
             = new Dictionary<TextureFetchRequest.TextureInfo, Exception>();
 
@@ -97,9 +99,10 @@ namespace DSAnimStudio
             }
         }
 
-        public static void AddLooseDDSFolder(string folderPath)
+        public static void AddLooseDDSFolder(string folderPath, bool subDirectories = false)
         {
-            var dds = Directory.GetFiles(folderPath, "*.dds");
+            var dds = Directory.GetFiles(folderPath, "*.dds", subDirectories
+                ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
             foreach (var d in dds)
             {
                 string shortName = Path.GetFileNameWithoutExtension(d);
@@ -180,7 +183,7 @@ namespace DSAnimStudio
             AddTpf(tpf);
         }
 
-        public static Texture2D FetchTexture(string name)
+        public static TextureCube FetchTextureCube(string name)
         {
             if (name == null)
                 return null;
@@ -189,7 +192,10 @@ namespace DSAnimStudio
             {
                 lock (_lock_pool)
                 {
-                    return fetches[shortName].Fetch();
+                    if (DisableErrorHandling)
+                        return fetches[shortName].FetchCube();
+                    else
+                        return fetches[shortName].FetchCubeWithErrorHandle();
                 }
             }
             else
@@ -198,7 +204,41 @@ namespace DSAnimStudio
                 {
                     lock (_lock_pool)
                     {
-                        return fetches[shortName + "_atlas000"].Fetch();
+                        if (DisableErrorHandling)
+                            return fetches[shortName + "_atlas000"].FetchCube();
+                        else
+                            return fetches[shortName + "_atlas000"].FetchCubeWithErrorHandle();
+                    }
+                }
+                return null;
+            }
+        }
+
+        public static Texture2D FetchTexture2D(string name)
+        {
+            if (name == null)
+                return null;
+            var shortName = Path.GetFileNameWithoutExtension(name);
+            if (fetches.ContainsKey(shortName))
+            {
+                lock (_lock_pool)
+                {
+                    if (DisableErrorHandling)
+                        return fetches[shortName].Fetch2D();
+                    else
+                        return fetches[shortName].Fetch2DWithErrorHandle();
+                }
+            }
+            else
+            {
+                if (fetches.ContainsKey(shortName + "_atlas000"))
+                {
+                    lock (_lock_pool)
+                    {
+                        if (DisableErrorHandling)
+                            return fetches[shortName + "_atlas000"].Fetch2D();
+                        else
+                            return fetches[shortName + "_atlas000"].Fetch2DWithErrorHandle();
                     }
                 }
                 return null;

@@ -1,5 +1,6 @@
 ﻿using DSAnimStudio.DbgMenus;
 using DSAnimStudio.DebugPrimitives;
+using DSAnimStudio.GFXShaders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -22,7 +23,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "v0.9.4";
+        public const string VERSION = "v0.9.6";
 
         public static bool FIXED_TIME_STEP = true;
 
@@ -48,12 +49,15 @@ namespace DSAnimStudio
         public static Texture2D DEFAULT_TEXTURE_SPECULAR;
         public static Texture2D DEFAULT_TEXTURE_NORMAL;
         public static Texture2D DEFAULT_TEXTURE_MISSING;
+        public static TextureCube DEFAULT_TEXTURE_MISSING_CUBE;
         public static Texture2D DEFAULT_TEXTURE_EMISSIVE;
-        public string DEFAULT_TEXTURE_MISSING_NAME => $"{Main.Directory}\\Content\\MissingTexture";
+        public string DEFAULT_TEXTURE_MISSING_NAME => $@"{Main.Directory}\Content\Utility\MissingTexture";
 
         public static TaeEditor.TaeEditorScreen TAE_EDITOR;
         public static Texture2D TAE_EDITOR_BLANK_TEX;
         public static SpriteFont TAE_EDITOR_FONT;
+
+        public static FlverTonemapShader MainFlverTonemapShader = null;
 
         //public static Stopwatch UpdateStopwatch = new Stopwatch();
         //public static TimeSpan MeasuredTotalTime = TimeSpan.Zero;
@@ -97,7 +101,7 @@ namespace DSAnimStudio
             graphics.PreferMultiSampling = simpleMsaa;
             graphics.PreferredBackBufferWidth = width;
             graphics.PreferredBackBufferHeight = height;
-            graphics.PreferredBackBufferFormat = format;
+            graphics.PreferredBackBufferFormat = GFX.BackBufferFormat;
             graphics.IsFullScreen = fullscreen;
             graphics.SynchronizeWithVerticalRetrace = vsync;
 
@@ -129,7 +133,6 @@ namespace DSAnimStudio
             graphics.PreferMultiSampling = GFX.Display.SimpleMSAA;
             graphics.PreferredBackBufferWidth = GFX.Display.Width;
             graphics.PreferredBackBufferHeight = GFX.Display.Height;
-            graphics.PreferredBackBufferFormat = GFX.Display.Format;
             if (!GraphicsAdapter.DefaultAdapter.IsProfileSupported(GraphicsProfile.HiDef))
             {
                 System.Windows.Forms.MessageBox.Show("MonoGame is detecting your GPU as too " +
@@ -142,6 +145,8 @@ namespace DSAnimStudio
             {
                 graphics.GraphicsProfile = GraphicsProfile.HiDef;
             }
+
+            graphics.PreferredBackBufferFormat = GFX.BackBufferFormat;
 
             graphics.ApplyChanges();
 
@@ -196,6 +201,14 @@ namespace DSAnimStudio
 
             DEFAULT_TEXTURE_MISSING = Content.Load<Texture2D>(DEFAULT_TEXTURE_MISSING_NAME);
 
+            DEFAULT_TEXTURE_MISSING_CUBE = new TextureCube(GraphicsDevice, 1, false, SurfaceFormat.Color);
+            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveX, new Color[] { Color.Fuchsia });
+            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveY, new Color[] { Color.Fuchsia });
+            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveZ, new Color[] { Color.Fuchsia });
+            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeX, new Color[] { Color.Fuchsia });
+            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeY, new Color[] { Color.Fuchsia });
+            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeZ, new Color[] { Color.Fuchsia });
+
             GFX.Device = GraphicsDevice;
 
             base.Initialize();
@@ -241,7 +254,7 @@ namespace DSAnimStudio
 
             CFG.Init();
 
-            TAE_EDITOR_FONT = Content.Load<SpriteFont>($"{Main.Directory}\\Content\\DbgMenuFontSmall");
+            TAE_EDITOR_FONT = Content.Load<SpriteFont>($@"{Main.Directory}\Content\Fonts\DbgMenuFontSmall");
             TAE_EDITOR_BLANK_TEX = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
             TAE_EDITOR_BLANK_TEX.SetData(new Color[] { Color.White }, 0, 1);
 
@@ -260,6 +273,8 @@ namespace DSAnimStudio
 
                 //LoadDragDroppedFiles(Program.ARGS.ToDictionary(f => f, f => File.ReadAllBytes(f)));
             }
+
+            MainFlverTonemapShader = new FlverTonemapShader(Content.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
         }
 
         private void InterrootLoader_OnLoadError(string contentName, string error)
@@ -402,9 +417,91 @@ namespace DSAnimStudio
             base.Update(gameTime);
         }
 
+        private void InitTonemapShader()
+        {
+
+        }
+
         protected override void Draw(GameTime gameTime)
         {
-            GFX.DrawBegin(gameTime);
+            
+
+            if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
+            {
+                using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
+                   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Rgba1010102, DepthFormat.Depth24))
+                {
+                    GFX.Device.SetRenderTarget(renderTarget3DScene);
+
+                    GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                    GFX.Device.Viewport = new Viewport(0, 0, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA, TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA);
+                    TaeInterop.TaeViewportDrawPre(gameTime);
+                    GFX.DrawScene3D(gameTime);
+
+                    GFX.Device.SetRenderTarget(null);
+
+                    GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+
+                    InitTonemapShader();
+                    GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                    //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                    GFX.SpriteBatch.Draw(renderTarget3DScene,
+                        new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                    GFX.SpriteBatch.End();
+                }
+
+                //try
+                //{
+                //    using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
+                //   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Rgba1010102, DepthFormat.Depth24))
+                //    {
+                //        GFX.Device.SetRenderTarget(renderTarget3DScene);
+
+                //        GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                //        GFX.Device.Viewport = new Viewport(0, 0, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA, TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA);
+                //        TaeInterop.TaeViewportDrawPre(gameTime);
+                //        GFX.DrawScene3D(gameTime);
+
+                //        GFX.Device.SetRenderTarget(null);
+
+                //        GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                //        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+
+                //        InitTonemapShader();
+                //        GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                //        //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                //        GFX.SpriteBatch.Draw(renderTarget3DScene,
+                //            new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                //        GFX.SpriteBatch.End();
+                //    }
+                //}
+                //catch (SharpDX.SharpDXException ex)
+                //{
+                //    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                //    GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                //    GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                //    //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                //    var errorStr = $"FAILED TO RENDER VIEWPORT AT {(Main.TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA)}x{(Main.TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA)} Resolution";
+                //    var errorStrPos = (Vector2.One * new Vector2(TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height) / 2.0f);
+
+                //    errorStrPos -= DBG.DEBUG_FONT.MeasureString(errorStr) / 2.0f;
+
+                //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos - Vector2.One, Color.Black);
+                //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos, Color.Red);
+                //    GFX.SpriteBatch.End();
+                //}
+               
+            }
+
+            GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+            GFX.DrawSceneGUI(gameTime);
+            TaeInterop.TaeViewportDrawPost(gameTime);
 
             GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
 
@@ -417,14 +514,6 @@ namespace DSAnimStudio
             {
                 TAE_EDITOR.DrawDimmingRect(GraphicsDevice, GFX.SpriteBatch, TAE_EDITOR_BLANK_TEX);
             }
-
-            GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-
-            TaeInterop.TaeViewportDrawPre(gameTime);
-
-            GFX.DrawScene(gameTime);
-
-            TaeInterop.TaeViewportDrawPost(gameTime);
 
             DrawMemoryUsage();
         }

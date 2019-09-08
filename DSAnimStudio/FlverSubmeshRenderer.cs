@@ -860,23 +860,23 @@ namespace DSAnimStudio
         public void TryToLoadTextures()
         {
             if (TexDataDiffuse == null && TexNameDiffuse != null)
-                TexDataDiffuse = TexturePool.FetchTexture(TexNameDiffuse);
+                TexDataDiffuse = TexturePool.FetchTexture2D(TexNameDiffuse);
 
             if (TexDataSpecular == null && TexNameSpecular != null)
-                TexDataSpecular = TexturePool.FetchTexture(TexNameSpecular);
+                TexDataSpecular = TexturePool.FetchTexture2D(TexNameSpecular);
 
             if (TexDataNormal == null && TexNameNormal != null)
-                TexDataNormal = TexturePool.FetchTexture(TexNameNormal);
+                TexDataNormal = TexturePool.FetchTexture2D(TexNameNormal);
 
             if (TexDataEmissive == null && TexNameEmissive != null)
-                TexDataEmissive = TexturePool.FetchTexture(TexNameEmissive);
+                TexDataEmissive = TexturePool.FetchTexture2D(TexNameEmissive);
 
             if (TexDataShininess == null && TexNameShininess != null)
-                TexDataShininess = TexturePool.FetchTexture(TexNameShininess);
+                TexDataShininess = TexturePool.FetchTexture2D(TexNameShininess);
 
             if (TexDataDOL1 == null && TexNameDOL1 != null)
             {
-                TexDataDOL1 = TexturePool.FetchTexture(TexNameDOL1);
+                TexDataDOL1 = TexturePool.FetchTexture2D(TexNameDOL1);
                 if (TexDataDOL1 == null)
                 {
                     Console.WriteLine("Failed to load lightmap: " + TexNameDOL1);
@@ -884,7 +884,7 @@ namespace DSAnimStudio
             }
 
             if (TexDataDOL2 == null && TexNameDOL2 != null)
-                TexDataDOL2 = TexturePool.FetchTexture(TexNameDOL2);
+                TexDataDOL2 = TexturePool.FetchTexture2D(TexNameDOL2);
         }
 
         public void Draw<T>(int lod, bool motionBlur, IGFXShader<T> shader, bool[] mask, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
@@ -902,11 +902,13 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
                 GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
-                GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_DIFFUSE;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
             }
 
             GFX.FlverShader.Effect.UseSpecularMapBB = TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne;
+
+            //GFX.FlverShader.Effect.UseSpecularMapBB = true;
 
             if (isSkyboxLol)
             {

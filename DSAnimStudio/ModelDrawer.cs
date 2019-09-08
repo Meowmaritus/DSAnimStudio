@@ -29,7 +29,7 @@ namespace DSAnimStudio
         //public long Debug_VertexCount = 0;
         //public long Debug_SubmeshCount = 0;
 
-        const int MASK_SIZE = 32;
+        const int MASK_SIZE = 64;
 
         public bool[] Mask = new bool[MASK_SIZE];
 
@@ -37,10 +37,6 @@ namespace DSAnimStudio
 
         private Dictionary<string, bool[]> maskPresets = new Dictionary<string, bool[]>();
         private Dictionary<string, bool> maskPresetsInvisibility = new Dictionary<string, bool>();
-
-        public List<Model> Skybox { get; private set; } = new List<Model>();
-
-
 
         public IReadOnlyDictionary<string, bool[]> MaskPresets => maskPresets;
         public IReadOnlyDictionary<string, bool> MaskPresetsInvisibility => maskPresetsInvisibility;
@@ -54,50 +50,16 @@ namespace DSAnimStudio
             maskPresets.Clear();
             maskPresets.Add(DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
 
+            for (int i = 0; i < MASK_SIZE; i++)
+                maskPresets[DEFAULT_PRESET_NAME][i] = true;
+
             maskPresetsInvisibility.Clear();
             maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);
         }
 
-        private void LoadSkybox(string path, Transform t)
-        {
-            var skybox = new Model(FLVER2.Read(path));
-            skybox.AddNewInstance(new ModelInstance(path, skybox, t, -1, -1, -1, -1));
-
-            skybox.GetSubmeshes().ToList()[2].IsVisible = false;
-
-            skybox.TryToLoadTextures();
-            Skybox.Add(skybox);
-        }
-
-        public void DrawSkyboxes()
-        {
-            foreach (var s in Skybox)
-            {
-                s.Draw(GFX.ModelDrawer.Mask, 0, false, true, true);
-            }
-        }
-
         public void LoadContent(ContentManager c)
         {
-            //TexturePool.AddTPFFolder($"{Main.Directory}\\Content", dcx: true, directDdsFetches: true);
 
-            TexturePool.AddTpfFromPath($"{Main.Directory}\\Content\\o329000.tpf");
-            LoadSkybox($"{Main.Directory}\\Content\\o329000.flver", new Transform(new Vector3(0, -400, 0), Vector3.Zero, Vector3.One));
-            //var flvers = System.IO.Directory.GetFiles($"{Main.Directory}\\Content\\m54", "*.flver");
-
-            // Skybox
-            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_009000.flver");
-
-            // Mountains
-            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_012501.flver");
-
-            // Plaza
-            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_001000.flver");
-
-            // Junk
-            //LoadSkybox($"{Main.Directory}\\Content\\m54\\m54_00_00_00_001100.flver");
-
-            TexturePool.RemoveFetchRefsWithoutFlushing();
         }
 
         public void ReadDrawMaskPresets(PARAM npcParam, HKX.HKXVariation game, string anibndPath)
@@ -105,8 +67,14 @@ namespace DSAnimStudio
             int chrId = int.Parse(Utils.GetFileNameWithoutAnyExtensions(
                 Utils.GetFileNameWithoutDirectoryOrExtension(anibndPath)).Substring(1));
 
+            if (chrId <= 1000)
+                return;
+
             maskPresets.Clear();
             maskPresets.Add(DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
+
+            for (int i = 0; i < MASK_SIZE; i++)
+                maskPresets[DEFAULT_PRESET_NAME][i] = true;
 
             maskPresetsInvisibility.Clear();
             maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);

@@ -30,7 +30,7 @@ namespace DSAnimStudio
         public static KeyboardState DisabledKeyboardState;
         public static GamePadState DisabledGamePadState;
 
-        public static Dictionary<string, SoundEffect> SE = new Dictionary<string, SoundEffect>();
+        public static Dictionary<string, SoundEffect> Sounds = new Dictionary<string, SoundEffect>();
 
         private static SoundEffectInstance BeepSound;
 
@@ -142,14 +142,14 @@ namespace DSAnimStudio
 
             PrimitivesMarkedForDeletion.Clear();
 
-            //if (GFX.DrawSkybox)
-            //{
-            //    GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
-            //    DbgPrim_Skybox.Draw(gameTime);
-            //}
+            if (Environment.DrawCubemap)
+            {
+                GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
+                DbgPrim_Skybox.Draw(gameTime);
+            }
 
-            if (GFX.DrawSkybox)
-                GFX.ModelDrawer.DrawSkyboxes();
+            //if (Environment.DrawCubemap)
+            //    GFX.ModelDrawer.DrawSkyboxes();
 
             if (ShowGrid)
                 DbgPrim_Grid.Draw(gameTime);
@@ -234,13 +234,13 @@ namespace DSAnimStudio
         }
 
         public static SpriteFont DEBUG_FONT { get; private set; }
-        static string DEBUG_FONT_NAME => $"{Main.Directory}\\Content\\DbgMenuFontSmall";
+        static string DEBUG_FONT_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFontSmall";
 
         public static SpriteFont DEBUG_FONT_SMALL { get; private set; }
-        static string DEBUG_FONT_SMALL_NAME => $"{Main.Directory}\\Content\\DbgMenuFontSmall";
+        static string DEBUG_FONT_SMALL_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFontSmall";
 
         public static SpriteFont DEBUG_FONT_SIMPLE { get; private set; }
-        static string DEBUG_FONT_SIMPLE_NAME => $"{Main.Directory}\\Content\\DbgMenuFontSimple";
+        static string DEBUG_FONT_SIMPLE_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFontSimple";
 
 
 
@@ -276,18 +276,18 @@ namespace DSAnimStudio
             DEBUG_FONT_SMALL = c.Load<SpriteFont>(DEBUG_FONT_SMALL_NAME);
             DEBUG_FONT_SIMPLE = c.Load<SpriteFont>(DEBUG_FONT_SIMPLE_NAME);
 
-            SE = new Dictionary<string, SoundEffect>();
+            Sounds = new Dictionary<string, SoundEffect>();
 
-            foreach (var se in Directory.GetFiles($"{Main.Directory}\\Content\\SE"))
+            foreach (var se in Directory.GetFiles($@"{Main.Directory}\Content\Sounds"))
             {
                 var seInfo = new FileInfo(se);
                 using (var stream = File.OpenRead(se))
                 {
-                    SE.Add(seInfo.Name.ToLower(), SoundEffect.FromStream(stream));
+                    Sounds.Add(seInfo.Name.ToLower(), SoundEffect.FromStream(stream));
                 }
             }
 
-            BeepSound = SE["selected_event_loop.wav"].CreateInstance();
+            BeepSound = Sounds["selected_event_loop.wav"].CreateInstance();
             BeepSound.IsLooped = true;
             BeepVolume = 0;
             BeepSound.Play();

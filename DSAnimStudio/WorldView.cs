@@ -253,7 +253,8 @@ namespace DSAnimStudio
                 ;
 
             MatrixProjection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),
-                    (float)d.Viewport.Width / (float)d.Viewport.Height, NearClipDistance, FarClipDistance);
+                    (float)Main.TAE_EDITOR.ModelViewerBounds.Width / (float)Main.TAE_EDITOR.ModelViewerBounds.Height,
+                    NearClipDistance, FarClipDistance);
         }
 
         public void MoveCamera(float x, float y, float z, float speed)

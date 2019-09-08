@@ -32,6 +32,8 @@ namespace DSAnimStudio
 
     public static class GFX
     {
+        public static SurfaceFormat BackBufferFormat => SurfaceFormat.Rgba1010102;
+
         public static class Display
         {
             public static void SetFromDisplayMode(DisplayMode mode)
@@ -52,6 +54,8 @@ namespace DSAnimStudio
             }
         }
 
+        public static int SSAA = 2;
+
         public static void InitShaders()
         {
             FlverShader.Effect.Legacy_AmbientColor = new Vector4(1, 1, 1, 1);
@@ -67,26 +71,18 @@ namespace DSAnimStudio
             FlverShader.Effect.WorkflowType = FlverShaderWorkflowType;
             FlverShader.Effect.LightDirection = Vector3.Forward;
 
-            FlverShader.Effect.EnvironmentMap = CubeMap;
-
             FlverShader.Effect.EmissiveMapMult = 1;
 
-            SkyboxShader.Effect.EnvironmentMap = CubeMap;
+            FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
+            SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
 
             //GFX.FlverOpacity = 0.15f;
         }
-
-        public static TextureCube CubeMap = null;
 
         public static FlverShader.FSWorkflowType FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
 
         public static bool FlverAutoRotateLight = false;
         public static bool FlverLightFollowsCamera = true;
-
-        //public static float AmbientLightMult = 1.0f;
-        public static float FlverDirectLightMult = 1.0f;
-        public static float FlverIndirectLightMult = 1.0f;
-        public static float FlverSceneBrightness = 1.0f;
 
         public static float FlverOpacity = 1.0f;
 
@@ -130,18 +126,15 @@ namespace DSAnimStudio
 
         public static WorldView World = new WorldView();
 
-        public static bool DrawSkybox = false;
-
         public static ModelDrawer ModelDrawer = new ModelDrawer();
 
         public static GraphicsDevice Device;
         //public static FlverShader FlverShader;
         //public static DbgPrimShader DbgPrimShader;
         public static SpriteBatch SpriteBatch;
-        public static string FlverShader__Name => $@"{Main.Directory}\\Content\FlverShader";
-        public static string CollisionShader__Name => $@"{Main.Directory}\\Content\CollisionShader";
-        public static string SkyboxShader__Name => $@"{Main.Directory}\\Content\SkyboxShader";
-        public static string SkyboxTextureName => $@"{Main.Directory}\\Content\m32_00_GILM0000";
+        public static string FlverShader__Name => $@"{Main.Directory}\Content\Shaders\FlverShader";
+        public static string CollisionShader__Name => $@"{Main.Directory}\Content\Shaders\CollisionShader";
+        public static string SkyboxShader__Name => $@"{Main.Directory}\Content\Shaders\CubemapSkyboxShader";
 
         private static bool _wireframe = false;
         public static bool Wireframe
@@ -254,7 +247,7 @@ namespace DSAnimStudio
                 //TwoSidedStencilMode = Device.DepthStencilState.TwoSidedStencilMode,
             };
 
-            CubeMap = c.Load<TextureCube>(SkyboxTextureName);
+            Environment.LoadContent(c);
 
             FlverShader = new FlverShader(c.Load<Effect>(FlverShader__Name));
             SkyboxShader = new SkyboxShader(c.Load<Effect>(SkyboxShader__Name));
@@ -339,15 +332,18 @@ namespace DSAnimStudio
             FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
             FlverShader.Effect.WorkflowType = FlverShaderWorkflowType;
 
-            FlverShader.Effect.AmbientLightMult = FlverIndirectLightMult * 0.125f;
-            FlverShader.Effect.DirectLightMult = FlverDirectLightMult;
+            FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
+            SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
+
+            FlverShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
+            FlverShader.Effect.DirectLightMult = Environment.FlverDirectLightMult * 1;
             FlverShader.Effect.IndirectLightMult = 1.0f;
-            FlverShader.Effect.SceneBrightness = FlverSceneBrightness * 1.5f;
-            FlverShader.Effect.Legacy_SceneBrightness = FlverSceneBrightness * 1.5f;
+            FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1;
+            FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.5f;
             FlverShader.Effect.Opacity = FlverOpacity;
 
-            SkyboxShader.Effect.AmbientLightMult = FlverIndirectLightMult * 0.75f;
-            SkyboxShader.Effect.SceneBrightness = FlverSceneBrightness * 1.5f;
+            SkyboxShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
+            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1f;
 
             DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;
@@ -407,24 +403,33 @@ namespace DSAnimStudio
             }
         }
 
-        public static void DrawBegin(GameTime gameTime)
+        public static void DrawScene3D(GameTime gameTime)
         {
-            Device.Clear(new Color(80, 80, 80, 255));
+            CurrentStep = GFXDrawStep.DbgPrim;
+            BeginDraw(gameTime);
+            DoDraw(gameTime);
+
+            CurrentStep = GFXDrawStep.Opaque;
+            BeginDraw(gameTime);
+            DoDraw(gameTime);
+
+            CurrentStep = GFXDrawStep.AlphaEdge;
+            BeginDraw(gameTime);
+            DoDraw(gameTime);
         }
 
-        public static void DrawScene(GameTime gameTime)
+        public static void DrawSceneGUI(GameTime gameTime)
         {
-            //Device.Viewport = new Viewport(new Rectangle(200, 200, 500, 500));
+            CurrentStep = GFXDrawStep.GUI;
+            BeginDraw(gameTime);
+            DoDraw(gameTime);
 
-            for (int i = 0; i < DRAW_STEP_LIST.Length; i++)
-            {
-                CurrentStep = DRAW_STEP_LIST[i];
-                BeginDraw(gameTime);
-                DoDraw(gameTime);
-            }
+            CurrentStep = GFXDrawStep.GUILoadingTasks;
+            BeginDraw(gameTime);
+            DoDraw(gameTime);
 
             GFX.UpdateFPS((float)FpsStopwatch.Elapsed.TotalSeconds);
-            DBG.DrawOutlinedText($"FPS: {(Math.Round(GFX.AverageFPS))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
+            DBG.DrawOutlinedText($"Rendering {(Main.TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA)}x{(Main.TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA)} @ {(Math.Round(GFX.AverageFPS))} FPS", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
             //DBG.DrawOutlinedText($"FPS: {(Math.Round(1 / (float)gameTime.ElapsedGameTime.TotalSeconds))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
             FpsStopwatch.Restart();
         }

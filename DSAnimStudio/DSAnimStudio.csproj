@@ -65,12 +65,13 @@
     <OutputPath>bin\x64\Release\</OutputPath>
     <DefineConstants>TRACE;WINDOWS</DefineConstants>
     <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
+    <DebugType>embedded</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <LangVersion>latest</LangVersion>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
@@ -99,8 +100,10 @@
     <Compile Include="DebugPrimitives\DbgPrimWireSphere.cs" />
     <Compile Include="DebugPrimitives\IDbgPrim.cs" />
     <Compile Include="DebugPrimitives\VertexPositionColorNormal.cs" />
+    <Compile Include="Environment.cs" />
     <Compile Include="GFXShaders\CollisionShader.cs" />
     <Compile Include="GFXShaders\DbgPrimSolidShader.cs" />
+    <Compile Include="GFXShaders\FlverTonemapShader.cs" />
     <Compile Include="GFXShaders\SkyboxShader.cs" />
     <Compile Include="Havok\SplineCompressedAnimation.cs" />
     <Compile Include="LoadingTaskMan.cs" />
@@ -319,16 +322,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Content\cubegen.dds">
+    <Content Include="Content\Sounds\selected_event_hit.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Content\SE\selected_event_loop.wav">
+    <Content Include="Content\Sounds\selected_event_loop.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Content\SE\sound_event_hit.wav">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Content\SE\selected_event_hit.wav">
+    <Content Include="Content\Sounds\sound_event_hit.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="DSAnimStudio_Icon.ico" />
@@ -344,52 +344,52 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="Content\CollisionShader.xnb">
+    <None Include="Content\Cubemaps\Archdragon Peak Clear Sky.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\cubegen.xnb">
+    <None Include="Content\Cubemaps\Archdragon Peak Indoors.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\DbgMenuFont.xnb">
+    <None Include="Content\Cubemaps\debug_cube.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\DbgMenuFontSimple.xnb">
+    <None Include="Content\Cubemaps\High Wall 1.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\DbgMenuFontSmall.xnb">
+    <None Include="Content\Cubemaps\Hunter%27s Dream 1.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\FlverShader.xnb">
+    <None Include="Content\Cubemaps\Hunter%27s Nightmare 1.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\Lothric_Cubemap_2000.xnb">
+    <None Include="Content\Cubemaps\Irithyll 1.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\m32_00_GILM0000.xnb">
+    <None Include="Content\Cubemaps\Irithyll Plaza.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\m32_00_GILM0004.xnb">
+    <None Include="Content\Fonts\DbgMenuFont.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\m37_00_GILM0204.xnb">
+    <None Include="Content\Fonts\DbgMenuFontSimple.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\m54_00_GILM0100.xnb">
+    <None Include="Content\Fonts\DbgMenuFontSmall.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\MissingTexture.xnb">
+    <None Include="Content\Shaders\CollisionShader.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\o329000.flver">
+    <None Include="Content\Shaders\CubemapSkyboxShader.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\o329000.tpf">
+    <None Include="Content\Shaders\FlverShader.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\SkyboxShader.xnb">
+    <None Include="Content\Shaders\FlverTonemapShader.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Content\WP_A_0221.partsbnd">
+    <None Include="Content\Utility\MissingTexture.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
