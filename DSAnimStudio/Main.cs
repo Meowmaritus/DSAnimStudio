@@ -348,6 +348,11 @@ namespace DSAnimStudio
                         c.Enabled = !IsLoadingTaskRunning;
                     }
 
+                    if (!IsLoadingTaskRunning)
+                    {
+                        TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+                    }
+
                     
                 }));
             }

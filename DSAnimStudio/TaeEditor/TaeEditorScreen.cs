@@ -358,6 +358,11 @@ namespace DSAnimStudio.TaeEditor
             }));
         }
 
+        public void RefocusInspectorToPreventBeepWhenYouHitSpace()
+        {
+            inspectorWinFormsControl.Focus();
+        }
+
         public TaeEditAnimEventBox HoveringOverEventBox = null;
 
         private TaeEditAnimEventBox _selectedEventBox = null;
@@ -1121,7 +1126,7 @@ namespace DSAnimStudio.TaeEditor
                 }
 
                 if (needsAnimReload)
-                    TaeInterop.OnAnimationSelected(SelectedTaeAnim);
+                    TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
             }
 
             PauseUpdate = false;
@@ -1594,7 +1599,7 @@ namespace DSAnimStudio.TaeEditor
 
                 editScreenCurrentAnim.PlaybackCursor.CurrentTime = 0;
 
-                TaeInterop.OnAnimationSelected(animRef);
+                TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
             }
             else
             {

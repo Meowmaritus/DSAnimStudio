@@ -438,7 +438,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float3 direct = diffuse + specular;
         float3 indirect = indirectDiffuse + indirectSpecular;
         
-        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult)) * SceneBrightness), Opacity);
+        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult) + (emissiveMapColor * EmissiveMapMult)) * SceneBrightness), Opacity);
     }
     else
     {

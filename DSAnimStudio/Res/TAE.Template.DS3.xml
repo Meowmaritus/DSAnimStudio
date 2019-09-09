@@ -6,18 +6,19 @@
       <s32 name="JumpTableID" default="1: ?">
         <entry value="1"   name="1: ?"/>
         <entry value="3"   name="3: SetIsGuard(ArgB)"/>
-        <entry value="4"   name="4: ?"/>
-        <entry value="5"   name="5: SetIsStartbit10(ArgC)"/>
+        <entry value="4"   name="4: InvokeAttackAction"/>
+        <entry value="5"   name="5: SetIsStartbit10(ArgC)_0x140879AF6"/>
         <entry value="6"   name="6: InvokeIs?"/>
         <entry value="7"   name="7: InvokeIsNoMove?"/>
         <entry value="8"   name="8: InvokeIsDodge"/>
         <entry value="9"   name="9: ?"/>
         <entry value="10"  name="10: ?"/>
         <entry value="11"  name="11: ?"/>
+        <entry value="12"  name="12: InvokeDeath"/>
         <entry value="14"  name="14: Set?Bool"/>
         <entry value="15"  name="15: Set?"/>
         <entry value="16"  name="16: Set?"/>
-        <entry value="17"  name="17: SetIsStartbit8"/>
+        <entry value="17"  name="17: SetIsStartbit8_0x141B95B40"/>
         <entry value="18"  name="18: SetIsStartbit3"/>
         <entry value="19"  name="19: Set?"/>
         <entry value="20"  name="20: Set?"/>
@@ -28,8 +29,8 @@
         <entry value="25"  name="25: ActionRequest?"/>
         <entry value="26"  name="26: ActionRequest?"/>
         <entry value="27"  name="27: TryToInvokeIsSliding?"/>
-        <entry value="28"  name="28: ResetSomething?"/>
-        <entry value="29"  name="29: ActionRequest_Hks?"/>
+        <entry value="28"  name="28: InvokeIsLadder"/>
+        <entry value="29"  name="29: InvokeAction_AndTAEDebuggingClass"/>
         <entry value="30"  name="30: ActionRequest?"/>
         <entry value="31"  name="31: ActionRequest?"/>
         <entry value="32"  name="32: ActionRequest_Set?"/>
@@ -40,10 +41,13 @@
         <entry value="38"  name="38: Set?"/>
         <entry value="39"  name="39: Set?"/>
         <entry value="40"  name="40: Set?"/>
-        <entry value="41"  name="41: SetStartbit7"/>
-        <entry value="42"  name="42: SetStartbit11"/>
+        <entry value="41"  name="41: InvokeHasSpace_Hks305"/>
+        <entry value="42"  name="42: InvokeIsSweetSpot"/>
         <entry value="43"  name="43: Set?"/>
         <entry value="44"  name="44: Set?"/>
+        <entry value="46"  name="46: ExtraJumptable_IFAlive?"/>
+        <entry value="46"  name="47: ExtraJumptable1_InvokeDeath2"/>
+        <entry value="46"  name="48: ExtraJumptable2_InvokeCultPromtCheck1"/>
         <entry value="49"  name="49: SetDeathFlag10x1408841C0"/>
         <entry value="50"  name="50: Set?"/>
         <entry value="51"  name="51: SetDeathFlag2"/>
@@ -51,8 +55,8 @@
         <entry value="53"  name="53: Set?"/>
         <entry value="54"  name="54: WeirdCall"/>
         <entry value="55"  name="55: Set?"/>
-        <entry value="56"  name="56: SetStartbit13"/>
-        <entry value="57"  name="57: SetStartbit14"/>
+        <entry value="56"  name="56: SetStartbit13_0x1409BAB46DamageModule"/>
+        <entry value="57"  name="57: SetStartbit14_0x1409BAB5FDamageModule"/>
         <entry value="58"  name="58: SetStartbit6"/>
         <entry value="59"  name="59: SetStartbit12"/>
         <entry value="60"  name="60: SetBool32_0x7C"/>
@@ -63,7 +67,7 @@
         <entry value="65"  name="65: SetBool32_0x7C"/>
         <entry value="66"  name="66: SetBool32_0x7C"/>
         <entry value="67"  name="67: SetStartbit5"/>
-        <entry value="68"  name="68: SetStartbit4"/>
+        <entry value="68"  name="68: InvokeHitSwing"/>
         <entry value="69"  name="69: SetBool32_0x9C8"/>
         <entry value="70"  name="70: SetBool32_0x9C8"/>
         <entry value="71"  name="71: SetBool32_0x7C"/>
@@ -71,6 +75,7 @@
         <entry value="73"  name="73: SetBool32_0x7C"/>
         <entry value="74"  name="74: SetBool32_0x7C"/>
         <entry value="75"  name="75: SetBool32_0x7C"/>
+        <entry value="76"  name="76: InvokeCultPromtCheck2"/>
         <entry value="78"  name="78: InvokeDisableCancel_hks2000"/>
         <entry value="79"  name="79: InvokeAiContinousStepType_Default_hks118"/>
         <entry value="80"  name="80: SetBool32_0x7C"/>
@@ -80,13 +85,13 @@
         <entry value="84"  name="84: SetBool32_0x7C"/>
         <entry value="85"  name="85: SetBool32_0x7C"/>
         <entry value="86"  name="86: InvokeAiAtkCancelType_Default_hks120"/>
-        <entry value="87"  name="87: ActionRequest"/>
+        <entry value="87"  name="87: InvokeAttackAction_Complex"/>
         <entry value="88"  name="88: SetBool32_0x7C_And_0x1A09"/>
         <entry value="89"  name="89: 0x4F4_Set3"/>
         <entry value="90"  name="90: 0x4F4_Set2"/>
         <entry value="91"  name="91: 0x4F4_Set1"/>
         <entry value="92"  name="92: SetBool32_0x7C"/>
-        <entry value="94"  name="94: SetStartbit0"/>
+        <entry value="94"  name="94: SetStartbit0_0x140884499"/>
         <!-- 0x00000001409A40EA -->
         <entry value="95"  name="95: CallFunction"/>
         <entry value="96"  name="96: SetBool32_0x80_Startbit1"/>
@@ -104,23 +109,23 @@
         <entry value="107"  name="107: CheckGoodsParam"/>
         <!-- 0x00000001409A3ACF -->
         <entry value="108"  name="108: CheckGoodsParam"/>
-        <entry value="109"  name="109: SetStartbit_val0x10000000"/>
-        <entry value="110"  name="110: SetStartbit_val0x0000001000000000"/>
+        <entry value="109"  name="109: InvokeCanDoubleCast_hks331"/>
+        <entry value="110"  name="110: Startbit_0x1405E0165"/>
         <entry value="111"  name="111: ActionRequest"/>
         <entry value="112"  name="112: ActionRequest"/>
-        <entry value="113"  name="113: SetStartbit_val0x0000004000000000"/>
-        <entry value="114"  name="114: SetStartbit_val0x0000008000000000"/>
+        <entry value="113"  name="113: Startbit_0x1405C80DF"/>
+        <entry value="114"  name="114: SetStartbit_0x14085A75B"/>
         <entry value="115"  name="115: ActionRequest"/>
         <entry value="116"  name="116: ActionRequest"/>
         <entry value="117"  name="117: ActionRequest"/>
         <entry value="118"  name="118: ActionRequest"/>
-        <entry value="119"  name="119: SetStartbit_val0x0000040000000000"/>
+        <entry value="119"  name="119: Startbit42_0x140879823"/>
         <!-- 0x00000001409A35E7 -->
         <entry value="120"  name="120: WeirdShit"/>
         <entry value="121"  name="121: WeirdShit"/>
         <entry value="122"  name="122: SetBool32_0x1E0"/>
         <entry value="123"  name="123: SetBool32_0x1E0"/>
-        <entry value="124"  name="124: SetStartbit_val0x0000400000000000"/>
+        <entry value="124"  name="124: Startbit_0x14085A763"/>
       </s32>
       <s32 name="ArgA"/>
       <s32 name="ArgB"/>
@@ -146,6 +151,8 @@
       <s16 name="Offset"/>
       <s16 assert="0"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="5" name="InvokeCommonBehavior">
       <s32 name="AttackIndex (0-8)"/>
@@ -153,7 +160,21 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="16"/>
+    <event id="9" name="Unk_N9">
+      <u8/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="16">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
     <event id="17">
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -173,6 +194,8 @@
         <entry value="2" name="2: WeaponSheath"/>
         <entry value="3" name="3: HandMode"/>
       </s32>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <!-- For c0000 -->
@@ -277,6 +300,8 @@
     <event id="110" name="SpawnFFX_General">
       <s32 name="FFXID"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="112" name="SpawnFFX_Foot">
       <s32 name="FFXID"/>
@@ -284,7 +309,9 @@
       <s32/>
       <s32 assert="0"/>
     </event>
-    <event id="113">
+    <event id="113" name="InvokeFootSfxOnLanding">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
@@ -308,7 +335,7 @@
         <entry value="1" name="1: Type1"/>
         <entry value="2" name="2: Type2"/>
       </u8>
-      <b name="IsSFXFollow"/>
+      <b name="IsFollowDummyPoly"/>
       <b name="IsRestrictToDummyPoly"/>
       <u8 name="TimerID">
         <entry value="0" name="0: Default"/>
@@ -338,7 +365,7 @@
         <entry value="1" name="1: Type1"/>
         <entry value="2" name="2: Type2"/>
       </u8>
-      <b name="IsSFXFollow"/>
+      <b name="IsFollowDummyPoly"/>
       <b name="IsRestrictToDummyPoly"/>
       <u8 name="TimerID">
         <entry value="0" name="0: Default"/>
@@ -365,7 +392,7 @@
       <s32 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
       <b name="IsIgnoreDummyPolyAngle"/>
-      <b name="IsSFXFollow"/>
+      <b name="IsFollowDummyPoly"/>
       <b name="IsRestrictToDummyPoly"/>
       <u8 name="ExtraSpawnCondition"/>
     </event>
@@ -422,7 +449,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="122" name="SpawnFFX_SpEffect">
+    <event id="122" name="SpawnFFX_BySpEffect1">
       <s32 name="FFXID"/>
       <s16 name="DummyPolyID"/>
       <s16/>
@@ -434,6 +461,21 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
+    </event>
+    <event id="123" name="InvokeFFX_BySpEffect2">
+      <s32/>
+      <s32/>
+      <u8/>
+      <u8/>
+      <s16 name="SpEffectId"/>
+      <u8/>
+      <b/>
+      <u8/>
+      <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="128" name="PlaySound_CenterBody">
       <s32 name="SoundType">
@@ -450,6 +492,8 @@
         <entry value="10" name="10: (g) Ghost"/>
       </s32>
       <s32 name="SoundID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="129" name="PlaySound_ByStateInfo">
       <s32 name="SoundType">
@@ -471,6 +515,8 @@
       <s16 name="StateInfo"/>
       <s16 assert="0"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="130" name="PlaySound_ByDummyPolyExtra">
       <s32 name="SoundType">
@@ -489,6 +535,8 @@
       <s32 name="SoundID"/>
       <s32 name="DummyPolyID"/>
       <f32 name="TimerID (probably)"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
@@ -528,27 +576,34 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="137" name="SpawnDecal">
+    <event id="137" name="InvokeDecalParamID_CenterBody">
       <s32 name="DecalParamID"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-    <event id="138" name="SpawnDecal_DummyPoly">
+    <event id="138" name="InvokeDecalParamID_DummyPoly">
       <s32 name="DecalParamID"/>
       <s32 name="DummyPolyID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <!-- Based on Camera Angle (0x2 = 1, 0x4 = 5.0, 0x8 = 3.0) -->
-    <event id="144" name="InvokeRumbleCam_DummyPoly (Probably)">
+    <event id="144" name="InvokeRumbleCam_ByRange">
       <s16 name="RumbleCamID"/>
-      <u16 name="DummyPolyID (Probably)"/>
+      <u16 name="DummyPolyID"/>
       <f32 name="FalloffStart"/>
       <f32 name="FalloffEnd"/>
       <s32 assert="0"/>
     </event>
-    <event id="145" name="InvokeRumbleCam_Global (Probably)">
-      <s16 name="IfOnGroundCheck"/>
+    <event id="145" name="InvokeRumbleCam_ByDummyPoly">
       <s16 name="RumbleCamID"/>
+      <u16 name="Condition">
+        <entry value="0" name="0: Unconditional"/>
+        <entry value="1" name="1: Invoke if player on ground"/>
+      </u16>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <event id="150" name="SetLockCamParam">
@@ -571,19 +626,23 @@
       <s32 assert="0"/>
     </event>
     <!-- Startbit 34 -->
-    <event id="161">
+    <event id="161" name="InvokeDecalOnLanding">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="192" name="DebugFadeOut">
+    <event id="192" name="InvokeDebugFadeOut">
       <f32 name="FadeOut"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <event id="193" name="SetOpacityKeyframe">
       <f32 name="GhostVal1"/>
       <f32 name="GhostVal2"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="194" name="DebugTorchStringPrint">
       <u16/>
@@ -594,6 +653,8 @@
       <s32 assert="0"/>
     </event>
     <event id="195" name="EnableBlurFeedback">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
@@ -609,7 +670,7 @@
       <u8 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="197" name="SetGhost">
+    <event id="197" name="InvokeFadeOut">
       <f32 name="GhostMain"/>
       <f32 name="GhostSub"/>
       <s32 assert="0"/>
@@ -621,12 +682,16 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="225" name="SetSPRegenRatePercent">
       <u8 name="RegenRatePercent"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <event id="226" name="SetKnockbackPercent">
@@ -635,12 +700,15 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
       <s32 assert="0"/>
-    </event>
-    <event id="227">
-      <x32 name="Mask"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <!-- Does some math with 2 floats from event + 2 unk floats to get Revive Time 0x1409A4A40 -->
+    <event id="227" name="InvokeEventEzStateFlag_hks301">
+      <x32 name="Mask"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
     <event id="228" name="RagdollReviveTime">
       <f32 name="ReviveTimerExtra"/>
       <f32 name="ReviveTimer"/>
@@ -650,6 +718,8 @@
     <event id="229" name="SpawnAISound">
       <s32 name="AISoundID"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="230" name="SetMPRegenRatePercent">
       <u8 name="RegenRatePercent"/>
@@ -657,16 +727,22 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="231" name="SendEzStateRequest">
       <s32 name="EzStateRequestID"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-    <event id="232">
-      <u8/>
-      <u8/>
-      <u8/>
-      <u8/>
+    <event id="232" name="InvokeBowFlags">
+      <u8 name="Vertical turning upper limit angle [deg]"/>
+      <u8 name="Vertical turning lower limit angle [deg]"/>
+      <u8 name="Up / down turning Upper threshold [deg]"/>
+      <u8 name="Vertical turning Lower threshold [deg]"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <!-- RTTI: ChrPrimDispMask -->
@@ -707,6 +783,8 @@
     <!-- Havok? -->
     <event id="234">
       <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <!-- RTTI: ChrPrimDispMask -->
@@ -756,30 +834,58 @@
     <event id="237" name="SpawnAISound2">
       <s32 name="AISoundID"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="300" name="SupportJumpTable">
-      <u16 name="JumpTableID_ActionRequest"/>
-      <u16 name="JumpTableID_GetFloat"/>
-      <f32/>
-      <f32/>
+      <u16 name="JumpTableID_Action">
+        <entry value="0"   name="0: Default"/>
+        <entry value="4"   name="4: ?"/>
+        <entry value="27"   name="27: ChangeJumpHeight"/>
+      </u16>
+      <u16 name="JumpTableID_CharacterData">
+        <entry value="0"   name="0: Default"/>
+        <entry value="1"   name="1: InvokeMaxEquipWeightChange"/>
+        <entry value="2"   name="2: GetWeaponWeightRate"/>
+        <entry value="3"   name="3: GetCompressedDamageRate?"/>
+        <entry value="4"   name="4: GetLiterally0.00"/>
+        <entry value="5"   name="5: GetCastSpeed"/>
+        <entry value="5"   name="6: GetDebugTaeValue"/>
+      </u16>
+      <f32 name="Parameter1"/>
+      <f32 name="Parameter2"/>
       <s16/>
-      <u16 name="StateInfo"/>
+      <s16 name="StateInfo"/>
+    </event>
+    <event id="301">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
     </event>
     <event id="302" name="InvokeSpEffect_Multiplayer">
       <s32 name="SpEffectID"/>
       <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
     <event id="303" name="PlayAnimation">
       <s32 name="AnimationID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <event id="304" name="InvokeThrowDamageBehavior">
       <u16/>
       <s16/>
       <s32 name="BehaviorParamSubID"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
     </event>
-    <event id="305" name="ExtraSADurability_Multiplayer">
+    <event id="305" name="ExtraSADurability_Multiplier">
       <f32 name="ExtraSADurabilityMultiplier"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <event id="306">
@@ -858,7 +964,7 @@
       <b name="Mask31"/>
       <b name="Mask32"/>
     </event>
-    <event id="320">
+    <event id="320" name="AnimCancelFlags?">
       <b name="ActRequest1"/>
       <b name="ActRequest2"/>
       <b name="ActRequest3"/>
@@ -870,7 +976,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="330" name="SwordArtMPConsume">
+    <event id="330" name="SwordArtPointsConsume">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -882,7 +988,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="332">
+    <event id="332" name="SwordArtEngineFlag">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -916,13 +1022,13 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="510">
+    <event id="510" name="InvokeFullBodyWet">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="520">
+    <event id="520" name="IfLockedOn_Set??">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -947,7 +1053,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="601">
+    <event id="601" name="TAE Action [ [Behavior] Independant Additive Animation Playback]">
       <!-- 0 - 10 -->
       <s32 name="StayAnimType"/>
       <f32/>
@@ -975,14 +1081,14 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="605">
-      <b name="IsCompareGender"/>
+    <event id="605" name="InvokeFemenineMovement">
+      <b name="IsFemale"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
       <s32 name="TimeActEditorID"/>
-      <f32/>
-      <f32/>
+      <f32 name="MovementCorrection1"/>
+      <f32 name="MovementCorrection2"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1006,12 +1112,14 @@
       <f32/>
       <s32/>
       <u8 name="JumptableId">
+        <entry value="0"   name="0 : Default"/>
         <entry value="1"   name="1"/>
         <entry value="2"   name="2 : BonfireSacrificeIdle"/>
         <entry value="3"   name="3"/>
         <entry value="4"   name="4"/>
         <entry value="5"   name="5"/>
         <entry value="6"   name="6 : HeadTurn?"/>
+        <entry value="7"   name="7 : Throw?"/>
       </u8>
       <u8 assert="0"/>
       <u8 assert="0"/>
@@ -1046,13 +1154,13 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="706" name="InvokeChrTurnSpeed ForLock">
+    <event id="706" name="InvokeChrTurnSpeed_ForLock">
       <f32 name="TurnSpeed"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="707" name="Hks/Engine Flag 0x0000020000000000">
+    <event id="707" name="InvokeManualAttackAiming">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1243,20 +1351,17 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="715" name="WepAbsorpPosData">
-      <u8/>
-      <u8/>
-      <b/>
-      <b/>
-      <b/>
+    <event id="715" name="WepAbsorpPos">
       <u8/>
       <u8/>
       <u8/>
-      <s32 assert="0"/>
-      <s32 assert="0"/>
-      <s32 assert="0"/>
-      <s32 assert="0"/>
-      <s32 assert="0"/>
+      <u8/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32/>
       <s32 assert="0"/>
     </event>
     <event id="720" name="CultCatchAttach">
@@ -1274,7 +1379,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="740" name="NULL_NOCODE">
+    <event id="740" name="Startbit_0x1409A9A40">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1325,10 +1430,10 @@
     <event id="780" name="AddHeight">
       <f32 name="Height"/>
       <s32 assert="0"/>
-      <!-- Padding should be always aligned by 0x10? -->
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
+    <!-- Cloth? Connects 2 enemies -->
     <event id="781" name="TurnLowerBody">
       <u8 name="TurnState"/>
       <u8 assert="0"/>
@@ -1338,7 +1443,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="782">
+    <event id="782" name="InvokeAiReplanningCtrlReset_1403B46F2">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1360,14 +1465,14 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="790">
+    <event id="790" name="AiModule_ChangeAngle_0x14041174A">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <!-- Padding should be always aligned by 0x10? -->
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="791">
+    <event id="791" name="InvokePartDamageAdditiveBlendInvalid">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <!-- Padding should be always aligned by 0x10? -->
@@ -1384,14 +1489,14 @@
       <b name="IsRestrictToDummyPoly"/>
       <u8 name="ExtraSpawnCondition"/>
     </event>
-    <event id="793" name="CultSacrifice1">
-      <s32 name="SacrificeVal"/>
+    <event id="793" name="InvokeCultWeaponValue">
+      <s32 name="WeaponValue"/>
       <s32 assert="0"/>
       <!-- Padding should be always aligned by 0x10? -->
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="794" name="SacrificeFlag">
+    <event id="794" name="InvokeCultFlag">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1418,20 +1523,21 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="797" name="CultCeremony">
-      <s32 name="Id"/>
+    <event id="797" name="InvokeCultCompletionSpEffectId">
+      <s32 name="SpEffectId"/>
       <s32 assert="0"/>
       <!-- Padding should be always aligned by 0x10? -->
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="798" name="CultValue">
-      <f32/>
+    <event id="798" name="InvokeCultCompletionSfxValue">
+      <f32 name="CultSfxValue"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="799" name="CultFlag">
+    <!-- Bonfire Sacrifice Cult Execution and Network Message -->
+    <event id="799" name="InvokeCultExecution">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1444,7 +1550,29 @@
       <f32 name="LadderDistMultiplier"/>
       <s32 assert="0"/>
     </event>
+    <event id="10096" name="InvokeSfx?_0x1409A6B70">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="10130" name="InvokeSeWanderGhost_0x1409A62B0">
+      <s32/>
+      <s32/>
+      <s32/>
+      <s32 assert="0"/>
+    </event>
+    <event id="10137" name="InvokeDebugDecal1_0x1409A4D00">
+      <s32 name="DecalParamId"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="10138" name="InvokeDebugDecal2_0x1409A4C90">
+      <s32 name="DecalParamId"/>
+      <s32/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
   </bank>
 </event_template>
-
-

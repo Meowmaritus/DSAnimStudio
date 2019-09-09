@@ -22,13 +22,13 @@ namespace DSAnimStudio.TaeEditor
         public string DS1_Parts_WP_R { get; set; } = "WP_A_0220";
         public int DS1_Parts_WP_R_ModelIndex { get; set; } = 0;
 
-        public string BB_Parts_HD { get; set; } = "HD_M_1950";
-        public string BB_Parts_BD { get; set; } = "BD_M_1950";
-        public string BB_Parts_AM { get; set; } = "AM_M_1950";
-        public string BB_Parts_LG { get; set; } = "LG_M_1950";
-        public string BB_Parts_WP_L { get; set; } = "WP_A_0200";
+        public string BB_Parts_HD { get; set; } = "HD_M_8000";
+        public string BB_Parts_BD { get; set; } = "BD_M_8000";
+        public string BB_Parts_AM { get; set; } = "AM_M_8000";
+        public string BB_Parts_LG { get; set; } = "LG_M_8000";
+        public string BB_Parts_WP_L { get; set; } = "WP_A_1801";
         public int BB_Parts_WP_L_ModelIndex { get; set; } = 0;
-        public string BB_Parts_WP_R { get; set; } = "WP_A_0200";
+        public string BB_Parts_WP_R { get; set; } = "WP_A_0800";
         public int BB_Parts_WP_R_ModelIndex { get; set; } = 0;
 
         public string DS3_Parts_HD { get; set; } = "HD_M_2100";
