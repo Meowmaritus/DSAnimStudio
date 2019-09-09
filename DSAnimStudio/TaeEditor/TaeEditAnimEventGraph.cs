@@ -109,6 +109,8 @@ namespace DSAnimStudio.TaeEditor
         public float SecondsPixelSize = SecondsPixelSizeDefault;
         public float FramePixelSize => SecondsPixelSize / 30.0f;
         public float MinPixelsBetweenFramesForHelperLines = 8;
+        public float MinPixelsBetweenFramesForFrameNumberText = 24;
+
         public float SecondsPixelSizeFarAwayModeUpperBound = SecondsPixelSizeDefault;
         public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 2048);
         public float SecondsPixelSizeScrollNotch = 128;
@@ -1966,6 +1968,11 @@ namespace DSAnimStudio.TaeEditor
                         effects: SpriteEffects.None,
                         layerDepth: 0
                         );
+
+                        if (((i % TaeInterop.CurrentAnimationFrameRateRounded) != 0) && SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText))
+                        {
+                            sb.DrawString(font, i.ToString(), new Vector2(i * FramePixelSize + 2, ScrollViewer.Scroll.Y + 2), Color.Cyan);
+                        }
                     }
                 }
 

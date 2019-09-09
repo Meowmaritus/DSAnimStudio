@@ -223,6 +223,26 @@ namespace DSAnimStudio
 
                     if (flvr.Header.Version <= 0x2000D)
                     {
+                        // Hotfix for my own bad models imported with DSFBX / FBX2FLVER lol im sorry i learned now that
+                        // they don't use -1
+                        if (vert.BoneIndices[0] < 0)
+                            vert.BoneIndices[0] = 0;
+                        if (vert.BoneIndices[1] < 0)
+                            vert.BoneIndices[1] = 0;
+                        if (vert.BoneIndices[2] < 0)
+                            vert.BoneIndices[2] = 0;
+                        if (vert.BoneIndices[3] < 0)
+                            vert.BoneIndices[3] = 0;
+
+                        if (vert.BoneIndices[0] >= mesh.BoneIndices.Count)
+                            vert.BoneIndices[0] = 0;
+                        if (vert.BoneIndices[1] >= mesh.BoneIndices.Count)
+                            vert.BoneIndices[1] = 0;
+                        if (vert.BoneIndices[2] >= mesh.BoneIndices.Count)
+                            vert.BoneIndices[2] = 0;
+                        if (vert.BoneIndices[3] >= mesh.BoneIndices.Count)
+                            vert.BoneIndices[3] = 0;
+
                         MeshVertices[i].BoneIndices = new Vector4(
                             (int)(mesh.BoneIndices[vert.BoneIndices[0]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[0]] % FlverShader.NUM_BONES : 0),
                             (int)(mesh.BoneIndices[vert.BoneIndices[1]] >= 0 ? mesh.BoneIndices[vert.BoneIndices[1]] % FlverShader.NUM_BONES : 0),

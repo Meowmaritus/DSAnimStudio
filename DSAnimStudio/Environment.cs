@@ -15,6 +15,7 @@ namespace DSAnimStudio
         public static float FlverDirectLightMult = 1.0f;
         public static float FlverIndirectLightMult = 1.0f;
         public static float FlverSceneBrightness = 1.0f;
+        public static float FlverEmissiveMult = 1.0f;
 
         private static Dictionary<string, TextureCube> cubemaps 
             = new Dictionary<string, TextureCube>();

@@ -83,6 +83,11 @@ namespace DSAnimStudio
                         int fps = (int)Math.Round(1 / CurrentAnimationFrameDuration);
                         printer.AppendLine($"Anim Frame Rate: {fps} FPS", fps == 30 ? Color.Cyan : Color.LightGreen);
                     }
+
+                    foreach (var ar in CurrentAnimReferenceChain)
+                    {
+                        printer.AppendLine(ar);
+                    }
                 }
 
                 if (HkxAnimException != null)
@@ -198,13 +203,15 @@ namespace DSAnimStudio
         public static short[] TransformTrackToBoneIndices = null;
         public static int CurrentAnimationFrameCount = 0;
         public static float CurrentAnimationFrameDuration = 0.033333f;
+        public static int CurrentAnimationFrameRateRounded => (int)Math.Round(1.0 / CurrentAnimationFrameDuration);
         public static List<Dictionary<int, Havok.SplineCompressedAnimation.TransformTrack>> BoneToTransformTrackMap;
         public static float CurrentAnimBlockDuration = 8.5f;
         public static int CurrentAnimFramesPerBlock = 256;
         public static SoulsFormats.HKX.AnimationType CurrentAnimType = HKX.AnimationType.HK_UNKNOWN_ANIMATION;
         public static SoulsFormats.HKX.AnimationBlendHint CurrentAnimBlendHint = HKX.AnimationBlendHint.NORMAL;
 
-        public static int CurrentBlock => PlaybackCursor != null ? (int)((PlaybackCursor.GUICurrentFrame % CurrentAnimationFrameCount) / CurrentAnimFramesPerBlock) : 0;
+        public static int CurrentBlock => PlaybackCursor != null ?
+            (int)((PlaybackCursor.GUICurrentFrame % CurrentAnimationFrameCount) / CurrentAnimFramesPerBlock) : 0;
 
         public static HKX.HKASkeleton HkxSkeleton;
         public static List<DbgPrimSolidBone> HkxBonePrimitives;
@@ -305,6 +312,8 @@ namespace DSAnimStudio
         /// Name of currently-selected animation.
         /// </summary>
         public static string CurrentAnimationName = null;
+
+        public static List<string> CurrentAnimReferenceChain = new List<string>();
 
         /// <summary>
         /// Debug draw the havok skeleton instead of the flver skeleton
@@ -658,6 +667,28 @@ namespace DSAnimStudio
                         {
                             Load3DAsset($"{chrNameBase}.chrbnd", File.ReadAllBytes($"{chrNameBase}.chrbnd"), transform);
                         }
+                        else
+                        {
+                            if (File.Exists($"{chrNameBase}.flver.dcx"))
+                            {
+                                LoadFLVER(FLVER2.Read($"{chrNameBase}.flver.dcx"));
+                            }
+                            else if (File.Exists($"{chrNameBase}.flver"))
+                            {
+                                LoadFLVER(FLVER2.Read($"{chrNameBase}.flver"));
+                            }
+
+                            if (File.Exists($"{chrNameBase}.tpf.dcx"))
+                            {
+                                TexturePool.AddTpfFromPath($"{chrNameBase}.tpf.dcx");
+                                GFX.ModelDrawer.RequestTextureLoad();
+                            }
+                            else if (File.Exists($"{chrNameBase}.tpf"))
+                            {
+                                TexturePool.AddTpfFromPath($"{chrNameBase}.tpf");
+                                GFX.ModelDrawer.RequestTextureLoad();
+                            }
+                        }
 
                         innerProgress.Report(1.0 / 5.0);
                     }
@@ -771,20 +802,20 @@ namespace DSAnimStudio
 
                     CreateMenuBarViewportSettings(menuBar);
 
-                    if (CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
-                    {
-                        if (GFX.FlverShaderWorkflowType != GFXShaders.FlverShader.FSWorkflowType.Ass)
-                            GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Ass;
+                    //if (CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
+                    //{
+                    //    if (GFX.FlverShaderWorkflowType != GFXShaders.FlverShader.FSWorkflowType.Ass)
+                    //        GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Ass;
 
-                        Environment.DrawCubemap = false;
-                    }
-                    else
-                    {
-                        if (GFX.FlverShaderWorkflowType == GFXShaders.FlverShader.FSWorkflowType.Ass)
-                            GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
+                    //    Environment.DrawCubemap = false;
+                    //}
+                    //else
+                    //{
+                    //    if (GFX.FlverShaderWorkflowType == GFXShaders.FlverShader.FSWorkflowType.Ass)
+                    //        GFX.FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
 
-                        Environment.DrawCubemap = true;
-                    }
+                    //    Environment.DrawCubemap = true;
+                    //}
 
                     ReadParamsForSelectedCharacter();
 
@@ -833,42 +864,18 @@ namespace DSAnimStudio
         /// <summary>
         /// Called when user selects an animation in the lists and loads the event graph for it.
         /// </summary>
-        public static void OnAnimationSelected(TAE.Animation anim)
+        public static void OnAnimationSelected(IReadOnlyDictionary<string, TAE> taeDict, TAE tae, TAE.Animation anim)
         {
             GFX.FlverOpacity = 1.0f;
 
             if (HaventLoadedAnythingYet)
                 HaventLoadedAnythingYet = false;
 
-            void TryToLoadAnimFile(long id)
-            {
-                var animID_Lower = Main.TAE_EDITOR.FileContainer.ContainerType == TaeEditor.TaeFileContainer.TaeFileContainerType.BND4
-                        ? (id % 1000000) : (id % 10000);
-
-                var animID_Upper = Main.TAE_EDITOR.FileContainer.ContainerType == TaeEditor.TaeFileContainer.TaeFileContainerType.BND4
-                    ? (id / 1000000) : (id / 10000);
-
-                foreach (var kvp in Main.TAE_EDITOR.FileContainer.AllTAEDict)
-                {
-                    if (kvp.Value == Main.TAE_EDITOR.SelectedTae)
-                    {
-                        var taeName = Utils.GetFileNameWithoutDirectoryOrExtension(kvp.Key);
-
-                        if (taeName.ToLower().StartsWith("a"))
-                        {
-                            animID_Upper = int.Parse(Utils.GetFileNameWithoutAnyExtensions(taeName).Substring(1));
-                        }
-                        break;
-                    }
-                }
-
-                string animFileName = Main.TAE_EDITOR.FileContainer.ContainerType == TaeEditor.TaeFileContainer.TaeFileContainerType.BND4
-                      ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}";
-
-
-                CurrentAnimationName = animFileName + ".hkx";
-                CurrentAnimationHKXBytes = AllHkxFiles.FirstOrDefault(x => x.Key.ToUpper().Contains(animFileName.ToUpper())).Value;
-            }
+            var refChainSolver = new AnimRefChainSolver(CurrentHkxVariation, taeDict, AllHkxFiles);
+            CurrentAnimationName = refChainSolver.GetHKXName(tae, anim);
+            CurrentAnimReferenceChain = refChainSolver.GetRefChainStrings();
+            var forDebug = AllHkxFiles;
+            CurrentAnimationHKXBytes = AllHkxFiles.FirstOrDefault(x => x.Key.ToUpper().Contains(CurrentAnimationName.ToUpper())).Value;
 
             if (IncompatibleHavokVersion)
             {
@@ -879,20 +886,6 @@ namespace DSAnimStudio
                 TrueAnimLenghForPlaybackCursor = null;
                 RevertToTPose();
                 return;
-            }
-
-            //Try to load the actual ID in the TAE Animation struct.
-            TryToLoadAnimFile(anim.ID);
-
-            //For some reference animations, we have to use the anim they are referencing
-            if (CurrentAnimationHKXBytes == null && anim.Unknown1 > 0)
-            {
-                TryToLoadAnimFile(anim.Unknown1);
-            }
-
-            if (CurrentAnimationHKXBytes == null && anim.Unknown2 > 0)
-            {
-                TryToLoadAnimFile(anim.Unknown2);
             }
 
             // If STILL NULL just give up :MecHands:
@@ -1263,7 +1256,7 @@ namespace DSAnimStudio
 
             for (int i = 0; i < HkxSkeleton.Transforms.Size; i++)
             {
-                var parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: true, HkxSkeleton, (short)i, frame % CurrentAnimFramesPerBlock, alreadyCalculatedBones);
+                var parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: true, HkxSkeleton, (short)i, (frame % CurrentAnimFramesPerBlock) + CurrentBlock, alreadyCalculatedBones);
                 HkxBoneParentMatrices.Add(parentMatrix.Item1);
                 HkxBoneParentMatrices_Reference.Add(parentMatrix.Item1);
                 //HkxBonePositions.Add(Vector3.Transform(Vector3.Zero, parentMatrix.Item1));

@@ -339,6 +339,7 @@ namespace DSAnimStudio
             FlverShader.Effect.DirectLightMult = Environment.FlverDirectLightMult * 1;
             FlverShader.Effect.IndirectLightMult = 1.0f;
             FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1;
+            FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
             FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.5f;
             FlverShader.Effect.Opacity = FlverOpacity;
 

@@ -64,8 +64,13 @@ namespace DSAnimStudio
 
         public void ReadDrawMaskPresets(PARAM npcParam, HKX.HKXVariation game, string anibndPath)
         {
-            int chrId = int.Parse(Utils.GetFileNameWithoutAnyExtensions(
-                Utils.GetFileNameWithoutDirectoryOrExtension(anibndPath)).Substring(1));
+            var shortAnibndPath = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(anibndPath));
+
+            // Check if this isn't even a character ANIBND
+            if (!shortAnibndPath.ToUpper().StartsWith("C"))
+                return;
+
+            int chrId = int.Parse(shortAnibndPath.Substring(1));
 
             if (chrId <= 1000)
                 return;

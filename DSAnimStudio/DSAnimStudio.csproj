@@ -74,6 +74,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AnimRefChainSolver.cs" />
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxDepthStencilStateAdjust.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxFlverShaderAdjust.cs" />
@@ -332,10 +333,19 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="DSAnimStudio_Icon.ico" />
+    <Content Include="Res\TAE.Template.DS1.OBJ.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Res\TAE.Template.DS1.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Res\TAE.Template.DS3.OBJ.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Res\TAE.Template.DS3.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\TAE.Template.SDT.OBJ.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TAE.Template.SDT.xml">
