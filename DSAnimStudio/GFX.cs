@@ -54,7 +54,19 @@ namespace DSAnimStudio
             }
         }
 
-        public static int SSAA = 2;
+        private static int _ssaa = 2;
+        public static int SSAA
+        {
+            get => _ssaa;
+            set
+            {
+                if (value != _ssaa)
+                {
+                    _ssaa = value;
+                    Main.RequestViewportRenderTargetResolutionChange = true;
+                }
+            }
+        }
 
         public static void InitShaders()
         {
@@ -432,7 +444,8 @@ namespace DSAnimStudio
             DoDraw(gameTime);
 
             GFX.UpdateFPS((float)FpsStopwatch.Elapsed.TotalSeconds);
-            DBG.DrawOutlinedText($"Rendering {(Main.TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA)}x{(Main.TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA)} @ {(Math.Round(GFX.AverageFPS))} FPS", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
+            if (Main.SceneRenderTarget != null)
+            DBG.DrawOutlinedText($"Rendering {(Main.SceneRenderTarget.Width)}x{(Main.SceneRenderTarget.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
             //DBG.DrawOutlinedText($"FPS: {(Math.Round(1 / (float)gameTime.ElapsedGameTime.TotalSeconds))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
             FpsStopwatch.Restart();
         }

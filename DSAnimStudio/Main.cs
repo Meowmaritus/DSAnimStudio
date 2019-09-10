@@ -23,7 +23,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "v0.9.7";
+        public const string VERSION = "v0.9.8";
 
         public static bool FIXED_TIME_STEP = true;
 
@@ -66,6 +66,12 @@ namespace DSAnimStudio
         public bool IsLoadingTaskRunning = false;
 
         public static ContentManager CM = null;
+
+        public static RenderTarget2D SceneRenderTarget = null;
+
+        public static bool RequestViewportRenderTargetResolutionChange = false;
+        private const float TimeBeforeNextRenderTargetUpdate_Max = 0.5f;
+        private static float TimeBeforeNextRenderTargetUpdate = 0;
 
         public Rectangle TAEScreenBounds
         {
@@ -152,9 +158,31 @@ namespace DSAnimStudio
 
             Window.AllowUserResizing = true;
 
+            Window.ClientSizeChanged += Window_ClientSizeChanged;
+
             GFX.Display.SetFromDisplayMode(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode);
 
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+        }
+
+        private void Window_ClientSizeChanged(object sender, EventArgs e)
+        {
+            RequestViewportRenderTargetResolutionChange = true;
+        }
+
+        public void RebuildRenderTarget()
+        {
+            if (TimeBeforeNextRenderTargetUpdate <= 0)
+            {
+                SceneRenderTarget?.Dispose();
+                GC.Collect();
+                SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
+                       TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Vector4, DepthFormat.Depth24);
+
+                TimeBeforeNextRenderTargetUpdate = TimeBeforeNextRenderTargetUpdate_Max;
+
+                RequestViewportRenderTargetResolutionChange = false;
+            }
         }
 
         protected override void OnExiting(object sender, EventArgs args)
@@ -184,6 +212,7 @@ namespace DSAnimStudio
             winForm.AllowDrop = true;
             winForm.DragEnter += GameWindowForm_DragEnter;
             winForm.DragDrop += GameWindowForm_DragDrop;
+
 
             IsMouseVisible = true;
 
@@ -298,21 +327,39 @@ namespace DSAnimStudio
                 return $"{prefix}{(1.0 * MemoryUsage / MEM_GB):0.00} GB";
         }
 
+        private Color GetMemoryUseColor(long MemoryUsage)
+        {
+            const double MEM_KB = 1024f;
+            const double MEM_MB = 1024f * 1024f;
+            const double MEM_GB = 1024f * 1024f * 1024f;
+
+            if (MemoryUsage < MEM_KB)
+                return Color.Cyan;
+            else if (MemoryUsage < MEM_MB)
+                return Color.Lime;
+            else if (MemoryUsage < MEM_GB)
+                return Color.Yellow;
+            else if (MemoryUsage < (MEM_GB * 2))
+                return Color.Orange;
+            else
+                return Color.Red;
+        }
+
         private void DrawMemoryUsage()
         {
             var str_managed = GetMemoryUseString("CLR Mem:  ", MemoryUsage_Managed);
-            var str_unmanaged = GetMemoryUseString("Process Mem:  ", MemoryUsage_Unmanaged);
+            var str_unmanaged = GetMemoryUseString("RAM USE:  ", MemoryUsage_Unmanaged);
 
             var strSize_managed = DBG.DEBUG_FONT_SMALL.MeasureString(str_managed);
-            var strSize_unmanaged = DBG.DEBUG_FONT_SMALL.MeasureString(str_unmanaged);
+            var strSize_unmanaged = DBG.DEBUG_FONT.MeasureString(str_unmanaged);
 
-            DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
-                GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
-                Color.Cyan, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
+            //DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
+            //    GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
+            //    Color.Cyan, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
 
             DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2, 
-                GFX.Device.Viewport.Height - (strSize_unmanaged.Y * 0.75f)),
-                Color.Cyan, DBG.DEBUG_FONT_SMALL, scale:0.75f, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
+                GFX.Device.Viewport.Height - (strSize_unmanaged.Y)),
+                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT, scale:1, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
         }
 
         private void UpdateMemoryUsage()
@@ -433,33 +480,43 @@ namespace DSAnimStudio
 
             if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
             {
-                using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
-                   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Vector4, DepthFormat.Depth24))
+                if (SceneRenderTarget == null)
                 {
-                    GFX.Device.SetRenderTarget(renderTarget3DScene);
-
-                    GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                    GFX.Device.Viewport = new Viewport(0, 0, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA, TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA);
-                    TaeInterop.TaeViewportDrawPre(gameTime);
-                    GFX.DrawScene3D(gameTime);
-
-                    GFX.Device.SetRenderTarget(null);
-
-                    GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-
-                    InitTonemapShader();
-                    GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-
-                    if (GFX.UseTonemap)
-                        MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
-
-                    GFX.SpriteBatch.Draw(renderTarget3DScene,
-                        new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
-                    GFX.SpriteBatch.End();
+                    RebuildRenderTarget();
+                    if (TimeBeforeNextRenderTargetUpdate > 0)
+                        TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
                 }
+                else if (RequestViewportRenderTargetResolutionChange)
+                {
+                    RebuildRenderTarget();
+                    
+                    if (TimeBeforeNextRenderTargetUpdate > 0)
+                        TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                }
+
+                GFX.Device.SetRenderTarget(SceneRenderTarget);
+
+                GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
+                TaeInterop.TaeViewportDrawPre(gameTime);
+                GFX.DrawScene3D(gameTime);
+
+                GFX.Device.SetRenderTarget(null);
+
+                GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+
+                InitTonemapShader();
+                GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+
+                if (GFX.UseTonemap)
+                    MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+
+                GFX.SpriteBatch.Draw(SceneRenderTarget,
+                    new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                GFX.SpriteBatch.End();
 
                 //try
                 //{
@@ -504,12 +561,13 @@ namespace DSAnimStudio
                 //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos, Color.Red);
                 //    GFX.SpriteBatch.End();
                 //}
-               
+
             }
 
             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
             GFX.DrawSceneGUI(gameTime);
             TaeInterop.TaeViewportDrawPost(gameTime);
+            DrawMemoryUsage();
 
             GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
 
@@ -523,7 +581,7 @@ namespace DSAnimStudio
                 TAE_EDITOR.DrawDimmingRect(GraphicsDevice, GFX.SpriteBatch, TAE_EDITOR_BLANK_TEX);
             }
 
-            DrawMemoryUsage();
+            
         }
     }
 }
