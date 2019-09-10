@@ -55,6 +55,8 @@ namespace DSAnimStudio
 
             var printer = new StatusPrinter(Vector2.One * 4);
 
+            //printer.AppendLine(GFX.FlverOpacity.ToString());
+
             //printer.AppendLine($"Current Indirect Lighting Value: {GFX.IndirectLightMult}");
             //printer.AppendLine($"Mouse Click Start Type: {Main.TAE_EDITOR.WhereCurrentMouseClickStarted}");
 
@@ -62,8 +64,12 @@ namespace DSAnimStudio
             {
                 if (IncompatibleHavokVersion)
                 {
-                    printer.AppendLine($"[UNSUPPORTED HAVOK VERSION]");
-                    printer.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
+                    printer.AppendLine($"[UNSUPPORTED HAVOK VERSION]", Color.Red);
+
+                    if (CurrentAnimationHKXBytes == null)
+                        printer.AppendLine($"Animation File: {CurrentAnimationName} (does not exist)", Color.Red);
+                    else
+                        printer.AppendLine($"Animation File: {CurrentAnimationName}");
                 }
                 else
                 {
@@ -72,22 +78,22 @@ namespace DSAnimStudio
                         printer.AppendLine($"HKX Bone Count: {HkxSkeleton.Bones.Capacity} (Max Supported By Viewer: {GFXShaders.FlverShader.MAX_ALL_BONE_ARRAYS})", (HkxSkeleton.Bones.Capacity > GFXShaders.FlverShader.MAX_ALL_BONE_ARRAYS) ? Color.Red : Color.Cyan);
                     }
 
-                    printer.AppendLine($"Animation File: {CurrentAnimationName ?? "None"}");
-                    if (CurrentAnimationHKX == null)
-                    {
-                        printer.AppendLine($"Could not find valid HKX for this animation.", Color.Red);
-                    }
+                    if (CurrentAnimationHKXBytes == null)
+                        printer.AppendLine($"Animation File: {CurrentAnimationName} (does not exist)", Color.Red);
                     else
+                        printer.AppendLine($"Animation File: {CurrentAnimationName}");
+
+                    if (CurrentAnimationHKX != null)
                     {
                         printer.AppendLine($"Anim BlendHint: {CurrentAnimBlendHint}", CurrentAnimBlendHint == HKX.AnimationBlendHint.NORMAL ? Color.Cyan : Color.LightGreen);
                         int fps = (int)Math.Round(1 / CurrentAnimationFrameDuration);
                         printer.AppendLine($"Anim Frame Rate: {fps} FPS", fps == 30 ? Color.Cyan : Color.LightGreen);
                     }
 
-                    foreach (var ar in CurrentAnimReferenceChain)
-                    {
-                        printer.AppendLine(ar);
-                    }
+                    //foreach (var ar in CurrentAnimReferenceChain)
+                    //{
+                    //    printer.AppendLine(ar);
+                    //}
                 }
 
                 if (HkxAnimException != null)
@@ -230,6 +236,7 @@ namespace DSAnimStudio
         public static Matrix[] ShaderMatrix0 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
         public static Matrix[] ShaderMatrix1 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
         public static Matrix[] ShaderMatrix2 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
+        public static Matrix[] ShaderMatrix3 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
 
         public static int FlverBoneCount;
 
@@ -264,6 +271,8 @@ namespace DSAnimStudio
                 ShaderMatrix1[relativeMatrixIndex] = finalMatrix;
             else if (matrixBank == 2)
                 ShaderMatrix2[relativeMatrixIndex] = finalMatrix;
+            else if (matrixBank == 3)
+                ShaderMatrix3[relativeMatrixIndex] = finalMatrix;
 
             AnimatedDummyPolyClusters[flverBoneIndex]?.UpdateWithBoneMatrix(finalMatrix);
 
@@ -287,6 +296,8 @@ namespace DSAnimStudio
                 else if (matrixBank == 1)
                     ShaderMatrix1[relativeMatrixIndex] = Matrix.Identity;
                 else if (matrixBank == 2)
+                    ShaderMatrix2[relativeMatrixIndex] = Matrix.Identity;
+                else if (matrixBank == 3)
                     ShaderMatrix2[relativeMatrixIndex] = Matrix.Identity;
 
                 AnimatedDummyPolyClusters[i]?.UpdateWithBoneMatrix(Matrix.Identity);
@@ -402,24 +413,15 @@ namespace DSAnimStudio
 
             if (EventSim_Opacity && evBox.MyEvent.TypeName == "SetOpacityKeyframe")
             {
-                //TODO
-                var sortedByStartTime = evBox.OwnerPane.EventBoxes.OrderBy(b => b.MyEvent.StartTime).ToList();
-                var thisIndexInOrdered = sortedByStartTime.IndexOf(evBox);
-                var nextOpacityEvent = sortedByStartTime.Skip(thisIndexInOrdered + 1).FirstOrDefault(b => b.MyEvent.TypeName == "SetOpacityKeyframe");
+                
+                float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
+                float timeSinceFadeStart = (float)PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
+                float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
+                float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
 
-                if (nextOpacityEvent != null)
-                {
-                    float fadeDuration = nextOpacityEvent.MyEvent.StartTime - evBox.MyEvent.StartTime;
-                    float timeSinceFadeStart = (float)PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
-                    float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
-                    float fadeEndOpacity = (float)nextOpacityEvent.MyEvent.Parameters["GhostVal1"];
-                    GFX.FlverOpacity = fadeStartOpacity + ((timeSinceFadeStart / fadeDuration) * (fadeEndOpacity - fadeStartOpacity));
-                }
-                else
-                {
-                    float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
-                    GFX.FlverOpacity = fadeStartOpacity;
-                }
+                GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
+
+                //GFX.FlverOpacity = fadeStartOpacity + ((timeSinceFadeStart / fadeDuration) * (fadeEndOpacity - fadeStartOpacity));
             }
 
             if (EventSim_ModelMasks && evBox.MyEvent.TypeName == "HideModelMask" ||
@@ -508,7 +510,7 @@ namespace DSAnimStudio
             {
                 if (!isScrubbing || (InterleavedCalculationDivisor == 1) || NumQueuedInterleavedScrubUpdateFrames > 0)
                 {
-                    CalculateAnimation((float)PlaybackCursor.GUICurrentTime, (float)PlaybackCursor.GUICurrentFrame);
+                    CalculateAnimation((float)PlaybackCursor.GUICurrentTime, (float)PlaybackCursor.GUICurrentFrame, Debug_LockToTPose);
 
                     if (NumQueuedInterleavedScrubUpdateFrames > 0)
                         NumQueuedInterleavedScrubUpdateFrames--;
@@ -526,12 +528,16 @@ namespace DSAnimStudio
                 //if (UseDummyPolyAnimation && DBG.CategoryEnableDraw[DbgPrimCategory.DummyPoly])
                 //    UpdateDummies();
             }
+            else
+            {
+                // If no valid anim, go to t-pose
+                CalculateAnimation((float)PlaybackCursor.GUICurrentTime, (float)PlaybackCursor.GUICurrentFrame, lockToTpose: true);
+            }
                 
             
 
             
         }
-
 
         /// <summary>
         /// Runs once the TAE shit loads an ANIBND (doesn't run if a loose TAE is selected)
@@ -551,6 +557,7 @@ namespace DSAnimStudio
                         ShaderMatrix0[i] = Matrix.Identity;
                         ShaderMatrix1[i] = Matrix.Identity;
                         ShaderMatrix2[i] = Matrix.Identity;
+                        ShaderMatrix3[i] = Matrix.Identity;
                     }
 
                     if (HaventLoadedAnythingYet)
@@ -891,7 +898,7 @@ namespace DSAnimStudio
             // If STILL NULL just give up :MecHands:
             if (CurrentAnimationHKXBytes == null)
             {
-                CurrentAnimationName = null;
+                //CurrentAnimationName = null;
                 CurrentAnimationHKX = null;
                 TrueAnimLenghForPlaybackCursor = null;
                 return;
@@ -1060,6 +1067,201 @@ namespace DSAnimStudio
                 return null;
         }
 
+        public static (Vector3 Scale, Quaternion Rotation, Vector3 Position) 
+            GetTransformTrackValueForFrame(Havok.SplineCompressedAnimation.TransformTrack track, 
+            float frame, HKX.Transform skeleTransform, bool additiveBlend)
+        {
+            Vector3 scale = Vector3.One;
+            Quaternion rotation = Quaternion.Identity;
+            Vector3 position = Vector3.Zero;
+
+            var scaleX = track.SplineScale?.ChannelX == null
+                ? track.StaticScale.X : track.SplineScale.GetValueX(frame);
+            var scaleY = track.SplineScale?.ChannelY == null
+                ? track.StaticScale.Y : track.SplineScale.GetValueY(frame);
+            var scaleZ = track.SplineScale?.ChannelZ == null
+                ? track.StaticScale.Z : track.SplineScale.GetValueZ(frame);
+
+            if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) &&
+                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
+            {
+                scaleX = skeleTransform.Scale.Vector.X;
+            }
+
+            if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) &&
+                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
+            {
+                scaleY = skeleTransform.Scale.Vector.Y;
+            }
+
+            if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) &&
+                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
+            {
+                scaleZ = skeleTransform.Scale.Vector.Z;
+            }
+
+            if (additiveBlend)
+            {
+                scaleX *= skeleTransform.Scale.Vector.X;
+                scaleY *= skeleTransform.Scale.Vector.Y;
+                scaleZ *= skeleTransform.Scale.Vector.Z;
+            }
+
+            if (track.HasSplineRotation)
+            {
+                rotation = track.SplineRotation.GetValue(frame);
+            }
+            else if (track.HasStaticRotation)
+            {
+                // We actually need static rotation or Gael hands become unbent among others
+                rotation = track.StaticRotation;
+            }
+            else
+            {
+                rotation = additiveBlend ? Quaternion.Identity : new Quaternion(
+                    skeleTransform.Rotation.Vector.X,
+                    skeleTransform.Rotation.Vector.Y,
+                    skeleTransform.Rotation.Vector.Z,
+                    skeleTransform.Rotation.Vector.W);
+            }
+
+            if (additiveBlend)
+            {
+                rotation *= new Quaternion(
+                    skeleTransform.Rotation.Vector.X,
+                    skeleTransform.Rotation.Vector.Y,
+                    skeleTransform.Rotation.Vector.Z,
+                    skeleTransform.Rotation.Vector.W);
+            }
+
+            // We use skeleton transform here instead of static position, which fixes Midir, Ariandel, and other enemies
+            // at the cost of Ringed Knight's weapons being misplaced from their hands. This way more shit works 
+            // right but I wish I knew WHY and I wish ALL worked.
+            //var posX = track.SplinePosition?.ChannelX == null
+            //    ? (additiveBlend ? 0 : skeleTransform.Position.Vector.X) : track.SplinePosition.GetValueX(frame);
+            //var posY = track.SplinePosition?.ChannelY == null
+            //    ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Y) : track.SplinePosition.GetValueY(frame);
+            //var posZ = track.SplinePosition?.ChannelZ == null
+            //    ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Z) : track.SplinePosition.GetValueZ(frame);
+
+            var posX = track.SplinePosition?.ChannelX == null
+                ? (additiveBlend ? 0 : track.StaticPosition.X) : track.SplinePosition.GetValueX(frame);
+            var posY = track.SplinePosition?.ChannelY == null
+                ? (additiveBlend ? 0 : track.StaticPosition.Y) : track.SplinePosition.GetValueY(frame);
+            var posZ = track.SplinePosition?.ChannelZ == null
+                ? (additiveBlend ? 0 : track.StaticPosition.Z) : track.SplinePosition.GetValueZ(frame);
+
+
+            //var posX = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX)
+            //    ? (additiveBlend ? 0 : skeleTransform.Position.Vector.X + track.StaticPosition.X) : track.SplinePosition.GetValueX(frame);
+            //var posY = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY)
+            //    ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Y + track.StaticPosition.Y) : track.SplinePosition.GetValueY(frame);
+            //var posZ = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ)
+            //    ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Z + track.StaticPosition.Z) : track.SplinePosition.GetValueZ(frame);
+
+
+            //var nullPos = false;// (posX == 0 && posY == 0 && posZ == 0);
+
+            if (!additiveBlend && (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) &&
+                !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX)))
+            {
+                posX = skeleTransform.Position.Vector.X;
+            }
+
+            if (!additiveBlend && (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) &&
+                !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY)))
+            {
+                posY = skeleTransform.Position.Vector.Y;
+            }
+
+            if (!additiveBlend && (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) &&
+                !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ)))
+            {
+                posZ = skeleTransform.Position.Vector.Z;
+            }
+
+            if (additiveBlend)
+            {
+                posX += skeleTransform.Position.Vector.X;
+                posY += skeleTransform.Position.Vector.Y;
+                posZ += skeleTransform.Position.Vector.Z;
+            }
+
+            return (new Vector3(scaleX, scaleY, scaleZ), rotation, new Vector3(posX, posY, posZ));
+        }
+
+        public static (Vector3 Scale, Quaternion Rotation, Vector3 Position) 
+            GetAnimMotionForCurrentFrame(HKX.HKASkeleton s, int boneIndex, 
+            HKX.Transform skeleTransform, bool additiveBlend)
+        {
+            Vector3 scale = Vector3.One;
+            Quaternion rotation = Quaternion.Identity;
+            Vector3 position = Vector3.Zero;
+
+            float frame = (((float)PlaybackCursor.GUICurrentFrame % CurrentAnimationFrameCount + CurrentBlock)) % CurrentAnimFramesPerBlock;
+
+            if (BoneToTransformTrackMap[CurrentBlock].ContainsKey(boneIndex))
+            {
+                var thisBlockTransformTrack = BoneToTransformTrackMap[CurrentBlock][boneIndex];
+
+                var thisBlockMotion = GetTransformTrackValueForFrame(thisBlockTransformTrack, frame, skeleTransform, additiveBlend);
+
+                // Blend between blocks
+                if (frame >= CurrentAnimFramesPerBlock - 1 && CurrentBlock < CurrentAnimationTracks.Count - 1)
+                {
+                    var nextBlockTransformTrack = BoneToTransformTrackMap[CurrentBlock + 1][boneIndex];
+
+                    var nextBlockMotion = GetTransformTrackValueForFrame(nextBlockTransformTrack, 1, skeleTransform, additiveBlend);
+
+                    float frameLerp = (frame % 1);
+
+                    scale.X = MathHelper.Lerp(thisBlockMotion.Scale.X, nextBlockMotion.Scale.X, frameLerp);
+                    scale.Y = MathHelper.Lerp(thisBlockMotion.Scale.Y, nextBlockMotion.Scale.Y, frameLerp);
+                    scale.Z = MathHelper.Lerp(thisBlockMotion.Scale.Z, nextBlockMotion.Scale.Z, frameLerp);
+
+                    rotation.X = MathHelper.Lerp(thisBlockMotion.Rotation.X, nextBlockMotion.Rotation.X, frameLerp);
+                    rotation.Y = MathHelper.Lerp(thisBlockMotion.Rotation.Y, nextBlockMotion.Rotation.Y, frameLerp);
+                    rotation.Z = MathHelper.Lerp(thisBlockMotion.Rotation.Z, nextBlockMotion.Rotation.Z, frameLerp);
+                    rotation.W = MathHelper.Lerp(thisBlockMotion.Rotation.W, nextBlockMotion.Rotation.W, frameLerp);
+
+                    position.X = MathHelper.Lerp(thisBlockMotion.Position.X, nextBlockMotion.Position.X, frameLerp);
+                    position.Y = MathHelper.Lerp(thisBlockMotion.Position.Y, nextBlockMotion.Position.Y, frameLerp);
+                    position.Z = MathHelper.Lerp(thisBlockMotion.Position.Z, nextBlockMotion.Position.Z, frameLerp);
+                }
+                // Blend between loops
+                else if (frame >= CurrentAnimationFrameCount - 1)
+                {
+                    var firstBlockTransformTrack = BoneToTransformTrackMap[0][boneIndex];
+
+                    var nextBlockMotion = GetTransformTrackValueForFrame(firstBlockTransformTrack, 0, skeleTransform, additiveBlend);
+
+                    float frameLerp = (frame % 1);
+
+                    scale.X = MathHelper.Lerp(thisBlockMotion.Scale.X, nextBlockMotion.Scale.X, frameLerp);
+                    scale.Y = MathHelper.Lerp(thisBlockMotion.Scale.Y, nextBlockMotion.Scale.Y, frameLerp);
+                    scale.Z = MathHelper.Lerp(thisBlockMotion.Scale.Z, nextBlockMotion.Scale.Z, frameLerp);
+
+                    rotation.X = MathHelper.Lerp(thisBlockMotion.Rotation.X, nextBlockMotion.Rotation.X, frameLerp);
+                    rotation.Y = MathHelper.Lerp(thisBlockMotion.Rotation.Y, nextBlockMotion.Rotation.Y, frameLerp);
+                    rotation.Z = MathHelper.Lerp(thisBlockMotion.Rotation.Z, nextBlockMotion.Rotation.Z, frameLerp);
+                    rotation.W = MathHelper.Lerp(thisBlockMotion.Rotation.W, nextBlockMotion.Rotation.W, frameLerp);
+
+                    position.X = MathHelper.Lerp(thisBlockMotion.Position.X, nextBlockMotion.Position.X, frameLerp);
+                    position.Y = MathHelper.Lerp(thisBlockMotion.Position.Y, nextBlockMotion.Position.Y, frameLerp);
+                    position.Z = MathHelper.Lerp(thisBlockMotion.Position.Z, nextBlockMotion.Position.Z, frameLerp);
+                }
+                else
+                {
+                    scale = thisBlockMotion.Scale;
+                    rotation = thisBlockMotion.Rotation;
+                    position = thisBlockMotion.Position;
+                }
+            }
+
+            return (scale, rotation, position);
+        }
+
+
         private static (Matrix, Vector3) GetBoneParentMatrixHavok(bool isJustSkeleton, 
             HKX.HKASkeleton s, short b, float frame, 
             Dictionary<int, (Matrix, Vector3)> alreadyCalculatedBones, 
@@ -1086,9 +1288,9 @@ namespace DSAnimStudio
 #endif
                     HKX.Transform skeleTransform = s.Transforms.GetArrayData().Elements[parentBone];
 
-                    var track = !isJustSkeleton ? GetTransformTrackOfBone(s, parentBone) : null;
+                    var trackCheck = !isJustSkeleton ? GetTransformTrackOfBone(s, parentBone) : null;
 
-                    if (isJustSkeleton || track == null)
+                    if (isJustSkeleton || trackCheck == null)
                     {
                         HKX.Transform t = skeleTransform;
 
@@ -1119,108 +1321,16 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        var scaleX = track.SplineScale?.ChannelX == null 
-                            ? track.StaticScale.X : track.SplineScale.GetValueX(frame);
-                        var scaleY = track.SplineScale?.ChannelY == null 
-                            ? track.StaticScale.Y : track.SplineScale.GetValueY(frame);
-                        var scaleZ = track.SplineScale?.ChannelZ == null 
-                            ? track.StaticScale.Z : track.SplineScale.GetValueZ(frame);
-
-                        if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) && 
-                            !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
-                        {
-                            scaleX = skeleTransform.Scale.Vector.X;
-                        }
-
-                        if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) && 
-                            !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
-                        {
-                            scaleY = skeleTransform.Scale.Vector.Y;
-                        }
-
-                        if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) && 
-                            !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
-                        {
-                            scaleZ = skeleTransform.Scale.Vector.Z;
-                        }
-
-                        if (additiveBlend)
-                        {
-                            scaleX *= skeleTransform.Scale.Vector.X;
-                            scaleY *= skeleTransform.Scale.Vector.Y;
-                            scaleZ *= skeleTransform.Scale.Vector.Z;
-                        }
+                        var motion = GetAnimMotionForCurrentFrame(s, parentBone, skeleTransform, additiveBlend);
 
                         //result *= Matrix.CreateScale(scaleX, scaleY, scaleZ);
-                        thisBone.Item2 *= new Vector3(scaleX, scaleY, scaleZ);
-
-                        Quaternion rotation = Quaternion.Identity;
-
-                        if (track.HasSplineRotation)
-                        {
-                            rotation = track.SplineRotation.GetValue(frame);
-                            //rotation = track.SplineRotation.Channel.Values[0];
-                            //rotation = track.SplineRotation.GetValue(0);
-                        }
-                        else if (track.HasStaticRotation)
-                        {
-                            rotation = track.StaticRotation;
-                            //result *= Matrix.CreateFromQuaternion(new Quaternion(skeleTransform.Rotation.Vector.X, skeleTransform.Rotation.Vector.Y, skeleTransform.Rotation.Vector.Z, skeleTransform.Rotation.Vector.W));
-                        }
-                        else
-                        {
-                            //result *= Matrix.CreateFromQuaternion(new Quaternion(skeleTransform.Rotation.Vector.X, skeleTransform.Rotation.Vector.Y, skeleTransform.Rotation.Vector.Z, skeleTransform.Rotation.Vector.W));
-                        }
-
-                        if (additiveBlend)
-                        {
-                            rotation *= new Quaternion(
-                                skeleTransform.Rotation.Vector.X, 
-                                skeleTransform.Rotation.Vector.Y, 
-                                skeleTransform.Rotation.Vector.Z, 
-                                skeleTransform.Rotation.Vector.W);
-                        }
-
-                        thisBone.Item1 *= Matrix.CreateFromQuaternion(rotation);
-
-                        var posX = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) 
-                            ? (additiveBlend ? 0 : skeleTransform.Position.Vector.X) : track.SplinePosition.GetValueX(frame);
-                        var posY = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) 
-                            ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Y) : track.SplinePosition.GetValueY(frame);
-                        var posZ = !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) 
-                            ? (additiveBlend ? 0 : skeleTransform.Position.Vector.Z) : track.SplinePosition.GetValueZ(frame);
-
-                        //if (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) && !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
-                        //{
-                        //    posX = skeleTransform.Position.Vector.X;
-                        //}
-
-                        //if (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) && !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
-                        //{
-                        //    posY = skeleTransform.Position.Vector.Y;
-                        //}
-
-                        //if (!track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) && !track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
-                        //{
-                        //    posZ = skeleTransform.Position.Vector.Z;
-                        //}
-
-                        if (additiveBlend)
-                        {
-                            posX += skeleTransform.Position.Vector.X;
-                            posY += skeleTransform.Position.Vector.Y;
-                            posZ += skeleTransform.Position.Vector.Z;
-                        }
-
-                        thisBone.Item1 *= Matrix.CreateTranslation(posX, posY, posZ);
+                        thisBone.Item2 *= motion.Scale;
+                        thisBone.Item1 *= Matrix.CreateFromQuaternion(motion.Rotation);
+                        thisBone.Item1 *= Matrix.CreateTranslation(motion.Position);
 #if !DISABLE_SPLINE_CACHE
                 }
                     alreadyCalculatedBones.Add(parentBone, thisBone);
 #endif
-
-
-
-
                 }
 
                 result *= thisBone.Item1;
@@ -1256,7 +1366,7 @@ namespace DSAnimStudio
 
             for (int i = 0; i < HkxSkeleton.Transforms.Size; i++)
             {
-                var parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: true, HkxSkeleton, (short)i, (frame % CurrentAnimFramesPerBlock) + CurrentBlock, alreadyCalculatedBones);
+                var parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: true, HkxSkeleton, (short)i, (frame % CurrentAnimFramesPerBlock), alreadyCalculatedBones);
                 HkxBoneParentMatrices.Add(parentMatrix.Item1);
                 HkxBoneParentMatrices_Reference.Add(parentMatrix.Item1);
                 //HkxBonePositions.Add(Vector3.Transform(Vector3.Zero, parentMatrix.Item1));
@@ -1295,13 +1405,13 @@ namespace DSAnimStudio
             }
         }
 
-        private static void CalculateAnimation(float totalTime, float frameNum)
+        private static void CalculateAnimation(float totalTime, float frameNum, bool lockToTpose)
         {
             float frame = frameNum % CurrentAnimationFrameCount;
 
-            if (frame != LastHkxFrameCalculated || Debug_LockToTPose)
+            if (frame != LastHkxFrameCalculated || lockToTpose)
             {
-                if (RootMotionFrames != null && !Debug_LockToTPose && 
+                if (RootMotionFrames != null && !lockToTpose && 
                     !(RootMotionFrames.Count == 0 || RootMotionDuration == 0 || !EnableRootMotion))
                 {
                     float rootMotionTime = totalTime % RootMotionDuration;
@@ -1364,7 +1474,7 @@ namespace DSAnimStudio
 
                 for (int i = thisFrameRange.Start; i <= thisFrameRange.End; i++)
                 {
-                    parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: Debug_LockToTPose,
+                    parentMatrix = GetBoneParentMatrixHavok(isJustSkeleton: lockToTpose,
                         HkxSkeleton, (short)i, frame % CurrentAnimFramesPerBlock,
                         alreadyCalculatedBones,
                         additiveBlend: CurrentAnimBlendHint == HKX.AnimationBlendHint.ADDITIVE ||

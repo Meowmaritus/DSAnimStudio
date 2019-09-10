@@ -32,6 +32,7 @@ cbuffer cbSkinned
 cbuffer cbSkinned2
 {
     float4x4 Bones2[255];
+    float4x4 Bones3[255];
 };
 #endif
 
@@ -183,9 +184,17 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.x)]) * input.BoneWeights.x;
     }
-    else
+    else if (input.BoneIndicesBank.x == 2)
     {
         posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+    }
+    else if (input.BoneIndicesBank.x == 3)
+    {
+        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+    }
+    else
+    {
+        posA = shit * input.BoneWeights.x;
     }
     
     if (input.BoneIndicesBank.y == 0)
@@ -200,6 +209,14 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.y)]) * input.BoneWeights.y;
     }
+    else if (input.BoneIndicesBank.y == 3)
+    {
+        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.y)]) * input.BoneWeights.y;
+    }
+    else
+    {
+        posB = shit * input.BoneWeights.y;
+    }
     
     if (input.BoneIndicesBank.z == 0)
     {
@@ -213,6 +230,14 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.z)]) * input.BoneWeights.z;
     }
+    else if (input.BoneIndicesBank.z == 3)
+    {
+        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.z)]) * input.BoneWeights.z;
+    }
+    else
+    {
+        posC = shit * input.BoneWeights.z;
+    }
     
     if (input.BoneIndicesBank.w == 0)
     {
@@ -222,9 +247,17 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.w)]) * input.BoneWeights.w;
     }
-    else
+    else if (input.BoneIndicesBank.w == 2)
     {
         posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+    }
+    else if (input.BoneIndicesBank.w == 3)
+    {
+        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+    }
+    else
+    {
+        posD = shit * input.BoneWeights.w;
     }
     
     return ((posA + posB + posC + posD) / (input.BoneWeights.x + input.BoneWeights.y + input.BoneWeights.z + input.BoneWeights.w));
@@ -280,10 +313,31 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
     return output;
 }
 
+float B2(float2 avCoords)
+{
+    return fmod(2.0 * avCoords.y + avCoords.x + 1.0, 4.0);
+}
+
+float B16(float2 avCoords)
+{
+    float2 P1 = fmod(avCoords, 2.0);
+    float2 P2 = floor(0.5 * fmod(avCoords, 4.0));
+    float2 P4 = floor(0.25 * fmod(avCoords, 8.0));
+    float2 P8 = floor(0.125 * fmod(avCoords, 16.0));
+    return (1.0 / 255.0) * (4.0 * (4.0 * (4.0 * B2(P1) + B2(P2)) + B2(P4)) + B2(P8));
+}
+
 float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : COLOR
 {
 	float4 color = tex2D(ColorMapSampler, input.TexCoord);
-    //color *= color;
+    //color = pow(color, 1.0 / 2.2);
+    
+    float dissolve = B16(input.Position.xy);
+    
+    if ((((Opacity * color.a) * 1.05) + 0.125) < dissolve)
+    {
+        clip(-1);
+    }
     
     [branch]
     if (IsSkybox)
@@ -303,6 +357,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     
     //color = color * float4(color.w, color.w, color.w, color.w);
     
+    /*
     if (color.w < AlphaTest)
     {
         clip(-1);
@@ -311,7 +366,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //DEBUG:
         //return float4(1,0,1,1);
     }
-    
+    */
     float3 nmapcol = tex2D(NormalMapSampler, input.TexCoord);
     
     [branch]
@@ -321,13 +376,13 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         float normalMapBlueChannel = nmapcol.z;
         
-        /*
+        
         [branch]
         if (UseSpecularMapBB)
         {
             normalMapBlueChannel *= tex2D(SpecularMapBBSampler, input.TexCoord).r;
         }
-        */
+        
         
         float roughness = normalMapBlueChannel;
         float metalness = normalMapBlueChannel;
@@ -438,7 +493,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float3 direct = diffuse + specular;
         float3 indirect = indirectDiffuse + indirectSpecular;
         
-        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult) + (emissiveMapColor * EmissiveMapMult)) * SceneBrightness), Opacity);
+        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult) + (emissiveMapColor * EmissiveMapMult)) * SceneBrightness), 1);
     }
     else
     {

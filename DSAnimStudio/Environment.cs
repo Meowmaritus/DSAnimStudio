@@ -29,14 +29,25 @@ namespace DSAnimStudio
 
         public static void LoadContent(ContentManager c)
         {
-            var cubemapNames = Directory.GetFiles($@"{Main.Directory}\Content\Cubemaps", "*.xnb");
+            //var cubemapNames = Directory.GetFiles($@"{Main.Directory}\Content\Cubemaps", "*.xnb");
+            //foreach (var kvp in cubemaps)
+            //    kvp.Value.Dispose();
+            //cubemaps.Clear();
+            //foreach (var cube in cubemapNames)
+            //{
+            //    cubemaps.Add(Utils.GetFileNameWithoutDirectoryOrExtension(cube), 
+            //        c.Load<TextureCube>(Utils.GetFileNameWithoutAnyExtensions(cube)));
+            //}
+            //CurrentCubemapName = cubemaps.Keys.First();
+
+            var cubemapNames = Directory.GetFiles($@"{Main.Directory}\Content\Cubemaps", "*.dds");
             foreach (var kvp in cubemaps)
                 kvp.Value.Dispose();
             cubemaps.Clear();
             foreach (var cube in cubemapNames)
             {
-                cubemaps.Add(Utils.GetFileNameWithoutDirectoryOrExtension(cube), 
-                    c.Load<TextureCube>(Utils.GetFileNameWithoutAnyExtensions(cube)));
+                cubemaps.Add(Utils.GetFileNameWithoutDirectoryOrExtension(cube),
+                    new TextureFetchRequest(File.ReadAllBytes(cube), cube).FetchCube());
             }
             CurrentCubemapName = cubemaps.Keys.First();
 

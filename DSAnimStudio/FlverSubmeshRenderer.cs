@@ -922,7 +922,7 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
                 GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
-                GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+                GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
             }
 
@@ -946,6 +946,12 @@ namespace DSAnimStudio
                     if (TaeInterop.FlverBoneCount > FlverShader.NUM_BONES * 2)
                     {
                         ((FlverShader)shader).Bones2 = TaeInterop.ShaderMatrix2;
+
+                        if (TaeInterop.FlverBoneCount > FlverShader.NUM_BONES * 3)
+                        {
+                            ((FlverShader)shader).Bones3 = TaeInterop.ShaderMatrix3;
+                        }
+
                     }
                 }
 

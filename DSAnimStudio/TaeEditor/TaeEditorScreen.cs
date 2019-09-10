@@ -19,6 +19,40 @@ namespace DSAnimStudio.TaeEditor
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
+            MenuBar.AddTopItem("[Reload Shaders]", () =>
+            {
+                if (DebugReloadContentManager != null)
+                {
+                    DebugReloadContentManager.Unload();
+                    DebugReloadContentManager.Dispose();
+                }
+
+                DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+
+
+                GFX.FlverShader.Effect.Dispose();
+                GFX.FlverShader = null;
+                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
+
+                Main.MainFlverTonemapShader.Effect.Dispose();
+                Main.MainFlverTonemapShader = null;
+                Main.MainFlverTonemapShader  = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
+
+                GFX.InitShaders();
+            });
+
+            var useTonemapperCheckbox = new System.Windows.Forms.ToolStripMenuItem("Use Tonemapper");
+            useTonemapperCheckbox.CheckOnClick = true;
+            useTonemapperCheckbox.Checked = GFX.UseTonemap;
+            useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
+            useTonemapperCheckbox.CheckedChanged += (x, y) =>
+            {
+                GFX.UseTonemap = useTonemapperCheckbox.Checked;
+                useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
+            };
+
+            WinFormsMenuStrip.Items.Add(useTonemapperCheckbox);
+
             //MenuBar.AddItem("Debug", "Scan All TAE Test", () =>
             //{
             //    var dir = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr";
@@ -553,9 +587,11 @@ namespace DSAnimStudio.TaeEditor
 
         private void CheckAutoLoadXMLTemplate()
         {
+            var objCheck = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower().StartsWith("o");
+
             var xmlPath = System.IO.Path.Combine(
                 new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
-                $@"Res\TAE.Template.{(FileContainer.IsBloodborne ? "BB" : SelectedTae.Format.ToString())}.xml");
+                $@"Res\TAE.Template.{(FileContainer.IsBloodborne ? "BB" : SelectedTae.Format.ToString())}{(objCheck ? ".OBJ" : "")}.xml");
 
             if (System.IO.File.Exists(xmlPath))
                 LoadTAETemplate(xmlPath);
@@ -1802,137 +1838,140 @@ namespace DSAnimStudio.TaeEditor
             if (editScreenCurrentAnim != null)
                 editScreenCurrentAnim.UpdatePlaybackCursor(gameTime, allowPlayPauseInput: Main.Active);
 
-            if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
-                ChangeTypeOfSelectedEvent();
-
-            CtrlHeld = Input.KeyHeld(Keys.LeftControl) || Input.KeyHeld(Keys.RightControl);
-            ShiftHeld = Input.KeyHeld(Keys.LeftShift) || Input.KeyHeld(Keys.RightShift);
-            AltHeld = Input.KeyHeld(Keys.LeftAlt) || Input.KeyHeld(Keys.RightAlt);
-
-            var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
-            var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
-
-            if (CtrlHeld && !ShiftHeld && !AltHeld)
+            if (Main.Active)
             {
-                if (Input.KeyDown(Keys.OemPlus))
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
+                    ChangeTypeOfSelectedEvent();
+
+                CtrlHeld = Input.KeyHeld(Keys.LeftControl) || Input.KeyHeld(Keys.RightControl);
+                ShiftHeld = Input.KeyHeld(Keys.LeftShift) || Input.KeyHeld(Keys.RightShift);
+                AltHeld = Input.KeyHeld(Keys.LeftAlt) || Input.KeyHeld(Keys.RightAlt);
+
+                var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
+                var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
+
+                if (CtrlHeld && !ShiftHeld && !AltHeld)
                 {
-                    editScreenCurrentAnim?.ZoomInOneNotch(
-                        (float)(
-                        (editScreenCurrentAnim.PlaybackCursor.GUICurrentTime * editScreenCurrentAnim.SecondsPixelSize)
-                        - editScreenCurrentAnim.ScrollViewer.Scroll.X));
-                }
-                else if (Input.KeyDown(Keys.OemMinus))
-                {
-                    editScreenCurrentAnim?.ZoomOutOneNotch(
-                        (float)(
-                        (editScreenCurrentAnim.PlaybackCursor.GUICurrentTime * editScreenCurrentAnim.SecondsPixelSize)
-                        - editScreenCurrentAnim.ScrollViewer.Scroll.X));
-                }
-                else if (Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0))
-                {
-                    editScreenCurrentAnim?.ResetZoom(0);
-                }
-                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
-                {
-                    editScreenCurrentAnim?.DoCopy();
-                }
-                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
-                {
-                    editScreenCurrentAnim?.DoCut();
-                }
-                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
-                {
-                    editScreenCurrentAnim?.DoPaste(isAbsoluteLocation: false);
-                }
-                else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A))
-                {
-                    if (editScreenCurrentAnim != null && editScreenCurrentAnim.currentDrag.DragType == BoxDragType.None)
+                    if (Input.KeyDown(Keys.OemPlus))
                     {
-                        SelectedEventBox = null;
-                        MultiSelectedEventBoxes.Clear();
-                        foreach (var box in editScreenCurrentAnim.EventBoxes)
+                        editScreenCurrentAnim?.ZoomInOneNotch(
+                            (float)(
+                            (editScreenCurrentAnim.PlaybackCursor.GUICurrentTime * editScreenCurrentAnim.SecondsPixelSize)
+                            - editScreenCurrentAnim.ScrollViewer.Scroll.X));
+                    }
+                    else if (Input.KeyDown(Keys.OemMinus))
+                    {
+                        editScreenCurrentAnim?.ZoomOutOneNotch(
+                            (float)(
+                            (editScreenCurrentAnim.PlaybackCursor.GUICurrentTime * editScreenCurrentAnim.SecondsPixelSize)
+                            - editScreenCurrentAnim.ScrollViewer.Scroll.X));
+                    }
+                    else if (Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0))
+                    {
+                        editScreenCurrentAnim?.ResetZoom(0);
+                    }
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                    {
+                        editScreenCurrentAnim?.DoCopy();
+                    }
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                    {
+                        editScreenCurrentAnim?.DoCut();
+                    }
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                    {
+                        editScreenCurrentAnim?.DoPaste(isAbsoluteLocation: false);
+                    }
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A))
+                    {
+                        if (editScreenCurrentAnim != null && editScreenCurrentAnim.currentDrag.DragType == BoxDragType.None)
                         {
-                            MultiSelectedEventBoxes.Add(box);
+                            SelectedEventBox = null;
+                            MultiSelectedEventBoxes.Clear();
+                            foreach (var box in editScreenCurrentAnim.EventBoxes)
+                            {
+                                MultiSelectedEventBoxes.Add(box);
+                            }
+                            UpdateInspectorToSelection();
                         }
-                        UpdateInspectorToSelection();
+                    }
+                    else if (Input.KeyDown(Keys.F))
+                    {
+                        ShowDialogFind();
+                    }
+                    else if (Input.KeyDown(Keys.G))
+                    {
+                        ShowDialogGoto();
+                    }
+                    else if (Input.KeyDown(Keys.S))
+                    {
+                        SaveCurrentFile();
                     }
                 }
-                else if (Input.KeyDown(Keys.F))
+
+                if (CtrlHeld && ShiftHeld && !AltHeld)
                 {
-                    ShowDialogFind();
+                    if (Input.KeyDown(Keys.V))
+                    {
+                        editScreenCurrentAnim.DoPaste(isAbsoluteLocation: true);
+                    }
+                    if (Input.KeyDown(Keys.S))
+                    {
+                        File_SaveAs();
+                    }
                 }
-                else if (Input.KeyDown(Keys.G))
+
+                if (!CtrlHeld && ShiftHeld && !AltHeld)
                 {
-                    ShowDialogGoto();
+                    if (Input.KeyDown(Keys.D))
+                    {
+                        if (SelectedEventBox != null)
+                            SelectedEventBox = null;
+                        if (MultiSelectedEventBoxes.Count > 0)
+                            MultiSelectedEventBoxes.Clear();
+                    }
                 }
-                else if (Input.KeyDown(Keys.S))
+
+                if (Input.KeyDown(Keys.Delete))
                 {
-                    SaveCurrentFile();
+                    editScreenCurrentAnim.DeleteSelectedEvent();
                 }
-            }
 
-            if (CtrlHeld && ShiftHeld && !AltHeld)
-            {
-                if (Input.KeyDown(Keys.V))
+                if (editScreenCurrentAnim != null && Input.KeyDown(Keys.Home) && !editScreenCurrentAnim.PlaybackCursor.Scrubbing)
                 {
-                    editScreenCurrentAnim.DoPaste(isAbsoluteLocation: true);
+                    editScreenCurrentAnim.PlaybackCursor.IsPlaying = false;
+                    editScreenCurrentAnim.PlaybackCursor.CurrentTime = editScreenCurrentAnim.PlaybackCursor.StartTime;
                 }
-                if (Input.KeyDown(Keys.S))
+
+                if (editScreenCurrentAnim != null && Input.KeyDown(Keys.End) && !editScreenCurrentAnim.PlaybackCursor.Scrubbing)
                 {
-                    File_SaveAs();
+                    editScreenCurrentAnim.PlaybackCursor.IsPlaying = false;
+                    editScreenCurrentAnim.PlaybackCursor.CurrentTime = editScreenCurrentAnim.PlaybackCursor.MaxTime;
                 }
-            }
 
-            if (!CtrlHeld && ShiftHeld && !AltHeld)
-            {
-                if (Input.KeyDown(Keys.D))
+                NextAnimRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.PageDown));
+
+                if (NextAnimRepeaterButton.State)
                 {
-                    if (SelectedEventBox != null)
-                        SelectedEventBox = null;
-                    if (MultiSelectedEventBoxes.Count > 0)
-                        MultiSelectedEventBoxes.Clear();
+                    NextAnim();
                 }
-            }
 
-            if (Input.KeyDown(Keys.Delete))
-            {
-                editScreenCurrentAnim.DeleteSelectedEvent();
-            }
+                PrevAnimRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.PageUp));
 
-            if (Input.KeyDown(Keys.Home) && !editScreenCurrentAnim.PlaybackCursor.Scrubbing)
-            {
-                editScreenCurrentAnim.PlaybackCursor.IsPlaying = false;
-                editScreenCurrentAnim.PlaybackCursor.CurrentTime = editScreenCurrentAnim.PlaybackCursor.StartTime;
-            }
+                if (PrevAnimRepeaterButton.State)
+                {
+                    PrevAnim();
+                }
 
-            if (Input.KeyDown(Keys.End) && !editScreenCurrentAnim.PlaybackCursor.Scrubbing)
-            {
-                editScreenCurrentAnim.PlaybackCursor.IsPlaying = false;
-                editScreenCurrentAnim.PlaybackCursor.CurrentTime = editScreenCurrentAnim.PlaybackCursor.MaxTime;
-            }
+                if (UndoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (zHeld && !yHeld)))
+                {
+                    UndoMan.Undo();
+                }
 
-            NextAnimRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.PageDown));
-            
-            if (NextAnimRepeaterButton.State)
-            {
-                NextAnim();
-            }
-
-            PrevAnimRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.PageUp));
-
-            if (PrevAnimRepeaterButton.State)
-            {
-                PrevAnim();
-            }
-
-            if (UndoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (zHeld && !yHeld)))
-            {
-                UndoMan.Undo();
-            }
-
-            if (RedoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (!zHeld && yHeld)))
-            {
-                UndoMan.Redo();
+                if (RedoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (!zHeld && yHeld)))
+                {
+                    UndoMan.Redo();
+                }
             }
 
             if (!Input.LeftClickHeld)

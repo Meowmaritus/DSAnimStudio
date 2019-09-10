@@ -43,7 +43,7 @@ namespace DSAnimStudio
             set
             {
                 if (value > 0.01f)
-                    BeepSound.Volume = 1;
+                    BeepSound.Volume = 0.5f;
                 else
                     BeepSound.Volume = 0;
 
@@ -136,7 +136,7 @@ namespace DSAnimStudio
         public static void DrawPrimitives(GameTime gameTime)
         {
             if (BeepVolume > 0)
-                BeepVolume -= ((float)gameTime.ElapsedGameTime.TotalSeconds * 30);
+                BeepVolume -= (0.016666667f * 30);
             else
                 BeepVolume = 0;
 

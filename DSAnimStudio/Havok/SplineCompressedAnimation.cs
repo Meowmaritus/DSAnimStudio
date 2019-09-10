@@ -561,11 +561,6 @@ namespace DSAnimStudio.Havok
 
         public class TransformTrack
         {
-            public int Unk1;
-            public int Unk2;
-            public int Unk3;
-            public int Unk4;
-
             public TransformMask Mask;
 
             public bool HasSplinePosition;
@@ -675,8 +670,6 @@ namespace DSAnimStudio.Havok
                     }
                     else
                     {
-
-
                         if (m.ScaleTypes.Contains(FlagOffset.StaticX))
                         {
                             track.StaticScale.X = br.ReadSingle();
@@ -692,8 +685,6 @@ namespace DSAnimStudio.Havok
                             track.StaticScale.Z = br.ReadSingle();
                         }
                     }
-
-
 
                     br.Pad(4);
                 }

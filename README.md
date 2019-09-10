@@ -57,11 +57,12 @@
 
 ## Special Thanks
 * River Nyxx - General .TAE file structure.
-* TKGP - Made some discoveries about the TAE format.
-* Pav - Tons of TimeAct events mapped.
+* TKGP - Made some discoveries about the TAE format + made SoulsFormats, which this application depends on greatly.
+* [Pav](https://github.com/JohrnaJohrna) - Tons and tons of TAE events mapped across all the games.
 * [Katalash](https://github.com/katalash) - Much help with animation file understanding.
 * [PredatorCZ](https://github.com/PredatorCZ) - Reverse engineered Spline-Compressed Animation entirely.
 * [Horkrux](https://github.com/horkrux) - Reverse engineered the header and swizzling used on non-PC platform textures.
+* StaydMcButtermuffin - Many hours of helping me write and debug the shaders + reversing some basic Dark Souls 3 shaders to aid in the process.
 
 ## Libraries Utilized
 * [My custom fork of SoulsFormats](https://github.com/Meowmaritus/SoulsFormats)

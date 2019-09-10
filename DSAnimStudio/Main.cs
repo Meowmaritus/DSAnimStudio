@@ -23,7 +23,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "v0.9.6";
+        public const string VERSION = "v0.9.7";
 
         public static bool FIXED_TIME_STEP = true;
 
@@ -434,7 +434,7 @@ namespace DSAnimStudio
             if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
             {
                 using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
-                   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Rgba1010102, DepthFormat.Depth24))
+                   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Vector4, DepthFormat.Depth24))
                 {
                     GFX.Device.SetRenderTarget(renderTarget3DScene);
 
@@ -452,7 +452,10 @@ namespace DSAnimStudio
 
                     InitTonemapShader();
                     GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-                    //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+
+                    if (GFX.UseTonemap)
+                        MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+
                     GFX.SpriteBatch.Draw(renderTarget3DScene,
                         new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
                     GFX.SpriteBatch.End();

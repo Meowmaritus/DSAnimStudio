@@ -845,8 +845,8 @@ namespace DSAnimStudio.TaeEditor
         public void UpdatePlaybackCursor(GameTime gameTime, bool allowPlayPauseInput)
         {
             PlaybackCursor.Update(
-                allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space),
-                allowPlayPauseInput && 
+                Main.Active && allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space),
+                Main.Active && allowPlayPauseInput && 
                 (MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || 
                 MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)), 
                 gameTime, EventBoxes);
@@ -1969,10 +1969,22 @@ namespace DSAnimStudio.TaeEditor
                         layerDepth: 0
                         );
 
-                        if (((i % TaeInterop.CurrentAnimationFrameRateRounded) != 0) && SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText))
+                        try
                         {
-                            sb.DrawString(font, i.ToString(), new Vector2(i * FramePixelSize + 2, ScrollViewer.Scroll.Y + 2), Color.Cyan);
+                            if (TaeInterop.CurrentAnimationFrameRateRounded > 0)
+                            {
+                                if (((i % TaeInterop.CurrentAnimationFrameRateRounded) != 0) && SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText))
+                                {
+                                    sb.DrawString(font, i.ToString(), new Vector2(i * FramePixelSize + 2, ScrollViewer.Scroll.Y + 2), Color.Cyan);
+                                }
+                            }
+                            
                         }
+                        catch
+                        {
+
+                        }
+                        
                     }
                 }
 

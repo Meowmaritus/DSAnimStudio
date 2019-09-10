@@ -19,7 +19,7 @@ namespace DSAnimStudio.GFXShaders
         }
 
         public const int NUM_BONES = 255;
-        public const int MAX_ALL_BONE_ARRAYS = NUM_BONES * 3;
+        public const int MAX_ALL_BONE_ARRAYS = NUM_BONES * 4;
 
         public const int DS3_MAXLIGHTS = 40;
 
@@ -236,6 +236,12 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(Bones2)].GetValueMatrixArray(NUM_BONES);
             set => Parameters[nameof(Bones2)]?.SetValue(value);
+        }
+
+        public Matrix[] Bones3
+        {
+            get => Parameters[nameof(Bones3)].GetValueMatrixArray(NUM_BONES);
+            set => Parameters[nameof(Bones3)]?.SetValue(value);
         }
         #endregion
 
