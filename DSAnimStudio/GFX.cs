@@ -84,6 +84,8 @@ namespace DSAnimStudio
         public static bool FlverAutoRotateLight = false;
         public static bool FlverLightFollowsCamera = true;
 
+        public static bool UseTonemap = true;
+
         public static float FlverOpacity = 1.0f;
 
         public static GFXDrawStep CurrentStep = GFXDrawStep.Opaque;
@@ -338,13 +340,13 @@ namespace DSAnimStudio
             FlverShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
             FlverShader.Effect.DirectLightMult = Environment.FlverDirectLightMult * 1;
             FlverShader.Effect.IndirectLightMult = 1.0f;
-            FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1;
+            FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
             FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
             FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.5f;
             FlverShader.Effect.Opacity = FlverOpacity;
 
             SkyboxShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
-            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1f;
+            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
 
             DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;

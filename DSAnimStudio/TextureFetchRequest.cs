@@ -449,6 +449,12 @@ namespace DSAnimStudio
                     surfaceFormat = SurfaceFormat.ATI1;
                 else if (fmt == 82 || fmt == 83 || fmt == 84)
                     surfaceFormat = SurfaceFormat.ATI2;
+                else if (fmt == 95)
+                    surfaceFormat = SurfaceFormat.BC6HUF16;
+                else if (fmt == 96)
+                    surfaceFormat = SurfaceFormat.BC6HSF16;
+                else if (fmt == 94)
+                    surfaceFormat = SurfaceFormat.BC6HTypeless;
                 else if (fmt == 97 || fmt == 98 || fmt == 99)
                     surfaceFormat = SurfaceFormat.BC7;
                 else
@@ -525,7 +531,7 @@ namespace DSAnimStudio
 
                         if (isCubeMap)
                         {
-                            ((TextureCube)tex).SetData((CubeMapFace)j, i, null, br.GetBytes(copyOffset, paddedSize), 0, paddedSize);
+                            ((TextureCube)tex).SetData((CubeMapFace)i, j, null, br.GetBytes(copyOffset, paddedSize), 0, paddedSize);
                         }
                         else
                         {
@@ -755,7 +761,9 @@ namespace DSAnimStudio
                 case SurfaceFormat.ATI1:
                 case SurfaceFormat.ATI2:
                 case SurfaceFormat.BC7:
-                //case SurfaceFormat.BC6H:
+                case SurfaceFormat.BC6HSF16:
+                case SurfaceFormat.BC6HTypeless:
+                case SurfaceFormat.BC6HUF16:
                 case SurfaceFormat.RgbaAtcExplicitAlpha:
                 case SurfaceFormat.RgbaAtcInterpolatedAlpha:
                 case SurfaceFormat.RgbaPvrtc2Bpp:
@@ -788,7 +796,9 @@ namespace DSAnimStudio
                 case SurfaceFormat.ATI1: //Not 100% sure but probably.
                 case SurfaceFormat.ATI2:
                 case SurfaceFormat.BC7:
-                //case SurfaceFormat.BC6H:
+                case SurfaceFormat.BC6HSF16:
+                case SurfaceFormat.BC6HUF16:
+                case SurfaceFormat.BC6HTypeless:
                 case SurfaceFormat.RgbPvrtc4Bpp:
                 case SurfaceFormat.RgbaPvrtc4Bpp:
                 case SurfaceFormat.RgbEtc1:
@@ -826,7 +836,9 @@ namespace DSAnimStudio
                 case SurfaceFormat.RgbaAtcExplicitAlpha:
                 case SurfaceFormat.RgbaAtcInterpolatedAlpha:
                 case SurfaceFormat.BC7:
-                //case SurfaceFormat.BC6H:
+                case SurfaceFormat.BC6HSF16:
+                case SurfaceFormat.BC6HUF16:
+                case SurfaceFormat.BC6HTypeless:
                     // One texel in DXT3 and DXT5 is a minimum 4x4 block, which is 16 bytes
                     return 16;
                 case SurfaceFormat.Alpha8:

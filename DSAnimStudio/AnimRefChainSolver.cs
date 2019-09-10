@@ -13,6 +13,7 @@ namespace DSAnimStudio
         private IReadOnlyDictionary<string, TAE> TaeDict = null;
         private IReadOnlyDictionary<string, byte[]> HKXDict = null;
         private HKX.HKXVariation Game = HKX.HKXVariation.HKXDS1;
+        public bool StackLimitHit = false;
 
         public AnimRefChainSolver(HKX.HKXVariation game, IReadOnlyDictionary<string, TAE> taeDict, IReadOnlyDictionary<string, byte[]> hkxDict)
         {
@@ -166,29 +167,52 @@ namespace DSAnimStudio
         {
             RefChain.Add((tae, anim));
 
-            if (anim.Unknown2 > 256 && DoesAnimExist(anim.Unknown2))
+            if (RefChain.Count >= 16)
             {
-                return anim.Unknown2;
-            }
-
-            if (anim.AnimFileReference)
-            {
+                StackLimitHit = true;
                 if (TaeDict.Count > 1)
                 {
-                    var animRef1 = CheckForRef1(GetTAEID(tae), anim);
-                    if (animRef1.Anim != null)
-                    {
-                        return GetReferencedAnimCompositeID(GetTAE(animRef1.UpperID), animRef1.Anim);
-                    }
+                    var taeid = GetTAEID(tae);
+                    return GetCompositeAnimID((taeid, anim.ID));
                 }
                 else
                 {
-                    var animRef1 = CheckForRef1(GetSplitAnimID(anim.ID).Upper, anim);
-                    if (animRef1.Anim != null)
+                    return anim.ID;
+                }
+            }
+
+            if (anim.Unknown1 == 256)
+            {
+                if (DoesAnimExist(anim.Unknown2))
+                    return anim.Unknown2;
+                else
+                {
+                    if (TaeDict.Count > 1)
                     {
-                        return GetReferencedAnimCompositeID(tae, animRef1.Anim);
+                        var animRef2 = CheckForRef2(GetTAEID(tae), anim);
+                        if (animRef2.Anim != null)
+                            return GetReferencedAnimCompositeID(GetTAE(animRef2.UpperID), animRef2.Anim);
+                    }
+                    else
+                    {
+                        var animRef2 = CheckForRef2(GetSplitAnimID(anim.ID).Upper, anim);
+                        if (animRef2.Anim != null)
+                            return GetReferencedAnimCompositeID(tae, animRef2.Anim);
                     }
                 }
+            }
+
+            if (TaeDict.Count > 1)
+            {
+                var animRef1 = CheckForRef1(GetTAEID(tae), anim);
+                if (animRef1.Anim != null)
+                    return GetReferencedAnimCompositeID(GetTAE(animRef1.UpperID), animRef1.Anim);
+            }
+            else
+            {
+                var animRef1 = CheckForRef1(GetSplitAnimID(anim.ID).Upper, anim);
+                if (animRef1.Anim != null)
+                    return GetReferencedAnimCompositeID(tae, animRef1.Anim);
             }
 
             if (TaeDict.Count > 1)

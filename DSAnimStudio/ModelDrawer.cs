@@ -70,6 +70,11 @@ namespace DSAnimStudio
             if (!shortAnibndPath.ToUpper().StartsWith("C"))
                 return;
 
+            if (game == HKX.HKXVariation.HKXBloodBorne)
+            {
+
+            }
+
             int chrId = int.Parse(shortAnibndPath.Substring(1));
 
             if (chrId <= 1000)
@@ -87,7 +92,7 @@ namespace DSAnimStudio
             foreach (var r in npcParam.Rows)
             {
                 // 123400 and 123401 should both be true for c1234
-                if (r.ID / 100 == chrId)
+                if (r.ID / 100 == chrId || (game == HKX.HKXVariation.HKXBloodBorne && ((r.ID % 1_0000_00) / 100 == chrId)))
                 {
                     var br = npcParam.GetRowReader(r);
                     var rowStart = br.Position;

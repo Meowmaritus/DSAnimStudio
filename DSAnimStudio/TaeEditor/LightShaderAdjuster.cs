@@ -30,11 +30,7 @@ namespace DSAnimStudio.TaeEditor
         private void CheckBoxDrawSkybox_CheckedChanged(object sender, EventArgs e)
         {
             Environment.DrawCubemap = checkBoxDrawSkybox.Checked;
-        }
-
-        private void Button1_Click(object sender, EventArgs e)
-        {
-            
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
         }
 
         private void Label4_Click(object sender, EventArgs e)
@@ -45,8 +41,12 @@ namespace DSAnimStudio.TaeEditor
                 trackBarDirectMult.Value = (int)(Environment.FlverDirectLightMult * 100);
                 trackBarIndirectMult.Value = (int)(Environment.FlverIndirectLightMult * 100);
                 trackBarEmissiveMult.Value = (int)(Environment.FlverEmissiveMult * 100);
+                trackBarExposure.Value = (int)(Environment.FlverSceneBrightness * 100);
+                //checkBoxShowGrid.Checked = GFX.UseTonemap;
+                checkBoxShowGrid.Checked = DBG.ShowGrid;
+                checkBoxDrawSkybox.Checked = Environment.DrawCubemap;
 
-                Height = 135;
+                Height = 175;
                 Width = 191;
 
             }
@@ -55,6 +55,7 @@ namespace DSAnimStudio.TaeEditor
                 Height = 18;
                 Width = 100;
             }
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
         }
 
         private void LightShaderAdjuster_Load(object sender, EventArgs e)
@@ -66,11 +67,13 @@ namespace DSAnimStudio.TaeEditor
         private void TrackBarDirectMult_KeyPress(object sender, KeyPressEventArgs e)
         {
             e.Handled = true;
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
         }
 
         private void TrackBarIndirectMult_KeyPress(object sender, KeyPressEventArgs e)
         {
             e.Handled = true;
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
         }
 
         private void ButtonReset_Click(object sender, EventArgs e)
@@ -88,11 +91,72 @@ namespace DSAnimStudio.TaeEditor
             trackBarDirectMult.Value = 100;
             trackBarIndirectMult.Value = 100;
             trackBarEmissiveMult.Value = 100;
+            checkBoxShowGrid.Checked = true;
+            trackBarExposure.Value = 100;
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
         }
 
         private void TrackBarEmissiveMult_ValueChanged(object sender, EventArgs e)
         {
             Environment.FlverEmissiveMult = trackBarEmissiveMult.Value / 100f;
+        }
+
+        private void CheckBoxShowGrid_CheckedChanged(object sender, EventArgs e)
+        {
+            //GFX.UseTonemap = checkBoxShowGrid.Checked;
+            DBG.ShowGrid = checkBoxShowGrid.Checked;
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void TrackBarDirectMult_MouseUp(object sender, MouseEventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void TrackBarIndirectMult_MouseUp(object sender, MouseEventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void TrackBarEmissiveMult_MouseUp(object sender, MouseEventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void Label1_Click(object sender, EventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void Label3_Click(object sender, EventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void Label2_Click(object sender, EventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void LightShaderAdjuster_Click(object sender, EventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void TrackBarEmissiveMult_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            e.Handled = true;
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+        }
+
+        private void TrackBarExposure_ValueChanged(object sender, EventArgs e)
+        {
+            Environment.FlverSceneBrightness = trackBarExposure.Value / 100f;
+        }
+
+        private void TrackBarExposure_MouseUp(object sender, MouseEventArgs e)
+        {
+            Main.TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
         }
 
         //protected override void OnPaintBackground(PaintEventArgs pevent)

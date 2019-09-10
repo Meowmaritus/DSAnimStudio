@@ -473,7 +473,7 @@ namespace DSAnimStudio.TaeEditor
         {
             string[] pathStops = path.Split('/');
 
-            
+
 
             string currentPath = pathStops[0];
 
@@ -512,6 +512,36 @@ namespace DSAnimStudio.TaeEditor
             SetColorOfItem(newItem);
 
             baseItem.DropDownItems.Add(newItem);
+        }
+
+        public void AddTopItem(string itemName, Action click = null, bool startDisabled = false)
+        {
+            string shortcutText = null;
+
+            if (itemName.Contains("|"))
+            {
+                var split = itemName.Split('|');
+                shortcutText = split[1];
+                itemName = split[0];
+            }
+
+            var newItem = new ToolStripMenuItem(itemName);
+
+            if (shortcutText != null)
+                newItem.ShortcutKeyDisplayString = shortcutText;
+
+            if (click != null)
+                newItem.Click += (o, e) => click();
+
+            if (startDisabled)
+                newItem.Enabled = false;
+
+            if (!items.ContainsKey(itemName))
+                items.Add(itemName, newItem);
+
+            SetColorOfItem(newItem);
+
+            Menustrip.Items.Add(newItem);
         }
 
         public void AddItem(string path, ToolStripMenuItem item)
