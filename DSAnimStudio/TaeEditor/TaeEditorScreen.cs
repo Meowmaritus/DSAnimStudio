@@ -19,39 +19,39 @@ namespace DSAnimStudio.TaeEditor
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
-            MenuBar.AddTopItem("[Reload Shaders]", () =>
-            {
-                if (DebugReloadContentManager != null)
-                {
-                    DebugReloadContentManager.Unload();
-                    DebugReloadContentManager.Dispose();
-                }
+            //MenuBar.AddTopItem("[Reload Shaders]", () =>
+            //{
+            //    if (DebugReloadContentManager != null)
+            //    {
+            //        DebugReloadContentManager.Unload();
+            //        DebugReloadContentManager.Dispose();
+            //    }
 
-                DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+            //    DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
 
 
-                GFX.FlverShader.Effect.Dispose();
-                GFX.FlverShader = null;
-                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
+            //    GFX.FlverShader.Effect.Dispose();
+            //    GFX.FlverShader = null;
+            //    GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
 
-                Main.MainFlverTonemapShader.Effect.Dispose();
-                Main.MainFlverTonemapShader = null;
-                Main.MainFlverTonemapShader  = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
+            //    Main.MainFlverTonemapShader.Effect.Dispose();
+            //    Main.MainFlverTonemapShader = null;
+            //    Main.MainFlverTonemapShader  = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
 
-                GFX.InitShaders();
-            });
+            //    GFX.InitShaders();
+            //});
 
-            var useTonemapperCheckbox = new System.Windows.Forms.ToolStripMenuItem("Use Tonemapper");
-            useTonemapperCheckbox.CheckOnClick = true;
-            useTonemapperCheckbox.Checked = GFX.UseTonemap;
-            useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
-            useTonemapperCheckbox.CheckedChanged += (x, y) =>
-            {
-                GFX.UseTonemap = useTonemapperCheckbox.Checked;
-                useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
-            };
+            //var useTonemapperCheckbox = new System.Windows.Forms.ToolStripMenuItem("Use Tonemapper");
+            //useTonemapperCheckbox.CheckOnClick = true;
+            //useTonemapperCheckbox.Checked = GFX.UseTonemap;
+            //useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
+            //useTonemapperCheckbox.CheckedChanged += (x, y) =>
+            //{
+            //    GFX.UseTonemap = useTonemapperCheckbox.Checked;
+            //    useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
+            //};
 
-            WinFormsMenuStrip.Items.Add(useTonemapperCheckbox);
+            //WinFormsMenuStrip.Items.Add(useTonemapperCheckbox);gon
 
             //MenuBar.AddItem("Debug", "Scan All TAE Test", () =>
             //{
@@ -2042,6 +2042,7 @@ namespace DSAnimStudio.TaeEditor
                     LeftSectionWidth = MathHelper.Max((Input.MousePosition.X - Rect.X) - (DividerVisiblePad / 2), LeftSectionWidthMin);
                     LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidth - (DividerVisiblePad * 2));
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
+                    Main.RequestViewportRenderTargetResolutionChange = true;
                 }
                 else
                 {
@@ -2058,6 +2059,7 @@ namespace DSAnimStudio.TaeEditor
                     RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerVisiblePad / 2), RightSectionWidthMin);
                     RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidth - (DividerVisiblePad * 2));
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                    Main.RequestViewportRenderTargetResolutionChange = true;
                 }
                 else
                 {
@@ -2074,6 +2076,7 @@ namespace DSAnimStudio.TaeEditor
                     TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
                     TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin);
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                    Main.RequestViewportRenderTargetResolutionChange = true;
                 }
                 else
                 {
@@ -2223,18 +2226,23 @@ namespace DSAnimStudio.TaeEditor
             if (TopRightPaneHeight > (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin))
             {
                 TopRightPaneHeight = (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin);
+                Main.RequestViewportRenderTargetResolutionChange = true;
             }
 
             if (editScreenAnimList != null && editScreenCurrentAnim != null)
             {
                 if (LeftSectionWidth < LeftSectionWidthMin)
+                {
                     LeftSectionWidth = LeftSectionWidthMin;
+                    Main.RequestViewportRenderTargetResolutionChange = true;
+                }
 
 
                 if (MiddleSectionWidth < MiddleSectionWidthMin)
                 {
                     var adjustment = MiddleSectionWidthMin - MiddleSectionWidth;
                     RightSectionWidth -= adjustment;
+                    Main.RequestViewportRenderTargetResolutionChange = true;
                 }
 
                 editScreenAnimList.Rect = new Rectangle(
