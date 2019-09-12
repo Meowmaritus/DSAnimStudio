@@ -503,17 +503,23 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
 
         
         
-        //Ignore the Z of the normal map to be accurate to the game.
-        nmapcol = float3(nmapcol.x, nmapcol.y, Legacy_NormalMapCustomZ);
-        //nmapcol.z =  sqrt(1.0 - min(dot(nmapcol.xy, nmapcol.xy), 1.0));
-        
-        //nmapcol.x = -nmapcol.x;
-        
-        float3 normalMap = 2.0 *(nmapcol)-1.0;
+        ////Ignore the Z of the normal map to be accurate to the game.
+        //nmapcol = float3(nmapcol.x, nmapcol.y, Legacy_NormalMapCustomZ);
+        ////nmapcol.z =  sqrt(1.0 - min(dot(nmapcol.xy, nmapcol.xy), 1.0));
+        //
+        ////nmapcol.x = -nmapcol.x;
+        //
+        //float3 normalMap = 2.0 *(nmapcol)-1.0;
+        //
+        //normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
+        //float4 normal = float4(normalMap,1.0);
+        float3 normalMap;
+        normalMap.xy = nmapcol.xy * 2.0 - 1.0;
+        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
+        normalMap = normalize(normalMap);
 
         normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
-        float4 normal = float4(normalMap,1.0);
-
+        float3 normal = (!isFrontFacing ? normalMap : -normalMap);
         //float4 debugNormalColor = float4(
         //	(normal.x * DebugBlend_Normal_ColorScale) + DebugBlend_Normal_ColorStart,
         //	(normal.y * DebugBlend_Normal_ColorScale) + DebugBlend_Normal_ColorStart,

@@ -55,6 +55,7 @@ namespace DSAnimStudio
         {
             // This is the green grid, which is just hardcoded lel
             DbgPrim_Grid = new DbgPrimWireGrid(Color.Green, Color.Green, 100, 1);
+            //DbgPrim_Grid.OverrideColor = Color.Green;
             DbgPrim_Skybox = new DbgPrimSolidSkybox();
 
             DbgPrim_Grid.Transform = Transform.Default;
@@ -122,7 +123,8 @@ namespace DSAnimStudio
         {
             lock (_lock_primitives)
             {
-                Primitives.Remove(prim);
+                if (Primitives.Contains(prim))
+                    Primitives.Remove(prim);
                 prim.Dispose();
             }
         }
@@ -145,20 +147,20 @@ namespace DSAnimStudio
             if (Environment.DrawCubemap)
             {
                 GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
-                DbgPrim_Skybox.Draw(gameTime);
+                DbgPrim_Skybox.Draw(gameTime, null);
             }
 
             //if (Environment.DrawCubemap)
             //    GFX.ModelDrawer.DrawSkyboxes();
 
             if (ShowGrid)
-                DbgPrim_Grid.Draw(gameTime);
+                DbgPrim_Grid.Draw(gameTime, null);
 
             lock (_lock_primitives)
             {
                 foreach (var p in GetPrimitivesByDistance())
                 {
-                    p.Draw(gameTime);
+                    p.Draw(gameTime, null);
                 }
             }
 

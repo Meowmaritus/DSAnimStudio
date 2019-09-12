@@ -58,6 +58,9 @@ namespace DSAnimStudio
 
         public string MaterialName;
 
+        //public string DefaultBoneName { get; set; } = null;
+        public int DefaultBoneIndex { get; set; } = -1;
+
         public int ModelMaskIndex
         {
             get
@@ -140,6 +143,8 @@ namespace DSAnimStudio
 
             MaterialName = flvr.Materials[mesh.MaterialIndex].Name;
 
+            DefaultBoneIndex = mesh.DefaultBoneIndex;
+
             var shortMaterialName = Utils.GetFileNameWithoutDirectoryOrExtension(flvr.Materials[mesh.MaterialIndex].MTD);
             if (shortMaterialName.EndsWith("_Alp") ||
                 shortMaterialName.Contains("_Edge") ||
@@ -219,6 +224,15 @@ namespace DSAnimStudio
                 }
                 if (vert.BoneWeights != null)
                 {
+                    //for (int j = 0; j < 4; j++)
+                    //{
+                    //    if (vert.BoneIndices[j] > 0 && vert.BoneWeights[j] == 0)
+                    //    {
+                    //        vert.BoneIndices[j] = mesh.DefaultBoneIndex;
+                    //        vert.BoneWeights[j] = 1;
+                    //    }
+                    //}
+
                     MeshVertices[i].BoneWeights = new Vector4(vert.BoneWeights[0], vert.BoneWeights[1], vert.BoneWeights[2], vert.BoneWeights[3]);
 
                     if (flvr.Header.Version <= 0x2000D)
@@ -916,6 +930,25 @@ namespace DSAnimStudio
             if (ModelMaskIndex >= 0 && !mask[ModelMaskIndex])
                 return;
 
+            var oldWorldMatrix = ((FlverShader)shader).World;
+
+            //if (DefaultBoneIndex >= FlverShader.NUM_BONES * 3)
+            //{
+            //    ((FlverShader)shader).World = oldWorldMatrix * TaeInterop.ShaderMatrix3[DefaultBoneIndex % FlverShader.NUM_BONES] * TaeInterop.ShaderMatrix3[DefaultBoneIndex % FlverShader.NUM_BONES] * TaeInterop.ShaderMatrix3[DefaultBoneIndex % FlverShader.NUM_BONES] * TaeInterop.ShaderMatrix3[DefaultBoneIndex % FlverShader.NUM_BONES];
+            //}
+            //else if (DefaultBoneIndex >= FlverShader.NUM_BONES * 2)
+            //{
+            //    ((FlverShader)shader).World = oldWorldMatrix * TaeInterop.ShaderMatrix2[DefaultBoneIndex % FlverShader.NUM_BONES];
+            //}
+            //else if (DefaultBoneIndex >= FlverShader.NUM_BONES * 1)
+            //{
+            //    ((FlverShader)shader).World = oldWorldMatrix * TaeInterop.ShaderMatrix1[DefaultBoneIndex % FlverShader.NUM_BONES];
+            //}
+            //else if (DefaultBoneIndex >= FlverShader.NUM_BONES * 0)
+            //{
+            //    ((FlverShader)shader).World = oldWorldMatrix * TaeInterop.ShaderMatrix0[DefaultBoneIndex % FlverShader.NUM_BONES];
+            //}
+
             if (GFX.EnableTextures && shader == GFX.FlverShader)
             {
                 GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
@@ -987,6 +1020,8 @@ namespace DSAnimStudio
 
                 }
             }
+
+            ((FlverShader)shader).World = oldWorldMatrix;
 
             //}
         }

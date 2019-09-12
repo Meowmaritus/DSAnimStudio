@@ -11,9 +11,14 @@ namespace DSAnimStudio.DebugPrimitives
     public class DbgPrimDummyPolyCluster : DbgPrimWire
     {
         public List<FLVER2.Dummy> DummyPoly;
+        public List<int> DummyPolyID;
         private float RenderSize = 1.0f;
 
-        public int ID { get; private set; }
+        public static float GlobalRenderSizeMult = 1.0f;
+
+        private List<FLVER2.Bone> BoneList = new List<FLVER2.Bone>();
+
+        //public int ID { get; private set; }
 
         //private float _helperSize;
         //public float HelperSize
@@ -36,11 +41,11 @@ namespace DSAnimStudio.DebugPrimitives
         //    }
         //}
 
-        Matrix GetDummyPolyMatrix(FLVER2.Dummy dummy, List<FLVER2.Bone> bones)
+        Matrix GetDummyPolyMatrix(FLVER2.Dummy dummy, bool useScale = true)
         {
-            var dummyMatrix = GetBoneParentMatrix(bones[dummy.DummyBoneIndex], bones);
+            var dummyMatrix = GetBoneParentMatrix(BoneList[dummy.DummyBoneIndex]);
 
-            return Matrix.CreateScale(RenderSize) *
+            return (useScale ? Matrix.CreateScale(RenderSize * GlobalRenderSizeMult) : Matrix.Identity) *
             Matrix.CreateLookAt(
             Vector3.Zero,
             new Vector3(dummy.Forward.X, dummy.Forward.Y, dummy.Forward.Z),
@@ -62,7 +67,7 @@ namespace DSAnimStudio.DebugPrimitives
             //UpdateHelper();
         }
 
-        private Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b, List<FLVER2.Bone> bones)
+        private Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b)
         {
             SoulsFormats.FLVER2.Bone parentBone = b;
 
@@ -78,7 +83,7 @@ namespace DSAnimStudio.DebugPrimitives
 
                 if (parentBone.ParentIndex >= 0)
                 {
-                    parentBone = bones[parentBone.ParentIndex];
+                    parentBone = BoneList[parentBone.ParentIndex];
                 }
                 else
                 {
@@ -90,10 +95,99 @@ namespace DSAnimStudio.DebugPrimitives
             return result;
         }
 
-        private void AddDummy(FLVER2.Dummy dummy, List<FLVER2.Bone> bones)
+        //public IDbgPrim AddHitbox(int dmy1, int dmy2, float radius)
+        //{
+        //    if (dmy1 >= 0 && dmy2 < 0)
+        //    {
+        //        var dummy1 = DummyPoly.First(d => d.ReferenceID == dmy1);
+        //        return AddHitboxSphere(dummy1, radius);
+        //    }
+        //    else if (dmy1 < 0 && dmy2 >= 0)
+        //    {
+        //        var dummy2 = DummyPoly.First(d => d.ReferenceID == dmy2);
+        //        return AddHitboxSphere(dummy2, radius);
+        //    }
+        //    else if (dmy1 >= 0 && dmy2 >= 0)
+        //    {
+        //        var dummy1 = DummyPoly.First(d => d.ReferenceID == dmy1);
+        //        var dummy2 = DummyPoly.First(d => d.ReferenceID == dmy2);
+        //        return AddHitboxCapsule(dummy1, dummy2, radius);
+        //    }
+
+        //    return null;
+        //}
+
+        //private DbgPrimWireCapsule AddHitboxCapsule(FLVER2.Dummy dmy1, FLVER2.Dummy dmy2, float radius)
+        //{
+        //    Vector3 dmy1Pos = GetDummyPosition(dmy1);
+        //    Vector3 dmy2Pos = GetDummyPosition(dmy2);
+        //    Vector3 dummyDif = dmy2Pos - dmy1Pos;
+        //    Quaternion capsuleAngle = Quaternion.CreateFromAxisAngle(Vector3.Normalize(dummyDif), 0);
+        //    float capsuleLength = dummyDif.Length();
+
+        //    var capsule = new DbgPrimWireCapsule(new Transform()
+        //    {
+        //        OverrideMatrixWorld = Matrix.CreateFromQuaternion(capsuleAngle)
+        //        * Matrix.CreateTranslation(dmy1Pos)
+        //    }, capsuleLength, radius, 24, Color.White)
+        //    {
+        //        Category = DbgPrimCategory.DummyPolyHelper,
+        //        OverrideColor = Color.Red,
+        //    };
+
+        //    Children.Add(capsule);
+
+        //    return capsule;
+        //}
+
+        //private DbgPrimWireSphere AddHitboxSphere(FLVER2.Dummy dmy, float radius)
+        //{
+        //    Vector3 dmyPos = GetDummyPosition(dmy);
+
+        //    var sphere = new DbgPrimWireSphere(new Transform()
+        //    {
+        //        OverrideMatrixWorld = Matrix.CreateTranslation(dmyPos)
+        //    }, radius, 24, 24, Color.White)
+        //    {
+        //        Category = DbgPrimCategory.DummyPolyHelper,
+        //        OverrideColor = Color.Red,
+        //    };
+
+        //    Children.Add(sphere);
+
+        //    return sphere;
+        //}
+
+        public Vector3 GetDummyPosition(FLVER2.Dummy dmy, bool isAbsolute)
+        {
+            var m = GetDummyPolyMatrix(dmy);
+            if (isAbsolute)
+                m *= Transform.WorldMatrix;
+            return Vector3.Transform(Vector3.Zero, m);
+        }
+
+        public Vector3 GetDummyPosition(int dmy, bool isAbsolute)
+        {
+            var dummy = DummyPoly.First(d => d.ReferenceID == dmy);
+            var m = GetDummyPolyMatrix(dummy);
+            if (isAbsolute)
+                m *= Transform.WorldMatrix;
+            return Vector3.Transform(Vector3.Zero, m);
+        }
+
+        private void AddDummy(FLVER2.Dummy dummy)
         {
             float forwardLength = dummy.Forward.Length();
-            var m = GetDummyPolyMatrix(dummy, bones);
+            var m = GetDummyPolyMatrix(dummy);
+
+            //var dummyMatrix = GetBoneParentMatrix(BoneList[dummy.DummyBoneIndex]);
+            //Children.Add(new DbgPrimWireSphere(new Transform(Vector3.Transform(Vector3.Zero, m), Vector3.Zero), 1, 24, 24, Color.White)
+            //{
+            //    Category = DbgPrimCategory.DummyPolyHelper,
+            //    OverrideColor = Color.Red,
+            //    ExtraData = dummy.ReferenceID,
+            //});
+
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Up * forwardLength * 1.5f, m), Color.Lime);
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Forward * forwardLength * 1.5f, m), Color.Blue);
             AddLine(Vector3.Transform(Vector3.Zero, m), Vector3.Transform(Vector3.Left * forwardLength * 1.5f, m), Color.Red);
@@ -102,24 +196,43 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies, List<FLVER2.Bone> bones)
         {
+            BoneList = bones;
             RenderSize = size;
             //NameColor = new Color(dummy.Color.R, dummy.Color.G, dummy.Color.B, (byte)255);
             //Name = dummy.ReferenceID.ToString();
             DummyPoly = dummies;
+            DummyPolyID = dummies.Select(d => (int)d.ReferenceID).ToList();
             Category = DbgPrimCategory.DummyPoly;
             //Transform = new Transform(DummyPolyMatrix);
 
             foreach (var dmy in DummyPoly)
             {
-                AddDummy(dmy, bones);
-                ID = dmy.ReferenceID;
-            }
-                
+                AddDummy(dmy);
+                //ID = dmy.ReferenceID;
+            } 
         }
 
         public void UpdateWithBoneMatrix(Matrix boneMatrix)
         {
             Transform = new Transform(boneMatrix);
+            //foreach (var c in Children)
+            //{
+            //    var refId = (short)c.ExtraData;
+            //    if (GFX.ModelDrawer.DummyHitSphereInfos.ContainsKey(refId))
+            //    {
+            //        var info = GFX.ModelDrawer.DummyHitSphereInfos[refId];
+            //        c.OverrideColor = info.Color;
+            //        var meme = c.Transform;
+            //        meme.Scale = Vector3.One * info.Size;
+            //        c.Transform = meme;
+            //    }
+            //    else
+            //    {
+            //        var meme = c.Transform;
+            //        meme.Scale = Vector3.One;
+            //        c.Transform = meme;
+            //    }
+            //}
         }
     }
 }

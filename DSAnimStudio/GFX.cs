@@ -15,9 +15,10 @@ namespace DSAnimStudio
 {
     public enum GFXDrawStep : byte
     {
-        DbgPrim = 1,
-        Opaque = 2,
-        AlphaEdge = 3,
+        
+        Opaque = 1,
+        AlphaEdge = 2,
+        DbgPrim = 3,
         GUI = 4,
         GUILoadingTasks = 5,
     }
@@ -420,15 +421,15 @@ namespace DSAnimStudio
 
         public static void DrawScene3D(GameTime gameTime)
         {
-            CurrentStep = GFXDrawStep.DbgPrim;
-            BeginDraw(gameTime);
-            DoDraw(gameTime);
-
             CurrentStep = GFXDrawStep.Opaque;
             BeginDraw(gameTime);
             DoDraw(gameTime);
 
             CurrentStep = GFXDrawStep.AlphaEdge;
+            BeginDraw(gameTime);
+            DoDraw(gameTime);
+
+            CurrentStep = GFXDrawStep.DbgPrim;
             BeginDraw(gameTime);
             DoDraw(gameTime);
         }

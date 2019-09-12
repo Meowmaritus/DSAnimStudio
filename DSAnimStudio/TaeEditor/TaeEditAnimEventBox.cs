@@ -60,6 +60,7 @@ namespace DSAnimStudio.TaeEditor
         public Color ColorFG => Color.White;
 
         public bool PlaybackHighlight = false;
+        public bool PrevCyclePlaybackHighlight = false;
 
         public bool DragWholeBoxToVirtualUnitX(float x)
         {

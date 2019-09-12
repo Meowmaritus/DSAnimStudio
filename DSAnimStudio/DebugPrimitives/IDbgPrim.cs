@@ -12,6 +12,9 @@ namespace DSAnimStudio.DebugPrimitives
         Transform Transform { get; set; }
         string Name { get; set; }
         Color NameColor { get; set; }
+        Color? OverrideColor { get; set; }
+
+        object ExtraData { get; set; }
 
         DbgPrimCategory Category { get; set; }
 
@@ -23,7 +26,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         List<IDbgPrim> Children { get; set; }
 
-        void Draw(GameTime gameTime);
+        void Draw(GameTime gameTime, IDbgPrim parent);
         void LabelDraw();
 
         void LabelDraw_Billboard();

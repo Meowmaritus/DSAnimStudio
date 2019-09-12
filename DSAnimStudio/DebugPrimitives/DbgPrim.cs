@@ -43,9 +43,13 @@ namespace DSAnimStudio.DebugPrimitives
         public string Name { get; set; }
         public Color NameColor { get; set; } = Color.Yellow;
 
+        public Color? OverrideColor { get; set; } = null;
+
         public DbgPrimCategory Category { get; set; } = DbgPrimCategory.Other;
 
         private List<DbgLabel> DbgLabels = new List<DbgLabel>();
+
+        public object ExtraData { get; set; } = null;
 
         public bool EnableDraw { get; set; } = true;
         public bool EnableDbgLabelDraw { get; set; } = true;
@@ -90,9 +94,11 @@ namespace DSAnimStudio.DebugPrimitives
 
         }
 
-        public void Draw(GameTime gameTime)
+        public void Draw(GameTime gameTime, IDbgPrim parentPrim)
         {
             PreDraw(gameTime);
+
+            Vector3 oldDiffuseColor = Vector3.One;
 
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
             {
@@ -114,13 +120,19 @@ namespace DSAnimStudio.DebugPrimitives
                 {
                     Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One);
                 }
+
+                oldDiffuseColor = Shader.Effect.Parameters["DiffuseColor"].GetValueVector3();
+                if (OverrideColor.HasValue)
+                {
+                    Shader.Effect.Parameters["DiffuseColor"].SetValue(new Vector3(OverrideColor.Value.R / 255f, OverrideColor.Value.G / 255f, OverrideColor.Value.B / 255f) * (Shader == GFX.DbgPrimWireShader ? 500 : 1));
+                }
             }
 
             if (!EnableDraw)
                 return;
 
             foreach (var c in Children)
-                c.Draw(gameTime);
+                c.Draw(gameTime, this);
 
             if (!DBG.CategoryEnableDraw[Category])
                 return;
@@ -137,7 +149,7 @@ namespace DSAnimStudio.DebugPrimitives
                     foreach (var pass in effect.CurrentTechnique.Passes)
                     {
                         if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                            GFX.World.ApplyViewToShader(Shader, Transform);
+                            GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity));
                         pass.Apply();
                         DrawPrimitive();
                     }
@@ -148,13 +160,16 @@ namespace DSAnimStudio.DebugPrimitives
                 foreach (var pass in effect.CurrentTechnique.Passes)
                 {
                     if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                        GFX.World.ApplyViewToShader(Shader, Transform);
+                        GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity));
                     pass.Apply();
                     DrawPrimitive();
                 }
             }
 
-            
+            if ((Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader) && OverrideColor.HasValue)
+            {
+                Shader.Effect.Parameters["DiffuseColor"].SetValue(oldDiffuseColor);
+            }
         }
 
         public void LabelDraw()
