@@ -37,13 +37,34 @@ namespace DSAnimStudio
 
         private Dictionary<string, bool[]> maskPresets = new Dictionary<string, bool[]>();
         private Dictionary<string, bool> maskPresetsInvisibility = new Dictionary<string, bool>();
+        private Dictionary<string, long> maskPresetsNpcParamID = new Dictionary<string, long>();
 
         public IReadOnlyDictionary<string, bool[]> MaskPresets => maskPresets;
         public IReadOnlyDictionary<string, bool> MaskPresetsInvisibility => maskPresetsInvisibility;
 
+        public long CurrentNpcParamID => SelectedMaskPreset != DEFAULT_PRESET_NAME ? maskPresetsNpcParamID[SelectedMaskPreset] : -1;
+
         public const string DEFAULT_PRESET_NAME = "None (Show All Submeshes)";
 
         public string SelectedMaskPreset = DEFAULT_PRESET_NAME;
+
+        public class HitSphereInfo
+        {
+            public float Size;
+            public Color Color;
+        }
+
+        public Dictionary<int, HitSphereInfo> DummySphereInfo = new Dictionary<int, HitSphereInfo>();
+
+        public void SetDummySphere(int id, float size, Color color)
+        {
+            if (!DummySphereInfo.ContainsKey(id))
+            {
+                DummySphereInfo.Add(id, new HitSphereInfo());
+            }
+            DummySphereInfo[id].Size = size;
+            DummySphereInfo[id].Color = color;
+        }
 
         public ModelDrawer()
         {
@@ -55,6 +76,9 @@ namespace DSAnimStudio
 
             maskPresetsInvisibility.Clear();
             maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);
+
+            maskPresetsNpcParamID.Clear();
+            maskPresetsNpcParamID.Add(DEFAULT_PRESET_NAME, 0);
         }
 
         public void LoadContent(ContentManager c)
@@ -70,15 +94,12 @@ namespace DSAnimStudio
             if (!shortAnibndPath.ToUpper().StartsWith("C"))
                 return;
 
-            if (game == HKX.HKXVariation.HKXBloodBorne)
-            {
+            //if (game == HKX.HKXVariation.HKXBloodBorne)
+            //{
 
-            }
+            //}
 
             int chrId = int.Parse(shortAnibndPath.Substring(1));
-
-            if (chrId <= 1000)
-                return;
 
             maskPresets.Clear();
             maskPresets.Add(DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
@@ -88,6 +109,11 @@ namespace DSAnimStudio
 
             maskPresetsInvisibility.Clear();
             maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);
+
+            maskPresetsNpcParamID.Clear();
+
+            if (chrId == 0000)
+                return;
 
             foreach (var r in npcParam.Rows)
             {
@@ -158,6 +184,7 @@ namespace DSAnimStudio
 
                     maskPresets.Add(entryName, maskBools);
                     maskPresetsInvisibility.Add(entryName, allMasksEmpty);
+                    maskPresetsNpcParamID.Add(entryName, r.ID);
                 }
             }
         }

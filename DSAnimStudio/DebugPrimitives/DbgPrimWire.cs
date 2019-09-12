@@ -74,6 +74,21 @@ namespace DSAnimStudio.DebugPrimitives
                 endIndex = Vertices.Length - 1;
             }
 
+            for (int i = 0; i < Indices.Length; i += 2)
+            {
+                int lineStart = Indices[i];
+                if ((i + 1) < Indices.Length)
+                {
+                    int lineEnd = Indices[i + 1];
+
+                    if (lineStart == startIndex && lineEnd == endIndex)
+                    {
+                        // Line literally already exists lmao
+                        return;
+                    }
+                }
+            }
+
             AddIndex(startIndex);
             AddIndex(endIndex);
 
@@ -95,6 +110,9 @@ namespace DSAnimStudio.DebugPrimitives
 
         protected override void DrawPrimitive()
         {
+            if (Vertices.Length == 0)
+                return;
+
             if (NeedToRecreateVertBuffer)
             {
                 VertBuffer = new VertexBuffer(GFX.Device,

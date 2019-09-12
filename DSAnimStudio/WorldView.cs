@@ -117,6 +117,17 @@ namespace DSAnimStudio
             shader.ApplyWorldView(m, CameraTransform.RotationMatrixNeg * Matrix.CreateScale(-1), MatrixProjection);
         }
 
+        public void ApplyViewToShader<T>(IGFXShader<T> shader, Matrix modelMatrix)
+            where T : Effect
+        {
+            Matrix m = modelMatrix;
+
+            if (TaeInterop.CameraFollowsRootMotion)
+                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+
+            shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+        }
+
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Transform modelTransform)
             where T : Effect
         {

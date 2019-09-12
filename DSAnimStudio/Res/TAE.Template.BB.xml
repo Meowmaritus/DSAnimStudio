@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<event_template game="BB">
+  <!-- Bank 4: Characters -->
+  <bank id="4" name="Characters">
+    <event id="1" name="InvokeAttackBehavior">
+      <s32/>
+      <s32/>
+      <s32 name="BehaviorSubID"/>
+      <u8 name="DirectionType"/>
+      <u8 name="Unk0D"/>
+    </event>
+  </bank>
+</event_template>

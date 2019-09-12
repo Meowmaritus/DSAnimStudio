@@ -25,13 +25,18 @@ namespace DSAnimStudio
             GFX.ModelDrawer.ClearScene();
             DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.HkxBone);
             DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.DummyPoly);
+            DBG.ClearPrimitives(DebugPrimitives.DbgPrimCategory.DummyPolyHelper);
             GFX.HideFLVERs = false;
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = false;
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = false;
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = false;
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
-            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
+            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper] = true;
+            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper] = true;
 
+            GFX.SSAA = 2;
+            DbgPrimDummyPolyCluster.GlobalRenderSizeMult = 2;
 
         }
 
@@ -260,8 +265,8 @@ namespace DSAnimStudio
                 * HkxBoneParentMatrices[havokMatrixIndex]
                 * CurrentRootMotionMatrix;
 #else
-            var finalMatrix = 
-                Matrix.Invert(FlverBoneTPoseMatrices[flverBoneIndex])
+            var finalMatrix =
+                (FlverBoneTPoseMatricesEnable[flverBoneIndex] ? Matrix.Invert(FlverBoneTPoseMatrices[flverBoneIndex]) : Matrix.Invert(HkxBoneParentMatrices_Reference[havokMatrixIndex]))
                 * HkxBoneParentMatrices[havokMatrixIndex]
                 * CurrentRootMotionMatrix;
 #endif
@@ -275,8 +280,6 @@ namespace DSAnimStudio
                 ShaderMatrix3[relativeMatrixIndex] = finalMatrix;
 
             AnimatedDummyPolyClusters[flverBoneIndex]?.UpdateWithBoneMatrix(finalMatrix);
-
-            FlverBonePrims[flverBoneIndex].Transform = new Transform(finalMatrix);
         }
 
         private static void RevertToTPose()
@@ -307,6 +310,7 @@ namespace DSAnimStudio
         }
 
         public static List<Matrix> FlverBoneTPoseMatrices;
+        public static List<bool> FlverBoneTPoseMatricesEnable;
         public static List<IDbgPrim> FlverBonePrims;
 
 
@@ -315,6 +319,8 @@ namespace DSAnimStudio
         public static bool UseDummyPolyAnimation = true;
 
         public static DbgPrimDummyPolyCluster[] AnimatedDummyPolyClusters;
+        public static Dictionary<int, List<DbgPrimDummyPolyCluster>> ClusterWhichDmyPresidesIn 
+            = new Dictionary<int, List<DbgPrimDummyPolyCluster>>();
 
         public static Dictionary<int, int> FlverBoneToHkxBoneMap;
         public static Dictionary<int, int> HkxBoneToFlverBoneMap;
@@ -344,7 +350,7 @@ namespace DSAnimStudio
         public static double? TrueAnimLenghForPlaybackCursor
         {
             get => PlaybackCursor.HkxAnimationLength;
-            set => PlaybackCursor.HkxAnimationLength = value;
+            set => PlaybackCursor.HkxAnimationLength = (value ?? 0) > 0 ? value : null;
         }
 
         /// <summary>
@@ -362,6 +368,136 @@ namespace DSAnimStudio
         public static float ModelViewerAspectRatio =>
             1.0f * ModelViewerWindowRect.Width / ModelViewerWindowRect.Height;
 
+        private static Dictionary<TaeEditor.TaeEditAnimEventBox, List<IDbgPrim>> HitboxPrimitives
+            = new Dictionary<TaeEditor.TaeEditAnimEventBox, List<IDbgPrim>>();
+
+        private static void ClearAllHitboxPrimitives()
+        {
+            foreach (var hitboxKvp in HitboxPrimitives)
+            {
+                foreach (var hitbox in hitboxKvp.Value)
+                {
+                    DBG.RemovePrimitive(hitbox);
+                }
+                hitboxKvp.Value.Clear();
+            }
+            HitboxPrimitives.Clear();
+        }
+
+        private static void CreateHitboxPrimitive(TaeEditor.TaeEditAnimEventBox evBox, ParamData.AtkParam.Hit hit)
+        {
+            if (!HitboxPrimitives.ContainsKey(evBox))
+                HitboxPrimitives.Add(evBox, new List<IDbgPrim>());
+
+            if (hit.IsCapsule)
+            {
+                var capsule = new DbgPrimWireCapsule(12, Color.Cyan)
+                {
+                    Category = DbgPrimCategory.DummyPolyHelper,
+                    EnableDraw = false,
+                };
+                DBG.AddPrimitive(capsule);
+                HitboxPrimitives[evBox].Add(capsule);
+            }
+            else
+            {
+                var sphere = new DbgPrimWireSphere(Transform.Default, 1, 12, 12, Color.Cyan)
+                {
+                    Category = DbgPrimCategory.DummyPolyHelper,
+                    EnableDraw = false,
+                    OverrideColor = Color.Cyan,
+                };
+                DBG.AddPrimitive(sphere);
+                HitboxPrimitives[evBox].Add(sphere);
+            }
+        }
+
+        private static void UpdateHitboxPrimitive(TaeEditor.TaeEditAnimEventBox evBox, ParamData.AtkParam attack)
+        {
+            if (!HitboxPrimitives.ContainsKey(evBox))
+                return;
+
+            for (int i = 0; i < attack.Hits.Length; i++)
+            {
+                var a = GetDummyPolyAbsolutePosition(attack.Hits[i].DmyPoly1);
+
+                if (attack.Hits[i].IsCapsule)
+                {
+                    var b = GetDummyPolyAbsolutePosition(attack.Hits[i].DmyPoly2);
+
+                    var capsulePrim = (DbgPrimWireCapsule)(HitboxPrimitives[evBox][i]);
+
+                    capsulePrim.UpdateCapsuleEndPoints(a, b, attack.Hits[i].Radius);
+                }
+                else
+                {
+                    var spherePrim = (DbgPrimWireSphere)(HitboxPrimitives[evBox][i]);
+
+                    spherePrim.Transform = new Transform(a, Vector3.Zero, Vector3.One * attack.Hits[i].Radius);
+                }
+            }
+        }
+
+        private static void BuildAllHitboxPrimitives()
+        {
+            foreach (var evBox in Main.TAE_EDITOR.Graph.EventBoxes)
+            {
+                if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
+                {
+                    if (GFX.ModelDrawer.CurrentNpcParamID >= 0)
+                    {
+                        var atkParam = ParamManager.GetNpcBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
+
+                        if (atkParam == null)
+                            continue;
+
+                        foreach (var hit in atkParam.Hits)
+                        {
+                            CreateHitboxPrimitive(evBox, hit);
+                        }
+                    }
+                    else
+                    {
+                        throw new NotImplementedException("PLAYER SHIT NOT DONE :tremblecat:");
+                    }
+                }
+            }
+        }
+
+        public static Vector3 GetDummyPolyAbsolutePosition(int dmy)
+        {
+            if (ClusterWhichDmyPresidesIn.ContainsKey(dmy))
+            {
+                return ClusterWhichDmyPresidesIn[dmy][0].GetDummyPosition(dmy, isAbsolute: true);
+            }
+            else
+            {
+                return Vector3.Zero;
+            }
+        }
+
+        public static void PlaybackOnEventExit(TaeEditor.TaeEditAnimEventBox evBox)
+        {
+            if (IsLoadingAnimation)
+            {
+                return;
+            }
+
+            if (evBox.MyEvent.Template == null)
+                return;
+
+            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
+            {
+                if (HitboxPrimitives.ContainsKey(evBox))
+                {
+                    foreach (var hitbox in HitboxPrimitives[evBox])
+                    {
+                        hitbox.EnableDraw = false;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Called one time when the playback cursor first hits
         /// an event's start.
@@ -375,6 +511,17 @@ namespace DSAnimStudio
 
             if (evBox.MyEvent.Template == null)
                 return;
+
+            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
+            {
+                if (HitboxPrimitives.ContainsKey(evBox))
+                {
+                    foreach (var hitbox in HitboxPrimitives[evBox])
+                    {
+                        hitbox.EnableDraw = true;
+                    }
+                }
+            }
 
             // epic
             if (PlaySoundEffectOnSoundEvents && evBox.MyEvent.TypeName.ToUpper().Contains("SOUND"))
@@ -454,7 +601,25 @@ namespace DSAnimStudio
                 }
             }
 
-                if (ShowSFXSpawnWithCyanMarkers && evBox.MyEvent.Template != null)
+            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
+            {
+                if (HitboxPrimitives.ContainsKey(evBox))
+                {
+                    var atkParam = ParamManager.GetNpcBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
+
+                    if (atkParam != null)
+                    {
+                        foreach (var hitbox in HitboxPrimitives[evBox])
+                        {
+                            UpdateHitboxPrimitive(evBox, atkParam);
+                        }
+                    }
+
+                    
+                }
+            }
+
+            if (ShowSFXSpawnWithCyanMarkers && evBox.MyEvent.Template != null)
             {
                 //foreach (var key in evBox.MyEvent.Parameters.Template.Keys)
                 //{
@@ -516,7 +681,6 @@ namespace DSAnimStudio
                         NumQueuedInterleavedScrubUpdateFrames--;
                 }
 
-                
                 //UpdateFlverMatrices();
 
                 //foreach (var mdl in GFX.ModelDrawer.Models)
@@ -830,18 +994,21 @@ namespace DSAnimStudio
 
                     if (GFX.ModelDrawer.MaskPresets.Count > 1)
                     {
-                        foreach (var kvp in GFX.ModelDrawer.MaskPresets.Skip(1))
-                        {
-                            if (!GFX.ModelDrawer.MaskPresetsInvisibility[kvp.Key])
-                            {
-                                GFX.ModelDrawer.SelectedMaskPreset = kvp.Key;
-                                GFX.ModelDrawer.DefaultAllMaskValues();
-                                break;
-                            }
-                        }
+                        //foreach (var kvp in GFX.ModelDrawer.MaskPresets.Skip(1))
+                        //{
+                        //    if (!GFX.ModelDrawer.MaskPresetsInvisibility[kvp.Key])
+                        //    {
+                        //        GFX.ModelDrawer.SelectedMaskPreset = kvp.Key;
+                        //        GFX.ModelDrawer.DefaultAllMaskValues();
+                        //        break;
+                        //    }
+                        //}
+                        GFX.ModelDrawer.SelectedMaskPreset = GFX.ModelDrawer.MaskPresets.Keys.ElementAt(1);
                     }
 
                     CreateMenuBarNPCSettings(menuBar);
+
+                    ClearAllHitboxPrimitives();
 
                     innerProgress.Report(1);
                 });
@@ -883,6 +1050,9 @@ namespace DSAnimStudio
             CurrentAnimReferenceChain = refChainSolver.GetRefChainStrings();
             var forDebug = AllHkxFiles;
             CurrentAnimationHKXBytes = AllHkxFiles.FirstOrDefault(x => x.Key.ToUpper().Contains(CurrentAnimationName.ToUpper())).Value;
+
+            ClearAllHitboxPrimitives();
+            BuildAllHitboxPrimitives();
 
             if (IncompatibleHavokVersion)
             {
@@ -1514,6 +1684,12 @@ namespace DSAnimStudio
                                 * realMatrix
                                 * CurrentRootMotionMatrix;
 
+                            if (HkxBoneToFlverBoneMap.ContainsKey(i))
+                            {
+                                var flverBoneIndex = HkxBoneToFlverBoneMap[i];
+                                FlverBonePrims[flverBoneIndex].Transform = new Transform(realMatrix * CurrentRootMotionMatrix);
+                            }
+
                             //if (CurrentAnimBlendHint == HKX.AnimationBlendHint.ADDITIVE ||
                             //    CurrentAnimBlendHint == HKX.AnimationBlendHint.ADDITIVE_DEPRECATED)
                             //{
@@ -1542,6 +1718,12 @@ namespace DSAnimStudio
                                 Matrix.CreateScale(HkxBoneScales[i])
                                 * HkxBoneParentMatrices[i]
                                 * CurrentRootMotionMatrix;
+
+                            if (HkxBoneToFlverBoneMap.ContainsKey(i))
+                            {
+                                var flverBoneIndex = HkxBoneToFlverBoneMap[i];
+                                FlverBonePrims[flverBoneIndex].Transform = new Transform(HkxBoneParentMatrices[i] * CurrentRootMotionMatrix);
+                            }
 
                             //if (CurrentAnimBlendHint == HKX.AnimationBlendHint.ADDITIVE ||
                             //    CurrentAnimBlendHint == HKX.AnimationBlendHint.ADDITIVE_DEPRECATED)
@@ -1641,13 +1823,32 @@ namespace DSAnimStudio
         {
             CurrentModel = flver;
 
-            foreach (var b in flver.Bones)
-            {
-                if (Math.Abs(b.Scale.X - 1) > 0.01f || Math.Abs(b.Scale.Y - 1) > 0.01f || Math.Abs(b.Scale.Z - 1) > 0.01f)
-                {
-                    Console.WriteLine("asdf");
-                }
-            }
+            //foreach (var b in flver.Bones)
+            //{
+            //    if (Math.Abs(b.Scale.X - 1) > 0.01f || Math.Abs(b.Scale.Y - 1) > 0.01f || Math.Abs(b.Scale.Z - 1) > 0.01f)
+            //    {
+            //        Console.WriteLine("asdf");
+            //    }
+            //}
+
+            //foreach (var m in flver.Meshes)
+            //{
+            //    foreach (var v in m.Vertices)
+            //    {
+            //        if (v.BoneWeights != null)
+            //        {
+            //            float weightAddition = v.BoneWeights[0] + v.BoneWeights[1] + v.BoneWeights[2] + v.BoneWeights[3];
+            //            //Console.WriteLine(flver.Materials[m.MaterialIndex].Name + " " + weightAddition.ToString());
+
+            //            for (int i = 0; i < 4; i++)
+            //            {
+            //                if (v.BoneWeights[i] > 0 && v.BoneIndices[0] == 0)
+            //                    Console.WriteLine(flver.Materials[m.MaterialIndex].Name);
+            //            }
+            //        }
+                    
+            //    }
+            //}
 
             FlverBoneCount = flver.Bones.Count;
 
@@ -1684,8 +1885,11 @@ namespace DSAnimStudio
             }
 
             AnimatedDummyPolyClusters = new DbgPrimDummyPolyCluster[FlverBoneCount];
+            ClusterWhichDmyPresidesIn = new Dictionary<int, List<DbgPrimDummyPolyCluster>>();
 
             var dummiesByID = new Dictionary<int, List<FLVER2.Dummy>>();
+
+            GFX.ModelDrawer.DummySphereInfo.Clear();
 
             foreach (var dmy in flver.Dummies)
             {
@@ -1700,13 +1904,30 @@ namespace DSAnimStudio
                 {
                     dummiesByID.Add(dmy.AttachBoneIndex, new List<FLVER2.Dummy> { dmy });
                 }
+
+                if (!GFX.ModelDrawer.DummySphereInfo.ContainsKey(dmy.ReferenceID))
+                {
+                    GFX.ModelDrawer.DummySphereInfo.Add(dmy.ReferenceID, new ModelDrawer.HitSphereInfo());
+                }
             }
 
             foreach (var kvp in dummiesByID)
             {
                 var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, kvp.Value, flver.Bones);
+                foreach (var dmy in kvp.Value)
+                {
+                    if (!ClusterWhichDmyPresidesIn.ContainsKey(dmy.ReferenceID))
+                    {
+                        ClusterWhichDmyPresidesIn.Add(dmy.ReferenceID, new List<DbgPrimDummyPolyCluster>());
+                    }
+
+                    if (!ClusterWhichDmyPresidesIn[dmy.ReferenceID].Contains(dmyPrim))
+                        ClusterWhichDmyPresidesIn[dmy.ReferenceID].Add(dmyPrim);
+
+                }
                 DBG.AddPrimitive(dmyPrim);
                 AnimatedDummyPolyClusters[kvp.Key] = dmyPrim;
+
             }
 
             string getBoneSpacePrefix(SoulsFormats.FLVER2.Bone b)
@@ -1724,7 +1945,8 @@ namespace DSAnimStudio
             }
 
             FlverBoneTPoseMatrices = new List<Matrix>();
-            List<Vector3> bonePos = new List<Vector3>();
+            FlverBoneTPoseMatricesEnable = new List<bool>();
+            //List<Vector3> bonePos = new List<Vector3>();
 
 
             foreach (var b in flver.Bones)
@@ -1732,8 +1954,10 @@ namespace DSAnimStudio
                 var parentMatrix = GetBoneParentMatrix(b);
 
                 FlverBoneTPoseMatrices.Add(parentMatrix);
+                //FlverBoneTPoseMatricesEnable.Add(b.Unk3C == 0);
+                FlverBoneTPoseMatricesEnable.Add(true);
 
-                bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
+                //bonePos.Add(Vector3.Transform(Vector3.Zero, parentMatrix));
             }
             int boneIndex = 0;
             foreach (var b in flver.Bones)
@@ -1741,10 +1965,10 @@ namespace DSAnimStudio
                 if (b.ParentIndex >= 0)
                 {
                     var boneTransform = new Transform(FlverBoneTPoseMatrices[boneIndex]);
-                    var boneLength = (bonePos[boneIndex] - bonePos[b.ParentIndex]).Length();
-                    var prim = new DbgPrimSolidBone(isHkx: false, getBoneSpacePrefix(b) + b.Name, boneTransform, Quaternion.Identity, Math.Min(boneLength / 4, 0.25f), boneLength, Color.Purple);
+                    var boneLength = flver.Bones[boneIndex].Translation.Length();
+                    var prim = new DbgPrimSolidBone(isHkx: false, getBoneSpacePrefix(b) + b.Name, boneTransform, Quaternion.Identity, boneLength / 8, boneLength, Color.Purple);
 
-                    prim.Children.Add(new DbgPrimWireBox(new Transform(FlverBoneTPoseMatrices[boneIndex]),
+                    prim.Children.Add(new DbgPrimWireBox(new Transform(Matrix.Identity),
                         new Vector3(b.BoundingBoxMin.X, b.BoundingBoxMin.Y, b.BoundingBoxMin.Z),
                         new Vector3(b.BoundingBoxMax.X, b.BoundingBoxMax.Y, b.BoundingBoxMax.Z),
                         Color.Orange)
@@ -1907,6 +2131,9 @@ namespace DSAnimStudio
 
                 menu.AddItem("3D Preview/Items In Scene", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+                menu.AddItem("3D Preview/Items In Scene", "[TEMP] Render DummyPoly Hit Spheres", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper],
+                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper] = b);
 
                 //menu.AddItem("3D Preview/Items In Scene", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                 //    b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
