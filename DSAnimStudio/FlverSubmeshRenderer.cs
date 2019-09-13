@@ -959,7 +959,7 @@ namespace DSAnimStudio
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
             }
 
-            GFX.FlverShader.Effect.UseSpecularMapBB = TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne;
+            GFX.FlverShader.Effect.UseSpecularMapBB = TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne || TexDataShininess != null;
 
             //GFX.FlverShader.Effect.UseSpecularMapBB = true;
 

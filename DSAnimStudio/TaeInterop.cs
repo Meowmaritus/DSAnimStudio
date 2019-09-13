@@ -17,18 +17,46 @@ namespace DSAnimStudio
     {
         public static void DEBUG_TEST_PlayerPartsLoad()
         {
-            ChrAsm.EquipRWeapon = 10180000;
-            ChrAsm.EquipLWeapon = 10180000;
+            
 
-            ChrAsm.EquipHead = 21000000;
-            ChrAsm.EquipBody = 21001000;
-            ChrAsm.EquipArms = 21002000;
-            ChrAsm.EquipLegs = 21003000;
+            ChrAsm.EquipRWeapon = 306000;
+            ChrAsm.EquipLWeapon = -1;
+
+            ChrAsm.EquipHead = 350000;
+            ChrAsm.EquipBody = 351000;
+            ChrAsm.EquipArms = 352000;
+            ChrAsm.EquipLegs = 353000;
 
             ChrAsm.LoadFace("FC_M_0000.partsbnd");
-            ChrAsm.LoadFaceGen("FG_A_0100.partsbnd");
+            ChrAsm.LoadFaceGen("FG_A_0000.partsbnd");
 
             ChrAsm.UpdateEquipment(forceReload: true);
+
+            if (Main.TAE_EDITOR.MenuBar["[TEST: PLAYER]"] == null)
+            {
+                FmgManager.LoadAllFMG();
+
+                Dictionary<string, Action> weaponChoices = new Dictionary<string, Action>();
+
+                foreach (var kvp in FmgManager.WeaponNames)
+                {
+                    if (string.IsNullOrWhiteSpace(kvp.Value))
+                        continue;
+
+                    if ((kvp.Key % 1000) != 0)
+                        continue;
+
+                    if (!weaponChoices.ContainsKey(kvp.Value))
+                        weaponChoices.Add(kvp.Value, () =>
+                        {
+                            ChrAsm.EquipRWeapon = kvp.Key;
+                            ChrAsm.UpdateEquipment();
+                        });
+                }
+
+                Main.TAE_EDITOR.MenuBar.AddItem("[TEST: PLAYER]", "Weapon Select", weaponChoices, () => ChrAsm.EquipRWeapon >= 0 ? FmgManager.WeaponNames[(int)ChrAsm.EquipRWeapon] : "");
+            }
+
         }
 
         public static void Init()
@@ -1451,6 +1479,16 @@ namespace DSAnimStudio
             }
 
             var rootMotion = CurrentRootMotionDisplacement;
+
+            if (DummyPolyManager.StationaryDummyPolys != null)
+            {
+                DummyPolyManager.StationaryDummyPolys.UpdateWithBoneMatrix(
+                    Matrix.CreateRotationY(CurrentRootMotionDisplacement.W) 
+                    * Matrix.CreateTranslation(
+                        CurrentRootMotionDisplacement.X, 
+                        CurrentRootMotionDisplacement.Y, 
+                        CurrentRootMotionDisplacement.Z));
+            }
 
             (int Start, int End) thisFrameRange = (0, HkxBoneMatrices.Count - 1);
 
