@@ -38,6 +38,14 @@ namespace DSAnimStudio
         private bool IsDX10;
         private static object _lock_conversion = new object();
 
+        public bool IsTextureLoaded => CachedTexture != null;
+
+        public void FlushCachedTexture()
+        {
+            CachedTexture?.Dispose();
+            CachedTexture = null;
+        }
+
         public TextureFetchRequest(TPF tpf, string texName)
         {
             RequestType = TextureFetchRequestType.TPF;

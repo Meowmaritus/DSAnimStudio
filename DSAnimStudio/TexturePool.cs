@@ -34,6 +34,37 @@ namespace DSAnimStudio
             fetches.Clear();
         }
 
+        public static void FlushDataOnly()
+        {
+            lock (_lock_pool)
+            {
+                foreach (var fetch in fetches)
+                {
+                    fetch.Value.FlushCachedTexture();
+                }
+            }
+        }
+
+        public static void DestroyUnusedTextures()
+        {
+            lock (_lock_pool)
+            {
+                var fetchesToDestroy = new List<string>();
+                foreach (var fetch in fetches)
+                {
+                    if (!fetch.Value.IsTextureLoaded)
+                        fetchesToDestroy.Add(fetch.Key);
+                }
+
+                foreach (var fetch in fetchesToDestroy)
+                {
+                    var fetchObj = fetches[fetch];
+                    fetches.Remove(fetch);
+                    fetchObj?.Dispose();
+                }
+            }
+        }
+
         public static void Flush()
         {
             lock (_lock_pool)

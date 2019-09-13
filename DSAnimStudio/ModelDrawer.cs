@@ -15,6 +15,15 @@ namespace DSAnimStudio
         private bool IsTextureLoadRequested = false;
         public void RequestTextureLoad() => IsTextureLoadRequested = true;
 
+        public void ForceTextureReloadImmediate()
+        {
+            lock (_lock_ModelLoad_Draw)
+            {
+                foreach (var ins in Models)
+                    ins.TryToLoadTextures();
+            }
+        }
+
         internal static object _lock_ModelLoad_Draw = new object();
         public List<Model> Models = new List<Model>();
 
@@ -29,7 +38,7 @@ namespace DSAnimStudio
         //public long Debug_VertexCount = 0;
         //public long Debug_SubmeshCount = 0;
 
-        const int MASK_SIZE = 64;
+        const int MASK_SIZE = 96;//64;
 
         public bool[] Mask = new bool[MASK_SIZE];
 
@@ -220,6 +229,16 @@ namespace DSAnimStudio
             }
 
             DefaultAllMaskValues();
+        }
+
+        public void DeleteModel(Model m)
+        {
+            lock (_lock_ModelLoad_Draw)
+            {
+                Models.Remove(m);
+                m.Dispose();
+                GC.Collect();
+            }
         }
 
         public void InvertVisibility()
@@ -436,63 +455,67 @@ namespace DSAnimStudio
 
         public void DrawSelected()
         {
-            lock (_lock_ModelLoad_Draw)
-            {
-                if (Selected != null && (HighlightSelectedPiece || WireframeSelectedPiece))
-                {
-                    if (Selected.ModelReference == null)
-                    {
-                        Selected = null;
-                        return;
-                    }
+            return;
 
-                    //GFX.World.ApplyViewToShader(GFX.DbgPrimShader, Selected.Transform);
+            //lock (_lock_ModelLoad_Draw)
+            //{
+            //    if (Selected != null && (HighlightSelectedPiece || WireframeSelectedPiece))
+            //    {
+            //        if (Selected.ModelReference == null)
+            //        {
+            //            Selected = null;
+            //            return;
+            //        }
 
-                    var lod = GFX.World.GetLOD(Selected.Transform);
+            //        //GFX.World.ApplyViewToShader(GFX.DbgPrimShader, Selected.Transform);
 
-                    var oldWireframeSetting = GFX.Wireframe;
+            //        var lod = GFX.World.GetLOD(Selected.Transform);
 
-                    var effect = ((BasicEffect)GFX.DbgPrimWireShader.Effect);
+            //        var oldWireframeSetting = GFX.Wireframe;
 
-                    if (HighlightSelectedPiece)
-                    {
-                        throw new NotImplementedException();
-                        //GFX.Wireframe = false;
+            //        var effect = ((BasicEffect)GFX.DbgPrimWireShader.Effect);
 
-                        //effect.VertexColorEnabled = true;
+            //        if (HighlightSelectedPiece)
+            //        {
+            //            throw new NotImplementedException();
+            //            //GFX.Wireframe = false;
 
-                        //foreach (var submesh in Selected.ModelReference.Submeshes)
-                        //    submesh.Draw(lod, GFX.DbgPrimShader, forceNoBackfaceCulling: true);
-                    }
+            //            //effect.VertexColorEnabled = true;
 
-                    if (WireframeSelectedPiece)
-                    {
-                        throw new NotImplementedException();
-                        //GFX.Wireframe = true;
-                        //effect.VertexColorEnabled = false;
+            //            //foreach (var submesh in Selected.ModelReference.Submeshes)
+            //            //    submesh.Draw(lod, GFX.DbgPrimShader, forceNoBackfaceCulling: true);
+            //        }
 
-                        //foreach (var submesh in Selected.ModelReference.Submeshes)
-                        //    submesh.Draw(lod, GFX.DbgPrimShader, forceNoBackfaceCulling: true);
+            //        if (WireframeSelectedPiece)
+            //        {
+            //            throw new NotImplementedException();
+            //            //GFX.Wireframe = true;
+            //            //effect.VertexColorEnabled = false;
 
-                        //GFX.Wireframe = oldWireframeSetting;
-                    }
+            //            //foreach (var submesh in Selected.ModelReference.Submeshes)
+            //            //    submesh.Draw(lod, GFX.DbgPrimShader, forceNoBackfaceCulling: true);
 
-                    effect.VertexColorEnabled = true;
-                }
-            }
+            //            //GFX.Wireframe = oldWireframeSetting;
+            //        }
+
+            //        effect.VertexColorEnabled = true;
+            //    }
+            //}
         }
 
         public void DebugDrawAll()
         {
-            lock (_lock_ModelLoad_Draw)
-            {
-                GFX.SpriteBatch.Begin();
-                foreach (var ins in Models)
-                {
-                    ins.DebugDraw();
-                }
-                GFX.SpriteBatch.End();
-            }
+            return;
+
+            //lock (_lock_ModelLoad_Draw)
+            //{
+            //    GFX.SpriteBatch.Begin();
+            //    foreach (var ins in Models)
+            //    {
+            //        ins.DebugDraw();
+            //    }
+            //    GFX.SpriteBatch.End();
+            //}
         }
 
 

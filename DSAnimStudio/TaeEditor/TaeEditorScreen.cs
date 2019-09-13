@@ -19,6 +19,8 @@ namespace DSAnimStudio.TaeEditor
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
+            MenuBar.AddTopItem("[TEST: LOAD PARTS]", () => TaeInterop.DEBUG_TEST_PlayerPartsLoad());
+
             //MenuBar.AddTopItem("[Reload Shaders]", () =>
             //{
             //    if (DebugReloadContentManager != null)
@@ -235,7 +237,7 @@ namespace DSAnimStudio.TaeEditor
             }));
         }
 
-        private TaeMenuBarBuilder MenuBar;
+        public TaeMenuBarBuilder MenuBar { get; private set; }
 
         private void PushNewRecentFile(string fileName)
         {
@@ -887,7 +889,7 @@ namespace DSAnimStudio.TaeEditor
 
             MenuBar.AddItem("3D Preview/Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
             MenuBar.AddItem("3D Preview/Animation", "Lock To Original Framerate In Anim File", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
-            MenuBar.AddItem("3D Preview/Animation", "Animate DummyPoly", () => TaeInterop.UseDummyPolyAnimation, b => TaeInterop.UseDummyPolyAnimation = b);
+            MenuBar.AddItem("3D Preview/Animation", "Animate DummyPoly", () => DummyPolyManager.UseDummyPolyAnimation, b => DummyPolyManager.UseDummyPolyAnimation = b);
             MenuBar.AddItem("3D Preview/Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
             MenuBar.AddItem("3D Preview/Animation", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
             MenuBar.AddSeparator("3D Preview/Animation");
