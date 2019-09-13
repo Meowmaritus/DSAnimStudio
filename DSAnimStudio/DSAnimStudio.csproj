@@ -104,6 +104,7 @@
     <Compile Include="DebugPrimitives\IDbgPrim.cs" />
     <Compile Include="DebugPrimitives\VertexPositionColorNormal.cs" />
     <Compile Include="Environment.cs" />
+    <Compile Include="FmgManager.cs" />
     <Compile Include="GFXShaders\CollisionShader.cs" />
     <Compile Include="GFXShaders\DbgPrimSolidShader.cs" />
     <Compile Include="GFXShaders\FlverTonemapShader.cs" />

@@ -64,12 +64,12 @@ namespace DSAnimStudio
                     int modelIdx = (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS3 && weaponParam.IsPairedWeaponDS3 && type == PartsType.LeftWeapon) ? 1 : 0;
                     try
                     {
-                        LoadPartsFile(weaponName, modelIdx, type);
-
                         if (type == PartsType.LeftWeapon)
                             ParamLWeapon = weaponParam;
                         else
                             ParamRWeapon = weaponParam;
+
+                        LoadPartsFile(weaponName, modelIdx, type);
                     }
                     catch (System.IO.FileNotFoundException)
                     {

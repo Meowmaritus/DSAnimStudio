@@ -16,6 +16,8 @@ namespace DSAnimStudio
         // TODO: MAKE THIS ACTUALLY LIKE A LIVE TOGGLE SDFSDJHSKGJH
         public static bool IsViewingLeftHandHit = false;
 
+        public static DbgPrimDummyPolyCluster StationaryDummyPolys;
+
         public static DbgPrimDummyPolyCluster[] AnimatedDummyPolyClusters;
         public static Dictionary<int, List<DbgPrimDummyPolyCluster>> ClusterWhichDmyPresidesIn
             = new Dictionary<int, List<DbgPrimDummyPolyCluster>>();
@@ -41,6 +43,10 @@ namespace DSAnimStudio
             if (ClusterWhichDmyPresidesIn.ContainsKey(dmy))
             {
                 return ClusterWhichDmyPresidesIn[dmy][0].GetDummyPosition(dmy, isAbsolute: true);
+            }
+            else if (StationaryDummyPolys != null && StationaryDummyPolys.DummyPolyID.Contains(dmy))
+            {
+                return StationaryDummyPolys.GetDummyPosition(dmy, isAbsolute: true);
             }
             else
             {
@@ -149,9 +155,6 @@ namespace DSAnimStudio
 
             foreach (var dmy in flver.Dummies)
             {
-                if (dmy.AttachBoneIndex < 0)
-                    continue;
-
                 if (dummiesByID.ContainsKey(dmy.AttachBoneIndex))
                 {
                     dummiesByID[dmy.AttachBoneIndex].Add(dmy);
@@ -167,24 +170,44 @@ namespace DSAnimStudio
                 }
             }
 
+            List<FLVER2.Dummy> stationaryDmy = new List<FLVER2.Dummy>();
+
             foreach (var kvp in dummiesByID)
             {
-                var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, kvp.Value, flver.Bones);
-                foreach (var dmy in kvp.Value)
+                if (kvp.Key >= 0)
                 {
-                    if (!ClusterWhichDmyPresidesIn.ContainsKey(dmy.ReferenceID))
+                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, kvp.Value, flver.Bones);
+                    foreach (var dmy in kvp.Value)
                     {
-                        ClusterWhichDmyPresidesIn.Add(dmy.ReferenceID, new List<DbgPrimDummyPolyCluster>());
+                        if (!ClusterWhichDmyPresidesIn.ContainsKey(dmy.ReferenceID))
+                        {
+                            ClusterWhichDmyPresidesIn.Add(dmy.ReferenceID, new List<DbgPrimDummyPolyCluster>());
+                        }
+
+                        if (!ClusterWhichDmyPresidesIn[dmy.ReferenceID].Contains(dmyPrim))
+                            ClusterWhichDmyPresidesIn[dmy.ReferenceID].Add(dmyPrim);
+
                     }
-
-                    if (!ClusterWhichDmyPresidesIn[dmy.ReferenceID].Contains(dmyPrim))
-                        ClusterWhichDmyPresidesIn[dmy.ReferenceID].Add(dmyPrim);
-
+                    DBG.AddPrimitive(dmyPrim);
+                    AnimatedDummyPolyClusters[kvp.Key] = dmyPrim;
                 }
-                DBG.AddPrimitive(dmyPrim);
-                AnimatedDummyPolyClusters[kvp.Key] = dmyPrim;
-
             }
+
+            if (dummiesByID.ContainsKey(-1))
+            {
+                StationaryDummyPolys = new DbgPrimDummyPolyCluster(0.5f, dummiesByID[-1], flver.Bones);
+                DBG.AddPrimitive(StationaryDummyPolys);
+            }
+            else
+            {
+                if (StationaryDummyPolys != null)
+                    DBG.RemovePrimitive(StationaryDummyPolys);
+                StationaryDummyPolys = null;
+            }
+
+
+
+            Console.WriteLine("TEST");
         }
 
     }
