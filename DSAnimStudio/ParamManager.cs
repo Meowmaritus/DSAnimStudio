@@ -16,14 +16,27 @@ namespace DSAnimStudio
         private static Dictionary<HKX.HKXVariation, Dictionary<string, PARAM>> LoadedParams 
             = new Dictionary<HKX.HKXVariation, Dictionary<string, PARAM>>();
 
-        public static Dictionary<long, ParamData.BehaviorParam> BehaviorParam_PC = new Dictionary<long, ParamData.BehaviorParam>();
-        public static Dictionary<long, ParamData.BehaviorParam> BehaviorParam = new Dictionary<long, ParamData.BehaviorParam>();
+        public static Dictionary<long, ParamData.BehaviorParam> BehaviorParam_PC 
+            = new Dictionary<long, ParamData.BehaviorParam>();
 
-        public static Dictionary<long, ParamData.AtkParam> AtkParam_Pc = new Dictionary<long, ParamData.AtkParam>();
-        public static Dictionary<long, ParamData.AtkParam> AtkParam_Npc = new Dictionary<long, ParamData.AtkParam>();
+        public static Dictionary<long, ParamData.BehaviorParam> BehaviorParam 
+            = new Dictionary<long, ParamData.BehaviorParam>();
 
-        public static Dictionary<long, ParamData.NpcParam> NpcParam = new Dictionary<long, ParamData.NpcParam>();
-        public static Dictionary<long, ParamData.EquipParamWeapon> EquipParamWeapon = new Dictionary<long, ParamData.EquipParamWeapon>();
+        public static Dictionary<long, ParamData.AtkParam> AtkParam_Pc 
+            = new Dictionary<long, ParamData.AtkParam>();
+
+        public static Dictionary<long, ParamData.AtkParam> AtkParam_Npc 
+            = new Dictionary<long, ParamData.AtkParam>();
+
+        public static Dictionary<long, ParamData.NpcParam> NpcParam 
+            = new Dictionary<long, ParamData.NpcParam>();
+
+        public static Dictionary<long, ParamData.EquipParamWeapon> EquipParamWeapon 
+            = new Dictionary<long, ParamData.EquipParamWeapon>();
+
+        public static Dictionary<long, ParamData.EquipParamProtector> EquipParamProtector 
+            = new Dictionary<long, ParamData.EquipParamProtector>();
+
 
         public static PARAM GetParam(HKX.HKXVariation game, string paramName)
         {
@@ -74,8 +87,23 @@ namespace DSAnimStudio
             AddParam(AtkParam_Npc, "AtkParam_Npc");
             AddParam(NpcParam, "NpcParam");
             AddParam(EquipParamWeapon, "EquipParamWeapon");
+            AddParam(EquipParamProtector, "EquipParamProtector");
 
             Console.WriteLine("TEST");
+        }
+
+        public static ParamData.AtkParam GetPlayerBasicAtkParam(int behaviorSubID)
+        {
+            var behaviorVariationID = (DummyPolyManager.IsViewingLeftHandHit ? ChrAsm.ParamLWeapon.BehaviorVariationID : ChrAsm.ParamRWeapon.BehaviorVariationID);
+            long behaviorParamID = 10_0000_000 + (behaviorVariationID * 1_000) + behaviorSubID;
+            ParamData.BehaviorParam behaviorParamEntry = BehaviorParam_PC[behaviorParamID];
+            if (behaviorParamEntry.RefType != 0)
+                throw new InvalidOperationException($"NPC Behavior {behaviorParamID} does not reference an attack.");
+
+            if (!AtkParam_Pc.ContainsKey(behaviorParamEntry.RefID))
+                return null;
+
+            return AtkParam_Pc[behaviorParamEntry.RefID];
         }
 
         public static ParamData.AtkParam GetNpcBasicAtkParam(int behaviorSubID)

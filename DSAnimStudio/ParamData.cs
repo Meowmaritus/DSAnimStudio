@@ -249,16 +249,161 @@ namespace DSAnimStudio
             }
         }
 
+        public enum EquipModelGenders : byte
+        {
+            Unisex = 0,
+            MaleOnly = 1,
+            FemaleOnly = 2,
+            Both = 3,
+            UseMaleForBoth = 4,
+        }
+
         public class EquipParamWeapon : ParamData
         {
             public int BehaviorVariationID;
+            public short EquipModelID;
+            public byte SpAtkCategory;
+
+            public bool IsPairedWeaponDS3 => DS3PairedSpAtkCategories.Contains(SpAtkCategory);
+
+            public static readonly int[] DS3PairedSpAtkCategories = new int[]
+            {
+                137, //Sellsword Twinblades, Warden Twinblades
+                138, //Winged Knight Twinaxes
+                139, //Dancer's Enchanted Swords
+                141, //Brigand Twindaggers
+                142, //Gotthard Twinswords
+                144, //Onikiri and Ubadachi
+                145, //Drang Twinspears
+                148, //Drang Hammers
+                232, //Friede's Great Scythe
+                236, //Valorheart
+                237, //Crow Quills
+                250, //Giant Door Shield
+                253, //Ringed Knight Paired Greatswords
+            };
 
             public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
             {
+                long start = br.Position;
                 BehaviorVariationID = br.ReadInt32();
+
+                br.Position = start + 0xB8;
+                EquipModelID = br.ReadInt16();
+
+                br.Position = start + 0xEA;
+                SpAtkCategory = br.ReadByte();
             }
         }
 
+        public class EquipParamProtector : ParamData
+        {
+            public short EquipModelID;
+            public EquipModelGenders EquipModelGender;
+            public bool HeadEquip;
+            public bool BodyEquip;
+            public bool ArmEquip;
+            public bool LegEquip;
+            public List<bool> InvisibleFlags = new List<bool>();
 
+            private string GetPartFileNameStart()
+            {
+                if (HeadEquip)
+                    return "HD";
+                else if (BodyEquip)
+                    return "BD";
+                else if (ArmEquip)
+                    return "AM";
+                else if (LegEquip)
+                    return "LG";
+                else
+                    return null;
+            }
+
+            public string GetPartBndName(bool isFemale)
+            {
+                string start = GetPartFileNameStart();
+
+                if (start == null)
+                    return null;
+
+                switch (EquipModelGender)
+                {
+                    case EquipModelGenders.Unisex: return $"{start}_A_{EquipModelID:D4}.partsbnd";
+                    case EquipModelGenders.MaleOnly:
+                    case EquipModelGenders.UseMaleForBoth:
+                        return $"{start}_M_{EquipModelID:D4}.partsbnd";
+                    case EquipModelGenders.FemaleOnly:
+                        return $"{start}_F_{EquipModelID:D4}.partsbnd";
+                    case EquipModelGenders.Both:
+                        return $"{start}_{(isFemale ? "F" : "M")}_{EquipModelID:D4}.partsbnd";
+                }
+
+                return null;
+            }
+
+            public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
+            {
+                long start = br.Position;
+
+                br.Position = start + 0xA0;
+                EquipModelID = br.ReadInt16();
+
+                br.Position = start + 0xD1;
+                EquipModelGender = br.ReadEnum8<EquipModelGenders>();
+
+                br.Position = start + 0xD8;
+
+                if (game == HKX.HKXVariation.HKXDS1 || game == HKX.HKXVariation.HKXBloodBorne)
+                {
+                    var firstBitmask = ReadBitmask(br, 6 + 48);
+                    //IsDeposit = firstBitmask[0]
+                    HeadEquip = firstBitmask[1];
+                    BodyEquip = firstBitmask[2];
+                    ArmEquip = firstBitmask[3];
+                    LegEquip = firstBitmask[4];
+                    //UseFaceScale = firstBitmask[5];
+                    InvisibleFlags.Clear();
+                    for (int i = 0; i <= 47; i++)
+                    {
+                        InvisibleFlags.Add(firstBitmask[i + 6]);
+                    }
+
+                    if (game == HKX.HKXVariation.HKXBloodBorne)
+                    {
+                        br.Position = start + 0xFD;
+                        var mask48to62 = ReadBitmask(br, 15);
+
+                        InvisibleFlags.AddRange(mask48to62);
+                    }
+                }
+                else if (game == HKX.HKXVariation.HKXDS3)
+                {
+                    var firstBitmask = ReadBitmask(br, 5);
+                    //IsDeposit = firstBitmask[0]
+                    HeadEquip = firstBitmask[1];
+                    BodyEquip = firstBitmask[2];
+                    ArmEquip = firstBitmask[3];
+                    LegEquip = firstBitmask[4];
+
+                    br.Position = start + 0x12E;
+                    for (int i = 0; i < 96; i++)
+                    {
+                        InvisibleFlags.Add(br.ReadByte() == 1);
+                    }
+                }
+            }
+        }
+
+        private static List<bool> ReadBitmask(BinaryReaderEx br, int numBits)
+        {
+            List<bool> result = new List<bool>(numBits);
+            var maskBytes = br.ReadBytes((int)Math.Ceiling(numBits / 8.0f));
+            for (int i = 0; i < numBits; i++)
+            {
+                result.Add((maskBytes[i / 8] & (byte)(1 << (i % 8))) != 0);
+            }
+            return result;
+        }
     }
 }

@@ -15,12 +15,12 @@ namespace DSAnimStudio
 {
     public enum GFXDrawStep : byte
     {
-        
-        Opaque = 1,
-        AlphaEdge = 2,
-        DbgPrim = 3,
-        GUI = 4,
-        GUILoadingTasks = 5,
+        DbgPrimPrepass = 1,
+        Opaque = 2,
+        AlphaEdge = 3,
+        DbgPrimOverlay,
+        GUI = 5,
+        GUILoadingTasks = 6,
     }
 
     public enum LODMode : int
@@ -384,9 +384,12 @@ namespace DSAnimStudio
                         ModelDrawer.DebugDrawAll();
                     }
                     break;
-                case GFXDrawStep.DbgPrim:
+                case GFXDrawStep.DbgPrimOverlay:
                     DBG.DrawPrimitives(gameTime);
                     ModelDrawer.DrawSelected();
+                    break;
+                case GFXDrawStep.DbgPrimPrepass:
+                    DBG.DrawBehindPrims(gameTime);
                     break;
                 case GFXDrawStep.GUI:
                     if (DBG.EnableMenu)
@@ -421,6 +424,10 @@ namespace DSAnimStudio
 
         public static void DrawScene3D(GameTime gameTime)
         {
+            CurrentStep = GFXDrawStep.DbgPrimPrepass;
+            BeginDraw(gameTime);
+            DoDraw(gameTime);
+
             CurrentStep = GFXDrawStep.Opaque;
             BeginDraw(gameTime);
             DoDraw(gameTime);
@@ -429,7 +436,7 @@ namespace DSAnimStudio
             BeginDraw(gameTime);
             DoDraw(gameTime);
 
-            CurrentStep = GFXDrawStep.DbgPrim;
+            CurrentStep = GFXDrawStep.DbgPrimOverlay;
             BeginDraw(gameTime);
             DoDraw(gameTime);
         }

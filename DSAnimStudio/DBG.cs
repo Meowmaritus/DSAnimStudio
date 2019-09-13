@@ -59,7 +59,7 @@ namespace DSAnimStudio
             DbgPrim_Skybox = new DbgPrimSolidSkybox();
 
             DbgPrim_Grid.Transform = Transform.Default;
-            DbgPrim_Skybox.Transform = Transform.Default;
+            DbgPrim_Skybox.Transform = new Transform(0,0,0,0,0,0,100,100,100);
 
 
             // If you want to disable the grid on launch uncomment the next line.
@@ -135,6 +135,18 @@ namespace DSAnimStudio
                 PrimitivesMarkedForDeletion.Add(prim);
         }
 
+        public static void DrawBehindPrims(GameTime gameTime)
+        {
+            if (Environment.DrawCubemap)
+            {
+                GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
+                DbgPrim_Skybox.Draw(gameTime, null);
+            }
+
+            if (ShowGrid)
+                DbgPrim_Grid.Draw(gameTime, null);
+        }
+
         public static void DrawPrimitives(GameTime gameTime)
         {
             if (BeepVolume > 0)
@@ -144,17 +156,12 @@ namespace DSAnimStudio
 
             PrimitivesMarkedForDeletion.Clear();
 
-            if (Environment.DrawCubemap)
-            {
-                GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
-                DbgPrim_Skybox.Draw(gameTime, null);
-            }
+            
 
             //if (Environment.DrawCubemap)
             //    GFX.ModelDrawer.DrawSkyboxes();
 
-            if (ShowGrid)
-                DbgPrim_Grid.Draw(gameTime, null);
+            
 
             lock (_lock_primitives)
             {
