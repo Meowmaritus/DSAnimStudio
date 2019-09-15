@@ -73,6 +73,8 @@ namespace DSAnimStudio.TaeEditor
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
             MyEvent.EndTime = MyEvent.GetStartTimeFr() + eventLength;
 
+            MyEvent.ApplyRounding();
+
             return (MyEvent.GetStartFrame() != originalStartFrame || 
                 MyEvent.GetEndFrame() != originalEndFrame);
         }
@@ -81,8 +83,8 @@ namespace DSAnimStudio.TaeEditor
         {
             int originalStartFrame = MyEvent.GetStartFrame();
 
-            x = MathHelper.Min(x, (RightFr - (float)(FRAME * OwnerPane.SecondsPixelSize)) - OwnerPane.ScrollViewer.Scroll.X);
-            MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
+            MyEvent.StartTime = (float)Math.Min(x / OwnerPane.SecondsPixelSize, MyEvent.EndTime - FRAME);
+            MyEvent.ApplyRounding();
 
             return (MyEvent.GetStartFrame() != originalStartFrame);
         }
@@ -92,6 +94,8 @@ namespace DSAnimStudio.TaeEditor
             float originalEndFrame = MyEvent.GetEndFrame();
 
             MyEvent.EndTime = (float)Math.Max(x / OwnerPane.SecondsPixelSize, MyEvent.StartTime + FRAME);
+
+            MyEvent.ApplyRounding();
 
             return (MyEvent.GetEndFrame() != originalEndFrame);
         }

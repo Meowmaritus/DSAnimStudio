@@ -108,6 +108,9 @@ namespace DSAnimStudio.TaeEditor
         public DbgMenus.DbgMenuPadRepeater NextAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.05f);
         public DbgMenus.DbgMenuPadRepeater PrevAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadUp, 0.4f, 0.05f);
 
+        public DbgMenus.DbgMenuPadRepeater NextFrameRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadLeft, 0.3f, 0.016666667f);
+        public DbgMenus.DbgMenuPadRepeater PrevFrameRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadRight, 0.3f, 0.016666667f);
+
         public static bool CurrentlyEditingSomethingInInspector;
         
         public class FindInfoKeep
@@ -373,13 +376,13 @@ namespace DSAnimStudio.TaeEditor
                     //}
                     if (MultiSelectedEventBoxes.Count > 0)
                     {
-                        inspectorWinFormsControl.labelEventType.Text = "(Multiple Selected)";
+                        inspectorWinFormsControl.labelEventType.Text = "Multiple Events Selected\nSelect single event to edit.";
                         inspectorWinFormsControl.buttonChangeType.Enabled = false;
                         inspectorWinFormsControl.buttonChangeType.Visible = false;
                     }
                     else
                     {
-                        inspectorWinFormsControl.labelEventType.Text = "(Nothing Selected)";
+                        inspectorWinFormsControl.labelEventType.Text = "No Event Selected\nSelect event to edit.";
                         inspectorWinFormsControl.buttonChangeType.Enabled = false;
                         inspectorWinFormsControl.buttonChangeType.Visible = false;
                     }
@@ -387,9 +390,10 @@ namespace DSAnimStudio.TaeEditor
                 else
                 {
                     inspectorWinFormsControl.labelEventType.Text =
-                        (SelectedEventBox.MyEvent.TypeName ?? SelectedEventBox.MyEvent.Type.ToString());
-                    inspectorWinFormsControl.buttonChangeType.Enabled = true;
-                    inspectorWinFormsControl.buttonChangeType.Visible = true;
+                        (SelectedEventBox.MyEvent.TypeName != null ? SelectedEventBox.MyEvent.TypeName : $"Event Type {SelectedEventBox.MyEvent.Type}")
+                        + $"\n{SelectedEventBox.MyEvent.StartTime:0.00} -> {SelectedEventBox.MyEvent.EndTime:0.00} (Duration: {(SelectedEventBox.MyEvent.EndTime - SelectedEventBox.MyEvent.StartTime):0.00})";
+                        inspectorWinFormsControl.buttonChangeType.Enabled = true;
+                        inspectorWinFormsControl.buttonChangeType.Visible = true;
                 }
             }));
         }
@@ -525,41 +529,6 @@ namespace DSAnimStudio.TaeEditor
 
                 if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
                 {
-                    if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
-                    {
-                        TaeInterop.c0000_Parts_HD = Config.DS1_Parts_HD;
-                        TaeInterop.c0000_Parts_BD = Config.DS1_Parts_BD;
-                        TaeInterop.c0000_Parts_AM = Config.DS1_Parts_AM;
-                        TaeInterop.c0000_Parts_LG = Config.DS1_Parts_LG;
-                        TaeInterop.c0000_Parts_WP_L = Config.DS1_Parts_WP_L;
-                        TaeInterop.c0000_Parts_WP_R = Config.DS1_Parts_WP_R;
-                        TaeInterop.c0000_Parts_WP_L_ModelIndex = Config.DS1_Parts_WP_L_ModelIndex;
-                        TaeInterop.c0000_Parts_WP_R_ModelIndex = Config.DS1_Parts_WP_R_ModelIndex;
-                    }
-                    else if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne)
-                    {
-                        TaeInterop.c0000_Parts_HD = Config.BB_Parts_HD;
-                        TaeInterop.c0000_Parts_BD = Config.BB_Parts_BD;
-                        TaeInterop.c0000_Parts_AM = Config.BB_Parts_AM;
-                        TaeInterop.c0000_Parts_LG = Config.BB_Parts_LG;
-                        TaeInterop.c0000_Parts_WP_L = Config.BB_Parts_WP_L;
-                        TaeInterop.c0000_Parts_WP_R = Config.BB_Parts_WP_R;
-                        TaeInterop.c0000_Parts_WP_L_ModelIndex = Config.BB_Parts_WP_L_ModelIndex;
-                        TaeInterop.c0000_Parts_WP_R_ModelIndex = Config.BB_Parts_WP_R_ModelIndex;
-                    }
-                    else if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS3)
-                    {
-                        TaeInterop.c0000_Parts_HD = Config.DS3_Parts_HD;
-                        TaeInterop.c0000_Parts_BD = Config.DS3_Parts_BD;
-                        TaeInterop.c0000_Parts_AM = Config.DS3_Parts_AM;
-                        TaeInterop.c0000_Parts_LG = Config.DS3_Parts_LG;
-                        TaeInterop.c0000_Parts_WP_L = Config.DS3_Parts_WP_L;
-                        TaeInterop.c0000_Parts_WP_R = Config.DS3_Parts_WP_R;
-                        TaeInterop.c0000_Parts_WP_L_ModelIndex = Config.DS3_Parts_WP_L_ModelIndex;
-                        TaeInterop.c0000_Parts_WP_R_ModelIndex = Config.DS3_Parts_WP_R_ModelIndex;
-                    }
-
-
                     TaeInterop.OnLoadANIBND(MenuBar, progress);
                 }
 
@@ -597,7 +566,7 @@ namespace DSAnimStudio.TaeEditor
                 LoadTAETemplate(xmlPath);
         }
 
-        public void SaveCurrentFile()
+        public void SaveCurrentFile(Action afterSaveAction = null, string saveMessage = "Saving ANIBND...")
         {
             if (IsReadOnlyFileMode)
             {
@@ -620,17 +589,9 @@ namespace DSAnimStudio.TaeEditor
                     System.Windows.Forms.MessageBoxIcon.Information);
             }
 
-            LoadingTaskMan.DoLoadingTask("SaveFile", "Saving all TAE files to ANIBND...", progress =>
+            LoadingTaskMan.DoLoadingTask("SaveFile", saveMessage, progress =>
             {
                 FileContainer.SaveToPath(FileContainerName, progress);
-
-                foreach (var tae in FileContainer.AllTAE)
-                {
-                    foreach (var animRef in tae.Animations)
-                    {
-                        animRef.SetIsModified(false);
-                    }
-                }
 
                 if (Config.LiveRefreshOnSave)
                 {
@@ -638,6 +599,8 @@ namespace DSAnimStudio.TaeEditor
                 }
 
                 progress.Report(1.0);
+
+                afterSaveAction?.Invoke();
             });
 
             
@@ -815,6 +778,11 @@ namespace DSAnimStudio.TaeEditor
 
             MenuBar.AddItem("NPC Settings", "No NPC loaded.");
             MenuBar["NPC Settings"].Enabled = false;
+            MenuBar["NPC Settings"].Visible = false;
+
+            MenuBar.AddItem("Player Settings", "No player loaded.");
+            MenuBar["Player Settings"].Enabled = false;
+            MenuBar["Player Settings"].Visible = false;
 
             //////////
             // Edit //
@@ -846,7 +814,8 @@ namespace DSAnimStudio.TaeEditor
             // Event Graph //
             /////////////////
 
-            MenuBar.AddItem("Event Graph", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
+            MenuBar.AddItem("Event Graph", "Snap To 30 Hz Increments", () => Config.EnableSnapTo30FPSIncrements, b => Config.EnableSnapTo30FPSIncrements = b);
+            //MenuBar.AddItem("Event Graph", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
             MenuBar.AddSeparator("Event Graph");
             MenuBar.AddItem("Event Graph", "Use Fancy Text Scrolling", () => Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
             MenuBar.AddItem("Event Graph", "Fancy Text Scroll Speed", new Dictionary<string, Action>
@@ -867,33 +836,28 @@ namespace DSAnimStudio.TaeEditor
 
             MenuBar.AddSeparator("Event Graph");
 
-            MenuBar.AddItem("Event Graph", "Show SFX Spawn Events With Cyan Markers", () => TaeInterop.ShowSFXSpawnWithCyanMarkers, b => TaeInterop.ShowSFXSpawnWithCyanMarkers = b);
-            MenuBar.AddItem("Event Graph", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
-            MenuBar.AddItem("Event Graph", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
-            MenuBar.AddItem("Event Graph", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
+            //MenuBar.AddItem("Event Graph", "Show SFX Spawn Events With Cyan Markers", () => TaeInterop.ShowSFXSpawnWithCyanMarkers, b => TaeInterop.ShowSFXSpawnWithCyanMarkers = b);
+            //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
+            //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
+            //MenuBar.AddItem("Event Graph", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
 
             ////////////////
-            // 3D Preview //
+            // Simulation //
             ////////////////
 
-            MenuBar.AddItem("3D Preview", "Vsync", () => GFX.Display.Vsync, b =>
-            {
-                GFX.Display.Vsync = b;
-                GFX.Display.Width = GFX.Device.Viewport.Width;
-                GFX.Display.Height = GFX.Device.Viewport.Height;
-                GFX.Display.Fullscreen = false;
-                GFX.Display.Apply();
-            });
+            EventSim.BuildEventSimMenuBar(MenuBar);
 
-            MenuBar.AddItem("3D Preview", "Items In Scene");
-
-            MenuBar.AddItem("3D Preview/Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
-            MenuBar.AddItem("3D Preview/Animation", "Lock To Original Framerate In Anim File", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
-            MenuBar.AddItem("3D Preview/Animation", "Animate DummyPoly", () => DummyPolyManager.UseDummyPolyAnimation, b => DummyPolyManager.UseDummyPolyAnimation = b);
-            MenuBar.AddItem("3D Preview/Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
-            MenuBar.AddItem("3D Preview/Animation", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
-            MenuBar.AddSeparator("3D Preview/Animation");
-            MenuBar.AddItem("3D Preview/Animation", "Spread Bone Update Across Multiple Frames (Reduces Stuttering)", new Dictionary<string, Action>
+            ///////////////
+            // Animation //
+            ///////////////
+            ///
+            MenuBar.AddItem("Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
+            MenuBar.AddItem("Animation", "Lock To Original Framerate In Anim File", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
+            MenuBar.AddItem("Animation", "Animate DummyPoly", () => DummyPolyManager.UseDummyPolyAnimation, b => DummyPolyManager.UseDummyPolyAnimation = b);
+            MenuBar.AddItem("Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
+            MenuBar.AddItem("Animation", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
+            MenuBar.AddSeparator("Animation");
+            MenuBar.AddItem("Animation", "Spread Bone Update Across Multiple Frames (Reduces Stuttering)", new Dictionary<string, Action>
             {
                 { "Update All Bones Every Frame", () => TaeInterop.InterleavedCalculationDivisor = 1 },
                 { "Takes 2 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 2 },
@@ -906,9 +870,44 @@ namespace DSAnimStudio.TaeEditor
                 { "Takes 60 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 60 },
             }, "Update All Bones Every Frame");
 
-            MenuBar.AddItem("3D Preview/Renderer", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
-            MenuBar.AddItem("3D Preview/Renderer", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
-            MenuBar.AddItem("3D Preview/Renderer", "Shader Workflow Type", new Dictionary<string, Action>
+            MenuBar.AddItem("Animation", "Set Playback Speed...", () =>
+            {
+                PauseUpdate = true;
+                var speed = KeyboardInput.Show("Set Playback Speed", "Set animation playback speed.", "1.00");
+                if (float.TryParse(speed.Result, out float newSpeed))
+                {
+                    PlaybackCursor.PlaybackSpeed = newSpeed;
+                }
+                else
+                {
+                    System.Windows.Forms.MessageBox.Show("Not a valid number.");
+                }
+                PauseUpdate = false;
+            });
+
+            ///////////
+            // Scene //
+            ///////////
+
+            MenuBar.AddTopItem("Scene");
+
+
+            //////////////
+            // Viewport //
+            //////////////
+
+            MenuBar.AddItem("Viewport", "Vsync", () => GFX.Display.Vsync, b =>
+            {
+                GFX.Display.Vsync = b;
+                GFX.Display.Width = GFX.Device.Viewport.Width;
+                GFX.Display.Height = GFX.Device.Viewport.Height;
+                GFX.Display.Fullscreen = false;
+                GFX.Display.Apply();
+            });
+
+            MenuBar.AddItem("Viewport", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
+            MenuBar.AddItem("Viewport", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
+            MenuBar.AddItem("Viewport", "Shader Workflow Type", new Dictionary<string, Action>
             {
                 { "Legacy (Epic 2005 Style)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Ass },
                 { "Modern (Gloss Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Gloss },
@@ -926,7 +925,7 @@ namespace DSAnimStudio.TaeEditor
                 }
             });
 
-            MenuBar.AddItem("3D Preview/Renderer", $@"Reload FLVER Shader (.\Content\Shaders\FlverShader.xnb)", () =>
+            MenuBar.AddItem("Viewport", $@"Reload FLVER Shader (.\Content\Shaders\FlverShader.xnb)", () =>
             {
                 if (DebugReloadContentManager != null)
                 {
@@ -943,18 +942,27 @@ namespace DSAnimStudio.TaeEditor
                 GFX.InitShaders();
             });
 
-            MenuBar.AddItem("3D Preview", "Cubemap", () =>
+            if (Environment.Cubemaps.ContainsKey(Config.LastCubemapUsed))
+            {
+                Environment.CurrentCubemapName = Config.LastCubemapUsed;
+            }
+
+            MenuBar.AddItem("Viewport", "Cubemap", () =>
             {
                 var result = new Dictionary<string, Action>();
                 foreach (var kvp in Environment.Cubemaps)
                 {
-                    result.Add(kvp.Key, () => Environment.CurrentCubemapName = kvp.Key);
+                    result.Add(kvp.Key, () =>
+                    {
+                        Environment.CurrentCubemapName = kvp.Key;
+                        Config.LastCubemapUsed = kvp.Key;
+                    });
                 }
                 return result;
-            }, 
+            },
             () => Environment.CurrentCubemapName);
 
-            MenuBar.AddItem("3D Preview", "Viewport Resolution Multiplier", new Dictionary<string, Action>
+            MenuBar.AddItem("Viewport", "Resolution Multiplier", new Dictionary<string, Action>
             {
                 { "1x", () => GFX.SSAA = 1 },
                 { "2x", () => GFX.SSAA = 2 },
@@ -967,6 +975,7 @@ namespace DSAnimStudio.TaeEditor
                 { "16x", () => GFX.SSAA = 16 },
                 { "32x", () => GFX.SSAA = 32 },
             }, () => $"{GFX.SSAA}x");
+
 
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
@@ -1205,6 +1214,8 @@ namespace DSAnimStudio.TaeEditor
 
             if (unsavedChanges)
             {
+                e.Cancel = true;
+
                 var confirmDlg = System.Windows.Forms.MessageBox.Show(
                     $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
                     $"unsaved changes. Would you like to save these changes before " +
@@ -1214,11 +1225,15 @@ namespace DSAnimStudio.TaeEditor
 
                 if (confirmDlg == System.Windows.Forms.DialogResult.Yes)
                 {
-                    SaveCurrentFile();
+                    SaveCurrentFile(afterSaveAction: () =>
+                    {
+                        Main.REQUEST_EXIT = true;
+                    },
+                    saveMessage: "Saving ANIBND and then exiting...");
                 }
-                else if (confirmDlg == System.Windows.Forms.DialogResult.Cancel)
+                else if (confirmDlg == System.Windows.Forms.DialogResult.No)
                 {
-                    e.Cancel = true;
+                    e.Cancel = false;
                 }
             }
             else
@@ -1242,100 +1257,114 @@ namespace DSAnimStudio.TaeEditor
 
         private void DirectOpenFile(string fileName)
         {
-            LoadingTaskMan.DoLoadingTask("DirectOpenFile", "Opening ANIBND and associated model(s)...", progress =>
+            
+            void DoActualFileOpen()
             {
-                if (FileContainer != null && !IsReadOnlyFileMode && (IsModified || FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified()))))
+                LoadingTaskMan.DoLoadingTask("DirectOpenFile", "Opening ANIBND and associated model(s)...", progress =>
                 {
-                    var yesNoCancel = System.Windows.Forms.MessageBox.Show(
-                        $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
-                        $"unsaved changes. Would you like to save these changes before " +
-                        $"loading a new file?", "Save Unsaved Changes?",
-                        System.Windows.Forms.MessageBoxButtons.YesNoCancel,
-                        System.Windows.Forms.MessageBoxIcon.None);
 
-                    if (yesNoCancel == System.Windows.Forms.DialogResult.Yes)
+                    FileContainerName = fileName;
+                    var loadFileResult = LoadCurrentFile(progress);
+                    if (loadFileResult == false)
                     {
-                        SaveCurrentFile();
-                    }
-                    else if (yesNoCancel == System.Windows.Forms.DialogResult.Cancel)
-                    {
+                        FileContainerName = "";
                         return;
                     }
-                    //If they chose no, continue as normal.
-                }
-
-                FileContainerName = fileName;
-                var loadFileResult = LoadCurrentFile(progress);
-                if (loadFileResult == false)
-                {
-                    FileContainerName = "";
-                    return;
-                }
-                else if (loadFileResult == null)
-                {
-                    System.Windows.Forms.ToolStripMenuItem matchingRecentFileItem = null;
-
-                    foreach (var x in MenuBar["File/Recent Files"].DropDownItems)
+                    else if (loadFileResult == null)
                     {
-                        if (x is System.Windows.Forms.ToolStripMenuItem item)
+                        System.Windows.Forms.ToolStripMenuItem matchingRecentFileItem = null;
+
+                        foreach (var x in MenuBar["File/Recent Files"].DropDownItems)
                         {
-                            if (item.Text == fileName)
+                            if (x is System.Windows.Forms.ToolStripMenuItem item)
                             {
-                                matchingRecentFileItem = item;
+                                if (item.Text == fileName)
+                                {
+                                    matchingRecentFileItem = item;
+                                }
                             }
                         }
-                    }
 
-                    if (matchingRecentFileItem == null)
-                    {
-                        System.Windows.Forms.MessageBox.Show(
-                            $"File '{fileName}' no longer exists.",
-                            "File Does Not Exist",
-                            System.Windows.Forms.MessageBoxButtons.OK,
-                            System.Windows.Forms.MessageBoxIcon.Warning);
-                    }
-                    else
-                    {
-                        var ask = System.Windows.Forms.MessageBox.Show(
-                            $"File '{fileName}' no longer exists. Would you like to " +
-                            $"remove it from the recent files list?",
-                            "File Does Not Exist",
-                            System.Windows.Forms.MessageBoxButtons.YesNo,
-                            System.Windows.Forms.MessageBoxIcon.Warning)
-                                == System.Windows.Forms.DialogResult.Yes;
-
-                        if (ask)
+                        if (matchingRecentFileItem == null)
                         {
-                            if (MenuBar["File/Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
-                                MenuBar["File/Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
-
-                            if (Config.RecentFilesList.Contains(fileName))
-                                Config.RecentFilesList.Remove(fileName);
+                            System.Windows.Forms.MessageBox.Show(
+                                $"File '{fileName}' no longer exists.",
+                                "File Does Not Exist",
+                                System.Windows.Forms.MessageBoxButtons.OK,
+                                System.Windows.Forms.MessageBoxIcon.Warning);
                         }
+                        else
+                        {
+                            var ask = System.Windows.Forms.MessageBox.Show(
+                                $"File '{fileName}' no longer exists. Would you like to " +
+                                $"remove it from the recent files list?",
+                                "File Does Not Exist",
+                                System.Windows.Forms.MessageBoxButtons.YesNo,
+                                System.Windows.Forms.MessageBoxIcon.Warning)
+                                    == System.Windows.Forms.DialogResult.Yes;
+
+                            if (ask)
+                            {
+                                if (MenuBar["File/Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
+                                    MenuBar["File/Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
+
+                                if (Config.RecentFilesList.Contains(fileName))
+                                    Config.RecentFilesList.Remove(fileName);
+                            }
+                        }
+
+                        FileContainerName = "";
+                        return;
                     }
 
-                    FileContainerName = "";
+                    if (!FileContainer.AllTAE.Any())
+                    {
+                        FileContainerName = "";
+                        System.Windows.Forms.MessageBox.Show(
+                            "Selected file had no TAE files within. " +
+                            "Cancelling load operation.", "Invalid File",
+                            System.Windows.Forms.MessageBoxButtons.OK,
+                            System.Windows.Forms.MessageBoxIcon.Stop);
+                    }
+                    else if (loadFileResult == null)
+                    {
+                        FileContainerName = "";
+                        System.Windows.Forms.MessageBox.Show(
+                            "File did not exist.", "File Does Not Exist",
+                            System.Windows.Forms.MessageBoxButtons.OK,
+                            System.Windows.Forms.MessageBoxIcon.Stop);
+                    }
+                });
+            }
+
+            if (FileContainer != null && !IsReadOnlyFileMode && (IsModified || FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified()))))
+            {
+                var yesNoCancel = System.Windows.Forms.MessageBox.Show(
+                    $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
+                    $"unsaved changes. Would you like to save these changes before " +
+                    $"loading a new file?", "Save Unsaved Changes?",
+                    System.Windows.Forms.MessageBoxButtons.YesNoCancel,
+                    System.Windows.Forms.MessageBoxIcon.None);
+
+                if (yesNoCancel == System.Windows.Forms.DialogResult.Yes)
+                {
+                    SaveCurrentFile(afterSaveAction: () =>
+                    {
+                        DoActualFileOpen();
+                    },
+                    saveMessage: "Saving ANIBND then loading new one...");
                     return;
                 }
+                else if (yesNoCancel == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    return;
+                }
+                //If they chose no, continue as normal.
+            }
 
-                if (!FileContainer.AllTAE.Any())
-                {
-                    FileContainerName = "";
-                    System.Windows.Forms.MessageBox.Show(
-                        "Selected file had no TAE files within. " +
-                        "Cancelling load operation.", "Invalid File",
-                        System.Windows.Forms.MessageBoxButtons.OK,
-                        System.Windows.Forms.MessageBoxIcon.Stop);
-                }
-                else if (loadFileResult == null)
-                {
-                    FileContainerName = "";
-                    System.Windows.Forms.MessageBox.Show(
-                        "File did not exist.", "File Does Not Exist",
-                        System.Windows.Forms.MessageBoxButtons.OK,
-                        System.Windows.Forms.MessageBoxIcon.Stop);
-                }
-            });
+            DoActualFileOpen();
+                
+            
         }
 
         public void File_Open()
@@ -1603,6 +1632,8 @@ namespace DSAnimStudio.TaeEditor
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
+            PlaybackCursor.IsStepping = false;
+
             SelectedTae = tae;
 
             GameWindowAsForm.Invoke(new Action(() =>
@@ -1714,7 +1745,7 @@ namespace DSAnimStudio.TaeEditor
             PauseUpdate = false;
         }
 
-        private void NextAnim()
+        private void NextAnim(bool shiftPressed, bool ctrlPressed)
         {
             try
             {
@@ -1727,28 +1758,66 @@ namespace DSAnimStudio.TaeEditor
                         int currentAnimIndex = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
                         int currentTaeIndex = taeList.IndexOf(SelectedTae);
 
-                        if (currentAnimIndex >= SelectedTae.Animations.Count - 1)
-                        {
-                            currentAnimIndex = 0;
+                        int startingTaeIndex = currentTaeIndex;
 
+                        void DoSmallStep()
+                        {
+                            if (currentAnimIndex >= SelectedTae.Animations.Count - 1)
+                            {
+                                currentAnimIndex = 0;
+
+                                if (taeList.Count > 1)
+                                {
+                                    if (currentTaeIndex >= taeList.Count - 1)
+                                    {
+                                        currentTaeIndex = 0;
+                                    }
+                                    else
+                                    {
+                                        currentTaeIndex++;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                currentAnimIndex++;
+                            }
+                        }
+
+                        void DoBigStep()
+                        {
                             if (taeList.Count > 1)
                             {
-                                if (currentTaeIndex >= taeList.Count - 1)
+                                while (currentTaeIndex == startingTaeIndex)
                                 {
-                                    currentTaeIndex = 0;
+                                    DoSmallStep();
                                 }
-                                else
-                                {
-                                    currentTaeIndex++;
-                                }
+                            }
+
+                            currentAnimIndex = 0;
+                        }
+
+                        void DoStep()
+                        {
+                            if (ctrlPressed)
+                                DoBigStep();
+                            else
+                                DoSmallStep();
+                        }
+
+                        if (shiftPressed)
+                        {
+                            for (int i = 0; i < 10; i++)
+                            {
+                                DoStep();
                             }
                         }
                         else
                         {
-                            currentAnimIndex++;
+                            DoStep();
                         }
 
-                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: false);
+                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: ShiftHeld || CtrlHeld);
                     }
                 }
             }
@@ -1758,7 +1827,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void PrevAnim()
+        public void PrevAnim(bool shiftPressed, bool ctrlPressed)
         {
             try
             {
@@ -1771,28 +1840,66 @@ namespace DSAnimStudio.TaeEditor
                         int currentAnimIndex = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
                         int currentTaeIndex = taeList.IndexOf(SelectedTae);
 
-                        if (currentAnimIndex <= 0)
+                        int startingTaeIndex = currentTaeIndex;
+
+                        void DoSmallStep()
+                        {
+                            if (currentAnimIndex <= 0)
+                            {
+                                if (taeList.Count > 1)
+                                {
+                                    if (currentTaeIndex <= 0)
+                                    {
+                                        currentTaeIndex = taeList.Count - 1;
+                                    }
+                                    else
+                                    {
+                                        currentTaeIndex--;
+                                    }
+                                }
+
+                                currentAnimIndex = taeList[currentTaeIndex].Animations.Count - 1;
+                            }
+                            else
+                            {
+                                currentAnimIndex--;
+                            }
+                        }
+
+                        void DoBigStep()
                         {
                             if (taeList.Count > 1)
                             {
-                                if (currentTaeIndex <= 0)
+                                while (currentTaeIndex == startingTaeIndex)
                                 {
-                                    currentTaeIndex = taeList.Count - 1;
-                                }
-                                else
-                                {
-                                    currentTaeIndex--;
+                                    DoSmallStep();
                                 }
                             }
 
-                            currentAnimIndex = taeList[currentTaeIndex].Animations.Count - 1;
+                            currentAnimIndex = 0;
+                        }
+
+                        void DoStep()
+                        {
+                            if (ctrlPressed)
+                                DoBigStep();
+                            else
+                                DoSmallStep();
+                        }
+
+                        if (shiftPressed)
+                        {
+                            for (int i = 0; i < 10; i++)
+                            {
+                                DoStep();
+                            }
                         }
                         else
                         {
-                            currentAnimIndex--;
+                            DoStep();
                         }
 
-                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: false);
+                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: ShiftHeld || CtrlHeld);
                     }
                 }
             }
@@ -1954,15 +2061,44 @@ namespace DSAnimStudio.TaeEditor
 
                 if (NextAnimRepeaterButton.State)
                 {
-                    NextAnim();
+                    NextAnim(ShiftHeld, CtrlHeld);
                 }
 
                 PrevAnimRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.PageUp));
 
                 if (PrevAnimRepeaterButton.State)
                 {
-                    PrevAnim();
+                    PrevAnim(ShiftHeld, CtrlHeld);
                 }
+
+                if (PlaybackCursor != null && !PlaybackCursor.IsPlaying)
+                {
+                    NextFrameRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.Right));
+
+                    if (NextFrameRepeaterButton.State)
+                    {
+                        PlaybackCursor.IsStepping = true;
+                        PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
+                        PlaybackCursor.CurrentTime += TaeInterop.CurrentAnimationFrameDuration 
+                            * (NextFrameRepeaterButton.IsInitalButtonTap ? 1 : 0.25f) * (ShiftHeld ? 5 : 1);
+                        if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime)
+                            PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
+                    }
+
+                    PrevFrameRepeaterButton.Update(GamePadState.Default, (float)gameTime.ElapsedGameTime.TotalSeconds, Input.KeyHeld(Keys.Left));
+
+                    if (PrevFrameRepeaterButton.State)
+                    {
+                        PlaybackCursor.IsStepping = true;
+                        PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
+                        PlaybackCursor.CurrentTime -= TaeInterop.CurrentAnimationFrameDuration
+                            * (PrevFrameRepeaterButton.IsInitalButtonTap ? 1 : 0.25f) * (ShiftHeld ? 5 : 1);
+                        if (PlaybackCursor.CurrentTime < 0)
+                            PlaybackCursor.CurrentTime += PlaybackCursor.MaxTime;
+                    }
+                }
+
+                
 
                 if (UndoButton.Update(elapsedSeconds, (CtrlHeld && !ShiftHeld && !AltHeld) && (zHeld && !yHeld)))
                 {

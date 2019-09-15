@@ -125,7 +125,14 @@ namespace DSAnimStudio.DebugPrimitives
                 oldDiffuseColor = Shader.Effect.Parameters["DiffuseColor"].GetValueVector3();
                 if (OverrideColor.HasValue)
                 {
-                    Shader.Effect.Parameters["DiffuseColor"].SetValue(new Vector3(OverrideColor.Value.R / 255f, OverrideColor.Value.G / 255f, OverrideColor.Value.B / 255f) * (Shader == GFX.DbgPrimWireShader ? 500 : 1));
+                    var overrideColor = new Vector3(OverrideColor.Value.R / 255f, OverrideColor.Value.G / 255f, OverrideColor.Value.B / 255f);
+
+                    if (Shader == GFX.DbgPrimWireShader)
+                    {
+                        overrideColor *= 5;
+                    }
+
+                    Shader.Effect.Parameters["DiffuseColor"].SetValue(overrideColor);
                 }
             }
 

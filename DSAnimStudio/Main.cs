@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace DSAnimStudio
@@ -23,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "v0.9.8";
+        public const string VERSION = "v0.9.8.3";
 
         public static bool FIXED_TIME_STEP = true;
 
@@ -371,9 +372,35 @@ namespace DSAnimStudio
             MemoryUsage_Managed = GC.GetTotalMemory(forceFullCollection: false);
         }
 
+        /// <summary>Returns true if the current application has focus, false otherwise</summary>
+        public static bool ApplicationIsActivated()
+        {
+            var activatedHandle = GetForegroundWindow();
+            if (activatedHandle == IntPtr.Zero)
+            {
+                return false;       // No window is currently activated
+            }
+
+            var procId = Process.GetCurrentProcess().Id;
+            int activeProcId;
+            GetWindowThreadProcessId(activatedHandle, out activeProcId);
+
+            return activeProcId == procId;
+        }
+
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
+
+
         protected override void Update(GameTime gameTime)
         {
-            TargetElapsedTime = IsActive ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
+            Active = IsActive && ApplicationIsActivated();
+
+            TargetElapsedTime = Active ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
 
             IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
 
@@ -414,7 +441,7 @@ namespace DSAnimStudio
                 if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
                     TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
 
-                if (IsActive)
+                if (Active)
                     TAE_EDITOR.Update(gameTime);
                 else
                     TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
@@ -429,8 +456,6 @@ namespace DSAnimStudio
             }
 
             IsFixedTimeStep = FIXED_TIME_STEP;
-
-            Active = IsActive;
 
             if (DBG.EnableMenu)
             {
@@ -476,7 +501,7 @@ namespace DSAnimStudio
 
         protected override void Draw(GameTime gameTime)
         {
-            
+            GFX.Device.Clear(Color.DimGray);
 
             if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
             {
@@ -496,15 +521,16 @@ namespace DSAnimStudio
 
                 GFX.Device.SetRenderTarget(SceneRenderTarget);
 
-                GFX.Device.Clear(new Color(80, 80, 80, 255));
+                GFX.Device.Clear(Color.DimGray);
 
                 GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
                 TaeInterop.TaeViewportDrawPre(gameTime);
                 GFX.DrawScene3D(gameTime);
+                GFX.DrawSceneOver3D(gameTime);
 
                 GFX.Device.SetRenderTarget(null);
 
-                GFX.Device.Clear(new Color(80, 80, 80, 255));
+                GFX.Device.Clear(Color.DimGray);
 
                 GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
 
@@ -565,9 +591,12 @@ namespace DSAnimStudio
             }
 
             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+            DBG.DrawPrimitiveNames(gameTime);
             GFX.DrawSceneGUI(gameTime);
-            TaeInterop.TaeViewportDrawPost(gameTime);
+            
             DrawMemoryUsage();
+
+            LoadingTaskMan.DrawAllTasks();
 
             GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
 

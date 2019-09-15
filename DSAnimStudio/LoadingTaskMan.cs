@@ -216,7 +216,7 @@ namespace DSAnimStudio
                             GuiDistFromEdgesOfScreenY + ((GuiDistBetweenProgressRects + GuiTaskRectHeight) * i),
                             GuiTaskRectWidth, GuiTaskRectHeight);
 
-                        GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, thisTaskRect, Color.Black * 0.75f);
+                        GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, thisTaskRect, Color.Black * 0.85f);
 
                         // Draw Progress Background Rect
 
@@ -224,7 +224,7 @@ namespace DSAnimStudio
                             thisTaskRect.Y + GuiTaskRectHeight - GuiProgBarDistFromRectEdge - GuiProgBarHeight,
                             thisTaskRect.Width - (GuiProgBarDistFromRectEdge * 2), GuiProgBarHeight);
 
-                        GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, progBackgroundRect, new Color(0.25f, 0.25f, 0.25f) * 0.85f);
+                        GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, progBackgroundRect, new Color(0.25f, 0.25f, 0.25f) * 0.95f);
 
                         // Draw Progress Foreground Rect
 
@@ -235,7 +235,7 @@ namespace DSAnimStudio
                             progBackgroundRect.Height - (GuiProgBarEdgeThickness * 2));
 
                         GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, progForegroundRect, 
-                            kvp.Value.IsBeingKilledManually ? Color.Red : Color.White * 0.95f);
+                            kvp.Value.IsBeingKilledManually ? Color.Red : Color.White);
 
                         // Draw Task Name
 

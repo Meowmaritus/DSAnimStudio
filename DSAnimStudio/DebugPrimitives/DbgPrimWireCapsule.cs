@@ -130,9 +130,21 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimWireCapsule(int segments, Color color)
         {
-            HemisphereA = new DbgPrimWireCapsule_End(segments) { Category = DbgPrimCategory.DummyPolyHelper, OverrideColor = color };
-            Midst = new DbgPrimWireCapsule_Middle(segments) { Category = DbgPrimCategory.DummyPolyHelper, OverrideColor = color };
-            HemisphereB = new DbgPrimWireCapsule_End(segments) { Category = DbgPrimCategory.DummyPolyHelper, OverrideColor = color };
+            HemisphereA = new DbgPrimWireCapsule_End(segments)
+            {
+                Category = DbgPrimCategory.DummyPolyHelper,
+                OverrideColor = color
+            };
+            Midst = new DbgPrimWireCapsule_Middle(segments)
+            {
+                Category = DbgPrimCategory.DummyPolyHelper,
+                OverrideColor = color
+            };
+            HemisphereB = new DbgPrimWireCapsule_End(segments)
+            {
+                Category = DbgPrimCategory.DummyPolyHelper,
+                OverrideColor = color
+            };
 
             Children.Add(HemisphereA);
             Children.Add(Midst);

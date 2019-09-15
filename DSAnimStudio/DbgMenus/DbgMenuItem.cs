@@ -515,7 +515,6 @@ namespace DSAnimStudio.DbgMenus
                     }
                 },
 
-
             };
         }
 

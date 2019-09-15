@@ -92,31 +92,86 @@ namespace DSAnimStudio
             Console.WriteLine("TEST");
         }
 
-        public static ParamData.AtkParam GetPlayerBasicAtkParam(int behaviorSubID)
+        public static ParamData.EquipParamWeapon GetPlayerCurrentWeapon()
         {
-            var behaviorVariationID = (DummyPolyManager.IsViewingLeftHandHit ? ChrAsm.ParamLWeapon.BehaviorVariationID : ChrAsm.ParamRWeapon.BehaviorVariationID);
-            long behaviorParamID = 10_0000_000 + (behaviorVariationID * 1_000) + behaviorSubID;
-            ParamData.BehaviorParam behaviorParamEntry = BehaviorParam_PC[behaviorParamID];
-            if (behaviorParamEntry.RefType != 0)
-                throw new InvalidOperationException($"NPC Behavior {behaviorParamID} does not reference an attack.");
-
-            if (!AtkParam_Pc.ContainsKey(behaviorParamEntry.RefID))
+            var id = (DummyPolyManager.IsViewingLeftHandHit ? ChrAsm.EquipLWeapon : ChrAsm.EquipRWeapon);
+            if (EquipParamWeapon.ContainsKey(id))
+            {
+                return EquipParamWeapon[id];
+            }
+            else
+            {
                 return null;
-
-            return AtkParam_Pc[behaviorParamEntry.RefID];
+            }
         }
 
-        public static ParamData.AtkParam GetNpcBasicAtkParam(int behaviorSubID)
+        public static (long ID, ParamData.AtkParam Param) GetPlayerCommonAttack(int absoluteBehaviorID)
+        {
+            if (!BehaviorParam_PC.ContainsKey(absoluteBehaviorID))
+                return (0, null);
+
+            var behaviorParamEntry = BehaviorParam_PC[absoluteBehaviorID];
+
+            if (behaviorParamEntry.RefType != 0)
+                return (0, null);
+
+            if (!AtkParam_Pc.ContainsKey(behaviorParamEntry.RefID))
+                return (0, null);
+
+            return (behaviorParamEntry.RefID, AtkParam_Pc[behaviorParamEntry.RefID]);
+        }
+
+        public static (long ID, ParamData.AtkParam Param) GetPlayerBasicAtkParam(int behaviorSubID)
+        {
+            var behaviorVariationID = (DummyPolyManager.IsViewingLeftHandHit ? (ChrAsm.ParamLWeapon?.BehaviorVariationID ?? -1) : (ChrAsm.ParamRWeapon?.BehaviorVariationID ?? -1));
+
+            if (behaviorVariationID < 0)
+                return (0, null);
+
+            long behaviorParamID = 10_0000_000 + (behaviorVariationID * 1_000) + behaviorSubID;
+
+            if (!BehaviorParam_PC.ContainsKey(behaviorParamID))
+            {
+                var wpn = GetPlayerCurrentWeapon();
+
+                long baseBehaviorParamID = 10_0000_000 + ((wpn.WepMotionCategory * 100) * 1_000) + behaviorSubID;
+
+                if (BehaviorParam_PC.ContainsKey(baseBehaviorParamID))
+                {
+                    behaviorParamID = baseBehaviorParamID;
+                }
+                else
+                {
+                    return (0, null);
+                }
+            }
+
+            ParamData.BehaviorParam behaviorParamEntry = BehaviorParam_PC[behaviorParamID];
+            if (behaviorParamEntry.RefType != 0)
+                return (0, null);
+
+            if (!AtkParam_Pc.ContainsKey(behaviorParamEntry.RefID))
+                return (0, null);
+
+            return (behaviorParamEntry.RefID, AtkParam_Pc[behaviorParamEntry.RefID]);
+        }
+
+        public static (long ID, ParamData.AtkParam Param) GetNpcBasicAtkParam(int behaviorSubID)
         {
             long behaviorParamID = 2_00000_000 + (NpcParam[GFX.ModelDrawer.CurrentNpcParamID].BehaviorVariationID * 1_000) + behaviorSubID;
+
+            if (!BehaviorParam.ContainsKey(behaviorParamID))
+                return (0, null);
+
             ParamData.BehaviorParam behaviorParamEntry = BehaviorParam[behaviorParamID];
+
             if (behaviorParamEntry.RefType != 0)
-                throw new InvalidOperationException($"NPC Behavior {behaviorParamID} does not reference an attack.");
+                return (0, null);
 
             if (!AtkParam_Npc.ContainsKey(behaviorParamEntry.RefID))
-                return null;
+                return (0, null);
 
-            return AtkParam_Npc[behaviorParamEntry.RefID];
+            return (behaviorParamEntry.RefID, AtkParam_Npc[behaviorParamEntry.RefID]);
         }
 
         public static bool LoadParamBND(HKX.HKXVariation game, string interroot)

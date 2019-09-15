@@ -42,20 +42,20 @@ namespace DSAnimStudio
 
         public bool[] Mask = new bool[MASK_SIZE];
 
-        public bool[] DefaultMask => maskPresets[SelectedMaskPreset];
+        public bool[] NPC_DefaultMask => npc_maskPresets[NPC_SelectedMaskPreset];
 
-        private Dictionary<string, bool[]> maskPresets = new Dictionary<string, bool[]>();
-        private Dictionary<string, bool> maskPresetsInvisibility = new Dictionary<string, bool>();
-        private Dictionary<string, long> maskPresetsNpcParamID = new Dictionary<string, long>();
+        private Dictionary<string, bool[]> npc_maskPresets = new Dictionary<string, bool[]>();
+        private Dictionary<string, bool> npc_maskPresetsInvisibility = new Dictionary<string, bool>();
+        private Dictionary<string, long> npc_maskPresetsNpcParamID = new Dictionary<string, long>();
 
-        public IReadOnlyDictionary<string, bool[]> MaskPresets => maskPresets;
-        public IReadOnlyDictionary<string, bool> MaskPresetsInvisibility => maskPresetsInvisibility;
+        public IReadOnlyDictionary<string, bool[]> MaskPresets => npc_maskPresets;
+        public IReadOnlyDictionary<string, bool> MaskPresetsInvisibility => npc_maskPresetsInvisibility;
 
-        public long CurrentNpcParamID => SelectedMaskPreset != DEFAULT_PRESET_NAME ? maskPresetsNpcParamID[SelectedMaskPreset] : -1;
+        public long CurrentNpcParamID => NPC_SelectedMaskPreset != NPC_DEFAULT_PRESET_NAME ? npc_maskPresetsNpcParamID[NPC_SelectedMaskPreset] : -1;
 
-        public const string DEFAULT_PRESET_NAME = "None (Show All Submeshes)";
+        public const string NPC_DEFAULT_PRESET_NAME = "None (Show All Submeshes)";
 
-        public string SelectedMaskPreset = DEFAULT_PRESET_NAME;
+        public string NPC_SelectedMaskPreset = NPC_DEFAULT_PRESET_NAME;
 
         public class HitSphereInfo
         {
@@ -77,17 +77,17 @@ namespace DSAnimStudio
 
         public ModelDrawer()
         {
-            maskPresets.Clear();
-            maskPresets.Add(DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
+            npc_maskPresets.Clear();
+            npc_maskPresets.Add(NPC_DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
 
             for (int i = 0; i < MASK_SIZE; i++)
-                maskPresets[DEFAULT_PRESET_NAME][i] = true;
+                npc_maskPresets[NPC_DEFAULT_PRESET_NAME][i] = true;
 
-            maskPresetsInvisibility.Clear();
-            maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);
+            npc_maskPresetsInvisibility.Clear();
+            npc_maskPresetsInvisibility.Add(NPC_DEFAULT_PRESET_NAME, false);
 
-            maskPresetsNpcParamID.Clear();
-            maskPresetsNpcParamID.Add(DEFAULT_PRESET_NAME, 0);
+            npc_maskPresetsNpcParamID.Clear();
+            npc_maskPresetsNpcParamID.Add(NPC_DEFAULT_PRESET_NAME, 0);
         }
 
         public void LoadContent(ContentManager c)
@@ -95,7 +95,7 @@ namespace DSAnimStudio
 
         }
 
-        public void ReadDrawMaskPresets(PARAM npcParam, HKX.HKXVariation game, string anibndPath)
+        public void NPC_ReadDrawMaskPresets(PARAM npcParam, HKX.HKXVariation game, string anibndPath)
         {
             var shortAnibndPath = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(anibndPath));
 
@@ -110,16 +110,16 @@ namespace DSAnimStudio
 
             int chrId = int.Parse(shortAnibndPath.Substring(1));
 
-            maskPresets.Clear();
-            maskPresets.Add(DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
+            npc_maskPresets.Clear();
+            npc_maskPresets.Add(NPC_DEFAULT_PRESET_NAME, new bool[MASK_SIZE]);
 
             for (int i = 0; i < MASK_SIZE; i++)
-                maskPresets[DEFAULT_PRESET_NAME][i] = true;
+                npc_maskPresets[NPC_DEFAULT_PRESET_NAME][i] = true;
 
-            maskPresetsInvisibility.Clear();
-            maskPresetsInvisibility.Add(DEFAULT_PRESET_NAME, false);
+            npc_maskPresetsInvisibility.Clear();
+            npc_maskPresetsInvisibility.Add(NPC_DEFAULT_PRESET_NAME, false);
 
-            maskPresetsNpcParamID.Clear();
+            npc_maskPresetsNpcParamID.Clear();
 
             if (chrId == 0000)
                 return;
@@ -191,9 +191,9 @@ namespace DSAnimStudio
 
                    
 
-                    maskPresets.Add(entryName, maskBools);
-                    maskPresetsInvisibility.Add(entryName, allMasksEmpty);
-                    maskPresetsNpcParamID.Add(entryName, r.ID);
+                    npc_maskPresets.Add(entryName, maskBools);
+                    npc_maskPresetsInvisibility.Add(entryName, allMasksEmpty);
+                    npc_maskPresetsNpcParamID.Add(entryName, r.ID);
                 }
             }
         }
@@ -208,10 +208,45 @@ namespace DSAnimStudio
 
         public void DefaultAllMaskValues()
         {
-            for (int i = 0; i < MASK_SIZE; i++)
+            if (TaeInterop.IsPlayerLoaded)
             {
-                Mask[i] = DefaultMask[i];
+                for (int i = 0; i < MASK_SIZE; i++)
+                {
+                    Mask[i] = true;
+
+                    if (ChrAsm.ParamHead != null && i < ChrAsm.ParamHead.InvisibleFlags.Count && ChrAsm.ParamHead.InvisibleFlags[i])
+                    {
+                        Mask[i] = false;
+                        continue;
+                    }
+
+                    if (ChrAsm.ParamBody != null && i < ChrAsm.ParamBody.InvisibleFlags.Count && ChrAsm.ParamBody.InvisibleFlags[i])
+                    {
+                        Mask[i] = false;
+                        continue;
+                    }
+
+                    if (ChrAsm.ParamArms != null && i < ChrAsm.ParamArms.InvisibleFlags.Count && ChrAsm.ParamArms.InvisibleFlags[i])
+                    {
+                        Mask[i] = false;
+                        continue;
+                    }
+
+                    if (ChrAsm.ParamLegs != null && i < ChrAsm.ParamLegs.InvisibleFlags.Count && ChrAsm.ParamLegs.InvisibleFlags[i])
+                    {
+                        Mask[i] = false;
+                        continue;
+                    }
+                }
             }
+            else
+            {
+                for (int i = 0; i < MASK_SIZE; i++)
+                {
+                    Mask[i] = NPC_DefaultMask[i];
+                }
+            }
+            
         }
 
         public void ClearScene()

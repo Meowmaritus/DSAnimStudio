@@ -20,7 +20,6 @@ namespace DSAnimStudio
         AlphaEdge = 3,
         DbgPrimOverlay,
         GUI = 5,
-        GUILoadingTasks = 6,
     }
 
     public enum LODMode : int
@@ -65,6 +64,18 @@ namespace DSAnimStudio
                 {
                     _ssaa = value;
                     Main.RequestViewportRenderTargetResolutionChange = true;
+                }
+            }
+        }
+
+        public static int MSAA
+        {
+            get => Device.PresentationParameters.MultiSampleCount;
+            set
+            {
+                if (value != Device.PresentationParameters.MultiSampleCount)
+                {
+                    Device.PresentationParameters.MultiSampleCount = value;
                 }
             }
         }
@@ -353,13 +364,13 @@ namespace DSAnimStudio
             FlverShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
             FlverShader.Effect.DirectLightMult = Environment.FlverDirectLightMult * 1;
             FlverShader.Effect.IndirectLightMult = 1.0f;
-            FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
+            FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
             FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
-            FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.5f;
+            FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
             FlverShader.Effect.Opacity = FlverOpacity;
 
             SkyboxShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
-            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
+            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
 
             DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;
@@ -378,6 +389,7 @@ namespace DSAnimStudio
             {
                 case GFXDrawStep.Opaque:
                 case GFXDrawStep.AlphaEdge:
+                    TaeInterop.TaeViewportDrawPre(gameTime);
                     if (!HideFLVERs)
                     {
                         ModelDrawer.Draw();
@@ -394,9 +406,7 @@ namespace DSAnimStudio
                 case GFXDrawStep.GUI:
                     if (DBG.EnableMenu)
                         DbgMenuItem.CurrentMenu.Draw((float)gameTime.ElapsedGameTime.TotalSeconds);
-                    break;
-                case GFXDrawStep.GUILoadingTasks:
-                    LoadingTaskMan.DrawAllTasks();
+                    TaeInterop.TaeViewportDrawPost(gameTime);
                     break;
             }
         }
@@ -435,7 +445,10 @@ namespace DSAnimStudio
             CurrentStep = GFXDrawStep.AlphaEdge;
             BeginDraw(gameTime);
             DoDraw(gameTime);
+        }
 
+        public static void DrawSceneOver3D(GameTime gameTime)
+        {
             CurrentStep = GFXDrawStep.DbgPrimOverlay;
             BeginDraw(gameTime);
             DoDraw(gameTime);
@@ -444,10 +457,6 @@ namespace DSAnimStudio
         public static void DrawSceneGUI(GameTime gameTime)
         {
             CurrentStep = GFXDrawStep.GUI;
-            BeginDraw(gameTime);
-            DoDraw(gameTime);
-
-            CurrentStep = GFXDrawStep.GUILoadingTasks;
             BeginDraw(gameTime);
             DoDraw(gameTime);
 

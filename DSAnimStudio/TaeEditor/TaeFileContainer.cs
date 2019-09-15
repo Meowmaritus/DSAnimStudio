@@ -236,7 +236,25 @@ namespace DSAnimStudio.TaeEditor
                 {
                     progress.Report((++i / containerBND3.Files.Count) * 0.9);
                     if (taeInBND.ContainsKey(f.Name))
-                        f.Bytes = taeInBND[f.Name].Write();
+                    {
+                        bool needToSave = false;
+
+                        foreach (var anim in taeInBND[f.Name].Animations)
+                        {
+                            if (anim.GetIsModified())
+                                needToSave = true;
+
+                            // Regardless of whether we need to save this TAE, this anim should 
+                            // be set to not modified :fatcat:
+                            anim.SetIsModified(false, updateGui: false);
+                        }
+
+                        if (needToSave)
+                        {
+                            f.Bytes = taeInBND[f.Name].Write();
+                            taeInBND[f.Name].SetIsModified(false, updateGui: false);
+                        }
+                    }
                 }
 
                 containerBND3.Write(file);
@@ -250,7 +268,25 @@ namespace DSAnimStudio.TaeEditor
                 {
                     progress.Report((++i / containerBND4.Files.Count) * 0.9);
                     if (taeInBND.ContainsKey(f.Name))
-                        f.Bytes = taeInBND[f.Name].Write();
+                    {
+                        bool needToSave = false;
+
+                        foreach (var anim in taeInBND[f.Name].Animations)
+                        {
+                            if (anim.GetIsModified())
+                                needToSave = true;
+
+                            // Regardless of whether we need to save this TAE, this anim should 
+                            // be set to not modified :fatcat:
+                            anim.SetIsModified(false, updateGui: false);
+                        }
+
+                        if (needToSave)
+                        {
+                            f.Bytes = taeInBND[f.Name].Write();
+                            taeInBND[f.Name].SetIsModified(false, updateGui: false);
+                        }
+                    }
                 }
 
                 containerBND4.Write(file);
@@ -267,6 +303,8 @@ namespace DSAnimStudio.TaeEditor
 
                 progress.Report(1.0);
             }
+
+            Main.TAE_EDITOR.UpdateIsModifiedStuff();
         }
     }
 }

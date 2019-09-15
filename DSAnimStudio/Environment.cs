@@ -49,6 +49,7 @@ namespace DSAnimStudio
                 cubemaps.Add(Utils.GetFileNameWithoutDirectoryOrExtension(cube),
                     new TextureFetchRequest(File.ReadAllBytes(cube), cube).FetchCube());
             }
+
             CurrentCubemapName = cubemaps.Keys.First();
 
             //var testFetch = new TextureFetchRequest(File.ReadAllBytes($@"{Main.Directory}\Content\Cubemaps\m30_00_GILM0000.dds.bc3.dds"), "TEST");
