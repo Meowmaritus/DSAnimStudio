@@ -20,7 +20,8 @@ namespace DSAnimStudio
             RightWeapon,
             LeftWeapon,
             Face,
-            FaceGen
+            FaceGen,
+            Hair,
         }
 
         static Dictionary<PartsType, Model> PartsModels 
@@ -69,7 +70,8 @@ namespace DSAnimStudio
                         else
                             ParamRWeapon = weaponParam;
 
-                        LoadPartsFile(weaponName, modelIdx, type);
+                        LoadPartsFile(weaponName, modelIdx, type, 
+                            isDs3PairedWeaponLeftHand: (type == PartsType.LeftWeapon && ParamLWeapon.IsPairedWeaponDS3));
                     }
                     catch (System.IO.FileNotFoundException)
                     {
@@ -171,6 +173,8 @@ namespace DSAnimStudio
 
                     progress.Report(6.0 / 6.0);
                 }
+
+                GFX.ModelDrawer.DefaultAllMaskValues();
             });
 
             
@@ -226,7 +230,7 @@ namespace DSAnimStudio
         }
 
         private static System.Numerics.Vector3 TransformVertVec3ByBone(SoulsFormats.FLVER2.Bone b,
-            System.Numerics.Vector3 vertVec3, bool upsideDown = true, bool isNormals = false, bool backward = true)
+            System.Numerics.Vector3 vertVec3, bool upsideDown = true, bool isNormals = false, bool backward = true, bool pointDummiesForward = false)
         {
             SoulsFormats.FLVER2.Bone parentBone = b;
 
@@ -237,6 +241,9 @@ namespace DSAnimStudio
 
             if (upsideDown)
                 result *= Matrix.CreateRotationZ(MathHelper.Pi);
+
+            if (pointDummiesForward)
+                result *= Matrix.CreateRotationX(MathHelper.PiOver2);
 
             do
             {
@@ -277,10 +284,25 @@ namespace DSAnimStudio
 
         public static void LoadFaceGen(string facegenName)
         {
-            LoadPartsFile($@"{TaeInterop.InterrootPath}\parts\{facegenName}", 0, PartsType.FaceGen);
+            LoadPartsFile($@"{TaeInterop.InterrootPath}\parts\{facegenName}", 0, PartsType.FaceGen, isDs3Facegen: true);
         }
 
-        private static void LoadPartsFile(string p, int modelIdx, PartsType t)
+        public static void LoadHair(string hairName)
+        {
+            LoadPartsFile($@"{TaeInterop.InterrootPath}\parts\{hairName}", 0, PartsType.Hair);
+        }
+
+
+        private static void ClearWeaponDummies(bool isLeftHand)
+        {
+            var dummiesToClear = TaeInterop.CurrentModel.Dummies.Where(x => (isLeftHand ? (x.ReferenceID >= 12000) : (x.ReferenceID >= 10000 && x.ReferenceID < 11000))).ToList();
+            foreach (var d in dummiesToClear)
+            {
+                TaeInterop.CurrentModel.Dummies.Remove(d);
+            }
+        }
+
+        private static void LoadPartsFile(string p, int modelIdx, PartsType t, bool isDs3PairedWeaponLeftHand = false, bool isDs3Facegen = false)
         {
             Dictionary<string, int> baseChrBoneMap = new Dictionary<string, int>();
             for (int i = 0; i < TaeInterop.CurrentModel.Bones.Count; i++)
@@ -470,10 +492,10 @@ namespace DSAnimStudio
                             }
                             else if (t == PartsType.LeftWeapon)
                             {
-                                vert.Position = TransformVertVec3ByBone(weaponLBone, vert.Position, true, backward: false);
-                                vert.Normal = TransformVertVec4ByBone(weaponLBone, vert.Normal, true, true, backward: false);
-                                vert.Tangents[0] = TransformVertVec4ByBone(weaponLBone, vert.Tangents[0], true, true, backward: false);
-                                vert.Bitangent = TransformVertVec4ByBone(weaponLBone, vert.Bitangent, true, true, backward: false);
+                                vert.Position = TransformVertVec3ByBone(weaponLBone, vert.Position, true, backward: !isDs3PairedWeaponLeftHand);
+                                vert.Normal = TransformVertVec4ByBone(weaponLBone, vert.Normal, true, true, backward: !isDs3PairedWeaponLeftHand);
+                                vert.Tangents[0] = TransformVertVec4ByBone(weaponLBone, vert.Tangents[0], true, true, backward: !isDs3PairedWeaponLeftHand);
+                                vert.Bitangent = TransformVertVec4ByBone(weaponLBone, vert.Bitangent, true, true, backward: !isDs3PairedWeaponLeftHand);
                             }
 
                             if (t == PartsType.RightWeapon)
@@ -520,7 +542,7 @@ namespace DSAnimStudio
                 
             }
 
-            var partsModel = new Model(partFlver);
+            var partsModel = new Model(partFlver, useSecondUV: isDs3Facegen);
 
             if (!PartsModels.ContainsKey(t))
             {
@@ -534,18 +556,18 @@ namespace DSAnimStudio
 
             GFX.ModelDrawer.AddModelInstance(partsModel, new FileInfo(p).Name, Transform.Default);
 
-            FLVER2.Bone wpDummyBone = null;
-            int wpDummyBoneIndex = -1;
+            FLVER2.Bone wpBone = null;
+            int wpBoneIndex = -1;
 
             if (t == PartsType.RightWeapon)
             {
-                wpDummyBone = weaponRBone;
-                wpDummyBoneIndex = weaponRBoneIndex;
+                wpBone = weaponRBone;
+                wpBoneIndex = weaponRBoneIndex;
             }
             else if (t == PartsType.LeftWeapon)
             {
-                wpDummyBone = weaponLBone;
-                wpDummyBoneIndex = weaponLBoneIndex;
+                wpBone = weaponLBone;
+                wpBoneIndex = weaponLBoneIndex;
             }
 
             //TexturePool.FlushDataOnly();
@@ -577,7 +599,12 @@ namespace DSAnimStudio
             //TexturePool.DestroyUnusedTextures();
             GC.Collect();
 
-            if (wpDummyBone != null)
+            if (t == PartsType.RightWeapon)
+                ClearWeaponDummies(isLeftHand: false);
+            else if (t == PartsType.LeftWeapon)
+                ClearWeaponDummies(isLeftHand: true);
+
+            if (wpBone != null)
             {
                 List<FLVER2.Dummy> wpDummies = new List<FLVER2.Dummy>();
 
@@ -588,41 +615,36 @@ namespace DSAnimStudio
 
                 foreach (var dmy in partFlver.Dummies)
                 {
-                    dmy.AttachBoneIndex = (short)wpDummyBoneIndex;
+                    dmy.AttachBoneIndex = (short)wpBoneIndex;
 
-                    if (t == PartsType.LeftWeapon)
+                    if (dmy.ReferenceID >= 100 && dmy.ReferenceID <= 130)
                     {
-                        dmy.ReferenceID = (short)(dmy.ReferenceID * -1);
+                        if (t == PartsType.LeftWeapon)
+                            dmy.ReferenceID = (short)(dmy.ReferenceID + 11000);
+                        else
+                            dmy.ReferenceID = (short)(dmy.ReferenceID + 10000);
                     }
 
-                    dmy.Position = TransformVertVec3ByBone(wpDummyBone, dmy.Position, isNormals: false, backward: false);
-                    dmy.Upward = TransformVertVec3ByBone(wpDummyBone, dmy.Upward, isNormals: true, backward: false);
-                    dmy.Forward = TransformVertVec3ByBone(wpDummyBone, dmy.Forward, isNormals: true, backward: false);
-
-                    dmy.DummyBoneIndex = (short)baseFlverDmyBoneIndex;
-
-                    bool needToAdd = true;
-
-                    foreach (var baseDmy in TaeInterop.CurrentModel.Dummies)
+                    if (dmy.DummyBoneIndex >= 0)
                     {
-                        if (baseDmy.ReferenceID == dmy.ReferenceID)
-                        {
-                            baseDmy.AttachBoneIndex = dmy.AttachBoneIndex;
-                            baseDmy.DummyBoneIndex = dmy.DummyBoneIndex;
-                            baseDmy.Position = dmy.Position;
-                            baseDmy.UseUpwardVector = dmy.UseUpwardVector;
-                            baseDmy.Forward = dmy.Forward;
-                            baseDmy.Upward = dmy.Upward;
-                            baseDmy.Color = dmy.Color;
+                        var dmyBone = partFlver.Bones[dmy.DummyBoneIndex];
 
-                            needToAdd = false;
-                        }
+                        dmy.Position = TransformVertVec3ByBone(dmyBone, dmy.Position, isNormals: false, upsideDown: false, backward: false);
+                        dmy.Upward = TransformVertVec3ByBone(dmyBone, dmy.Upward, isNormals: true, upsideDown: false, backward: false);
+                        dmy.Forward = TransformVertVec3ByBone(dmyBone, dmy.Forward, isNormals: true, upsideDown: false, backward: false);
                     }
 
-                    if (needToAdd)
-                    {
-                        TaeInterop.CurrentModel.Dummies.Add(dmy);
-                    }
+                    //var newPos = Vector3.Transform(new Vector3(dmy.Position.X, dmy.Position.Y, dmy.Position.Z), Matrix.CreateRotationX(MathHelper.PiOver2));
+
+                    //dmy.Position = new System.Numerics.Vector3(newPos.X, newPos.Y, newPos.Z);
+
+                    dmy.Position = TransformVertVec3ByBone(wpBone, dmy.Position, isNormals: false, backward: false);
+                    dmy.Upward = TransformVertVec3ByBone(wpBone, dmy.Upward, isNormals: true, backward: false);
+                    dmy.Forward = TransformVertVec3ByBone(wpBone, dmy.Forward, isNormals: true, backward: false);
+
+                    dmy.DummyBoneIndex =  (short)baseFlverDmyBoneIndex;
+
+                    TaeInterop.CurrentModel.Dummies.Add(dmy);
                 }
 
 

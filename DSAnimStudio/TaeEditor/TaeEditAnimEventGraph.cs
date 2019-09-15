@@ -82,8 +82,8 @@ namespace DSAnimStudio.TaeEditor
 
         public float AfterAutoScrollHorizontalMargin = 48;
 
-        public float ScrubScrollSpeed = 10;
-        public float ScrubScrollStartMargin = 256;
+        public float ScrubScrollSpeed = 8;
+        public float ScrubScrollStartMargin = 96;
 
         UnselectedMouseDragType currentUnselectedMouseDragType = UnselectedMouseDragType.None;
 
@@ -1237,6 +1237,7 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
+                            MainScreen.UpdateInspectorToSelection();
                             //currentDrag.Box.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
                         }
                         else if (currentDrag.DragType == BoxDragType.RightOfEventBox && currentDrag.Box != null)
@@ -1244,6 +1245,7 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
+                            MainScreen.UpdateInspectorToSelection();
                             //currentDrag.Box.DragRightSide(MainScreen.Input.MousePositionDelta.X);
                         }
                         else if (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.Box != null)
@@ -1251,6 +1253,7 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragXY;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
+                            MainScreen.UpdateInspectorToSelection();
                             //currentDrag.Box.DragMiddle(MainScreen.Input.MousePositionDelta.X);
                             currentDrag.ShiftBoxRow(MouseRow);
                         }
@@ -1270,6 +1273,8 @@ namespace DSAnimStudio.TaeEditor
                                 bool isModified = multiDrag.DragBoxToMouseAndCheckIsModified(actualMousePoint);
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
                             }
+
+                            MainScreen.UpdateInspectorToSelection();
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox)
                         {
@@ -1283,6 +1288,8 @@ namespace DSAnimStudio.TaeEditor
                                 bool isModified = multiDrag.DragBoxToMouseAndCheckIsModified(actualMousePoint);
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
                             }
+
+                            MainScreen.UpdateInspectorToSelection();
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
                         {
@@ -1303,6 +1310,8 @@ namespace DSAnimStudio.TaeEditor
                             }
 
                             MainScreen.Input.CursorType = MouseCursorType.DragXY;
+
+                            MainScreen.UpdateInspectorToSelection();
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
                             || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
@@ -1450,6 +1459,8 @@ namespace DSAnimStudio.TaeEditor
                                         copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
                                         copyOfBox.Row = copyOfCurrentBoxRow;
 
+                                        copyOfBox.MyEvent.ApplyRounding();
+
                                         MainScreen.SelectedTaeAnim.SetIsModified(
                                             MainScreen.SelectedTaeAnim.GetIsModified() ||
                                             (!MainScreen.IsReadOnlyFileMode && ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
@@ -1519,6 +1530,8 @@ namespace DSAnimStudio.TaeEditor
                                                 copiesOfBox[i].MyEvent.StartTime = copiesOfCurrentBoxStart[i];
                                                 copiesOfBox[i].MyEvent.EndTime = copiesOfCurrentBoxEnd[i];
                                                 copiesOfBox[i].Row = copiesOfCurrentBoxRow[i];
+
+                                                copiesOfBox[i].MyEvent.ApplyRounding();
 
                                                 MainScreen.SelectedTaeAnim.SetIsModified(
                                                     MainScreen.SelectedTaeAnim.GetIsModified() ||
@@ -2134,11 +2147,21 @@ namespace DSAnimStudio.TaeEditor
                     if ((ScrollViewer.Scroll.X < maxHorizontalScrollNeededForAnimEndToBeInScreen) ||
                         playbackCursorPixelX < ScrollViewer.Scroll.X)
                     {
-                        float distFromScrollToCursor = playbackCursorPixelX - centerOfScreenX;
+                        if (playbackCursorPixelX < ScrollViewer.Scroll.X)
+                        {
+                            ScrollViewer.Scroll.X = playbackCursorPixelX;
+                        }
+                        else
 
-                        ScrollViewer.Scroll.X += distFromScrollToCursor * 0.1f;
-                        ScrollViewer.Scroll.X = Math.Min(ScrollViewer.Scroll.X, maxHorizontalScrollNeededForAnimEndToBeInScreen);
-                        ScrollViewer.ClampScroll();
+                        {
+                            float distFromScrollToCursor = playbackCursorPixelX - centerOfScreenX;
+
+                            ScrollViewer.Scroll.X += distFromScrollToCursor * 0.1f;
+                            ScrollViewer.Scroll.X = Math.Min(ScrollViewer.Scroll.X, maxHorizontalScrollNeededForAnimEndToBeInScreen);
+                            ScrollViewer.ClampScroll();
+                        }
+
+                        
                     }
                 }
 

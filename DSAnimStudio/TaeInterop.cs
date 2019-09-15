@@ -17,45 +17,6 @@ namespace DSAnimStudio
     {
         public static void DEBUG_TEST_PlayerPartsLoad()
         {
-            
-
-            ChrAsm.EquipRWeapon = 306000;
-            ChrAsm.EquipLWeapon = -1;
-
-            ChrAsm.EquipHead = 350000;
-            ChrAsm.EquipBody = 351000;
-            ChrAsm.EquipArms = 352000;
-            ChrAsm.EquipLegs = 353000;
-
-            ChrAsm.LoadFace("FC_M_0000.partsbnd");
-            ChrAsm.LoadFaceGen("FG_A_0000.partsbnd");
-
-            ChrAsm.UpdateEquipment(forceReload: true);
-
-            if (Main.TAE_EDITOR.MenuBar["[TEST: PLAYER]"] == null)
-            {
-                FmgManager.LoadAllFMG();
-
-                Dictionary<string, Action> weaponChoices = new Dictionary<string, Action>();
-
-                foreach (var kvp in FmgManager.WeaponNames)
-                {
-                    if (string.IsNullOrWhiteSpace(kvp.Value))
-                        continue;
-
-                    if ((kvp.Key % 1000) != 0)
-                        continue;
-
-                    if (!weaponChoices.ContainsKey(kvp.Value))
-                        weaponChoices.Add(kvp.Value, () =>
-                        {
-                            ChrAsm.EquipRWeapon = kvp.Key;
-                            ChrAsm.UpdateEquipment();
-                        });
-                }
-
-                Main.TAE_EDITOR.MenuBar.AddItem("[TEST: PLAYER]", "Weapon Select", weaponChoices, () => ChrAsm.EquipRWeapon >= 0 ? FmgManager.WeaponNames[(int)ChrAsm.EquipRWeapon] : "");
-            }
 
         }
 
@@ -76,17 +37,24 @@ namespace DSAnimStudio
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = false;
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper] = true;
+
+            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = false;
             DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
             DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper] = true;
 
             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.WeaponDummyPoly] = true;
 
+            DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = false;
+
             GFX.SSAA = 2;
+            //GFX.MSAA = 2;
             DbgPrimDummyPolyCluster.GlobalRenderSizeMult = 2;
 
         }
 
         public static bool IsLoadingAnimation = false;
+
+        public static bool IsPlayerLoaded = false;
 
         public static void LoadContent()
         {
@@ -157,6 +125,16 @@ namespace DSAnimStudio
                 {
                     printer.AppendLine($"Texture '{fail.Key.Texture.Name}' failed to load.", Color.Red);
                 }
+
+                if (ChrAsm.EquipRWeapon >= 0 && ParamManager.EquipParamWeapon.ContainsKey(ChrAsm.EquipRWeapon))
+                {
+                    if (ChrAsm.EquipRWeapon >= 0 && FmgManager.WeaponNames.ContainsKey((int)ChrAsm.EquipRWeapon))
+                        printer.AppendLine($"WPN Name: {FmgManager.WeaponNames[(int)ChrAsm.EquipRWeapon]}");
+                    printer.AppendLine($"WPN ID: {ChrAsm.EquipRWeapon}");
+                    printer.AppendLine($"WPN Behavior Variation: {ParamManager.EquipParamWeapon[ChrAsm.EquipRWeapon].BehaviorVariationID}");
+                    printer.AppendLine($"WPN Category: {ParamManager.EquipParamWeapon[ChrAsm.EquipRWeapon].WepMotionCategory}");
+                    printer.AppendLine($"WPN Special ATK Category: {ParamManager.EquipParamWeapon[ChrAsm.EquipRWeapon].SpAtkCategory}");
+                }
             }
 
             
@@ -175,19 +153,7 @@ namespace DSAnimStudio
             printer.Draw();
         }
 
-        public static bool EventSim_Opacity = true;
-        public static bool EventSim_ModelMasks = true;
-
         public static bool Debug_LockToTPose = false;
-
-        public static string c0000_Parts_HD = "AM_A_9220";
-        public static string c0000_Parts_BD = "AM_M_9510";
-        public static string c0000_Parts_AM = "AM_M_9400";
-        public static string c0000_Parts_LG = "AM_M_9220";
-        public static string c0000_Parts_WP_L = "WP_A_1504";
-        public static string c0000_Parts_WP_R = "WP_A_0220";
-        public static int c0000_Parts_WP_R_ModelIndex = 0;
-        public static int c0000_Parts_WP_L_ModelIndex = 0;
 
         private static int InterleavedCalculationState = 0;
         public static int InterleavedCalculationDivisor = 1;
@@ -234,12 +200,6 @@ namespace DSAnimStudio
         public static Exception HkxAnimException = null;
 
         public static bool IsSnapTo30FPS = false;
-
-        public static bool ShowSFXSpawnWithCyanMarkers = true;
-
-        public static bool PlaySoundEffectOnSoundEvents = false;
-        public static bool PlaySoundEffectOnHighlightedEvents = false;
-        public static bool PlaySoundEffectOnHighlightedEvents_Loop = true;
 
         /// <summary>
         /// The current event graph's playback cursor.
@@ -412,199 +372,11 @@ namespace DSAnimStudio
         public static float ModelViewerAspectRatio =>
             1.0f * ModelViewerWindowRect.Width / ModelViewerWindowRect.Height;
 
-        public static void PlaybackOnEventExit(TaeEditor.TaeEditAnimEventBox evBox)
-        {
-            if (IsLoadingAnimation)
-            {
-                return;
-            }
-
-            if (evBox.MyEvent.Template == null)
-                return;
-
-            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
-            {
-                if (DummyPolyManager.HitboxPrimitives.ContainsKey(evBox))
-                {
-                    foreach (var hitbox in DummyPolyManager.HitboxPrimitives[evBox])
-                    {
-                        hitbox.EnableDraw = false;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Called one time when the playback cursor first hits
-        /// an event's start.
-        /// </summary>
-        public static void PlaybackHitEventStart(TaeEditor.TaeEditAnimEventBox evBox)
-        {
-            if (IsLoadingAnimation)
-            {
-                return;
-            }
-
-            if (evBox.MyEvent.Template == null)
-                return;
-
-            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
-            {
-                if (DummyPolyManager.HitboxPrimitives.ContainsKey(evBox))
-                {
-                    foreach (var hitbox in DummyPolyManager.HitboxPrimitives[evBox])
-                    {
-                        hitbox.EnableDraw = true;
-                    }
-                }
-            }
-
-            // epic
-            if (PlaySoundEffectOnSoundEvents && evBox.MyEvent.TypeName.ToUpper().Contains("SOUND"))
-            {
-                //DBG.SE["selected_event_hit.wav"].Play();
-                //System.Media.SystemSounds.Beep.Play();
-                TaeSoundManager.SoundType soundType = (TaeSoundManager.SoundType)((int)evBox.MyEvent.Parameters["SoundType"]);
-                int soundID = (int)evBox.MyEvent.Parameters["SoundID"];
-                if (!TaeSoundManager.Play(soundType, soundID, 0.35f))
-                {
-                    DBG.Sounds["sound_event_hit.wav"].Play();
-                }
-            }
-            else if (PlaySoundEffectOnHighlightedEvents && (Main.TAE_EDITOR.SelectedEventBox == evBox || Main.TAE_EDITOR.MultiSelectedEventBoxes.Contains(evBox)))
-            {
-                DBG.Sounds["sound_event_hit.wav"].Play();
-            }
-        }
-
-        public static void PlaybackJustStarted()
-        {
-            GFX.FlverOpacity = 1.0f;
-            GFX.ModelDrawer.DefaultAllMaskValues();
-        }
-
-        /// <summary>
-        /// Called every frame during playback while the playback
-        /// cursor is within the timeframe of an event.
-        /// </summary>
-        public static void PlaybackDuringEventSpan(TaeEditor.TaeEditAnimEventBox evBox)
-        {
-            if (IsLoadingAnimation)
-            {
-                return;
-            }
-
-            if (EventSim_Opacity && evBox.MyEvent.TypeName == "SetOpacityKeyframe")
-            {
-                
-                float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
-                float timeSinceFadeStart = (float)PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
-                float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
-                float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
-
-                GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
-
-                //GFX.FlverOpacity = fadeStartOpacity + ((timeSinceFadeStart / fadeDuration) * (fadeEndOpacity - fadeStartOpacity));
-            }
-
-            if (EventSim_ModelMasks && evBox.MyEvent.TypeName == "HideModelMask" ||
-                evBox.MyEvent.TypeName == "ShowModelMask" ||
-                evBox.MyEvent.TypeName == "ChangeChrDrawMask")
-            {
-                for (int i = 0; i < 32; i++)
-                {
-                    if (evBox.MyEvent.Parameters.Template.ContainsKey($"Mask{(i + 1)}"))
-                    {
-                        if (evBox.MyEvent.TypeName == "ShowModelMask")
-                        {
-                            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
-                                GFX.ModelDrawer.Mask[i] = true;
-                        }
-                        else if (evBox.MyEvent.TypeName == "HideModelMask")
-                        {
-                            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
-                                GFX.ModelDrawer.Mask[i] = false;
-                        }
-                        else if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
-                        {
-                            var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
-
-                            // Before you get out the torch, the game 
-                            // uses some value other than 0 to SKIP
-                            if (maskByte == 0)
-                                GFX.ModelDrawer.Mask[i] = false;
-                            else if (maskByte == 1)
-                                GFX.ModelDrawer.Mask[i] = true;
-                        }
-                    }
-                }
-            }
-
-            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
-            {
-                if (DummyPolyManager.HitboxPrimitives.ContainsKey(evBox))
-                {
-
-                    if (GFX.ModelDrawer.CurrentNpcParamID >= 0)
-                    {
-                        var atkParam = ParamManager.GetNpcBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
-
-                        if (atkParam != null)
-                        {
-                            foreach (var hitbox in DummyPolyManager.HitboxPrimitives[evBox])
-                            {
-                                DummyPolyManager.UpdateHitboxPrimitive(evBox, atkParam);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var atkParam = ParamManager.GetPlayerBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
-
-                        if (atkParam != null)
-                        {
-                            foreach (var hitbox in DummyPolyManager.HitboxPrimitives[evBox])
-                            {
-                                DummyPolyManager.UpdateHitboxPrimitive(evBox, atkParam);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (ShowSFXSpawnWithCyanMarkers && evBox.MyEvent.Template != null)
-            {
-                //foreach (var key in evBox.MyEvent.Parameters.Template.Keys)
-                //{
-                //    if (key.StartsWith("DummyPolyID"))
-                //    {
-                //        var dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters[key]);
-                //        foreach (var dmy in AnimatedDummies.Values)
-                //        {
-                //            if (dmy.DummyPoly.ReferenceID == dummyPolyID)
-                //            {
-                //                dmy.HelperSize = 2;
-                //            }
-                //        }
-                //    }
-                //}
-
-                //throw new NotImplementedException();
-            }
-
-            if (PlaySoundEffectOnHighlightedEvents_Loop && (Main.TAE_EDITOR.SelectedEventBox == evBox || Main.TAE_EDITOR.MultiSelectedEventBoxes.Contains(evBox)))
-            {
-                DBG.BeepVolume = 1.0f;
-            }
-        }
-
         public static void OnAnimFrameChange(bool isScrubbing)
         {
             if (isScrubbing)
             {
-                GFX.FlverOpacity = 1;
-                //GFX.ModelDrawer.SetAllMask(true);
-                GFX.ModelDrawer.DefaultAllMaskValues();
+                EventSim.OnSimulationScrub();
             }
 
             if (IsLoadingAnimation)
@@ -694,6 +466,14 @@ namespace DSAnimStudio
                     var transform = new Transform(0, 0, 0, 0, 0, 0);
 
                     var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(AnibndPath);
+
+                    IsPlayerLoaded = chrNameBase.ToLower().EndsWith("c0000");
+
+                    if (IsPlayerLoaded)
+                    {
+                        DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = true;
+                        GFX.World.ModelHeight_ForOrbitCam = 2;
+                    }
 
                     var folder = new FileInfo(AnibndPath).DirectoryName;
 
@@ -833,10 +613,13 @@ namespace DSAnimStudio
 
                     innerProgress.Report(0.75);
 
-                    var model = new Model(CurrentModel);
+                    var model = new Model(CurrentModel, useSecondUV: false);
                     var modelInstance = new ModelInstance("Character Model", model, Transform.Default, -1, -1, -1, -1);
                     GFX.ModelDrawer.AddModelInstance(model, "", Transform.Default);
-                    GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
+
+                    if (!IsPlayerLoaded)
+                        GFX.World.ModelHeight_ForOrbitCam = model.Bounds.Max.Y;
+
                     GFX.World.OrbitCamReset();
 
                     CreateMenuBarViewportSettings(menuBar);
@@ -856,25 +639,28 @@ namespace DSAnimStudio
                     //    Environment.DrawCubemap = true;
                     //}
 
-                    ReadParamsForSelectedCharacter();
+                    LoadParams();
 
-                    GFX.ModelDrawer.SelectedMaskPreset = ModelDrawer.DEFAULT_PRESET_NAME;
-
-                    if (GFX.ModelDrawer.MaskPresets.Count > 1)
+                    if (!IsPlayerLoaded)
                     {
-                        //foreach (var kvp in GFX.ModelDrawer.MaskPresets.Skip(1))
-                        //{
-                        //    if (!GFX.ModelDrawer.MaskPresetsInvisibility[kvp.Key])
-                        //    {
-                        //        GFX.ModelDrawer.SelectedMaskPreset = kvp.Key;
-                        //        GFX.ModelDrawer.DefaultAllMaskValues();
-                        //        break;
-                        //    }
-                        //}
-                        GFX.ModelDrawer.SelectedMaskPreset = GFX.ModelDrawer.MaskPresets.Keys.ElementAt(1);
+                        GFX.ModelDrawer.NPC_SelectedMaskPreset = ModelDrawer.NPC_DEFAULT_PRESET_NAME;
+
+                        if (GFX.ModelDrawer.MaskPresets.Count > 1)
+                        {
+                            //foreach (var kvp in GFX.ModelDrawer.MaskPresets.Skip(1))
+                            //{
+                            //    if (!GFX.ModelDrawer.MaskPresetsInvisibility[kvp.Key])
+                            //    {
+                            //        GFX.ModelDrawer.SelectedMaskPreset = kvp.Key;
+                            //        GFX.ModelDrawer.DefaultAllMaskValues();
+                            //        break;
+                            //    }
+                            //}
+                            GFX.ModelDrawer.NPC_SelectedMaskPreset = GFX.ModelDrawer.MaskPresets.Keys.ElementAt(1);
+                        }
                     }
 
-                    CreateMenuBarNPCSettings(menuBar);
+                    CreateMenuBarNPCOrPlayerSettings(menuBar);
 
                     DummyPolyManager.ClearAllHitboxPrimitives();
 
@@ -889,16 +675,19 @@ namespace DSAnimStudio
             }
         }
 
-        public static void ReadParamsForSelectedCharacter()
+        public static void LoadParams()
         {
             var folder = new FileInfo(AnibndPath).DirectoryName;
             var lastSlashInFolder = folder.LastIndexOf("\\");
             if (ParamManager.LoadParamBND(CurrentHkxVariation, folder.Substring(0, lastSlashInFolder)))
             {
-                GFX.ModelDrawer.ReadDrawMaskPresets(
-                ParamManager.GetParam(CurrentHkxVariation, "NpcParam"),
-                CurrentHkxVariation,
-                AnibndPath);
+                if (!IsPlayerLoaded)
+                {
+                    GFX.ModelDrawer.NPC_ReadDrawMaskPresets(
+                        ParamManager.GetParam(CurrentHkxVariation, "NpcParam"),
+                        CurrentHkxVariation,
+                        AnibndPath);
+                }
             }
 
         }
@@ -908,8 +697,6 @@ namespace DSAnimStudio
         /// </summary>
         public static void OnAnimationSelected(IReadOnlyDictionary<string, TAE> taeDict, TAE tae, TAE.Animation anim)
         {
-            GFX.FlverOpacity = 1.0f;
-
             if (HaventLoadedAnythingYet)
                 HaventLoadedAnythingYet = false;
 
@@ -919,8 +706,7 @@ namespace DSAnimStudio
             var forDebug = AllHkxFiles;
             CurrentAnimationHKXBytes = AllHkxFiles.FirstOrDefault(x => x.Key.ToUpper().Contains(CurrentAnimationName.ToUpper())).Value;
 
-            DummyPolyManager.ClearAllHitboxPrimitives();
-            DummyPolyManager.BuildAllHitboxPrimitives();
+            EventSim.OnNewAnimSelected();
 
             if (IncompatibleHavokVersion)
             {
@@ -1022,7 +808,7 @@ namespace DSAnimStudio
             }
 #endif
 
-
+            OnAnimFrameChange(true);
         }
 
         //public static void UpdateFlverMatrices()
@@ -1114,26 +900,26 @@ namespace DSAnimStudio
             Vector3 position = Vector3.Zero;
 
             var scaleX = track.SplineScale?.ChannelX == null
-                ? track.StaticScale.X : track.SplineScale.GetValueX(frame);
+                ? (additiveBlend ? 1 : track.StaticScale.X) : track.SplineScale.GetValueX(frame);
             var scaleY = track.SplineScale?.ChannelY == null
-                ? track.StaticScale.Y : track.SplineScale.GetValueY(frame);
+                ? (additiveBlend ? 1 : track.StaticScale.Y) : track.SplineScale.GetValueY(frame);
             var scaleZ = track.SplineScale?.ChannelZ == null
-                ? track.StaticScale.Z : track.SplineScale.GetValueZ(frame);
+                ? (additiveBlend ? 1 : track.StaticScale.Z) : track.SplineScale.GetValueZ(frame);
 
-            if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) &&
-                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
+            if (!additiveBlend && (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineX) &&
+                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX)))
             {
                 scaleX = skeleTransform.Scale.Vector.X;
             }
 
-            if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) &&
-                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
+            if (!additiveBlend && (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineY) &&
+                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY)))
             {
                 scaleY = skeleTransform.Scale.Vector.Y;
             }
 
-            if (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) &&
-                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
+            if (!additiveBlend && (!track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.SplineZ) &&
+                !track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ)))
             {
                 scaleZ = skeleTransform.Scale.Vector.Z;
             }
@@ -1839,30 +1625,240 @@ namespace DSAnimStudio
             }
         }
 
-        public static void CreateMenuBarNPCSettings(TaeEditor.TaeMenuBarBuilder menu)
+        public static void CreateMenuBarNPCOrPlayerSettings(TaeEditor.TaeMenuBarBuilder menu)
         {
             Main.TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
             {
-                menu.ClearItem("NPC Settings");
-
-                var modelMaskPresetDict = new Dictionary<string, Action>();
-
-                foreach (var kvp in GFX.ModelDrawer.MaskPresets)
+                if (!IsPlayerLoaded)
                 {
-                    modelMaskPresetDict.Add(kvp.Key, () =>
+                    menu["NPC Settings"].Visible = true;
+                    menu["NPC Settings"].Enabled = true;
+
+                    menu["Player Settings"].Visible = false;
+                    menu["Player Settings"].Enabled = false;
+
+                    menu.ClearItem("NPC Settings");
+
+                    var modelMaskPresetDict = new Dictionary<string, Action>();
+
+                    foreach (var kvp in GFX.ModelDrawer.MaskPresets)
                     {
-                        GFX.ModelDrawer.SelectedMaskPreset = kvp.Key;
-                        GFX.ModelDrawer.DefaultAllMaskValues();
+                        modelMaskPresetDict.Add(kvp.Key, () =>
+                        {
+                            GFX.ModelDrawer.NPC_SelectedMaskPreset = kvp.Key;
+                            GFX.ModelDrawer.DefaultAllMaskValues();
+                        });
+                    }
+
+                    menu.AddItem("NPC Settings", "Model Mask Preset", modelMaskPresetDict, () => GFX.ModelDrawer.NPC_SelectedMaskPreset);
+
+                    menu["NPC Settings"].Font = new System.Drawing.Font(
+                        menu["NPC Settings"].Font.Name,
+                        menu["NPC Settings"].Font.Size,
+                        System.Drawing.FontStyle.Bold);
+                }
+                else
+                {
+                    menu["NPC Settings"].Visible = false;
+                    menu["NPC Settings"].Enabled = false;
+
+                    menu["Player Settings"].Visible = true;
+                    menu["Player Settings"].Enabled = true;
+
+                    menu.ClearItem("Player Settings");
+
+                    ChrAsm.LoadFace("FC_M_0000.partsbnd");
+
+                    // TODO: TEST BLOODBORNE
+                    if (CurrentHkxVariation == HKX.HKXVariation.HKXDS3 || CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne)
+                    {
+                        ChrAsm.LoadFaceGen("FG_A_0100.partsbnd");
+                        //ChrAsm.LoadHair("HR_A_0002.partsbnd");
+                    }
+                    else
+                    {
+                        ChrAsm.LoadFaceGen("FG_A_0000.partsbnd");
+                        //ChrAsm.LoadHair("HR_M_0001.partsbnd");
+
+                        var fgbnd = BND3.Read($@"{InterrootPath}\facegen\FaceGen.fgbnd");
+                        foreach (var f in fgbnd.Files)
+                        {
+                            if (TPF.Is(f.Bytes))
+                            {
+                                TexturePool.AddTpf(TPF.Read(f.Bytes));
+                            }
+                        }
+
+                        GFX.ModelDrawer.RequestTextureLoad();
+                    }
+                    
+
+                    FmgManager.LoadAllFMG();
+
+                    Dictionary<string, Action> weaponChoicesR = new Dictionary<string, Action>();
+                    Dictionary<string, Action> weaponChoicesL = new Dictionary<string, Action>();
+
+                    weaponChoicesR.Add("None", () =>
+                    {
+                        ChrAsm.EquipRWeapon = -1;
+                        ChrAsm.UpdateEquipment();
                     });
+
+                    weaponChoicesL.Add("None", () =>
+                    {
+                        ChrAsm.EquipLWeapon = -1;
+                        ChrAsm.UpdateEquipment();
+                    });
+
+                    foreach (var kvp in FmgManager.WeaponNames)
+                    {
+                        if (string.IsNullOrWhiteSpace(kvp.Value))
+                            continue;
+
+                        if (CurrentHkxVariation == HKX.HKXVariation.HKXDS1)
+                        {
+                            if ((kvp.Key % 1000) != 0)
+                                continue;
+                        }
+                        else
+                        {
+                            if ((kvp.Key % 10000) != 0)
+                                continue;
+                        }
+
+
+
+                        if (!weaponChoicesR.ContainsKey(kvp.Value))
+                            weaponChoicesR.Add(kvp.Value, () =>
+                            {
+                                ChrAsm.EquipRWeapon = kvp.Key;
+                                ChrAsm.UpdateEquipment();
+                            });
+
+                        if (!weaponChoicesL.ContainsKey(kvp.Value))
+                            weaponChoicesL.Add(kvp.Value, () =>
+                            {
+                                ChrAsm.EquipLWeapon = kvp.Key;
+                                ChrAsm.UpdateEquipment();
+                            });
+                    }
+
+                    menu.AddItem("Player Settings", "R Weapon Select", weaponChoicesR, 
+                        () => (ChrAsm.EquipRWeapon >= 0 && FmgManager.WeaponNames.ContainsKey((int)ChrAsm.EquipRWeapon)) 
+                        ? FmgManager.WeaponNames[(int)ChrAsm.EquipRWeapon] : "None");
+
+                    menu.AddItem("Player Settings", "L Weapon Select", weaponChoicesL, 
+                        () => (ChrAsm.EquipLWeapon >= 0 && FmgManager.WeaponNames.ContainsKey((int)ChrAsm.EquipLWeapon)) 
+                        ? FmgManager.WeaponNames[(int)ChrAsm.EquipLWeapon] : "None");
+
+                    menu.AddItem("Player Settings", "Preview L Weapon Hitboxes", () => DummyPolyManager.IsViewingLeftHandHit, b => DummyPolyManager.IsViewingLeftHandHit = b);
+
+                    menu.AddSeparator("Player Settings");
+
+                    Dictionary<string, Action> hdChoices = new Dictionary<string, Action>();
+                    Dictionary<string, Action> bdChoices = new Dictionary<string, Action>();
+                    Dictionary<string, Action> amChoices = new Dictionary<string, Action>();
+                    Dictionary<string, Action> lgChoices = new Dictionary<string, Action>();
+
+                    hdChoices.Add("None", () =>
+                    {
+                        ChrAsm.EquipHead = -1;
+                        ChrAsm.UpdateEquipment();
+                    });
+
+                    bdChoices.Add("None", () =>
+                    {
+                        ChrAsm.EquipBody = -1;
+                        ChrAsm.UpdateEquipment();
+                    });
+
+                    amChoices.Add("None", () =>
+                    {
+                        ChrAsm.EquipArms = -1;
+                        ChrAsm.UpdateEquipment();
+                    });
+
+                    lgChoices.Add("None", () =>
+                    {
+                        ChrAsm.EquipLegs = -1;
+                        ChrAsm.UpdateEquipment();
+                    });
+
+                    foreach (var kvp in FmgManager.ProtectorNames_HD)
+                    {
+                        if (string.IsNullOrWhiteSpace(kvp.Value))
+                            continue;
+
+                        if (!hdChoices.ContainsKey(kvp.Value))
+                            hdChoices.Add(kvp.Value, () =>
+                            {
+                                ChrAsm.EquipHead = kvp.Key;
+                                ChrAsm.UpdateEquipment();
+                            });
+                    }
+
+                    foreach (var kvp in FmgManager.ProtectorNames_BD)
+                    {
+                        if (string.IsNullOrWhiteSpace(kvp.Value))
+                            continue;
+
+                        if (!bdChoices.ContainsKey(kvp.Value))
+                            bdChoices.Add(kvp.Value, () =>
+                            {
+                                ChrAsm.EquipBody = kvp.Key;
+                                ChrAsm.UpdateEquipment();
+                            });
+                    }
+
+                    foreach (var kvp in FmgManager.ProtectorNames_AM)
+                    {
+                        if (string.IsNullOrWhiteSpace(kvp.Value))
+                            continue;
+
+                        if (!amChoices.ContainsKey(kvp.Value))
+                            amChoices.Add(kvp.Value, () =>
+                            {
+                                ChrAsm.EquipArms = kvp.Key;
+                                ChrAsm.UpdateEquipment();
+                            });
+                    }
+
+                    foreach (var kvp in FmgManager.ProtectorNames_LG)
+                    {
+                        if (string.IsNullOrWhiteSpace(kvp.Value))
+                            continue;
+
+                        if (!lgChoices.ContainsKey(kvp.Value))
+                            lgChoices.Add(kvp.Value, () =>
+                            {
+                                ChrAsm.EquipLegs = kvp.Key;
+                                ChrAsm.UpdateEquipment();
+                            });
+                    }
+
+                    menu.AddItem("Player Settings", "Head Select", hdChoices,
+                        () => (ChrAsm.EquipHead >= 0 && FmgManager.ProtectorNames_HD.ContainsKey((int)ChrAsm.EquipHead))
+                        ? FmgManager.ProtectorNames_HD[(int)ChrAsm.EquipHead] : "None");
+
+                    menu.AddItem("Player Settings", "Body Select", bdChoices,
+                       () => (ChrAsm.EquipBody >= 0 && FmgManager.ProtectorNames_BD.ContainsKey((int)ChrAsm.EquipBody))
+                       ? FmgManager.ProtectorNames_BD[(int)ChrAsm.EquipBody] : "None");
+
+                    menu.AddItem("Player Settings", "Arms Select", amChoices,
+                       () => (ChrAsm.EquipArms >= 0 && FmgManager.ProtectorNames_AM.ContainsKey((int)ChrAsm.EquipArms))
+                       ? FmgManager.ProtectorNames_AM[(int)ChrAsm.EquipArms] : "None");
+
+                    menu.AddItem("Player Settings", "Legs Select", lgChoices,
+                       () => (ChrAsm.EquipLegs >= 0 && FmgManager.ProtectorNames_LG.ContainsKey((int)ChrAsm.EquipLegs))
+                       ? FmgManager.ProtectorNames_LG[(int)ChrAsm.EquipLegs] : "None");
+
+                    menu["Player Settings"].Font = new System.Drawing.Font(
+                        menu["Player Settings"].Font.Name,
+                        menu["Player Settings"].Font.Size,
+                        System.Drawing.FontStyle.Bold);
                 }
 
-                menu.AddItem("NPC Settings", "Model Mask Preset", modelMaskPresetDict, () => GFX.ModelDrawer.SelectedMaskPreset);
-
-                menu["NPC Settings"].Enabled = true;
-                menu["NPC Settings"].Font = new System.Drawing.Font(
-                    menu["NPC Settings"].Font.Name,
-                    menu["NPC Settings"].Font.Size, 
-                    System.Drawing.FontStyle.Bold);
+                
             }));
         }
 
@@ -1870,12 +1866,12 @@ namespace DSAnimStudio
         {
             Main.TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
             {
-                menu.ClearItem("3D Preview/Items In Scene");
+                menu.ClearItem("Scene");
 
-                menu.AddItem("3D Preview/Items In Scene", "Render Meshes", () => !GFX.HideFLVERs,
+                menu.AddItem("Scene", "Render Meshes", () => !GFX.HideFLVERs,
                     b => GFX.HideFLVERs = !b);
 
-                menu.AddItem("3D Preview/Items In Scene/Toggle Individual Meshes", "Show All", () =>
+                menu.AddItem("Scene/Toggle Individual Meshes", "Show All", () =>
                 {
                     foreach (var model in GFX.ModelDrawer.Models)
                     {
@@ -1886,7 +1882,7 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddItem("3D Preview/Items In Scene/Toggle Individual Meshes", "Hide All", () =>
+                menu.AddItem("Scene/Toggle Individual Meshes", "Hide All", () =>
                 {
                     foreach (var model in GFX.ModelDrawer.Models)
                     {
@@ -1897,13 +1893,13 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddSeparator("3D Preview/Items In Scene/Toggle Individual Meshes");
+                menu.AddSeparator("Scene/Toggle Individual Meshes");
 
                 foreach (var model in GFX.ModelDrawer.Models)
                 {
                     int i = 0;
                     foreach (var sm in model.GetSubmeshes())
-                        menu.AddItem("3D Preview/Items In Scene/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
+                        menu.AddItem("Scene/Toggle Individual Meshes", $"{++i}: '{sm.MaterialName}'", () => sm.IsVisible, b => sm.IsVisible = b);
                 }
 
                 Dictionary<int, List<FlverSubmeshRenderer>> modelMaskMap = new Dictionary<int, List<FlverSubmeshRenderer>>();
@@ -1919,7 +1915,7 @@ namespace DSAnimStudio
 
                 }
 
-                menu.AddItem("3D Preview/Items In Scene/Toggle By Model Mask", "Show All", () =>
+                menu.AddItem("Scene/Toggle By Model Mask", "Show All", () =>
                 {
                     foreach (var kvp in modelMaskMap)
                     {
@@ -1930,7 +1926,7 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddItem("3D Preview/Items In Scene/Toggle By Model Mask", "Hide All", () =>
+                menu.AddItem("Scene/Toggle By Model Mask", "Hide All", () =>
                 {
                     foreach (var kvp in modelMaskMap)
                     {
@@ -1941,13 +1937,13 @@ namespace DSAnimStudio
                     }
                 });
 
-                menu.AddSeparator("3D Preview/Items In Scene/Toggle By Model Mask");
+                menu.AddSeparator("Scene/Toggle By Model Mask");
 
                 foreach (var kvp in modelMaskMap.OrderBy(asdf => asdf.Key))
                 {
                     if (kvp.Key >= 0)
                     {
-                        menu.AddItem("3D Preview/Items In Scene/Toggle By Model Mask",
+                        menu.AddItem("Scene/Toggle By Model Mask",
                         $"Model Mask {kvp.Key}",
                         () => GFX.ModelDrawer.Mask[kvp.Key],
                         b => GFX.ModelDrawer.Mask[kvp.Key] = b);
@@ -1955,20 +1951,20 @@ namespace DSAnimStudio
                     
                 }
 
-                menu.AddItem("3D Preview/Items In Scene", "Render HKX Skeleton (Yellow)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
+                menu.AddItem("Scene", "Render HKX Skeleton (Yellow)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
 
-                menu.AddItem("3D Preview/Items In Scene", "Render FLVER Skeleton (Purple)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
+                menu.AddItem("Scene", "Render FLVER Skeleton (Purple)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = b);
 
-                menu.AddItem("3D Preview/Items In Scene", "Render FLVER Skeleton Bounding Boxes (Orange)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
-                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
+                //menu.AddItem("Scene", "Render FLVER Skeleton Bounding Boxes (Orange)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
+                //    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
 
-                menu.AddItem("3D Preview/Items In Scene", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                menu.AddItem("Scene", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-                menu.AddItem("3D Preview/Items In Scene", "[TEMP] Render DummyPoly Hit Spheres", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper],
-                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper] = b);
+                //menu.AddItem("Scene", "[TEMP] Render DummyPoly Hit Spheres", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper],
+                //    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPolyHelper] = b);
 
                 //menu.AddItem("3D Preview/Items In Scene", "Render DummyPoly ID Tags", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                 //    b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);

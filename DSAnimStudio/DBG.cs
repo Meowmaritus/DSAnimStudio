@@ -54,7 +54,7 @@ namespace DSAnimStudio
         public static void CreateDebugPrimitives()
         {
             // This is the green grid, which is just hardcoded lel
-            DbgPrim_Grid = new DbgPrimWireGrid(Color.Green, Color.Green, 100, 1);
+            DbgPrim_Grid = new DbgPrimWireGrid(new Color(32, 112, 39), new Color(32, 112, 39), 100, 1);
             //DbgPrim_Grid.OverrideColor = Color.Green;
             DbgPrim_Skybox = new DbgPrimSolidSkybox();
 
@@ -93,7 +93,7 @@ namespace DSAnimStudio
 
         public static bool ShowPrimitiveNametags = true;
         public static bool SimpleTextLabelSize = false;
-        public static float PrimitiveNametagSize = 1f;
+        public static float PrimitiveNametagSize = 1;
 
         public static DbgPrimWireGrid DbgPrim_Grid;
         public static DbgPrimSolidSkybox DbgPrim_Skybox;
@@ -147,6 +147,29 @@ namespace DSAnimStudio
                 DbgPrim_Grid.Draw(gameTime, null);
         }
 
+        public static void DrawPrimitiveNames(GameTime gameTime)
+        {
+            lock (_lock_primitives)
+            {
+                GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, blendState: BlendState.AlphaBlend, samplerState: SamplerState.LinearWrap);
+                foreach (var p in GetPrimitivesByDistance())
+                {
+                    if (ShowPrimitiveNametags)
+                    {
+                        if (p.Name != null && p.EnableNameDraw && DBG.CategoryEnableNameDraw[p.Category] && (p.EnableDraw && DBG.CategoryEnableDraw[p.Category]))
+                        {
+                            DrawTextOn3DLocation(Vector3.Transform(Vector3.Zero, p.Transform.WorldMatrix), p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
+                            //Draw3DBillboard(p.Name, p.Transform.WorldMatrix, p.NameColor);
+                        }
+
+                        p.LabelDraw();
+                        //p.LabelDraw_Billboard();
+                    }
+                }
+                GFX.SpriteBatch.End();
+            }
+        }
+
         public static void DrawPrimitives(GameTime gameTime)
         {
             if (BeepVolume > 0)
@@ -156,11 +179,10 @@ namespace DSAnimStudio
 
             PrimitivesMarkedForDeletion.Clear();
 
-            
-
             //if (Environment.DrawCubemap)
             //    GFX.ModelDrawer.DrawSkyboxes();
 
+            DummyPolyManager.UpdateAllHitboxPrimitives();
             
 
             lock (_lock_primitives)
@@ -172,26 +194,10 @@ namespace DSAnimStudio
             }
 
             //GFX.SpriteBatch.Begin();
-            if (ShowGrid)
-                DbgPrim_Grid.LabelDraw_Billboard();
+            //if (ShowGrid)
+            //    DbgPrim_Grid.LabelDraw_Billboard();
 
-            lock (_lock_primitives)
-            {
-                foreach (var p in GetPrimitivesByDistance())
-                {
-                    if (ShowPrimitiveNametags)
-                    {
-                        if (p.Name != null && p.EnableNameDraw && DBG.CategoryEnableNameDraw[p.Category] && (p.EnableDraw && DBG.CategoryEnableDraw[p.Category]))
-                        {
-                            //DrawTextOn3DLocation(Vector3.Transform(Vector3.Zero, p.Transform.WorldMatrix), p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
-                            Draw3DBillboard(p.Name, p.Transform.WorldMatrix, p.NameColor);
-                        }
-                            
-
-                        p.LabelDraw_Billboard();
-                    }
-                }
-            }
+            
             //GFX.SpriteBatch.End();
 
             foreach (var p in PrimitivesMarkedForDeletion)
@@ -425,14 +431,55 @@ namespace DSAnimStudio
                screenPos3D.Y > GFX.Device.Viewport.Height)
                 return;
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y + 2),
-                Color.Black, 0, Vector2.Zero, 1.0f, SpriteEffects.None,
+            screenPos3D += new Vector3(32, 32, 0);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y + 2),
+                Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
                 0.0001f);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y - 2),
+                Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
+                0.0001f);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+                new Vector2((int)screenPos3D.X - 2, (int)screenPos3D.Y),
+                Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
+                0.0001f);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+                new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y),
+                Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
+                0.0001f);
+
+
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+               new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y + 2),
+               Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
+               0.0001f);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+                new Vector2((int)screenPos3D.X - 2, (int)screenPos3D.Y - 2),
+                Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
+                0.0001f);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+                new Vector2((int)screenPos3D.X - 2, (int)screenPos3D.Y + 2),
+                Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
+                0.0001f);
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
+                new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y - 2),
+                Color.Black, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
+                0.0001f);
+
+
+
+            GFX.SpriteBatch.DrawString(DEBUG_FONT_SMALL, text,
                 new Vector2((int)screenPos3D.X, (int)screenPos3D.Y),
-                color, 0, Vector2.Zero, 1.0f, SpriteEffects.None,
+                color * 2, 0, Vector2.Zero, physicalHeight, SpriteEffects.None,
                 0);
 
             if (startAndEndSpriteBatchForMe)

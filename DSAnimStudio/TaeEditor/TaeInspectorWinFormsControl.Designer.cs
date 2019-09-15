@@ -46,9 +46,9 @@
             this.labelEventType.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.labelEventType.Location = new System.Drawing.Point(4, 2);
             this.labelEventType.Name = "labelEventType";
-            this.labelEventType.Size = new System.Drawing.Size(209, 28);
+            this.labelEventType.Size = new System.Drawing.Size(226, 42);
             this.labelEventType.TabIndex = 2;
-            this.labelEventType.Text = "(Nothing Selected)";
+            this.labelEventType.Text = "(Nothing Selected)\r\n0.00 -> 0.00 (0.00 sec duration)";
             this.labelEventType.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // buttonChangeType
@@ -56,12 +56,12 @@
             this.buttonChangeType.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonChangeType.Enabled = false;
             this.buttonChangeType.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonChangeType.Location = new System.Drawing.Point(177, 4);
+            this.buttonChangeType.Location = new System.Drawing.Point(236, 4);
             this.buttonChangeType.Name = "buttonChangeType";
-            this.buttonChangeType.Size = new System.Drawing.Size(150, 23);
+            this.buttonChangeType.Size = new System.Drawing.Size(91, 40);
             this.buttonChangeType.TabIndex = 3;
             this.buttonChangeType.TabStop = false;
-            this.buttonChangeType.Text = "Change Event Type (F1)";
+            this.buttonChangeType.Text = "Change Event \r\nType (F1)";
             this.buttonChangeType.UseVisualStyleBackColor = true;
             // 
             // dataGridView1
@@ -87,13 +87,13 @@
             dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
             this.dataGridView1.DefaultCellStyle = dataGridViewCellStyle1;
             this.dataGridView1.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.dataGridView1.Location = new System.Drawing.Point(5, 33);
+            this.dataGridView1.Location = new System.Drawing.Point(5, 47);
             this.dataGridView1.Name = "dataGridView1";
             this.dataGridView1.RowHeadersVisible = false;
             dataGridViewCellStyle2.BackColor = System.Drawing.Color.Gray;
             dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
             this.dataGridView1.RowsDefaultCellStyle = dataGridViewCellStyle2;
-            this.dataGridView1.Size = new System.Drawing.Size(321, 417);
+            this.dataGridView1.Size = new System.Drawing.Size(321, 403);
             this.dataGridView1.TabIndex = 4;
             this.dataGridView1.TabStop = false;
             this.dataGridView1.DataError += new System.Windows.Forms.DataGridViewDataErrorEventHandler(this.DataGridView1_DataError);

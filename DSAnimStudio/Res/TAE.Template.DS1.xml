@@ -464,7 +464,7 @@
       <u16/>
       <u16/>
       <s32 name="Condition"/>
-      <s32 name="BehaviorParamSubID"/>
+      <s32 name="BehaviorParamID"/>
     </event>
     <!-- RTTI : ArrowTurnAnim-->
     <event id="308">

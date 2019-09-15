@@ -99,7 +99,7 @@ namespace DSAnimStudio
                 DBG.ShowModelBoundingBoxes = Current.DBG_ShowModelBoundingBoxes;
                 DBG.ShowModelSubmeshBoundingBoxes = Current.DBG_ShowModelSubmeshBoundingBoxes;
                 DBG.ShowPrimitiveNametags = Current.DBG_ShowPrimitiveNametags;
-                DBG.PrimitiveNametagSize = Current.DBG_PrimitiveNametagSize;
+                //DBG.PrimitiveNametagSize = Current.DBG_PrimitiveNametagSize;
                 DBG.ShowGrid = Current.DBG_ShowGrid;
                 DBG.SimpleTextLabelSize = Current.DBG_SimpleTextLabelSize;
 
@@ -118,7 +118,7 @@ namespace DSAnimStudio
                 GFX.Display.Vsync = Current.GFX_Display_Vsync;
                 GFX.Display.Fullscreen = Current.GFX_Display_Fullscreen;
                 GFX.Display.SimpleMSAA = Current.GFX_Display_SimpleMSAA;
-
+                
                 GFX.Display.Apply();
             }
         }
@@ -144,7 +144,7 @@ namespace DSAnimStudio
                 Current.DBG_ShowModelBoundingBoxes = DBG.ShowModelBoundingBoxes;
                 Current.DBG_ShowModelSubmeshBoundingBoxes = DBG.ShowModelSubmeshBoundingBoxes;
                 Current.DBG_ShowPrimitiveNametags = DBG.ShowPrimitiveNametags;
-                Current.DBG_PrimitiveNametagSize = DBG.PrimitiveNametagSize;
+                //Current.DBG_PrimitiveNametagSize = DBG.PrimitiveNametagSize;
 
                 Current.DBG_ShowGrid = DBG.ShowGrid;
                 Current.DBG_SimpleTextLabelSize = true;
@@ -209,7 +209,7 @@ namespace DSAnimStudio
         public bool DBG_ShowModelSubmeshBoundingBoxes { get; set; } = false;
         public bool DBG_ShowGrid { get; set; } = true;
         public bool DBG_ShowPrimitiveNametags { get; set; } = false;
-        public float DBG_PrimitiveNametagSize { get; set; } = 1.0f;
+        //public float DBG_PrimitiveNametagSize { get; set; } = 1.0f;
         public bool DBG_SimpleTextLabelSize { get; set; } = false;
 
         public bool GFX_ModelDrawer_GoToModelsAsTheySpawn { get; set; } = true;

@@ -1,4 +1,5 @@
-﻿using SoulsFormats;
+﻿using Microsoft.Xna.Framework;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,13 +29,88 @@ namespace DSAnimStudio
                 public short DmyPoly1;
                 public short DmyPoly2;
                 public HitTypes HitType;
+
+                public void ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(bool isLeftHand)
+                {
+                    if (DmyPoly1 >= 0 && DmyPoly1 < 10000)
+                    {
+                        var dmy1mod = DmyPoly1 % 1000;
+                        if (dmy1mod >= 100 && dmy1mod <= 130)
+                        {
+                            DmyPoly1 = (short)(dmy1mod + (isLeftHand ? 11000 : 10000));
+                        }
+                    }
+
+                    if (DmyPoly2 >= 0 && DmyPoly2 < 10000)
+                    {
+                        var dmy2mod = DmyPoly2 % 1000;
+                        if (dmy2mod >= 100 && dmy2mod <= 130)
+                        {
+                            DmyPoly2 = (short)(dmy2mod + (isLeftHand ? 11000 : 10000));
+                        }
+                    }
+                }
+
                 public bool IsCapsule => DmyPoly1 >= 0 && DmyPoly2 >= 0;
             }
 
             public Hit[] Hits;
 
+            public short BlowingCorrection;
+            public short AtkPhysCorrection;
+            public short AtkMagCorrection;
+            public short AtkFireCorrection;
+            public short AtkThunCorrection;
+            public short AtkStamCorrection;
+            public short GuardAtkRateCorrection;
+            public short GuardBreakCorrection;
+            public short AtkThrowEscapeCorrection;
+            public short AtkSuperArmorCorrection;
+            public short AtkPhys;
+            public short AtkMag;
+            public short AtkFire;
+            public short AtkThun;
+            public short AtkStam;
+            public short GuardAtkRate;
+            public short GuardBreakRate;
+            public short AtkSuperArmor;
+            public short AtkThrowEscape;
+            public short AtkObj;
+            public short GuardStaminaCutRate;
+            public short GuardRate;
+            public short ThrowTypeID;
+
+            // DS3 Only
+            public short AtkDarkCorrection;
+            public short AtkDark;
+
+            public Color GetCapsuleColor(Hit hit)
+            {
+                if (ThrowTypeID > 0)
+                {
+                    return Color.Cyan;
+                }
+                else if ((AtkPhys > 0 || AtkMag > 0 || AtkFire > 0 || AtkThun > 0 || AtkDark > 0) || 
+                    (AtkPhysCorrection > 0 || AtkMagCorrection > 0 || AtkFireCorrection > 0 || AtkThunCorrection > 0 || AtkDarkCorrection > 0))
+                {
+                    switch (hit.HitType)
+                    {
+                        case HitTypes.Tip: return new Color(231, 186, 50);
+                        case HitTypes.Middle: return new Color(230, 26, 26);
+                        case HitTypes.Root: return new Color(26, 26, 230);
+                        default: return Color.Cyan;
+                    }
+                }
+                else
+                {
+                    return Color.Gray;
+                }
+            }
+
             public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
             {
+                var start = br.Position;
+
                 if (game == HKX.HKXVariation.HKXDS3)
                 {
                     Hits = new Hit[16];
@@ -77,30 +153,34 @@ namespace DSAnimStudio
                     Hits[i].DmyPoly2 = br.ReadInt16();
                 }
 
-                // s16 Blowing Correction
-                // s16 AtkPhysCorrection
-                // s16 AtkMagCorrection
-                // s16 AtkFireCorrection
-                // s16 AtkThunCorrection
-                // s16 AtkStamCorrection
-                // s16 GuardAtkRateCorrection
-                // s16 GuardBreakCorrection
-                // s16 AtkThrowEscapeCorrection
-                // s16 AtkSuperArmorCorrection
-                // s16 AtkPhys
-                // s16 AtkMag
-                // s16 AtkFire
-                // s16 AtkThun
-                // s16 AtkStam
-                // s16 GuardAtkRate
-                // s16 GuardBreakRate
-                // s16 AtkSuperArmor
-                // s16 AtkThrowEscape
-                // s16 AtkObj
-                // s16 GuardStaminaCutRate
-                // s16 GuardRate
-                // s16 ThrowTypeID
-                br.Position += (23 * 2);
+                BlowingCorrection = br.ReadInt16();
+                AtkPhysCorrection = br.ReadInt16();
+                AtkMagCorrection = br.ReadInt16();
+                AtkFireCorrection = br.ReadInt16();
+                AtkThunCorrection = br.ReadInt16();
+                AtkStamCorrection = br.ReadInt16();
+                GuardAtkRateCorrection = br.ReadInt16();
+                GuardBreakCorrection = br.ReadInt16();
+                AtkThrowEscapeCorrection = br.ReadInt16();
+                AtkSuperArmorCorrection = br.ReadInt16();
+                AtkPhys = br.ReadInt16();
+                AtkMag = br.ReadInt16();
+                AtkFire = br.ReadInt16();
+                AtkThun = br.ReadInt16();
+                AtkStam = br.ReadInt16();
+                GuardAtkRate = br.ReadInt16();
+                GuardBreakRate = br.ReadInt16();
+                AtkSuperArmor = br.ReadInt16();
+                AtkThrowEscape = br.ReadInt16();
+                AtkObj = br.ReadInt16();
+                GuardStaminaCutRate = br.ReadInt16();
+                GuardRate = br.ReadInt16();
+
+
+                br.Position = start + 0x68;
+                ThrowTypeID = br.ReadInt16();
+
+                
 
                 for (int i = 0; i <= 3; i++)
                 {
@@ -203,6 +283,33 @@ namespace DSAnimStudio
                     {
                         Hits[i].HitType = br.ReadEnum8<HitTypes>();
                     }
+
+                    //u8 Hit4_hitType
+                    //u8 Hit5_hitType
+                    //u8 Hit6_hitType
+                    //u8 Hit7_hitType
+                    //u8 Hit8_hitType
+                    //u8 Hit9_hitType
+                    //u8 Hit10_hitType
+                    //u8 Hit11_hitType
+                    //u8 Hit12_hitType
+                    //u8 Hit13_hitType
+                    //u8 Hit14_hitType
+                    //u8 Hit15_hitType
+                    br.Position += (1 * 12);
+
+                    //s32 0x174
+                    //s32 0x178
+                    //s32 0x17C
+                    br.Position += (4 * 3);
+
+                    //s16 defMaterialVal0
+                    //s16 defMaterialVal1
+                    //s16 defMaterialVal2
+                    br.Position += (2 * 3);
+
+                    AtkDarkCorrection = br.ReadInt16();
+                    AtkDark = br.ReadInt16();
                 }
             }
         }
@@ -262,9 +369,12 @@ namespace DSAnimStudio
         {
             public int BehaviorVariationID;
             public short EquipModelID;
-            public byte SpAtkCategory;
+            public byte WepMotionCategory;
+            public short SpAtkCategory;
 
-            public bool IsPairedWeaponDS3 => DS3PairedSpAtkCategories.Contains(SpAtkCategory);
+            public bool IsPairedWeaponDS3 => DS3PairedSpAtkCategories.Contains(SpAtkCategory)
+                || (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS3 && WepMotionCategory == 42) // DS3 Fist weapons
+                ;
 
             public static readonly int[] DS3PairedSpAtkCategories = new int[]
             {
@@ -276,6 +386,7 @@ namespace DSAnimStudio
                 144, //Onikiri and Ubadachi
                 145, //Drang Twinspears
                 148, //Drang Hammers
+                161, //Farron Greatsword
                 232, //Friede's Great Scythe
                 236, //Valorheart
                 237, //Crow Quills
@@ -291,11 +402,17 @@ namespace DSAnimStudio
                 br.Position = start + 0xB8;
                 EquipModelID = br.ReadInt16();
 
+                br.Position = start + 0xE3;
+                WepMotionCategory = br.ReadByte();
+
                 br.Position = start + 0xEA;
-                SpAtkCategory = br.ReadByte();
+                if (game == HKX.HKXVariation.HKXDS3)
+                    SpAtkCategory = br.ReadInt16();
+                else
+                    SpAtkCategory = br.ReadByte();
             }
         }
-
+        
         public class EquipParamProtector : ParamData
         {
             public short EquipModelID;

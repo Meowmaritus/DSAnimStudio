@@ -74,7 +74,7 @@
             this.trackBarDirectMult.AutoSize = false;
             this.trackBarDirectMult.LargeChange = 10;
             this.trackBarDirectMult.Location = new System.Drawing.Point(102, 18);
-            this.trackBarDirectMult.Maximum = 300;
+            this.trackBarDirectMult.Maximum = 200;
             this.trackBarDirectMult.Name = "trackBarDirectMult";
             this.trackBarDirectMult.Size = new System.Drawing.Size(87, 20);
             this.trackBarDirectMult.TabIndex = 4;
@@ -92,7 +92,7 @@
             this.trackBarIndirectMult.AutoSize = false;
             this.trackBarIndirectMult.LargeChange = 10;
             this.trackBarIndirectMult.Location = new System.Drawing.Point(102, 37);
-            this.trackBarIndirectMult.Maximum = 300;
+            this.trackBarIndirectMult.Maximum = 200;
             this.trackBarIndirectMult.Name = "trackBarIndirectMult";
             this.trackBarIndirectMult.Size = new System.Drawing.Size(87, 20);
             this.trackBarIndirectMult.TabIndex = 5;
@@ -149,7 +149,7 @@
             this.trackBarEmissiveMult.AutoSize = false;
             this.trackBarEmissiveMult.LargeChange = 10;
             this.trackBarEmissiveMult.Location = new System.Drawing.Point(102, 56);
-            this.trackBarEmissiveMult.Maximum = 300;
+            this.trackBarEmissiveMult.Maximum = 200;
             this.trackBarEmissiveMult.Name = "trackBarEmissiveMult";
             this.trackBarEmissiveMult.Size = new System.Drawing.Size(87, 20);
             this.trackBarEmissiveMult.TabIndex = 9;
@@ -193,7 +193,7 @@
             this.trackBarExposure.AutoSize = false;
             this.trackBarExposure.LargeChange = 10;
             this.trackBarExposure.Location = new System.Drawing.Point(102, 75);
-            this.trackBarExposure.Maximum = 300;
+            this.trackBarExposure.Maximum = 200;
             this.trackBarExposure.Name = "trackBarExposure";
             this.trackBarExposure.Size = new System.Drawing.Size(87, 20);
             this.trackBarExposure.TabIndex = 12;

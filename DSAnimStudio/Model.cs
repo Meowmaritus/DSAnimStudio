@@ -62,7 +62,7 @@ namespace DSAnimStudio
             return Submeshes;
         }
 
-        public Model(FLVER2 flver)
+        public Model(FLVER2 flver, bool useSecondUV)
         {
             Type = ModelType.ModelTypeFlver;
 
@@ -79,7 +79,7 @@ namespace DSAnimStudio
                     if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
                         continue;
                 }
-                var smm = new FlverSubmeshRenderer(this, flver, submesh);
+                var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV);
                 Submeshes.Add(smm);
                 subBoundsPoints.Add(smm.Bounds.Min);
                 subBoundsPoints.Add(smm.Bounds.Max);

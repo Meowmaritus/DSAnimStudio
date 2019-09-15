@@ -137,7 +137,7 @@ namespace DSAnimStudio
             return vert;
         }
 
-        public FlverSubmeshRenderer(Model parent, FLVER2 flvr, FLVER2.Mesh mesh)
+        public FlverSubmeshRenderer(Model parent, FLVER2 flvr, FLVER2.Mesh mesh, bool useSecondUV)
         {
             Parent = parent;
 
@@ -161,6 +161,8 @@ namespace DSAnimStudio
             }
 
             bool hasLightmap = false;
+
+            //bool isDs3FacegenSkin = flvr.Materials[mesh.MaterialIndex].MTD.Contains(@"N:\FDP\data\Material\mtd\parts\Special\P[ChrCustom_Skin]_SSS");
 
             foreach (var matParam in flvr.Materials[mesh.MaterialIndex].Textures)
             {
@@ -389,7 +391,13 @@ namespace DSAnimStudio
 
                 if (vert.UVs.Count > 0)
                 {
-                    MeshVertices[i].TextureCoordinate = new Vector2(vert.UVs[0].X, vert.UVs[0].Y);
+                    if (useSecondUV && vert.UVs.Count > 1)
+                        MeshVertices[i].TextureCoordinate = new Vector2(vert.UVs[1].X, vert.UVs[1].Y);
+                    else
+                        MeshVertices[i].TextureCoordinate = new Vector2(vert.UVs[0].X, vert.UVs[0].Y);
+
+
+
                     if (vert.UVs.Count > 1 && hasLightmap)
                     {
                         if (mtd == null)
@@ -579,6 +587,7 @@ namespace DSAnimStudio
                 if (vert.UVs.Count > 0)
                 {
                     MeshVertices[i].TextureCoordinate = new Vector2(vert.UVs[0].X, vert.UVs[0].Y);
+
                     if (vert.UVs.Count > 1 && hasLightmap)
                     {
                         if (mtd == null)
@@ -927,7 +936,7 @@ namespace DSAnimStudio
             if (!IsVisible)
                 return;
 
-            if (ModelMaskIndex >= 0 && !mask[ModelMaskIndex])
+            if (mask != null && ModelMaskIndex >= 0 && !mask[ModelMaskIndex])
                 return;
 
             var oldWorldMatrix = ((FlverShader)shader).World;

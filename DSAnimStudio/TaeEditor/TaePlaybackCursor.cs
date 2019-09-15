@@ -20,7 +20,6 @@ namespace DSAnimStudio.TaeEditor
 
         public double StartTime = 0;
         public double MaxTime { get; private set; } = 1;
-        public double Speed = 1;
 
         public double? HkxAnimationLength = null;
 
@@ -39,18 +38,31 @@ namespace DSAnimStudio.TaeEditor
 
         public float PlaybackSpeed = 1.0f;
 
+        public bool IsStepping = false;
+
         public void Update(bool playPauseBtnDown, bool shiftDown, GameTime gameTime, IEnumerable<TaeEditAnimEventBox> eventBoxes)
         {
             bool prevPlayState = IsPlaying;
+
+            //if (GUICurrentTime != oldGUICurrentTime)
+            //{
+            //    Scrubbing = true;
+            //}
 
             if (CurrentTime < 0)
                 CurrentTime = 0;
 
             int curFrameLoopCount = (int)(CurrentTime / MaxTime);
 
+            if (Scrubbing)
+            {
+                IsStepping = false;
+            }
 
             if (playPauseBtnDown)
             {
+                IsStepping = false;
+
                 IsPlaying = !IsPlaying;
 
                 StartTime = CurrentTime;
@@ -67,6 +79,8 @@ namespace DSAnimStudio.TaeEditor
                 {
                     foreach (var box in eventBoxes)
                         box.PlaybackHighlight = false;
+
+                    EventSim.OnSimulationEnd();
                 }
             }
 
@@ -81,15 +95,24 @@ namespace DSAnimStudio.TaeEditor
             bool justStartedPlaying = !prevPlayState && IsPlaying;
 
             if (justStartedPlaying || (curFrameLoopCount != prevFrameLoopCount))
-                TaeInterop.PlaybackJustStarted();
+                EventSim.OnSimulationStart();
 
             if (HkxAnimationLength.HasValue)
                 MaxTime = HkxAnimationLength.Value;
 
-            if (IsPlaying || Scrubbing)
+            if (IsPlaying || Scrubbing || IsStepping)
             {
-                if (!Scrubbing)
+                if (IsPlaying)
+                {
                     CurrentTime += (gameTime.ElapsedGameTime.TotalSeconds * PlaybackSpeed);
+                }
+
+                if (GUICurrentTime != oldGUICurrentTime)
+                {
+                    if (CurrentTime < 0)
+                        CurrentTime += MaxTime;
+                    TaeInterop.OnAnimFrameChange(Scrubbing);
+                }
 
                 bool justReachedAnimEnd = (CurrentTime > MaxTime);
 
@@ -124,41 +147,46 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else
                     {
-                        //currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
-                        //prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
+                        if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
+                        {
+                            int currentFrame = (int)Math.Floor((GUICurrentTime % MaxTime) / SnapInterval);
+                            int prevFrame = (int)Math.Floor((oldGUICurrentTime % MaxTime) / SnapInterval);
+                            int eventStartFrame = (int)Math.Round(box.MyEvent.StartTime / SnapInterval);
+                            int eventEndFrame = (int)Math.Round(box.MyEvent.EndTime / SnapInterval);
 
-                        int currentFrame = (int)Math.Floor((GUICurrentTime % MaxTime) / SnapInterval);
-                        int prevFrame = (int)Math.Floor((oldGUICurrentTime % MaxTime) / SnapInterval);
-                        int eventStartFrame = (int)Math.Round(box.MyEvent.StartTime / SnapInterval);
-                        int eventEndFrame = (int)Math.Round(box.MyEvent.EndTime / SnapInterval);
-
-                        currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
-                        prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
+                            currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
+                            prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
+                        }
+                        else
+                        {
+                            currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
+                            prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
+                        }
                     }
 
                     if (currentlyInEvent)
                     {
                         box.PlaybackHighlight = true;
 
-                        if (!box.PrevCyclePlaybackHighlight || (curFrameLoopCount != prevFrameLoopCount) )
+                        if (!prevFrameInEvent || !box.PrevCyclePlaybackHighlight || (curFrameLoopCount != prevFrameLoopCount) )
                         {
-                            TaeInterop.PlaybackHitEventStart(box);
+                            EventSim.OnEventEnter(box);
                         }
 
                         ////Also check if we looped playback
                         //if (!prevFrameInEvent || isFirstFrameAfterLooping)
                         //{
-                           
+
                         //}
 
-                        TaeInterop.PlaybackDuringEventSpan(box);
+                        EventSim.OnEventMidFrame(box);
                         
                     }
                     else
                     {
-                        if (box.PrevCyclePlaybackHighlight)
+                        if (prevFrameInEvent || box.PrevCyclePlaybackHighlight)
                         {
-                            TaeInterop.PlaybackOnEventExit(box);
+                            EventSim.OnEventExit(box);
                         }
 
                         box.PlaybackHighlight = false;
@@ -201,8 +229,6 @@ namespace DSAnimStudio.TaeEditor
                 }
 
             }
-
-            TaeInterop.OnAnimFrameChange(Scrubbing);
 
             oldGUICurrentTime = GUICurrentTime;
             prevScrubbing = Scrubbing;

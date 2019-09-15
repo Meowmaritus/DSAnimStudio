@@ -35,7 +35,16 @@ namespace DSAnimStudio.TaeEditor
             return isModified_TAE[tae];
         }
 
-        public static void SetIsModified(this TAE.Animation ev, bool v)
+        public static void ApplyRounding(this TAE.Event ev)
+        {
+            if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
+            {
+                ev.StartTime = ev.GetStartTimeFr();
+                ev.EndTime = ev.GetEndTimeFr();
+            }
+        }
+
+        public static void SetIsModified(this TAE.Animation ev, bool v, bool updateGui = true)
         {
             if (!isModified_Anim.ContainsKey(ev))
                 isModified_Anim.Add(ev, false);
@@ -47,10 +56,11 @@ namespace DSAnimStudio.TaeEditor
 
             isModified_Anim[ev] = v;
 
-            Main.TAE_EDITOR.UpdateIsModifiedStuff();
+            if (updateGui)
+                Main.TAE_EDITOR.UpdateIsModifiedStuff();
         }
 
-        public static void SetIsModified(this TAE tae, bool v)
+        public static void SetIsModified(this TAE tae, bool v, bool updateGui = true)
         {
             if (!isModified_TAE.ContainsKey(tae))
                 isModified_TAE.Add(tae, false);
@@ -62,7 +72,8 @@ namespace DSAnimStudio.TaeEditor
 
             isModified_TAE[tae] = v;
 
-            Main.TAE_EDITOR.UpdateIsModifiedStuff();
+            if (updateGui)
+                Main.TAE_EDITOR.UpdateIsModifiedStuff();
         }
 
 
@@ -76,7 +87,8 @@ namespace DSAnimStudio.TaeEditor
 
         public static float GetStartTimeFr(this TAE.Event ev)
         {
-            return RoundTimeToFrame(ev.StartTime);
+            return Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements 
+                ? RoundTimeToFrame(ev.StartTime) : ev.StartTime;
         }
 
         public static int GetStartFrame(this TAE.Event ev)
@@ -91,7 +103,8 @@ namespace DSAnimStudio.TaeEditor
 
         public static float GetEndTimeFr(this TAE.Event ev)
         {
-            return RoundTimeToFrame(ev.EndTime);
+            return Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements
+                ? RoundTimeToFrame(ev.EndTime) : ev.EndTime;
         }
     }
 }

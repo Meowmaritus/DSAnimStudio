@@ -54,6 +54,69 @@ namespace DSAnimStudio.DebugPrimitives
             * dummyMatrix;
         }
 
+        static void FixAllStupidDummyCoordinatesInFLVER2(FLVER2 flver, float scale, bool mirrorX)
+        {
+            Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b)
+            {
+                SoulsFormats.FLVER2.Bone parentBone = b;
+
+                var result = Matrix.Identity;
+
+                do
+                {
+                    result *= Matrix.CreateScale(parentBone.Scale.X, parentBone.Scale.Y, parentBone.Scale.Z);
+                    result *= Matrix.CreateRotationX(parentBone.Rotation.X);
+                    result *= Matrix.CreateRotationZ(parentBone.Rotation.Z);
+                    result *= Matrix.CreateRotationY(parentBone.Rotation.Y);
+                    result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
+
+                    if (parentBone.ParentIndex >= 0)
+                    {
+                        parentBone = flver.Bones[parentBone.ParentIndex];
+                    }
+                    else
+                    {
+                        parentBone = null;
+                    }
+                }
+                while (parentBone != null);
+
+                return result;
+            }
+
+            Matrix GetDummyPolyMatrix(FLVER2.Dummy dummy)
+            {
+                var dummyMatrix = GetBoneParentMatrix(flver.Bones[dummy.DummyBoneIndex]);
+
+                return Matrix.CreateLookAt(
+                Vector3.Zero,
+                new Vector3(dummy.Forward.X, dummy.Forward.Y, dummy.Forward.Z),
+                dummy.UseUpwardVector ? new Vector3(dummy.Upward.X, dummy.Upward.Y, dummy.Upward.Z) : Vector3.Up)
+                * Matrix.CreateTranslation(new Vector3(dummy.Position.X, dummy.Position.Y, dummy.Position.Z))
+                * dummyMatrix;
+            }
+
+            foreach (var dmy in flver.Dummies)
+            {
+                if (dmy.DummyBoneIndex >= 0)
+                {
+                    Matrix m = GetDummyPolyMatrix(dmy) * Matrix.CreateScale(scale * (mirrorX ? -1 : 1), scale, scale);
+
+                    Vector3 finalDummyPosition = Vector3.Transform(Vector3.Zero, m);
+                    Vector3 finalDummyUp = Vector3.TransformNormal(Vector3.Up, m);
+                    Vector3 finalDummyForward = Vector3.TransformNormal(Vector3.Forward, m);
+
+                    dmy.Position = new System.Numerics.Vector3(finalDummyPosition.X, finalDummyPosition.Y, finalDummyPosition.Z);
+                    dmy.Upward = new System.Numerics.Vector3(finalDummyUp.X, finalDummyUp.Y, finalDummyUp.Z);
+                    dmy.Forward = new System.Numerics.Vector3(finalDummyForward.X, finalDummyForward.Y, finalDummyForward.Z);
+
+                    dmy.UseUpwardVector = true;
+
+                    dmy.AttachBoneIndex = -1;
+                }
+            }
+        }
+
         protected override void PreDraw(GameTime gameTime)
         {
             //if (HelperSize > 0.05f)
@@ -173,6 +236,15 @@ namespace DSAnimStudio.DebugPrimitives
             if (isAbsolute)
                 m *= Transform.WorldMatrix;
             return Vector3.Transform(Vector3.Zero, m);
+        }
+
+        public Matrix GetDummyMatrix(int dmy, bool isAbsolute)
+        {
+            var dummy = DummyPoly.First(d => d.ReferenceID == dmy);
+            var m = GetDummyPolyMatrix(dummy);
+            if (isAbsolute)
+                m *= Transform.WorldMatrix;
+            return m;
         }
 
         private void AddDummy(FLVER2.Dummy dummy)
