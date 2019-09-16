@@ -414,6 +414,14 @@ namespace DSAnimStudio
                                 vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[mesh.BoneIndices[vert.BoneIndices[0]]], vert.Tangents[0], false, true);
                                 vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[mesh.BoneIndices[vert.BoneIndices[0]]], vert.Bitangent, false, true);
                             }
+                            else if (vert.Normal.W != 0)
+                            {
+                                var memeBoneIndex = vert.GetBoneIndexFromNormal();
+                                vert.Position = TransformVertVec3ByBone(partFlver.Bones[memeBoneIndex], vert.Position, false);
+                                vert.Normal = TransformVertVec4ByBone(partFlver.Bones[memeBoneIndex], vert.Normal, false, true);
+                                vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[memeBoneIndex], vert.Tangents[0], false, true);
+                                vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[memeBoneIndex], vert.Bitangent, false, true);
+                            }
                             else if (mesh.DefaultBoneIndex >= 0)
                             {
                                 vert.Position = TransformVertVec3ByBone(partFlver.Bones[mesh.DefaultBoneIndex], vert.Position, false);
@@ -474,6 +482,14 @@ namespace DSAnimStudio
                                 vert.Normal = TransformVertVec4ByBone(partFlver.Bones[vert.BoneIndices[0]], vert.Normal, false, true, backward: false);
                                 vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[vert.BoneIndices[0]], vert.Tangents[0], false, true, backward: false);
                                 vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[vert.BoneIndices[0]], vert.Bitangent, false, true, backward: false);
+                            }
+                            else if (vert.Normal.W != 0)
+                            {
+                                var memeBoneIndex = vert.GetBoneIndexFromNormal();
+                                vert.Position = TransformVertVec3ByBone(partFlver.Bones[memeBoneIndex], vert.Position, false, backward: false);
+                                vert.Normal = TransformVertVec4ByBone(partFlver.Bones[memeBoneIndex], vert.Normal, false, true, backward: false);
+                                vert.Tangents[0] = TransformVertVec4ByBone(partFlver.Bones[memeBoneIndex], vert.Tangents[0], false, true, backward: false);
+                                vert.Bitangent = TransformVertVec4ByBone(partFlver.Bones[memeBoneIndex], vert.Bitangent, false, true, backward: false);
                             }
                             else if (mesh.DefaultBoneIndex >= 0)
                             {

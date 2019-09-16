@@ -588,6 +588,10 @@ namespace DSAnimStudio
 
                     FlverBoneToHkxBoneMap = new Dictionary<int, int>();
                     HkxBoneToFlverBoneMap = new Dictionary<int, int>();
+
+                    if (HkxSkeleton == null)
+                        return;
+
                     for (int i = 0; i < HkxSkeleton.Bones.Capacity; i++)
                     {
                         var hkxName = HkxSkeleton.Bones[i].ToString();
@@ -1483,7 +1487,6 @@ namespace DSAnimStudio
             throw new NotImplementedException();
         }
 
-        
         private static void LoadFLVER(FLVER2 flver)
         {
             CurrentModel = flver;
@@ -1652,10 +1655,46 @@ namespace DSAnimStudio
 
                     menu.AddItem("NPC Settings", "Model Mask Preset", modelMaskPresetDict, () => GFX.ModelDrawer.NPC_SelectedMaskPreset);
 
+                    var shortAnibndPath = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(AnibndPath));
+
+                    // Check if this isn't even a character ANIBND
+                    if (!shortAnibndPath.ToUpper().StartsWith("C"))
+                        return;
+
+                    //if (game == HKX.HKXVariation.HKXBloodBorne)
+                    //{
+
+                    //}
+
+                    Dictionary<string, Action> npcParamChoices = new Dictionary<string, Action>();
+
+                    int chrId = int.Parse(shortAnibndPath.Substring(1));
+
+                    NPC.CurrentNPCParamID = -1;
+
+                    foreach (var kvp in ParamManager.NpcParam)
+                    {
+                        // 123400 and 123401 should both be true for c1234
+                        if (kvp.Key / 100 == chrId || (CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne && ((kvp.Key % 1_0000_00) / 100 == chrId)))
+                        {
+                            if (NPC.CurrentNPCParamID < 0)
+                                NPC.CurrentNPCParamID = kvp.Key;
+
+                            npcParamChoices.Add($"{kvp.Key} (Behavior Variation: {kvp.Value.BehaviorVariationID})", () => NPC.CurrentNPCParamID = kvp.Key);
+                        }
+                    }
+
+                    menu.AddItem("NPC Settings", "NPC Param Select", npcParamChoices,
+                        () => $"{NPC.CurrentNPCParamID} (Behavior Variation: {NPC.CurrentNPCParam.BehaviorVariationID})");
+
+                    
+
                     menu["NPC Settings"].Font = new System.Drawing.Font(
                         menu["NPC Settings"].Font.Name,
                         menu["NPC Settings"].Font.Size,
                         System.Drawing.FontStyle.Bold);
+
+                    menu["NPC Settings"].ForeColor = System.Drawing.Color.Cyan;
                 }
                 else
                 {
@@ -1856,6 +1895,8 @@ namespace DSAnimStudio
                         menu["Player Settings"].Font.Name,
                         menu["Player Settings"].Font.Size,
                         System.Drawing.FontStyle.Bold);
+
+                    menu["Player Settings"].ForeColor = System.Drawing.Color.Cyan;
                 }
 
                 

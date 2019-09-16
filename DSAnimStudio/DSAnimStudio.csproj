@@ -112,7 +112,11 @@
     <Compile Include="GFXShaders\SkyboxShader.cs" />
     <Compile Include="Havok\SplineCompressedAnimation.cs" />
     <Compile Include="DummyPolyManager.cs" />
+    <Compile Include="LiveRefresh\Kernel32.cs" />
+    <Compile Include="LiveRefresh\Memory.cs" />
+    <Compile Include="LiveRefresh\RequestFileReload.cs" />
     <Compile Include="LoadingTaskMan.cs" />
+    <Compile Include="NPC.cs" />
     <Compile Include="ParamData.cs" />
     <Compile Include="ParamManager.cs" />
     <Compile Include="StatusPrinter.cs" />

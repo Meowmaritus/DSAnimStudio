@@ -51,7 +51,7 @@ namespace DSAnimStudio
         public IReadOnlyDictionary<string, bool[]> MaskPresets => npc_maskPresets;
         public IReadOnlyDictionary<string, bool> MaskPresetsInvisibility => npc_maskPresetsInvisibility;
 
-        public long CurrentNpcParamID => NPC_SelectedMaskPreset != NPC_DEFAULT_PRESET_NAME ? npc_maskPresetsNpcParamID[NPC_SelectedMaskPreset] : -1;
+        //public long CurrentNpcParamID => NPC_SelectedMaskPreset != NPC_DEFAULT_PRESET_NAME ? npc_maskPresetsNpcParamID[NPC_SelectedMaskPreset] : -1;
 
         public const string NPC_DEFAULT_PRESET_NAME = "None (Show All Submeshes)";
 

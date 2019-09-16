@@ -22,28 +22,36 @@ namespace DSAnimStudio
         public static Dictionary<int, List<DbgPrimDummyPolyCluster>> ClusterWhichDmyPresidesIn
             = new Dictionary<int, List<DbgPrimDummyPolyCluster>>();
 
-        public static Dictionary<TaeEditor.TaeEditAnimEventBox, List<IDbgPrim>> HitboxPrimitives
-            = new Dictionary<TaeEditor.TaeEditAnimEventBox, List<IDbgPrim>>();
+        public class HitboxPrimInfo
+        {
+            public List<IDbgPrim> Primitives = new List<IDbgPrim>();
+            public ParamData.AtkParam AtkParam;
+            public bool IsLeftHandAtk;
+        }
 
-        public static Dictionary<TaeEditor.TaeEditAnimEventBox, ParamData.AtkParam> HitboxAtkParams
-           = new Dictionary<TaeEditor.TaeEditAnimEventBox, ParamData.AtkParam>();
+        public static Dictionary<TaeEditor.TaeEditAnimEventBox, HitboxPrimInfo> HitboxPrimitiveInfos 
+            = new Dictionary<TaeEditor.TaeEditAnimEventBox, HitboxPrimInfo>();
 
         public static void ClearAllHitboxPrimitives()
         {
-            foreach (var hitboxKvp in HitboxPrimitives)
+            foreach (var hitboxKvp in HitboxPrimitiveInfos)
             {
-                foreach (var hitbox in hitboxKvp.Value)
+                foreach (var hitbox in hitboxKvp.Value.Primitives)
                     DBG.RemovePrimitive(hitbox);
 
-                hitboxKvp.Value.Clear();
+                hitboxKvp.Value.Primitives.Clear();
             }
 
-            HitboxPrimitives.Clear();
-            HitboxAtkParams.Clear();
+            HitboxPrimitiveInfos.Clear();
         }
 
         public static Vector3 GetDummyPolyAbsolutePosition(int dmy)
         {
+            if (dmy == -1)
+            {
+                return Vector3.Transform(new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0), TaeInterop.CurrentRootMotionMatrix);
+            }
+
             if (ClusterWhichDmyPresidesIn.ContainsKey(dmy))
                 return ClusterWhichDmyPresidesIn[dmy][0].GetDummyPosition(dmy, isAbsolute: true);
             else if (StationaryDummyPolys != null && StationaryDummyPolys.DummyPolyID.Contains(dmy))
@@ -54,6 +62,11 @@ namespace DSAnimStudio
 
         public static Matrix GetDummyPolyAbsoluteMatrix(int dmy)
         {
+            if (dmy == -1)
+            {
+                return Matrix.CreateTranslation(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0) * TaeInterop.CurrentRootMotionMatrix;
+            }
+
             if (ClusterWhichDmyPresidesIn.ContainsKey(dmy))
                 return ClusterWhichDmyPresidesIn[dmy][0].GetDummyMatrix(dmy, isAbsolute: true);
             else if (StationaryDummyPolys != null && StationaryDummyPolys.DummyPolyID.Contains(dmy))
@@ -64,16 +77,16 @@ namespace DSAnimStudio
 
         private static void CreateHitboxPrimitive(TaeEditor.TaeEditAnimEventBox evBox, ParamData.AtkParam.Hit hit, Color c, string primText, bool showText)
         {
-            if (!HitboxPrimitives.ContainsKey(evBox))
-                HitboxPrimitives.Add(evBox, new List<IDbgPrim>());
+            if (!HitboxPrimitiveInfos.ContainsKey(evBox))
+                HitboxPrimitiveInfos.Add(evBox, new HitboxPrimInfo());
 
             if (TaeInterop.IsPlayerLoaded)
             {
-                hit.ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(IsViewingLeftHandHit);
+                hit.ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(HitboxPrimitiveInfos[evBox].IsLeftHandAtk || IsViewingLeftHandHit);
             }
 
-            if (hit.DmyPoly1 == -1 && hit.DmyPoly2 == -1)
-                return;
+            //if (hit.DmyPoly1 == -1 && hit.DmyPoly2 == -1)
+            //    return;
 
             if (hit.IsCapsule)
             {
@@ -87,7 +100,7 @@ namespace DSAnimStudio
                     NameColor = c,
                 };
                 DBG.AddPrimitive(capsule);
-                HitboxPrimitives[evBox].Add(capsule);
+                HitboxPrimitiveInfos[evBox].Primitives.Add(capsule);
             }
             else
             {
@@ -101,13 +114,13 @@ namespace DSAnimStudio
                     NameColor = c,
                 };
                 DBG.AddPrimitive(sphere);
-                HitboxPrimitives[evBox].Add(sphere);
+                HitboxPrimitiveInfos[evBox].Primitives.Add(sphere);
             }
         }
 
         public static void UpdateAllHitboxPrimitives()
         {
-            foreach (var evBox in HitboxPrimitives.Keys)
+            foreach (var evBox in HitboxPrimitiveInfos.Keys)
             {
                 UpdateHitboxPrimitive(evBox);
             }
@@ -115,32 +128,30 @@ namespace DSAnimStudio
 
         private static void UpdateHitboxPrimitive(TaeEditor.TaeEditAnimEventBox evBox)
         {
-            if (!HitboxPrimitives.ContainsKey(evBox))
+            if (!HitboxPrimitiveInfos.ContainsKey(evBox))
                 return;
 
-            var attack = HitboxAtkParams[evBox];
+            var attack = HitboxPrimitiveInfos[evBox].AtkParam;
 
             for (int i = 0; i < attack.Hits.Length; i++)
             {
-                if (i < HitboxPrimitives[evBox].Count)
+                if (i < HitboxPrimitiveInfos[evBox].Primitives.Count)
                 {
                     if (TaeInterop.IsPlayerLoaded)
-                        attack.Hits[i].ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(IsViewingLeftHandHit);
+                        attack.Hits[i].ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(HitboxPrimitiveInfos[evBox].IsLeftHandAtk);
 
-                    if (attack.Hits[i].IsCapsule)
+                    if (HitboxPrimitiveInfos[evBox].Primitives[i] is DbgPrimWireCapsule capsulePrim)
                     {
                         var a = GetDummyPolyAbsolutePosition(attack.Hits[i].DmyPoly1);
                         var b = GetDummyPolyAbsolutePosition(attack.Hits[i].DmyPoly2);
-                        var capsulePrim = (DbgPrimWireCapsule)(HitboxPrimitives[evBox][i]);
                         capsulePrim.UpdateCapsuleEndPoints(a, b, attack.Hits[i].Radius);
                     }
-                    else
+                    else if (HitboxPrimitiveInfos[evBox].Primitives[i] is DbgPrimWireSphere spherePrim)
                     {
                         var dmyPos = GetDummyPolyAbsolutePosition(attack.Hits[i].DmyPoly1);
                         var dmyMatrix = GetDummyPolyAbsoluteMatrix(attack.Hits[i].DmyPoly1);
                         var dmyRot = Quaternion.CreateFromRotationMatrix(dmyMatrix);
                         dmyRot.Normalize();
-                        var spherePrim = (DbgPrimWireSphere)(HitboxPrimitives[evBox][i]);
                         spherePrim.Transform = new Transform(//Matrix.CreateRotationX(MathHelper.PiOver2) *
                             Matrix.CreateScale(attack.Hits[i].Radius) 
                             * Matrix.CreateFromQuaternion(dmyRot) 
@@ -152,29 +163,61 @@ namespace DSAnimStudio
             }
         }
 
+        public static void RefreshHitboxPrimitives()
+        {
+            ClearAllHitboxPrimitives();
+            BuildAllHitboxPrimitives();
+        }
+
         public static void BuildAllHitboxPrimitives()
         {
             foreach (var evBox in Main.TAE_EDITOR.Graph.EventBoxes)
             {
                 (long ID, ParamData.AtkParam Param) atkParam = (0, null);
 
-                if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
+                bool leftHand = IsViewingLeftHandHit;
+
+                if (evBox.MyEvent.TypeName == "InvokeAttackBehavior" || evBox.MyEvent.TypeName == "InvokeThrowDamageBehavior")
                 {
                     if (!TaeInterop.IsPlayerLoaded)
                         atkParam = ParamManager.GetNpcBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
                     else
-                        atkParam = ParamManager.GetPlayerBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
+                        atkParam = ParamManager.GetPlayerBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"], isLeftHand: IsViewingLeftHandHit);
                 }
-                else if (evBox.MyEvent.TypeName == "InvokePCBehavior" || evBox.MyEvent.TypeName == "InvokeCommonBehavior")
+                else if (evBox.MyEvent.TypeName == "InvokeCommonBehavior")
                 {
                     atkParam = ParamManager.GetPlayerCommonAttack((int)evBox.MyEvent.Parameters["BehaviorParamID"]);
+                }
+                else if (evBox.MyEvent.TypeName == "InvokePCBehavior")
+                {
+                    if (TaeInterop.IsPlayerLoaded)
+                    {
+                        int condition = (int)evBox.MyEvent.Parameters["Condition"];
+                        if (condition == 4)
+                        {
+                            atkParam = ParamManager.GetPlayerCommonAttack((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
+                        }
+                        else if (condition == 8)
+                        {
+                            atkParam = ParamManager.GetPlayerBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"], isLeftHand: IsViewingLeftHandHit);
+                        }
+                        else if (condition == 2 || condition == 8)
+                        {
+                            atkParam = ParamManager.GetPlayerBasicAtkParam((int)evBox.MyEvent.Parameters["BehaviorSubID"], isLeftHand: true);
+                            leftHand = true;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Unknown InvokePCBehavior condition: {condition}");
+                        }
+                    }
                 }
 
 
                 if (atkParam.Param == null)
                     continue;
 
-                HitboxAtkParams.Add(evBox, atkParam.Param);
+                HitboxPrimitiveInfos.Add(evBox, new HitboxPrimInfo() { AtkParam = atkParam.Param, IsLeftHandAtk = leftHand });
 
                 for (int i = 0; i < atkParam.Param.Hits.Length; i++)
                 {

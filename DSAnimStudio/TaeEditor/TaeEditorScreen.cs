@@ -19,7 +19,7 @@ namespace DSAnimStudio.TaeEditor
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
-            MenuBar.AddTopItem("[TEST: LOAD PARTS]", () => TaeInterop.DEBUG_TEST_PlayerPartsLoad());
+            //MenuBar.AddTopItem("[TEST: LOAD PARTS]", () => TaeInterop.DEBUG_TEST_PlayerPartsLoad());
 
             //MenuBar.AddTopItem("[Reload Shaders]", () =>
             //{
@@ -537,9 +537,8 @@ namespace DSAnimStudio.TaeEditor
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
                     MenuBar["File/Save As..."].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File/Force Refresh Ingame"].Enabled = !IsReadOnlyFileMode;
                 }));
-                
-                //MenuBar["File/Force Refresh Ingame"].Enabled = !IsReadOnlyFileMode && FileContainer.ReloadType != TaeFileContainer.TaeFileContainerReloadType.None;
 
                 //if (templateName != null)
                 //{
@@ -767,8 +766,8 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
             MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
             //MenuBar.AddSeparator("File");
-            //MenuBar.AddItem("File", "Force Refresh Ingame", () => LiveRefresh(), startDisabled: true);
-            //MenuBar.AddItem("File", "Force Refresh On Save", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
+            MenuBar.AddItem("File", "Force Refresh Ingame", () => LiveRefresh(), startDisabled: true);
+            MenuBar.AddItem("File", "Force Refresh On Save", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
 
@@ -855,7 +854,11 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("Animation", "Lock To Original Framerate In Anim File", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
             MenuBar.AddItem("Animation", "Animate DummyPoly", () => DummyPolyManager.UseDummyPolyAnimation, b => DummyPolyManager.UseDummyPolyAnimation = b);
             MenuBar.AddItem("Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
-            MenuBar.AddItem("Animation", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b => TaeInterop.Debug_LockToTPose = b);
+            MenuBar.AddItem("Animation", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b =>
+            {
+                TaeInterop.Debug_LockToTPose = b;
+                TaeInterop.OnAnimFrameChange(true);
+            });
             MenuBar.AddSeparator("Animation");
             MenuBar.AddItem("Animation", "Spread Bone Update Across Multiple Frames (Reduces Stuttering)", new Dictionary<string, Action>
             {
@@ -1058,25 +1061,26 @@ namespace DSAnimStudio.TaeEditor
 
         private void LiveRefresh()
         {
-            if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE || FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_DS1R)
-            {
-                var chrName = Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName);
+            DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload();
+            //if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE || FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_DS1R)
+            //{
+            //    var chrName = Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName);
 
-                //In case of .anibnd.dcx
-                chrName = Utils.GetFileNameWithoutDirectoryOrExtension(chrName);
+            //    //In case of .anibnd.dcx
+            //    chrName = Utils.GetFileNameWithoutDirectoryOrExtension(chrName);
 
-                if (chrName.ToLower().StartsWith("c") && chrName.Length == 5)
-                {
-                    if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE)
-                    {
-                        TaeLiveRefresh.ForceReloadCHR_PTDE(chrName);
-                    }
-                    else
-                    {
-                        TaeLiveRefresh.ForceReloadCHR_DS1R(chrName);
-                    }
-                }
-            }
+            //    if (chrName.ToLower().StartsWith("c") && chrName.Length == 5)
+            //    {
+            //        if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE)
+            //        {
+            //            TaeLiveRefresh.ForceReloadCHR_PTDE(chrName);
+            //        }
+            //        else
+            //        {
+            //            TaeLiveRefresh.ForceReloadCHR_DS1R(chrName);
+            //        }
+            //    }
+            //}
         }
 
         private void ButtonEditCurrentTaeHeader_Click(object sender, EventArgs e)
