@@ -92,9 +92,9 @@ namespace DSAnimStudio
             Console.WriteLine("TEST");
         }
 
-        public static ParamData.EquipParamWeapon GetPlayerCurrentWeapon()
+        public static ParamData.EquipParamWeapon GetPlayerCurrentWeapon(bool isLeftHand)
         {
-            var id = (DummyPolyManager.IsViewingLeftHandHit ? ChrAsm.EquipLWeapon : ChrAsm.EquipRWeapon);
+            var id = (isLeftHand ? ChrAsm.EquipLWeapon : ChrAsm.EquipRWeapon);
             if (EquipParamWeapon.ContainsKey(id))
             {
                 return EquipParamWeapon[id];
@@ -121,9 +121,9 @@ namespace DSAnimStudio
             return (behaviorParamEntry.RefID, AtkParam_Pc[behaviorParamEntry.RefID]);
         }
 
-        public static (long ID, ParamData.AtkParam Param) GetPlayerBasicAtkParam(int behaviorSubID)
+        public static (long ID, ParamData.AtkParam Param) GetPlayerBasicAtkParam(int behaviorSubID, bool isLeftHand)
         {
-            var behaviorVariationID = (DummyPolyManager.IsViewingLeftHandHit ? (ChrAsm.ParamLWeapon?.BehaviorVariationID ?? -1) : (ChrAsm.ParamRWeapon?.BehaviorVariationID ?? -1));
+            var behaviorVariationID = (isLeftHand ? (ChrAsm.ParamLWeapon?.BehaviorVariationID ?? -1) : (ChrAsm.ParamRWeapon?.BehaviorVariationID ?? -1));
 
             if (behaviorVariationID < 0)
                 return (0, null);
@@ -132,18 +132,28 @@ namespace DSAnimStudio
 
             if (!BehaviorParam_PC.ContainsKey(behaviorParamID))
             {
-                var wpn = GetPlayerCurrentWeapon();
+                var wpn = GetPlayerCurrentWeapon(isLeftHand);
 
-                long baseBehaviorParamID = 10_0000_000 + ((wpn.WepMotionCategory * 100) * 1_000) + behaviorSubID;
-
-                if (BehaviorParam_PC.ContainsKey(baseBehaviorParamID))
+                if (wpn != null)
                 {
-                    behaviorParamID = baseBehaviorParamID;
+                    long baseBehaviorParamID = 10_0000_000 + ((wpn.WepMotionCategory * 100) * 1_000) + behaviorSubID;
+
+                    if (BehaviorParam_PC.ContainsKey(baseBehaviorParamID))
+                    {
+                        behaviorParamID = baseBehaviorParamID;
+                    }
+                    else
+                    {
+                        return (0, null);
+                    }
                 }
                 else
+
                 {
                     return (0, null);
                 }
+
+                
             }
 
             ParamData.BehaviorParam behaviorParamEntry = BehaviorParam_PC[behaviorParamID];
@@ -158,7 +168,12 @@ namespace DSAnimStudio
 
         public static (long ID, ParamData.AtkParam Param) GetNpcBasicAtkParam(int behaviorSubID)
         {
-            long behaviorParamID = 2_00000_000 + (NpcParam[GFX.ModelDrawer.CurrentNpcParamID].BehaviorVariationID * 1_000) + behaviorSubID;
+            var npcParam = NPC.CurrentNPCParam;
+
+            if (npcParam == null)
+                return (0, null);
+
+            long behaviorParamID = 2_00000_000 + (npcParam.BehaviorVariationID * 1_000) + behaviorSubID;
 
             if (!BehaviorParam.ContainsKey(behaviorParamID))
                 return (0, null);

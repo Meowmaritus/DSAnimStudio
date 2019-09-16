@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,11 @@ namespace DSAnimStudio
 {
     public static class StructExtensions
     {
+        public static int GetBoneIndexFromNormal(this FLVER.Vertex v)
+        {
+            return (int)Math.Round((v.Normal.W * sbyte.MaxValue) + sbyte.MaxValue);
+        }
+
         public static Vector3 XYZ(this Vector4 v)
         {
             return new Vector3(v.X, v.Y, v.Z);

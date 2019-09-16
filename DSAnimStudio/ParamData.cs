@@ -98,12 +98,12 @@ namespace DSAnimStudio
                         case HitTypes.Tip: return new Color(231, 186, 50);
                         case HitTypes.Middle: return new Color(230, 26, 26);
                         case HitTypes.Root: return new Color(26, 26, 230);
-                        default: return Color.Cyan;
+                        default: return Color.Fuchsia;
                     }
                 }
                 else
                 {
-                    return Color.Gray;
+                    return Color.DarkGreen;
                 }
             }
 

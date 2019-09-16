@@ -19,7 +19,7 @@ namespace DSAnimStudio
             {
                 "EventSimAttackBehaviors",
                 new EventSimEntry("Simulate Hitbox Events", true, 
-                    "InvokeAttackBehavior", "InvokePCBehavior", "InvokeCommonBehavior")
+                    "InvokeAttackBehavior", "InvokePCBehavior", "InvokeCommonBehavior", "InvokeThrowDamageBehavior")
                 {
                     NewAnimSelectedAction = (entry) =>
                     {
@@ -28,14 +28,14 @@ namespace DSAnimStudio
                     },
                     EnterAction = (entry, evBox) =>
                     {
-                        if (DummyPolyManager.HitboxPrimitives.ContainsKey(evBox))
-                            foreach (var hitbox in DummyPolyManager.HitboxPrimitives[evBox])
+                        if (DummyPolyManager.HitboxPrimitiveInfos.ContainsKey(evBox))
+                            foreach (var hitbox in DummyPolyManager.HitboxPrimitiveInfos[evBox].Primitives)
                                 hitbox.EnableDraw = true;
                     },
                     ExitAction = (entry, evBox) =>
                     {
-                       if (DummyPolyManager.HitboxPrimitives.ContainsKey(evBox))
-                            foreach (var hitbox in DummyPolyManager.HitboxPrimitives[evBox])
+                       if (DummyPolyManager.HitboxPrimitiveInfos.ContainsKey(evBox))
+                            foreach (var hitbox in DummyPolyManager.HitboxPrimitiveInfos[evBox].Primitives)
                                 hitbox.EnableDraw = false;
                     },
                 }

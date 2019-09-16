@@ -458,13 +458,13 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
-      <s32 name="BehaviorParamSubID"/>
+      <s32 name="BehaviorSubID"/>
     </event>
     <event id="307" name="InvokePCBehavior">
       <u16/>
       <u16/>
       <s32 name="Condition"/>
-      <s32 name="BehaviorParamID"/>
+      <s32 name="BehaviorSubID"/>
     </event>
     <!-- RTTI : ArrowTurnAnim-->
     <event id="308">
