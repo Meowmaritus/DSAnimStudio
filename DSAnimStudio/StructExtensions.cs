@@ -11,11 +11,6 @@ namespace DSAnimStudio
 {
     public static class StructExtensions
     {
-        public static int GetBoneIndexFromNormal(this FLVER.Vertex v)
-        {
-            return (int)Math.Round((v.Normal.W * sbyte.MaxValue) + sbyte.MaxValue);
-        }
-
         public static Vector3 XYZ(this Vector4 v)
         {
             return new Vector3(v.X, v.Y, v.Z);
@@ -64,6 +59,7 @@ namespace DSAnimStudio
         {
             return new Vector3(MathHelper.ToRadians(v.X), MathHelper.ToRadians(v.Y), MathHelper.ToRadians(v.Z));
         }
+
 
     }
 }

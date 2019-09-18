@@ -56,21 +56,6 @@ namespace DSAnimStudio.DebugPrimitives
         public bool EnableDbgLabelDraw { get; set; } = true;
         public bool EnableNameDraw { get; set; } = true;
 
-        private float _fadeOutTimer = -1;
-        private float FadeOutTimerMax;
-        public float FadeOutTimer
-        {
-            get => _fadeOutTimer;
-            set
-            {
-                if (_fadeOutTimer == -1 && value >= 0)
-                {
-                    FadeOutTimerMax = value;
-                }
-                _fadeOutTimer = value;
-            }
-        }
-
         public List<IDbgPrim> Children { get; set; } = new List<IDbgPrim>();
 
         public void AddDbgLabel(Vector3 position, float height, string text, Color color)
@@ -95,7 +80,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         }
 
-        public void Draw(GameTime gameTime, IDbgPrim parentPrim)
+        public void Draw(GameTime gameTime, IDbgPrim parentPrim, Matrix world)
         {
             PreDraw(gameTime);
 
@@ -103,25 +88,6 @@ namespace DSAnimStudio.DebugPrimitives
 
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
             {
-                if (FadeOutTimer > -1)
-                {
-                    Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One * (FadeOutTimer / FadeOutTimerMax));
-
-                    if (FadeOutTimer > 0)
-                    {
-                        FadeOutTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                    }
-                    else
-                    {
-                        DBG.MarkPrimitiveForDeletion(this);
-                        return;
-                    }
-                }
-                else
-                {
-                    Shader.Effect.Parameters["DiffuseColor"].SetValue(Vector3.One);
-                }
-
                 oldDiffuseColor = Shader.Effect.Parameters["DiffuseColor"].GetValueVector3();
                 if (OverrideColor.HasValue)
                 {
@@ -140,7 +106,7 @@ namespace DSAnimStudio.DebugPrimitives
                 return;
 
             foreach (var c in Children)
-                c.Draw(gameTime, this);
+                c.Draw(gameTime, this, world);
 
             if (!DBG.CategoryEnableDraw[Category])
                 return;
@@ -157,7 +123,7 @@ namespace DSAnimStudio.DebugPrimitives
                     foreach (var pass in effect.CurrentTechnique.Passes)
                     {
                         if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                            GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity));
+                            GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity) * world);
                         pass.Apply();
                         DrawPrimitive();
                     }
@@ -168,7 +134,7 @@ namespace DSAnimStudio.DebugPrimitives
                 foreach (var pass in effect.CurrentTechnique.Passes)
                 {
                     if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                        GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity));
+                        GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity) * world);
                     pass.Apply();
                     DrawPrimitive();
                 }
@@ -189,7 +155,7 @@ namespace DSAnimStudio.DebugPrimitives
             {
                 foreach (var label in DbgLabels)
                 {
-                    DBG.DrawTextOn3DLocation(Vector3.Transform(label.Position, Transform.WorldMatrix),
+                    DBG.DrawTextOn3DLocation(Transform.WorldMatrix, label.Position,
                         label.Text, label.Color, label.Height, startAndEndSpriteBatchForMe: false);
                 }
             }

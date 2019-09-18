@@ -10,9 +10,10 @@ namespace DSAnimStudio
 {
     public abstract class ParamData
     {
+        public long ID;
         public string Name;
 
-        public abstract void Read(BinaryReaderEx br, HKX.HKXVariation game);
+        public abstract void Read(BinaryReaderEx br);
 
         public class AtkParam : ParamData
         {
@@ -30,28 +31,30 @@ namespace DSAnimStudio
                 public short DmyPoly2;
                 public HitTypes HitType;
 
-                public void ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(bool isLeftHand)
-                {
-                    if (DmyPoly1 >= 0 && DmyPoly1 < 10000)
-                    {
-                        var dmy1mod = DmyPoly1 % 1000;
-                        if (dmy1mod >= 100 && dmy1mod <= 130)
-                        {
-                            DmyPoly1 = (short)(dmy1mod + (isLeftHand ? 11000 : 10000));
-                        }
-                    }
+                //public void ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(bool isLeftHand)
+                //{
+                //    if (DmyPoly1 >= 0 && DmyPoly1 < 10000)
+                //    {
+                //        var dmy1mod = DmyPoly1 % 1000;
+                //        //if (dmy1mod >= 100 && dmy1mod <= 130)
+                //        //{
+                //        //    DmyPoly1 = (short)(dmy1mod + (isLeftHand ? 11000 : 10000));
+                //        //}
+                //        DmyPoly1 = (short)(dmy1mod + (isLeftHand ? 11000 : 10000));
+                //    }
 
-                    if (DmyPoly2 >= 0 && DmyPoly2 < 10000)
-                    {
-                        var dmy2mod = DmyPoly2 % 1000;
-                        if (dmy2mod >= 100 && dmy2mod <= 130)
-                        {
-                            DmyPoly2 = (short)(dmy2mod + (isLeftHand ? 11000 : 10000));
-                        }
-                    }
-                }
+                //    if (DmyPoly2 >= 0 && DmyPoly2 < 10000)
+                //    {
+                //        var dmy2mod = DmyPoly2 % 1000;
+                //        //if (dmy2mod >= 100 && dmy2mod <= 130)
+                //        //{
+                //        //    DmyPoly2 = (short)(dmy2mod + (isLeftHand ? 11000 : 10000));
+                //        //}
+                //        DmyPoly2 = (short)(dmy2mod + (isLeftHand ? 11000 : 10000));
+                //    }
+                //}
 
-                public bool IsCapsule => DmyPoly1 >= 0 && DmyPoly2 >= 0;
+                public bool IsCapsule => DmyPoly1 >= 0 && DmyPoly2 >= 0 && DmyPoly1 != DmyPoly2;
             }
 
             public Hit[] Hits;
@@ -107,11 +110,11 @@ namespace DSAnimStudio
                 }
             }
 
-            public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
+            public override void Read(BinaryReaderEx br)
             {
                 var start = br.Position;
 
-                if (game == HKX.HKXVariation.HKXDS3)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                 {
                     Hits = new Hit[16];
                 }
@@ -188,7 +191,7 @@ namespace DSAnimStudio
                 }
 
                 //TODO: Read DS3 hit 4-15
-                if (game == HKX.HKXVariation.HKXDS3)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                 {
                     //u8 Hit0_hitType
                     //u8 Hit1_hitType
@@ -330,7 +333,7 @@ namespace DSAnimStudio
             public byte Category;
             public byte HeroPoint;
 
-            public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
+            public override void Read(BinaryReaderEx br)
             {
                 VariationID = br.ReadInt32();
                 BehaviorJudgeID = br.ReadInt32();
@@ -350,7 +353,7 @@ namespace DSAnimStudio
         {
             public int BehaviorVariationID;
 
-            public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
+            public override void Read(BinaryReaderEx br)
             {
                 BehaviorVariationID = br.ReadInt32();
             }
@@ -372,9 +375,25 @@ namespace DSAnimStudio
             public byte WepMotionCategory;
             public short SpAtkCategory;
 
-            public bool IsPairedWeaponDS3 => DS3PairedSpAtkCategories.Contains(SpAtkCategory)
-                || (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS3 && WepMotionCategory == 42) // DS3 Fist weapons
+            public bool IsPairedWeaponDS3 => GameDataManager.GameType == GameDataManager.GameTypes.DS3 && (DS3PairedSpAtkCategories.Contains(SpAtkCategory)
+                || (WepMotionCategory == 42)) // DS3 Fist weapons
                 ;
+
+            public string GetFullPartBndPath()
+            {
+                var name = GetPartBndName();
+                var partsbndPath = $@"{GameDataManager.InterrootPath}\parts\{name}";
+
+                if (System.IO.File.Exists(partsbndPath + ".dcx"))
+                    partsbndPath = partsbndPath + ".dcx";
+
+                return partsbndPath;
+            }
+
+            public string GetPartBndName()
+            {
+                return $"WP_A_{EquipModelID:D4}.partsbnd";
+            }
 
             public static readonly int[] DS3PairedSpAtkCategories = new int[]
             {
@@ -394,7 +413,7 @@ namespace DSAnimStudio
                 253, //Ringed Knight Paired Greatswords
             };
 
-            public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
+            public override void Read(BinaryReaderEx br)
             {
                 long start = br.Position;
                 BehaviorVariationID = br.ReadInt32();
@@ -406,7 +425,7 @@ namespace DSAnimStudio
                 WepMotionCategory = br.ReadByte();
 
                 br.Position = start + 0xEA;
-                if (game == HKX.HKXVariation.HKXDS3)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                     SpAtkCategory = br.ReadInt16();
                 else
                     SpAtkCategory = br.ReadByte();
@@ -423,6 +442,18 @@ namespace DSAnimStudio
             public bool LegEquip;
             public List<bool> InvisibleFlags = new List<bool>();
 
+            public void ApplyInvisFlagsToMask(ref bool[] mask)
+            {
+                for (int i = 0; i < InvisibleFlags.Count; i++)
+                {
+                    if (i > mask.Length)
+                        return;
+
+                    if (InvisibleFlags[i])
+                        mask[i] = false;
+                }
+            }
+
             private string GetPartFileNameStart()
             {
                 if (HeadEquip)
@@ -435,6 +466,17 @@ namespace DSAnimStudio
                     return "LG";
                 else
                     return null;
+            }
+
+            public string GetFullPartBndPath(bool isFemale)
+            {
+                var name = GetPartBndName(isFemale);
+                var partsbndPath = $@"{GameDataManager.InterrootPath}\parts\{name}";
+
+                if (System.IO.File.Exists(partsbndPath + ".dcx"))
+                    partsbndPath = partsbndPath + ".dcx";
+
+                return partsbndPath;
             }
 
             public string GetPartBndName(bool isFemale)
@@ -459,7 +501,7 @@ namespace DSAnimStudio
                 return null;
             }
 
-            public override void Read(BinaryReaderEx br, HKX.HKXVariation game)
+            public override void Read(BinaryReaderEx br)
             {
                 long start = br.Position;
 
@@ -471,7 +513,8 @@ namespace DSAnimStudio
 
                 br.Position = start + 0xD8;
 
-                if (game == HKX.HKXVariation.HKXDS1 || game == HKX.HKXVariation.HKXBloodBorne)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.BB)
                 {
                     var firstBitmask = ReadBitmask(br, 6 + 48);
                     //IsDeposit = firstBitmask[0]
@@ -486,7 +529,7 @@ namespace DSAnimStudio
                         InvisibleFlags.Add(firstBitmask[i + 6]);
                     }
 
-                    if (game == HKX.HKXVariation.HKXBloodBorne)
+                    if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
                     {
                         br.Position = start + 0xFD;
                         var mask48to62 = ReadBitmask(br, 15);
@@ -494,7 +537,7 @@ namespace DSAnimStudio
                         InvisibleFlags.AddRange(mask48to62);
                     }
                 }
-                else if (game == HKX.HKXVariation.HKXDS3)
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                 {
                     var firstBitmask = ReadBitmask(br, 5);
                     //IsDeposit = firstBitmask[0]

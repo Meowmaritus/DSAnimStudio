@@ -89,6 +89,8 @@ namespace DSAnimStudio.TaeEditor
 
         public TaePlaybackCursor PlaybackCursor;
 
+        public TaeViewportInteractor ViewportInteractor;
+
         public Color PlaybackCursorColor = Color.Black;
 
         public float PlaybackCursorThickness = 2;
@@ -318,6 +320,8 @@ namespace DSAnimStudio.TaeEditor
             ChangeToNewAnimRef(MainScreen.SelectedTaeAnim);
 
             PlaybackCursor = new TaePlaybackCursor();
+
+            ViewportInteractor = new TaeViewportInteractor(this);
         }
 
         private void RemoveEventBoxFromGroups(TaeEditAnimEventBox box)
@@ -1984,9 +1988,9 @@ namespace DSAnimStudio.TaeEditor
 
                         try
                         {
-                            if (TaeInterop.CurrentAnimationFrameRateRounded > 0)
+                            if (PlaybackCursor.SnapInterval > 0)
                             {
-                                if (((i % TaeInterop.CurrentAnimationFrameRateRounded) != 0) && SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText))
+                                if (((i % PlaybackCursor.SnapInterval) != 0) && SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText))
                                 {
                                     sb.DrawString(font, i.ToString(), new Vector2(i * FramePixelSize + 2, ScrollViewer.Scroll.Y + 2), Color.Cyan);
                                 }

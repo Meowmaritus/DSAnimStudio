@@ -3,7 +3,13 @@
   <!-- Bank 4: Characters -->
   <bank id="4" name="Characters">
     <event id="1" name="InvokeAttackBehavior">
-      <s32/>
+      <s32 name="AttackType">
+        <entry value="0" name="Standard"/>
+        <entry value="1" name="Unknown_InfestedGhoulJumpSlashDS1"/>
+        <entry value="2" name="ForwardR1"/>
+        <entry value="62" name="PlungingAttack"/>
+        <entry value="64" name="Parry"/>
+      </s32>
       <s32/>
       <s32 name="BehaviorSubID"/>
       <u8 name="DirectionType"/>

@@ -18,6 +18,130 @@ namespace DSAnimStudio
 {
     public class DBG
     {
+        public class DbgPrimDrawer : IDisposable
+        {
+            private List<IDbgPrim> Primitives = new List<IDbgPrim>();
+
+            private List<IDbgPrim> PrimitivesMarkedForDeletion = new List<IDbgPrim>();
+
+            private readonly Model MODEL;
+
+            public DbgPrimDrawer(Model mdl)
+            {
+                MODEL = mdl;
+            }
+
+            private IEnumerable<IDbgPrim> GetPrimitivesByDistance()
+            {
+                return Primitives.OrderByDescending(p => (GFX.World.CameraTransform.Position - p.Transform.Position).LengthSquared());
+            }
+
+            public IEnumerable<IDbgPrim> GetPrimitives()
+            {
+                return Primitives;
+            }
+
+            public void ClearPrimitives(DbgPrimCategory category)
+            {
+                lock (_lock_primitives)
+                {
+                    var primsToClear = Primitives.Where(p => p.Category == category).ToList();
+                    foreach (var p in primsToClear)
+                    {
+                        Primitives.Remove(p);
+                        p.Dispose();
+                    }
+                }
+            }
+
+            public void AddPrimitive(IDbgPrim primitive)
+            {
+                lock (_lock_primitives)
+                {
+                    Primitives.Add(primitive);
+                }
+            }
+
+            public void RemovePrimitive(IDbgPrim prim)
+            {
+                lock (_lock_primitives)
+                {
+                    if (Primitives.Contains(prim))
+                        Primitives.Remove(prim);
+                    prim.Dispose();
+                }
+            }
+
+            public void MarkPrimitiveForDeletion(IDbgPrim prim)
+            {
+                if (!PrimitivesMarkedForDeletion.Contains(prim))
+                    PrimitivesMarkedForDeletion.Add(prim);
+            }
+
+            public void DrawPrimitiveNames(GameTime gameTime)
+            {
+                lock (_lock_primitives)
+                {
+                    GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, blendState: BlendState.AlphaBlend, samplerState: SamplerState.LinearWrap);
+                    foreach (var p in GetPrimitivesByDistance())
+                    {
+                        if (ShowPrimitiveNametags)
+                        {
+                            if (p.Name != null && p.EnableNameDraw && DBG.CategoryEnableNameDraw[p.Category] && (p.EnableDraw && DBG.CategoryEnableDraw[p.Category]))
+                            {
+                                DrawTextOn3DLocation(MODEL.CurrentTransform.WorldMatrix, Vector3.Transform(Vector3.Zero, p.Transform.WorldMatrix), p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
+                                //Draw3DBillboard(p.Name, p.Transform.WorldMatrix, p.NameColor);
+                            }
+
+                            p.LabelDraw();
+                            //p.LabelDraw_Billboard();
+                        }
+                    }
+                    GFX.SpriteBatch.End();
+                }
+            }
+
+            public void DrawPrimitives(GameTime gameTime)
+            {
+                PrimitivesMarkedForDeletion.Clear();
+
+                //if (Environment.DrawCubemap)
+                //    GFX.ModelDrawer.DrawSkyboxes();
+
+
+                lock (_lock_primitives)
+                {
+                    foreach (var p in GetPrimitivesByDistance())
+                    {
+                        p.Draw(gameTime, null, MODEL.CurrentTransform.WorldMatrix);
+                    }
+                }
+
+                //GFX.SpriteBatch.Begin();
+                //if (ShowGrid)
+                //    DbgPrim_Grid.LabelDraw_Billboard();
+
+
+                //GFX.SpriteBatch.End();
+
+                foreach (var p in PrimitivesMarkedForDeletion)
+                {
+                    RemovePrimitive(p);
+                }
+            }
+
+            public void Dispose()
+            {
+                lock (_lock_primitives)
+                {
+                    foreach (var prim in Primitives)
+                    {
+                        prim?.Dispose();
+                    }
+                } 
+            }
+        }
+
         private static object _lock_primitives = new object();
 
         public static bool EnableMenu = false;
@@ -75,22 +199,6 @@ namespace DSAnimStudio
 
         }
 
-        
-
-        private static List<IDbgPrim> Primitives = new List<IDbgPrim>();
-
-        private static List<IDbgPrim> PrimitivesMarkedForDeletion = new List<IDbgPrim>();
-
-        private static IEnumerable<IDbgPrim> GetPrimitivesByDistance()
-        {
-            return Primitives.OrderByDescending(p => (GFX.World.CameraTransform.Position - p.Transform.Position).LengthSquared());
-        }
-
-        public static IEnumerable<IDbgPrim> GetPrimitives()
-        {
-            return Primitives;
-        }
-
         public static bool ShowPrimitiveNametags = true;
         public static bool SimpleTextLabelSize = false;
         public static float PrimitiveNametagSize = 1;
@@ -98,76 +206,16 @@ namespace DSAnimStudio
         public static DbgPrimWireGrid DbgPrim_Grid;
         public static DbgPrimSolidSkybox DbgPrim_Skybox;
 
-        public static void ClearPrimitives(DbgPrimCategory category)
-        {
-            lock (_lock_primitives)
-            {
-                var primsToClear = Primitives.Where(p => p.Category == category).ToList();
-                foreach (var p in primsToClear)
-                {
-                    Primitives.Remove(p);
-                    p.Dispose();
-                }
-            }
-        }
-
-        public static void AddPrimitive(IDbgPrim primitive)
-        {
-            lock (_lock_primitives)
-            {
-                Primitives.Add(primitive);
-            }
-        }
-
-        public static void RemovePrimitive(IDbgPrim prim)
-        {
-            lock (_lock_primitives)
-            {
-                if (Primitives.Contains(prim))
-                    Primitives.Remove(prim);
-                prim.Dispose();
-            }
-        }
-
-        public static void MarkPrimitiveForDeletion(IDbgPrim prim)
-        {
-            if (!PrimitivesMarkedForDeletion.Contains(prim))
-                PrimitivesMarkedForDeletion.Add(prim);
-        }
-
         public static void DrawBehindPrims(GameTime gameTime)
         {
             if (Environment.DrawCubemap)
             {
                 GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
-                DbgPrim_Skybox.Draw(gameTime, null);
+                DbgPrim_Skybox.Draw(gameTime, null, Matrix.Identity);
             }
 
             if (ShowGrid)
-                DbgPrim_Grid.Draw(gameTime, null);
-        }
-
-        public static void DrawPrimitiveNames(GameTime gameTime)
-        {
-            lock (_lock_primitives)
-            {
-                GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, blendState: BlendState.AlphaBlend, samplerState: SamplerState.LinearWrap);
-                foreach (var p in GetPrimitivesByDistance())
-                {
-                    if (ShowPrimitiveNametags)
-                    {
-                        if (p.Name != null && p.EnableNameDraw && DBG.CategoryEnableNameDraw[p.Category] && (p.EnableDraw && DBG.CategoryEnableDraw[p.Category]))
-                        {
-                            DrawTextOn3DLocation(Vector3.Transform(Vector3.Zero, p.Transform.WorldMatrix), p.Name.Trim(), p.NameColor, PrimitiveNametagSize, startAndEndSpriteBatchForMe: false);
-                            //Draw3DBillboard(p.Name, p.Transform.WorldMatrix, p.NameColor);
-                        }
-
-                        p.LabelDraw();
-                        //p.LabelDraw_Billboard();
-                    }
-                }
-                GFX.SpriteBatch.End();
-            }
+                DbgPrim_Grid.Draw(gameTime, null, Matrix.Identity);
         }
 
         public static void DrawPrimitives(GameTime gameTime)
@@ -177,32 +225,23 @@ namespace DSAnimStudio
             else
                 BeepVolume = 0;
 
-            PrimitivesMarkedForDeletion.Clear();
-
-            //if (Environment.DrawCubemap)
-            //    GFX.ModelDrawer.DrawSkyboxes();
-
-            DummyPolyManager.UpdateAllHitboxPrimitives();
-            
-
-            lock (_lock_primitives)
+            lock (Scene._lock_ModelLoad_Draw)
             {
-                foreach (var p in GetPrimitivesByDistance())
+                foreach (var mdl in Scene.Models)
                 {
-                    p.Draw(gameTime, null);
+                    mdl.DummyPolyMan.UpdateAllHitboxPrimitives();
+
+                    mdl.DbgPrimDrawer.DrawPrimitives(gameTime);
+
+                    if (mdl.ChrAsm != null)
+                    {
+                        if (mdl.ChrAsm.RightWeaponModel != null)
+                            mdl.ChrAsm.RightWeaponModel.DbgPrimDrawer.DrawPrimitives(gameTime);
+
+                        if (mdl.ChrAsm.LeftWeaponModel != null)
+                            mdl.ChrAsm.LeftWeaponModel.DbgPrimDrawer.DrawPrimitives(gameTime);
+                    }
                 }
-            }
-
-            //GFX.SpriteBatch.Begin();
-            //if (ShowGrid)
-            //    DbgPrim_Grid.LabelDraw_Billboard();
-
-            
-            //GFX.SpriteBatch.End();
-
-            foreach (var p in PrimitivesMarkedForDeletion)
-            {
-                RemovePrimitive(p);
             }
         }
 
@@ -228,24 +267,6 @@ namespace DSAnimStudio
                 CategoryEnableDbgLabelDraw.Add(c, true);
                 CategoryEnableNameDraw.Add(c, true);
             }
-        }
-
-        public static void SetEnableDrawInCategory(DbgPrimCategory category, bool enable)
-        {
-            foreach (var prim in Primitives.Where(p => p.Category == category))
-                prim.EnableDraw = enable;
-        }
-
-        public static void SetEnableDbgLabelDrawInCategory(DbgPrimCategory category, bool enable)
-        {
-            foreach (var prim in Primitives.Where(p => p.Category == category))
-                prim.EnableDbgLabelDraw = enable;
-        }
-
-        public static void SetEnableNameDrawInCategory(DbgPrimCategory category, bool enable)
-        {
-            foreach (var prim in Primitives.Where(p => p.Category == category))
-                prim.EnableNameDraw = enable;
         }
 
         public static SpriteFont DEBUG_FONT { get; private set; }
@@ -315,23 +336,23 @@ namespace DSAnimStudio
             };
         }
 
-        public static void Draw3DBillboard(string text, Transform t, Color c)
-        {
-            Matrix m = Matrix.CreateScale(1, -1, 1) * t.WorldMatrix;
+        //public static void Draw3DBillboard(string text, Transform t, Color c)
+        //{
+        //    Matrix m = Matrix.CreateScale(1, -1, 1) * t.WorldMatrix;
 
-            if (TaeInterop.CameraFollowsRootMotion)
-                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+        //    if (TaeInterop.CameraFollowsRootMotion)
+        //        m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
-            SpriteBatch3DBillboardEffect.World = m;
-            SpriteBatch3DBillboardEffect.View = GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld);
-            SpriteBatch3DBillboardEffect.Projection = GFX.World.MatrixProjection;
+        //    SpriteBatch3DBillboardEffect.World = m;
+        //    SpriteBatch3DBillboardEffect.View = GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld);
+        //    SpriteBatch3DBillboardEffect.Projection = GFX.World.MatrixProjection;
 
-            GFX.SpriteBatch.Begin(0, null, null, null, null, SpriteBatch3DBillboardEffect);
+        //    GFX.SpriteBatch.Begin(0, null, null, null, null, SpriteBatch3DBillboardEffect);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text, Vector2.Zero, c);
+        //    GFX.SpriteBatch.DrawString(DEBUG_FONT, text, Vector2.Zero, c);
 
-            GFX.SpriteBatch.End();
-        }
+        //    GFX.SpriteBatch.End();
+        //}
 
         public static void Draw3DBillboard(string text, Matrix m, Color c)
         {
@@ -387,7 +408,7 @@ namespace DSAnimStudio
         //    }
         //}
 
-        public static void DrawTextOn3DLocation(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
+        public static void DrawTextOn3DLocation(Matrix m, Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
         {
             //if (ShowFancyTextLabels)
             //    DrawTextOn3DLocation_Fancy(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
@@ -396,20 +417,13 @@ namespace DSAnimStudio
 
 
             //TODO: SEE WHY THIS LITERALLY DOESNT FUCKING WORK ANYMORE
-            DrawTextOn3DLocation_Fast(location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
+            DrawTextOn3DLocation_Fast(m, location, text, color, physicalHeight, startAndEndSpriteBatchForMe);
         }
 
-        private static void DrawTextOn3DLocation_Fast(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
+        private static void DrawTextOn3DLocation_Fast(Matrix m, Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
         {
             if (startAndEndSpriteBatchForMe)
                 GFX.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
-
-            // Project the 3d position first
-
-            Matrix m = Matrix.Identity;
-
-            if (TaeInterop.CameraFollowsRootMotion)
-                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
             Vector3 screenPos3D = GFX.Device.Viewport.Project(location,
                 GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);
@@ -486,13 +500,8 @@ namespace DSAnimStudio
                 GFX.SpriteBatch.End();
         }
 
-        private static void DrawTextOn3DLocation_Fast__OLD(Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
+        private static void DrawTextOn3DLocation_Fast__OLD(Matrix m, Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
         {
-            Matrix m = Matrix.Identity;
-
-            if (TaeInterop.CameraFollowsRootMotion)
-                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
-
             // Project the 3d position first
             Vector3 screenPos3D_Top = GFX.Device.Viewport.Project(location + new Vector3(0, physicalHeight / 2, 0),
                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);

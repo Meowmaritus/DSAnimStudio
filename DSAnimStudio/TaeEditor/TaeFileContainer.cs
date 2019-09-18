@@ -14,13 +14,6 @@ namespace DSAnimStudio.TaeEditor
             BND4
         }
 
-        public enum TaeFileContainerReloadType
-        {
-            None,
-            CHR_PTDE,
-            CHR_DS1R
-        }
-
         private string filePath;
 
         public TaeFileContainerType ContainerType { get; private set; }
@@ -35,12 +28,10 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsModified = false;
 
-        public TaeFileContainerReloadType ReloadType = TaeFileContainerReloadType.None;
-
         public static readonly string DefaultSaveFilter = "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
                 "All Files|*.*";
 
-        public bool IsBloodborne = false;
+        public bool IsBloodborne => GameDataManager.GameType == GameDataManager.GameTypes.BB;
 
         public string GetResaveFilter()
         {
@@ -56,56 +47,60 @@ namespace DSAnimStudio.TaeEditor
 
         public IReadOnlyDictionary<string, TAE> AllTAEDict => taeInBND;
 
+        private string GetInterrootFromPath()
+        {
+            var folder = new System.IO.FileInfo(filePath).DirectoryName;
+
+            var lastSlashInFolder = folder.LastIndexOf("\\");
+
+            return folder.Substring(0, lastSlashInFolder);
+        }
+
         private void CheckGameVersionForTaeInterop(string filePath)
         {
             var check = filePath.ToUpper();
+            string interroot = GetInterrootFromPath();
             if (check.Contains("FRPG2"))
             {
-                TaeInterop.IncompatibleHavokVersion = true;
+                // SLHSDJFSHH
+                //GameType = TaeGameType.DS2;
+                //GameDataManager.GameType = GameDataManager.GameTypes.DS2;
             }
             else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXX64"))
             {
-                TaeInterop.IncompatibleHavokVersion = true;
+                GameDataManager.Init(GameDataManager.GameTypes.DS1R, interroot);
             }
             else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXWIN32"))
             {
-                TaeInterop.IncompatibleHavokVersion = false;
-                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKXDS1;
+                GameDataManager.Init(GameDataManager.GameTypes.DS1, interroot);
             }
             else if (check.Contains(@"\SPRJ\"))
             {
-                TaeInterop.IncompatibleHavokVersion = false;
-                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKXBloodBorne;
-                IsBloodborne = true;
+                GameDataManager.Init(GameDataManager.GameTypes.BB, interroot);
             }
             else if (check.Contains(@"\FDP\"))
             {
-                TaeInterop.IncompatibleHavokVersion = false;
-                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKXDS3;
+                GameDataManager.Init(GameDataManager.GameTypes.DS3, interroot);
             }
             else if (check.Contains(@"\DemonsSoul\"))
             {
-                TaeInterop.IncompatibleHavokVersion = false;
-                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKSDeS;
+                GameDataManager.Init(GameDataManager.GameTypes.DES, interroot);
             }
             else if (check.Contains(@"\NTC\"))
             {
-                TaeInterop.IncompatibleHavokVersion = true;
-                TaeInterop.CurrentHkxVariation = HKX.HKXVariation.HKSDeS;
+                GameDataManager.Init(GameDataManager.GameTypes.SDT, interroot);
             }
         }
 
         public void LoadFromPath(string file, IProgress<double> progress)
         {
-            ReloadType = TaeFileContainerReloadType.None;
+            filePath = file;
 
             containerBND3 = null;
             containerBND4 = null;
 
             taeInBND.Clear();
             hkxInBND.Clear();
-
-            IsBloodborne = false;
 
             if (BND3.Is(file))
             {
@@ -169,60 +164,57 @@ namespace DSAnimStudio.TaeEditor
 
             progress.Report(0.25);
 
-            if (ContainerType != TaeFileContainerType.TAE)
-            {
-                var nameBase = Utils.GetFileNameWithoutAnyExtensions(file);
-                var folder = new System.IO.FileInfo(file).DirectoryName;
+            //if (ContainerType != TaeFileContainerType.TAE)
+            //{
+            //    var nameBase = Utils.GetFileNameWithoutAnyExtensions(file);
+            //    var folder = new System.IO.FileInfo(file).DirectoryName;
 
-                if (nameBase.EndsWith("c0000"))
-                {
-                    LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBND", "Loading additional player animations...", innerProgress =>
-                    {
-                        var anibndFiles = System.IO.Directory.GetFiles(folder, "c0000_*.anibnd*");
-                        double i = 0;
-                        foreach (var additionalAnibnd in anibndFiles)
-                        {
-                            innerProgress.Report(++i / anibndFiles.Length);
-                            if (BND3.Is(additionalAnibnd))
-                            {
-                                var additionalContainerBND3 = BND3.Read(additionalAnibnd);
-                                foreach (var f in additionalContainerBND3.Files)
-                                {
-                                    CheckGameVersionForTaeInterop(f.Name);
-                                    if (f.Name.ToUpper().EndsWith(".HKX"))
-                                    {
-                                        if (!hkxInBND.ContainsKey(f.Name))
-                                            hkxInBND.Add(f.Name, f.Bytes);
-                                    }
-                                }
-                            }
-                            else if (BND4.Is(additionalAnibnd))
-                            {
-                                var additionalContainerBND4 = BND4.Read(additionalAnibnd);
-                                foreach (var f in additionalContainerBND4.Files)
-                                {
-                                    CheckGameVersionForTaeInterop(f.Name);
+            //    if (nameBase.EndsWith("c0000"))
+            //    {
+            //        LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBND", "Loading additional player animations...", innerProgress =>
+            //        {
+            //            var anibndFiles = System.IO.Directory.GetFiles(folder, "c0000_*.anibnd*");
+            //            double i = 0;
+            //            foreach (var additionalAnibnd in anibndFiles)
+            //            {
+            //                innerProgress.Report(++i / anibndFiles.Length);
+            //                if (BND3.Is(additionalAnibnd))
+            //                {
+            //                    var additionalContainerBND3 = BND3.Read(additionalAnibnd);
+            //                    foreach (var f in additionalContainerBND3.Files)
+            //                    {
+            //                        CheckGameVersionForTaeInterop(f.Name);
+            //                        if (f.Name.ToUpper().EndsWith(".HKX"))
+            //                        {
+            //                            if (!hkxInBND.ContainsKey(f.Name))
+            //                                hkxInBND.Add(f.Name, f.Bytes);
+            //                        }
+            //                    }
+            //                }
+            //                else if (BND4.Is(additionalAnibnd))
+            //                {
+            //                    var additionalContainerBND4 = BND4.Read(additionalAnibnd);
+            //                    foreach (var f in additionalContainerBND4.Files)
+            //                    {
+            //                        CheckGameVersionForTaeInterop(f.Name);
 
-                                    if (f.Name.ToUpper().EndsWith(".HKX"))
-                                    {
-                                        if (!hkxInBND.ContainsKey(f.Name))
-                                            hkxInBND.Add(f.Name, f.Bytes);
-                                    }
-                                }
-                            }
+            //                        if (f.Name.ToUpper().EndsWith(".HKX"))
+            //                        {
+            //                            if (!hkxInBND.ContainsKey(f.Name))
+            //                                hkxInBND.Add(f.Name, f.Bytes);
+            //                        }
+            //                    }
+            //                }
                             
-                        }
-                        innerProgress.Report(1);
-                    });
-                }
-            }
+            //            }
+            //            innerProgress.Report(1);
+            //        });
+            //    }
+            //}
 
             progress.Report(0.5);
 
-            filePath = file;
-
-            //SFTODO
-            ReloadType = TaeFileContainerReloadType.None;
+            
         }
 
         public void SaveToPath(string file, IProgress<double> progress)

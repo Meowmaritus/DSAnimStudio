@@ -74,7 +74,7 @@ namespace DSAnimStudio
         /// <param name="displayString">String to actually show onscreen next to the progress bar.</param>
         /// <param name="taskDelegate">The actual task to perform. Be sure to report a progress of 1.0 in the IProgress when done.</param>
         /// <returns>True if the task was just started. False if it was already running.</returns>
-        public static bool DoLoadingTask(string taskKey, string displayString, Action<IProgress<double>> taskDelegate)
+        public static bool DoLoadingTask(string taskKey, string displayString, Action<IProgress<double>> taskDelegate, int addFluffMilliseconds = 100)
         {
             lock (_lock_TaskDictEdit)
             {
@@ -84,7 +84,8 @@ namespace DSAnimStudio
                 TaskDict.Add(taskKey, new LoadingTask(displayString, progress =>
                 {
                     taskDelegate.Invoke(progress);
-                    Thread.Sleep(100);
+                    if (addFluffMilliseconds > 0)
+                        Thread.Sleep(addFluffMilliseconds);
                 }));
             }
 
@@ -98,7 +99,7 @@ namespace DSAnimStudio
         /// <param name="displayString">String to actually show onscreen next to the progress bar.</param>
         /// <param name="taskDelegate">The actual task to perform. Be sure to report a progress of 1.0 in the IProgress when done.</param>
         /// <returns>True if the task was just started. False if it was already running.</returns>
-        public static bool DoLoadingTaskSynchronous(string taskKey, string displayString, Action<IProgress<double>> taskDelegate)
+        public static bool DoLoadingTaskSynchronous(string taskKey, string displayString, Action<IProgress<double>> taskDelegate, int addFluffMilliseconds = 100)
         {
             lock (_lock_TaskDictEdit)
             {
@@ -108,7 +109,8 @@ namespace DSAnimStudio
                 TaskDict.Add(taskKey, new LoadingTask(displayString, progress =>
                 {
                     taskDelegate.Invoke(progress);
-                    Thread.Sleep(100);
+                    if (addFluffMilliseconds > 0)
+                        Thread.Sleep(addFluffMilliseconds);
                 }));
             }
 

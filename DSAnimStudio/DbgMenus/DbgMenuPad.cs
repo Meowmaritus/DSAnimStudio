@@ -108,7 +108,7 @@ namespace DSAnimStudio.DbgMenus
                     ClickMouse.Update(gamepad, elapsedSeconds, mouse.LeftButton == ButtonState.Pressed);
                     MiddleClickMouse.Update(gamepad, elapsedSeconds, mouse.MiddleButton == ButtonState.Pressed);
 
-                    MousePos = new Point(mouse.X - TaeInterop.ModelViewerWindowRect.X, mouse.Y - TaeInterop.ModelViewerWindowRect.Y);
+                    MousePos = new Point(mouse.X - GFX.Device.Viewport.Bounds.X, mouse.Y - GFX.Device.Viewport.Bounds.Y);
 
                     IsMouseMovedThisFrame = (MousePos != prevMousePos);
 
@@ -131,7 +131,7 @@ namespace DSAnimStudio.DbgMenus
             }
 
             var mouseOver = Main.Active ? DbgMenuItem.DbgMenuTopLeftButtonRect.Contains(
-                new Point(mouse.X - TaeInterop.ModelViewerWindowRect.X, mouse.Y - TaeInterop.ModelViewerWindowRect.Y)) : false;
+                new Point(mouse.X - GFX.Device.Viewport.Bounds.X, mouse.Y - GFX.Device.Viewport.Bounds.Y)) : false;
             var prevMouseOver = DbgMenuItem.DbgMenuTopLeftButtonRect.Contains(prevMousePos);
 
             if (mouseOver)

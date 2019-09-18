@@ -5,27 +5,26 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DSAnimStudio
+namespace DSAnimStudio.TaeEditor
 {
-    public class AnimRefChainSolver
+    public class TaeAnimRefChainSolver
     {
         private List<(TAE tae, TAE.Animation anim)> RefChain = new List<(TAE tae, TAE.Animation anim)>();
         private IReadOnlyDictionary<string, TAE> TaeDict = null;
         private IReadOnlyDictionary<string, byte[]> HKXDict = null;
-        private HKX.HKXVariation Game = HKX.HKXVariation.HKXDS1;
+        private GameDataManager.GameTypes Game => GameDataManager.GameType;
         public bool StackLimitHit = false;
 
-        public AnimRefChainSolver(HKX.HKXVariation game, IReadOnlyDictionary<string, TAE> taeDict, IReadOnlyDictionary<string, byte[]> hkxDict)
+        public TaeAnimRefChainSolver(IReadOnlyDictionary<string, TAE> taeDict, IReadOnlyDictionary<string, byte[]> hkxDict)
         {
-            Game = game;
             TaeDict = taeDict;
             HKXDict = hkxDict;
         }
 
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {
-            return ((Game == HKX.HKXVariation.HKXBloodBorne || Game == HKX.HKXVariation.HKXDS3) ? (id / 1000000) : (id / 10000), 
-                (Game == HKX.HKXVariation.HKXBloodBorne || Game == HKX.HKXVariation.HKXDS3) ? (id % 1000000) : (id % 10000));
+            return ((Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3) ? (id / 1000000) : (id / 10000), 
+                (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3) ? (id % 1000000) : (id % 10000));
         }
 
         private bool DoesAnimExist(int compositeID)
@@ -46,7 +45,7 @@ namespace DSAnimStudio
             {
                 if (TaeDict.Count > 1)
                 {
-                    if (Game == HKX.HKXVariation.HKXBloodBorne || Game == HKX.HKXVariation.HKXDS3)
+                    if (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3)
                     {
                         result.Add($"a{GetTAEID(rc.tae):D3}_{rc.anim.ID:D6}");
                     }
@@ -59,7 +58,7 @@ namespace DSAnimStudio
                 {
                     var split = GetSplitAnimID(rc.anim.ID);
 
-                    if (Game == HKX.HKXVariation.HKXBloodBorne || Game == HKX.HKXVariation.HKXDS3)
+                    if (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3)
                     {
                         result.Add($"a{split.Upper:D3}_{split.Lower:D6}");
                     }
@@ -119,7 +118,7 @@ namespace DSAnimStudio
 
         private long GetCompositeAnimID((long Upper, long Lower) id)
         {
-            if (Game == HKX.HKXVariation.HKXDS3 || Game == HKX.HKXVariation.HKXBloodBorne)
+            if (Game == GameDataManager.GameTypes.DS3 || Game == GameDataManager.GameTypes.BB)
             {
                 return (id.Upper * 1_000000) + (id.Lower % 1_000000);
             }
@@ -163,7 +162,15 @@ namespace DSAnimStudio
             return -1;
         }
 
-        private long GetReferencedAnimCompositeID(TAE tae, TAE.Animation anim)
+        public long GetCompositeAnimIDOfAnimInTAE(TAE tae, TAE.Animation anim)
+        {
+            var upper = GetTAEID(tae);
+            var lower = anim.ID;
+
+            return GetCompositeAnimID((upper, lower));
+        }
+
+        private long GetReferencedAnimCompositeID(TAE tae, TAE.Animation anim, bool ignoreMultiTAE)
         {
             RefChain.Add((tae, anim));
 
@@ -187,32 +194,32 @@ namespace DSAnimStudio
                     return anim.Unknown2;
                 else
                 {
-                    if (TaeDict.Count > 1)
+                    if (TaeDict.Count > 1 && !ignoreMultiTAE)
                     {
                         var animRef2 = CheckForRef2(GetTAEID(tae), anim);
                         if (animRef2.Anim != null)
-                            return GetReferencedAnimCompositeID(GetTAE(animRef2.UpperID), animRef2.Anim);
+                            return GetReferencedAnimCompositeID(GetTAE(animRef2.UpperID), animRef2.Anim, ignoreMultiTAE);
                     }
                     else
                     {
                         var animRef2 = CheckForRef2(GetSplitAnimID(anim.ID).Upper, anim);
                         if (animRef2.Anim != null)
-                            return GetReferencedAnimCompositeID(tae, animRef2.Anim);
+                            return GetReferencedAnimCompositeID(tae, animRef2.Anim, ignoreMultiTAE);
                     }
                 }
             }
 
-            if (TaeDict.Count > 1)
+            if (TaeDict.Count > 1 && !ignoreMultiTAE)
             {
                 var animRef1 = CheckForRef1(GetTAEID(tae), anim);
                 if (animRef1.Anim != null)
-                    return GetReferencedAnimCompositeID(GetTAE(animRef1.UpperID), animRef1.Anim);
+                    return GetReferencedAnimCompositeID(GetTAE(animRef1.UpperID), animRef1.Anim, ignoreMultiTAE);
             }
             else
             {
                 var animRef1 = CheckForRef1(GetSplitAnimID(anim.ID).Upper, anim);
                 if (animRef1.Anim != null)
-                    return GetReferencedAnimCompositeID(tae, animRef1.Anim);
+                    return GetReferencedAnimCompositeID(tae, animRef1.Anim, ignoreMultiTAE);
             }
 
             if (TaeDict.Count > 1)
@@ -226,11 +233,11 @@ namespace DSAnimStudio
             }
         }
 
-        private string HKXNameFromCompositeID(long compositeID)
+        public string HKXNameFromCompositeID(long compositeID)
         {
             var splitID = GetSplitAnimID(compositeID);
 
-            if (Game == HKX.HKXVariation.HKXBloodBorne || Game == HKX.HKXVariation.HKXDS3)
+            if (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3)
             {
                 return $"a{splitID.Upper:D3}_{splitID.Lower:D6}.hkx";
             }
@@ -240,10 +247,15 @@ namespace DSAnimStudio
             }
         }
 
-        public string GetHKXName(TAE tae, TAE.Animation anim)
+        public string GetHKXName(TAE tae, TAE.Animation anim, bool ignoreMultiTAE = false)
         {
-            var id = GetReferencedAnimCompositeID(tae, anim);
+            var id = GetReferencedAnimCompositeID(tae, anim, ignoreMultiTAE);
             return HKXNameFromCompositeID(id);
+        }
+
+        public string GetHKXNameIgnoreReferences(TAE tae, TAE.Animation anim)
+        {
+            return HKXNameFromCompositeID(GetCompositeAnimIDOfAnimInTAE(tae, anim));
         }
     }
 }

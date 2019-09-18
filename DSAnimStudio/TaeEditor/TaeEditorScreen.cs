@@ -19,7 +19,95 @@ namespace DSAnimStudio.TaeEditor
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
-            //MenuBar.AddTopItem("[TEST: LOAD PARTS]", () => TaeInterop.DEBUG_TEST_PlayerPartsLoad());
+            MenuBar.AddTopItem("[TEST: NEW MODEL VIEWER]", () =>
+            {
+                //GameDataManager.InterrootPath = @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game";
+                //GameDataManager.GameType = GameDataManager.GameTypes.DS3;
+
+                //GameDataManager.LoadCharacter("c6200");
+
+                LoadingTaskMan.DoLoadingTask("TEST MODEL VIEWER", "MODEL VIEWER TEST...", progress =>
+                {
+                    //GameDataManager.Init(
+                    //    GameDataManager.GameTypes.DS1, 
+                    //    @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA");
+
+                    //GameDataManager.Init(
+                    //   GameDataManager.GameTypes.BB,
+                    //   @"E:\BloodborneRips\BB Fake Interroot\dvdroot_ps4");
+
+                    //var player = GameDataManager.LoadCharacter("c0000");
+
+                    GameDataManager.Init(
+                      GameDataManager.GameTypes.DS3,
+                      @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game");
+
+                    var player = GameDataManager.LoadCharacter("c0000");
+
+                    player.CreateChrAsm();
+
+
+                    //player.ChrAsm.RightWeaponID = 306000; // DS1 Stone Greatsword
+
+
+                    //BB Foreign Set
+                    //player.ChrAsm.HeadID = 230000;
+                    //player.ChrAsm.BodyID = 231000;
+                    //player.ChrAsm.ArmsID = 232000;
+                    //player.ChrAsm.LegsID = 233000;
+
+                    //player.ChrAsm.RightWeaponID = 7100000; // BB Saw Spear
+
+                    //DS3 Firelink Set
+                    player.ChrAsm.HeadID = 21000000;
+                    player.ChrAsm.BodyID = 21001000;
+                    player.ChrAsm.ArmsID = 21002000;
+                    player.ChrAsm.LegsID = 21003000;
+                    player.ChrAsm.RightWeaponID = 12000000; // DS3 Whip
+                    player.ChrAsm.LeftWeaponID = 1455000;
+
+                    player.ChrAsm.UpdateModels();
+
+                    var test = Scene.Models;
+
+                    //foreach (var hitbox in player.ChrAsm.RightWeaponModel.DummyPolyMan.HitboxPrimitiveInfos)
+                    //{
+                    //    foreach (var prim in hitbox.Value.Primitives)
+                    //    {
+                    //        prim.EnableDraw = true;
+                    //    }
+                    //}
+
+                    //player.ChrAsm.RightWeaponModel.DummyPolyMan.ActivateAllHitboxes();
+                    player.DummyPolyMan.ActivateHitbox(ParamManager.AtkParam_Pc[4300000]);
+
+                    player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = "a043_030000.hkx";
+                    player.AnimContainer.CurrentAnimationName = "a043_030000.hkx";
+
+                    GameWindowAsForm.Invoke(new Action(() =>
+                    {
+                        var cboiceDict = new Dictionary<string, Action>();
+                        foreach (var kvp in player.ChrAsm.RightWeaponModel.AnimContainer.Animations)
+                        {
+                            cboiceDict.Add(kvp.Key, () => player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = kvp.Key);
+
+
+                        }
+
+                        MenuBar.AddItem("[WPN TEST]", "WPN Anim", cboiceDict, () => player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName);
+                    }));
+
+                    Console.WriteLine("fatcat");
+                });
+
+                //GameDataManager.InterrootPath = @"E:\BloodborneRips\BB Fake Interroot\dvdroot_ps4";
+                //GameDataManager.GameType = GameDataManager.GameTypes.BB;
+
+                //GameDataManager.LoadCharacter("c2510");
+
+                DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
+                
+            });
 
             //MenuBar.AddTopItem("[Reload Shaders]", () =>
             //{
@@ -482,6 +570,12 @@ namespace DSAnimStudio.TaeEditor
 
         public void SaveConfig()
         {
+            if (Graph != null)
+            {
+                // I'm sorry; this is pecularily placed.
+                Graph.ViewportInteractor.SaveChrAsm();
+            }
+
             CheckConfigFilePath();
 
             var jsonText = Newtonsoft.Json.JsonConvert
@@ -527,17 +621,12 @@ namespace DSAnimStudio.TaeEditor
                     return true;
                 }
 
-                if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
-                {
-                    TaeInterop.OnLoadANIBND(MenuBar, progress);
-                }
-
-                LoadTaeFileContainer(FileContainer);
+                LoadTaeFileContainer(FileContainer, progress);
 
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
                     MenuBar["File/Save As..."].Enabled = !IsReadOnlyFileMode;
-                    MenuBar["File/Force Refresh Ingame"].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File/Force Ingame Character Reload Now (DS3 Only)"].Enabled = !IsReadOnlyFileMode;
                 }));
 
                 //if (templateName != null)
@@ -605,7 +694,7 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
-        private void LoadTaeFileContainer(TaeFileContainer fileContainer)
+        private void LoadTaeFileContainer(TaeFileContainer fileContainer, IProgress<double> progress)
         {
             TaeExtensionMethods.ClearMemes();
             FileContainer = fileContainer;
@@ -617,6 +706,10 @@ namespace DSAnimStudio.TaeEditor
             SelectedTaeAnim = SelectedTae.Animations[0];
             editScreenAnimList = new TaeEditAnimList(this);
             Graph = new TaeEditAnimEventGraph(this);
+            //if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
+            //{
+            //    TaeInterop.OnLoadANIBND(MenuBar, progress);
+            //}
             CheckAutoLoadXMLTemplate();
             SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
             GameWindowAsForm.Invoke(new Action(() =>
@@ -753,7 +846,7 @@ namespace DSAnimStudio.TaeEditor
 
             MenuBar.AddItem("File", "Open...", () => File_Open());
             MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Load Template...", () =>
+            MenuBar.AddItem("File", "Load Custom TAE Data Template XML...", () =>
             {
                 var selectedTemplate = BrowseForXMLTemplate();
                 if (selectedTemplate != null)
@@ -765,9 +858,9 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
             MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
-            //MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Force Refresh Ingame", () => LiveRefresh(), startDisabled: true);
-            MenuBar.AddItem("File", "Force Refresh On Save", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
+            MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Force Ingame Character Reload Now (DS3 Only)", () => LiveRefresh(), startDisabled: true);
+            MenuBar.AddItem("File", "Force Ingame Character Reload When Saving (DS3 Only)", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
 
@@ -839,61 +932,6 @@ namespace DSAnimStudio.TaeEditor
             //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
             //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
             //MenuBar.AddItem("Event Graph", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
-
-            ////////////////
-            // Simulation //
-            ////////////////
-
-            EventSim.BuildEventSimMenuBar(MenuBar);
-
-            ///////////////
-            // Animation //
-            ///////////////
-            ///
-            MenuBar.AddItem("Animation", "Enable Root Motion", () => TaeInterop.EnableRootMotion, b => TaeInterop.EnableRootMotion = b);
-            MenuBar.AddItem("Animation", "Lock To Original Framerate In Anim File", () => TaeInterop.IsSnapTo30FPS, b => TaeInterop.IsSnapTo30FPS = b);
-            MenuBar.AddItem("Animation", "Animate DummyPoly", () => DummyPolyManager.UseDummyPolyAnimation, b => DummyPolyManager.UseDummyPolyAnimation = b);
-            MenuBar.AddItem("Animation", "Camera Follows Root Motion", () => TaeInterop.CameraFollowsRootMotion, b => TaeInterop.CameraFollowsRootMotion = b);
-            MenuBar.AddItem("Animation", "Lock To T-Pose", () => TaeInterop.Debug_LockToTPose, b =>
-            {
-                TaeInterop.Debug_LockToTPose = b;
-                TaeInterop.OnAnimFrameChange(true);
-            });
-            MenuBar.AddSeparator("Animation");
-            MenuBar.AddItem("Animation", "Spread Bone Update Across Multiple Frames (Reduces Stuttering)", new Dictionary<string, Action>
-            {
-                { "Update All Bones Every Frame", () => TaeInterop.InterleavedCalculationDivisor = 1 },
-                { "Takes 2 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 2 },
-                { "Takes 3 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 3 },
-                { "Takes 4 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 4 },
-                { "Takes 5 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 5 },
-                { "Takes 10 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 10 },
-                { "Takes 15 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 15 },
-                { "Takes 30 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 30 },
-                { "Takes 60 frames to update all bones", () => TaeInterop.InterleavedCalculationDivisor = 60 },
-            }, "Update All Bones Every Frame");
-
-            MenuBar.AddItem("Animation", "Set Playback Speed...", () =>
-            {
-                PauseUpdate = true;
-                var speed = KeyboardInput.Show("Set Playback Speed", "Set animation playback speed.", "1.00");
-                if (float.TryParse(speed.Result, out float newSpeed))
-                {
-                    PlaybackCursor.PlaybackSpeed = newSpeed;
-                }
-                else
-                {
-                    System.Windows.Forms.MessageBox.Show("Not a valid number.");
-                }
-                PauseUpdate = false;
-            });
-
-            ///////////
-            // Scene //
-            ///////////
-
-            MenuBar.AddTopItem("Scene");
-
 
             //////////////
             // Viewport //
@@ -1061,7 +1099,20 @@ namespace DSAnimStudio.TaeEditor
 
         private void LiveRefresh()
         {
-            DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload();
+            var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower();
+
+            if (chrNameBase.EndsWith("c"))
+            {
+                DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload(
+                    DSAnimStudio.LiveRefresh.RequestFileReload.ReloadType.Chr, chrNameBase);
+            }
+            else if (chrNameBase.StartsWith("o"))
+            {
+                DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload(
+                    DSAnimStudio.LiveRefresh.RequestFileReload.ReloadType.Object, chrNameBase);
+            }
+
+            
             //if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE || FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_DS1R)
             //{
             //    var chrName = Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName);
@@ -1175,8 +1226,8 @@ namespace DSAnimStudio.TaeEditor
                     needsAnimReload = true;
                 }
 
-                if (needsAnimReload)
-                    TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
+                //if (needsAnimReload)
+                //    TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
             }
 
             PauseUpdate = false;
@@ -1669,9 +1720,13 @@ namespace DSAnimStudio.TaeEditor
 
                 editScreenAnimList.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
 
+                Graph.ViewportInteractor.OnNewAnimSelected();
+
                 Graph.PlaybackCursor.CurrentTime = 0;
 
-                TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
+                //TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
+
+                
             }
             else
             {
@@ -2083,7 +2138,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         PlaybackCursor.IsStepping = true;
                         PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
-                        PlaybackCursor.CurrentTime += TaeInterop.CurrentAnimationFrameDuration 
+                        PlaybackCursor.CurrentTime += 0.03333333f
                             * (NextFrameRepeaterButton.IsInitalButtonTap ? 1 : 0.25f) * (ShiftHeld ? 5 : 1);
                         if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime)
                             PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
@@ -2095,7 +2150,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         PlaybackCursor.IsStepping = true;
                         PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
-                        PlaybackCursor.CurrentTime -= TaeInterop.CurrentAnimationFrameDuration
+                        PlaybackCursor.CurrentTime -= 0.03333333f
                             * (PrevFrameRepeaterButton.IsInitalButtonTap ? 1 : 0.25f) * (ShiftHeld ? 5 : 1);
                         if (PlaybackCursor.CurrentTime < 0)
                             PlaybackCursor.CurrentTime += PlaybackCursor.MaxTime;
@@ -2282,7 +2337,7 @@ namespace DSAnimStudio.TaeEditor
                 else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
                     MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
                 else if (
-                    TaeInterop.ModelViewerWindowRect.Contains(Input.MousePositionPoint))
+                    ModelViewerBounds.Contains(Input.MousePositionPoint))
                 {
                     MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
                 }

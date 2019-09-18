@@ -18,6 +18,8 @@ namespace DSAnimStudio.DebugPrimitives
 
         private List<FLVER2.Bone> BoneList = new List<FLVER2.Bone>();
 
+        public int BaseDummyPolyID = 0;
+
         //public int ID { get; private set; }
 
         //private float _helperSize;
@@ -231,7 +233,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         public Vector3 GetDummyPosition(int dmy, bool isAbsolute)
         {
-            var dummy = DummyPoly.First(d => d.ReferenceID == dmy);
+            var dummy = DummyPoly.First(d => (BaseDummyPolyID + d.ReferenceID) == dmy);
             var m = GetDummyPolyMatrix(dummy);
             if (isAbsolute)
                 m *= Transform.WorldMatrix;
@@ -240,7 +242,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         public Matrix GetDummyMatrix(int dmy, bool isAbsolute)
         {
-            var dummy = DummyPoly.First(d => d.ReferenceID == dmy);
+            var dummy = DummyPoly.First(d => (BaseDummyPolyID + d.ReferenceID) == dmy);
             var m = GetDummyPolyMatrix(dummy);
             if (isAbsolute)
                 m *= Transform.WorldMatrix;
@@ -266,14 +268,15 @@ namespace DSAnimStudio.DebugPrimitives
             AddDbgLabel(Vector3.Transform(Vector3.Zero, m), 0.25f, dummy.ReferenceID.ToString(), new Color(dummy.Color.R, dummy.Color.G, dummy.Color.B, dummy.Color.A));
         }
 
-        public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies, List<FLVER2.Bone> bones)
+        public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies, List<FLVER2.Bone> bones, int baseDmyPolyID)
         {
+            BaseDummyPolyID = baseDmyPolyID;
             BoneList = bones;
             RenderSize = size;
             //NameColor = new Color(dummy.Color.R, dummy.Color.G, dummy.Color.B, (byte)255);
             //Name = dummy.ReferenceID.ToString();
             DummyPoly = dummies;
-            DummyPolyID = dummies.Select(d => (int)d.ReferenceID).ToList();
+            DummyPolyID = dummies.Select(d => (int)(d.ReferenceID + baseDmyPolyID)).ToList();
             Category = DbgPrimCategory.DummyPoly;
             //Transform = new Transform(DummyPolyMatrix);
 

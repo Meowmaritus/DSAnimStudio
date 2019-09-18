@@ -22,10 +22,12 @@ namespace DSAnimStudio
         public Vector3 OrbitCamCenter = new Vector3(0, 0.5f, 0);
         public bool IsOrbitCam = true;
 
+        private float ViewportAspectRatio => 1.0f * GFX.Device.Viewport.Width / GFX.Device.Viewport.Height;
+
         public void OrbitCamReset()
         {
-            if (TaeInterop.ModelViewerAspectRatio < 1)
-                OrbitCamDistance = (float)Math.Sqrt((ModelHeight_ForOrbitCam * 2) / (TaeInterop.ModelViewerAspectRatio * 0.66f));
+            if (ViewportAspectRatio < 1)
+                OrbitCamDistance = (float)Math.Sqrt((ModelHeight_ForOrbitCam * 2) / (ViewportAspectRatio * 0.66f));
             else
                 OrbitCamDistance = (float)Math.Sqrt(ModelHeight_ForOrbitCam * 2);
             OrbitCamCenter = new Vector3(0, ModelHeight_ForOrbitCam / 2, 0);
@@ -95,16 +97,16 @@ namespace DSAnimStudio
             }
         }
 
-        public void ApplyViewToShader<T>(IGFXShader<T> shader)
-            where T : Effect
-        {
-            Matrix m = Matrix.Identity;
+        //public void ApplyViewToShader<T>(IGFXShader<T> shader)
+        //    where T : Effect
+        //{
+        //    Matrix m = Matrix.Identity;
 
-            if (TaeInterop.CameraFollowsRootMotion)
-                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
+        //    if (TaeInterop.CameraFollowsRootMotion)
+        //        m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
-            shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
-        }
+        //    shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+        //}
 
         public void ApplyViewToShader_Skybox<T>(IGFXShader<T> shader)
             where T : Effect
@@ -120,23 +122,13 @@ namespace DSAnimStudio
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Matrix modelMatrix)
             where T : Effect
         {
-            Matrix m = modelMatrix;
-
-            if (TaeInterop.CameraFollowsRootMotion)
-                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
-
-            shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+            shader.ApplyWorldView(modelMatrix, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Transform modelTransform)
             where T : Effect
         {
-            Matrix m = modelTransform.WorldMatrix;
-
-            if (TaeInterop.CameraFollowsRootMotion)
-                m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
-
-            shader.ApplyWorldView(m, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+            ApplyViewToShader(shader, modelTransform.WorldMatrix);
         }
 
         public bool IsInFrustum(BoundingBox objBounds, Transform objTransform)
@@ -295,16 +287,16 @@ namespace DSAnimStudio
 
         public void MoveCamera_OrbitCenterPoint_MouseDelta(Vector2 curMouse, Vector2 oldMouse)
         {
-            var curMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(curMouse.X, TaeInterop.ModelViewerWindowRect.Height / 2f, 0),
+            var curMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(curMouse.X, GFX.Device.Viewport.Height / 2f, 0),
                 GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
 
-            var curMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(TaeInterop.ModelViewerWindowRect.Width / 2f, curMouse.Y, 0),
+            var curMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(GFX.Device.Viewport.Width / 2f, curMouse.Y, 0),
                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
 
-            var oldMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(oldMouse.X, TaeInterop.ModelViewerWindowRect.Height / 2f, 0),
+            var oldMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(oldMouse.X, GFX.Device.Viewport.Height / 2f, 0),
                 GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
 
-            var oldMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(TaeInterop.ModelViewerWindowRect.Width / 2f, oldMouse.Y, 0),
+            var oldMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(GFX.Device.Viewport.Width / 2f, oldMouse.Y, 0),
                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
 
             float hDist = (curMouse3DX - oldMouse3DX).Length();
@@ -648,7 +640,7 @@ namespace DSAnimStudio
                 }
 
 
-                if (TaeInterop.ModelViewerWindowRect.Contains(mouse.Position))
+                if (GFX.Device.Viewport.Bounds.Contains(mouse.Position))
                     OrbitCamDistance -= ((currentWheel - oldWheel) / 150f) * 0.25f;
                 
             }

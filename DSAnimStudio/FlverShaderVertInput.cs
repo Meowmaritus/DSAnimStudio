@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace DSAnimStudio
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct VertexPositionColorNormalTangentTexture : IVertexType
+    public struct FlverShaderVertInput : IVertexType
     {
         public Vector3 Position;
         public Vector2 TextureCoordinate;
@@ -45,7 +45,7 @@ namespace DSAnimStudio
         /// <summary>
         /// Static constructor to init vertex declaration.
         /// </summary>
-        static VertexPositionColorNormalTangentTexture()
+        static FlverShaderVertInput()
         {
             List<VertexElement> elements = new List<VertexElement>();
             int offset = 0;
@@ -98,7 +98,7 @@ namespace DSAnimStudio
             {
                 return false;
             }
-            return (this == ((VertexPositionColorNormalTangentTexture)obj));
+            return (this == ((FlverShaderVertInput)obj));
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace DSAnimStudio
         /// <param name="left">Left side to compare.</param>
         /// <param name="right">Right side to compare.</param>
         /// <returns>If equal.</returns>
-        public static bool operator ==(VertexPositionColorNormalTangentTexture left, VertexPositionColorNormalTangentTexture right)
+        public static bool operator ==(FlverShaderVertInput left, FlverShaderVertInput right)
         {
             return (
                 (left.Position == right.Position) &&
@@ -151,7 +151,7 @@ namespace DSAnimStudio
         /// <param name="left">Left side to compare.</param>
         /// <param name="right">Right side to compare.</param>
         /// <returns>If not equal.</returns>
-        public static bool operator !=(VertexPositionColorNormalTangentTexture left, VertexPositionColorNormalTangentTexture right)
+        public static bool operator !=(FlverShaderVertInput left, FlverShaderVertInput right)
         {
             return !(left == right);
         }

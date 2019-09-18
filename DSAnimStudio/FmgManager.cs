@@ -26,16 +26,16 @@ namespace DSAnimStudio
             FMG weaponNamesFmg_dlc2 = null;
             FMG protectorNamesFmg_dlc2 = null;
 
-            if (TaeInterop.CurrentHkxVariation == SoulsFormats.HKX.HKXVariation.HKXDS1)
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
             {
-                var msgbnd = BND3.Read($@"{TaeInterop.InterrootPath}\msg\ENGLISH\item.msgbnd");
+                var msgbnd = BND3.Read($@"{GameDataManager.InterrootPath}\msg\ENGLISH\item.msgbnd");
 
                 weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("武器名.fmg")).Bytes);
                 protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("防具名.fmg")).Bytes);
             }
-            else if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS3)
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
-                var msgbnd = BND4.Read($@"{TaeInterop.InterrootPath}\msg\engus\item_dlc2.msgbnd.dcx");
+                var msgbnd = BND4.Read($@"{GameDataManager.InterrootPath}\msg\engus\item_dlc2.msgbnd.dcx");
 
                 weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("武器名.fmg")).Bytes);
                 protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("防具名.fmg")).Bytes);
@@ -56,9 +56,9 @@ namespace DSAnimStudio
                 if (protectorNamesFmg_dlc2_entry != null)
                     protectorNamesFmg_dlc2 = FMG.Read(protectorNamesFmg_dlc2_entry.Bytes);
             }
-            else if (TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne)
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
             {
-                var msgbnd = BND4.Read($@"{TaeInterop.InterrootPath}\msg\engus\item.msgbnd.dcx");
+                var msgbnd = BND4.Read($@"{GameDataManager.InterrootPath}\msg\engus\item.msgbnd.dcx");
 
                 weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("武器名.fmg")).Bytes);
                 protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("防具名.fmg")).Bytes);
@@ -101,7 +101,7 @@ namespace DSAnimStudio
 
             void DoProtectorParamEntry(FMG.Entry entry)
             {
-                if (entry.ID < 1000000 && TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXDS3)
+                if (entry.ID < 1000000 && GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                     return;
                 if (ParamManager.EquipParamProtector.ContainsKey(entry.ID))
                 {

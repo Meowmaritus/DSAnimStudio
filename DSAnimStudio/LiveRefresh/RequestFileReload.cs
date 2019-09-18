@@ -10,7 +10,7 @@ namespace DSAnimStudio.LiveRefresh
     {
         internal static long GetReloadPtr()
         {
-            if (TaeInterop.CurrentHkxVariation == SoulsFormats.HKX.HKXVariation.HKXDS3)
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
                 var GetReloadPtr_ = IntPtr.Add(Memory.BaseAddress, 0x4768E78);
                 GetReloadPtr_ = new IntPtr(Memory.ReadInt64(GetReloadPtr_));
@@ -28,7 +28,7 @@ namespace DSAnimStudio.LiveRefresh
         {
             var PartsPtr = (IntPtr)GetReloadPtr();
 
-            if (TaeInterop.CurrentHkxVariation == SoulsFormats.HKX.HKXVariation.HKXDS3)
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
                 try
                 {
@@ -46,20 +46,27 @@ namespace DSAnimStudio.LiveRefresh
            
         }
 
-        public static void RequestReload()
+        public enum ReloadType
         {
-            var name = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(TaeInterop.AnibndPath)).ToLower();
-            if (name.StartsWith("c"))
+            Parts,
+            Chr,
+            Object,
+        }
+        public static void RequestReload(ReloadType type, string name)
+        {
+            if (type == ReloadType.Chr)
                 RequestReloadChr(name);
-            else if (name.StartsWith("o"))
+            else if (type == ReloadType.Object)
                 RequestReloadObj(name);
+            else if (type == ReloadType.Parts)
+                RequestReloadParts();
         }
 
         private static void RequestReloadChr(string chrName)
         {
             byte[] chrNameBytes = Encoding.Unicode.GetBytes(chrName);
 
-            if (TaeInterop.CurrentHkxVariation == SoulsFormats.HKX.HKXVariation.HKXDS3)
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
                 try
                 {
@@ -98,7 +105,7 @@ namespace DSAnimStudio.LiveRefresh
         {
             byte[] objNameBytes = Encoding.Unicode.GetBytes(objName);
 
-            if (TaeInterop.CurrentHkxVariation == SoulsFormats.HKX.HKXVariation.HKXDS3)
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
                 try
                 {

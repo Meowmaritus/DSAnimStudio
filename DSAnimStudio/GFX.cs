@@ -152,8 +152,6 @@ namespace DSAnimStudio
 
         public static WorldView World = new WorldView();
 
-        public static ModelDrawer ModelDrawer = new ModelDrawer();
-
         public static GraphicsDevice Device;
         //public static FlverShader FlverShader;
         //public static DbgPrimShader DbgPrimShader;
@@ -314,7 +312,6 @@ namespace DSAnimStudio
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.CullMode = CullMode.CullClockwiseFace;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.FillMode = FillMode.WireFrame;
 
-            ModelDrawer.LoadContent(c);
         }
 
         public static void BeginDraw(GameTime gameTime)
@@ -322,10 +319,10 @@ namespace DSAnimStudio
             InitDepthStencil();
             //InitBlendState();
 
-            World.ApplyViewToShader(DbgPrimWireShader);
-            World.ApplyViewToShader(DbgPrimSolidShader);
-            World.ApplyViewToShader(FlverShader);
-            World.ApplyViewToShader(CollisionShader);
+            World.ApplyViewToShader(DbgPrimWireShader, Matrix.Identity);
+            World.ApplyViewToShader(DbgPrimSolidShader, Matrix.Identity);
+            World.ApplyViewToShader(FlverShader, Matrix.Identity);
+            World.ApplyViewToShader(CollisionShader, Matrix.Identity);
 
             //foreach (var m in ModelDrawer.Models)
             //{
@@ -389,16 +386,13 @@ namespace DSAnimStudio
             {
                 case GFXDrawStep.Opaque:
                 case GFXDrawStep.AlphaEdge:
-                    TaeInterop.TaeViewportDrawPre(gameTime);
                     if (!HideFLVERs)
                     {
-                        ModelDrawer.Draw();
-                        ModelDrawer.DebugDrawAll();
+                        Scene.Draw(gameTime);
                     }
                     break;
                 case GFXDrawStep.DbgPrimOverlay:
                     DBG.DrawPrimitives(gameTime);
-                    ModelDrawer.DrawSelected();
                     break;
                 case GFXDrawStep.DbgPrimPrepass:
                     DBG.DrawBehindPrims(gameTime);
@@ -406,7 +400,6 @@ namespace DSAnimStudio
                 case GFXDrawStep.GUI:
                     if (DBG.EnableMenu)
                         DbgMenuItem.CurrentMenu.Draw((float)gameTime.ElapsedGameTime.TotalSeconds);
-                    TaeInterop.TaeViewportDrawPost(gameTime);
                     break;
             }
         }

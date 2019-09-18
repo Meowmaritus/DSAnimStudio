@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DSAnimStudio
+namespace DSAnimStudio.TaeEditor
 {
     public static class TaeSoundManager
     {
