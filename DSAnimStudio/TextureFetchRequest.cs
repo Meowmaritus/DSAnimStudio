@@ -35,7 +35,6 @@ namespace DSAnimStudio
         public TextureInfo TexInfo { get; private set; }
         public string TexName;
         private Texture CachedTexture;
-        private bool IsDX10;
         private static object _lock_conversion = new object();
 
         public bool IsTextureLoaded => CachedTexture != null;
@@ -469,7 +468,6 @@ namespace DSAnimStudio
                 {
                     // No DX10 texture support in monogame yet
                     Console.WriteLine($"Unable to load {TexName} because it uses DX10+ exclusive texture type.");
-                    IsDX10 = true;
                     CachedTexture = Main.DEFAULT_TEXTURE_MISSING_CUBE;
                     TPFReference = null;
                     return (TextureCube)CachedTexture;

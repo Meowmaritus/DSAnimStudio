@@ -9,12 +9,37 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio.TaeEditor
 {
+
     public class TaePlaybackCursor
     {
         public double CurrentTime;
 
-        public double GUICurrentTime => TaeInterop.IsSnapTo30FPS ? (Math.Round(CurrentTime / SnapInterval) * SnapInterval) : CurrentTime;
-        public double GUIStartTime => TaeInterop.IsSnapTo30FPS ? (Math.Round(StartTime / SnapInterval) * SnapInterval) : StartTime;
+        public event EventHandler<TaeEditAnimEventBox> EventBoxEnter;
+        private void OnEventBoxEnter(TaeEditAnimEventBox evBox) { EventBoxEnter?.Invoke(this, evBox); }
+
+        public event EventHandler<TaeEditAnimEventBox> EventBoxMidst;
+        private void OnEventBoxMidst(TaeEditAnimEventBox evBox) { EventBoxMidst?.Invoke(this, evBox); }
+
+        public event EventHandler<TaeEditAnimEventBox> EventBoxExit;
+        private void OnEventBoxExit(TaeEditAnimEventBox evBox) { EventBoxExit?.Invoke(this, evBox); }
+
+        public event EventHandler PlaybackStarted;
+        private void OnPlaybackStarted() { PlaybackStarted?.Invoke(this, EventArgs.Empty); }
+
+        public event EventHandler PlaybackLooped;
+        private void OnPlaybackLooped() { PlaybackLooped?.Invoke(this, EventArgs.Empty); }
+
+        public event EventHandler PlaybackEnded;
+        private void OnPlaybackEnded() { PlaybackEnded?.Invoke(this, EventArgs.Empty); }
+
+        public event EventHandler PlaybackFrameChange;
+        private void OnPlaybackFrameChange() { PlaybackFrameChange?.Invoke(this, EventArgs.Empty); }
+
+        public event EventHandler ScrubFrameChange;
+        private void OnScrubFrameChange() { ScrubFrameChange?.Invoke(this, EventArgs.Empty); }
+
+        public double GUICurrentTime => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(CurrentTime / SnapInterval) * SnapInterval) : CurrentTime;
+        public double GUIStartTime => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(StartTime / SnapInterval) * SnapInterval) : StartTime;
 
         private double oldGUICurrentTime = 0;
 
@@ -23,10 +48,10 @@ namespace DSAnimStudio.TaeEditor
 
         public double? HkxAnimationLength = null;
 
-        public static double SnapInterval => TaeInterop.CurrentAnimationFrameDuration > 0 ? TaeInterop.CurrentAnimationFrameDuration : 30;
+        public double SnapInterval => 0.0333333f;
 
-        public double GUICurrentFrame => TaeInterop.IsSnapTo30FPS ? (Math.Round(CurrentTime / SnapInterval)) :  (CurrentTime / SnapInterval);
-        public double MaxFrame => TaeInterop.IsSnapTo30FPS ? (Math.Round(MaxTime / SnapInterval)) : (MaxTime / SnapInterval);
+        public double GUICurrentFrame => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(CurrentTime / SnapInterval)) :  (CurrentTime / SnapInterval);
+        public double MaxFrame => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(MaxTime / SnapInterval)) : (MaxTime / SnapInterval);
 
         public bool IsRepeat = true;
         public bool IsPlaying = false;
@@ -80,7 +105,7 @@ namespace DSAnimStudio.TaeEditor
                     foreach (var box in eventBoxes)
                         box.PlaybackHighlight = false;
 
-                    EventSim.OnSimulationEnd();
+                    OnPlaybackEnded();
                 }
             }
 
@@ -95,7 +120,7 @@ namespace DSAnimStudio.TaeEditor
             bool justStartedPlaying = !prevPlayState && IsPlaying;
 
             if (justStartedPlaying || (curFrameLoopCount != prevFrameLoopCount))
-                EventSim.OnSimulationStart();
+                OnPlaybackStarted();
 
             if (HkxAnimationLength.HasValue)
                 MaxTime = HkxAnimationLength.Value;
@@ -111,12 +136,16 @@ namespace DSAnimStudio.TaeEditor
                 {
                     if (CurrentTime < 0)
                         CurrentTime += MaxTime;
-                    TaeInterop.OnAnimFrameChange(Scrubbing);
+                    if (Scrubbing)
+                        OnScrubFrameChange();
+                    else
+                        OnPlaybackFrameChange();
                 }
 
                 bool justReachedAnimEnd = (CurrentTime > MaxTime);
 
-                if (Math.Round(MaxTime / TaeInterop.CurrentAnimationFrameDuration) == 1)
+                // Single frame anim
+                if (MaxTime <= (SnapInterval))
                 {
                     CurrentTime = 0;
                 }
@@ -135,34 +164,26 @@ namespace DSAnimStudio.TaeEditor
                     bool currentlyInEvent = false;
                     bool prevFrameInEvent = false;
 
-                    if (TaeInterop.IsSnapTo30FPS)
-                    {
-                        int currentFrame = (int)Math.Round((GUICurrentTime % MaxTime) / SnapInterval);
-                        int prevFrame = (int)Math.Round((oldGUICurrentTime % MaxTime) / SnapInterval);
-                        int eventStartFrame = (int)Math.Round(box.MyEvent.StartTime / SnapInterval);
-                        int eventEndFrame = (int)Math.Round(box.MyEvent.EndTime / SnapInterval);
+                    //if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
+                    //{
+                    //    int currentFrame = (int)Math.Floor((GUICurrentTime % MaxTime) / SnapIntervalHz);
+                    //    int prevFrame = (int)Math.Floor((oldGUICurrentTime % MaxTime) / SnapIntervalHz);
+                    //    int eventStartFrame = (int)Math.Round(box.MyEvent.StartTime / SnapIntervalHz);
+                    //    int eventEndFrame = (int)Math.Round(box.MyEvent.EndTime / SnapIntervalHz);
 
-                        currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
-                        prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
-                    }
-                    else
-                    {
-                        if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
-                        {
-                            int currentFrame = (int)Math.Floor((GUICurrentTime % MaxTime) / SnapInterval);
-                            int prevFrame = (int)Math.Floor((oldGUICurrentTime % MaxTime) / SnapInterval);
-                            int eventStartFrame = (int)Math.Round(box.MyEvent.StartTime / SnapInterval);
-                            int eventEndFrame = (int)Math.Round(box.MyEvent.EndTime / SnapInterval);
+                    //    currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
+                    //    prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
+                    //}
+                    //else
+                    //{
+                    //    currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
+                    //    prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
+                    //}
 
-                            currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
-                            prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
-                        }
-                        else
-                        {
-                            currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
-                            prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
-                        }
-                    }
+                    currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
+                    prevFrameInEvent = !justStartedPlaying && 
+                        oldGUICurrentTime >= box.MyEvent.StartTime && 
+                        oldGUICurrentTime < box.MyEvent.EndTime;
 
                     if (currentlyInEvent)
                     {
@@ -170,7 +191,7 @@ namespace DSAnimStudio.TaeEditor
 
                         if (!prevFrameInEvent || !box.PrevCyclePlaybackHighlight || (curFrameLoopCount != prevFrameLoopCount) )
                         {
-                            EventSim.OnEventEnter(box);
+                            OnEventBoxEnter(box);
                         }
 
                         ////Also check if we looped playback
@@ -179,14 +200,13 @@ namespace DSAnimStudio.TaeEditor
 
                         //}
 
-                        EventSim.OnEventMidFrame(box);
-                        
+                        OnEventBoxMidst(box);
                     }
                     else
                     {
                         if (prevFrameInEvent || box.PrevCyclePlaybackHighlight)
                         {
-                            EventSim.OnEventExit(box);
+                            OnEventBoxExit(box);
                         }
 
                         box.PlaybackHighlight = false;
@@ -220,6 +240,7 @@ namespace DSAnimStudio.TaeEditor
 
                             // way simpler
                             CurrentTime %= MaxTime;
+                            OnPlaybackLooped();
                         }
                         else
                         {

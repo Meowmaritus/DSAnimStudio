@@ -14,7 +14,7 @@ namespace DSAnimStudio.TaeEditor
         private MenuStrip Menustrip;
 
         static System.Drawing.Color BackColor;
-        static System.Drawing.Color BackColor_Selected = System.Drawing.Color.DimGray;
+        static System.Drawing.Color BackColor_Selected = System.Drawing.Color.FromArgb(255, 40, 40, 40);
         static System.Drawing.Color OutlineColor = System.Drawing.Color.FromArgb(255, 80, 80, 80);
         static System.Drawing.Color ForeColor;
 
@@ -109,12 +109,28 @@ namespace DSAnimStudio.TaeEditor
 
             protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
             {
+                // IM SO SORRY
+                if (e.Item.Text == "NPC Settings" || e.Item.Text == "Player Settings")
+                {
+                    e.Item.ForeColor = System.Drawing.Color.Cyan;
+                    base.OnRenderItemText(e);
+                    return;
+                }
+
                 if (!e.Item.Enabled)
                 {
                     //using (var brush = new System.Drawing.SolidBrush(System.Drawing.Color.Gray))
                     //    e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, e.Item.Padding.Size.Width, e.Item.Padding.Top);
 
-                    e.Item.ForeColor = System.Drawing.Color.Gray;
+                    if (e.Item.Selected)
+                    {
+                        e.Item.ForeColor = System.Drawing.Color.Black;
+                    }
+                    else
+                    {
+                        e.Item.ForeColor = System.Drawing.Color.Gray;
+                    }
+                    
                 }
                 else
                 {

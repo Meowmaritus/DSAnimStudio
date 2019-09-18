@@ -10,11 +10,11 @@ namespace DSAnimStudio
 {
     public static class ParamManager
     {
-        private static Dictionary<HKX.HKXVariation, IBinder> ParamBNDs 
-            = new Dictionary<HKX.HKXVariation, IBinder>();
+        private static Dictionary<GameDataManager.GameTypes, IBinder> ParamBNDs 
+            = new Dictionary<GameDataManager.GameTypes, IBinder>();
 
-        private static Dictionary<HKX.HKXVariation, Dictionary<string, PARAM>> LoadedParams 
-            = new Dictionary<HKX.HKXVariation, Dictionary<string, PARAM>>();
+        private static Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM>> LoadedParams 
+            = new Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM>>();
 
         public static Dictionary<long, ParamData.BehaviorParam> BehaviorParam_PC 
             = new Dictionary<long, ParamData.BehaviorParam>();
@@ -38,26 +38,26 @@ namespace DSAnimStudio
             = new Dictionary<long, ParamData.EquipParamProtector>();
 
 
-        public static PARAM GetParam(HKX.HKXVariation game, string paramName)
+        public static PARAM GetParam(string paramName)
         {
-            if (!ParamBNDs.ContainsKey(game))
+            if (!ParamBNDs.ContainsKey(GameDataManager.GameType))
                 throw new InvalidOperationException("ParamBND not loaded :tremblecat:");
 
-            if (!LoadedParams.ContainsKey(game))
-                LoadedParams.Add(game, new Dictionary<string, PARAM>());
+            if (!LoadedParams.ContainsKey(GameDataManager.GameType))
+                LoadedParams.Add(GameDataManager.GameType, new Dictionary<string, PARAM>());
 
-            if (LoadedParams[game].ContainsKey(paramName))
+            if (LoadedParams[GameDataManager.GameType].ContainsKey(paramName))
             {
-                return LoadedParams[game][paramName];
+                return LoadedParams[GameDataManager.GameType][paramName];
             }
             else
             {
-                foreach (var f in ParamBNDs[game].Files)
+                foreach (var f in ParamBNDs[GameDataManager.GameType].Files)
                 {
                     if (f.Name.ToUpper().Contains(paramName.ToUpper()))
                     {
                         var p = PARAM.Read(f.Bytes);
-                        LoadedParams[game].Add(paramName, p);
+                        LoadedParams[GameDataManager.GameType].Add(paramName, p);
                         return p;
                     }
                 }
@@ -65,18 +65,34 @@ namespace DSAnimStudio
             throw new InvalidOperationException($"Param '{paramName}' not found :tremblecat:");
         }
 
-        private static void LoadStuffFromParamBND(HKX.HKXVariation game)
+        public static List<ParamData.NpcParam> FindNpcParams(string modelName)
+        {
+            int chrId = int.Parse(modelName.Substring(1));
+
+            var npcParams = new List<ParamData.NpcParam>();
+            foreach (var kvp in NpcParam.Where(r => (r.Key / 100 == chrId || 
+                (GameDataManager.GameType == GameDataManager.GameTypes.BB && 
+                ((r.Key % 1_0000_00) / 100 == chrId)))))
+            {
+                npcParams.Add(kvp.Value);
+            }
+            return npcParams;
+        }
+
+        private static GameDataManager.GameTypes GameTimeCurrentLoadedParamsAreFor = GameDataManager.GameTypes.None;
+        private static void LoadStuffFromParamBND()
         {
             void AddParam<T>(Dictionary<long, T> paramDict, string paramName)
                 where T : ParamData, new()
             {
                 paramDict.Clear();
-                var param = GetParam(game, paramName);
+                var param = GetParam(paramName);
                 foreach (var row in param.Rows)
                 {
                     var rowData = new T();
+                    rowData.ID = row.ID;
                     rowData.Name = row.Name;
-                    rowData.Read(param.GetRowReader(row), game);
+                    rowData.Read(param.GetRowReader(row));
                     paramDict.Add(row.ID, rowData);
                 }
             }
@@ -89,51 +105,31 @@ namespace DSAnimStudio
             AddParam(EquipParamWeapon, "EquipParamWeapon");
             AddParam(EquipParamProtector, "EquipParamProtector");
 
-            Console.WriteLine("TEST");
+            GameTimeCurrentLoadedParamsAreFor = GameDataManager.GameType;
         }
 
-        public static ParamData.EquipParamWeapon GetPlayerCurrentWeapon(bool isLeftHand)
-        {
-            var id = (isLeftHand ? ChrAsm.EquipLWeapon : ChrAsm.EquipRWeapon);
-            if (EquipParamWeapon.ContainsKey(id))
-            {
-                return EquipParamWeapon[id];
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public static (long ID, ParamData.AtkParam Param) GetPlayerCommonAttack(int absoluteBehaviorID)
+        public static ParamData.AtkParam GetPlayerCommonAttack(int absoluteBehaviorID)
         {
             if (!BehaviorParam_PC.ContainsKey(absoluteBehaviorID))
-                return (0, null);
+                return null;
 
             var behaviorParamEntry = BehaviorParam_PC[absoluteBehaviorID];
 
             if (behaviorParamEntry.RefType != 0)
-                return (0, null);
+                return null;
 
             if (!AtkParam_Pc.ContainsKey(behaviorParamEntry.RefID))
-                return (0, null);
+                return null;
 
-            return (behaviorParamEntry.RefID, AtkParam_Pc[behaviorParamEntry.RefID]);
+            return AtkParam_Pc[behaviorParamEntry.RefID];
         }
 
-        public static (long ID, ParamData.AtkParam Param) GetPlayerBasicAtkParam(int behaviorSubID, bool isLeftHand)
+        public static ParamData.AtkParam GetPlayerBasicAtkParam(ParamData.EquipParamWeapon wpn, int behaviorSubID, bool isLeftHand)
         {
-            var behaviorVariationID = (isLeftHand ? (ChrAsm.ParamLWeapon?.BehaviorVariationID ?? -1) : (ChrAsm.ParamRWeapon?.BehaviorVariationID ?? -1));
-
-            if (behaviorVariationID < 0)
-                return (0, null);
-
-            long behaviorParamID = 10_0000_000 + (behaviorVariationID * 1_000) + behaviorSubID;
+            long behaviorParamID = 10_0000_000 + (wpn.BehaviorVariationID * 1_000) + behaviorSubID;
 
             if (!BehaviorParam_PC.ContainsKey(behaviorParamID))
             {
-                var wpn = GetPlayerCurrentWeapon(isLeftHand);
-
                 if (wpn != null)
                 {
                     long baseBehaviorParamID = 10_0000_000 + ((wpn.WepMotionCategory * 100) * 1_000) + behaviorSubID;
@@ -144,13 +140,13 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        return (0, null);
+                        return null;
                     }
                 }
                 else
 
                 {
-                    return (0, null);
+                    return null;
                 }
 
                 
@@ -158,67 +154,71 @@ namespace DSAnimStudio
 
             ParamData.BehaviorParam behaviorParamEntry = BehaviorParam_PC[behaviorParamID];
             if (behaviorParamEntry.RefType != 0)
-                return (0, null);
+                return null;
 
             if (!AtkParam_Pc.ContainsKey(behaviorParamEntry.RefID))
-                return (0, null);
+                return null;
 
-            return (behaviorParamEntry.RefID, AtkParam_Pc[behaviorParamEntry.RefID]);
+            return AtkParam_Pc[behaviorParamEntry.RefID];
         }
 
-        public static (long ID, ParamData.AtkParam Param) GetNpcBasicAtkParam(int behaviorSubID)
+        public static ParamData.AtkParam GetNpcBasicAtkParam(ParamData.NpcParam npcParam, int behaviorSubID)
         {
-            var npcParam = NPC.CurrentNPCParam;
-
             if (npcParam == null)
-                return (0, null);
+                return null;
 
             long behaviorParamID = 2_00000_000 + (npcParam.BehaviorVariationID * 1_000) + behaviorSubID;
 
             if (!BehaviorParam.ContainsKey(behaviorParamID))
-                return (0, null);
+                return null;
 
             ParamData.BehaviorParam behaviorParamEntry = BehaviorParam[behaviorParamID];
 
             if (behaviorParamEntry.RefType != 0)
-                return (0, null);
+                return null;
 
             if (!AtkParam_Npc.ContainsKey(behaviorParamEntry.RefID))
-                return (0, null);
+                return null;
 
-            return (behaviorParamEntry.RefID, AtkParam_Npc[behaviorParamEntry.RefID]);
+            return AtkParam_Npc[behaviorParamEntry.RefID];
         }
 
-        public static bool LoadParamBND(HKX.HKXVariation game, string interroot)
+        public static bool LoadParamBND()
         {
-            if (ParamBNDs.ContainsKey(game))
-                return true;
-            
-            ParamBNDs.Add(game, null);
+            string interroot = GameDataManager.InterrootPath;
 
-            if (game == HKX.HKXVariation.HKXDS1)
+            if (ParamBNDs.ContainsKey(GameDataManager.GameType))
+            {
+                if (GameTimeCurrentLoadedParamsAreFor != GameDataManager.GameType)
+                    LoadStuffFromParamBND();
+                return true;
+            }
+            
+            ParamBNDs.Add(GameDataManager.GameType, null);
+
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
             {
                 if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd"))
-                    ParamBNDs[game] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd");
+                    ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd");
                 else
                     return false;
             }
-            else if (game == HKX.HKXVariation.HKXBloodBorne)
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
             {
                 if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
-                    ParamBNDs[game] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
+                    ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
                 else
                     return false;
             }
-            else if (game == HKX.HKXVariation.HKXDS3)
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
                 if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
                 {
-                    ParamBNDs[game] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
+                    ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
                 }
                 else if (File.Exists($"{interroot}\\Data0.bdt"))
                 {
-                    ParamBNDs[game] = SFUtil.DecryptDS3Regulation($"{interroot}\\Data0.bdt");
+                    ParamBNDs[GameDataManager.GameType] = SFUtil.DecryptDS3Regulation($"{interroot}\\Data0.bdt");
                 }
                 else
                 {
@@ -230,7 +230,7 @@ namespace DSAnimStudio
                 throw new NotImplementedException();
             }
 
-            LoadStuffFromParamBND(game);
+            LoadStuffFromParamBND();
 
             return true;
         }

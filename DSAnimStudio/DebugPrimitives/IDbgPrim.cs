@@ -22,11 +22,9 @@ namespace DSAnimStudio.DebugPrimitives
         bool EnableDbgLabelDraw { get; set; }
         bool EnableNameDraw { get; set; }
 
-        float FadeOutTimer { get; set; }
-
         List<IDbgPrim> Children { get; set; }
 
-        void Draw(GameTime gameTime, IDbgPrim parent);
+        void Draw(GameTime gameTime, IDbgPrim parent, Matrix world);
         void LabelDraw();
 
         void LabelDraw_Billboard();

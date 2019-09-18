@@ -5,27 +5,46 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using DSAnimStudio.GFXShaders;
 
 namespace DSAnimStudio
 {
     public class Model : IDisposable
     {
+        public string Name { get; set; } = "Model";
+
         public bool IsVisible { get; set; } = true;
-        public BoundingBox Bounds { get; private set; }
 
-        private List<ModelInstance> Instances = new List<ModelInstance>();
-        public int InstanceCount => Instances.Count;
+        public NewAnimSkeleton Skeleton;
+        public NewAnimationContainer AnimContainer;
+        public DummyPolyManager DummyPolyMan;
+        public DBG.DbgPrimDrawer DbgPrimDrawer;
+        public NewChrAsm ChrAsm = null;
+        public ParamData.NpcParam NpcParam = null;
 
-        VertexBuffer InstanceBuffer;
-        public VertexBufferBinding InstanceBufferBinding { get; private set; }
+        public Model ParentModelForChrAsm = null;
 
-        public Transform ShittyTransform = Transform.Default;
-
-        public void ApplyWorldToInstances(Matrix world)
+        private Model()
         {
-            foreach (var inst in Instances)
+            DummyPolyMan = new DummyPolyManager(this);
+            DbgPrimDrawer = new DBG.DbgPrimDrawer(this);
+
+            for (int i = 0; i < DRAW_MASK_LENGTH; i++)
             {
-                inst.Data.WorldMatrix = world;
+                DefaultDrawMask[i] = DrawMask[i] = true;
+            }
+        }
+
+        public const int DRAW_MASK_LENGTH = 96;
+
+        private bool[] DefaultDrawMask = new bool[DRAW_MASK_LENGTH];
+        public bool[] DrawMask = new bool[DRAW_MASK_LENGTH];
+
+        public void DefaultAllMaskValues()
+        {
+            for (int i = 0; i < DRAW_MASK_LENGTH; i++)
+            {
+                DrawMask[i] = DefaultDrawMask[i];
             }
         }
 
@@ -35,207 +54,234 @@ namespace DSAnimStudio
             ModelTypeCollision,
         };
         ModelType Type;
-        
-        public void AddNewInstance(ModelInstance ins)
+
+        public Transform StartTransform = Transform.Default;
+
+        public Transform CurrentRootMotionTransform => new Transform(AnimContainer.CurrentAnimRootMotionMatrix);
+
+        public Transform CurrentTransform => new Transform(StartTransform.WorldMatrix * AnimContainer.CurrentAnimRootMotionMatrix);
+
+        /// <summary>
+        /// This is needed to make weapon hitboxes work.
+        /// </summary>
+        public bool IS_PLAYER = false;
+
+        public bool IS_PLAYER_WEAPON = false;
+
+        public Model(IProgress<double> loadingProgress, string name, IBinder chrbnd, int modelIndex, 
+            IBinder anibnd, IBinder texbnd = null, List<string> additionalTpfNames = null, 
+            string possibleLooseDdsFolder = null, int baseDmyPolyID = 0)
+            : this()
         {
-            Instances.Add(ins);
+            Name = name;
+            List<BinderFile> flverFileEntries = new List<BinderFile>();
 
-            if (InstanceBuffer != null)
-                InstanceBuffer.Dispose();
+            List<TPF> tpfsUsed = new List<TPF>();
 
-            InstanceBuffer = new VertexBuffer(GFX.Device, ModelInstance.InstanceVertexDeclaration, Instances.Count, BufferUsage.WriteOnly);
-            InstanceBuffer.SetData(Instances.Select(x => x.Data).ToArray());
-            InstanceBufferBinding = new VertexBufferBinding(InstanceBuffer, 0, 1);
+            if (additionalTpfNames != null)
+            {
+                foreach (var t in additionalTpfNames)
+                {
+                    if (File.Exists(t))
+                        tpfsUsed.Add(TPF.Read(t));
+                }
+            }
+
+            FLVER2 flver = null;
+            foreach (var f in chrbnd.Files)
+            {
+                var nameCheck = f.Name.ToLower();
+                if (flver == null && (nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
+                {
+                    if (nameCheck.EndsWith($"_{modelIndex}.flver") || modelIndex == 0)
+                    {
+                        flver = FLVER2.Read(f.Bytes);
+                    }
+                }
+                else if (nameCheck.EndsWith(".tpf") || TPF.Is(f.Bytes))
+                {
+                    tpfsUsed.Add(TPF.Read(f.Bytes));
+                }
+                else if (anibnd == null && nameCheck.EndsWith(".anibnd"))
+                {
+                    if (nameCheck.EndsWith($"_{modelIndex}.anibnd") || modelIndex == 0)
+                    {
+                        if (BND3.Is(f.Bytes))
+                        {
+                            anibnd = BND3.Read(f.Bytes);
+                        }
+                        else
+                        {
+                            anibnd = BND4.Read(f.Bytes);
+                        }
+                    }
+                }
+            }
+
+            if (flver == null)
+            {
+                throw new ArgumentException("No FLVERs found within CHRBND.");
+            }
+
+            LoadFLVER2(flver, useSecondUV: false, baseDmyPolyID);
+
+            loadingProgress.Report(1.0 / 4.0);
+
+            AnimContainer = new NewAnimationContainer(this);
+
+            if (anibnd != null)
+            {
+                LoadingTaskMan.DoLoadingTaskSynchronous($"{Name}_ANIBND", $"Loading ANIBND for {Name}...", innerProg =>
+                {
+                    AnimContainer.LoadBaseANIBND(anibnd, innerProg);
+                });
+            }
+            else
+            {
+                Skeleton.ApplyBakedFlverReferencePose();
+            }
+
+            loadingProgress.Report(2.0 / 3.0);
+
+            if (tpfsUsed.Count > 0)
+            {
+                LoadingTaskMan.DoLoadingTaskSynchronous($"{Name}_TPFs", $"Loading TPFs for {Name}...", innerProg =>
+                {
+                    for (int i = 0; i < tpfsUsed.Count; i++)
+                    {
+                        TexturePool.AddTpf(tpfsUsed[i]);
+                        Scene.RequestTextureLoad();
+                        innerProg.Report(1.0 * i / tpfsUsed.Count);
+                    }
+                    Scene.RequestTextureLoad();
+                });
+
+            }
+
+            loadingProgress.Report(3.0 / 4.0);
+
+            if (texbnd != null)
+            {
+                LoadingTaskMan.DoLoadingTaskSynchronous($"{Name}_TEXBND", $"Loading TEXBND for {Name}...", innerProg =>
+                {
+                    TexturePool.AddTextureBnd(texbnd, innerProg);
+                    Scene.RequestTextureLoad();
+                });
+            }
+
+            // This will only be for PTDE so it will be extremely fast lol, 
+            // not gonna bother with progress bar update.
+            if (possibleLooseDdsFolder != null && Directory.Exists(possibleLooseDdsFolder))
+            {
+                TexturePool.AddLooseDDSFolder(possibleLooseDdsFolder);
+                Scene.RequestTextureLoad();
+            }
+
+            Scene.RequestTextureLoad();
+
+            loadingProgress.Report(1.0);
         }
 
-        public void ReinitInstanceData()
+        public void CreateChrAsm()
         {
-            InstanceBuffer = new VertexBuffer(GFX.Device, ModelInstance.InstanceVertexDeclaration, Instances.Count, BufferUsage.WriteOnly);
-            InstanceBuffer.SetData(Instances.Select(x => x.Data).ToArray());
-            InstanceBufferBinding = new VertexBufferBinding(InstanceBuffer, 0, 1);
+            ChrAsm = new NewChrAsm(this);
+            ChrAsm.InitSkeleton(Skeleton);
         }
 
-        private List<FlverSubmeshRenderer> Submeshes = new List<FlverSubmeshRenderer>();
+        public NewMesh MainMesh;
 
-        public IEnumerable<FlverSubmeshRenderer> GetSubmeshes()
+        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, int baseDmyPolyID = 0)
         {
-            return Submeshes;
+            Type = ModelType.ModelTypeFlver;
+
+            Skeleton = new NewAnimSkeleton(this, flver.Bones);
+
+            MainMesh = new NewMesh(flver, useSecondUV);
+
+            DummyPolyMan.LoadDummiesFromFLVER(flver, baseDmyPolyID);
+
+            //DEBUG//
+            //Console.WriteLine($"{flver.Meshes[0].DefaultBoneIndex}");
+            //Console.WriteLine();
+            //Console.WriteLine();
+            //foreach (var mat in flver.Materials)
+            //{
+            //    Console.WriteLine($"{mat.Name}: {mat.MTD}");
+            //}
+            /////////
         }
 
         public Model(FLVER2 flver, bool useSecondUV)
+            : this()
         {
-            Type = ModelType.ModelTypeFlver;
-
-            Submeshes = new List<FlverSubmeshRenderer>();
-            var subBoundsPoints = new List<Vector3>();
-            foreach (var submesh in flver.Meshes)
-            {
-                // Blacklist some materials that don't have good shaders and just make the viewer look like a mess
-                MTD mtd = null;// InterrootLoader.GetMTD(Path.GetFileName(flver.Materials[submesh.MaterialIndex].MTD));
-                if (mtd != null)
-                {
-                    if (mtd.ShaderPath.Contains("FRPG_Water_Env"))
-                        continue;
-                    if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
-                        continue;
-                }
-                var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV);
-                Submeshes.Add(smm);
-                subBoundsPoints.Add(smm.Bounds.Min);
-                subBoundsPoints.Add(smm.Bounds.Max);
-            }
-
-            //DEBUG//
-            //Console.WriteLine($"{flver.Meshes[0].DefaultBoneIndex}");
-            //Console.WriteLine();
-            //Console.WriteLine();
-            //foreach (var mat in flver.Materials)
-            //{
-            //    Console.WriteLine($"{mat.Name}: {mat.MTD}");
-            //}
-            /////////
-
-            if (Submeshes.Count == 0)
-            {
-                Bounds = new BoundingBox();
-                IsVisible = false;
-            }
-            else
-            {
-                Bounds = BoundingBox.CreateFromPoints(subBoundsPoints);
-            }
+            LoadFLVER2(flver, useSecondUV);
         }
 
-        public Model(FLVER0 flver)
+        public void UpdateAnimation(GameTime gameTime)
         {
-            Type = ModelType.ModelTypeFlver;
+            AnimContainer.Update(gameTime);
 
-            Submeshes = new List<FlverSubmeshRenderer>();
-            var subBoundsPoints = new List<Vector3>();
-            foreach (var submesh in flver.Meshes)
+            if (ChrAsm != null)
             {
-                // Blacklist some materials that don't have good shaders and just make the viewer look like a mess
-                MTD mtd = null;// InterrootLoader.GetMTD(Path.GetFileName(flver.Materials[submesh.MaterialIndex].MTD));
-                if (mtd != null)
-                {
-                    if (mtd.ShaderPath.Contains("FRPG_Water_Env"))
-                        continue;
-                    if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
-                        continue;
-                }
-
-                if (submesh.ToTriangleList().Length > 0)
-                {
-                    var smm = new FlverSubmeshRenderer(this, flver, submesh);
-                    Submeshes.Add(smm);
-                    subBoundsPoints.Add(smm.Bounds.Min);
-                    subBoundsPoints.Add(smm.Bounds.Max);
-                }
-            }
-
-            //DEBUG//
-            //Console.WriteLine($"{flver.Meshes[0].DefaultBoneIndex}");
-            //Console.WriteLine();
-            //Console.WriteLine();
-            //foreach (var mat in flver.Materials)
-            //{
-            //    Console.WriteLine($"{mat.Name}: {mat.MTD}");
-            //}
-            /////////
-
-            if (Submeshes.Count == 0)
-            {
-                Bounds = new BoundingBox();
-                IsVisible = false;
-            }
-            else
-            {
-                Bounds = BoundingBox.CreateFromPoints(subBoundsPoints);
-            }
-        }
-
-        //public Model(HKX hkx)
-        //{
-        //    Type = ModelType.ModelTypeCollision;
-
-        //    Submeshes = new List<FlverSubmeshRenderer>();
-        //    var subBoundsPoints = new List<Vector3>();
-        //    foreach (var col in hkx.DataSection.Objects)
-        //    {
-        //        if (col is HKX.FSNPCustomParamCompressedMeshShape)
-        //        {
-        //            var smm = new FlverSubmeshRenderer(this, hkx, (HKX.FSNPCustomParamCompressedMeshShape)col);
-        //            Submeshes.Add(smm);
-        //            subBoundsPoints.Add(smm.Bounds.Min);
-        //            subBoundsPoints.Add(smm.Bounds.Max);
-        //        }
-
-        //        if (col is HKX.HKPStorageExtendedMeshShapeMeshSubpartStorage)
-        //        {
-        //            var smm = new FlverSubmeshRenderer(this, hkx, (HKX.HKPStorageExtendedMeshShapeMeshSubpartStorage)col);
-        //            Submeshes.Add(smm);
-        //            subBoundsPoints.Add(smm.Bounds.Min);
-        //            subBoundsPoints.Add(smm.Bounds.Max);
-        //        }
-        //    }
-
-        //    if (Submeshes.Count == 0)
-        //    {
-        //        Bounds = new BoundingBox();
-        //        IsVisible = false;
-        //    }
-        //    else
-        //    {
-        //        Bounds = BoundingBox.CreateFromPoints(subBoundsPoints);
-        //    }
-        //}
-
-        public void DebugDraw()
-        {
-            foreach (var ins in Instances)
-            {
-                ins.DrawDebugInfo();
-            }
-            //TODO
-        }
-
-        public void Draw(bool[] mask, int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
-        {
-            GFX.World.ApplyViewToShader(GFX.FlverShader, ShittyTransform);
-            foreach (var submesh in Submeshes)
-            {
-                if (Type == ModelType.ModelTypeFlver)
-                {
-                    submesh.Draw(lod, motionBlur, GFX.FlverShader, mask, forceNoBackfaceCulling, isSkyboxLol);
-                }
-                else
-                {
-                    submesh.Draw(lod, motionBlur, GFX.CollisionShader, mask, forceNoBackfaceCulling, isSkyboxLol);
-                }
+                ChrAsm.UpdateWeaponTransforms();
+                ChrAsm.UpdateWeaponAnimation(gameTime);
             }
         }
 
         public void TryToLoadTextures()
         {
-            foreach (var sm in Submeshes)
-                sm.TryToLoadTextures();
+            MainMesh?.TryToLoadTextures();
+            ChrAsm?.TryToLoadTextures();
+        }
+
+        public void Draw(int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
+        {
+            GFX.World.ApplyViewToShader(GFX.FlverShader, CurrentTransform);
+
+            if (isSkyboxLol)
+            {
+                //((FlverShader)shader).Bones0 = new Matrix[] { Matrix.Identity };
+                GFX.FlverShader.Effect.IsSkybox = true;
+            }
+            else
+            {
+                GFX.FlverShader.Effect.Bones0 = Skeleton.ShaderMatrix0;
+
+                if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES)
+                {
+                    GFX.FlverShader.Effect.Bones1 = Skeleton.ShaderMatrix1;
+
+                    if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES * 2)
+                    {
+                        GFX.FlverShader.Effect.Bones2 = Skeleton.ShaderMatrix2;
+
+                        if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES * 3)
+                        {
+                            GFX.FlverShader.Effect.Bones3 = Skeleton.ShaderMatrix3;
+                        }
+
+                    }
+                }
+
+                GFX.FlverShader.Effect.IsSkybox = false;
+            }
+
+            MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+            if (ChrAsm != null)
+            {
+                ChrAsm.Draw(DrawMask, lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+            }
         }
 
         public void Dispose()
         {
-            if (Submeshes != null)
-            {
-                for (int i = 0; i < Submeshes.Count; i++)
-                {
-                    if (Submeshes[i] != null)
-                        Submeshes[i].Dispose();
-                }
-
-                Submeshes = null;
-            }
-
-            InstanceBuffer?.Dispose();
-            InstanceBuffer = null;
+            DbgPrimDrawer?.Dispose();
+            ChrAsm?.Dispose();
+            Skeleton = null;
+            AnimContainer = null;
+            MainMesh?.Dispose();
+            // Do not need to dispose DummyPolyMan because it goes 
+            // stores its primitives in the model's DbgPrimDrawer
         }
     }
 }

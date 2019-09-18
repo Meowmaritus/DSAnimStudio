@@ -42,8 +42,6 @@ namespace DSAnimStudio
             DBG.ShowGrid = true;
             DBG.SimpleTextLabelSize = true;
 
-            GFX.ModelDrawer.GoToModelsAsTheySpawn = false;
-
             GFX.World.FieldOfView = 43;
             GFX.World.NearClipDistance = 0.1f;
             GFX.World.FarClipDistance = 10000f;
@@ -103,8 +101,6 @@ namespace DSAnimStudio
                 DBG.ShowGrid = Current.DBG_ShowGrid;
                 DBG.SimpleTextLabelSize = Current.DBG_SimpleTextLabelSize;
 
-                GFX.ModelDrawer.GoToModelsAsTheySpawn = Current.GFX_ModelDrawer_GoToModelsAsTheySpawn;
-
                 GFX.World.CameraMoveSpeed = Current.GFX_World_CameraMoveSpeed;
                 GFX.World.CameraTurnSpeedGamepad = Current.GFX_World_CameraTurnSpeedGamepad;
                 GFX.World.CameraTurnSpeedMouse = Current.GFX_World_CameraTurnSpeedMouse;
@@ -148,8 +144,6 @@ namespace DSAnimStudio
 
                 Current.DBG_ShowGrid = DBG.ShowGrid;
                 Current.DBG_SimpleTextLabelSize = true;
-
-                Current.GFX_ModelDrawer_GoToModelsAsTheySpawn = GFX.ModelDrawer.GoToModelsAsTheySpawn;
 
                 Current.GFX_World_CameraMoveSpeed = GFX.World.CameraMoveSpeed;
                 Current.GFX_World_CameraTurnSpeedGamepad = GFX.World.CameraTurnSpeedGamepad;
@@ -211,8 +205,6 @@ namespace DSAnimStudio
         public bool DBG_ShowPrimitiveNametags { get; set; } = false;
         //public float DBG_PrimitiveNametagSize { get; set; } = 1.0f;
         public bool DBG_SimpleTextLabelSize { get; set; } = false;
-
-        public bool GFX_ModelDrawer_GoToModelsAsTheySpawn { get; set; } = true;
 
         public float GFX_World_FieldOfView { get; set; } = 43.0f;
         public float GFX_World_CameraTurnSpeedGamepad { get; set; } = 1.5f;

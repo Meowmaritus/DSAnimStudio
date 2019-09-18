@@ -74,8 +74,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="AnimRefChainSolver.cs" />
-    <Compile Include="ChrAsm.cs" />
+    <Compile Include="TaeEditor\TaeAnimRefChainSolver.cs" />
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxDepthStencilStateAdjust.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxFlverShaderAdjust.cs" />
@@ -84,7 +83,6 @@
     <Compile Include="DbgMenus\DbgMenuItemNumber.cs" />
     <Compile Include="DbgMenus\DbgMenuItemResolutionChange.cs" />
     <Compile Include="DbgMenus\DbgMenuItemTaskKiller.cs" />
-    <Compile Include="DbgMenus\DbgMenuItemSceneList.cs" />
     <Compile Include="DbgMenus\DbgMenuItemTextLabel.cs" />
     <Compile Include="DbgMenus\DbgMenuPad.cs" />
     <Compile Include="DbgMenus\DbgMenuItem.cs" />
@@ -104,7 +102,14 @@
     <Compile Include="DebugPrimitives\IDbgPrim.cs" />
     <Compile Include="DebugPrimitives\VertexPositionColorNormal.cs" />
     <Compile Include="Environment.cs" />
-    <Compile Include="EventSim.cs" />
+    <Compile Include="GameDataManager.cs" />
+    <Compile Include="NewAnimationContainer.cs" />
+    <Compile Include="NewAnimSkeleton.cs" />
+    <Compile Include="NewChrAsm.cs" />
+    <Compile Include="NewHavokAnimation_SplineCompressed.cs" />
+    <Compile Include="NewMesh.cs" />
+    <Compile Include="TaeEditor\TaeViewportInteractor.cs" />
+    <Compile Include="TaeEditor\TaeEventSimulationEnvironment.cs" />
     <Compile Include="FmgManager.cs" />
     <Compile Include="GFXShaders\CollisionShader.cs" />
     <Compile Include="GFXShaders\DbgPrimSolidShader.cs" />
@@ -116,6 +121,7 @@
     <Compile Include="LiveRefresh\Memory.cs" />
     <Compile Include="LiveRefresh\RequestFileReload.cs" />
     <Compile Include="LoadingTaskMan.cs" />
+    <Compile Include="NewHavokAnimation.cs" />
     <Compile Include="NPC.cs" />
     <Compile Include="ParamData.cs" />
     <Compile Include="ParamManager.cs" />
@@ -174,18 +180,16 @@
     <Compile Include="TaeEditor\TaeScrollingString.cs" />
     <Compile Include="TaeEditor\TaeScrollViewer.cs" />
     <Compile Include="TaeEditor\TaeUndoMan.cs" />
-    <Compile Include="TaeInterop.cs" />
-    <Compile Include="TaeSoundManager.cs" />
+    <Compile Include="TaeEditor\TaeSoundManager.cs" />
     <Compile Include="Tests.cs" />
     <Compile Include="TextureFetchRequest.cs" />
     <Compile Include="CFG.cs" />
     <Compile Include="TexturePool.cs" />
-    <Compile Include="VertexPositionColorNormalTangentTexture.cs" />
+    <Compile Include="FlverShaderVertInput.cs" />
     <Compile Include="WorldView.cs" />
     <Compile Include="DBG.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireGrid.cs" />
-    <Compile Include="ModelDrawer.cs" />
-    <Compile Include="ModelInstance.cs" />
+    <Compile Include="Scene.cs" />
     <Compile Include="GFXShaders\FlverShader.cs" />
     <Compile Include="GFXShaders\DbgPrimWireShader.cs" />
     <Compile Include="GFXShaders\IGFXShader.cs" />

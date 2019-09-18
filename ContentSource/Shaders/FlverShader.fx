@@ -144,7 +144,7 @@ struct VertexShaderInput
 	float4 BoneIndices : BLENDINDICES;
     float4 BoneWeights : BLENDWEIGHT;
     float4 BoneIndicesBank : BLENDINDICES1;
-    float4x4 InstanceWorld : TEXCOORD2;
+    //float4x4 InstanceWorld : TEXCOORD2;
     //float4x4 InstanceWorldInverse : TEXCOORD6;
 };
 
@@ -279,7 +279,8 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 
     //inPos.xyz = mul(inPos.xyz, skinning);
 
-	float4 worldPosition = mul(mul(inPos, transpose(input.InstanceWorld)), World);
+	//float4 worldPosition = mul(mul(inPos, transpose(input.InstanceWorld)), World);
+    float4 worldPosition = mul(inPos, World);
     
     //output.PositionWS = worldPosition.xyz;
     
@@ -528,7 +529,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //	);
 
         float4 diffuse = saturate(dot(-LightDirection,normal));
-        float4 reflect = normalize(2*diffuse*normal-float4(LightDirection,1.0));
+        float3 reflect = normalize(2*diffuse*normal-LightDirection);
         float4 specular = pow(saturate(dot(reflect,input.View)),Legacy_SpecularPower);
 
         //float4 lightmap = tex2D(LightMap1Sampler, input.TexCoord2);
