@@ -20,7 +20,7 @@ namespace DSAnimStudio
     {
         public static bool ShowPrimitiveNametags = true;
         public static bool SimpleTextLabelSize = false;
-        public static float PrimitiveNametagSize = 0.5f;
+        public static float PrimitiveNametagSize = 0.75f;
 
         public static DbgPrimWireGrid DbgPrim_Grid;
         public static DbgPrimSolidSkybox DbgPrim_Skybox;
@@ -334,7 +334,8 @@ namespace DSAnimStudio
                 GFX.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
             Vector3 screenPos3D = GFX.Device.Viewport.Project(location,
-                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix 
+                * Matrix.Invert(GFX.World.MatrixWorld), m * GFX.World.WorldMatrixMOD);
 
             screenPos3D -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
 
@@ -405,7 +406,7 @@ namespace DSAnimStudio
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
                 new Vector2((int)screenPos3D.X, (int)screenPos3D.Y),
-                color * 2, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
+                color, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0);
 
             if (startAndEndSpriteBatchForMe)
@@ -416,10 +417,12 @@ namespace DSAnimStudio
         {
             // Project the 3d position first
             Vector3 screenPos3D_Top = GFX.Device.Viewport.Project(location + new Vector3(0, physicalHeight / 2, 0),
-               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);
+               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix 
+               * Matrix.Invert(GFX.World.MatrixWorld), m * GFX.World.WorldMatrixMOD);
 
             Vector3 screenPos3D_Bottom = GFX.Device.Viewport.Project(location - new Vector3(0, physicalHeight / 2, 0),
-                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), m);
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix
+                * Matrix.Invert(GFX.World.MatrixWorld), m * GFX.World.WorldMatrixMOD);
 
             screenPos3D_Top -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
             screenPos3D_Bottom -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
@@ -661,7 +664,7 @@ namespace DSAnimStudio
                 lock (_lock_primitives)
                 {
                     GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, blendState:
-                        BlendState.AlphaBlend, samplerState: SamplerState.LinearWrap);
+                        BlendState.AlphaBlend, samplerState: SamplerState.PointClamp);
                     foreach (var p in GetPrimitivesByDistance())
                     {
                         if (ShowPrimitiveNametags)

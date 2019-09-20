@@ -18,6 +18,8 @@ namespace DSAnimStudio.TaeEditor
         public List<string> RecentFilesList { get; set; } = new List<string>();
         public bool LiveRefreshOnSave { get; set; } = true;
 
+        public bool CameraFollowsRootMotion { get; set; } = true;
+
         public Dictionary<string, bool> EventSimulationsEnabled { get; set; }
             = new Dictionary<string, bool>();
 

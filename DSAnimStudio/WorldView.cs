@@ -23,6 +23,8 @@ namespace DSAnimStudio
         public Vector3 OrbitCamCenter = new Vector3(0, 0.5f, 0);
         public bool IsOrbitCam = true;
 
+        public Matrix WorldMatrixMOD = Matrix.Identity;
+
         private float ViewportAspectRatio => 1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height;
 
         public void OrbitCamReset()
@@ -119,13 +121,13 @@ namespace DSAnimStudio
             //if (TaeInterop.CameraFollowsRootMotion)
             //    m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
-            shader.ApplyWorldView(m, CameraTransform.RotationMatrixNeg * Matrix.CreateScale(-1), MatrixProjection);
+            shader.ApplyWorldView(m * WorldMatrixMOD, CameraTransform.RotationMatrixNeg * Matrix.CreateScale(-1), MatrixProjection);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Matrix modelMatrix)
             where T : Effect
         {
-            shader.ApplyWorldView(modelMatrix, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
+            shader.ApplyWorldView(modelMatrix * WorldMatrixMOD, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixProjection);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Transform modelTransform)
@@ -320,7 +322,7 @@ namespace DSAnimStudio
             bool isNegH = (curMouse.X - oldMouse.X) < 0;
             bool isNegV = (curMouse.Y - oldMouse.Y) < 0;
 
-            MoveCamera_OrbitCenterPoint(-hDist * (isNegH ? -1 : 1), vDist * (isNegV ? -1 : 1), 0, 50 * 45 * Main.DELTA_UPDATE_ROUNDED);
+            MoveCamera_OrbitCenterPoint(-hDist * (isNegH ? -1 : 1), vDist * (isNegV ? -1 : 1), 0, 50 * 40 * Main.DELTA_UPDATE_ROUNDED);
         }
 
         public void MoveCamera_OrbitCenterPoint(float x, float y, float z, float speed)
