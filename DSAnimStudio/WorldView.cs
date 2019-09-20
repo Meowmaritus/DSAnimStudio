@@ -19,10 +19,11 @@ namespace DSAnimStudio
         public Transform CameraPositionDefault = Transform.Default;
         public float OrbitCamDistance = 2;
         public float ModelHeight_ForOrbitCam = 1;
+        public Vector3 ModelCenter_ForOrbitCam = Vector3.Zero;
         public Vector3 OrbitCamCenter = new Vector3(0, 0.5f, 0);
         public bool IsOrbitCam = true;
 
-        private float ViewportAspectRatio => 1.0f * GFX.Device.Viewport.Width / GFX.Device.Viewport.Height;
+        private float ViewportAspectRatio => 1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height;
 
         public void OrbitCamReset()
         {
@@ -30,7 +31,9 @@ namespace DSAnimStudio
                 OrbitCamDistance = (float)Math.Sqrt((ModelHeight_ForOrbitCam * 2) / (ViewportAspectRatio * 0.66f));
             else
                 OrbitCamDistance = (float)Math.Sqrt(ModelHeight_ForOrbitCam * 2);
-            OrbitCamCenter = new Vector3(0, ModelHeight_ForOrbitCam / 2, 0);
+
+            OrbitCamCenter = new Vector3(0, ModelCenter_ForOrbitCam.Y, 0);
+
             CameraTransform.EulerRotation = CameraDefaultRot;
         }
 
@@ -241,9 +244,9 @@ namespace DSAnimStudio
 
         public Vector3 ScreenPointToWorld(Vector2 screenPoint, float depth = 0)
         {
-            return GFX.Device.Viewport.Unproject(
-                new Vector3(GFX.Device.Viewport.Width * screenPoint.X, 
-                GFX.Device.Viewport.Height * screenPoint.Y, depth), 
+            return GFX.LastViewport.Unproject(
+                new Vector3(GFX.LastViewport.Width * screenPoint.X, 
+                GFX.LastViewport.Height * screenPoint.Y, depth), 
                 MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
         }
 
@@ -262,7 +265,7 @@ namespace DSAnimStudio
             //}
 
             MatrixProjection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),
-                   (float)Main.TAE_EDITOR.ModelViewerBounds.Width / (float)Main.TAE_EDITOR.ModelViewerBounds.Height,
+                   ViewportAspectRatio,
                    NearClipDistance, FarClipDistance);
 
         }
@@ -287,25 +290,37 @@ namespace DSAnimStudio
 
         public void MoveCamera_OrbitCenterPoint_MouseDelta(Vector2 curMouse, Vector2 oldMouse)
         {
-            var curMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(curMouse.X, GFX.Device.Viewport.Height / 2f, 0),
-                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+            var curMouse3DX = GFX.LastViewport.Unproject(new Vector3(curMouse.X - GFX.LastViewport.X, GFX.LastViewport.Height / 2f, 0),
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
 
-            var curMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(GFX.Device.Viewport.Width / 2f, curMouse.Y, 0),
-               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+            var curMouse3DY = GFX.LastViewport.Unproject(new Vector3(GFX.LastViewport.Width / 2f, curMouse.Y - GFX.LastViewport.Y, 0),
+               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
 
-            var oldMouse3DX = GFX.Device.Viewport.Unproject(new Vector3(oldMouse.X, GFX.Device.Viewport.Height / 2f, 0),
-                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+            var oldMouse3DX = GFX.LastViewport.Unproject(new Vector3(oldMouse.X - GFX.LastViewport.X, GFX.LastViewport.Height / 2f, 0),
+                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
 
-            var oldMouse3DY = GFX.Device.Viewport.Unproject(new Vector3(GFX.Device.Viewport.Width / 2f, oldMouse.Y, 0),
-               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix, GFX.World.MatrixWorld);
+            var oldMouse3DY = GFX.LastViewport.Unproject(new Vector3(GFX.LastViewport.Width / 2f, oldMouse.Y - GFX.LastViewport.Y, 0),
+               GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
+
+            //int minDimension = Math.Min(GFX.Device.Viewport.Width, GFX.Device.Viewport.Height);
+
+            //float hDist = (curMouse3DX - oldMouse3DX).Length() / GFX.Device.Viewport.Width * minDimension;
+            //float vDist = (curMouse3DY - oldMouse3DY).Length() / GFX.Device.Viewport.Height * minDimension;
+
+            float aspectRatio = 1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height;
 
             float hDist = (curMouse3DX - oldMouse3DX).Length();
             float vDist = (curMouse3DY - oldMouse3DY).Length();
 
+            if (aspectRatio < 1)
+            {
+                hDist /= aspectRatio;
+            }
+
             bool isNegH = (curMouse.X - oldMouse.X) < 0;
             bool isNegV = (curMouse.Y - oldMouse.Y) < 0;
 
-            MoveCamera_OrbitCenterPoint(-hDist * (isNegH ? -1 : 1), vDist * (isNegV ? -1 : 1), 0, 50);
+            MoveCamera_OrbitCenterPoint(-hDist * (isNegH ? -1 : 1), vDist * (isNegV ? -1 : 1), 0, 50 * 45 * Main.DELTA_UPDATE_ROUNDED);
         }
 
         public void MoveCamera_OrbitCenterPoint(float x, float y, float z, float speed)
@@ -314,7 +329,7 @@ namespace DSAnimStudio
                 Matrix.CreateRotationX(-CameraTransform.EulerRotation.X)
                 * Matrix.CreateRotationY(-CameraTransform.EulerRotation.Y)
                 * Matrix.CreateRotationZ(-CameraTransform.EulerRotation.Z)
-                ) * speed) * (OrbitCamDistance * OrbitCamDistance) * 0.2f;
+                ) * speed) * (OrbitCamDistance * OrbitCamDistance) * 0.5f;
         }
 
         public void PointCameraToLocation(Vector3 location)
@@ -368,7 +383,7 @@ namespace DSAnimStudio
             Extra2,
         }
 
-        public void UpdateInput(Main game, GameTime gameTime)
+        public void UpdateInput(Main game)
         {
             if (DisableAllInput)
             {
@@ -388,7 +403,14 @@ namespace DSAnimStudio
             var gamepad = DBG.EnableGamePadInput ? GamePad.GetState(PlayerIndex.One) : DBG.DisabledGamePadState;
 
             MouseState mouse = DBG.EnableMouseInput ? Mouse.GetState(game.Window) : DBG.DisabledMouseState;
-            mousePos = new Vector2((float)mouse.X, (float)mouse.Y);
+
+            float clampedLerpF = MathHelper.Clamp(30 * Main.DELTA_UPDATE, 0, 1);
+
+            mousePos = new Vector2(MathHelper.Lerp(oldMouse.X, mouse.X, clampedLerpF),
+                MathHelper.Lerp(oldMouse.Y, mouse.Y, clampedLerpF));
+
+            
+
             KeyboardState keyboard = DBG.EnableKeyboardInput ? Keyboard.GetState() : DBG.DisabledKeyboardState;
             int currentWheel = mouse.ScrollWheelValue;
 
@@ -415,6 +437,12 @@ namespace DSAnimStudio
 
             if (currentClickType != MouseClickType.None && oldClickType == MouseClickType.None)
                 currentMouseClickStartedInWindow = mouseInWindow;
+
+            if (currentClickType == MouseClickType.None)
+            {
+                // If nothing is pressed, just dont bother lerping
+                mousePos = new Vector2(mouse.X, mouse.Y);
+            }
 
             bool isSpeedupKeyPressed = keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl);
             bool isSlowdownKeyPressed = keyboard.IsKeyDown(Keys.LeftShift) || keyboard.IsKeyDown(Keys.RightShift);
@@ -512,7 +540,7 @@ namespace DSAnimStudio
                 PointCameraToLocation(CameraPositionDefault.Position);
             }
 
-            float moveMult = (float)gameTime.ElapsedGameTime.TotalSeconds * CameraMoveSpeed;
+            float moveMult = Main.DELTA_UPDATE_ROUNDED * CameraMoveSpeed;
 
             if (isSpeedupKeyPressed)
             {
@@ -534,10 +562,8 @@ namespace DSAnimStudio
 
                 if (IsOrbitCam && !isMoveLightKeyPressed)
                 {
-                    float camH = gamepad.ThumbSticks.Left.X * (float)1.5f * CameraTurnSpeedGamepad
-                        * (float)gameTime.ElapsedGameTime.TotalSeconds;
-                    float camV = gamepad.ThumbSticks.Left.Y * (float)1.5f * CameraTurnSpeedGamepad
-                        * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    float camH = gamepad.ThumbSticks.Left.X * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
+                    float camV = gamepad.ThumbSticks.Left.Y * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
 
 
 
@@ -574,10 +600,8 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    float camH = gamepad.ThumbSticks.Right.X * (float)1.5f * CameraTurnSpeedGamepad
-                            * (float)gameTime.ElapsedGameTime.TotalSeconds;
-                    float camV = gamepad.ThumbSticks.Right.Y * (float)1.5f * CameraTurnSpeedGamepad
-                        * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    float camH = gamepad.ThumbSticks.Right.X * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
+                    float camV = gamepad.ThumbSticks.Right.Y * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
 
                     if (isMoveLightKeyPressed)
                     {
@@ -640,7 +664,7 @@ namespace DSAnimStudio
                 }
 
 
-                if (GFX.Device.Viewport.Bounds.Contains(mouse.Position))
+                if (GFX.LastViewport.Bounds.Contains(mouse.Position))
                     OrbitCamDistance -= ((currentWheel - oldWheel) / 150f) * 0.25f;
                 
             }
@@ -709,8 +733,8 @@ namespace DSAnimStudio
 
                     
 
-                    float camH = mouseDelta.X * 1 * CameraTurnSpeedMouse * (float)gameTime.ElapsedGameTime.TotalSeconds;
-                    float camV = mouseDelta.Y * -1 * CameraTurnSpeedMouse * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    float camH = mouseDelta.X * 1 * CameraTurnSpeedMouse * Main.DELTA_UPDATE_ROUNDED;
+                    float camV = mouseDelta.Y * -1 * CameraTurnSpeedMouse * Main.DELTA_UPDATE_ROUNDED;
 
                     if (IsOrbitCam && !isMoveLightKeyPressed)
                     {

@@ -15,6 +15,8 @@ namespace DSAnimStudio
 
         public bool IsVisible { get; set; } = true;
 
+        public NewMesh MainMesh;
+
         public NewAnimSkeleton Skeleton;
         public NewAnimationContainer AnimContainer;
         public DummyPolyManager DummyPolyMan;
@@ -22,7 +24,7 @@ namespace DSAnimStudio
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
 
-        public Model ParentModelForChrAsm = null;
+        public BoundingBox Bounds;
 
         private Model()
         {
@@ -186,9 +188,9 @@ namespace DSAnimStudio
         {
             ChrAsm = new NewChrAsm(this);
             ChrAsm.InitSkeleton(Skeleton);
-        }
 
-        public NewMesh MainMesh;
+            MainMesh.Bounds = new BoundingBox(Vector3.One * -1, Vector3.One);
+        }
 
         private void LoadFLVER2(FLVER2 flver, bool useSecondUV, int baseDmyPolyID = 0)
         {
@@ -197,6 +199,8 @@ namespace DSAnimStudio
             Skeleton = new NewAnimSkeleton(this, flver.Bones);
 
             MainMesh = new NewMesh(flver, useSecondUV);
+
+            Bounds = MainMesh.Bounds;
 
             DummyPolyMan.LoadDummiesFromFLVER(flver, baseDmyPolyID);
 
@@ -217,14 +221,14 @@ namespace DSAnimStudio
             LoadFLVER2(flver, useSecondUV);
         }
 
-        public void UpdateAnimation(GameTime gameTime)
+        public void UpdateAnimation()
         {
-            AnimContainer.Update(gameTime);
+            AnimContainer.Update();
 
             if (ChrAsm != null)
             {
                 ChrAsm.UpdateWeaponTransforms();
-                ChrAsm.UpdateWeaponAnimation(gameTime);
+                ChrAsm.UpdateWeaponAnimation();
             }
         }
 
@@ -266,6 +270,7 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.IsSkybox = false;
             }
 
+            MainMesh.DrawMask = DrawMask;
             MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
             if (ChrAsm != null)
             {

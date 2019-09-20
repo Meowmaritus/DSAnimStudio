@@ -40,7 +40,7 @@ namespace DSAnimStudio
             DBG.ShowPrimitiveNametags = true;
             DBG.PrimitiveNametagSize = 0.1f;
             DBG.ShowGrid = true;
-            DBG.SimpleTextLabelSize = true;
+            //DBG.SimpleTextLabelSize = true;
 
             GFX.World.FieldOfView = 43;
             GFX.World.NearClipDistance = 0.1f;
@@ -99,7 +99,7 @@ namespace DSAnimStudio
                 DBG.ShowPrimitiveNametags = Current.DBG_ShowPrimitiveNametags;
                 //DBG.PrimitiveNametagSize = Current.DBG_PrimitiveNametagSize;
                 DBG.ShowGrid = Current.DBG_ShowGrid;
-                DBG.SimpleTextLabelSize = Current.DBG_SimpleTextLabelSize;
+                //DBG.SimpleTextLabelSize = Current.DBG_SimpleTextLabelSize;
 
                 GFX.World.CameraMoveSpeed = Current.GFX_World_CameraMoveSpeed;
                 GFX.World.CameraTurnSpeedGamepad = Current.GFX_World_CameraTurnSpeedGamepad;
@@ -143,7 +143,7 @@ namespace DSAnimStudio
                 //Current.DBG_PrimitiveNametagSize = DBG.PrimitiveNametagSize;
 
                 Current.DBG_ShowGrid = DBG.ShowGrid;
-                Current.DBG_SimpleTextLabelSize = true;
+                //Current.DBG_SimpleTextLabelSize = true;
 
                 Current.GFX_World_CameraMoveSpeed = GFX.World.CameraMoveSpeed;
                 Current.GFX_World_CameraTurnSpeedGamepad = GFX.World.CameraTurnSpeedGamepad;
@@ -204,7 +204,7 @@ namespace DSAnimStudio
         public bool DBG_ShowGrid { get; set; } = true;
         public bool DBG_ShowPrimitiveNametags { get; set; } = false;
         //public float DBG_PrimitiveNametagSize { get; set; } = 1.0f;
-        public bool DBG_SimpleTextLabelSize { get; set; } = false;
+        //public bool DBG_SimpleTextLabelSize { get; set; } = false;
 
         public float GFX_World_FieldOfView { get; set; } = 43.0f;
         public float GFX_World_CameraTurnSpeedGamepad { get; set; } = 1.5f;

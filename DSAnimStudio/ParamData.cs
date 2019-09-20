@@ -353,9 +353,51 @@ namespace DSAnimStudio
         {
             public int BehaviorVariationID;
 
+            public bool[] DrawMask;
+
+            public void ApplyMaskToModel(Model mdl)
+            {
+                for (int i = 0; i < Math.Min(Model.DRAW_MASK_LENGTH, DrawMask.Length); i++)
+                {
+                    mdl.DrawMask[i] = DrawMask[i];
+                }
+            }
+
             public override void Read(BinaryReaderEx br)
             {
+                var start = br.Position;
                 BehaviorVariationID = br.ReadInt32();
+
+                br.Position = start + 0x146;
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                {
+                    DrawMask = new bool[32];
+                }
+                else
+                {
+                    DrawMask = new bool[16];
+                }
+
+                byte mask1 = br.ReadByte();
+                byte mask2 = br.ReadByte();
+                for (int i = 0; i < 8; i++)
+                    DrawMask[i] = ((mask1 & (1 << i)) != 0);
+                for (int i = 0; i < 8; i++)
+                    DrawMask[8 + i] = ((mask2 & (1 << i)) != 0);
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
+                    GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                {
+                    br.Position = start + 0x14A;
+                    byte mask3 = br.ReadByte();
+                    byte mask4 = br.ReadByte();
+                    for (int i = 0; i < 8; i++)
+                        DrawMask[16 + i] = ((mask3 & (1 << i)) != 0);
+                    for (int i = 0; i < 8; i++)
+                        DrawMask[24 + i] = ((mask4 & (1 << i)) != 0);
+                }
             }
         }
 

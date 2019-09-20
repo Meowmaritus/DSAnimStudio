@@ -32,6 +32,8 @@ namespace DSAnimStudio
 
     public static class GFX
     {
+        public static Viewport LastViewport = new Viewport(0, 0, 100, 100);
+
         public static SurfaceFormat BackBufferFormat => SurfaceFormat.Rgba1010102;
 
         public static class Display
@@ -314,7 +316,7 @@ namespace DSAnimStudio
 
         }
 
-        public static void BeginDraw(GameTime gameTime)
+        public static void BeginDraw()
         {
             InitDepthStencil();
             //InitBlendState();
@@ -340,7 +342,7 @@ namespace DSAnimStudio
 
             if (FlverAutoRotateLight)
             {
-                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * (float)gameTime.TotalGameTime.TotalSeconds * 0.25f));
+                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * Main.DELTA_UPDATE * 0.25f));
             }
             else if (FlverLightFollowsCamera)
             {
@@ -380,7 +382,7 @@ namespace DSAnimStudio
 
         }
 
-        private static void DoDrawStep(GameTime gameTime)
+        private static void DoDrawStep()
         {
             switch (CurrentStep)
             {
@@ -388,33 +390,33 @@ namespace DSAnimStudio
                 case GFXDrawStep.AlphaEdge:
                     if (!HideFLVERs)
                     {
-                        Scene.Draw(gameTime);
+                        Scene.Draw();
                     }
                     break;
                 case GFXDrawStep.DbgPrimOverlay:
-                    DBG.DrawPrimitives(gameTime);
+                    DBG.DrawPrimitives();
                     break;
                 case GFXDrawStep.DbgPrimPrepass:
-                    DBG.DrawBehindPrims(gameTime);
+                    DBG.DrawBehindPrims();
                     break;
                 case GFXDrawStep.GUI:
                     if (DBG.EnableMenu)
-                        DbgMenuItem.CurrentMenu.Draw((float)gameTime.ElapsedGameTime.TotalSeconds);
+                        DbgMenuItem.CurrentMenu.Draw();
                     break;
             }
         }
 
-        private static void DoDraw(GameTime gameTime)
+        private static void DoDraw()
         {
             if (Main.DISABLE_DRAW_ERROR_HANDLE)
             {
-                DoDrawStep(gameTime);
+                DoDrawStep();
             }
             else
             {
                 try
                 {
-                    DoDrawStep(gameTime);
+                    DoDrawStep();
                 }
                 catch (Exception ex)
                 {
@@ -425,33 +427,33 @@ namespace DSAnimStudio
             }
         }
 
-        public static void DrawScene3D(GameTime gameTime)
+        public static void DrawScene3D()
         {
             CurrentStep = GFXDrawStep.DbgPrimPrepass;
-            BeginDraw(gameTime);
-            DoDraw(gameTime);
+            BeginDraw();
+            DoDraw();
 
             CurrentStep = GFXDrawStep.Opaque;
-            BeginDraw(gameTime);
-            DoDraw(gameTime);
+            BeginDraw();
+            DoDraw();
 
             CurrentStep = GFXDrawStep.AlphaEdge;
-            BeginDraw(gameTime);
-            DoDraw(gameTime);
+            BeginDraw();
+            DoDraw();
         }
 
-        public static void DrawSceneOver3D(GameTime gameTime)
+        public static void DrawSceneOver3D()
         {
             CurrentStep = GFXDrawStep.DbgPrimOverlay;
-            BeginDraw(gameTime);
-            DoDraw(gameTime);
+            BeginDraw();
+            DoDraw();
         }
 
-        public static void DrawSceneGUI(GameTime gameTime)
+        public static void DrawSceneGUI()
         {
             CurrentStep = GFXDrawStep.GUI;
-            BeginDraw(gameTime);
-            DoDraw(gameTime);
+            BeginDraw();
+            DoDraw();
 
             GFX.UpdateFPS((float)FpsStopwatch.Elapsed.TotalSeconds);
             if (Main.SceneRenderTarget != null)

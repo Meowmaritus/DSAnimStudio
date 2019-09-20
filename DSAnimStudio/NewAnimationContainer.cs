@@ -139,11 +139,11 @@ namespace DSAnimStudio
             CurrentAnimation?.Scrub(newTime, IsLoop, forceUpdate);
         }
 
-        public void Update(GameTime gameTime)
+        public void Update()
         {
             if (IsPlaying && CurrentAnimation != null)
             {
-                CurrentAnimation.Play((float)gameTime.ElapsedGameTime.TotalSeconds, IsLoop);
+                CurrentAnimation.Play(Main.DELTA_UPDATE, IsLoop);
             }
         }
 

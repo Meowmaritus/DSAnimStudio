@@ -16,7 +16,7 @@ namespace DSAnimStudio.GFXShaders
         {
             LightingEnabled = true;
             VertexColorEnabled = true;
-            DiffuseColor = Vector3.One;
+            DiffuseColor = Vector3.One * 2;
             TextureEnabled = false;
         }
 
@@ -24,7 +24,7 @@ namespace DSAnimStudio.GFXShaders
         {
             LightingEnabled = true;
             VertexColorEnabled = true;
-            DiffuseColor = Vector3.One;
+            DiffuseColor = Vector3.One * 2;
             TextureEnabled = false;
         }
 

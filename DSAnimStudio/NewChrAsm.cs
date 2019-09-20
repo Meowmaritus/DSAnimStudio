@@ -44,11 +44,10 @@ namespace DSAnimStudio
         public int LeftWeaponBoneIndex = -1;
         public Model LeftWeaponModel = null;
 
-        public bool LeftWeaponFlip_ForDS1Shields = true;
-
-        public bool FlipAnimatedLeftWeaponBackwards = true;
-        public bool FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows = false;
-        public bool FlipAnimatedRightWeaponBackwards = true;
+        public bool LeftWeaponFlipBackwards = true;
+        public bool LeftWeaponFlipSideways = true;
+        public bool RightWeaponFlipBackwards = true;
+        public bool RightWeaponFlipSideways = false;
 
         private Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
 
@@ -63,49 +62,26 @@ namespace DSAnimStudio
         {
             if (RightWeaponModel != null)
             {
-                if (RightWeaponModel.AnimContainer.CurrentAnimation == null)
-                {
-                    RightWeaponModel.StartTransform = new Transform(
-                        Matrix.CreateRotationX(MathHelper.Pi)
-                        * Matrix.CreateRotationY(MathHelper.Pi)
+                RightWeaponModel.StartTransform = new Transform(
+                        (RightWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
+                        * (RightWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
                         * Skeleton[RightWeaponBoneIndex]
                         * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
-                }
-                else
-                {
-                    RightWeaponModel.StartTransform = new Transform(
-                        (FlipAnimatedRightWeaponBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
-                        * Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
-                        * Skeleton[RightWeaponBoneIndex]
-                        * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
-                }
             }
 
             if (LeftWeaponModel != null)
             {
-                if (LeftWeaponModel.AnimContainer.CurrentAnimation == null)
-                {
-                    LeftWeaponModel.StartTransform = new Transform(
-                    Matrix.CreateRotationX(MathHelper.Pi)
-                    * (LeftWeaponFlip_ForDS1Shields ? Matrix.Identity : Matrix.CreateRotationY(MathHelper.Pi))
-                    * Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
-                    * Skeleton[LeftWeaponBoneIndex]
-                    * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
-                }
-                else
-                {
-                    LeftWeaponModel.StartTransform = new Transform(
-                        (FlipAnimatedLeftWeaponBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
-                        * (FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
+                LeftWeaponModel.StartTransform = new Transform(
+                        (LeftWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
+                        * (LeftWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
                         * Skeleton[LeftWeaponBoneIndex]
                         * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
-                }
             }
         }
 
-        public void UpdateWeaponAnimation(GameTime gameTime)
+        public void UpdateWeaponAnimation()
         {
             if (RightWeaponModel != null)
             {
@@ -148,6 +124,7 @@ namespace DSAnimStudio
 
             if (wpn != null && wpnMdl != null)
             {
+                MODEL.DummyPolyMan.ClearAllHitboxPrimitives();
                 MODEL.DummyPolyMan.BuildAllHitboxPrimitives(wpn, isLeft);
             }
         }
@@ -386,6 +363,15 @@ namespace DSAnimStudio
             }
         }
 
+        private int lastHeadLoaded = -1;
+        private int lastBodyLoaded = -1;
+        private int lastArmsLoaded = -1;
+        private int lastLegsLoaded = -1;
+        private int lastRightWeaponLoaded = -1;
+        private int lastRightWeaponModelIndexLoaded = -1;
+        private int lastLeftWeaponLoaded = -1;
+        private int lastLeftWeaponModelIndexLoaded = -1;
+
         public event EventHandler<EquipSlot> EquipmentChanged;
 
         private void OnEquipmentChanged(EquipSlot slot)
@@ -417,87 +403,172 @@ namespace DSAnimStudio
             => ParamManager.EquipParamWeapon.ContainsKey(LeftWeaponID)
             ? ParamManager.EquipParamWeapon[LeftWeaponID] : null;
 
-        public void UpdateModels()
+        public void UpdateModels(bool isAsync = false, Action onCompleteAction = null)
         {
-            MODEL.DefaultAllMaskValues();
-            if (Head != null)
+            LoadingTaskMan.DoLoadingTask("ChrAsm_UpdateModels", "Updating c0000 models...", progress =>
             {
-                LoadArmorPartsbnd(Head.GetFullPartBndPath(IsFemale), EquipSlot.Head);
-                Head.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
-            }
-
-            if (Body != null)
-            {
-                LoadArmorPartsbnd(Body.GetFullPartBndPath(IsFemale), EquipSlot.Body);
-                Body.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
-            }
-
-            if (Arms != null)
-            {
-                LoadArmorPartsbnd(Arms.GetFullPartBndPath(IsFemale), EquipSlot.Arms);
-                Arms.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
-            }
-
-            if (Legs != null)
-            {
-                LoadArmorPartsbnd(Legs.GetFullPartBndPath(IsFemale), EquipSlot.Legs);
-                Legs.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
-            }
-
-            if (RightWeapon != null)
-            {
-                //TODO
-                LoadingTaskMan.DoLoadingTaskSynchronous("ChrAsm_RightWeapon", "Loading right weapon...", progress =>
+                MODEL.DefaultAllMaskValues();
+                if (HeadID != lastHeadLoaded)
                 {
-                    var weaponName = RightWeapon.GetFullPartBndPath();
-                    var shortWeaponName = RightWeapon.GetPartBndName();
-                    IBinder weaponBnd = null;
-
-                    if (System.IO.File.Exists(weaponName))
+                    if (Head != null)
                     {
-                        if (BND3.Is(weaponName))
-                            weaponBnd = BND3.Read(weaponName);
-                        else
-                            weaponBnd = BND4.Read(weaponName);
-                        RightWeaponModel = new Model(progress, shortWeaponName, weaponBnd,
-                            modelIndex: RightWeaponModelIndex, null/*, baseDmyPolyID: 10000*/);
-                        RightWeaponModel.IS_PLAYER = true;
-                        RightWeaponModel.IS_PLAYER_WEAPON = true;
-                        RightWeaponModel.ParentModelForChrAsm = MODEL;
-                        InitWeapon(isLeft: false);
+                        LoadArmorPartsbnd(Head.GetFullPartBndPath(IsFemale), EquipSlot.Head);
+                        lastHeadLoaded = HeadID;
                     }
+                    else
+                    {
+                        HeadMesh?.Dispose();
+                        HeadMesh = null;
+                    }
+                }
 
-                       
-                });
+                progress.Report(1.0 / 6.0);
+
+                if (BodyID != lastBodyLoaded)
+                {
+                    if (Body != null)
+                    {
+                        LoadArmorPartsbnd(Body.GetFullPartBndPath(IsFemale), EquipSlot.Body);
+                        lastBodyLoaded = BodyID;
+                    }
+                    else
+                    {
+                        BodyMesh?.Dispose();
+                        BodyMesh = null;
+                    }
+                }
+
+                progress.Report(2.0 / 6.0);
+
+                if (ArmsID != lastArmsLoaded)
+                {
+                    if (Arms != null)
+                    {
+                        LoadArmorPartsbnd(Arms.GetFullPartBndPath(IsFemale), EquipSlot.Arms);
+                        lastArmsLoaded = ArmsID;
+                    }
+                    else
+                    {
+                        ArmsMesh?.Dispose();
+                        ArmsMesh = null;
+                    }
+                }
+
+                progress.Report(3.0 / 6.0);
+
+                if (LegsID != lastLegsLoaded)
+                {
+                    if (Legs != null)
+                    {
+                        LoadArmorPartsbnd(Legs.GetFullPartBndPath(IsFemale), EquipSlot.Legs);
+                        lastLegsLoaded = LegsID;
+                    }
+                    else
+                    {
+                        LegsMesh?.Dispose();
+                        LegsMesh = null;
+                    }
+                }
+
+                progress.Report(4.0 / 6.0);
+
+                if ((RightWeaponID != lastRightWeaponLoaded || 
+                    RightWeaponModelIndex != lastRightWeaponModelIndexLoaded))
+                {
+                    if (RightWeapon != null)
+                    {
+                        lastRightWeaponLoaded = RightWeaponID;
+                        lastRightWeaponModelIndexLoaded = RightWeaponModelIndex;
+                        //TODO
+                        LoadingTaskMan.DoLoadingTaskSynchronous("ChrAsm_RightWeapon", "Loading c0000 right weapon...", wpProgress =>
+                        {
+                            try
+                            {
+                                var weaponName = RightWeapon.GetFullPartBndPath();
+                                var shortWeaponName = RightWeapon.GetPartBndName();
+                                IBinder weaponBnd = null;
+
+                                if (System.IO.File.Exists(weaponName))
+                                {
+                                    if (BND3.Is(weaponName))
+                                        weaponBnd = BND3.Read(weaponName);
+                                    else
+                                        weaponBnd = BND4.Read(weaponName);
+
+                                    RightWeaponModel = new Model(wpProgress, shortWeaponName, weaponBnd,
+                                        modelIndex: RightWeaponModelIndex, null/*, baseDmyPolyID: 10000*/);
+                                    RightWeaponModel.IS_PLAYER = true;
+                                    RightWeaponModel.IS_PLAYER_WEAPON = true;
+                                    InitWeapon(isLeft: false);
+                                }
+                            }
+                            catch
+                            {
+                                RightWeaponModel?.Dispose();
+                                RightWeaponModel = null;
+                            }
+                        });
+                    }
+                }
+
+                progress.Report(5.0 / 6.0);
+
+                if ((LeftWeaponID != lastLeftWeaponLoaded ||
+                    LeftWeaponModelIndex != lastLeftWeaponModelIndexLoaded))
+                {
+                    if (LeftWeapon != null)
+                    {
+                        lastLeftWeaponLoaded = LeftWeaponID;
+                        lastLeftWeaponModelIndexLoaded = LeftWeaponModelIndex;
+                        //TODO
+                        LoadingTaskMan.DoLoadingTaskSynchronous("ChrAsm_LeftWeapon", "Loading c0000 right weapon...", wpProgress =>
+                        {
+                            try
+                            {
+                                var weaponName = LeftWeapon.GetFullPartBndPath();
+                                var shortWeaponName = LeftWeapon.GetPartBndName();
+                                IBinder weaponBnd = null;
+
+                                if (System.IO.File.Exists(weaponName))
+                                {
+                                    if (BND3.Is(weaponName))
+                                        weaponBnd = BND3.Read(weaponName);
+                                    else
+                                        weaponBnd = BND4.Read(weaponName);
+
+                                    LeftWeaponModel = new Model(wpProgress, shortWeaponName, weaponBnd,
+                                        modelIndex: LeftWeaponModelIndex, null/*, baseDmyPolyID: 11000*/);
+                                    LeftWeaponModel.IS_PLAYER = true;
+                                    LeftWeaponModel.IS_PLAYER_WEAPON = true;
+                                    InitWeapon(isLeft: true);
+                                }
+                            }
+                            catch
+                            {
+                                LeftWeaponModel?.Dispose();
+                                LeftWeaponModel = null;
+                            }
+
+                            
+                        });
+                    }
+                    else
+                    {
+                        LeftWeaponModel?.Dispose();
+                        LeftWeaponModel = null;
+                    }
+                    
+                }
+
+                Head?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
+                Body?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
+                Arms?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
+                Legs?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
+
+                progress.Report(6.0 / 6.0);
+                onCompleteAction?.Invoke();
+            }, waitForTaskToComplete: !isAsync);
                 
-            }
-
-            if (LeftWeapon != null)
-            {
-                //TODO
-                LoadingTaskMan.DoLoadingTaskSynchronous("ChrAsm_LeftWeapon", "Loading right weapon...", progress =>
-                {
-                    var weaponName = LeftWeapon.GetFullPartBndPath();
-                    var shortWeaponName = LeftWeapon.GetPartBndName();
-                    IBinder weaponBnd = null;
-
-                    if (System.IO.File.Exists(weaponName))
-                    {
-                        if (BND3.Is(weaponName))
-                            weaponBnd = BND3.Read(weaponName);
-                        else
-                            weaponBnd = BND4.Read(weaponName);
-                        LeftWeaponModel = new Model(progress, shortWeaponName, weaponBnd,
-                            modelIndex: LeftWeaponModelIndex, null/*, baseDmyPolyID: 11000*/);
-                        LeftWeaponModel.IS_PLAYER = true;
-                        LeftWeaponModel.IS_PLAYER_WEAPON = true;
-                        LeftWeaponModel.ParentModelForChrAsm = MODEL;
-                        InitWeapon(isLeft: true);
-                    }
-
-                   
-                });
-            }
         }
 
         public void TryToLoadTextures()

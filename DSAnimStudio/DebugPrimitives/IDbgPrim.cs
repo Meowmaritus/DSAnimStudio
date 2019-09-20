@@ -24,10 +24,10 @@ namespace DSAnimStudio.DebugPrimitives
 
         List<IDbgPrim> Children { get; set; }
 
-        void Draw(GameTime gameTime, IDbgPrim parent, Matrix world);
-        void LabelDraw();
+        void Draw(IDbgPrim parent, Matrix world);
+        void LabelDraw(Matrix world);
 
-        void LabelDraw_Billboard();
+        void LabelDraw_Billboard(Matrix world);
 
     }
 }

@@ -1040,6 +1040,9 @@ namespace DSAnimStudio
 
             if (GFX.EnableTextures && shader == GFX.FlverShader)
             {
+                if (TexDataDiffuse == null)
+                    TryToLoadTextures();
+
                 GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;

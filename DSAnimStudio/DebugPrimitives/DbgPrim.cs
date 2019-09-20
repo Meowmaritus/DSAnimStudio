@@ -23,14 +23,14 @@ namespace DSAnimStudio.DebugPrimitives
 
     public class DbgLabel
     {
-        public Vector3 Position = Vector3.Zero;
-        public float Height = 0.5f;
+        public Matrix World = Matrix.Identity;
+        public float Height = 1;
         public string Text = "?LabelText?";
         public Color Color;
 
-        public DbgLabel(Vector3 position, float height, string text, Color color)
+        public DbgLabel(Matrix world, float height, string text, Color color)
         {
-            Position = position;
+            World = world;
             Height = height;
             Text = text;
             Color = color;
@@ -60,7 +60,12 @@ namespace DSAnimStudio.DebugPrimitives
 
         public void AddDbgLabel(Vector3 position, float height, string text, Color color)
         {
-            DbgLabels.Add(new DbgLabel(position, height, text, color));
+            DbgLabels.Add(new DbgLabel(Matrix.CreateTranslation(position), height, text, color));
+        }
+
+        public void AddDbgLabel(Matrix world, float height, string text, Color color)
+        {
+            DbgLabels.Add(new DbgLabel(world, height, text, color));
         }
 
         public abstract IGFXShader<T> Shader { get; }
@@ -75,30 +80,43 @@ namespace DSAnimStudio.DebugPrimitives
 
         protected abstract void DrawPrimitive();
 
-        protected virtual void PreDraw(GameTime gameTime)
+        protected virtual void PreDraw()
         {
 
         }
 
-        public void Draw(GameTime gameTime, IDbgPrim parentPrim, Matrix world)
+        public void Draw(IDbgPrim parentPrim, Matrix world)
         {
-            PreDraw(gameTime);
-
-            Vector3 oldDiffuseColor = Vector3.One;
+            PreDraw();
 
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
             {
-                oldDiffuseColor = Shader.Effect.Parameters["DiffuseColor"].GetValueVector3();
                 if (OverrideColor.HasValue)
                 {
                     var overrideColor = new Vector3(OverrideColor.Value.R / 255f, OverrideColor.Value.G / 255f, OverrideColor.Value.B / 255f);
-
-                    if (Shader == GFX.DbgPrimWireShader)
+                    if (Shader is DbgPrimSolidShader solid)
                     {
-                        overrideColor *= 5;
+                        solid.VertexColorEnabled = false;
+                        solid.DiffuseColor = overrideColor;
                     }
-
-                    Shader.Effect.Parameters["DiffuseColor"].SetValue(overrideColor);
+                    else if (Shader is DbgPrimWireShader wire)
+                    {
+                        wire.VertexColorEnabled = false;
+                        wire.DiffuseColor = overrideColor * 5;
+                    }
+                }
+                else
+                {
+                    if (Shader is DbgPrimSolidShader solid)
+                    {
+                        solid.VertexColorEnabled = true;
+                        solid.DiffuseColor = Vector3.One * 2;
+                    }
+                    else if (Shader is DbgPrimWireShader wire)
+                    {
+                        wire.VertexColorEnabled = true;
+                        wire.DiffuseColor = Vector3.One * 2;
+                    }
                 }
             }
 
@@ -106,7 +124,7 @@ namespace DSAnimStudio.DebugPrimitives
                 return;
 
             foreach (var c in Children)
-                c.Draw(gameTime, this, world);
+                c.Draw(this, world);
 
             if (!DBG.CategoryEnableDraw[Category])
                 return;
@@ -140,13 +158,24 @@ namespace DSAnimStudio.DebugPrimitives
                 }
             }
 
-            if ((Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader) && OverrideColor.HasValue)
+            if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
             {
-                Shader.Effect.Parameters["DiffuseColor"].SetValue(oldDiffuseColor);
+                if (Shader is DbgPrimSolidShader solid)
+                {
+                    solid.VertexColorEnabled = true;
+                    solid.DiffuseColor = Vector3.One * 2;
+                }
+                else if (Shader is DbgPrimWireShader wire)
+                {
+                    wire.VertexColorEnabled = true;
+                    wire.DiffuseColor = Vector3.One * 2;
+                }
             }
+
+                
         }
 
-        public void LabelDraw()
+        public void LabelDraw(Matrix world)
         {
             if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category] && (EnableDraw && DBG.CategoryEnableDraw[Category])))
                 return;
@@ -155,22 +184,22 @@ namespace DSAnimStudio.DebugPrimitives
             {
                 foreach (var label in DbgLabels)
                 {
-                    DBG.DrawTextOn3DLocation(Transform.WorldMatrix, label.Position,
-                        label.Text, label.Color, label.Height, startAndEndSpriteBatchForMe: false);
+                    DBG.DrawTextOn3DLocation_PhysicalSize(label.World * Transform.WorldMatrix * world, Vector3.Zero,
+                        label.Text, label.Color, label.Height / 2, startAndEndSpriteBatchForMe: false);
                 }
             }
         }
 
-        public void LabelDraw_Billboard()
+        public void LabelDraw_Billboard(Matrix world)
         {
             if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category] && (EnableDraw && DBG.CategoryEnableDraw[Category])))
                 return;
 
             if (DbgLabels.Count > 0)
             {
-                foreach (var label in DbgLabels)
+                foreach (var label in DbgLabels.OrderByDescending(lbl => (GFX.World.CameraTransform.Position - Vector3.Transform(Vector3.Zero, lbl.World)).LengthSquared()))
                 {
-                    DBG.Draw3DBillboard(label.Text, Matrix.CreateTranslation(label.Position) * Transform.WorldMatrix, label.Color);
+                    DBG.Draw3DBillboard(label.Text, label.World * Transform.WorldMatrix * world, label.Color);
                 }
             }
         }
