@@ -2082,8 +2082,12 @@ namespace DSAnimStudio.TaeEditor
             // Always update playback regardless of GUI memes.
             // Still only allow hitting spacebar to play/pause
             // if the window is in focus.
+            // Also for Interactor
             if (Graph != null)
+            {
                 Graph.UpdatePlaybackCursor(allowPlayPauseInput: Main.Active);
+                Graph.ViewportInteractor?.GeneralUpdate();
+            }
 
             if (Main.Active)
             {

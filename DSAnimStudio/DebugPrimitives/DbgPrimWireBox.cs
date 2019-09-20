@@ -18,7 +18,7 @@ namespace DSAnimStudio.DebugPrimitives
         public DbgPrimWireBox(Transform location, Vector3 min, Vector3 max, Color color)
         {
             Transform = location;
-            NameColor = new Color((color.ToVector4() + color.ToVector4()) / 2);
+            NameColor = color;
 
             // 3 Letters of below names: 
             // [T]op/[B]ottom, [F]ront/[B]ack, [L]eft/[R]ight

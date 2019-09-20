@@ -456,6 +456,16 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
+        public void GeneralUpdate()
+        {
+            if (Graph.MainScreen.Config.CameraFollowsRootMotion && CurrentModel != null)
+            {
+                GFX.World.WorldMatrixMOD = Matrix.CreateTranslation(
+                    -Vector3.Transform(Vector3.Zero, 
+                    CurrentModel.CurrentRootMotionTransform.WorldMatrix));
+            }
+        }
+
         public void DrawDebug()
         {
             var printer = new StatusPrinter(Vector2.Zero, Color.Yellow);
