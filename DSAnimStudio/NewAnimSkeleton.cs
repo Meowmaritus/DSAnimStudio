@@ -149,7 +149,7 @@ namespace DSAnimStudio
 
             public FlverBoneInfo(FLVER2.Bone bone, List<FLVER2.Bone> boneList)
             {
-                Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b)
+                Matrix GetBoneMatrix(SoulsFormats.FLVER2.Bone b)
                 {
                     SoulsFormats.FLVER2.Bone parentBone = b;
 
@@ -164,20 +164,16 @@ namespace DSAnimStudio
                         result *= Matrix.CreateTranslation(parentBone.Translation.X, parentBone.Translation.Y, parentBone.Translation.Z);
 
                         if (parentBone.ParentIndex >= 0)
-                        {
                             parentBone = boneList[parentBone.ParentIndex];
-                        }
                         else
-                        {
                             parentBone = null;
-                        }
                     }
                     while (parentBone != null);
 
                     return result;
                 }
 
-                ReferenceMatrix = GetBoneParentMatrix(bone);
+                ReferenceMatrix = GetBoneMatrix(bone);
                 Name = bone.Name;
             }
         }

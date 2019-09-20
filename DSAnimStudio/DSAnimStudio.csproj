@@ -74,6 +74,13 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="NewChrAsmCfgJson.cs" />
+    <Compile Include="NewChrAsmEquipForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NewChrAsmEquipForm.Designer.cs">
+      <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="TaeEditor\TaeAnimRefChainSolver.cs" />
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxDepthStencilStateAdjust.cs" />
@@ -509,6 +516,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="NewChrAsmEquipForm.resx">
+      <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TaeEditor\LightShaderAdjuster.resx">
       <DependentUpon>LightShaderAdjuster.cs</DependentUpon>
     </EmbeddedResource>

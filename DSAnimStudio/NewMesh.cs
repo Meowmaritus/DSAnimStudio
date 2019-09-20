@@ -15,6 +15,10 @@ namespace DSAnimStudio
         private bool[] DefaultDrawMask = new bool[Model.DRAW_MASK_LENGTH];
         public bool[] DrawMask = new bool[Model.DRAW_MASK_LENGTH];
 
+        private object _lock_submeshes = new object();
+
+        public BoundingBox Bounds;
+
         public void DefaultAllMaskValues()
         {
             for (int i = 0; i < Model.DRAW_MASK_LENGTH; i++)
@@ -30,7 +34,11 @@ namespace DSAnimStudio
 
         private void LoadFLVER2(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null)
         {
-            Submeshes = new List<FlverSubmeshRenderer>();
+            lock (_lock_submeshes)
+            {
+                Submeshes = new List<FlverSubmeshRenderer>();
+            }
+            
             foreach (var submesh in flver.Meshes)
             {
                 // Blacklist some materials that don't have good shaders and just make the viewer look like a mess
@@ -43,22 +51,41 @@ namespace DSAnimStudio
                         continue;
                 }
                 var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV, boneIndexRemap);
-                Submeshes.Add(smm);
+
+                Bounds = new BoundingBox();
+
+                lock (_lock_submeshes)
+                {
+                    Submeshes.Add(smm);
+                    Bounds = BoundingBox.CreateMerged(Bounds, smm.Bounds);
+                }
             }
         }
 
         public void Draw(int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
-            foreach (var submesh in Submeshes)
+            lock (_lock_submeshes)
             {
-                submesh.Draw(lod, motionBlur, GFX.FlverShader, DrawMask, forceNoBackfaceCulling, isSkyboxLol);
+                if (Submeshes == null)
+                    return;
+
+                foreach (var submesh in Submeshes)
+                {
+                    submesh.Draw(lod, motionBlur, GFX.FlverShader, DrawMask, forceNoBackfaceCulling, isSkyboxLol);
+                }
             }
         }
 
         public void TryToLoadTextures()
         {
-            foreach (var sm in Submeshes)
-                sm.TryToLoadTextures();
+            lock (_lock_submeshes)
+            {
+                if (Submeshes == null)
+                    return;
+
+                foreach (var sm in Submeshes)
+                    sm.TryToLoadTextures();
+            }
         }
 
         public void Dispose()

@@ -110,7 +110,9 @@ namespace DSAnimStudio.TaeEditor
             protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
             {
                 // IM SO SORRY
-                if (e.Item.Text == "NPC Settings" || e.Item.Text == "Player Settings")
+                if (e.Item.Text == "NPC Settings" || e.Item.Text == "Player Settings" ||
+                    e.Item.Text == "Object Settings" || e.Item.Text == "Animated Equipment Settings" ||
+                    e.Item.Text == "Cutscene Settings")
                 {
                     e.Item.ForeColor = System.Drawing.Color.Cyan;
                     base.OnRenderItemText(e);

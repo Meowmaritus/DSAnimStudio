@@ -30,13 +30,12 @@ namespace DSAnimStudio.TaeEditor
                                 var thisVal = kvp.Value.ValueToString(ev.Parameters[kvp.Key]);
                                 if (requireWholeValue ? thisVal.Equals(paramVal) : thisVal.Contains(paramVal))
                                 {
-                                    var animID_Lower = editor.FileContainer.ContainerType 
-                                        == TaeFileContainer.TaeFileContainerType.BND4
+                                    var animID_Lower = GameDataManager.GameTypeHasLongAnimIDs
                                         ? (anim.ID % 1_000000) : (anim.ID % 1_0000);
 
                                     var animID_Upper = taeKvp.Key.StartsWith("a") ?
                                         long.Parse(Utils.GetFileNameWithoutAnyExtensions(taeKvp.Key).Substring(1)) 
-                                        : ((editor.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4
+                                        : ((GameDataManager.GameTypeHasLongAnimIDs
                                         ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
 
 
@@ -45,7 +44,7 @@ namespace DSAnimStudio.TaeEditor
                                         TAEName = Utils.GetFileNameWithoutDirectoryOrExtension(taeKvp.Key),
                                         TAERef = tae,
                                         AnimRef = anim,
-                                        AnimName = (editor.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4
+                                        AnimName = (GameDataManager.GameTypeHasLongAnimIDs
                                             ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}"),
                                         EventTypeString = ev.TypeName,
                                         EventRef = ev,

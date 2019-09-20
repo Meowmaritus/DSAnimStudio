@@ -37,6 +37,7 @@ namespace DSAnimStudio
         public static Dictionary<long, ParamData.EquipParamProtector> EquipParamProtector 
             = new Dictionary<long, ParamData.EquipParamProtector>();
 
+        private static GameDataManager.GameTypes GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameTypes.None;
 
         public static PARAM GetParam(string paramName)
         {
@@ -78,8 +79,7 @@ namespace DSAnimStudio
             }
             return npcParams;
         }
-
-        private static GameDataManager.GameTypes GameTimeCurrentLoadedParamsAreFor = GameDataManager.GameTypes.None;
+        
         private static void LoadStuffFromParamBND()
         {
             void AddParam<T>(Dictionary<long, T> paramDict, string paramName)
@@ -105,7 +105,7 @@ namespace DSAnimStudio
             AddParam(EquipParamWeapon, "EquipParamWeapon");
             AddParam(EquipParamProtector, "EquipParamProtector");
 
-            GameTimeCurrentLoadedParamsAreFor = GameDataManager.GameType;
+            GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameType;
         }
 
         public static ParamData.AtkParam GetPlayerCommonAttack(int absoluteBehaviorID)
@@ -126,6 +126,9 @@ namespace DSAnimStudio
 
         public static ParamData.AtkParam GetPlayerBasicAtkParam(ParamData.EquipParamWeapon wpn, int behaviorSubID, bool isLeftHand)
         {
+            if (wpn == null)
+                return null;
+
             long behaviorParamID = 10_0000_000 + (wpn.BehaviorVariationID * 1_000) + behaviorSubID;
 
             if (!BehaviorParam_PC.ContainsKey(behaviorParamID))
@@ -183,54 +186,57 @@ namespace DSAnimStudio
             return AtkParam_Npc[behaviorParamEntry.RefID];
         }
 
-        public static bool LoadParamBND()
+        public static bool LoadParamBND(bool forceReload)
         {
             string interroot = GameDataManager.InterrootPath;
 
-            if (ParamBNDs.ContainsKey(GameDataManager.GameType))
-            {
-                if (GameTimeCurrentLoadedParamsAreFor != GameDataManager.GameType)
-                    LoadStuffFromParamBND();
-                return true;
-            }
-            
-            ParamBNDs.Add(GameDataManager.GameType, null);
+            bool justNowLoadedParamBND = false;
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+            if (forceReload || !ParamBNDs.ContainsKey(GameDataManager.GameType))
             {
-                if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd"))
-                    ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd");
-                else
-                    return false;
-            }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
-            {
-                if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
-                    ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
-                else
-                    return false;
-            }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
-            {
-                if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
+                ParamBNDs.Add(GameDataManager.GameType, null);
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
                 {
-                    ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
+                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd"))
+                        ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd");
+                    else
+                        return false;
                 }
-                else if (File.Exists($"{interroot}\\Data0.bdt"))
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
                 {
-                    ParamBNDs[GameDataManager.GameType] = SFUtil.DecryptDS3Regulation($"{interroot}\\Data0.bdt");
+                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
+                        ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
+                    else
+                        return false;
+                }
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                {
+                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
+                    {
+                        ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
+                    }
+                    else if (File.Exists($"{interroot}\\Data0.bdt"))
+                    {
+                        ParamBNDs[GameDataManager.GameType] = SFUtil.DecryptDS3Regulation($"{interroot}\\Data0.bdt");
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
                 else
                 {
-                    return false;
+                    throw new NotImplementedException();
                 }
-            }
-            else
-            {
-                throw new NotImplementedException();
+
+                justNowLoadedParamBND = true;
             }
 
-            LoadStuffFromParamBND();
+            if (justNowLoadedParamBND || forceReload || GameTypeCurrentLoadedParamsAreFrom != GameDataManager.GameType)
+            {
+                LoadStuffFromParamBND();
+            }
 
             return true;
         }

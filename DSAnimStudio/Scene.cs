@@ -60,18 +60,18 @@ namespace DSAnimStudio
             }
         }
 
-        public static void UpdateAnimation(GameTime gameTime)
+        public static void UpdateAnimation()
         {
             lock (_lock_ModelLoad_Draw)
             {
                 foreach (var mdl in Models)
                 {
-                    mdl.UpdateAnimation(gameTime);
+                    mdl.UpdateAnimation();
                 }
             }
         }
 
-        public static void Draw(GameTime gameTime)
+        public static void Draw()
         {
             if (DbgMenus.DbgMenuItem.MenuOpenState == DbgMenus.DbgMenuOpenState.Open && DbgMenus.DbgMenuItem.IsPauseRendering)
                 return;

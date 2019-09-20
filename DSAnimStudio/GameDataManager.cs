@@ -22,7 +22,40 @@ namespace DSAnimStudio
             SDT,
         }
 
+        public static readonly Dictionary<GameTypes, string> GameTypeNames =
+            new Dictionary<GameTypes, string>
+        {
+            { GameTypes.None, "<NONE>" },
+            { GameTypes.DES, "Demon's Souls" },
+            { GameTypes.DS1, "Dark Souls: Prepare to Die Edition" },
+            { GameTypes.DS1R, "Dark Souls Remastered" },
+            { GameTypes.DS2, "Dark Souls II" },
+            { GameTypes.DS2SOTFS, "Dark Souls II: Scholar of the First Sin" },
+            { GameTypes.DS3, "Dark Souls III" },
+            { GameTypes.BB, "Bloodborne" },
+            { GameTypes.SDT, "Sekiro: Shadows Die Twice" },
+        };
+
+        public static bool CheckGameTypeParamIDCompatibility(GameTypes a, GameTypes b)
+        {
+            if (a == GameTypes.DS1 && b == GameTypes.DS1R)
+                return true;
+            else if (a == GameTypes.DS1R && b == GameTypes.DS1)
+                return true;
+            // TODO: Check if these DS2 ones would be a good idea with 
+            // Forlorn set only being in sotfs etc.
+            //if (a == GameTypes.DS2 && b == GameTypes.DS2SOTFS)
+            //    return true;
+            //if (a == GameTypes.DS2SOTFS && b == GameTypes.DS2)
+            //    return true;
+            else
+                return a == b;
+        }
+
         public static GameTypes GameType { get; private set; } = GameTypes.None;
+
+        public static bool GameTypeHasLongAnimIDs =>
+            !(GameType == GameTypes.DS1 || GameType == GameTypes.DS1R || GameType == GameTypes.DES);
 
         public static HKX.HKXVariation GetCurrentLegacyHKXType()
         {
@@ -45,7 +78,24 @@ namespace DSAnimStudio
         {
             GameType = gameType;
             InterrootPath = interroot;
-            ParamManager.LoadParamBND();
+            ParamManager.LoadParamBND(forceReload: false);
+            FmgManager.LoadAllFMG(forceReload: false);
+        }
+
+        public static void ReloadAllData()
+        {
+            ReloadParams();
+            ReloadFmgs();
+        }
+
+        public static void ReloadParams()
+        {
+            ParamManager.LoadParamBND(forceReload: true);
+        }
+
+        public static void ReloadFmgs()
+        {
+            FmgManager.LoadAllFMG(forceReload: true);
         }
 
         public static Model LoadCharacter(string id)

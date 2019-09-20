@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using DSAnimStudio.DebugPrimitives;
+using System;
+using System.Collections.Generic;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -21,60 +23,41 @@ namespace DSAnimStudio.TaeEditor
 
         public string LastCubemapUsed { get; set; } = "m32_00_GILM0131";
 
-        public class ChrAsmConfig
+        public Dictionary<DbgPrimCategory, bool> CategoryEnableDraw = new Dictionary<DbgPrimCategory, bool>();
+        public Dictionary<DbgPrimCategory, bool> CategoryEnableDbgLabelDraw = new Dictionary<DbgPrimCategory, bool>();
+        public Dictionary<DbgPrimCategory, bool> CategoryEnableNameDraw = new Dictionary<DbgPrimCategory, bool>();
+
+        public void BeforeSaving()
         {
-            public int HeadID = -1;
-            public int BodyID = -1;
-            public int ArmsID = -1;
-            public int LegsID = -1;
-            public int RightWeaponID = -1;
-            public int RightWeaponModelIndex = 0;
-            public int LeftWeaponID = -1;
-            public int LeftWeaponModelIndex = 0;
-            public bool LeftWeaponFlip_ForDS1Shields = true;
-            public bool FlipAnimatedLeftWeaponBackwards = true;
-            public bool FlipAnimatedRightWeaponBackwards = true;
-            public bool FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows = false;
+            CategoryEnableDraw = DBG.CategoryEnableDraw;
+            CategoryEnableDbgLabelDraw = DBG.CategoryEnableDbgLabelDraw;
+            CategoryEnableNameDraw = DBG.CategoryEnableNameDraw;
+        }
 
-            public void WriteToChrAsm(NewChrAsm chrAsm)
+        public void AfterLoading()
+        {
+            DBG.CategoryEnableDraw = CategoryEnableDraw;
+            DBG.CategoryEnableDbgLabelDraw = CategoryEnableDbgLabelDraw;
+            DBG.CategoryEnableNameDraw = CategoryEnableNameDraw;
+
+            var categories = (DbgPrimCategory[])Enum.GetValues(typeof(DbgPrimCategory));
+            foreach (var c in categories)
             {
-                chrAsm.HeadID = HeadID;
-                chrAsm.BodyID = BodyID;
-                chrAsm.ArmsID = ArmsID;
-                chrAsm.LegsID = LegsID;
-                chrAsm.RightWeaponID = RightWeaponID;
-                chrAsm.RightWeaponModelIndex = RightWeaponModelIndex;
-                chrAsm.LeftWeaponID = LeftWeaponID;
-                chrAsm.LeftWeaponModelIndex = LeftWeaponModelIndex;
-                chrAsm.LeftWeaponFlip_ForDS1Shields = LeftWeaponFlip_ForDS1Shields;
-                chrAsm.FlipAnimatedLeftWeaponBackwards = FlipAnimatedLeftWeaponBackwards;
-                chrAsm.FlipAnimatedRightWeaponBackwards = FlipAnimatedRightWeaponBackwards;
-                chrAsm.FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows = FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows;
+                if (!CategoryEnableDraw.ContainsKey(c))
+                    CategoryEnableDraw.Add(c, true);
 
-                chrAsm.UpdateModels();
-            }
+                if (!CategoryEnableDbgLabelDraw.ContainsKey(c))
+                    CategoryEnableDbgLabelDraw.Add(c, true);
 
-            public void CopyFromChrAsm(NewChrAsm chrAsm)
-            {
-                HeadID = chrAsm.HeadID;
-                BodyID = chrAsm.BodyID;
-                ArmsID = chrAsm.ArmsID;
-                LegsID = chrAsm.LegsID;
-                RightWeaponID = chrAsm.RightWeaponID;
-                RightWeaponModelIndex = chrAsm.RightWeaponModelIndex;
-                LeftWeaponID = chrAsm.LeftWeaponID;
-                LeftWeaponModelIndex = chrAsm.LeftWeaponModelIndex;
-                LeftWeaponFlip_ForDS1Shields = chrAsm.LeftWeaponFlip_ForDS1Shields;
-                FlipAnimatedLeftWeaponBackwards = chrAsm.FlipAnimatedLeftWeaponBackwards;
-                FlipAnimatedRightWeaponBackwards = chrAsm.FlipAnimatedRightWeaponBackwards;
-                FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows = chrAsm.FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows;
+                if (!CategoryEnableNameDraw.ContainsKey(c))
+                    CategoryEnableNameDraw.Add(c, true);
             }
         }
 
-        public Dictionary<GameDataManager.GameTypes, ChrAsmConfig> ChrAsmConfigurations { get; set; }
-        = new Dictionary<GameDataManager.GameTypes, ChrAsmConfig>
+        public Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }
+        = new Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson>
         {
-            { GameDataManager.GameTypes.DS1, new ChrAsmConfig()
+            { GameDataManager.GameTypes.DS1, new NewChrAsmCfgJson()
                 {
                     HeadID = 100000,
                     BodyID = 111000,
@@ -84,12 +67,13 @@ namespace DSAnimStudio.TaeEditor
                     RightWeaponModelIndex = 0,
                     LeftWeaponID = 1455000,
                     LeftWeaponModelIndex = 0,
-                    LeftWeaponFlip_ForDS1Shields = true,
-                    FlipAnimatedLeftWeaponBackwards = true,
-                    FlipAnimatedRightWeaponBackwards = true,
+                    LeftWeaponFlipSideways = true,
+                    LeftWeaponFlipBackwards = false,
+                    RightWeaponFlipBackwards = true,
+                    RightWeaponFlipSideways = false,
                 }
             },
-             { GameDataManager.GameTypes.DS3, new ChrAsmConfig()
+             { GameDataManager.GameTypes.DS3, new NewChrAsmCfgJson()
                 {
                     HeadID = 52000000,
                     BodyID = 52001000,
@@ -99,13 +83,13 @@ namespace DSAnimStudio.TaeEditor
                     RightWeaponModelIndex = 0,
                     LeftWeaponID = 21010000,
                     LeftWeaponModelIndex = 0,
-                    LeftWeaponFlip_ForDS1Shields = true,
-                    FlipAnimatedLeftWeaponBackwards = true,
-                    FlipAnimatedRightWeaponBackwards = true,
-                    FlipAnimatedLeftWeaponBackwardsOtherWay_ForDS3Bows = true,
+                    LeftWeaponFlipSideways = true,
+                    LeftWeaponFlipBackwards = false,
+                    RightWeaponFlipBackwards = true,
+                    RightWeaponFlipSideways = false,
                 }
             },
-             { GameDataManager.GameTypes.BB, new ChrAsmConfig()
+             { GameDataManager.GameTypes.BB, new NewChrAsmCfgJson()
                 {
                     HeadID = 230000,
                     BodyID = 231000,
@@ -115,9 +99,10 @@ namespace DSAnimStudio.TaeEditor
                     RightWeaponModelIndex = 0,
                     LeftWeaponID = 6000000,
                     LeftWeaponModelIndex = 0,
-                    LeftWeaponFlip_ForDS1Shields = true,
-                    FlipAnimatedLeftWeaponBackwards = false,
-                    FlipAnimatedRightWeaponBackwards = false,
+                    LeftWeaponFlipSideways = true,
+                    LeftWeaponFlipBackwards = false,
+                    RightWeaponFlipBackwards = true,
+                    RightWeaponFlipSideways = false,
                 }
             },
         };

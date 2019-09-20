@@ -9,14 +9,21 @@ namespace DSAnimStudio
 {
     public class FmgManager
     {
+
+
         public static Dictionary<int, string> WeaponNames = new Dictionary<int, string>();
         public static Dictionary<int, string> ProtectorNames_HD = new Dictionary<int, string>();
         public static Dictionary<int, string> ProtectorNames_BD = new Dictionary<int, string>();
         public static Dictionary<int, string> ProtectorNames_AM = new Dictionary<int, string>();
         public static Dictionary<int, string> ProtectorNames_LG = new Dictionary<int, string>();
 
-        public static void LoadAllFMG()
+        private static GameDataManager.GameTypes GameTypeCurrentFmgsAreLoadedFrom = GameDataManager.GameTypes.None;
+
+        public static void LoadAllFMG(bool forceReload)
         {
+            if (!forceReload && GameTypeCurrentFmgsAreLoadedFrom == GameDataManager.GameType)
+                return;
+
             FMG weaponNamesFmg = null;
             FMG protectorNamesFmg = null;
 
@@ -66,33 +73,31 @@ namespace DSAnimStudio
 
             WeaponNames.Clear();
 
-            if (weaponNamesFmg != null)
+            void DoWeaponEntry(FMG.Entry entry)
             {
-                foreach (var entry in weaponNamesFmg.Entries)
-                {
-                    if (ParamManager.EquipParamWeapon.ContainsKey(entry.ID))
-                        WeaponNames.Add(entry.ID, $"{entry.ID}: {entry.Text}");
-                }
+                if (string.IsNullOrWhiteSpace(entry.Text) ||
+                    !ParamManager.EquipParamWeapon.ContainsKey(entry.ID))
+                    return;
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 && (entry.ID % 10000) != 0)
+                    return;
+                else if ((entry.ID % 1000) != 0)
+                    return;
+
+                WeaponNames.Add(entry.ID, entry.Text);
             }
 
+            if (weaponNamesFmg != null)
+                foreach (var entry in weaponNamesFmg.Entries)
+                    DoWeaponEntry(entry);
 
             if (weaponNamesFmg_dlc1 != null)
-            {
                 foreach (var entry in weaponNamesFmg_dlc1.Entries)
-                {
-                    if (ParamManager.EquipParamWeapon.ContainsKey(entry.ID))
-                        WeaponNames.Add(entry.ID, $"{entry.ID}: {entry.Text}");
-                }
-            }
+                    DoWeaponEntry(entry);
 
             if (weaponNamesFmg_dlc2 != null)
-            {
                 foreach (var entry in weaponNamesFmg_dlc2.Entries)
-                {
-                    if (ParamManager.EquipParamWeapon.ContainsKey(entry.ID))
-                        WeaponNames.Add(entry.ID, $"{entry.ID}: {entry.Text}");
-                }
-            }
+                    DoWeaponEntry(entry);
 
             ProtectorNames_HD.Clear();
             ProtectorNames_BD.Clear();
@@ -107,13 +112,13 @@ namespace DSAnimStudio
                 {
                     var protectorParam = ParamManager.EquipParamProtector[entry.ID];
                     if (protectorParam.HeadEquip)
-                        ProtectorNames_HD.Add(entry.ID, $"{entry.ID}: {entry.Text}");
+                        ProtectorNames_HD.Add(entry.ID, entry.Text);
                     else if (protectorParam.BodyEquip)
-                        ProtectorNames_BD.Add(entry.ID, $"{entry.ID}: {entry.Text}");
+                        ProtectorNames_BD.Add(entry.ID, entry.Text);
                     else if (protectorParam.ArmEquip)
-                        ProtectorNames_AM.Add(entry.ID, $"{entry.ID}: {entry.Text}");
+                        ProtectorNames_AM.Add(entry.ID, entry.Text);
                     else if (protectorParam.LegEquip)
-                        ProtectorNames_LG.Add(entry.ID, $"{entry.ID}: {entry.Text}");
+                        ProtectorNames_LG.Add(entry.ID, entry.Text);
                 }
             }
 
@@ -146,6 +151,8 @@ namespace DSAnimStudio
             ProtectorNames_BD = ProtectorNames_BD.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             ProtectorNames_AM = ProtectorNames_AM.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             ProtectorNames_LG = ProtectorNames_LG.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            GameTypeCurrentFmgsAreLoadedFrom = GameDataManager.GameType;
         }
     }
 }

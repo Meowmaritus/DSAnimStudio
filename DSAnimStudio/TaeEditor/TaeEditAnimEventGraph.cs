@@ -82,6 +82,7 @@ namespace DSAnimStudio.TaeEditor
 
         public float AfterAutoScrollHorizontalMargin = 48;
 
+        public float ScrubLerp = 30;
         public float ScrubScrollSpeed = 8;
         public float ScrubScrollStartMargin = 96;
 
@@ -641,8 +642,6 @@ namespace DSAnimStudio.TaeEditor
 
         private void PlaceNewEventAtMouse()
         {
-
-
             float mouseTime = ((MainScreen.Input.MousePosition.X - Rect.X + ScrollViewer.Scroll.X) / SecondsPixelSize);
 
             TAE.Event newEvent = null;
@@ -846,14 +845,14 @@ namespace DSAnimStudio.TaeEditor
             return false;
         }
 
-        public void UpdatePlaybackCursor(GameTime gameTime, bool allowPlayPauseInput)
+        public void UpdatePlaybackCursor(bool allowPlayPauseInput)
         {
             PlaybackCursor.Update(
                 Main.Active && allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space),
                 Main.Active && allowPlayPauseInput && 
                 (MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || 
                 MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)), 
-                gameTime, EventBoxes);
+                EventBoxes);
         }
 
         public void MouseReleaseStuff()
@@ -862,16 +861,14 @@ namespace DSAnimStudio.TaeEditor
             PlaybackCursor.Scrubbing = false;
         }
 
-        public void Update(GameTime gameTime, bool allowMouseUpdate)
+        public void Update(bool allowMouseUpdate)
         {
-            float elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
             if (!MainScreen.Input.LeftClickHeld)
             {
                 MouseReleaseStuff();
             }
 
-            ScrollViewer.UpdateInput(MainScreen.Input, elapsedSeconds, allowScrollWheel: !MainScreen.CtrlHeld);
+            ScrollViewer.UpdateInput(MainScreen.Input, Main.DELTA_UPDATE, allowScrollWheel: !MainScreen.CtrlHeld);
 
             if (MainScreen.CtrlHeld)
             {
@@ -881,7 +878,11 @@ namespace DSAnimStudio.TaeEditor
             if (currentUnselectedMouseDragType == UnselectedMouseDragType.PlaybackCursorScrub)
             {
                 ScrollViewer.ClampScroll();
-                PlaybackCursor.CurrentTime = Math.Max(((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize, 0);
+
+                float desiredTime = Math.Max(((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize, 0);
+                float timeDif = desiredTime - (float)PlaybackCursor.CurrentTime;
+                float clampedLerpF = MathHelper.Clamp(ScrubLerp * Main.DELTA_UPDATE, 0, 1);// MathHelper.Clamp(ScrubLerp / MathHelper.Clamp(Math.Abs(timeDif), 0.01f, 1), 0, 1);
+                PlaybackCursor.CurrentTime = MathHelper.Lerp((float)PlaybackCursor.CurrentTime, desiredTime, clampedLerpF);
 
                 if (!PlaybackCursor.IsPlaying)
                     PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
@@ -1729,7 +1730,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void Draw(GameTime gt, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
+        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
         {
             ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
 

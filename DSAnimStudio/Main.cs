@@ -30,6 +30,10 @@ namespace DSAnimStudio
 
         public static bool REQUEST_EXIT = false;
 
+        public static float DELTA_UPDATE;
+        public static float DELTA_UPDATE_ROUNDED;
+        public static float DELTA_DRAW;
+
         public static IServiceProvider ContentServiceProvider = null;
 
         private bool prevFrameWasLoadingTaskRunning = false;
@@ -296,8 +300,8 @@ namespace DSAnimStudio
 
                 LoadingTaskMan.DoLoadingTask("ProgramArgsLoad", "Loading ANIBND and associated model(s)...", progress =>
                 {
-                    TAE_EDITOR.LoadCurrentFile(progress);
-                });
+                    TAE_EDITOR.LoadCurrentFile();
+                }, disableProgressBarByDefault: true);
 
                 //LoadDragDroppedFiles(Program.ARGS.ToDictionary(f => f, f => File.ReadAllBytes(f)));
             }
@@ -396,13 +400,17 @@ namespace DSAnimStudio
 
         protected override void Update(GameTime gameTime)
         {
+            DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+
+            DELTA_UPDATE_ROUNDED = (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+
             Active = IsActive && ApplicationIsActivated();
 
             TargetElapsedTime = Active ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
 
             IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
 
-            Scene.UpdateAnimation(gameTime);
+            Scene.UpdateAnimation();
 
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -416,11 +424,11 @@ namespace DSAnimStudio
                 DbgMenuItem.UICursorBlinkUpdate(elapsed);
             }
 
-            if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
-            {
-                // Only update input if debug menu isnt fully open.
-                GFX.World.UpdateInput(this, gameTime);
-            }
+            //if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+            //{
+            //    // Only update input if debug menu isnt fully open.
+            //    GFX.World.UpdateInput(this, gameTime);
+            //}
 
             GFX.World.UpdateMatrices(GraphicsDevice);
 
@@ -479,7 +487,7 @@ namespace DSAnimStudio
                     TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
 
                 if (Active)
-                    TAE_EDITOR.Update(gameTime);
+                    TAE_EDITOR.Update();
                 else
                     TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
 
@@ -504,7 +512,15 @@ namespace DSAnimStudio
 
         protected override void Draw(GameTime gameTime)
         {
+            DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+
             GFX.Device.Clear(Color.DimGray);
+
+            if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+            {
+                // Only update input if debug menu isnt fully open.
+                GFX.World.UpdateInput(this);
+            }
 
             if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
             {
@@ -527,9 +543,12 @@ namespace DSAnimStudio
                 GFX.Device.Clear(Color.DimGray);
 
                 GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
+
+                GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+
                 //TaeInterop.TaeViewportDrawPre(gameTime);
-                GFX.DrawScene3D(gameTime);
-                GFX.DrawSceneOver3D(gameTime);
+                GFX.DrawScene3D();
+                GFX.DrawSceneOver3D();
 
                 GFX.Device.SetRenderTarget(null);
 
@@ -595,7 +614,7 @@ namespace DSAnimStudio
 
             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
             //DBG.DrawPrimitiveNames(gameTime);
-            GFX.DrawSceneGUI(gameTime);
+            GFX.DrawSceneGUI();
 
             TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebug();
             
@@ -607,7 +626,7 @@ namespace DSAnimStudio
 
             TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
 
-            TAE_EDITOR.Draw(gameTime, GraphicsDevice, GFX.SpriteBatch,
+            TAE_EDITOR.Draw(GraphicsDevice, GFX.SpriteBatch,
                 TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT, (float)gameTime.ElapsedGameTime.TotalSeconds);
 
             if (IsLoadingTaskRunning)

@@ -105,35 +105,50 @@ namespace DSAnimStudio.TaeEditor
                     new EventSimEntry("Simulate Hitbox Events", true,
                         "InvokeAttackBehavior", "InvokePCBehavior", "InvokeCommonBehavior", "InvokeThrowDamageBehavior")
                     {
-                        NewAnimSelectedAction = (entry) =>
+                        NewAnimSelectedAction = (entry, evBoxes) =>
                         {
                             MODEL.DummyPolyMan.DeactivateAllHitboxes();
                         },
-                        EnterAction = (entry, evBox) =>
+                        //EnterAction = (entry, evBox) =>
+                        //{
+                        //    var atkParam = GetAtkParamFromEventBox(evBox);
+
+                        //    if (atkParam != null)
+                        //    {
+                        //        MODEL.DummyPolyMan.ActivateHitbox(atkParam);
+                        //    }
+                        //    //if (MODEL.DummyPolyMan.HitboxPrimitiveInfos.ContainsKey(evBox))
+                        //    //    foreach (var hitbox in MODEL.DummyPolyMan.HitboxPrimitiveInfos[evBox].Primitives)
+                        //    //        hitbox.EnableDraw = true;
+                        //},
+                        //ExitAction = (entry, evBox) =>
+                        //{
+                        //    var atkParam = GetAtkParamFromEventBox(evBox);
+
+                        //    if (atkParam != null)
+                        //    {
+                        //        MODEL.DummyPolyMan.DeactivateHitbox(atkParam);
+                        //    }
+
+                        //   //if (MODEL.DummyPolyMan.HitboxPrimitiveInfos.ContainsKey(evBox))
+                        //   //     foreach (var hitbox in MODEL.DummyPolyMan.HitboxPrimitiveInfos[evBox].Primitives)
+                        //   //         hitbox.EnableDraw = false;
+                        //},
+                        SimulationFrameChangeAction = (entry, evBoxes) =>
                         {
-                            var atkParam = GetAtkParamFromEventBox(evBox);
-
-                            if (atkParam != null)
+                            foreach (var evBox in evBoxes.Where(b => entry.DoesEventMatch(b)))
                             {
-                                MODEL.DummyPolyMan.ActivateHitbox(atkParam);
-                            }
-                            //if (MODEL.DummyPolyMan.HitboxPrimitiveInfos.ContainsKey(evBox))
-                            //    foreach (var hitbox in MODEL.DummyPolyMan.HitboxPrimitiveInfos[evBox].Primitives)
-                            //        hitbox.EnableDraw = true;
-                        },
-                        ExitAction = (entry, evBox) =>
-                        {
-                            var atkParam = GetAtkParamFromEventBox(evBox);
+                                var atkParam = GetAtkParamFromEventBox(evBox);
 
-                            if (atkParam != null)
-                            {
-                                MODEL.DummyPolyMan.DeactivateHitbox(atkParam);
+                                if (atkParam != null)
+                                {
+                                    if (evBox.PlaybackHighlight)
+                                        MODEL.DummyPolyMan.ActivateHitbox(atkParam);
+                                    else
+                                        MODEL.DummyPolyMan.DeactivateHitbox(atkParam);
+                                }
                             }
-
-                           //if (MODEL.DummyPolyMan.HitboxPrimitiveInfos.ContainsKey(evBox))
-                           //     foreach (var hitbox in MODEL.DummyPolyMan.HitboxPrimitiveInfos[evBox].Primitives)
-                           //         hitbox.EnableDraw = false;
-                        },
+                        }
                     }
                 },
 
@@ -142,31 +157,39 @@ namespace DSAnimStudio.TaeEditor
                     new EventSimEntry("Simulate Opacity Change Events", true,
                         "SetOpacityKeyframe")
                     {
-                        NewAnimSelectedAction = (entry) =>
+                        NewAnimSelectedAction = (entry, evBoxes) =>
                         {
                             GFX.FlverOpacity = 1.0f;
                         },
-                        SimulationStartAction = (entry) =>
+                        //SimulationStartAction = (entry, evBoxes) =>
+                        //{
+                        //    GFX.FlverOpacity = 1.0f;
+                        //},
+                        SimulationFrameChangeAction = (entry, evBoxes) =>
                         {
-                            GFX.FlverOpacity = 1.0f;
-                        },
-                        SimulationScrubAction = (entry) =>
-                        {
-                            GFX.FlverOpacity = 1.0f;
-                        },
-                        DuringAction = (entry, evBox) =>
-                        {
-                            float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
-                            float timeSinceFadeStart = (float)Main.TAE_EDITOR.PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
-                            float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
-                            float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
+                            bool anyOpacityHappeningThisFrame = false;
+                            foreach (var evBox in evBoxes.Where(b => entry.DoesEventMatch(b)))
+                            {
+                                float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
+                                float timeSinceFadeStart = (float)Main.TAE_EDITOR.PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
+                                float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
+                                float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
 
-                            GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
+                                GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
+                                anyOpacityHappeningThisFrame = true;
+                            }
+                            if (!anyOpacityHappeningThisFrame)
+                                GFX.FlverOpacity = 1.0f;
                         },
-                        SimulationEndAction = (entry) =>
-                        {
-                            GFX.FlverOpacity = 1.0f;
-                        },
+                        //DuringAction = (entry, evBox) =>
+                        //{
+                            
+                        //},
+                        //SimulationEndAction = (entry, evBoxes) =>
+                        //{
+                        //    GFX.FlverOpacity = 1.0f;
+                        //},
+                        
                     }
                 },
 
@@ -176,17 +199,17 @@ namespace DSAnimStudio.TaeEditor
                     new EventSimEntry("Simulate Draw Mask Changes", true,
                         "ShowModelMask", "HideModelMask", "ChangeChrDrawMask")
                     {
-                        NewAnimSelectedAction = (entry) =>
+                        NewAnimSelectedAction = (entry, evBoxes) =>
                         {
-                            entry.Vars.ClearAllData();
+                            //entry.Vars.ClearAllData();
 
-                            MODEL.DefaultAllMaskValues();
+                            //MODEL.DefaultAllMaskValues();
                         },
-                        SimulationStartAction = (entry) =>
+                        SimulationStartAction = (entry, evBoxes) =>
                         {
-                            MODEL.DefaultAllMaskValues();
+                            //MODEL.DefaultAllMaskValues();
                         },
-                        SimulationScrubAction = (entry) =>
+                        SimulationFrameChangeAction = (entry, evBoxes) =>
                         {
                             //// Don't do this for the other mask ones being overrided with this.
                             //if (entry == entries["ChangeChrDrawMask"])
@@ -194,70 +217,70 @@ namespace DSAnimStudio.TaeEditor
                         },
                         EnterAction = (entry, evBox) =>
                         {
-                            if (evBox.MyEvent.TypeName == "ShowModelMask" || evBox.MyEvent.TypeName == "HideModelMask")
-                            {
-                                if (entry.Vars["OriginalMask"] == null)
-                                entry.Vars["OriginalMask"] = new EventSimEntryVariableContainer();
+                            //if (evBox.MyEvent.TypeName == "ShowModelMask" || evBox.MyEvent.TypeName == "HideModelMask")
+                            //{
+                            //    //if (entry.Vars["OriginalMask"] == null)
+                            //    //entry.Vars["OriginalMask"] = new EventSimEntryVariableContainer();
 
-                                var maskVar = (EventSimEntryVariableContainer)(entry.Vars["OriginalMask"]);
+                            //    //var maskVar = (EventSimEntryVariableContainer)(entry.Vars["OriginalMask"]);
 
-                                var newMaskCopy = maskVar[evBox] != null ? ((bool[])maskVar[evBox]) : new bool[MODEL.DrawMask.Length];
+                            //    //var newMaskCopy = maskVar[evBox] != null ? ((bool[])maskVar[evBox]) : new bool[MODEL.DrawMask.Length];
 
-                                Array.Copy(MODEL.DrawMask, newMaskCopy, MODEL.DrawMask.Length);
-                                maskVar[evBox] = newMaskCopy;
-                            }
+                            //    //Array.Copy(MODEL.DrawMask, newMaskCopy, MODEL.DrawMask.Length);
+                            //    //maskVar[evBox] = newMaskCopy;
+                            //}
 
-                            for (int i = 0; i < 32; i++)
-                            {
-                                if (evBox.MyEvent.Parameters.Template.ContainsKey($"Mask{(i + 1)}"))
-                                {
-                                    if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
-                                    {
-                                        var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
+                            //for (int i = 0; i < 32; i++)
+                            //{
+                            //    if (evBox.MyEvent.Parameters.Template.ContainsKey($"Mask{(i + 1)}"))
+                            //    {
+                            //        if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
+                            //        {
+                            //            var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
 
-                                        // Before you get out the torch, be aware that the game 
-                                        // uses some value other than 0 to SKIP
-                                        if (maskByte == 0)
-                                            MODEL.DrawMask[i] = false;
-                                        else if (maskByte == 1)
-                                            MODEL.DrawMask[i] = true;
-                                    }
-                                }
-                            }
+                            //            // Before you get out the torch, be aware that the game 
+                            //            // uses some value other than 0 to SKIP
+                            //            if (maskByte == 0)
+                            //                MODEL.DrawMask[i] = false;
+                            //            else if (maskByte == 1)
+                            //                MODEL.DrawMask[i] = true;
+                            //        }
+                            //    }
+                            //}
                         },
                         DuringAction = (entry, evBox) =>
                         {
-                            for (int i = 0; i < 32; i++)
-                            {
-                                if (evBox.MyEvent.Parameters.Template.ContainsKey($"Mask{(i + 1)}"))
-                                {
-                                    if (evBox.MyEvent.TypeName == "ShowModelMask")
-                                    {
-                                        if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
-                                            MODEL.DrawMask[i] = true;
-                                    }
-                                    else if (evBox.MyEvent.TypeName == "HideModelMask")
-                                    {
-                                        if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
-                                            MODEL.DrawMask[i] = false;
-                                    }
-                                }
-                            }
+                            //for (int i = 0; i < 32; i++)
+                            //{
+                            //    if (evBox.MyEvent.Parameters.Template.ContainsKey($"Mask{(i + 1)}"))
+                            //    {
+                            //        if (evBox.MyEvent.TypeName == "ShowModelMask")
+                            //        {
+                            //            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                            //                MODEL.DrawMask[i] = true;
+                            //        }
+                            //        else if (evBox.MyEvent.TypeName == "HideModelMask")
+                            //        {
+                            //            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                            //                MODEL.DrawMask[i] = false;
+                            //        }
+                            //    }
+                            //}
                         },
                         ExitAction = (entry, evBox) =>
                         {
-                             if (evBox.MyEvent.TypeName == "ShowModelMask" || evBox.MyEvent.TypeName == "HideModelMask")
-                             {
-                                 if (entry.Vars["OriginalMask"] != null)
-                                 {
-                                     var maskVar = (EventSimEntryVariableContainer)(entry.Vars["OriginalMask"]);
-                                     if (maskVar != null)
-                                     {
-                                         MODEL.DrawMask = (bool[])(maskVar[evBox]);
-                                     }
+                             //if (evBox.MyEvent.TypeName == "ShowModelMask" || evBox.MyEvent.TypeName == "HideModelMask")
+                             //{
+                             //    if (entry.Vars["OriginalMask"] != null)
+                             //    {
+                             //        var maskVar = (EventSimEntryVariableContainer)(entry.Vars["OriginalMask"]);
+                             //        if (maskVar != null)
+                             //        {
+                             //            MODEL.DrawMask = (bool[])(maskVar[evBox]);
+                             //        }
 
-                                 }
-                             }
+                             //    }
+                             //}
                         },
                     }
                 },
@@ -334,14 +357,14 @@ namespace DSAnimStudio.TaeEditor
                 Main.TAE_EDITOR.Config.EventSimulationsEnabled[simName] = enabled;
         }
 
-        public void OnNewAnimSelected()
+        public void OnNewAnimSelected(List<TaeEditAnimEventBox> evBoxes)
         {
             foreach (var kvp in entries)
             {
                 if (!GetSimEnabled(kvp.Key))
                     continue;
 
-                kvp.Value.NewAnimSelectedAction?.Invoke(kvp.Value);
+                kvp.Value.NewAnimSelectedAction?.Invoke(kvp.Value, evBoxes);
             }
         }
 
@@ -350,36 +373,36 @@ namespace DSAnimStudio.TaeEditor
             return entries.FirstOrDefault(kvp => kvp.Value.EventTypes.Contains(evBox.MyEvent.TypeName)).Key;
         }
 
-        public void OnSimulationStart()
+        public void OnSimulationStart(List<TaeEditAnimEventBox> evBoxes)
         {
             foreach (var kvp in entries)
             {
                 if (!GetSimEnabled(kvp.Key))
                     continue;
 
-                kvp.Value.SimulationStartAction?.Invoke(kvp.Value);
+                kvp.Value.SimulationStartAction?.Invoke(kvp.Value, evBoxes);
             }
         }
 
-        public void OnSimulationEnd()
+        public void OnSimulationEnd(List<TaeEditAnimEventBox> evBoxes)
         {
             foreach (var kvp in entries)
             {
                 if (!GetSimEnabled(kvp.Key))
                     continue;
 
-                kvp.Value.SimulationEndAction?.Invoke(kvp.Value);
+                kvp.Value.SimulationEndAction?.Invoke(kvp.Value, evBoxes);
             }
         }
 
-        public void OnSimulationScrub()
+        public void OnSimulationFrameChange(List<TaeEditAnimEventBox> evBoxes)
         {
             foreach (var kvp in entries)
             {
                 if (!GetSimEnabled(kvp.Key))
                     continue;
 
-                kvp.Value.SimulationScrubAction?.Invoke(kvp.Value);
+                kvp.Value.SimulationFrameChangeAction?.Invoke(kvp.Value, evBoxes);
             }
         }
 
@@ -448,10 +471,10 @@ namespace DSAnimStudio.TaeEditor
         {
             public List<string> EventTypes = new List<string>();
 
-            public Action<EventSimEntry> NewAnimSelectedAction;
-            public Action<EventSimEntry> SimulationStartAction;
-            public Action<EventSimEntry> SimulationEndAction;
-            public Action<EventSimEntry> SimulationScrubAction;
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>> NewAnimSelectedAction;
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationStartAction;
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationEndAction;
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationFrameChangeAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> EnterAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> DuringAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> ExitAction;
@@ -459,6 +482,11 @@ namespace DSAnimStudio.TaeEditor
 
             public readonly string MenuOptionName;
             public readonly bool IsEnabledByDefault;
+
+            public bool DoesEventMatch(TaeEditAnimEventBox evBox)
+            {
+                return EventTypes.Contains(evBox.MyEvent.TypeName);
+            }
 
             public EventSimEntry(string menuOptionName, bool isEnabledByDefault)
             {

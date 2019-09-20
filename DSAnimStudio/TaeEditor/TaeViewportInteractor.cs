@@ -12,6 +12,20 @@ namespace DSAnimStudio.TaeEditor
     {
         public readonly TaeEditAnimEventGraph Graph;
 
+        public enum TaeEntityType
+        {
+            NONE,
+            PC,
+            NPC,
+            OBJ,
+            PARTS,
+            REMO
+        }
+
+        public TaeEntityType EntityType { get; private set; } = TaeEntityType.NONE;
+
+        public NewChrAsmEquipForm EquipForm = null;
+
         TaeEventSimulationEnvironment EventSim;
 
         public List<ParamData.NpcParam> PossibleNpcParams = new List<ParamData.NpcParam>();
@@ -36,8 +50,30 @@ namespace DSAnimStudio.TaeEditor
 
         Model CurrentModel => Scene.Models.Count > 0 ? Scene.Models[0] : null;
 
+        private void SetEntityType(TaeEntityType entityType)
+        {
+            EntityType = entityType;
+
+            Graph.MainScreen.MenuBar["NPC Settings"].Enabled = entityType == TaeEntityType.NPC;
+            Graph.MainScreen.MenuBar["NPC Settings"].Visible = entityType == TaeEntityType.NPC;
+
+            Graph.MainScreen.MenuBar["Player Settings"].Enabled = entityType == TaeEntityType.PC;
+            Graph.MainScreen.MenuBar["Player Settings"].Visible = entityType == TaeEntityType.PC;
+
+            Graph.MainScreen.MenuBar["Object Settings"].Enabled = entityType == TaeEntityType.OBJ;
+            Graph.MainScreen.MenuBar["Object Settings"].Visible = entityType == TaeEntityType.OBJ;
+
+            Graph.MainScreen.MenuBar["Animated Equipment Settings"].Enabled = entityType == TaeEntityType.PARTS;
+            Graph.MainScreen.MenuBar["Animated Equipment Settings"].Visible = entityType == TaeEntityType.PARTS;
+
+            Graph.MainScreen.MenuBar["Cutscene Settings"].Enabled = entityType == TaeEntityType.REMO;
+            Graph.MainScreen.MenuBar["Cutscene Settings"].Visible = entityType == TaeEntityType.REMO;
+        }
+
         public TaeViewportInteractor(TaeEditAnimEventGraph graph)
         {
+            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
+
             Graph = graph;
             Graph.PlaybackCursor.PlaybackStarted += PlaybackCursor_PlaybackStarted;
             Graph.PlaybackCursor.PlaybackFrameChange += PlaybackCursor_PlaybackFrameChange;
@@ -72,11 +108,26 @@ namespace DSAnimStudio.TaeEditor
                     if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(GameDataManager.GameType))
                     {
                         Graph.MainScreen.Config.ChrAsmConfigurations.Add
-                            (GameDataManager.GameType, new TaeConfigFile.ChrAsmConfig());
+                            (GameDataManager.GameType, new NewChrAsmCfgJson());
                     }
 
                     Graph.MainScreen.Config.ChrAsmConfigurations[GameDataManager.GameType]
                         .WriteToChrAsm(CurrentModel.ChrAsm);
+
+                    CurrentModel.ChrAsm.UpdateModels(isAsync: true);
+
+                    SetEntityType(TaeEntityType.PC);
+
+                    Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
+                    {
+                        EquipForm?.Dispose();
+                        EquipForm = null;
+
+                        EquipForm = new NewChrAsmEquipForm();
+                        EquipForm.Owner = Graph.MainScreen.GameWindowAsForm;
+                        EquipForm.Hidden += EquipForm_Hidden;
+                        //EquipForm.FormClosing += EquipForm_FormClosing;
+                    }));
                 }
                 else
                 {
@@ -86,16 +137,114 @@ namespace DSAnimStudio.TaeEditor
                     else
                         SelectedNpcParamIndex = -1;
 
+                    SetEntityType(TaeEntityType.NPC);
+
+                    Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
+                    {
+                        EquipForm?.Dispose();
+                        OnEquipFormClose();
+                        EquipForm = null;
+
+                        Graph.MainScreen.MenuBar.ClearItem("NPC Settings");
+
+                        Graph.MainScreen.MenuBar.AddItem("NPC Settings/Draw Mask", "Show All", () =>
+                        {
+                            for (int i = 0; i < CurrentModel.DrawMask.Length; i++)
+                            {
+                                CurrentModel.DrawMask[i] = true;
+                            }
+                        });
+
+                        var validNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
+
+                        foreach (var npc in validNpcParams)
+                        {
+                            Graph.MainScreen.MenuBar.AddItem("NPC Settings/Draw Mask", $"Apply mask from NpcParam {npc.ID} {npc.Name}", () =>
+                            {
+                                npc.ApplyMaskToModel(CurrentModel);
+                            });
+                        }
+
+                        //foreach (var npc in validNpcParams)
+                        //{
+                        //    Graph.MainScreen.MenuBar.AddItem("Behavior Variation ID", $"Apply Behavior Variation ID " +
+                        //        $"from NpcParam {npc.ID} {npc.Name}", () =>
+                        //    {
+                        //        npc.ApplyMaskToModel(CurrentModel);
+                        //    });
+                        //}
+                    }));
+
+                    //throw new NotImplementedException("Implement NPC param change you lazy fuck :tremblecat:");
                 }
+
+                GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
+                GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
+                GFX.World.OrbitCamReset();
             }
             else if (shortFileName.StartsWith("o"))
             {
+                SetEntityType(TaeEntityType.OBJ);
+
                 throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
             }
             else if (fileName.EndsWith(".partsbnd") || fileName.EndsWith(".partsbnd.dcx"))
             {
+                SetEntityType(TaeEntityType.PARTS);
+
                 throw new NotImplementedException("PARTS NOT SUPPORTED YET");
             }
+            else if (fileName.EndsWith(".remobnd") || fileName.EndsWith(".remobnd.dcx"))
+            {
+                SetEntityType(TaeEntityType.REMO);
+
+                throw new NotImplementedException("REMO NOT SUPPORTED YET");
+            }
+        }
+
+        //private void EquipForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        public void BringUpEquipForm()
+        {
+            if (EquipForm == null)
+            {
+                throw new Exception("ERROR: Equip menu failed to initialize (please report).");
+            }
+
+            if (Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked)
+            {
+                Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked = false;
+
+                EquipForm.Close();
+            }
+            else
+            {
+                Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked = true;
+
+                if (EquipForm.ChrAsm != CurrentModel.ChrAsm)
+                {
+                    EquipForm.ChrAsm = CurrentModel.ChrAsm;
+                    EquipForm.WriteChrAsmToGUI();
+                }
+
+                EquipForm.Show();
+            }
+        }
+
+        private void OnEquipFormClose()
+        {
+            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
+            {
+                Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked = false;
+            }));
+        }
+
+        private void EquipForm_Hidden(object sender, EventArgs e)
+        {
+            OnEquipFormClose();
         }
 
         public void SaveChrAsm()
@@ -105,7 +254,7 @@ namespace DSAnimStudio.TaeEditor
                 if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(GameDataManager.GameType))
                 {
                     Graph.MainScreen.Config.ChrAsmConfigurations.Add
-                        (GameDataManager.GameType, new TaeConfigFile.ChrAsmConfig());
+                        (GameDataManager.GameType, new NewChrAsmCfgJson());
                 }
 
                 Graph.MainScreen.Config.ChrAsmConfigurations[GameDataManager.GameType].CopyFromChrAsm(CurrentModel.ChrAsm);
@@ -116,6 +265,9 @@ namespace DSAnimStudio.TaeEditor
         {
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
+
+            CheckSimEnvironment();
+            EventSim.OnSimulationFrameChange(Graph.EventBoxes);
         }
 
         private void CheckSimEnvironment()
@@ -123,6 +275,10 @@ namespace DSAnimStudio.TaeEditor
             if (EventSim == null || EventSim.MODEL != CurrentModel)
             {
                 EventSim = new TaeEventSimulationEnvironment(CurrentModel);
+                Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
+                {
+                    EventSim.BuildEventSimMenuBar(Graph.MainScreen.MenuBar);
+                }));
             }
         }
 
@@ -147,7 +303,7 @@ namespace DSAnimStudio.TaeEditor
         private void PlaybackCursor_PlaybackEnded(object sender, EventArgs e)
         {
             CheckSimEnvironment();
-            EventSim.OnSimulationEnd();
+            EventSim.OnSimulationEnd(Graph.EventBoxes);
         }
 
         private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
@@ -155,19 +311,19 @@ namespace DSAnimStudio.TaeEditor
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
             CheckSimEnvironment();
-            EventSim.OnSimulationScrub();
+            EventSim.OnSimulationFrameChange(Graph.EventBoxes);
         }
 
         private void PlaybackCursor_PlaybackStarted(object sender, EventArgs e)
         {
             CheckSimEnvironment();
-            EventSim.OnSimulationStart();
+            EventSim.OnSimulationStart(Graph.EventBoxes);
         }
 
         private void PlaybackCursor_PlaybackLooped(object sender, EventArgs e)
         {
             CheckSimEnvironment();
-            EventSim.OnSimulationStart();
+            EventSim.OnSimulationStart(Graph.EventBoxes);
         }
 
         Model lastRightWeaponModelTAEWasReadFrom = null;
@@ -295,7 +451,7 @@ namespace DSAnimStudio.TaeEditor
 
                 CheckSimEnvironment();
 
-                EventSim.OnNewAnimSelected();
+                EventSim.OnNewAnimSelected(Graph.EventBoxes);
             }
             
         }

@@ -539,7 +539,7 @@ namespace DSAnimStudio.DbgMenus
             }
         }
 
-        public void Draw(float elapsedSeconds)
+        public void Draw()
         {
             var darkTitleRect = new Rectangle(MenuRect.X + DbgMenuTopLeftButtonRect.Width, MenuRect.Y, MenuRect.Width - DbgMenuTopLeftButtonRect.Width, DbgMenuTopLeftButtonRect.Height);
 

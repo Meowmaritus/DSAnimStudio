@@ -65,7 +65,7 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsStepping = false;
 
-        public void Update(bool playPauseBtnDown, bool shiftDown, GameTime gameTime, IEnumerable<TaeEditAnimEventBox> eventBoxes)
+        public void Update(bool playPauseBtnDown, bool shiftDown, IEnumerable<TaeEditAnimEventBox> eventBoxes)
         {
             bool prevPlayState = IsPlaying;
 
@@ -129,7 +129,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (IsPlaying)
                 {
-                    CurrentTime += (gameTime.ElapsedGameTime.TotalSeconds * PlaybackSpeed);
+                    CurrentTime += (Main.DELTA_UPDATE * PlaybackSpeed);
                 }
 
                 if (GUICurrentTime != oldGUICurrentTime)

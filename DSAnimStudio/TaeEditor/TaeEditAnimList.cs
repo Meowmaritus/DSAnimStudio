@@ -151,21 +151,22 @@ namespace DSAnimStudio.TaeEditor
                 taeSection.SectionName = System.IO.Path.GetFileName(kvp.Key);
                 foreach (var anim in tae.Animations)
                 {
-                    var animID_Lower = MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
+                    var animID_Lower = GameDataManager.GameTypeHasLongAnimIDs
                         ? (anim.ID % 1_000000) : (anim.ID % 1_0000);
 
                     var animID_Upper = taeSection.SectionName.StartsWith("a") ? 
-                        long.Parse(Utils.GetFileNameWithoutAnyExtensions(taeSection.SectionName).Substring(1)) : ((MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
-                        ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
+                        long.Parse(Utils.GetFileNameWithoutAnyExtensions(taeSection.SectionName).Substring(1)) 
+                        : ((GameDataManager.GameTypeHasLongAnimIDs
+                            ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
 
                     var info = new TaeEditAnimInfo()
                     {
-                        GetName = () => (MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4 
+                        GetName = () => (GameDataManager.GameTypeHasLongAnimIDs
                           ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}"),
                         Ref = anim,
                         VerticalOffset = taeSection.HeightOfAllAnims,
                         TaePrefix = animID_Upper,
-                        IsLargeID = MainScreen.FileContainer.ContainerType == TaeFileContainer.TaeFileContainerType.BND4
+                        IsLargeID = GameDataManager.GameTypeHasLongAnimIDs
                     };
 
                     taeSection.InfoMap.Add(anim, info);
