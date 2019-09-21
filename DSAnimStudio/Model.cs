@@ -59,9 +59,10 @@ namespace DSAnimStudio
 
         public Transform StartTransform = Transform.Default;
 
-        public Transform CurrentRootMotionTransform => new Transform(AnimContainer.CurrentAnimRootMotionMatrix);
+        public Transform CurrentRootMotionTransform => new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
 
-        public Transform CurrentTransform => new Transform(StartTransform.WorldMatrix * AnimContainer.CurrentAnimRootMotionMatrix);
+        public Transform CurrentTransform => new Transform(StartTransform.WorldMatrix * 
+            AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
 
         /// <summary>
         /// This is needed to make weapon hitboxes work.
@@ -72,7 +73,8 @@ namespace DSAnimStudio
 
         public Model(IProgress<double> loadingProgress, string name, IBinder chrbnd, int modelIndex, 
             IBinder anibnd, IBinder texbnd = null, List<string> additionalTpfNames = null, 
-            string possibleLooseDdsFolder = null, int baseDmyPolyID = 0)
+            string possibleLooseDdsFolder = null, int baseDmyPolyID = 0, 
+            bool ignoreStaticTransforms = false)
             : this()
         {
             Name = name;
@@ -125,7 +127,7 @@ namespace DSAnimStudio
                 throw new ArgumentException("No FLVERs found within CHRBND.");
             }
 
-            LoadFLVER2(flver, useSecondUV: false, baseDmyPolyID);
+            LoadFLVER2(flver, useSecondUV: false, baseDmyPolyID, ignoreStaticTransforms);
 
             loadingProgress.Report(1.0 / 4.0);
 
@@ -152,10 +154,10 @@ namespace DSAnimStudio
                     for (int i = 0; i < tpfsUsed.Count; i++)
                     {
                         TexturePool.AddTpf(tpfsUsed[i]);
-                        Scene.RequestTextureLoad();
+                        MainMesh.TextureReloadQueued = true;
                         innerProg.Report(1.0 * i / tpfsUsed.Count);
                     }
-                    Scene.RequestTextureLoad();
+                    MainMesh.TextureReloadQueued = true;
                 });
 
             }
@@ -167,7 +169,7 @@ namespace DSAnimStudio
                 LoadingTaskMan.DoLoadingTaskSynchronous($"{Name}_TEXBND", $"Loading TEXBND for {Name}...", innerProg =>
                 {
                     TexturePool.AddTextureBnd(texbnd, innerProg);
-                    Scene.RequestTextureLoad();
+                    MainMesh.TextureReloadQueued = true;
                 });
             }
 
@@ -176,10 +178,10 @@ namespace DSAnimStudio
             if (possibleLooseDdsFolder != null && Directory.Exists(possibleLooseDdsFolder))
             {
                 TexturePool.AddLooseDDSFolder(possibleLooseDdsFolder);
-                Scene.RequestTextureLoad();
+                MainMesh.TextureReloadQueued = true;
             }
 
-            Scene.RequestTextureLoad();
+            MainMesh.TextureReloadQueued = true;
 
             loadingProgress.Report(1.0);
         }
@@ -189,16 +191,18 @@ namespace DSAnimStudio
             ChrAsm = new NewChrAsm(this);
             ChrAsm.InitSkeleton(Skeleton);
 
-            MainMesh.Bounds = new BoundingBox(Vector3.One * -1, Vector3.One);
+            MainMesh.Bounds = new BoundingBox(
+                new Vector3(-0.5f, 0, -0.5f) * 1.75f, 
+                new Vector3(0.5f, 1, 0.5f) * 1.75f);
         }
 
-        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, int baseDmyPolyID = 0)
+        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, int baseDmyPolyID = 0, bool ignoreStaticTransforms = false)
         {
             Type = ModelType.ModelTypeFlver;
 
             Skeleton = new NewAnimSkeleton(this, flver.Bones);
 
-            MainMesh = new NewMesh(flver, useSecondUV);
+            MainMesh = new NewMesh(flver, useSecondUV, null, ignoreStaticTransforms);
 
             Bounds = MainMesh.Bounds;
 

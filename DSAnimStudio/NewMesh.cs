@@ -19,6 +19,8 @@ namespace DSAnimStudio
 
         public BoundingBox Bounds;
 
+        public bool TextureReloadQueued = false;
+
         public void DefaultAllMaskValues()
         {
             for (int i = 0; i < Model.DRAW_MASK_LENGTH; i++)
@@ -27,12 +29,33 @@ namespace DSAnimStudio
             }
         }
 
-        public NewMesh(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null)
+        public List<string> GetAllTexNamesToLoad()
         {
-            LoadFLVER2(flver, useSecondUV, boneIndexRemap);
+            List<string> result = new List<string>();
+
+            lock (_lock_submeshes)
+            {
+                if (Submeshes != null)
+                {
+                    foreach (var sm in Submeshes)
+                    {
+                        result.AddRange(sm.GetAllTexNamesToLoad());
+                    }
+                }
+            }
+
+            
+            return result;
         }
 
-        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null)
+        public NewMesh(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null, 
+            bool ignoreStaticTransforms = false)
+        {
+            LoadFLVER2(flver, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
+        }
+
+        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null, 
+            bool ignoreStaticTransforms = false)
         {
             lock (_lock_submeshes)
             {
@@ -50,7 +73,7 @@ namespace DSAnimStudio
                     if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
                         continue;
                 }
-                var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV, boneIndexRemap);
+                var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
 
                 Bounds = new BoundingBox();
 
@@ -64,6 +87,12 @@ namespace DSAnimStudio
 
         public void Draw(int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
+            if (TextureReloadQueued)
+            {
+                TryToLoadTextures();
+                TextureReloadQueued = false;
+            }
+
             lock (_lock_submeshes)
             {
                 if (Submeshes == null)

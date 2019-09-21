@@ -76,11 +76,12 @@ namespace DSAnimStudio
                 fetches.Clear();
                 Failures.Clear();
             }
+            GameDataManager.LoadSystex();
         }
 
         public static void AddFetchTPF(TPF tpf, string texName)
         {
-            string shortName = Path.GetFileNameWithoutExtension(texName);
+            string shortName = Utils.GetShortIngameFileName(texName);
             if (!fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
@@ -102,7 +103,7 @@ namespace DSAnimStudio
 
         public static void AddFetchDDS(byte[] dds, string texName)
         {
-            string shortName = Path.GetFileNameWithoutExtension(texName);
+            string shortName = Utils.GetShortIngameFileName(texName);
             if (!fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
@@ -122,11 +123,13 @@ namespace DSAnimStudio
 
         }
 
-        public static void AddTpf(TPF tpf)
+        public static void AddTpf(TPF tpf, IProgress<double> progress = null)
         {
+            double i = 0;
             foreach (var tex in tpf.Textures)
             {
                 AddFetchTPF(tpf, tex.Name);
+                progress?.Report(++i / tpf.Textures.Count);
             }
         }
 
@@ -136,7 +139,7 @@ namespace DSAnimStudio
                 ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
             foreach (var d in dds)
             {
-                string shortName = Path.GetFileNameWithoutExtension(d);
+                string shortName = Utils.GetShortIngameFileName(d);
                 AddFetchDDS(File.ReadAllBytes(d), shortName);
             }
         }
@@ -146,7 +149,7 @@ namespace DSAnimStudio
             var tpfs = Directory.GetFiles(folderPath, dcx ? "*.tpf.dcx" : "*.tpf");
             foreach (var t in tpfs)
             {
-                string shortName = Path.GetFileNameWithoutExtension(t);
+                string shortName = Utils.GetShortIngameFileName(t);
                 if (directDdsFetches)
                 {
                     foreach (var tex in TPF.Read(t).Textures)
@@ -210,15 +213,47 @@ namespace DSAnimStudio
 
         public static void AddTpfFromPath(string path)
         {
-            TPF tpf = SoulsFormats.TPF.Read(path);
-            AddTpf(tpf);
+            if (File.Exists(path))
+            {
+                TPF tpf = SoulsFormats.TPF.Read(path);
+                AddTpf(tpf);
+            }
+        }
+
+        public static void AddTpfsFromPaths(List<string> paths, IProgress<double> progress)
+        {
+            var tpfList = new List<TPF>();
+            int totalTexCount = 0;
+            for (int i = 0; i < paths.Count; i++)
+            {
+                if (File.Exists(paths[i]))
+                {
+                    TPF tpf = SoulsFormats.TPF.Read(paths[i]);
+                    tpfList.Add(tpf);
+                    totalTexCount += tpf.Textures.Count;
+                }
+                else
+                {
+                    Console.WriteLine($"Warning: TPF '{paths[i]}' does not exist.");
+                }
+            }
+            double texIndex = 0;
+            for (int i = 0; i < tpfList.Count; i++)
+            {
+                for (int j = 0; j < tpfList[i].Textures.Count; j++)
+                {
+                    AddFetchTPF(tpfList[i], Utils.GetShortIngameFileName(tpfList[i].Textures[j].Name));
+                    progress?.Report(++texIndex / totalTexCount);
+                }
+            }
+            progress?.Report(1);
         }
 
         public static TextureCube FetchTextureCube(string name)
         {
             if (name == null)
                 return null;
-            var shortName = Path.GetFileNameWithoutExtension(name);
+            var shortName = Utils.GetShortIngameFileName(name);
             if (fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
@@ -245,11 +280,39 @@ namespace DSAnimStudio
             }
         }
 
+        public static void AddSpecificTexturesFromBXF3(string name, List<string> textures)
+        {
+            var bxf = BXF3.Read(name, name.Substring(0, name.Length - 7) + ".tpfbdt");
+
+            foreach (var f in bxf.Files)
+            {
+                if (f.Name != null && f.Name.ToLower().Contains(".tpf") &&
+                    textures.Contains(Utils.GetShortIngameFileName(f.Name)))
+                {
+                    AddTpf(TPF.Read(f.Bytes));
+                }
+            }
+        }
+
+        public static void AddSpecificTexturesFromBXF4(string name, List<string> textures)
+        {
+            var bxf = BXF4.Read(name, name.Substring(0, name.Length - 7) + ".tpfbdt");
+
+            foreach (var f in bxf.Files)
+            {
+                if (f.Name != null && f.Name.ToLower().Contains(".tpf") && 
+                    textures.Contains(Utils.GetShortIngameFileName(f.Name)))
+                {
+                    AddTpf(TPF.Read(f.Bytes));
+                }
+            }
+        }
+
         public static Texture2D FetchTexture2D(string name)
         {
             if (name == null)
                 return null;
-            var shortName = Path.GetFileNameWithoutExtension(name);
+            var shortName = Utils.GetShortIngameFileName(name);
             if (fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)

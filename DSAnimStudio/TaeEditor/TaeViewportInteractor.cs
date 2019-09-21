@@ -54,20 +54,36 @@ namespace DSAnimStudio.TaeEditor
         {
             EntityType = entityType;
 
-            Graph.MainScreen.MenuBar["NPC Settings"].Enabled = entityType == TaeEntityType.NPC;
-            Graph.MainScreen.MenuBar["NPC Settings"].Visible = entityType == TaeEntityType.NPC;
+            if (entityType != TaeEntityType.NPC)
+            {
+                PossibleNpcParams.Clear();
+                SelectedNpcParamIndex = -1;
+            }
 
-            Graph.MainScreen.MenuBar["Player Settings"].Enabled = entityType == TaeEntityType.PC;
-            Graph.MainScreen.MenuBar["Player Settings"].Visible = entityType == TaeEntityType.PC;
+            if (entityType != TaeEntityType.PC)
+            {
+                EquipForm?.Dispose();
+                EquipForm = null;
+            }
 
-            Graph.MainScreen.MenuBar["Object Settings"].Enabled = entityType == TaeEntityType.OBJ;
-            Graph.MainScreen.MenuBar["Object Settings"].Visible = entityType == TaeEntityType.OBJ;
+            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
+            {
+                Graph.MainScreen.MenuBar["NPC Settings"].Enabled = entityType == TaeEntityType.NPC;
+                Graph.MainScreen.MenuBar["NPC Settings"].Visible = entityType == TaeEntityType.NPC;
 
-            Graph.MainScreen.MenuBar["Animated Equipment Settings"].Enabled = entityType == TaeEntityType.PARTS;
-            Graph.MainScreen.MenuBar["Animated Equipment Settings"].Visible = entityType == TaeEntityType.PARTS;
+                Graph.MainScreen.MenuBar["Player Settings"].Enabled = entityType == TaeEntityType.PC;
+                Graph.MainScreen.MenuBar["Player Settings"].Visible = entityType == TaeEntityType.PC;
 
-            Graph.MainScreen.MenuBar["Cutscene Settings"].Enabled = entityType == TaeEntityType.REMO;
-            Graph.MainScreen.MenuBar["Cutscene Settings"].Visible = entityType == TaeEntityType.REMO;
+                Graph.MainScreen.MenuBar["Object Settings"].Enabled = entityType == TaeEntityType.OBJ;
+                Graph.MainScreen.MenuBar["Object Settings"].Visible = entityType == TaeEntityType.OBJ;
+
+                Graph.MainScreen.MenuBar["Animated Equipment Settings"].Enabled = entityType == TaeEntityType.PARTS;
+                Graph.MainScreen.MenuBar["Animated Equipment Settings"].Visible = entityType == TaeEntityType.PARTS;
+
+                Graph.MainScreen.MenuBar["Cutscene Settings"].Enabled = entityType == TaeEntityType.REMO;
+                Graph.MainScreen.MenuBar["Cutscene Settings"].Visible = entityType == TaeEntityType.REMO;
+            }));
+          
         }
 
         public TaeViewportInteractor(TaeEditAnimEventGraph graph)
@@ -104,6 +120,8 @@ namespace DSAnimStudio.TaeEditor
                     SelectedNpcParamIndex = -1;
 
                     CurrentModel.CreateChrAsm();
+
+                    CurrentModel.ChrAsm.EquipmentModelsUpdated += ChrAsm_EquipmentModelsUpdated;
 
                     if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(GameDataManager.GameType))
                     {
@@ -186,7 +204,13 @@ namespace DSAnimStudio.TaeEditor
             {
                 SetEntityType(TaeEntityType.OBJ);
 
-                throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
+                GameDataManager.LoadObject(shortFileName);
+
+                GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
+                GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
+                GFX.World.OrbitCamReset();
+
+                //throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
             }
             else if (fileName.EndsWith(".partsbnd") || fileName.EndsWith(".partsbnd.dcx"))
             {
@@ -200,6 +224,61 @@ namespace DSAnimStudio.TaeEditor
 
                 throw new NotImplementedException("REMO NOT SUPPORTED YET");
             }
+        }
+
+        private void ChrAsm_EquipmentModelsUpdated(object sender, EventArgs e)
+        {
+            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
+            {
+                var thingToKeep = Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"];
+                Graph.MainScreen.MenuBar.ClearItem("Player Settings");
+                Graph.MainScreen.MenuBar.AddItem("Player Settings", thingToKeep);
+                Graph.MainScreen.MenuBar.AddSeparator("Player Settings");
+
+                // Right weapon
+                //Graph.MainScreen.MenuBar.ClearItem("Player Settings/Select Right Weapon Anim");
+                var rightAnims = CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.Animations;
+                if (rightAnims != null && rightAnims.Count > 0)
+                {
+                    var choicesDict = new Dictionary<string, Action>();
+                    foreach (var a in rightAnims.Keys)
+                    {
+                        choicesDict.Add(a, () => CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = a);
+                    }
+
+                    Graph.MainScreen.MenuBar.AddItem(
+                           "Player Settings",
+                           "Select Right Weapon Anim",
+                           choicesDict,
+                           () => CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName);
+                }
+                else
+                {
+                    Graph.MainScreen.MenuBar.AddItem("Player Settings/Select Right Weapon Anim", "Weapon is not animated.");
+                }
+
+                //Left Weapon
+                //Graph.MainScreen.MenuBar.ClearItem("Player Settings/Select Left Weapon Anim");
+                var leftAnims = CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.Animations;
+                if (leftAnims != null && leftAnims.Count > 0)
+                {
+                    var choicesDict = new Dictionary<string, Action>();
+                    foreach (var a in leftAnims.Keys)
+                    {
+                        choicesDict.Add(a, () => CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName = a);
+                    }
+
+                    Graph.MainScreen.MenuBar.AddItem(
+                           "Player Settings",
+                           "Select Left Weapon Anim",
+                           choicesDict,
+                           () => CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName);
+                }
+                else
+                {
+                    Graph.MainScreen.MenuBar.AddItem("Player Settings/Select Left Weapon Anim", "Weapon is not animated.");
+                }
+            }));
         }
 
         //private void EquipForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
@@ -263,6 +342,8 @@ namespace DSAnimStudio.TaeEditor
 
         private void PlaybackCursor_PlaybackFrameChange(object sender, EventArgs e)
         {
+            Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
+
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
 
@@ -308,6 +389,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
         {
+            Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
             CheckSimEnvironment();
@@ -384,54 +466,54 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void FindWeaponAnim(TaeAnimRefChainSolver solver, Model weaponModel, TAE weaponTae)
-        {
-            if (weaponModel != null && weaponModel.AnimContainer.Animations.Count > 0)
-            {
-                // If weapon has TAE
-                if (weaponTae != null)
-                {
-                    var compositeAnimID = solver.GetCompositeAnimIDOfAnimInTAE(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
-                    var matchingAnim = weaponTae.Animations.Where(a => a.ID == compositeAnimID).FirstOrDefault();
-                    if (matchingAnim != null)
-                    {
+        //private void FindWeaponAnim(TaeAnimRefChainSolver solver, Model weaponModel, TAE weaponTae)
+        //{
+        //    if (weaponModel != null && weaponModel.AnimContainer.Animations.Count > 0)
+        //    {
+        //        // If weapon has TAE
+        //        if (weaponTae != null)
+        //        {
+        //            var compositeAnimID = solver.GetCompositeAnimIDOfAnimInTAE(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
+        //            var matchingAnim = weaponTae.Animations.Where(a => a.ID == compositeAnimID).FirstOrDefault();
+        //            if (matchingAnim != null)
+        //            {
                         
 
-                        int animID = (int)matchingAnim.ID;
+        //                int animID = (int)matchingAnim.ID;
 
-                        bool AnimExists(int id)
-                        {
-                            return (weaponModel.AnimContainer.Animations.ContainsKey(solver.HKXNameFromCompositeID(id)));
-                        }
+        //                bool AnimExists(int id)
+        //                {
+        //                    return (weaponModel.AnimContainer.Animations.ContainsKey(solver.HKXNameFromCompositeID(id)));
+        //                }
 
-                        if (matchingAnim.Unknown1 == 256)
-                        {
-                            if (matchingAnim.Unknown2 > 0 && AnimExists(matchingAnim.Unknown2))
-                            {
-                                animID = matchingAnim.Unknown2;
-                            }
-                        }
-                        else if (matchingAnim.Unknown1 > 256 && AnimExists(matchingAnim.Unknown1))
-                        {
-                            animID = matchingAnim.Unknown1;
-                        }
+        //                if (matchingAnim.Unknown1 == 256)
+        //                {
+        //                    if (matchingAnim.Unknown2 > 0 && AnimExists(matchingAnim.Unknown2))
+        //                    {
+        //                        animID = matchingAnim.Unknown2;
+        //                    }
+        //                }
+        //                else if (matchingAnim.Unknown1 > 256 && AnimExists(matchingAnim.Unknown1))
+        //                {
+        //                    animID = matchingAnim.Unknown1;
+        //                }
 
-                        var weaponHkxName = solver.HKXNameFromCompositeID(animID);
-                        weaponModel.AnimContainer.CurrentAnimationName = weaponHkxName;
-                    }
-                    else
-                    {
-                        weaponModel.AnimContainer.CurrentAnimationName = null;
-                    }
-                }
-                else
-                {
-                    // If weapon has no TAE, it's usually just the player's TAE anim entry ID as an anim name.
-                    var simpleAnimID = solver.GetHKXNameIgnoreReferences(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
-                    weaponModel.AnimContainer.CurrentAnimationName = simpleAnimID;
-                }
-            }
-        }
+        //                var weaponHkxName = solver.HKXNameFromCompositeID(animID);
+        //                weaponModel.AnimContainer.CurrentAnimationName = weaponHkxName;
+        //            }
+        //            else
+        //            {
+        //                weaponModel.AnimContainer.CurrentAnimationName = null;
+        //            }
+        //        }
+        //        else
+        //        {
+        //            // If weapon has no TAE, it's usually just the player's TAE anim entry ID as an anim name.
+        //            var simpleAnimID = solver.GetHKXNameIgnoreReferences(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
+        //            weaponModel.AnimContainer.CurrentAnimationName = simpleAnimID;
+        //        }
+        //    }
+        //}
 
         public void OnNewAnimSelected()
         {
@@ -446,8 +528,8 @@ namespace DSAnimStudio.TaeEditor
 
                 CheckChrAsmWeapons();
 
-                FindWeaponAnim(mainChrSolver, lastRightWeaponModelTAEWasReadFrom, lastRightWeaponTAE);
-                FindWeaponAnim(mainChrSolver, lastLeftWeaponModelTAEWasReadFrom, lastLeftWeaponTAE);
+                //FindWeaponAnim(mainChrSolver, lastRightWeaponModelTAEWasReadFrom, lastRightWeaponTAE);
+                //FindWeaponAnim(mainChrSolver, lastLeftWeaponModelTAEWasReadFrom, lastLeftWeaponTAE);
 
                 CheckSimEnvironment();
 
@@ -470,28 +552,28 @@ namespace DSAnimStudio.TaeEditor
         {
             var printer = new StatusPrinter(Vector2.Zero, Color.Yellow);
 
-            printer.AppendLine($"CHAR ANIM: {(CurrentModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
+            printer.AppendLine($"MAIN ANIM: {(CurrentModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
             printer.AppendLine($"RWPN ANIM: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
             printer.AppendLine($"LWPN ANIM: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
 
-            printer.AppendLine($"RWPN ANIM LIST:");
-            var anims = CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.Animations;
-            if (anims != null)
-            {
-                foreach (var a in anims.Keys)
-                {
-                    printer.AppendLine("  " + a);
-                }
-            }
-            printer.AppendLine($"LWPN ANIM LIST:");
-            var animsL = CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.Animations;
-            if (animsL != null)
-            {
-                foreach (var a in animsL.Keys)
-                {
-                    printer.AppendLine("  " + a);
-                }
-            }
+            //printer.AppendLine($"RWPN ANIM LIST:");
+            //var anims = CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.Animations;
+            //if (anims != null)
+            //{
+            //    foreach (var a in anims.Keys)
+            //    {
+            //        printer.AppendLine("  " + a);
+            //    }
+            //}
+            //printer.AppendLine($"LWPN ANIM LIST:");
+            //var animsL = CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.Animations;
+            //if (animsL != null)
+            //{
+            //    foreach (var a in animsL.Keys)
+            //    {
+            //        printer.AppendLine("  " + a);
+            //    }
+            //}
 
 
             printer.Draw();

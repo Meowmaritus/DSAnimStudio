@@ -115,6 +115,10 @@
       <s32 assert="0"/>
     </event>
   </bank>
+
+  <bank id="19" name="MemeObjects" basedon="18">
+
+  </bank>
 </event_template>
 
 

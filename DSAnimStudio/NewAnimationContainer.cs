@@ -56,9 +56,9 @@ namespace DSAnimStudio
                         {
                             if (MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.ContainsKey(value))
                                 MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = value;
-                            else
-                                MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName
-                                    = MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.Keys.First();
+                            //else
+                            //    MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName
+                            //        = MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.Keys.First();
                         }
                     }
 
@@ -68,9 +68,9 @@ namespace DSAnimStudio
                         {
                             if (MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.ContainsKey(value))
                                 MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName = value;
-                            else
-                                MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName
-                                    = MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.Keys.First();
+                            //else
+                            //    MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName
+                            //        = MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.Keys.First();
                         }
                     }
                 }
@@ -114,7 +114,7 @@ namespace DSAnimStudio
         }
 
         public float CurrentAnimTime => CurrentAnimation?.CurrentTime ?? 0;
-        public float CurrentAnimDuration => CurrentAnimation?.Duration ?? 0;
+        public float? CurrentAnimDuration => CurrentAnimation?.Duration;
 
         public static bool AutoPlayAnimContainersUponLoading = true;
 
@@ -263,7 +263,10 @@ namespace DSAnimStudio
             foreach (var f in anibnd.Files)
             {
                 string shortName = new FileInfo(f.Name).Name.ToLower();
-                if (shortName == "skeleton.hkx")
+                if (shortName == "skeleton.hkx"  //fatcat
+                    || shortName == "skeleton_1.hkx" 
+                    || shortName == "skeleton_2.hkx"
+                    || shortName == "skeleton_3.hkx")
                 {
                     skeletonHKX = HKX.Read(f.Bytes, hkxVariation);
                 }

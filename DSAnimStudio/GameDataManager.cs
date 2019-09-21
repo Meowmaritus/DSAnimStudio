@@ -52,6 +52,7 @@ namespace DSAnimStudio
                 return a == b;
         }
 
+        private static GameTypes lastGameType = GameTypes.None;
         public static GameTypes GameType { get; private set; } = GameTypes.None;
 
         public static bool GameTypeHasLongAnimIDs =>
@@ -78,8 +79,13 @@ namespace DSAnimStudio
         {
             GameType = gameType;
             InterrootPath = interroot;
-            ParamManager.LoadParamBND(forceReload: false);
-            FmgManager.LoadAllFMG(forceReload: false);
+            if (gameType != lastGameType)
+            {
+                ParamManager.LoadParamBND(forceReload: false);
+                FmgManager.LoadAllFMG(forceReload: false);
+                LoadSystex();
+            }
+            lastGameType = GameType;
         }
 
         public static void ReloadAllData()
@@ -98,21 +104,136 @@ namespace DSAnimStudio
             FmgManager.LoadAllFMG(forceReload: true);
         }
 
+        public static void LoadSystex()
+        {
+            LoadingTaskMan.DoLoadingTask("LoadSystex", "Loading SYSTEX textures...", progress =>
+            {
+                if (GameType == GameTypes.DS1)
+                {
+                    TexturePool.AddTpfsFromPaths(new List<string>
+                    {
+                        $@"{InterrootPath}\other\SYSTEX_TEX.tpf",
+                        $@"{InterrootPath}\other\envlight.tpf",
+                        $@"{InterrootPath}\other\lensflare.tpf",
+                    }, progress);
+                }
+                else if (GameType == GameTypes.DS1R)
+                {
+                    TexturePool.AddTpfsFromPaths(new List<string>
+                    {
+                        $@"{InterrootPath}\other\SYSTEX_TEX.tpf.dcx",
+                        $@"{InterrootPath}\other\envlight.tpf.dcx",
+                        $@"{InterrootPath}\other\lensflare.tpf.dcx",
+                    }, progress);
+                }
+                else if (GameType == GameTypes.DS3)
+                {
+                    TexturePool.AddTpfsFromPaths(new List<string>
+                    {
+                        $@"{InterrootPath}\other\systex.tpf.dcx",
+                        $@"{InterrootPath}\other\bloodtex.tpf.dcx",
+                        $@"{InterrootPath}\other\decaltex.tpf.dcx",
+                        $@"{InterrootPath}\other\sysenvtex.tpf.dcx",
+                    }, progress);
+                }
+                else if (GameType == GameTypes.BB)
+                {
+                    // TODO: completely confirm these because I just
+                    // copied them from a BB network test file list.
+                    TexturePool.AddTpfsFromPaths(new List<string>
+                    {
+                        $@"{InterrootPath}\other\SYSTEX.tpf.dcx",
+                        $@"{InterrootPath}\other\decalTex.tpf.dcx",
+                        $@"{InterrootPath}\other\bloodTex.tpf.dcx",
+                    }, progress);
+                }
+                else if (GameType == GameTypes.SDT)
+                {
+                    TexturePool.AddTpfsFromPaths(new List<string>
+                    {
+                        $@"{InterrootPath}\other\systex.tpf.dcx",
+                        $@"{InterrootPath}\other\maptex.tpf.dcx",
+                        $@"{InterrootPath}\other\decaltex.tpf.dcx",
+                    }, progress);
+                }
+            });
+
+           
+        }
+
+        public static Model LoadObject(string id)
+        {
+            Model obj = null;
+
+            LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_OBJ_{id}", $"Loading object {id}...", progress =>
+            {
+                if (GameType == GameTypes.DS3)
+                {
+                    var chrbnd = BND4.Read($@"{InterrootPath}\obj\{id}.objbnd.dcx");
+
+                    obj = new Model(progress, id, chrbnd, 0, null, null);
+                }
+                else if (GameType == GameTypes.DS1)
+                {
+                    var chrbnd = BND3.Read($@"{InterrootPath}\obj\{id}.objbnd");
+
+                    obj = new Model(progress, id, chrbnd, 0, null, null);
+                }
+                else if (GameType == GameTypes.DS1R)
+                {
+                    var chrbnd = BND4.Read($@"{InterrootPath}\obj\{id}.objbnd.dcx");
+
+                    obj = new Model(progress, id, chrbnd, 0, null, null);
+                }
+                else if (GameType == GameTypes.BB)
+                {
+                    var chrbnd = BND4.Read($@"{InterrootPath}\obj\{id}.objbnd.dcx");
+
+                    obj = new Model(progress, id, chrbnd, 0, null, null);
+                }
+
+                Scene.AddModel(obj);
+
+                var texturesToLoad = obj.MainMesh.GetAllTexNamesToLoad();
+
+                LoadingTaskMan.DoLoadingTask($"LOAD_OBJ_{id}_TEX",
+                    "Loading additional object textures...", innerProgress =>
+                {
+                    if (GameType == GameTypes.DS1)
+                    {
+                        foreach (var tex in texturesToLoad)
+                        {
+                            TexturePool.AddTpfFromPath($@"{InterrootPath}\map\tx\{tex}.tpf");
+                        }
+                    }
+                    else if (GameType == GameTypes.DS3)
+                    {
+                        int objGroup = int.Parse(id.Substring(1)) / 1_0000;
+                        var tpfBnds = System.IO.Directory.GetFiles($@"{InterrootPath}\map\m{objGroup:D2}", "*.tpfbhd");
+                        foreach (var t in tpfBnds)
+                            TexturePool.AddSpecificTexturesFromBXF4(t, texturesToLoad);
+                    }
+                    obj.MainMesh.TextureReloadQueued = true;
+                });
+            });
+
+            return obj;
+
+        }
+
         public static Model LoadCharacter(string id)
         {
             Model chr = null;
 
-            LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_{id}", $"Loading character {id}...", progress =>
+            LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_CHR_{id}", $"Loading character {id}...", progress =>
             {
-                
-
                 if (GameType == GameTypes.DS3)
                 {
                     var chrbnd = BND4.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
                     var texbnd = BND4.Read($@"{InterrootPath}\chr\{id}.texbnd.dcx");
                     var anibnd = BND4.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
 
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd);
+                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd, ignoreStaticTransforms: true);
                 }
                 else if (GameType == GameTypes.DS1)
                 {
@@ -120,7 +241,15 @@ namespace DSAnimStudio
                     var anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd");
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
-                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\");
+                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
+                }
+                else if (GameType == GameTypes.DS1R)
+                {
+                    var chrbnd = BND3.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
+                    var anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+
+                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
+                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
                 }
                 else if (GameType == GameTypes.BB)
                 {
@@ -129,7 +258,7 @@ namespace DSAnimStudio
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
                         additionalTpfNames: new List<string> { $@"{InterrootPath}\chr\{id}_2.tpf.dcx" },
-                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\");
+                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
                 }
 
                 Scene.AddModel(chr);

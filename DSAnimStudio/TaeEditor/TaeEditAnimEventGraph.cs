@@ -87,6 +87,7 @@ namespace DSAnimStudio.TaeEditor
         public float ScrubScrollStartMargin = 96;
 
         UnselectedMouseDragType currentUnselectedMouseDragType = UnselectedMouseDragType.None;
+        UnselectedMouseDragType previousUnselectedMouseDragType = UnselectedMouseDragType.None;
 
         public TaePlaybackCursor PlaybackCursor;
 
@@ -880,9 +881,20 @@ namespace DSAnimStudio.TaeEditor
                 ScrollViewer.ClampScroll();
 
                 float desiredTime = Math.Max(((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize, 0);
-                float timeDif = desiredTime - (float)PlaybackCursor.CurrentTime;
-                float clampedLerpF = MathHelper.Clamp(ScrubLerp * Main.DELTA_UPDATE, 0, 1);// MathHelper.Clamp(ScrubLerp / MathHelper.Clamp(Math.Abs(timeDif), 0.01f, 1), 0, 1);
-                PlaybackCursor.CurrentTime = MathHelper.Lerp((float)PlaybackCursor.CurrentTime, desiredTime, clampedLerpF);
+
+                // If you just started clicking, immediately jump instead of smoothly going there.
+                // The reason is: auto scroll going to the semi-lerped position
+                // while zoomed in is incredibly annoying and bad design.
+                if (MainScreen.Input.LeftClickDown || currentUnselectedMouseDragType != previousUnselectedMouseDragType)
+                {
+                    PlaybackCursor.CurrentTime = desiredTime;
+                }
+                else
+                {
+                    float timeDif = desiredTime - (float)PlaybackCursor.CurrentTime;
+                    float clampedLerpF = MathHelper.Clamp(ScrubLerp * Main.DELTA_UPDATE, 0, 1);// MathHelper.Clamp(ScrubLerp / MathHelper.Clamp(Math.Abs(timeDif), 0.01f, 1), 0, 1);
+                    PlaybackCursor.CurrentTime = MathHelper.Lerp((float)PlaybackCursor.CurrentTime, desiredTime, clampedLerpF);
+                }
 
                 if (!PlaybackCursor.IsPlaying)
                     PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
@@ -1661,7 +1673,7 @@ namespace DSAnimStudio.TaeEditor
                 
             }
 
-            
+            previousUnselectedMouseDragType = currentUnselectedMouseDragType;
         }
 
         public void UpdateMouseOutsideRect(float elapsedSeconds, bool allowMouseUpdate)
