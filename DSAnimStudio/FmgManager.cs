@@ -106,6 +106,8 @@ namespace DSAnimStudio
 
             void DoProtectorParamEntry(FMG.Entry entry)
             {
+                if (string.IsNullOrWhiteSpace(entry.Text))
+                    return;
                 if (entry.ID < 1000000 && GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                     return;
                 if (ParamManager.EquipParamProtector.ContainsKey(entry.ID))

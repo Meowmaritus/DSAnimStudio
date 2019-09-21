@@ -82,7 +82,7 @@ namespace DSAnimStudio
             public Matrix GetMatrix()
             {
                 return Matrix.CreateScale(Scale) * 
-                    Matrix.CreateFromQuaternion(Rotation) * 
+                    Matrix.CreateFromQuaternion(Quaternion.Normalize(Rotation)) * 
                     Matrix.CreateTranslation(Translation);
             }
         }
@@ -215,22 +215,31 @@ namespace DSAnimStudio
         {
             var track = HkxBoneIndexToTransformTrackMap[hkxBoneIndex];
 
-            BlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, block: CurrentBlock, frame: CurrentFrame);
-
             // Blend between blocks
             if (CurrentFrame >= NumFramesPerBlock - 1 && CurrentBlock < Tracks.Count - 1)
             {
+                BlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
+                    block: CurrentBlock, frame: (float)Math.Floor(CurrentFrame));
                 BlendableTransform nextFrame = GetTransformOnSpecificBlockAndFrame(track, block: CurrentBlock + 1, frame: 1);
                 currentFrame = BlendableTransform.Lerp(CurrentFrame % 1, currentFrame, nextFrame);
+                return currentFrame.GetMatrix();
             }
             // Blend between loops
             else if (CurrentFrame >= FrameCount - 1)
             {
+                BlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
+                    block: CurrentBlock, frame: (float)Math.Floor(CurrentFrame));
                 BlendableTransform nextFrame = GetTransformOnSpecificBlockAndFrame(track, block: 0, frame: 0);
                 currentFrame = BlendableTransform.Lerp(CurrentFrame % 1, currentFrame, nextFrame);
+                return currentFrame.GetMatrix();
             }
-
-            return currentFrame.GetMatrix();
+            // Regular frame
+            else
+            {
+                BlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
+                    block: CurrentBlock, frame: CurrentFrame);
+                return currentFrame.GetMatrix();
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ namespace DSAnimStudio
             LeftWeapon,
         }
 
+        
         public bool IsFemale = false;
 
         private int _headID = -1;
@@ -49,6 +50,23 @@ namespace DSAnimStudio
         public bool RightWeaponFlipBackwards = true;
         public bool RightWeaponFlipSideways = false;
 
+        public ParamData.WepAbsorpPosParam RightWeaponAbsorpPosParam
+            => RightWeapon != null &&
+            GameDataManager.GameType == GameDataManager.GameTypes.DS3 &&
+            ParamManager.WepAbsorpPosParam.ContainsKey(RightWeapon.WepAbsorpPosID)
+            ? ParamManager.WepAbsorpPosParam[RightWeapon.WepAbsorpPosID] : null;
+
+        public ParamData.WepAbsorpPosParam LeftWeaponAbsorpPosParam
+            => LeftWeapon != null &&
+            GameDataManager.GameType == GameDataManager.GameTypes.DS3 &&
+            ParamManager.WepAbsorpPosParam.ContainsKey(LeftWeapon.WepAbsorpPosID)
+            ? ParamManager.WepAbsorpPosParam[LeftWeapon.WepAbsorpPosID] : null;
+
+        public ParamData.WepAbsorpPosParam.WepAbsorpPosType DS3RightWeaponAbsorpPosType 
+            = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand0;
+        public ParamData.WepAbsorpPosParam.WepAbsorpPosType DS3LeftWeaponAbsorpPosType 
+            = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand1;
+
         private Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
 
         public readonly Model MODEL;
@@ -62,21 +80,65 @@ namespace DSAnimStudio
         {
             if (RightWeaponModel != null)
             {
+                Matrix absoluteWeaponTransform = Matrix.Identity;
+
+                if (RightWeaponAbsorpPosParam != null)
+                {
+                    if (DS3RightWeaponAbsorpPosType == 0)
+                        DS3RightWeaponAbsorpPosType = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand0;
+
+                    var wepAbsorpPos = MODEL.DummyPolyMan.GetDummyPolyAbsolutePosition(
+                        RightWeaponAbsorpPosParam.AbsorpPos[DS3RightWeaponAbsorpPosType], 
+                        leftHandDefault: false) ?? Vector3.Zero;
+
+                    absoluteWeaponTransform = Matrix.CreateFromQuaternion(
+                        Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(
+                            Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
+                        * Skeleton[RightWeaponBoneIndex]))) * Matrix.CreateTranslation(wepAbsorpPos);
+                }
+                else
+                {
+                    absoluteWeaponTransform = 
+                        Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
+                        * Skeleton[RightWeaponBoneIndex];
+                }
+
                 RightWeaponModel.StartTransform = new Transform(
                         (RightWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (RightWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
-                        * Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
-                        * Skeleton[RightWeaponBoneIndex]
+                        * absoluteWeaponTransform
                         * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
             }
 
             if (LeftWeaponModel != null)
             {
+                Matrix absoluteWeaponTransform = Matrix.Identity;
+
+                if (LeftWeaponAbsorpPosParam != null)
+                {
+                    if (DS3LeftWeaponAbsorpPosType == 0)
+                        DS3LeftWeaponAbsorpPosType = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand1;
+
+                    var wepAbsorpPos = MODEL.DummyPolyMan.GetDummyPolyAbsolutePosition(
+                        LeftWeaponAbsorpPosParam.AbsorpPos[DS3LeftWeaponAbsorpPosType],
+                        leftHandDefault: false) ?? Vector3.Zero;
+
+                    absoluteWeaponTransform = Matrix.CreateFromQuaternion(
+                        Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(
+                            Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
+                        * Skeleton[LeftWeaponBoneIndex]))) * Matrix.CreateTranslation(wepAbsorpPos);
+                }
+                else
+                {
+                    absoluteWeaponTransform =
+                        Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
+                        * Skeleton[LeftWeaponBoneIndex];
+                }
+
                 LeftWeaponModel.StartTransform = new Transform(
                         (LeftWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (LeftWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
-                        * Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
-                        * Skeleton[LeftWeaponBoneIndex]
+                        * absoluteWeaponTransform
                         * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
             }
         }
@@ -379,6 +441,12 @@ namespace DSAnimStudio
             EquipmentChanged?.Invoke(this, slot);
         }
 
+        public event EventHandler EquipmentModelsUpdated;
+        private void OnEquipmentModelsUpdated()
+        {
+            EquipmentModelsUpdated?.Invoke(this, EventArgs.Empty);
+        }
+
         public ParamData.EquipParamProtector Head
             => ParamManager.EquipParamProtector.ContainsKey(HeadID)
             ? ParamManager.EquipParamProtector[HeadID] : null;
@@ -496,10 +564,20 @@ namespace DSAnimStudio
                                         weaponBnd = BND4.Read(weaponName);
 
                                     RightWeaponModel = new Model(wpProgress, shortWeaponName, weaponBnd,
-                                        modelIndex: RightWeaponModelIndex, null/*, baseDmyPolyID: 10000*/);
-                                    RightWeaponModel.IS_PLAYER = true;
-                                    RightWeaponModel.IS_PLAYER_WEAPON = true;
-                                    InitWeapon(isLeft: false);
+                                        modelIndex: RightWeaponModelIndex, null/*, baseDmyPolyID: 10000*/,
+                                        ignoreStaticTransforms: true);
+                                    if (RightWeaponModel.AnimContainer == null)
+                                    {
+                                        RightWeaponModel?.Dispose();
+                                        RightWeaponModel = null;
+                                    }
+                                    else
+                                    {
+                                        RightWeaponModel.IS_PLAYER = true;
+                                        RightWeaponModel.IS_PLAYER_WEAPON = true;
+                                        InitWeapon(isLeft: false);
+                                    }
+
                                 }
                             }
                             catch
@@ -537,10 +615,21 @@ namespace DSAnimStudio
                                         weaponBnd = BND4.Read(weaponName);
 
                                     LeftWeaponModel = new Model(wpProgress, shortWeaponName, weaponBnd,
-                                        modelIndex: LeftWeaponModelIndex, null/*, baseDmyPolyID: 11000*/);
-                                    LeftWeaponModel.IS_PLAYER = true;
-                                    LeftWeaponModel.IS_PLAYER_WEAPON = true;
-                                    InitWeapon(isLeft: true);
+                                        modelIndex: LeftWeaponModelIndex, null/*, baseDmyPolyID: 11000*/,
+                                        ignoreStaticTransforms: true);
+
+                                    if (LeftWeaponModel.AnimContainer == null)
+                                    {
+                                        LeftWeaponModel?.Dispose();
+                                        LeftWeaponModel = null;
+                                    }
+                                    else
+                                    {
+                                        LeftWeaponModel.IS_PLAYER = true;
+                                        LeftWeaponModel.IS_PLAYER_WEAPON = true;
+                                        InitWeapon(isLeft: true);
+                                    }
+
                                 }
                             }
                             catch
@@ -567,6 +656,7 @@ namespace DSAnimStudio
 
                 progress.Report(6.0 / 6.0);
                 onCompleteAction?.Invoke();
+                OnEquipmentModelsUpdated();
             }, waitForTaskToComplete: !isAsync);
                 
         }

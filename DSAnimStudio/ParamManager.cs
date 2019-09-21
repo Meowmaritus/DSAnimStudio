@@ -34,8 +34,11 @@ namespace DSAnimStudio
         public static Dictionary<long, ParamData.EquipParamWeapon> EquipParamWeapon 
             = new Dictionary<long, ParamData.EquipParamWeapon>();
 
-        public static Dictionary<long, ParamData.EquipParamProtector> EquipParamProtector 
+        public static Dictionary<long, ParamData.EquipParamProtector> EquipParamProtector
             = new Dictionary<long, ParamData.EquipParamProtector>();
+
+        public static Dictionary<long, ParamData.WepAbsorpPosParam> WepAbsorpPosParam
+           = new Dictionary<long, ParamData.WepAbsorpPosParam>();
 
         private static GameDataManager.GameTypes GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameTypes.None;
 
@@ -104,6 +107,8 @@ namespace DSAnimStudio
             AddParam(NpcParam, "NpcParam");
             AddParam(EquipParamWeapon, "EquipParamWeapon");
             AddParam(EquipParamProtector, "EquipParamProtector");
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
 
             GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameType;
         }

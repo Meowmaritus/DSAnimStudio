@@ -766,6 +766,8 @@ namespace DSAnimStudio
                 case SurfaceFormat.Dxt5SRgb:
                 case SurfaceFormat.ATI1:
                 case SurfaceFormat.ATI2:
+                case SurfaceFormat.ATI1SRgb:
+                case SurfaceFormat.ATI2SRgb:
                 case SurfaceFormat.BC7:
                 case SurfaceFormat.BC6HSF16:
                 case SurfaceFormat.BC6HTypeless:
@@ -801,6 +803,8 @@ namespace DSAnimStudio
                 case SurfaceFormat.Dxt5SRgb:
                 case SurfaceFormat.ATI1: //Not 100% sure but probably.
                 case SurfaceFormat.ATI2:
+                case SurfaceFormat.ATI1SRgb:
+                case SurfaceFormat.ATI2SRgb:
                 case SurfaceFormat.BC7:
                 case SurfaceFormat.BC6HSF16:
                 case SurfaceFormat.BC6HUF16:
@@ -833,6 +837,10 @@ namespace DSAnimStudio
                 case SurfaceFormat.RgbPvrtc4Bpp:
                 case SurfaceFormat.RgbaPvrtc4Bpp:
                 case SurfaceFormat.RgbEtc1:
+                case SurfaceFormat.ATI1:
+                case SurfaceFormat.ATI1SRgb:
+                case SurfaceFormat.ATI2:
+                case SurfaceFormat.ATI2SRgb:
                     // One texel in DXT1, PVRTC (2bpp and 4bpp) and ETC1 is a minimum 4x4 block (8x4 for PVRTC 2bpp), which is 8 bytes
                     return 8;
                 case SurfaceFormat.Dxt3:

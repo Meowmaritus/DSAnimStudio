@@ -10,7 +10,8 @@ namespace DSAnimStudio.TaeEditor
         public enum TaeFileContainerType
         {
             TAE,
-            ANIBND
+            ANIBND,
+            OBJBND
         }
 
         private string filePath;
@@ -19,6 +20,10 @@ namespace DSAnimStudio.TaeEditor
 
         private IBinder containerANIBND;
 
+        private IBinder containerOBJBND;
+
+        private string anibndPathInsideObjbnd = null;
+
         private Dictionary<string, TAE> taeInBND = new Dictionary<string, TAE>();
         private Dictionary<string, byte[]> hkxInBND = new Dictionary<string, byte[]>();
 
@@ -26,8 +31,10 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsModified = false;
 
-        public static readonly string DefaultSaveFilter = "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
-                "All Files|*.*";
+        public static readonly string DefaultSaveFilter = 
+            "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
+            "Object Container (*.OBJBND[.DCX]) |*.OBJBND*|" +
+            "All Files|*.*";
 
         public bool IsBloodborne => GameDataManager.GameType == GameDataManager.GameTypes.BB;
 
@@ -119,9 +126,14 @@ namespace DSAnimStudio.TaeEditor
                 taeInBND.Add(file, TAE.Read(file));
             }
 
+            void DoBnd(IBinder bnd)
+            {
+               
+            }
+
             if (ContainerType == TaeFileContainerType.ANIBND)
             {
-                LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBND", "Loading all TAE files in ANIBND...", innerProgress =>
+                LoadingTaskMan.DoLoadingTaskSynchronous("TaeFileContainer_ANIBND", "Loading all TAE files in ANIBND...", innerProgress =>
                 {
                     double i = 0;
                     foreach (var f in containerANIBND.Files)
@@ -129,8 +141,23 @@ namespace DSAnimStudio.TaeEditor
                         innerProgress.Report(++i / containerANIBND.Files.Count);
 
                         CheckGameVersionForTaeInterop(f.Name);
-
-                        if (TAE.Is(f.Bytes))
+                        if (BND3.Is(f.Bytes))
+                        {
+                            ContainerType = TaeFileContainerType.OBJBND;
+                            containerOBJBND = containerANIBND;
+                            containerANIBND = BND3.Read(f.Bytes);
+                            anibndPathInsideObjbnd = f.Name;
+                            break;
+                        }
+                        else if (BND4.Is(f.Bytes))
+                        {
+                            ContainerType = TaeFileContainerType.OBJBND;
+                            containerOBJBND = containerANIBND;
+                            containerANIBND = BND4.Read(f.Bytes);
+                            anibndPathInsideObjbnd = f.Name;
+                            break;
+                        }
+                        else if (TAE.Is(f.Bytes))
                         {
                             taeInBND.Add(f.Name, TAE.Read(f.Bytes));
                         }
@@ -140,6 +167,26 @@ namespace DSAnimStudio.TaeEditor
                         }
                     }
                     innerProgress.Report(1);
+
+                    if (ContainerType == TaeFileContainerType.OBJBND)
+                    {
+                        i = 0;
+                        foreach (var f in containerANIBND.Files)
+                        {
+                            innerProgress.Report(++i / containerANIBND.Files.Count);
+
+                            CheckGameVersionForTaeInterop(f.Name);
+                            if (TAE.Is(f.Bytes))
+                            {
+                                taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                            }
+                            else if (f.Name.ToUpper().EndsWith(".HKX"))
+                            {
+                                hkxInBND.Add(f.Name, f.Bytes);
+                            }
+                        }
+                        innerProgress.Report(1);
+                    }
                 });
             }
         }
@@ -182,6 +229,50 @@ namespace DSAnimStudio.TaeEditor
                     asBND4.Write(file);
 
                 progress.Report(1.0);
+            }
+            else if (ContainerType == TaeFileContainerType.OBJBND)
+            {
+                double i = 0;
+                foreach (var f in containerANIBND.Files)
+                {
+                    progress.Report((++i / containerANIBND.Files.Count) * 0.9);
+                    if (taeInBND.ContainsKey(f.Name))
+                    {
+                        bool needToSave = false;
+
+                        foreach (var anim in taeInBND[f.Name].Animations)
+                        {
+                            if (anim.GetIsModified())
+                                needToSave = true;
+
+                            // Regardless of whether we need to save this TAE, this anim should 
+                            // be set to not modified :fatcat:
+                            anim.SetIsModified(false, updateGui: false);
+                        }
+
+                        if (needToSave)
+                        {
+                            f.Bytes = taeInBND[f.Name].Write();
+                            taeInBND[f.Name].SetIsModified(false, updateGui: false);
+                        }
+                    }
+                }
+
+                var anibndInObjbnd = containerOBJBND.Files.FirstOrDefault(f => f.Name == anibndPathInsideObjbnd);
+                if (anibndInObjbnd == null)
+                {
+                    throw new Exception("Error: Could not find ANIBND within the OBJBND (please report)");
+                }
+
+                if (containerANIBND is BND3 asBND3)
+                    anibndInObjbnd.Bytes = asBND3.Write();
+                else if (containerANIBND is BND4 asBND4)
+                    anibndInObjbnd.Bytes = asBND4.Write();
+
+                if (containerOBJBND is BND3 asOBJBND3)
+                    asOBJBND3.Write(file);
+                else if (containerOBJBND is BND4 asOBJBND4)
+                    asOBJBND4.Write(file);
             }
             else if (ContainerType == TaeFileContainerType.TAE)
             {

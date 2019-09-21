@@ -416,6 +416,7 @@ namespace DSAnimStudio
             public short EquipModelID;
             public byte WepMotionCategory;
             public short SpAtkCategory;
+            public int WepAbsorpPosID = -1;
 
             public bool IsPairedWeaponDS3 => GameDataManager.GameType == GameDataManager.GameTypes.DS3 && (DS3PairedSpAtkCategories.Contains(SpAtkCategory)
                 || (WepMotionCategory == 42)) // DS3 Fist weapons
@@ -471,6 +472,12 @@ namespace DSAnimStudio
                     SpAtkCategory = br.ReadInt16();
                 else
                     SpAtkCategory = br.ReadByte();
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                {
+                    br.Position = start + 0x170;
+                    WepAbsorpPosID = br.ReadInt32();
+                }
             }
         }
         
@@ -594,6 +601,77 @@ namespace DSAnimStudio
                         InvisibleFlags.Add(br.ReadByte() == 1);
                     }
                 }
+            }
+        }
+        
+        public class WepAbsorpPosParam : ParamData
+        {
+            public enum WepAbsorpPosType
+            {
+                OneHand0,
+                OneHand1,
+                OneHand2,
+                OneHand3,
+                OneHand4,
+                OneHand5,
+                OneHand6,
+                OneHand7,
+                BothHand0,
+                BothHand1,
+                BothHand2,
+                BothHand3,
+                BothHand4,
+                BothHand5,
+                BothHand6,
+                BothHand7,
+                Sheath0,
+                Sheath1,
+                Sheath2,
+                Sheath3,
+                Sheath4,
+                Sheath5,
+                Sheath6,
+                Sheath7,
+            }
+
+            public Dictionary<WepAbsorpPosType, ushort> AbsorpPos = new Dictionary<WepAbsorpPosType, ushort>();
+
+            public override void Read(BinaryReaderEx br)
+            {
+                AbsorpPos = new Dictionary<WepAbsorpPosType, ushort>();
+
+                //u8 SheathTime;
+                //u8 pad[3]
+
+                br.Position += 4;
+
+                AbsorpPos.Add(WepAbsorpPosType.OneHand0, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.OneHand1, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.BothHand0, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath0, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath1, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.OneHand2, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.OneHand3, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.BothHand1, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath2, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath3, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.OneHand4, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.OneHand5, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.BothHand2, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath4, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath5, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.OneHand6, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.OneHand7, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.BothHand3, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath6, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.Sheath7, br.ReadUInt16());
+
+                br.Position += 4;
+
+                AbsorpPos.Add(WepAbsorpPosType.BothHand4, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.BothHand5, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.BothHand6, br.ReadUInt16());
+                AbsorpPos.Add(WepAbsorpPosType.BothHand7, br.ReadUInt16());
             }
         }
 

@@ -16,6 +16,11 @@ namespace DSAnimStudio
             return new Vector3(v.X, v.Y, v.Z);
         }
 
+        public static System.Numerics.Vector3 XYZ(this System.Numerics.Vector4 v)
+        {
+            return new System.Numerics.Vector3(v.X, v.Y, v.Z);
+        }
+
         public static Vector3 GetCenter(this BoundingBox bb)
         {
             return (bb.Min + bb.Max) / 2;

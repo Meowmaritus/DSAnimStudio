@@ -842,6 +842,11 @@ namespace DSAnimStudio.TaeEditor
             WinFormsMenuStrip.BackColor = inspectorWinFormsControl.BackColor;
             WinFormsMenuStrip.ForeColor = inspectorWinFormsControl.ForeColor;
 
+            WinFormsMenuStrip.MouseEnter += (o, e) =>
+            {
+                Input.CursorType = MouseCursorType.Arrow;
+            };
+
             MenuBar = new TaeMenuBarBuilder(WinFormsMenuStrip);
 
             //////////
@@ -889,6 +894,10 @@ namespace DSAnimStudio.TaeEditor
             MenuBar["Player Settings"].ForeColor = System.Drawing.Color.Cyan;
 
             MenuBar.AddItem("Player Settings", "Show Equip Change Menu", () => Graph?.ViewportInteractor?.BringUpEquipForm());
+
+            MenuBar.AddSeparator("Player Settings");
+            //MenuBar.AddItem("Player Settings/Select Right Weapon Anim", "Weapon has no animations.");
+            //MenuBar.AddItem("Player Settings/Select Left Weapon Anim", "Weapon has no animations.");
 
             MenuBar.AddTopItem("Object Settings");
             MenuBar["Object Settings"].Enabled = false;
@@ -2070,6 +2079,18 @@ namespace DSAnimStudio.TaeEditor
                 Input.MousePosition.X < DividerRightGrabStartX && 
                 Input.MousePosition.Y >= Graph.Rect.Top && 
                 Input.MousePosition.Y < Graph.Rect.Bottom)
+            {
+                Input.CursorType = MouseCursorType.Arrow;
+            }
+
+            // Another bad hotfix
+            Rectangle killCursorRect = new Rectangle(
+                  (int)(DividerLeftGrabEndX),
+                  0,
+                  (int)(DividerRightGrabStartX - DividerLeftGrabEndX),
+                  TopOfGraphAnimInfoMargin + Rect.Top + TopMenuBarMargin);
+
+            if (killCursorRect.Contains(Input.MousePositionPoint))
             {
                 Input.CursorType = MouseCursorType.Arrow;
             }

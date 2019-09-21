@@ -86,6 +86,11 @@ namespace DSAnimStudio
             return sb.ToString();
         }
 
+        public static string GetShortIngameFileName(string fileName)
+        {
+            return GetFileNameWithoutAnyExtensions(GetFileNameWithoutDirectoryOrExtension(fileName));
+        }
+
         private static readonly char[] _dirSep = new char[] { '\\', '/' };
         public static string GetFileNameWithoutDirectoryOrExtension(string fileName)
         {

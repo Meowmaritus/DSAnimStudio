@@ -21,7 +21,10 @@ namespace DSAnimStudio
         public bool LeftWeaponFlipSideways = true;
         public bool RightWeaponFlipBackwards = true;
         public bool RightWeaponFlipSideways = false;
-
+        public ParamData.WepAbsorpPosParam.WepAbsorpPosType DS3RightWeaponAbsorpPosType 
+            = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand0;
+        public ParamData.WepAbsorpPosParam.WepAbsorpPosType DS3LeftWeaponAbsorpPosType 
+            = ParamData.WepAbsorpPosParam.WepAbsorpPosType.BothHand1;
         public void WriteToChrAsm(NewChrAsm chrAsm)
         {
             chrAsm.HeadID = HeadID;
@@ -36,7 +39,8 @@ namespace DSAnimStudio
             chrAsm.LeftWeaponFlipSideways = LeftWeaponFlipSideways;
             chrAsm.RightWeaponFlipBackwards = RightWeaponFlipBackwards;
             chrAsm.RightWeaponFlipSideways = RightWeaponFlipSideways;
-
+            chrAsm.DS3RightWeaponAbsorpPosType = DS3RightWeaponAbsorpPosType;
+            chrAsm.DS3LeftWeaponAbsorpPosType = DS3LeftWeaponAbsorpPosType;
             //chrAsm.UpdateModels();
         }
 
@@ -55,6 +59,8 @@ namespace DSAnimStudio
             LeftWeaponFlipSideways = chrAsm.LeftWeaponFlipSideways;
             RightWeaponFlipBackwards = chrAsm.RightWeaponFlipBackwards;
             RightWeaponFlipSideways = chrAsm.RightWeaponFlipSideways;
+            DS3RightWeaponAbsorpPosType = chrAsm.DS3RightWeaponAbsorpPosType;
+            DS3LeftWeaponAbsorpPosType = chrAsm.DS3LeftWeaponAbsorpPosType;
         }
     }
 }

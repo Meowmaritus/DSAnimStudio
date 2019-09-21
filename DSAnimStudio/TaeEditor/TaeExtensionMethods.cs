@@ -14,25 +14,36 @@ namespace DSAnimStudio.TaeEditor
 
         public static void ClearMemes()
         {
-            isModified_Anim.Clear();
-            isModified_TAE.Clear();
+            lock (isModified_Anim)
+                isModified_Anim.Clear();
+
+            lock (isModified_TAE)
+                isModified_TAE.Clear();
         }
 
 
         public static bool GetIsModified(this TAE.Animation ev)
         {
-            if (!isModified_Anim.ContainsKey(ev))
-                isModified_Anim.Add(ev, false);
+            lock (isModified_Anim)
+            {
+                if (!isModified_Anim.ContainsKey(ev))
+                    isModified_Anim.Add(ev, false);
 
-            return isModified_Anim[ev];
+                return isModified_Anim[ev];
+            }
+         
         }
 
         public static bool GetIsModified(this TAE tae)
         {
-            if (!isModified_TAE.ContainsKey(tae))
-                isModified_TAE.Add(tae, false);
+            lock (isModified_TAE)
+            {
+                if (!isModified_TAE.ContainsKey(tae))
+                    isModified_TAE.Add(tae, false);
 
-            return isModified_TAE[tae];
+                return isModified_TAE[tae];
+            }
+           
         }
 
         public static void ApplyRounding(this TAE.Event ev)
@@ -46,34 +57,42 @@ namespace DSAnimStudio.TaeEditor
 
         public static void SetIsModified(this TAE.Animation ev, bool v, bool updateGui = true)
         {
-            if (!isModified_Anim.ContainsKey(ev))
-                isModified_Anim.Add(ev, false);
+            lock (isModified_Anim)
+            {
+                if (!isModified_Anim.ContainsKey(ev))
+                    isModified_Anim.Add(ev, false);
 
-            //if (v)
-            //{
-            //    Console.WriteLine("REEE");
-            //}
+                //if (v)
+                //{
+                //    Console.WriteLine("REEE");
+                //}
 
-            isModified_Anim[ev] = v;
+                isModified_Anim[ev] = v;
 
-            if (updateGui)
-                Main.TAE_EDITOR.UpdateIsModifiedStuff();
+                if (updateGui)
+                    Main.TAE_EDITOR.UpdateIsModifiedStuff();
+            }
+                
         }
 
         public static void SetIsModified(this TAE tae, bool v, bool updateGui = true)
         {
-            if (!isModified_TAE.ContainsKey(tae))
-                isModified_TAE.Add(tae, false);
+            lock (isModified_TAE)
+            {
+                if (!isModified_TAE.ContainsKey(tae))
+                    isModified_TAE.Add(tae, false);
 
-            //if (v)
-            //{
-            //    Console.WriteLine("REEE");
-            //}
+                //if (v)
+                //{
+                //    Console.WriteLine("REEE");
+                //}
 
-            isModified_TAE[tae] = v;
+                isModified_TAE[tae] = v;
 
-            if (updateGui)
-                Main.TAE_EDITOR.UpdateIsModifiedStuff();
+                if (updateGui)
+                    Main.TAE_EDITOR.UpdateIsModifiedStuff();
+            }
+                
         }
 
 
