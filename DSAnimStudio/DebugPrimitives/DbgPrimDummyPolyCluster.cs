@@ -18,6 +18,10 @@ namespace DSAnimStudio.DebugPrimitives
 
         private List<FLVER2.Bone> BoneList = new List<FLVER2.Bone>();
 
+        public int FlverBoneIndex = -1;
+
+        public Matrix FlverBoneParentMatrix = Matrix.Identity;
+
         public int BaseDummyPolyID = 0;
 
         //public int ID { get; private set; }
@@ -284,12 +288,40 @@ namespace DSAnimStudio.DebugPrimitives
             {
                 AddDummy(dmy);
                 //ID = dmy.ReferenceID;
+                FlverBoneIndex = dmy.AttachBoneIndex;
             } 
+
+            if (FlverBoneIndex >= 0)
+            {
+                var bone = bones[FlverBoneIndex];
+                float boneLength = (bone.Translation * bone.Scale).Length();
+                var bonePrim = new DbgPrimWireBone(bone.Name, Transform.Default, Quaternion.Identity, boneLength / 4f, boneLength, DBG.COLOR_FLVER_BONE);
+                bonePrim.Category = DbgPrimCategory.FlverBone;
+
+                bonePrim.OverrideColor = DBG.COLOR_FLVER_BONE;
+
+                var boundingBoxPrim = new DbgPrimWireBox(Transform.Default,
+                    new Vector3(bone.BoundingBoxMin.X, bone.BoundingBoxMin.Y, bone.BoundingBoxMin.Z),
+                    new Vector3(bone.BoundingBoxMax.X, bone.BoundingBoxMax.Y, bone.BoundingBoxMax.Z), DBG.COLOR_FLVER_BONE_BBOX);
+
+                boundingBoxPrim.Category = DbgPrimCategory.FlverBoneBoundingBox;
+
+                boundingBoxPrim.OverrideColor = DBG.COLOR_FLVER_BONE_BBOX;
+
+                Children.Add(bonePrim);
+                Children.Add(boundingBoxPrim);
+
+                FlverBoneParentMatrix = GetBoneParentMatrix(bones[FlverBoneIndex]);
+            }
         }
 
         public void UpdateWithBoneMatrix(Matrix boneMatrix)
         {
             Transform = new Transform(boneMatrix);
+            foreach (var c in Children)
+            {
+                c.Transform = new Transform(FlverBoneParentMatrix);
+            }
             //foreach (var c in Children)
             //{
             //    var refId = (short)c.ExtraData;

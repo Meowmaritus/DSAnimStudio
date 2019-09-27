@@ -353,7 +353,7 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            newItem.DropDownOpening += (x, y) =>
+            newItem.MouseEnter += (x, y) =>
             {
                 createDropdownItems();
             };
@@ -400,30 +400,47 @@ namespace DSAnimStudio.TaeEditor
 
             foreach (var kvp in choicesAndChooseAction)
             {
-                var newSubItem = new ToolStripMenuItem(kvp.Key);
-                newItem.DropDownItems.Add(newSubItem);
+                if (kvp.Key.StartsWith("SEPARATOR:"))
+                {
+                    newItem.DropDownItems.Add(new ToolStripSeparator());
+                }
+                else
+                {
+                    var newSubItem = new ToolStripMenuItem(kvp.Key);
+                    newItem.DropDownItems.Add(newSubItem);
+                }
             }
 
-            newItem.DropDownOpening += (o, e) =>
+            newItem.MouseEnter += (o, e) =>
             {
                 string selected = getWhichIsSelected.Invoke();
-                foreach (ToolStripMenuItem h in newItem.DropDownItems)
+
+                foreach (var item in newItem.DropDownItems)
                 {
-                    h.Checked = h.Text == selected;
+                    if (item is ToolStripMenuItem h)
+                    {
+                        h.Checked = h.Text == selected;
+                    }
                 }
             };
 
-            foreach (ToolStripMenuItem newSubItem in newItem.DropDownItems)
+            foreach (var item in newItem.DropDownItems)
             {
-                newSubItem.Click += (o, e) =>
+                if (item is ToolStripMenuItem newSubItem)
                 {
-                    foreach (ToolStripMenuItem h in newItem.DropDownItems)
+                    newSubItem.Click += (o, e) =>
                     {
-                        h.Checked = false;
-                    }
-                    newSubItem.Checked = true;
-                    choicesAndChooseAction[newSubItem.Text].Invoke();
-                };
+                        foreach (var it in newItem.DropDownItems)
+                        {
+                            if (it is ToolStripMenuItem h)
+                            {
+                                h.Checked = false;
+                            }
+                        }
+                        newSubItem.Checked = true;
+                        choicesAndChooseAction[newSubItem.Text].Invoke();
+                    };
+                }
             }
 
             currentPath += "/" + itemName;
@@ -435,7 +452,7 @@ namespace DSAnimStudio.TaeEditor
             baseItem.DropDownItems.Add(newItem);
         }
 
-        public void AddItem(string path, string itemName, Func<bool> checkState, Action<bool> onCheckChange)
+        public void AddItem(string path, string itemName, Func<bool> checkState, Action<bool> onCheckChange, Func<bool> getEnabled = null)
         {
             string[] pathStops = path.Split('/');
 
@@ -467,9 +484,11 @@ namespace DSAnimStudio.TaeEditor
 
             //newItem.CheckOnClick = true;
 
-            baseItem.DropDownOpening += (o, e) =>
+            baseItem.MouseEnter += (o, e) =>
             {
                 newItem.Checked = checkState.Invoke();
+                if (getEnabled != null)
+                    newItem.Enabled = getEnabled.Invoke();
             };
 
             newItem.Click += (o, e) =>
@@ -483,6 +502,52 @@ namespace DSAnimStudio.TaeEditor
                 items.Add(currentPath, newItem);
 
             SetColorOfItem(newItem);
+
+            baseItem.DropDownItems.Add(newItem);
+        }
+
+        public void AddItem(string path, string itemName, Action<TaeMenuBarBuilder> addEntries, bool startDisabled = false)
+        {
+            string[] pathStops = path.Split('/');
+
+            string currentPath = pathStops[0];
+
+            ToolStripMenuItem baseItem = FindOrCreateItem(currentPath, Menustrip, pathStops[0]);
+
+            for (int i = 1; i < pathStops.Length; i++)
+            {
+                currentPath += "/" + pathStops[i];
+                baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
+            }
+
+            string shortcutText = null;
+
+            if (itemName.Contains("|"))
+            {
+                var split = itemName.Split('|');
+                shortcutText = split[1];
+                itemName = split[0];
+            }
+
+            var newItem = new ToolStripMenuItem(itemName);
+
+            if (shortcutText != null)
+                newItem.ShortcutKeyDisplayString = shortcutText;
+
+            if (startDisabled)
+                newItem.Enabled = false;
+
+            currentPath += "/" + itemName;
+            if (!items.ContainsKey(currentPath))
+                items.Add(currentPath, newItem);
+
+            SetColorOfItem(newItem);
+
+            baseItem.MouseEnter += (o, e) =>
+            {
+                newItem.DropDownItems.Clear();
+                addEntries.Invoke(this);
+            };
 
             baseItem.DropDownItems.Add(newItem);
         }

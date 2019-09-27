@@ -94,7 +94,6 @@ namespace DSAnimStudio
             FlverShader.Effect.Legacy_DiffusePower = 1 / 1.5f;
             FlverShader.Effect.AlphaTest = 0.1f;
 
-            FlverShader.Effect.WorkflowType = FlverShaderWorkflowType;
             FlverShader.Effect.LightDirection = Vector3.Forward;
 
             FlverShader.Effect.EmissiveMapMult = 1;
@@ -105,9 +104,44 @@ namespace DSAnimStudio
             //GFX.FlverOpacity = 0.15f;
         }
 
-        public static FlverShader.FSWorkflowType FlverShaderWorkflowType = GFXShaders.FlverShader.FSWorkflowType.Gloss;
+        public static FlverShadingMode? ForcedFlverShadingMode = null;
+
+        private static Dictionary<FlverShadingMode, string> _flverShadingModeNames
+            = new Dictionary<FlverShadingMode, string>
+        {
+            { FlverShadingMode.PBR_GLOSS_DS3, "PBR Gloss (Dark Souls III)" },
+            { FlverShadingMode.PBR_GLOSS_BB, "PBR Gloss (Bloodborne) [WIP]" },
+            { FlverShadingMode.CLASSIC_DIFFUSE_PTDE, "Classic Diffuse (PTDE) [Placeholder]" },
+            { FlverShadingMode.LEGACY, "Legacy (MVDX)" },
+
+            { FlverShadingMode.TEXDEBUG_DIFFUSEMAP, "TEX DEBUG: Diffuse/Albedo Map" },
+            { FlverShadingMode.TEXDEBUG_SPECULARMAP, "TEX DEBUG: Specular/Reflectance Map" },
+            { FlverShadingMode.TEXDEBUG_NORMALMAP, "TEX DEBUG: Normal Map" },
+            { FlverShadingMode.TEXDEBUG_EMISSIVEMAP, "TEX DEBUG: Emissive Map" },
+            { FlverShadingMode.TEXDEBUG_BLENDMASKMAP, "TEX DEBUG: Blend Mask Map" },
+            { FlverShadingMode.TEXDEBUG_SHININESSMAP, "TEX DEBUG: Shininess Map" },
+            { FlverShadingMode.TEXDEBUG_NORMALMAP_BLUE, "TEX DEBUG: Normal Map (Blue Channel)" },
+
+            { FlverShadingMode.MESHDEBUG_NORMALS, "MESH DEBUG: Normals" },
+            { FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY, "MESH DEBUG: Normals (Mesh Only)" },
+        };
+
+        private static List<FlverShadingMode> _flverNonDebugShadingModes = new List<FlverShadingMode>
+        {
+            FlverShadingMode.LEGACY,
+            FlverShadingMode.PBR_GLOSS_DS3,
+            FlverShadingMode.PBR_GLOSS_BB,
+            FlverShadingMode.CLASSIC_DIFFUSE_PTDE,
+        };
+
+        public static IReadOnlyList<FlverShadingMode> FlverNonDebugShadingModes => _flverNonDebugShadingModes;
+
+        public static bool IsInDebugShadingMode => !((GFX.ForcedFlverShadingMode == null || GFX.FlverNonDebugShadingModes.Contains(GFX.ForcedFlverShadingMode.Value)));
+
+        public static IReadOnlyDictionary<FlverShadingMode, string> FlverShadingModeNames => _flverShadingModeNames;
 
         public static bool FlverAutoRotateLight = false;
+        private static float LightSpinTimer = 0;
         public static bool FlverLightFollowsCamera = true;
 
         public static bool UseTonemap = true;
@@ -342,7 +376,8 @@ namespace DSAnimStudio
 
             if (FlverAutoRotateLight)
             {
-                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * Main.DELTA_UPDATE * 0.25f));
+                LightSpinTimer = (LightSpinTimer + Main.DELTA_UPDATE);
+                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * LightSpinTimer * 0.25f));
             }
             else if (FlverLightFollowsCamera)
             {
@@ -355,7 +390,7 @@ namespace DSAnimStudio
             FlverShader.Effect.NormalMap = Main.DEFAULT_TEXTURE_NORMAL;
             FlverShader.Effect.SpecularMap = Main.DEFAULT_TEXTURE_SPECULAR;
             FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
-            FlverShader.Effect.WorkflowType = FlverShaderWorkflowType;
+            FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
 
             FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
             SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;

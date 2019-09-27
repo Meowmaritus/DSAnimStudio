@@ -163,7 +163,13 @@ namespace DSAnimStudio.TaeEditor
                         OnEquipFormClose();
                         EquipForm = null;
 
+                        var menuItemLoadTextures = Graph.MainScreen.MenuBar["NPC Settings/Load Additional Texture File(s)..."];
+
                         Graph.MainScreen.MenuBar.ClearItem("NPC Settings");
+
+                        Graph.MainScreen.MenuBar.AddItem("NPC Settings", menuItemLoadTextures);
+
+                        Graph.MainScreen.MenuBar.AddSeparator("NPC Settings");
 
                         Graph.MainScreen.MenuBar.AddItem("NPC Settings/Draw Mask", "Show All", () =>
                         {
@@ -175,9 +181,30 @@ namespace DSAnimStudio.TaeEditor
 
                         var validNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
 
+                        var materialsPerMask = CurrentModel.GetMaterialNamesPerMask();
+
+                        var masksEnabledOnAllNpcParams = materialsPerMask.Select(kvp => kvp.Key).ToList();
+                        foreach (var kvp in materialsPerMask)
+                        {
+                            if (kvp.Key < 0)
+                                continue;
+
+                            foreach (var npcParam in validNpcParams)
+                            {
+                                if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
+                                {
+                                    if (masksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                        masksEnabledOnAllNpcParams.Remove(kvp.Key);
+
+                                    break;
+                                }
+                            }
+                        }
+
                         foreach (var npc in validNpcParams)
                         {
-                            Graph.MainScreen.MenuBar.AddItem("NPC Settings/Draw Mask", $"Apply mask from NpcParam {npc.ID} {npc.Name}", () =>
+                            Graph.MainScreen.MenuBar.AddItem("NPC Settings/Draw Mask", 
+                                $"{npc.GetDisplayName()} | {npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams)}", () =>
                             {
                                 npc.ApplyMaskToModel(CurrentModel);
                             });
@@ -552,9 +579,14 @@ namespace DSAnimStudio.TaeEditor
         {
             var printer = new StatusPrinter(Vector2.Zero, Color.Yellow);
 
-            printer.AppendLine($"MAIN ANIM: {(CurrentModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
-            printer.AppendLine($"RWPN ANIM: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
-            printer.AppendLine($"LWPN ANIM: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
+            printer.AppendLine($"Animation: {(CurrentModel?.AnimContainer?.CurrentAnimationName ?? "None")}");
+            
+
+            if (EntityType == TaeEntityType.PC)
+            {
+                printer.AppendLine($"R Weapon Animation: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
+                printer.AppendLine($"L Weapon Animation: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
+            }
 
             //printer.AppendLine($"RWPN ANIM LIST:");
             //var anims = CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.Animations;

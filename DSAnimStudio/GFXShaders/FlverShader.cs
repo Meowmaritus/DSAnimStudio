@@ -10,14 +10,6 @@ namespace DSAnimStudio.GFXShaders
 {
     public class FlverShader : Effect, IGFXShader<FlverShader>
     {
-        public enum FSWorkflowType
-        {
-            Ass = 0,
-            Gloss = 1,
-            Roughness = 2,
-            Metalness = 3,
-        }
-
         public const int NUM_BONES = 255;
         public const int MAX_ALL_BONE_ARRAYS = NUM_BONES * 4;
 
@@ -25,9 +17,9 @@ namespace DSAnimStudio.GFXShaders
 
         public FlverShader Effect => this;
 
-        public FSWorkflowType WorkflowType
+        public FlverShadingMode WorkflowType
         {
-            get => (FSWorkflowType)Parameters[nameof(WorkflowType)].GetValueInt32();
+            get => (FlverShadingMode)Parameters[nameof(WorkflowType)].GetValueInt32();
             set => Parameters[nameof(WorkflowType)].SetValue((int)value);
         }
 
@@ -200,16 +192,22 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(SpecularMapBB)]?.SetValue(value);
         }
 
-        public bool UseSpecularMapBB
-        {
-            get => Parameters[nameof(UseSpecularMapBB)].GetValueBoolean();
-            set => Parameters[nameof(UseSpecularMapBB)]?.SetValue(value);
-        }
+        //public bool UseSpecularMapBB
+        //{
+        //    get => Parameters[nameof(UseSpecularMapBB)].GetValueBoolean();
+        //    set => Parameters[nameof(UseSpecularMapBB)]?.SetValue(value);
+        //}
 
         public Texture2D EmissiveMap
         {
             get => Parameters[nameof(EmissiveMap)].GetValueTexture2D();
             set => Parameters[nameof(EmissiveMap)]?.SetValue(value);
+        }
+
+        public Texture2D BlendmaskMap
+        {
+            get => Parameters[nameof(BlendmaskMap)].GetValueTexture2D();
+            set => Parameters[nameof(BlendmaskMap)]?.SetValue(value);
         }
 
         public TextureCube EnvironmentMap
@@ -242,6 +240,12 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(Bones3)].GetValueMatrixArray(NUM_BONES);
             set => Parameters[nameof(Bones3)]?.SetValue(value);
+        }
+
+        public Matrix[] Bones4
+        {
+            get => Parameters[nameof(Bones4)].GetValueMatrixArray(NUM_BONES);
+            set => Parameters[nameof(Bones4)]?.SetValue(value);
         }
         #endregion
 

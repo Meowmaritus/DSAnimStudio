@@ -13,6 +13,11 @@ namespace DSAnimStudio
         public long ID;
         public string Name;
 
+        public string GetDisplayName()
+        {
+            return $"{ID}{(!string.IsNullOrWhiteSpace(Name) ? $": {Name}" : "")}";
+        }
+
         public abstract void Read(BinaryReaderEx br);
 
         public class AtkParam : ParamData
@@ -354,6 +359,53 @@ namespace DSAnimStudio
             public int BehaviorVariationID;
 
             public bool[] DrawMask;
+
+            public string GetMaskString(Dictionary<int, string> materialsPerMask, 
+                List<int> masksEnabledOnAllNpcParamsForThisChr)
+            {
+                if (materialsPerMask.Any(kvp => kvp.Key >= 0))
+                {
+                    var sb = new StringBuilder();
+
+                    bool isFirst = true;
+
+                    bool nothingInHere = true;
+
+                    foreach (var kvp in materialsPerMask)
+                    {
+                        if (kvp.Key < 0)
+                            continue;
+
+                        if (masksEnabledOnAllNpcParamsForThisChr.Contains(kvp.Key))
+                            continue;
+
+                        if (DrawMask[kvp.Key])
+                        {
+                            if (!isFirst)
+                                sb.Append("  ");
+                            else
+                                isFirst = false;
+
+                            sb.Append($"[{kvp.Value}]");
+                            nothingInHere = false;
+                        }
+                    }
+
+                    if (nothingInHere)
+                    {
+                        return "";
+                    }
+                    else
+                    {
+                        return sb.ToString();
+                    }
+                }
+                else
+                {
+                    return "";
+                }
+                
+            }
 
             public void ApplyMaskToModel(Model mdl)
             {

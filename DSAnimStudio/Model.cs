@@ -37,6 +37,37 @@ namespace DSAnimStudio
             }
         }
 
+        public Dictionary<int, string> GetMaterialNamesPerMask()
+        {
+            Dictionary<int, List<FlverSubmeshRenderer>> submeshesByMask = 
+                new Dictionary<int, List<FlverSubmeshRenderer>>();
+
+            foreach (var submesh in MainMesh.Submeshes)
+            {
+                if (!submeshesByMask.ContainsKey(submesh.ModelMaskIndex))
+                    submeshesByMask.Add(submesh.ModelMaskIndex, new List<FlverSubmeshRenderer>());
+
+                if (!submeshesByMask[submesh.ModelMaskIndex].Contains(submesh))
+                    submeshesByMask[submesh.ModelMaskIndex].Add(submesh);
+            }
+
+            var result = new Dictionary<int, string>();
+
+            foreach (var kvp in submeshesByMask)
+            {
+                var sb = new System.Text.StringBuilder();
+                for (int i = 0; i < kvp.Value.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Append(", ");
+                    sb.Append($"{kvp.Value[i].FullMaterialName }<{(MainMesh.Submeshes.IndexOf(kvp.Value[i]) + 1):D2}>");
+                }
+                result.Add(kvp.Key, sb.ToString());
+            }
+
+            return result;
+        }
+
         public const int DRAW_MASK_LENGTH = 96;
 
         private bool[] DefaultDrawMask = new bool[DRAW_MASK_LENGTH];
@@ -73,7 +104,7 @@ namespace DSAnimStudio
 
         public Model(IProgress<double> loadingProgress, string name, IBinder chrbnd, int modelIndex, 
             IBinder anibnd, IBinder texbnd = null, List<string> additionalTpfNames = null, 
-            string possibleLooseDdsFolder = null, int baseDmyPolyID = 0, 
+            string possibleLooseTpfFolder = null, int baseDmyPolyID = 0, 
             bool ignoreStaticTransforms = false)
             : this()
         {
@@ -142,7 +173,9 @@ namespace DSAnimStudio
             }
             else
             {
-                Skeleton.ApplyBakedFlverReferencePose();
+                // This just messes up the model cuz they're already in 
+                // reference pose, whoops
+                //Skeleton.ApplyBakedFlverReferencePose();
             }
 
             loadingProgress.Report(2.0 / 3.0);
@@ -175,9 +208,9 @@ namespace DSAnimStudio
 
             // This will only be for PTDE so it will be extremely fast lol, 
             // not gonna bother with progress bar update.
-            if (possibleLooseDdsFolder != null && Directory.Exists(possibleLooseDdsFolder))
+            if (possibleLooseTpfFolder != null && Directory.Exists(possibleLooseTpfFolder))
             {
-                TexturePool.AddLooseDDSFolder(possibleLooseDdsFolder);
+                TexturePool.AddTPFFolder(possibleLooseTpfFolder);
                 MainMesh.TextureReloadQueued = true;
             }
 
@@ -242,6 +275,12 @@ namespace DSAnimStudio
             ChrAsm?.TryToLoadTextures();
         }
 
+        public void TryToLoadTexturesFromBinder(string path)
+        {
+            List<string> textures = MainMesh.GetAllTexNamesToLoad();
+            TexturePool.AddSpecificTexturesFromBinder(path, textures);
+        }
+
         public void Draw(int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
             GFX.World.ApplyViewToShader(GFX.FlverShader, CurrentTransform);
@@ -266,8 +305,12 @@ namespace DSAnimStudio
                         if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES * 3)
                         {
                             GFX.FlverShader.Effect.Bones3 = Skeleton.ShaderMatrix3;
-                        }
 
+                            if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES * 4)
+                            {
+                                GFX.FlverShader.Effect.Bones4 = Skeleton.ShaderMatrix4;
+                            }
+                        }
                     }
                 }
 

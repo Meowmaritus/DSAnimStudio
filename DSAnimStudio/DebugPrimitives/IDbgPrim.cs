@@ -23,6 +23,7 @@ namespace DSAnimStudio.DebugPrimitives
         bool EnableNameDraw { get; set; }
 
         List<IDbgPrim> Children { get; set; }
+        List<IDbgPrim> UnparentedChildren { get; set; }
 
         void Draw(IDbgPrim parent, Matrix world);
         void LabelDraw(Matrix world);

@@ -37,6 +37,7 @@ namespace DSAnimStudio
         public string TexNameNormal { get; private set; } = null;
         public string TexNameEmissive { get; private set; } = null;
         public string TexNameShininess { get; private set; } = null;
+        public string TexNameBlendmask { get; private set; } = null;
         public string TexNameDOL1 { get; private set; } = null;
         public string TexNameDOL2 { get; private set; } = null;
 
@@ -45,6 +46,7 @@ namespace DSAnimStudio
         public Texture2D TexDataNormal { get; private set; } = null;
         public Texture2D TexDataEmissive { get; private set; } = null;
         public Texture2D TexDataShininess { get; private set; } = null;
+        public Texture2D TexDataBlendmask { get; private set; } = null;
         public Texture2D TexDataDOL1 { get; private set; } = null;
         public Texture2D TexDataDOL2 { get; private set; } = null;
 
@@ -56,36 +58,53 @@ namespace DSAnimStudio
 
         public bool IsVisible { get; set; } = true;
 
-        public string MaterialName;
+        private string _fullMaterialName;
+        public string FullMaterialName
+        {
+            get => _fullMaterialName;
+            set
+            {
+                if (_fullMaterialName != value)
+                {
+                    _fullMaterialName = value;
+                    var shit = GetModelMaskIndexAndPrettyNameStartForCurrentMaterialName();
+                    ModelMaskIndex = shit.MaskIndex;
+                    PrettyMaterialName = value.Substring(shit.SubstringStartIndex).Trim();
+                }
+            }
+        }
+
+        public string PrettyMaterialName { get; private set; }
+
+        private (int MaskIndex, int SubstringStartIndex) GetModelMaskIndexAndPrettyNameStartForCurrentMaterialName()
+        {
+            if (string.IsNullOrEmpty(FullMaterialName))
+                return (-1, 0);
+
+            int firstHashtag = FullMaterialName.IndexOf("#");
+            if (firstHashtag == -1)
+                return (-1, 0);
+            int secondHashtagSearchStart = firstHashtag + 1;
+            int secondHashtag = FullMaterialName.Substring(secondHashtagSearchStart).IndexOf("#");
+            if (secondHashtag == -1)
+                return (-1, 0);
+            else
+                secondHashtag += secondHashtagSearchStart;
+
+            string maskText = FullMaterialName.Substring(secondHashtagSearchStart, secondHashtag - secondHashtagSearchStart);
+
+            if (int.TryParse(maskText, out int mask))
+                return (mask, secondHashtag + 1);
+            else
+                return (-1, 0);
+        }
 
         //public string DefaultBoneName { get; set; } = null;
         public int DefaultBoneIndex { get; set; } = -1;
 
-        public int ModelMaskIndex
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(MaterialName))
-                    return -1;
+        public FlverShadingMode ShadingMode { get; set; } = FlverShadingMode.PBR_GLOSS_DS3;
 
-                int firstHashtag = MaterialName.IndexOf("#");
-                if (firstHashtag == -1)
-                    return -1;
-                int secondHashtagSearchStart = firstHashtag + 1;
-                int secondHashtag = MaterialName.Substring(secondHashtagSearchStart).IndexOf("#");
-                if (secondHashtag == -1)
-                    return -1;
-                else
-                    secondHashtag += secondHashtagSearchStart;
-
-                string maskText = MaterialName.Substring(secondHashtagSearchStart, secondHashtag - secondHashtagSearchStart);
-
-                if (int.TryParse(maskText, out int mask))
-                    return mask;
-                else
-                    return -1;
-            }
-        }
+        public int ModelMaskIndex { get; private set; }
 
         static System.Numerics.Vector3 SkinVector3(System.Numerics.Vector3 vOof, Matrix[] bones, FLVER.VertexBoneWeights weights, bool isNormal = false)
         {
@@ -165,9 +184,26 @@ namespace DSAnimStudio
             bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            {
+                ShadingMode = FlverShadingMode.PBR_GLOSS_DS3;
+            }
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+            {
+                ShadingMode = FlverShadingMode.PBR_GLOSS_BB;
+            }
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+            {
+                ShadingMode = FlverShadingMode.CLASSIC_DIFFUSE_PTDE;
+            }
+            else
+            {
+                ShadingMode = FlverShadingMode.TEXDEBUG_DIFFUSEMAP;
+            }
+
             Parent = parent;
 
-            MaterialName = flvr.Materials[mesh.MaterialIndex].Name;
+            FullMaterialName = flvr.Materials[mesh.MaterialIndex].Name;
 
             DefaultBoneIndex = mesh.DefaultBoneIndex;
 
@@ -236,6 +272,8 @@ namespace DSAnimStudio
                     TexNameEmissive = shortTexPath;
                 else if (paramNameCheck.Contains("SHININESS"))
                     TexNameShininess = shortTexPath;
+                else if (paramNameCheck.Contains("BLENDMASK"))
+                    TexNameBlendmask = shortTexPath;
                 else if (paramNameCheck == "G_DOLTEXTURE1")
                 {
                     TexNameDOL1 = shortTexPath;
@@ -304,37 +342,37 @@ namespace DSAnimStudio
                 {
                     int boneIndex = vert.NormalW;
 
-                    if (boneIndex == 0 && mesh.DefaultBoneIndex != 0)
-                        boneIndex = mesh.DefaultBoneIndex;
+                    //if (boneIndex == 0 && mesh.DefaultBoneIndex != 0)
+                    //    boneIndex = mesh.DefaultBoneIndex;
 
                     vert.BoneIndices[0] = boneIndex;
-                    vert.BoneIndices[1] = 0;
-                    vert.BoneIndices[2] = 0;
-                    vert.BoneIndices[3] = 0;
+                    //vert.BoneIndices[1] = 0;
+                    //vert.BoneIndices[2] = 0;
+                    //vert.BoneIndices[3] = 0;
 
                     vert.BoneWeights[0] = 1;
-                    vert.BoneWeights[1] = 0;
-                    vert.BoneWeights[2] = 0;
-                    vert.BoneWeights[3] = 0;
+                    //vert.BoneWeights[1] = 0;
+                    //vert.BoneWeights[2] = 0;
+                    //vert.BoneWeights[3] = 0;
                 }
 
                 // Apply bind pose of bone to actual vert if !mesh.Dynamic
-                if (!mesh.Dynamic && !ignoreStaticTransforms)
+                if (!mesh.Dynamic)
                 {
                     ApplySkin(vert, flvr.Bones.Select(b => GetBoneMatrix(b)).ToList(), mesh.BoneIndices, (flvr.Header.Version <= 0x2000D));
 
-                    if (!vert.UsesBoneIndices)
-                    {
-                        vert.BoneIndices[0] = 0;
-                        vert.BoneIndices[1] = 0;
-                        vert.BoneIndices[2] = 0;
-                        vert.BoneIndices[3] = 0;
+                    //if (!vert.UsesBoneIndices)
+                    //{
+                    //    vert.BoneIndices[0] = 0;
+                    //    vert.BoneIndices[1] = 0;
+                    //    vert.BoneIndices[2] = 0;
+                    //    vert.BoneIndices[3] = 0;
 
-                        vert.BoneWeights[0] = 0;
-                        vert.BoneWeights[1] = 0;
-                        vert.BoneWeights[2] = 0;
-                        vert.BoneWeights[3] = 0;
-                    }
+                    //    vert.BoneWeights[0] = 0;
+                    //    vert.BoneWeights[1] = 0;
+                    //    vert.BoneWeights[2] = 0;
+                    //    vert.BoneWeights[3] = 0;
+                    //}
 
                 }
 
@@ -351,11 +389,6 @@ namespace DSAnimStudio
                 //}
 
                 MeshVertices[i].BoneWeights = new Vector4(vert.BoneWeights[0], vert.BoneWeights[1], vert.BoneWeights[2], vert.BoneWeights[3]);
-
-                if (MeshVertices[i].BoneWeights == Vector4.Zero)
-                {
-                    MeshVertices[i].BoneWeights.X = 1;
-                }
 
                 // Apply per-mesh bone indices for DS1 and older
                 if (flvr.Header.Version <= 0x2000D)
@@ -408,21 +441,32 @@ namespace DSAnimStudio
                     (int)(vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] % FlverShader.NUM_BONES : -1));
 
                 MeshVertices[i].BoneIndicesBank = new Vector4(
-                   vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] / FlverShader.NUM_BONES : 0,
-                   vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] / FlverShader.NUM_BONES : 0,
-                   vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] / FlverShader.NUM_BONES : 0,
-                   vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] / FlverShader.NUM_BONES : 0);
+                   (float)(vert.BoneIndices[0] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[0] / FlverShader.NUM_BONES) : -1.0),
+                   (float)(vert.BoneIndices[1] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[1] / FlverShader.NUM_BONES) : -1.0),
+                   (float)(vert.BoneIndices[2] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[2] / FlverShader.NUM_BONES) : -1.0),
+                   (float)(vert.BoneIndices[3] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[3] / FlverShader.NUM_BONES) : -1.0));
 
+                if (vert.BoneIndices[0] < 0)
+                    MeshVertices[i].BoneWeights.X = 0;
 
+                if (vert.BoneIndices[1] < 0)
+                    MeshVertices[i].BoneWeights.Y = 0;
+
+                if (vert.BoneIndices[2] < 0)
+                    MeshVertices[i].BoneWeights.Z = 0;
+
+                if (vert.BoneIndices[3] < 0)
+                    MeshVertices[i].BoneWeights.W = 0;
 
                 vert.BoneWeights = ORIG_BONE_WEIGHTS;
                 vert.BoneIndices = ORIG_BONE_INDICES;
 
                 MeshVertices[i].Position = new Vector3(vert.Position.X, vert.Position.Y, vert.Position.Z);
 
-                if (vert.Normal != null && vert.Tangents != null && vert.Tangents.Count > 0)
+                MeshVertices[i].Normal = Vector3.Normalize(new Vector3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
+
+                if (vert.Tangents.Count > 0)
                 {
-                    MeshVertices[i].Normal = Vector3.Normalize(new Vector3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
                     MeshVertices[i].Bitangent = new Vector4(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z, vert.Tangents[0].W);
                     MeshVertices[i].Binormal = Vector3.Cross(Vector3.Normalize(MeshVertices[i].Normal), Vector3.Normalize(new Vector3(MeshVertices[i].Bitangent.X, MeshVertices[i].Bitangent.Y, MeshVertices[i].Bitangent.Z))) * vert.Tangents[0].W;
                 }
@@ -576,6 +620,9 @@ namespace DSAnimStudio
 
             foreach (var faceset in mesh.FaceSets)
             {
+                if (faceset.Indices.Count == 0)
+                    continue;
+
                 //At this point they use 32-bit faceset vertex indices
                 bool is32bit = flvr.Header.Version > 0x20005;
 
@@ -650,6 +697,9 @@ namespace DSAnimStudio
             if (TexDataShininess == null && TexNameShininess != null)
                 result.Add(Utils.GetShortIngameFileName(TexNameShininess));
 
+            if (TexDataBlendmask == null && TexNameBlendmask != null)
+                result.Add(Utils.GetShortIngameFileName(TexNameBlendmask));
+
             if (TexDataDOL1 == null && TexNameDOL1 != null)
                 result.Add(Utils.GetShortIngameFileName(TexNameDOL1));
 
@@ -675,6 +725,9 @@ namespace DSAnimStudio
 
             if (TexDataShininess == null && TexNameShininess != null)
                 TexDataShininess = TexturePool.FetchTexture2D(TexNameShininess);
+
+            if (TexDataBlendmask == null && TexNameBlendmask != null)
+                TexDataBlendmask = TexturePool.FetchTexture2D(TexNameBlendmask);
 
             if (TexDataDOL1 == null && TexNameDOL1 != null)
             {
@@ -735,10 +788,14 @@ namespace DSAnimStudio
 
                 GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+
+                GFX.FlverShader.Effect.BlendmaskMap = TexDataBlendmask ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+
+                GFX.FlverShader.Effect.WorkflowType = GFX.ForcedFlverShadingMode ?? ShadingMode;
             }
 
             // TEMPORARY
-            GFX.FlverShader.Effect.UseSpecularMapBB = false;// TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne || TexDataShininess != null;
+            //GFX.FlverShader.Effect.UseSpecularMapBB = false;// TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne || TexDataShininess != null;
 
             //GFX.FlverShader.Effect.UseSpecularMapBB = true;
 
@@ -753,6 +810,8 @@ namespace DSAnimStudio
             //{
             //    shader.Effect.CurrentTechnique = technique;
 
+            
+
             foreach (EffectPass pass in shader.Effect.CurrentTechnique.Passes)
             {
                 pass.Apply();
@@ -761,6 +820,9 @@ namespace DSAnimStudio
 
                 foreach (var faceSet in MeshFacesets)
                 {
+                    if (faceSet.IndexCount == 0)
+                        continue;
+
                     if (!HasNoLODs && (lod != -1 && faceSet.LOD != lod) || (faceSet.IsMotionBlur != motionBlur))
                         continue;
 
@@ -792,25 +854,6 @@ namespace DSAnimStudio
 
             // Just leave the texture data as-is, since 
             // TexturePool handles memory cleanup
-
-
-            //TexDataDiffuse?.Dispose();
-            TexDataDiffuse = null;
-            TexNameDiffuse = null;
-
-            //TexDataNormal?.Dispose();
-            TexDataNormal = null;
-            TexNameNormal = null;
-
-            //TexDataSpecular?.Dispose();
-            TexDataSpecular = null;
-            TexNameSpecular = null;
-
-            TexDataDOL1 = null;
-            TexNameDOL1 = null;
-
-            TexDataDOL2 = null;
-            TexNameDOL2 = null;
         }
     }
 }

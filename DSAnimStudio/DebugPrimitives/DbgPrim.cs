@@ -57,6 +57,7 @@ namespace DSAnimStudio.DebugPrimitives
         public bool EnableNameDraw { get; set; } = true;
 
         public List<IDbgPrim> Children { get; set; } = new List<IDbgPrim>();
+        public List<IDbgPrim> UnparentedChildren { get; set; } = new List<IDbgPrim>();
 
         public void AddDbgLabel(Vector3 position, float height, string text, Color color)
         {
@@ -89,6 +90,16 @@ namespace DSAnimStudio.DebugPrimitives
         {
             PreDraw();
 
+            // Always draw unparented children :fatcat:
+            foreach (var c in UnparentedChildren)
+                c.Draw(this, world);
+
+            if (!EnableDraw)
+                return;
+
+            if (!DBG.CategoryEnableDraw[Category])
+                return;
+
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
             {
                 if (OverrideColor.HasValue)
@@ -120,14 +131,6 @@ namespace DSAnimStudio.DebugPrimitives
                 }
             }
 
-            if (!EnableDraw)
-                return;
-
-            foreach (var c in Children)
-                c.Draw(this, world);
-
-            if (!DBG.CategoryEnableDraw[Category])
-                return;
 
             var techniques = ShaderTechniquesSelection;
 
@@ -141,7 +144,7 @@ namespace DSAnimStudio.DebugPrimitives
                     foreach (var pass in effect.CurrentTechnique.Passes)
                     {
                         if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                            GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity) * world);
+                            GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * world);
                         pass.Apply();
                         DrawPrimitive();
                     }
@@ -152,7 +155,7 @@ namespace DSAnimStudio.DebugPrimitives
                 foreach (var pass in effect.CurrentTechnique.Passes)
                 {
                     if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                        GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * (parentPrim?.Transform.WorldMatrix ?? Matrix.Identity) * world);
+                        GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * world);
                     pass.Apply();
                     DrawPrimitive();
                 }
@@ -172,27 +175,39 @@ namespace DSAnimStudio.DebugPrimitives
                 }
             }
 
-                
+            foreach (var c in Children)
+                c.Draw(this, Transform.WorldMatrix * world);
         }
 
         public void LabelDraw(Matrix world)
         {
-            if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category] && (EnableDraw && DBG.CategoryEnableDraw[Category])))
+            // Always draw unparented children :fatcat:
+            foreach (var c in UnparentedChildren)
+                c.LabelDraw(world);
+
+            if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category]))
                 return;
 
             if (DbgLabels.Count > 0)
             {
                 foreach (var label in DbgLabels)
                 {
-                    DBG.DrawTextOn3DLocation_PhysicalSize(label.World * Transform.WorldMatrix * world, Vector3.Zero,
-                        label.Text, label.Color, label.Height / 2, startAndEndSpriteBatchForMe: false);
+                    DBG.DrawTextOn3DLocation_FixedPixelSize(label.World * Transform.WorldMatrix * world, Vector3.Zero,
+                        label.Text, label.Color, label.Height * 1.5f, startAndEndSpriteBatchForMe: false);
                 }
             }
+
+            foreach (var c in Children)
+                c.LabelDraw(Transform.WorldMatrix * world);
         }
 
         public void LabelDraw_Billboard(Matrix world)
         {
-            if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category] && (EnableDraw && DBG.CategoryEnableDraw[Category])))
+            // Always draw unparented children :fatcat:
+            foreach (var c in UnparentedChildren)
+                c.LabelDraw_Billboard(world);
+
+            if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category]))
                 return;
 
             if (DbgLabels.Count > 0)
@@ -202,6 +217,9 @@ namespace DSAnimStudio.DebugPrimitives
                     DBG.Draw3DBillboard(label.Text, label.World * Transform.WorldMatrix * world, label.Color);
                 }
             }
+
+            foreach (var c in Children)
+                c.LabelDraw_Billboard(Transform.WorldMatrix * world);
         }
 
         protected abstract void DisposeBuffers();

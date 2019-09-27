@@ -74,6 +74,9 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DebugPrimitives\DbgPrimSolidBox.cs" />
+    <Compile Include="FlverShadingMode.cs" />
+    <Compile Include="NewBlendableTransform.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
     <Compile Include="NewChrAsmEquipForm.cs">
       <SubType>Form</SubType>

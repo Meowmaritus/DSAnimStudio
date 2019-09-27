@@ -19,158 +19,224 @@ namespace DSAnimStudio.TaeEditor
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
-            //MenuBar.AddTopItem("[TEST: NEW MODEL VIEWER]", () =>
+            //MenuBar.AddTopItem("[TEST: SCAN HKXPWV]", () =>
             //{
-            //    //GameDataManager.InterrootPath = @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game";
-            //    //GameDataManager.GameType = GameDataManager.GameTypes.DS3;
 
-            //    //GameDataManager.LoadCharacter("c6200");
-
-            //    LoadingTaskMan.DoLoadingTask("TEST MODEL VIEWER", "MODEL VIEWER TEST...", progress =>
+            //    foreach (var chrbndName in System.IO.Directory.GetFiles(
+            //        @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr", 
+            //        "*.chrbnd"))
             //    {
-            //        //GameDataManager.Init(
-            //        //    GameDataManager.GameTypes.DS1, 
-            //        //    @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA");
-
-            //        //GameDataManager.Init(
-            //        //   GameDataManager.GameTypes.BB,
-            //        //   @"E:\BloodborneRips\BB Fake Interroot\dvdroot_ps4");
-
-            //        //var player = GameDataManager.LoadCharacter("c0000");
-
-            //        GameDataManager.Init(
-            //          GameDataManager.GameTypes.DS3,
-            //          @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game");
-
-            //        var player = GameDataManager.LoadCharacter("c0000");
-
-            //        player.CreateChrAsm();
-
-
-            //        //player.ChrAsm.RightWeaponID = 306000; // DS1 Stone Greatsword
-
-
-            //        //BB Foreign Set
-            //        //player.ChrAsm.HeadID = 230000;
-            //        //player.ChrAsm.BodyID = 231000;
-            //        //player.ChrAsm.ArmsID = 232000;
-            //        //player.ChrAsm.LegsID = 233000;
-
-            //        //player.ChrAsm.RightWeaponID = 7100000; // BB Saw Spear
-
-            //        //DS3 Firelink Set
-            //        player.ChrAsm.HeadID = 21000000;
-            //        player.ChrAsm.BodyID = 21001000;
-            //        player.ChrAsm.ArmsID = 21002000;
-            //        player.ChrAsm.LegsID = 21003000;
-            //        player.ChrAsm.RightWeaponID = 12000000; // DS3 Whip
-            //        player.ChrAsm.LeftWeaponID = 1455000;
-
-            //        player.ChrAsm.UpdateModels();
-
-            //        var test = Scene.Models;
-
-            //        //foreach (var hitbox in player.ChrAsm.RightWeaponModel.DummyPolyMan.HitboxPrimitiveInfos)
-            //        //{
-            //        //    foreach (var prim in hitbox.Value.Primitives)
-            //        //    {
-            //        //        prim.EnableDraw = true;
-            //        //    }
-            //        //}
-
-            //        //player.ChrAsm.RightWeaponModel.DummyPolyMan.ActivateAllHitboxes();
-            //        player.DummyPolyMan.ActivateHitbox(ParamManager.AtkParam_Pc[4300000]);
-
-            //        player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = "a043_030000.hkx";
-            //        player.AnimContainer.CurrentAnimationName = "a043_030000.hkx";
-
-            //        GameWindowAsForm.Invoke(new Action(() =>
+            //        var bnd = BND3.Read(chrbndName);
+            //        var chrShortName = Utils.GetShortIngameFileName(chrbndName);
+            //        foreach (var hkxpwvEntry in bnd.Files.Where(x => x.Name.ToUpper().EndsWith(".HKXPWV")))
             //        {
-            //            var cboiceDict = new Dictionary<string, Action>();
-            //            foreach (var kvp in player.ChrAsm.RightWeaponModel.AnimContainer.Animations)
+            //            var hkxpwv = HKXPWV.Read(hkxpwvEntry.Bytes);
+
+            //            HKX.HKASkeleton ragdollSkeleton = null;
+
+            //            foreach (var ragdollHkxEntry in bnd.Files.Where(x => x.Name.ToLower().EndsWith($"{chrShortName}.hkx")))
             //            {
-            //                cboiceDict.Add(kvp.Key, () => player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = kvp.Key);
-
-
-            //            }
-
-            //            MenuBar.AddItem("[WPN TEST]", "WPN Anim", cboiceDict, () => player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName);
-            //        }));
-
-            //        Console.WriteLine("fatcat");
-            //    });
-
-            //    //GameDataManager.InterrootPath = @"E:\BloodborneRips\BB Fake Interroot\dvdroot_ps4";
-            //    //GameDataManager.GameType = GameDataManager.GameTypes.BB;
-
-            //    //GameDataManager.LoadCharacter("c2510");
-
-            //    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
-                
-            //});
-
-            //MenuBar.AddTopItem("[Reload Shaders]", () =>
-            //{
-            //    if (DebugReloadContentManager != null)
-            //    {
-            //        DebugReloadContentManager.Unload();
-            //        DebugReloadContentManager.Dispose();
-            //    }
-
-            //    DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
-
-
-            //    GFX.FlverShader.Effect.Dispose();
-            //    GFX.FlverShader = null;
-            //    GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
-
-            //    Main.MainFlverTonemapShader.Effect.Dispose();
-            //    Main.MainFlverTonemapShader = null;
-            //    Main.MainFlverTonemapShader  = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
-
-            //    GFX.InitShaders();
-            //});
-
-            //var useTonemapperCheckbox = new System.Windows.Forms.ToolStripMenuItem("Use Tonemapper");
-            //useTonemapperCheckbox.CheckOnClick = true;
-            //useTonemapperCheckbox.Checked = GFX.UseTonemap;
-            //useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
-            //useTonemapperCheckbox.CheckedChanged += (x, y) =>
-            //{
-            //    GFX.UseTonemap = useTonemapperCheckbox.Checked;
-            //    useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
-            //};
-
-            //WinFormsMenuStrip.Items.Add(useTonemapperCheckbox);gon
-
-            //MenuBar.AddItem("Debug", "Scan All TAE Test", () =>
-            //{
-            //    var dir = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr";
-            //    var anibndNames = System.IO.Directory.GetFiles(dir, "*.anibnd");
-            //    foreach (var anibnd in anibndNames)
-            //    {
-            //        var bnd = BND3.Read(anibnd);
-            //        foreach (var bndFile in bnd.Files)
-            //        {
-            //            if (TAE.Is(bndFile.Bytes))
-            //            {
-            //                var tae = TAE.Read(bndFile.Bytes);
-            //                tae.ApplyTemplate(TAE.Template.ReadXMLFile("Res\\TAE.Template.DS1.xml"));
-            //                foreach (var anim in tae.Animations)
+            //                try
             //                {
-            //                    foreach (var ev in anim.Events)
+            //                    var skeletonHkx = HKX.Read(ragdollHkxEntry.Bytes, HKX.HKXVariation.HKXDS1);
+            //                    foreach (var obj in skeletonHkx.DataSection.Objects)
             //                    {
-            //                        if (ev.Type == 120)
+            //                        if (obj is HKX.HKASkeleton asSkeleton)
             //                        {
-            //                            //Console.WriteLine("Breakpoint hit");
+            //                            ragdollSkeleton = asSkeleton;
             //                        }
             //                    }
+            //                }
+            //               catch
+            //                {
+            //                    Console.WriteLine($"FAILED TO READ RAGDOLL FOR {chrShortName}");
+            //                }
+            //            }
+
+            //                Console.WriteLine($"{chrShortName}");
+
+            //            Dictionary<int, List<string>> groups = new Dictionary<int, List<string>>();
+
+            //            for (int i = 0; i < hkxpwv.RagdollBoneEntries.Count; i++)
+            //            {
+            //                if (hkxpwv.RagdollBoneEntries[i].NPCPartGroupIndex == 0)
+            //                    continue;
+
+            //                if (!groups.ContainsKey(hkxpwv.RagdollBoneEntries[i].NPCPartGroupIndex))
+            //                    groups.Add(hkxpwv.RagdollBoneEntries[i].NPCPartGroupIndex, new List<string>());
+
+            //                string boneName = null;
+            //                if (ragdollSkeleton != null)
+            //                    boneName = ragdollSkeleton.Bones[i].Name.GetString();
+
+            //                groups[hkxpwv.RagdollBoneEntries[i].NPCPartGroupIndex].Add(boneName ?? $"RagdollBone[{i}]");
+            //            }
+
+            //            foreach (var kvp in groups)
+            //            {
+            //                Console.WriteLine($"    Part Group {kvp.Key}");
+            //                foreach (var thing in kvp.Value)
+            //                {
+            //                    Console.WriteLine($"        {thing}");
             //                }
             //            }
             //        }
             //    }
+
+            //    Console.WriteLine("DONE.");
             //});
-        }
+                //MenuBar.AddTopItem("[TEST: NEW MODEL VIEWER]", () =>
+                //{
+                //    //GameDataManager.InterrootPath = @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game";
+                //    //GameDataManager.GameType = GameDataManager.GameTypes.DS3;
+
+                //    //GameDataManager.LoadCharacter("c6200");
+
+                //    LoadingTaskMan.DoLoadingTask("TEST MODEL VIEWER", "MODEL VIEWER TEST...", progress =>
+                //    {
+                //        //GameDataManager.Init(
+                //        //    GameDataManager.GameTypes.DS1, 
+                //        //    @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA");
+
+                //        //GameDataManager.Init(
+                //        //   GameDataManager.GameTypes.BB,
+                //        //   @"E:\BloodborneRips\BB Fake Interroot\dvdroot_ps4");
+
+                //        //var player = GameDataManager.LoadCharacter("c0000");
+
+                //        GameDataManager.Init(
+                //          GameDataManager.GameTypes.DS3,
+                //          @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS III\Game");
+
+                //        var player = GameDataManager.LoadCharacter("c0000");
+
+                //        player.CreateChrAsm();
+
+
+                //        //player.ChrAsm.RightWeaponID = 306000; // DS1 Stone Greatsword
+
+
+                //        //BB Foreign Set
+                //        //player.ChrAsm.HeadID = 230000;
+                //        //player.ChrAsm.BodyID = 231000;
+                //        //player.ChrAsm.ArmsID = 232000;
+                //        //player.ChrAsm.LegsID = 233000;
+
+                //        //player.ChrAsm.RightWeaponID = 7100000; // BB Saw Spear
+
+                //        //DS3 Firelink Set
+                //        player.ChrAsm.HeadID = 21000000;
+                //        player.ChrAsm.BodyID = 21001000;
+                //        player.ChrAsm.ArmsID = 21002000;
+                //        player.ChrAsm.LegsID = 21003000;
+                //        player.ChrAsm.RightWeaponID = 12000000; // DS3 Whip
+                //        player.ChrAsm.LeftWeaponID = 1455000;
+
+                //        player.ChrAsm.UpdateModels();
+
+                //        var test = Scene.Models;
+
+                //        //foreach (var hitbox in player.ChrAsm.RightWeaponModel.DummyPolyMan.HitboxPrimitiveInfos)
+                //        //{
+                //        //    foreach (var prim in hitbox.Value.Primitives)
+                //        //    {
+                //        //        prim.EnableDraw = true;
+                //        //    }
+                //        //}
+
+                //        //player.ChrAsm.RightWeaponModel.DummyPolyMan.ActivateAllHitboxes();
+                //        player.DummyPolyMan.ActivateHitbox(ParamManager.AtkParam_Pc[4300000]);
+
+                //        player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = "a043_030000.hkx";
+                //        player.AnimContainer.CurrentAnimationName = "a043_030000.hkx";
+
+                //        GameWindowAsForm.Invoke(new Action(() =>
+                //        {
+                //            var cboiceDict = new Dictionary<string, Action>();
+                //            foreach (var kvp in player.ChrAsm.RightWeaponModel.AnimContainer.Animations)
+                //            {
+                //                cboiceDict.Add(kvp.Key, () => player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = kvp.Key);
+
+
+                //            }
+
+                //            MenuBar.AddItem("[WPN TEST]", "WPN Anim", cboiceDict, () => player.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName);
+                //        }));
+
+                //        Console.WriteLine("fatcat");
+                //    });
+
+                //    //GameDataManager.InterrootPath = @"E:\BloodborneRips\BB Fake Interroot\dvdroot_ps4";
+                //    //GameDataManager.GameType = GameDataManager.GameTypes.BB;
+
+                //    //GameDataManager.LoadCharacter("c2510");
+
+                //    DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = true;
+
+                //});
+
+                //MenuBar.AddTopItem("[Reload Shaders]", () =>
+                //{
+                //    if (DebugReloadContentManager != null)
+                //    {
+                //        DebugReloadContentManager.Unload();
+                //        DebugReloadContentManager.Dispose();
+                //    }
+
+                //    DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+
+
+                //    GFX.FlverShader.Effect.Dispose();
+                //    GFX.FlverShader = null;
+                //    GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
+
+                //    Main.MainFlverTonemapShader.Effect.Dispose();
+                //    Main.MainFlverTonemapShader = null;
+                //    Main.MainFlverTonemapShader  = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
+
+                //    GFX.InitShaders();
+                //});
+
+                //var useTonemapperCheckbox = new System.Windows.Forms.ToolStripMenuItem("Use Tonemapper");
+                //useTonemapperCheckbox.CheckOnClick = true;
+                //useTonemapperCheckbox.Checked = GFX.UseTonemap;
+                //useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
+                //useTonemapperCheckbox.CheckedChanged += (x, y) =>
+                //{
+                //    GFX.UseTonemap = useTonemapperCheckbox.Checked;
+                //    useTonemapperCheckbox.Text = $"Use Tonemapper: {(useTonemapperCheckbox.Checked ? "YES" : "NO")}";
+                //};
+
+                //WinFormsMenuStrip.Items.Add(useTonemapperCheckbox);gon
+
+                //MenuBar.AddItem("Debug", "Scan All TAE Test", () =>
+                //{
+                //    var dir = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr";
+                //    var anibndNames = System.IO.Directory.GetFiles(dir, "*.anibnd");
+                //    foreach (var anibnd in anibndNames)
+                //    {
+                //        var bnd = BND3.Read(anibnd);
+                //        foreach (var bndFile in bnd.Files)
+                //        {
+                //            if (TAE.Is(bndFile.Bytes))
+                //            {
+                //                var tae = TAE.Read(bndFile.Bytes);
+                //                tae.ApplyTemplate(TAE.Template.ReadXMLFile("Res\\TAE.Template.DS1.xml"));
+                //                foreach (var anim in tae.Animations)
+                //                {
+                //                    foreach (var ev in anim.Events)
+                //                    {
+                //                        if (ev.Type == 120)
+                //                        {
+                //                            //Console.WriteLine("Breakpoint hit");
+                //                        }
+                //                    }
+                //                }
+                //            }
+                //        }
+                //    }
+                //});
+            }
 
         enum DividerDragMode
         {
@@ -203,13 +269,23 @@ namespace DSAnimStudio.TaeEditor
         
         public class FindInfoKeep
         {
+            public enum TaeSearchType : int
+            {
+                ParameterValue = 0,
+                ParameterName = 1,
+                EventName = 2,
+                EventType = 3,
+            }
+
             public string SearchQuery;
             public bool MatchEntireString;
             public List<TaeFindResult> Results;
             public int HighlightedIndex;
+            public TaeSearchType SearchType;
         }
 
         public FindInfoKeep LastFindInfo = null;
+        public TaeFindValueDialog FindValueDialog = null;
 
         public TaePlaybackCursor PlaybackCursor => Graph?.PlaybackCursor;
 
@@ -706,6 +782,9 @@ namespace DSAnimStudio.TaeEditor
             GameWindowAsForm.Invoke(new Action(() =>
             {
                 ButtonEditCurrentTaeHeader.Enabled = false;
+                // Since form close event is hooked this should
+                // take care of nulling it out for us.
+                FindValueDialog?.Close();
             }));
             SelectedTaeAnim = SelectedTae.Animations[0];
             editScreenAnimList = new TaeEditAnimList(this);
@@ -873,9 +952,51 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
 
-            //////////////////
-            // NPC Settings //
-            //////////////////
+            /////////////////////
+            // Entity Settings //
+            /////////////////////
+
+            void BrowseForMoreTextures()
+            {
+                List<string> texturesToLoad = new List<string>();
+                foreach (var m in Scene.Models)
+                {
+                    lock (Scene._lock_ModelLoad_Draw)
+                        texturesToLoad.AddRange(m.MainMesh.GetAllTexNamesToLoad());
+                }
+
+                var browseDlg = new System.Windows.Forms.OpenFileDialog()
+                {
+                    //Filter = "TPF[.DCX]/TFPBHD|*.TPF*",
+                    Multiselect = true,
+                    Title = "Load textures from CHRBND(s), TEXBND(s), TPF(s), and/or TPFBHD(s)..."
+                };
+                if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    var texFileNames = browseDlg.FileNames;
+                    List<string> bxfDupeCheck = new List<string>();
+                    LoadingTaskMan.DoLoadingTask("BrowseForEntityTextures", "Scanning files for relevant textures...", progress =>
+                    {
+                        double i = 0;
+                        foreach (var tfn in texFileNames)
+                        {
+                            var shortName = Utils.GetShortIngameFileName(tfn);
+                            if (!bxfDupeCheck.Contains(shortName))
+                            {
+                                TexturePool.AddSpecificTexturesFromBinder(tfn, texturesToLoad);
+                                bxfDupeCheck.Add(shortName);
+                            }
+                            progress.Report(++i / texFileNames.Length);
+                        }
+                        Scene.RequestTextureLoad();
+                        progress.Report(1);
+                    });
+                    
+                    
+                }
+
+
+            }
 
             MenuBar.AddTopItem("NPC Settings");
             MenuBar["NPC Settings"].Enabled = false;
@@ -884,6 +1005,8 @@ namespace DSAnimStudio.TaeEditor
                 new System.Drawing.Font(MenuBar["NPC Settings"].Font, 
                 System.Drawing.FontStyle.Bold);
             MenuBar["NPC Settings"].ForeColor = System.Drawing.Color.Cyan;
+            MenuBar.AddItem("NPC Settings", "Load Additional Texture File(s)...", () => BrowseForMoreTextures());
+
 
             MenuBar.AddTopItem("Player Settings");
             MenuBar["Player Settings"].Enabled = false;
@@ -906,6 +1029,7 @@ namespace DSAnimStudio.TaeEditor
                 new System.Drawing.Font(MenuBar["Object Settings"].Font, 
                 System.Drawing.FontStyle.Bold);
             MenuBar["Object Settings"].ForeColor = System.Drawing.Color.Cyan;
+            MenuBar.AddItem("Object Settings", "Load Additional Texture File(s)...", () => BrowseForMoreTextures());
 
             MenuBar.AddTopItem("Animated Equipment Settings");
             MenuBar["Animated Equipment Settings"].Enabled = false;
@@ -922,6 +1046,7 @@ namespace DSAnimStudio.TaeEditor
                 new System.Drawing.Font(MenuBar["Cutscene Settings"].Font,
                 System.Drawing.FontStyle.Bold);
             MenuBar["Cutscene Settings"].ForeColor = System.Drawing.Color.Cyan;
+            MenuBar.AddItem("Cutscene Settings", "Load Additional Texture File(s)...", () => BrowseForMoreTextures());
 
             //////////
             // Edit //
@@ -973,12 +1098,20 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("Event Graph");
             MenuBar.AddItem("Event Graph", "Auto-scroll During Anim Playback", () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
 
-            MenuBar.AddSeparator("Event Graph");
+            //MenuBar.AddSeparator("Event Graph");
 
             //MenuBar.AddItem("Event Graph", "Show SFX Spawn Events With Cyan Markers", () => TaeInterop.ShowSFXSpawnWithCyanMarkers, b => TaeInterop.ShowSFXSpawnWithCyanMarkers = b);
             //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
             //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
             //MenuBar.AddItem("Event Graph", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
+
+            ////////////////
+            // Simulation //
+            ////////////////
+            
+            MenuBar.AddTopItem("Simulation");
+            MenuBar["Simulation"].Enabled = false;
+            MenuBar["Simulation"].Visible = false;
 
             ///////////
             // Scene //
@@ -987,14 +1120,71 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("Scene", "Render Meshes", () => !GFX.HideFLVERs,
                     b => GFX.HideFLVERs = !b);
 
-            MenuBar.AddItem("Scene", "Render HKX Skeleton (Yellow)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
-                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
+            MenuBar.AddSeparator("Scene");
 
-            MenuBar.AddItem("Scene", "Render FLVER Skeleton (Purple)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
+            MenuBar.AddItem("Scene", "Models", menu =>
+            {
+                foreach (var m in Scene.Models)
+                {
+                    menu.AddItem($"Scene/Models/{m.Name}", $"Hide All", () =>
+                    {
+                        foreach (var sm in m.MainMesh.Submeshes)
+                            sm.IsVisible = false;
+                    });
+                    menu.AddItem($"Scene/Models/{m.Name}", $"Show All", () =>
+                    {
+                        foreach (var sm in m.MainMesh.Submeshes)
+                            sm.IsVisible = true;
+                    });
+                    menu.AddSeparator($"Scene/Models/{m.Name}");
+                    
+                    var maskDict = m.GetMaterialNamesPerMask();
+
+                    foreach (var kvp in maskDict.OrderBy(k => k.Key))
+                    {
+                        if (kvp.Key >= 0 && kvp.Key < m.DrawMask.Length)
+                        {
+                            menu.AddItem($"Scene/Models/{m.Name}", $"Mask {(kvp.Key)}",
+                            () => m.DrawMask[kvp.Key], b => m.DrawMask[kvp.Key] = b);
+                        }
+                    }
+
+                    menu.AddSeparator($"Scene/Models/{m.Name}");
+
+                    int i = 1;
+                    foreach (var sm in m.MainMesh.Submeshes)
+                    {
+                        menu.AddItem($"Scene/Models/{m.Name}", $"Model {(i++)}: {sm.FullMaterialName}" +
+                            (sm.ModelMaskIndex >= 0 && maskDict.ContainsKey(sm.ModelMaskIndex) 
+                            ? $" | [Mask {sm.ModelMaskIndex}]" : ""), 
+                            () => sm.IsVisible, b => sm.IsVisible = b, 
+                            () => (sm.ModelMaskIndex < 0 || m.MainMesh.DrawMask[sm.ModelMaskIndex]));
+                    }
+                }
+            });
+
+            //MenuBar.AddItem("Scene", $"Render HKX Skeleton ({DBG.COLOR_HKX_BONE_NAME})", 
+            //    () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
+            //        b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
+
+            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton ({DBG.COLOR_FLVER_BONE_NAME})", 
+                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
                 b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = b);
 
-            MenuBar.AddItem("Scene", "Render DummyPoly (Red/Green/Blue)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton Boxes ({DBG.COLOR_FLVER_BONE_BBOX_NAME})", 
+                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
+                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
+
+            MenuBar.AddItem("Scene", "Helper: DummyPoly (RGB)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+            MenuBar.AddItem("Scene", "Helper: DummyPoly IDs", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                   b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+            MenuBar.AddSeparator("Scene");
+
+            MenuBar.AddItem("Scene", "Helper X-Ray Mode", () => DBG.DbgPrimXRay,
+                    b => DBG.DbgPrimXRay = b);
 
             ///////////////
             // Animation //
@@ -1019,7 +1209,7 @@ namespace DSAnimStudio.TaeEditor
             // Viewport //
             //////////////
 
-            MenuBar.AddItem("Viewport", "Vsync", () => GFX.Display.Vsync, b =>
+            MenuBar.AddItem("3D Viewport", "Vsync", () => GFX.Display.Vsync, b =>
             {
                 GFX.Display.Vsync = b;
                 GFX.Display.Width = GFX.Device.Viewport.Width;
@@ -1028,27 +1218,56 @@ namespace DSAnimStudio.TaeEditor
                 GFX.Display.Apply();
             });
 
-            MenuBar.AddItem("Viewport", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
-            MenuBar.AddItem("Viewport", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
-            MenuBar.AddItem("Viewport", "Shader Workflow Type", new Dictionary<string, Action>
+            MenuBar.AddItem("3D Viewport", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
+            MenuBar.AddItem("3D Viewport", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
+
+            Dictionary<string, Action> shadingModeChoicesDict = new Dictionary<string, Action>();
+
+            void AddShadingModeChoice(FlverShadingMode mode)
             {
-                { "Legacy (Epic 2005 Style)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Ass },
-                { "Modern (Gloss Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Gloss },
-                { "Modern (Roughness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Roughness },
-                { "Modern (Metalness Channel)", () => GFX.FlverShaderWorkflowType = FlverShader.FSWorkflowType.Metalness },
-            }, () =>
+                shadingModeChoicesDict.Add(GFX.FlverShadingModeNames[mode], () => GFX.ForcedFlverShadingMode = mode);
+            }
+
+            shadingModeChoicesDict.Add("Do Not Override", () => GFX.ForcedFlverShadingMode = null);
+
+            shadingModeChoicesDict.Add("SEPARATOR:0", null);
+
+            AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_DS3);
+            AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_BB);
+            AddShadingModeChoice(FlverShadingMode.CLASSIC_DIFFUSE_PTDE);
+            AddShadingModeChoice(FlverShadingMode.LEGACY);
+
+            shadingModeChoicesDict.Add("SEPARATOR:1", null);
+
+            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_DIFFUSEMAP);
+            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SPECULARMAP);
+            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP);
+            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_EMISSIVEMAP);
+            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_BLENDMASKMAP);
+            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SHININESSMAP);
+            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP_BLUE);
+
+            shadingModeChoicesDict.Add("SEPARATOR:2", null);
+
+            AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS);
+            AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
+
+            MenuBar.AddSeparator("3D Viewport");
+
+            MenuBar.AddItem("3D Viewport", "Override FLVER Shading Mode", shadingModeChoicesDict, () =>
             {
-                switch (GFX.FlverShaderWorkflowType)
+                if (GFX.ForcedFlverShadingMode == null)
                 {
-                    case FlverShader.FSWorkflowType.Ass: return "Legacy (Epic 2005 Style)";
-                    case FlverShader.FSWorkflowType.Gloss: return "Modern (Gloss Channel)";
-                    case FlverShader.FSWorkflowType.Roughness: return "Modern (Roughness Channel)";
-                    case FlverShader.FSWorkflowType.Metalness: return "Modern (Metalness Channel)";
-                    default: return "";
+                    return "Do Not Override";
                 }
+                else
+                {
+                    return GFX.FlverShadingModeNames[GFX.ForcedFlverShadingMode.Value];
+                }
+                
             });
 
-            MenuBar.AddItem("Viewport", $@"Reload FLVER Shader (.\Content\Shaders\FlverShader.xnb)", () =>
+            MenuBar.AddItem("3D Viewport", $@"Reload FLVER Shader (.\Content\Shaders\FlverShader.xnb)", () =>
             {
                 if (DebugReloadContentManager != null)
                 {
@@ -1065,12 +1284,14 @@ namespace DSAnimStudio.TaeEditor
                 GFX.InitShaders();
             });
 
+            MenuBar.AddSeparator("3D Viewport");
+
             if (Environment.Cubemaps.ContainsKey(Config.LastCubemapUsed))
             {
                 Environment.CurrentCubemapName = Config.LastCubemapUsed;
             }
 
-            MenuBar.AddItem("Viewport", "Cubemap", () =>
+            MenuBar.AddItem("3D Viewport", "Cubemap", () =>
             {
                 var result = new Dictionary<string, Action>();
                 foreach (var kvp in Environment.Cubemaps)
@@ -1085,18 +1306,18 @@ namespace DSAnimStudio.TaeEditor
             },
             () => Environment.CurrentCubemapName);
 
-            MenuBar.AddItem("Viewport", "Resolution Multiplier", new Dictionary<string, Action>
+            MenuBar.AddItem("3D Viewport", "Resolution Multiplier", new Dictionary<string, Action>
             {
                 { "1x", () => GFX.SSAA = 1 },
                 { "2x", () => GFX.SSAA = 2 },
                 { "3x", () => GFX.SSAA = 3 },
                 { "4x", () => GFX.SSAA = 4 },
-                { "5x", () => GFX.SSAA = 5 },
-                { "6x", () => GFX.SSAA = 6 },
-                { "7x", () => GFX.SSAA = 7 },
-                { "8x", () => GFX.SSAA = 8 },
-                { "16x", () => GFX.SSAA = 16 },
-                { "32x", () => GFX.SSAA = 32 },
+                //{ "5x", () => GFX.SSAA = 5 },
+                //{ "6x", () => GFX.SSAA = 6 },
+                //{ "7x", () => GFX.SSAA = 7 },
+                //{ "8x", () => GFX.SSAA = 8 },
+                //{ "16x", () => GFX.SSAA = 16 },
+                //{ "32x", () => GFX.SSAA = 32 },
             }, () => $"{GFX.SSAA}x");
 
 
@@ -1183,7 +1404,7 @@ namespace DSAnimStudio.TaeEditor
         {
             var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower();
 
-            if (chrNameBase.EndsWith("c"))
+            if (chrNameBase.StartsWith("c"))
             {
                 DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload(
                     DSAnimStudio.LiveRefresh.RequestFileReload.ReloadType.Chr, chrNameBase);
@@ -1399,12 +1620,15 @@ namespace DSAnimStudio.TaeEditor
             {
                 LoadingTaskMan.DoLoadingTask("DirectOpenFile", "Opening ANIBND and associated model(s)...", progress =>
                 {
+                    string oldFileContainerName = FileContainerName.ToString();
+                    var oldFileContainer = FileContainer;
 
                     FileContainerName = fileName;
                     var loadFileResult = LoadCurrentFile();
                     if (loadFileResult == false)
                     {
-                        FileContainerName = "";
+                        FileContainerName = oldFileContainerName;
+                        FileContainer = oldFileContainer;
                         return;
                     }
                     else if (loadFileResult == null)
@@ -1450,13 +1674,15 @@ namespace DSAnimStudio.TaeEditor
                             }
                         }
 
-                        FileContainerName = "";
+                        FileContainerName = oldFileContainerName;
+                        FileContainer = oldFileContainer;
                         return;
                     }
 
                     if (!FileContainer.AllTAE.Any())
                     {
-                        FileContainerName = "";
+                        FileContainerName = oldFileContainerName;
+                        FileContainer = oldFileContainer;
                         System.Windows.Forms.MessageBox.Show(
                             "Selected file had no TAE files within. " +
                             "Cancelling load operation.", "Invalid File",
@@ -1465,7 +1691,8 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else if (loadFileResult == null)
                     {
-                        FileContainerName = "";
+                        FileContainerName = oldFileContainerName;
+                        FileContainer = oldFileContainer;
                         System.Windows.Forms.MessageBox.Show(
                             "File did not exist.", "File Does Not Exist",
                             System.Windows.Forms.MessageBoxButtons.OK,
@@ -1829,13 +2056,19 @@ namespace DSAnimStudio.TaeEditor
         {
             if (FileContainerName == null || SelectedTae == null)
                 return;
-            PauseUpdate = true;
+            //PauseUpdate = true;
 
-            var findWindow = new TaeFindValueDialog();
-            findWindow.LastFindInfo = LastFindInfo;
-            findWindow.EditorRef = this;
-            findWindow.Owner = GameWindowAsForm;
-            findWindow.ShowDialog();
+            if (FindValueDialog == null)
+            {
+                FindValueDialog = new TaeFindValueDialog();
+                FindValueDialog.LastFindInfo = LastFindInfo;
+                FindValueDialog.EditorRef = this;
+                FindValueDialog.Owner = GameWindowAsForm;
+                FindValueDialog.Show();
+                FindValueDialog.FormClosed += FindValueDialog_FormClosed;
+            }
+
+            
 
             //var find = KeyboardInput.Show("Quick Find Event", "Finds the very first animation containing the event with the specified ID number or name (according to template).", "");
             //if (int.TryParse(find.Result, out int typeID))
@@ -1857,7 +2090,13 @@ namespace DSAnimStudio.TaeEditor
 
 
             
-            PauseUpdate = false;
+            //PauseUpdate = false;
+        }
+
+        private void FindValueDialog_FormClosed(object sender, System.Windows.Forms.FormClosedEventArgs e)
+        {
+            FindValueDialog.FormClosed -= FindValueDialog_FormClosed;
+            FindValueDialog = null;
         }
 
         public void ShowDialogGoto()

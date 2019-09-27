@@ -26,6 +26,16 @@ namespace DSAnimStudio.TaeEditor
             InitializeComponent();
         }
 
+        private TaeEditorScreen.FindInfoKeep.TaeSearchType CurrentSearchType
+        {
+            get
+            {
+                if (comboBoxSearchType.SelectedIndex < 0)
+                    comboBoxSearchType.SelectedIndex = 0;
+                return (TaeEditorScreen.FindInfoKeep.TaeSearchType)comboBoxSearchType.SelectedIndex;
+            }
+        }
+
         private void BuildResults()
         {
             listViewResults.VirtualListSize = Results.Count;
@@ -60,6 +70,12 @@ namespace DSAnimStudio.TaeEditor
                 listViewResults.Select();
 
                 listViewResults.Focus();
+
+                comboBoxSearchType.SelectedIndex = (int)LastFindInfo.SearchType;
+            }
+            else
+            {
+                comboBoxSearchType.SelectedIndex = 0;
             }
         }
 
@@ -71,7 +87,36 @@ namespace DSAnimStudio.TaeEditor
         private void DoSearch()
         {
             ResultsThread?.Abort();
-            Results = TaeFindParameter.Find(EditorRef, textBoxSearchQuery.Text, checkBox1.Checked);
+
+            var st = CurrentSearchType;
+            if (st == TaeEditorScreen.FindInfoKeep.TaeSearchType.ParameterValue)
+            {
+                Results = TaeFindParameter.FindParameterValue(EditorRef, textBoxSearchQuery.Text, checkBox1.Checked);
+            }
+            else if (st == TaeEditorScreen.FindInfoKeep.TaeSearchType.ParameterName)
+            {
+                Results = TaeFindParameter.FindParameterName(EditorRef, textBoxSearchQuery.Text, checkBox1.Checked);
+            }
+            else if (st == TaeEditorScreen.FindInfoKeep.TaeSearchType.EventName)
+            {
+                Results = TaeFindParameter.FindEventTypeName(EditorRef, textBoxSearchQuery.Text, checkBox1.Checked);
+            }
+            else if (st == TaeEditorScreen.FindInfoKeep.TaeSearchType.EventType)
+            {
+                if (int.TryParse(textBoxSearchQuery.Text, out int asInt))
+                {
+                    Results = TaeFindParameter.FindEventTypeNum(EditorRef, asInt);
+                }
+                else
+                {
+                    MessageBox.Show("Search query was not a valid number, which is required " +
+                        "for an Event Type Num search. If you wish to search for an event name " +
+                        "rather than the type number, change the search type to Event Name.");
+                    return;
+                }
+            }
+
+            
             BuildResults();
         }
 
@@ -89,9 +134,10 @@ namespace DSAnimStudio.TaeEditor
                 HighlightedIndex = listViewResults.SelectedIndices[0],
                 SearchQuery = textBoxSearchQuery.Text,
                 MatchEntireString = checkBox1.Checked,
+                SearchType = (TaeEditorScreen.FindInfoKeep.TaeSearchType)comboBoxSearchType.SelectedIndex,
             };
 
-            Close();
+            //Close();
         }
 
         private void TextBoxSearchQuery_KeyPress(object sender, KeyPressEventArgs e)
