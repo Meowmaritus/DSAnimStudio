@@ -23,6 +23,24 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(WorkflowType)].SetValue((int)value);
         }
 
+        public bool DisableAlpha
+        {
+            get => Parameters[nameof(DisableAlpha)].GetValueBoolean();
+            set => Parameters[nameof(DisableAlpha)].SetValue(value);
+        }
+
+        public bool EnableBlendTextures
+        {
+            get => Parameters[nameof(EnableBlendTextures)].GetValueSingle() > 0;
+            set => Parameters[nameof(EnableBlendTextures)].SetValue(value ? 1.0f : 0.0f);
+        }
+
+        public bool EnableBlendMaskMap
+        {
+            get => Parameters[nameof(EnableBlendMaskMap)].GetValueBoolean();
+            set => Parameters[nameof(EnableBlendMaskMap)].SetValue(value);
+        }
+
         public Vector3 LightDirection
         {
             get => Parameters[nameof(LightDirection)].GetValueVector3();
@@ -184,6 +202,24 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(SpecularMap)].GetValueTexture2D();
             set => Parameters[nameof(SpecularMap)]?.SetValue(value);
+        }
+
+        public Texture2D ColorMap2
+        {
+            get => Parameters[nameof(ColorMap2)].GetValueTexture2D();
+            set => Parameters[nameof(ColorMap2)]?.SetValue(value);
+        }
+
+        public Texture2D NormalMap2
+        {
+            get => Parameters[nameof(NormalMap2)].GetValueTexture2D();
+            set => Parameters[nameof(NormalMap2)]?.SetValue(value);
+        }
+
+        public Texture2D SpecularMap2
+        {
+            get => Parameters[nameof(SpecularMap2)].GetValueTexture2D();
+            set => Parameters[nameof(SpecularMap2)]?.SetValue(value);
         }
 
         public Texture2D SpecularMapBB

@@ -171,14 +171,6 @@ namespace DSAnimStudio.TaeEditor
 
                         Graph.MainScreen.MenuBar.AddSeparator("NPC Settings");
 
-                        Graph.MainScreen.MenuBar.AddItem("NPC Settings/Draw Mask", "Show All", () =>
-                        {
-                            for (int i = 0; i < CurrentModel.DrawMask.Length; i++)
-                            {
-                                CurrentModel.DrawMask[i] = true;
-                            }
-                        });
-
                         var validNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
 
                         var materialsPerMask = CurrentModel.GetMaterialNamesPerMask();
@@ -201,13 +193,40 @@ namespace DSAnimStudio.TaeEditor
                             }
                         }
 
+                        var behaviorVariationChoicesDict = new Dictionary<string, Action>();
+
                         foreach (var npc in validNpcParams)
                         {
-                            Graph.MainScreen.MenuBar.AddItem("NPC Settings/Draw Mask", 
-                                $"{npc.GetDisplayName()} | {npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams)}", () =>
+                            behaviorVariationChoicesDict.Add($"{npc.GetDisplayName()}|" +
+                                npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
+                                $"\nBehaviorVariationID: {npc.BehaviorVariationID}",
+                                () =>
+                                {
+                                    CurrentModel.NpcParam = npc;
+                                    CurrentModel.NpcParam.ApplyMaskToModel(CurrentModel);
+                                });
+                        }
+
+                        Graph.MainScreen.MenuBar.AddItem("NPC Settings", "NpcParam", behaviorVariationChoicesDict, 
+                            () => $"{CurrentModel.NpcParam.GetDisplayName()}|" +
+                            CurrentModel.NpcParam.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
+                            $"\nBehaviorVariationID: {CurrentModel.NpcParam.BehaviorVariationID}");
+
+                        Graph.MainScreen.MenuBar.AddItem("NPC Settings/Override Draw Mask", "Show All", () =>
+                        {
+                            for (int i = 0; i < CurrentModel.DrawMask.Length; i++)
                             {
-                                npc.ApplyMaskToModel(CurrentModel);
-                            });
+                                CurrentModel.DrawMask[i] = true;
+                            }
+                        });
+
+                        foreach (var npc in validNpcParams)
+                        {
+                            Graph.MainScreen.MenuBar.AddItem("NPC Settings/Override Draw Mask",
+                                $"{npc.GetDisplayName()}|{npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams)}", () =>
+                                {
+                                    npc.ApplyMaskToModel(CurrentModel);
+                                });
                         }
 
                         //foreach (var npc in validNpcParams)
@@ -370,12 +389,13 @@ namespace DSAnimStudio.TaeEditor
         private void PlaybackCursor_PlaybackFrameChange(object sender, EventArgs e)
         {
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
+            Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
             CurrentModel.AnimContainer.IsPlaying = false;
-            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
+            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.CurrentTime);
 
             CheckSimEnvironment();
-            EventSim.OnSimulationFrameChange(Graph.EventBoxes);
+            EventSim.OnSimulationFrameChange(Graph.EventBoxes, (float)Graph.PlaybackCursor.CurrentTime);
         }
 
         private void CheckSimEnvironment()
@@ -417,10 +437,12 @@ namespace DSAnimStudio.TaeEditor
         private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
         {
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
+            Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
+
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
             CheckSimEnvironment();
-            EventSim.OnSimulationFrameChange(Graph.EventBoxes);
+            EventSim.OnSimulationFrameChange(Graph.EventBoxes, (float)Graph.PlaybackCursor.GUICurrentTime);
         }
 
         private void PlaybackCursor_PlaybackStarted(object sender, EventArgs e)
@@ -552,6 +574,7 @@ namespace DSAnimStudio.TaeEditor
                 CurrentModel.AnimContainer.CurrentAnimationName = mainChrAnimName;
 
                 Graph.PlaybackCursor.HkxAnimationLength = CurrentModel.AnimContainer.CurrentAnimDuration;
+                Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
                 CheckChrAsmWeapons();
 

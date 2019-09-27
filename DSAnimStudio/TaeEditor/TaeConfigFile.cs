@@ -9,6 +9,7 @@ namespace DSAnimStudio.TaeEditor
         public bool EnableColorBlindMode { get; set; } = false;
 
         public bool EnableSnapTo30FPSIncrements { get; set; } = true;
+        public bool LockFramerateToOriginalAnimFramerate { get; set; } = false;
 
         public bool EnableFancyScrollingStrings { get; set; } = true;
         public float FancyScrollingStringsScrollSpeed { get; set; } = 64;

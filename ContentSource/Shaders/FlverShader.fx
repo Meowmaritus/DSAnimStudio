@@ -80,6 +80,9 @@ float3 LightDirection;
 float3 EyePosition;
 float AlphaTest;
 float Opacity;
+bool DisableAlpha;
+float EnableBlendTextures; // Just multiplies lerp s I'm sorry.
+bool EnableBlendMaskMap;
 
 // Modern
 float AmbientLightMult = 1.0;
@@ -98,6 +101,15 @@ sampler2D ColorMapSampler = sampler_state
 	MipFilter = linear;
 };
 
+texture2D ColorMap2;
+sampler2D ColorMap2Sampler = sampler_state
+{
+	Texture = <ColorMap2>;
+	MinFilter = linear;
+	MagFilter = linear;
+	MipFilter = linear;
+};
+
 texture2D NormalMap;
 sampler2D NormalMapSampler = sampler_state
 {
@@ -107,10 +119,28 @@ sampler2D NormalMapSampler = sampler_state
 	MipFilter = linear;
 };
 
+texture2D NormalMap2;
+sampler2D NormalMap2Sampler = sampler_state
+{
+	Texture = <NormalMap2>;
+	MinFilter = linear;
+	MagFilter = linear;
+	MipFilter = linear;
+};
+
 texture2D SpecularMap;
 sampler2D SpecularMapSampler = sampler_state
 {
 	Texture = <SpecularMap>;
+	MinFilter = linear;
+	MagFilter = linear;
+	MipFilter = linear;
+};
+
+texture2D SpecularMap2;
+sampler2D SpecularMap2Sampler = sampler_state
+{
+	Texture = <SpecularMap2>;
 	MinFilter = linear;
 	MagFilter = linear;
 	MipFilter = linear;
@@ -183,7 +213,7 @@ struct VertexShaderOutput
 	float3x3 WorldToTangentSpace : TEXCOORD3;
 	float3 Normal : NORMAL0;
     float4 Bitangent : TANGENT0;
-	float4 DebugColor : TEXCOORD6;
+	float4 Color : TEXCOORD6;
 };
 
 float4 SkinShit(VertexShaderInput input, float4 shit)
@@ -342,6 +372,8 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 	output.View = normalize(EyePosition - worldPosition);
     output.Bitangent = input.Bitangent;
 	
+    output.Color = input.Color;
+    
 	//output.Normal = mul((float3x3)skinning, output.Normal);
 	//output.DebugColor.xy = input.AtlasScale.xy;
 	//output.DebugColor.zw = input.AtlasOffset.xy;
@@ -371,12 +403,30 @@ float B16(float2 avCoords)
 
 float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : COLOR
 {
-	float4 color = tex2D(ColorMapSampler, input.TexCoord);
+    float4 blendmaskColor = tex2D(BlendmaskMapSampler, input.TexCoord);
+
+    float texBlendVal = (input.Color.a * EnableBlendTextures);
+    
+    [branch]
+    if (EnableBlendMaskMap)
+    {
+        texBlendVal = blendmaskColor.r;
+    }
+
+	float4 color = lerp(tex2D(ColorMapSampler, input.TexCoord), tex2D(ColorMap2Sampler, input.TexCoord2), texBlendVal);
     //color = pow(color, 1.0 / 2.2);
     
-    float dissolve = B16(input.Position.xy);
+    float inputTexAlpha = 1;
     
-    if ((((Opacity * color.a) * 1.05) + 0.125) < dissolve)
+    [branch]
+    if (!DisableAlpha)
+    {
+        inputTexAlpha = color.a;
+    }
+    
+    float dissolve = B16(input.Position.xy);
+        
+    if ((((Opacity * inputTexAlpha) * 1.05) + 0.125) < dissolve)
     {
         clip(-1);
     }
@@ -387,10 +437,10 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         return color;
     }
     
-    float4 specularMapColor = tex2D(SpecularMapSampler, input.TexCoord);
+    float4 specularMapColor = lerp(tex2D(SpecularMapSampler, input.TexCoord), tex2D(SpecularMap2Sampler, input.TexCoord2), texBlendVal);
     float4 emissiveMapColor = tex2D(EmissiveMapSampler, input.TexCoord);
-    float3 nmapcol = tex2D(NormalMapSampler, input.TexCoord);
-    float4 blendmaskColor = tex2D(BlendmaskMapSampler, input.TexCoord);
+    float3 nmapcol = lerp(tex2D(NormalMapSampler, input.TexCoord), tex2D(NormalMap2Sampler, input.TexCoord2), texBlendVal);
+    
     float4 shininessMapColor = tex2D(SpecularMapBBSampler, input.TexCoord);
     
     [branch]
@@ -432,11 +482,11 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
         float3 normal = (!isFrontFacing ? normalMap : -normalMap);
         
-        return float4(normal * 0.25 + 0.5, 1);
+        return float4((normal * float3(1,1,-1)) * 0.25 + 0.5, 1);
     }
     else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY)
     {
-        return float4(input.Normal * 0.25 + 0.5, 1);
+        return float4((input.Normal * float3(1,1,-1)) * 0.25 + 0.5, 1);
     }
     if (WorkflowType == WORKFLOW_PBR_GLOSS_DS3)
     {

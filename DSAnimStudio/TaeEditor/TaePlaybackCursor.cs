@@ -38,8 +38,13 @@ namespace DSAnimStudio.TaeEditor
         public event EventHandler ScrubFrameChange;
         private void OnScrubFrameChange() { ScrubFrameChange?.Invoke(this, EventArgs.Empty); }
 
-        public double GUICurrentTime => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(CurrentTime / SnapInterval) * SnapInterval) : CurrentTime;
-        public double GUIStartTime => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(StartTime / SnapInterval) * SnapInterval) : StartTime;
+        public double GUICurrentTime => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
+            ? (Math.Round(CurrentTime / (SnapInterval ?? SnapInterval_Default)) 
+            * (SnapInterval ?? SnapInterval_Default)) : CurrentTime;
+
+        public double GUIStartTime => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
+            ? (Math.Round(StartTime / (SnapInterval ?? SnapInterval_Default)) 
+            * (SnapInterval ?? SnapInterval_Default)) : StartTime;
 
         private double oldGUICurrentTime = 0;
 
@@ -48,10 +53,17 @@ namespace DSAnimStudio.TaeEditor
 
         public double? HkxAnimationLength = null;
 
-        public double SnapInterval => 0.0333333f;
+        public double? SnapInterval = null;
 
-        public double GUICurrentFrame => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(CurrentTime / SnapInterval)) :  (CurrentTime / SnapInterval);
-        public double MaxFrame => Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements ? (Math.Round(MaxTime / SnapInterval)) : (MaxTime / SnapInterval);
+        const double SnapInterval_Default = 0.0333333;
+
+        public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
+            ? (Math.Round(CurrentTime / (SnapInterval ?? SnapInterval_Default))) 
+            :  (CurrentTime / (SnapInterval ?? SnapInterval_Default));
+
+        public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
+            ? (Math.Round(MaxTime / (SnapInterval ?? SnapInterval_Default))) 
+            : (MaxTime / (SnapInterval ?? SnapInterval_Default));
 
         public bool IsRepeat = true;
         public bool IsPlaying = false;

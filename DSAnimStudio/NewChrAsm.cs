@@ -475,7 +475,7 @@ namespace DSAnimStudio
         {
             LoadingTaskMan.DoLoadingTask("ChrAsm_UpdateModels", "Updating c0000 models...", progress =>
             {
-                MODEL.DefaultAllMaskValues();
+                MODEL.ResetDrawMaskToDefault();
                 if (HeadID != lastHeadLoaded)
                 {
                     if (Head != null)

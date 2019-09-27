@@ -73,6 +73,7 @@ namespace DSAnimStudio
             }
         }
 
+        private static Random _rand = new Random();
         public Vector3? GetDummyPolyAbsolutePosition(int dmy, bool leftHandDefault)
         {
             //if (dmy == -1)
@@ -120,7 +121,11 @@ namespace DSAnimStudio
             }
 
             if (ClusterWhichDmyPresidesIn.ContainsKey(dmy))
+            {
                 return ClusterWhichDmyPresidesIn[dmy][0].GetDummyPosition(dmy, isAbsolute: true);
+
+                //return ClusterWhichDmyPresidesIn[dmy][_rand.Next(ClusterWhichDmyPresidesIn[dmy].Count)].GetDummyPosition(dmy, isAbsolute: true);
+            }
             else if (StationaryDummyPolys != null && StationaryDummyPolys.DummyPolyID.Contains(dmy))
                 return StationaryDummyPolys.GetDummyPosition(dmy, isAbsolute: true);
             else
@@ -129,7 +134,7 @@ namespace DSAnimStudio
                 {
                     if (!leftHandDefault && MODEL.ChrAsm.RightWeaponModel != null)
                     {
-                        var rightModelDmyPos = 
+                        var rightModelDmyPos =
                             MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.GetDummyPolyAbsolutePosition(dmy, leftHandDefault);
                         if (rightModelDmyPos != null)
                         {
@@ -142,7 +147,7 @@ namespace DSAnimStudio
 
                     if (MODEL.ChrAsm.LeftWeaponModel != null)
                     {
-                        var leftModelDmyPos = 
+                        var leftModelDmyPos =
                             MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.GetDummyPolyAbsolutePosition(dmy, leftHandDefault);
                         if (leftModelDmyPos != null)
                         {
@@ -255,8 +260,8 @@ namespace DSAnimStudio
                 //    hit.ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(HitboxPrimitiveInfos[atkParam].IsLeftHandAtk || IsViewingLeftHandHit);
                 //}
 
-                if (hit.DmyPoly1 == -1 && hit.DmyPoly2 == -1)
-                    return;
+                //if (hit.DmyPoly1 == -1 && hit.DmyPoly2 == -1)
+                //    return;
 
                 if (hit.IsCapsule)
                 {
@@ -307,75 +312,75 @@ namespace DSAnimStudio
 
             for (int i = 0; i < atkParam.Hits.Length; i++)
             {
-                if (i < HitboxPrimitiveInfos[atkParam].Primitives.Count)
+                if (i >= HitboxPrimitiveInfos[atkParam].Primitives.Count)
                 {
-                    if (!HitboxPrimitiveInfos[atkParam].Primitives[i].EnableDraw)
-                        continue;
-
-                    //if (MODEL.IS_PLAYER)
-                    //    atkParam.Hits[i].ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
-
-                    if (HitboxPrimitiveInfos[atkParam].Primitives[i] is DbgPrimWireCapsule capsulePrim)
-                    {
-                        if (atkParam.Hits[i].DmyPoly1 == -1)
-                            continue;
-
-                        var a = GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1, 
-                            HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
-                        var b = GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly2, 
-                            HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
-
-                        //if (a == null || b == null)
-                        //{
-                        //    a = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1);
-                        //    b = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly2);
-                        //}
-
-                        if (a != null && b != null)
-                        {
-                            capsulePrim.UpdateCapsuleEndPoints(a.Value, b.Value, atkParam.Hits[i].Radius);
-                            
-                        }
-                        else
-                        {
-                            capsulePrim.UpdateCapsuleEndPoints(Vector3.Zero, Vector3.Zero, 0);
-                        }
-                    }
-                    else if (HitboxPrimitiveInfos[atkParam].Primitives[i] is DbgPrimWireSphere spherePrim)
-                    {
-                        if (atkParam.Hits[i].DmyPoly1 == -1)
-                            continue;
-
-                        var dmyPos = GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1,
-                            HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
-                        var dmyMatrix = GetDummyPolyAbsoluteMatrix(atkParam.Hits[i].DmyPoly1,
-                            HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
-
-                        //if (dmyPos == null || dmyMatrix == null)
-                        //{
-                        //    dmyPos = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1);
-                        //    dmyMatrix = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsoluteMatrix(atkParam.Hits[i].DmyPoly1);
-                        //}
-
-                        if (dmyPos != null && dmyMatrix != null)
-                        {
-                            var dmyRot = Quaternion.CreateFromRotationMatrix(dmyMatrix.Value);
-                            dmyRot.Normalize();
-                            spherePrim.Transform = new Transform(//Matrix.CreateRotationX(MathHelper.PiOver2) *
-                                Matrix.CreateScale(atkParam.Hits[i].Radius)
-                                * Matrix.CreateFromQuaternion(dmyRot)
-                                * Matrix.CreateTranslation(dmyPos.Value));
-                        }
-                        else
-                        {
-                            spherePrim.Transform = new Transform(Vector3.Zero, Vector3.Zero, Vector3.Zero);
-                        }
-
-                        
-                    }
+                    break;
                 }
 
-                    
+                if (!HitboxPrimitiveInfos[atkParam].Primitives[i].EnableDraw)
+                    continue;
+
+                //if (MODEL.IS_PLAYER)
+                //    atkParam.Hits[i].ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
+
+                if (HitboxPrimitiveInfos[atkParam].Primitives[i] is DbgPrimWireCapsule capsulePrim)
+                {
+                    //if (atkParam.Hits[i].DmyPoly1 == -1)
+                    //    continue;
+
+                    var a = GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1,
+                        HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
+                    var b = GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly2,
+                        HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
+
+                    //if (a == null || b == null)
+                    //{
+                    //    a = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1);
+                    //    b = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly2);
+                    //}
+
+                    if (a != null && b != null)
+                    {
+                        capsulePrim.UpdateCapsuleEndPoints(a.Value, b.Value, atkParam.Hits[i].Radius);
+
+                    }
+                    else
+                    {
+                        capsulePrim.UpdateCapsuleEndPoints(Vector3.Zero, Vector3.Zero, 0);
+                    }
+                }
+                else if (HitboxPrimitiveInfos[atkParam].Primitives[i] is DbgPrimWireSphere spherePrim)
+                {
+                    //if (atkParam.Hits[i].DmyPoly1 == -1)
+                    //    continue;
+
+                    var dmyPos = GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1,
+                        HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
+                    var dmyMatrix = GetDummyPolyAbsoluteMatrix(atkParam.Hits[i].DmyPoly1,
+                        HitboxPrimitiveInfos[atkParam].IsLeftHandAtk);
+
+                    //if (dmyPos == null || dmyMatrix == null)
+                    //{
+                    //    dmyPos = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsolutePosition(atkParam.Hits[i].DmyPoly1);
+                    //    dmyMatrix = MODEL.ParentModelForChrAsm?.DummyPolyMan?.GetDummyPolyAbsoluteMatrix(atkParam.Hits[i].DmyPoly1);
+                    //}
+
+                    if (dmyPos != null && dmyMatrix != null)
+                    {
+                        var dmyRot = Quaternion.CreateFromRotationMatrix(dmyMatrix.Value);
+                        dmyRot.Normalize();
+                        spherePrim.Transform = new Transform(//Matrix.CreateRotationX(MathHelper.PiOver2) *
+                            Matrix.CreateScale(atkParam.Hits[i].Radius)
+                            * Matrix.CreateFromQuaternion(dmyRot)
+                            * Matrix.CreateTranslation(dmyPos.Value));
+                    }
+                    else
+                    {
+                        spherePrim.Transform = new Transform(Vector3.Zero, Vector3.Zero, Vector3.Zero);
+                    }
+
+
+                }
             }
         }
 
@@ -658,7 +663,7 @@ namespace DSAnimStudio
             {
                 if (dummiesByBoneID.ContainsKey(i))
                 {
-                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, dummiesByBoneID[i], flver.Bones, baseDmyPolyID);
+                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, dummiesByBoneID[i], flver.Bones, baseDmyPolyID, i);
                     foreach (var dmy in dummiesByBoneID[i])
                     {
                         if (!ClusterWhichDmyPresidesIn.ContainsKey(dmy.ReferenceID + baseDmyPolyID))
@@ -675,7 +680,7 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, new List<FLVER2.Dummy>(), flver.Bones, baseDmyPolyID);
+                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, new List<FLVER2.Dummy>(), flver.Bones, baseDmyPolyID, i);
                     MODEL.DbgPrimDrawer.AddPrimitive(dmyPrim);
                     AnimatedDummyPolyClusters.Add(i, dmyPrim);
                 }
@@ -691,7 +696,7 @@ namespace DSAnimStudio
 
             if (dummiesByBoneID.ContainsKey(-1))
             {
-                StationaryDummyPolys = new DbgPrimDummyPolyCluster(0.5f, dummiesByBoneID[-1], flver.Bones, baseDmyPolyID);
+                StationaryDummyPolys = new DbgPrimDummyPolyCluster(0.5f, dummiesByBoneID[-1], flver.Bones, baseDmyPolyID, -1);
                 MODEL.DbgPrimDrawer.AddPrimitive(StationaryDummyPolys);
             }
             else

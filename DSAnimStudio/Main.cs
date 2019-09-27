@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.0";
+        public const string VERSION = "Version 1.1";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -119,11 +119,11 @@ namespace DSAnimStudio
             graphics.ApplyChanges();
         }
 
-       
+
 
         //MCG MCGTEST_MCG;
 
-        
+
 
         public Main()
         {
@@ -360,9 +360,9 @@ namespace DSAnimStudio
             //    GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
             //    Color.Cyan, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
 
-            DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2, 
+            DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2,
                 GFX.Device.Viewport.Height - (strSize_unmanaged.Y)),
-                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT, scale:1, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
+                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT, scale: 1, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
         }
 
         private void UpdateMemoryUsage()
@@ -411,7 +411,7 @@ namespace DSAnimStudio
                 DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
             }
 
-            
+
 
             Active = IsActive && ApplicationIsActivated();
 
@@ -443,7 +443,7 @@ namespace DSAnimStudio
 
             GFX.World.CameraPositionDefault.Position = Vector3.Zero;
 
-            GFX.World.CameraOrigin.Position = new Vector3(GFX.World.CameraPositionDefault.Position.X, 
+            GFX.World.CameraOrigin.Position = new Vector3(GFX.World.CameraPositionDefault.Position.X,
                 GFX.World.CameraOrigin.Position.Y, GFX.World.CameraPositionDefault.Position.Z);
 
             if (DBG.DbgPrim_Grid != null)
@@ -542,7 +542,7 @@ namespace DSAnimStudio
                 else if (RequestViewportRenderTargetResolutionChange)
                 {
                     RebuildRenderTarget();
-                    
+
                     if (TimeBeforeNextRenderTargetUpdate > 0)
                         TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
                 }
@@ -558,8 +558,13 @@ namespace DSAnimStudio
                 //TaeInterop.TaeViewportDrawPre(gameTime);
                 GFX.DrawScene3D();
 
-                if (!DBG.DbgPrimXRay)
-                    GFX.DrawSceneOver3D();
+                //if (!DBG.DbgPrimXRay)
+                //    GFX.DrawSceneOver3D();
+
+                if (DBG.DbgPrimXRay)
+                    GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+
+                GFX.DrawSceneOver3D();
 
                 GFX.Device.SetRenderTarget(null);
 
@@ -626,13 +631,13 @@ namespace DSAnimStudio
             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
             //DBG.DrawPrimitiveNames(gameTime);
 
-            if (DBG.DbgPrimXRay)
-                GFX.DrawSceneOver3D();
+            //if (DBG.DbgPrimXRay)
+            //    GFX.DrawSceneOver3D();
 
             GFX.DrawSceneGUI();
 
             TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebug();
-            
+
             DrawMemoryUsage();
 
             LoadingTaskMan.DrawAllTasks();
@@ -649,7 +654,7 @@ namespace DSAnimStudio
                 TAE_EDITOR.DrawDimmingRect(GraphicsDevice, GFX.SpriteBatch, TAE_EDITOR_BLANK_TEX);
             }
 
-            
+
         }
     }
 }
