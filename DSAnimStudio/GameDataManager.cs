@@ -249,7 +249,7 @@ namespace DSAnimStudio
                         int objGroup = int.Parse(id.Substring(1)) / 1_0000;
                         var tpfBnds = System.IO.Directory.GetFiles($@"{InterrootPath}\map\m{objGroup:D2}", "*.tpfbhd");
                         foreach (var t in tpfBnds)
-                            TexturePool.AddSpecificTexturesFromBinder(t, texturesToLoad);
+                            TexturePool.AddSpecificTexturesFromBinder(t, texturesToLoad, directEntryNameMatch: true);
                     }
                     obj.MainMesh.TextureReloadQueued = true;
                 });

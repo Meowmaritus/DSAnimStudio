@@ -370,6 +370,14 @@ namespace DSAnimStudio.TaeEditor
             baseItem.DropDownItems.Add(newItem);
         }
 
+        private string GetItemNameWithShortcut(ToolStripMenuItem item)
+        {
+            if (item.ShortcutKeyDisplayString != null)
+                return $"{item.Text}|{item.ShortcutKeyDisplayString}";
+            else
+                return item.Text;
+        }
+
         public void AddItem(string path, string itemName, Dictionary<string, Action> choicesAndChooseAction, Func<string> getWhichIsSelected)
         {
             string[] pathStops = path.Split('/');
@@ -406,7 +414,21 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else
                 {
-                    var newSubItem = new ToolStripMenuItem(kvp.Key);
+                    string newSubItemName = kvp.Key;
+                    string newSubItemShortcutText = null;
+
+                    if (newSubItemName.Contains("|"))
+                    {
+                        var split = newSubItemName.Split('|');
+                        newSubItemShortcutText = split[1];
+                        newSubItemName = split[0];
+                    }
+
+                    var newSubItem = new ToolStripMenuItem(newSubItemName);
+
+                    if (newSubItemShortcutText != null)
+                        newSubItem.ShortcutKeyDisplayString = newSubItemShortcutText;
+
                     newItem.DropDownItems.Add(newSubItem);
                 }
             }
@@ -419,7 +441,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     if (item is ToolStripMenuItem h)
                     {
-                        h.Checked = h.Text == selected;
+                        h.Checked = GetItemNameWithShortcut(h).Equals(selected);
                     }
                 }
             };
@@ -438,7 +460,8 @@ namespace DSAnimStudio.TaeEditor
                             }
                         }
                         newSubItem.Checked = true;
-                        choicesAndChooseAction[newSubItem.Text].Invoke();
+                        var fullName = GetItemNameWithShortcut(newSubItem);
+                        choicesAndChooseAction[fullName].Invoke();
                     };
                 }
             }

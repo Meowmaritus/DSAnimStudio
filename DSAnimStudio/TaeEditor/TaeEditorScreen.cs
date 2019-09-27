@@ -1190,10 +1190,14 @@ namespace DSAnimStudio.TaeEditor
             // Animation //
             ///////////////
 
+            MenuBar.AddItem("Animation", "Lock to Frame Rate Defined in HKX", 
+                () => Config.LockFramerateToOriginalAnimFramerate, 
+                b => Config.LockFramerateToOriginalAnimFramerate = b);
+
             MenuBar.AddItem("Animation", "Set Playback Speed...", () =>
             {
                 PauseUpdate = true;
-                var speed = KeyboardInput.Show("Set Playback Speed", "Set animation playback speed.", "1.00");
+                var speed = KeyboardInput.Show("Set Playback Speed", "Set animation playback speed.", PlaybackCursor.PlaybackSpeed.ToString("0.00"));
                 if (float.TryParse(speed.Result, out float newSpeed))
                 {
                     PlaybackCursor.PlaybackSpeed = newSpeed;
@@ -1253,6 +1257,8 @@ namespace DSAnimStudio.TaeEditor
             AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
 
             MenuBar.AddSeparator("3D Viewport");
+
+            MenuBar.AddItem("3D Viewport", "Disable Texture Alphas", () => GFX.FlverShader.Effect.DisableAlpha, b => GFX.FlverShader.Effect.DisableAlpha = b);
 
             MenuBar.AddItem("3D Viewport", "Override FLVER Shading Mode", shadingModeChoicesDict, () =>
             {

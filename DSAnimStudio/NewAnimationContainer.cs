@@ -116,6 +116,8 @@ namespace DSAnimStudio
         public float CurrentAnimTime => CurrentAnimation?.CurrentTime ?? 0;
         public float? CurrentAnimDuration => CurrentAnimation?.Duration;
 
+        public float? CurrentAnimFrameDuration => CurrentAnimation?.FrameDuration;
+
         public static bool AutoPlayAnimContainersUponLoading = true;
 
         public bool IsPlaying = true;

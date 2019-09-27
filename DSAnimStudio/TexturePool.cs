@@ -294,7 +294,7 @@ namespace DSAnimStudio
             }
         }
 
-        public static void AddSpecificTexturesFromBinder(string name, List<string> textures)
+        public static void AddSpecificTexturesFromBinder(string name, List<string> textures, bool directEntryNameMatch = false)
         {
             if (!File.Exists(name))
                 return;
@@ -316,7 +316,8 @@ namespace DSAnimStudio
 
             foreach (var f in bnd.Files)
             {
-                if (TPF.Is(f.Bytes))
+
+                if (directEntryNameMatch ? textures.Contains(Utils.GetShortIngameFileName(f.Name)) : TPF.Is(f.Bytes))
                 {
                     var tpf = TPF.Read(f.Bytes);
                     foreach (var tx in tpf.Textures)

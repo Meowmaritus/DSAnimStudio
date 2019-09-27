@@ -412,6 +412,7 @@ namespace DSAnimStudio
                 for (int i = 0; i < Math.Min(Model.DRAW_MASK_LENGTH, DrawMask.Length); i++)
                 {
                     mdl.DrawMask[i] = DrawMask[i];
+                    mdl.DefaultDrawMask[i] = DrawMask[i];
                 }
             }
 

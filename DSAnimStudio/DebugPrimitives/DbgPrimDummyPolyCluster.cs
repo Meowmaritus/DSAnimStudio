@@ -136,6 +136,19 @@ namespace DSAnimStudio.DebugPrimitives
             //UpdateHelper();
         }
 
+        private Matrix GetBoneRelativeMatrix(SoulsFormats.FLVER2.Bone b)
+        {
+            var result = Matrix.Identity;
+
+            result *= Matrix.CreateScale(b.Scale.X, b.Scale.Y, b.Scale.Z);
+            result *= Matrix.CreateRotationX(b.Rotation.X);
+            result *= Matrix.CreateRotationZ(b.Rotation.Z);
+            result *= Matrix.CreateRotationY(b.Rotation.Y);
+            result *= Matrix.CreateTranslation(b.Translation.X, b.Translation.Y, b.Translation.Z);
+
+            return result;
+        }
+
         private Matrix GetBoneParentMatrix(SoulsFormats.FLVER2.Bone b)
         {
             SoulsFormats.FLVER2.Bone parentBone = b;
@@ -272,7 +285,7 @@ namespace DSAnimStudio.DebugPrimitives
             AddDbgLabel(m, 1, dummy.ReferenceID.ToString(), new Color(dummy.Color.R, dummy.Color.G, dummy.Color.B, dummy.Color.A));
         }
 
-        public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies, List<FLVER2.Bone> bones, int baseDmyPolyID)
+        public DbgPrimDummyPolyCluster(float size, List<FLVER2.Dummy> dummies, List<FLVER2.Bone> bones, int baseDmyPolyID, int boneIndex)
         {
             BaseDummyPolyID = baseDmyPolyID;
             BoneList = bones;
@@ -284,18 +297,30 @@ namespace DSAnimStudio.DebugPrimitives
             Category = DbgPrimCategory.DummyPoly;
             //Transform = new Transform(DummyPolyMatrix);
 
+            FlverBoneIndex = boneIndex;
+
             foreach (var dmy in DummyPoly)
             {
                 AddDummy(dmy);
                 //ID = dmy.ReferenceID;
-                FlverBoneIndex = dmy.AttachBoneIndex;
             } 
 
             if (FlverBoneIndex >= 0)
             {
                 var bone = bones[FlverBoneIndex];
-                float boneLength = (bone.Translation * bone.Scale).Length();
-                var bonePrim = new DbgPrimWireBone(bone.Name, Transform.Default, Quaternion.Identity, boneLength / 4f, boneLength, DBG.COLOR_FLVER_BONE);
+                float boneLength = 0;
+
+                if (bone.ChildIndex >= 0)
+                {
+                    boneLength = (Vector3.Transform(Vector3.Zero, GetBoneParentMatrix(bones[bone.ChildIndex])) 
+                        - Vector3.Transform(Vector3.Zero, GetBoneParentMatrix(bone))).Length();
+                }
+                else
+                {
+                    boneLength = Math.Max(0.05f, (bone.BoundingBoxMax.Z - bone.BoundingBoxMin.Z));
+                }
+
+                var bonePrim = new DbgPrimWireBone(bone.Name, Transform.Default, Quaternion.Identity, boneLength / 6f, boneLength, DBG.COLOR_FLVER_BONE);
                 bonePrim.Category = DbgPrimCategory.FlverBone;
 
                 bonePrim.OverrideColor = DBG.COLOR_FLVER_BONE;
@@ -308,8 +333,8 @@ namespace DSAnimStudio.DebugPrimitives
 
                 boundingBoxPrim.OverrideColor = DBG.COLOR_FLVER_BONE_BBOX;
 
-                Children.Add(bonePrim);
-                Children.Add(boundingBoxPrim);
+                UnparentedChildren.Add(bonePrim);
+                UnparentedChildren.Add(boundingBoxPrim);
 
                 FlverBoneParentMatrix = GetBoneParentMatrix(bones[FlverBoneIndex]);
             }
@@ -321,6 +346,10 @@ namespace DSAnimStudio.DebugPrimitives
             foreach (var c in Children)
             {
                 c.Transform = new Transform(FlverBoneParentMatrix);
+            }
+            foreach (var c in UnparentedChildren)
+            {
+                c.Transform = new Transform(FlverBoneParentMatrix * boneMatrix);
             }
             //foreach (var c in Children)
             //{

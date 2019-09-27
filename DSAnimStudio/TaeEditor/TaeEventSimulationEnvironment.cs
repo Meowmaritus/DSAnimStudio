@@ -134,7 +134,7 @@ namespace DSAnimStudio.TaeEditor
                         //   //     foreach (var hitbox in MODEL.DummyPolyMan.HitboxPrimitiveInfos[evBox].Primitives)
                         //   //         hitbox.EnableDraw = false;
                         //},
-                        SimulationFrameChangeAction = (entry, evBoxes) =>
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.DeactivateAllHitboxes();
                             foreach (var evBox in evBoxes.Where(b => entry.DoesEventMatch(b)))
@@ -164,7 +164,7 @@ namespace DSAnimStudio.TaeEditor
                         //{
                         //    GFX.FlverOpacity = 1.0f;
                         //},
-                        SimulationFrameChangeAction = (entry, evBoxes) =>
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
                         {
                             bool anyOpacityHappeningThisFrame = false;
 
@@ -209,11 +209,51 @@ namespace DSAnimStudio.TaeEditor
                         {
                             //MODEL.DefaultAllMaskValues();
                         },
-                        SimulationFrameChangeAction = (entry, evBoxes) =>
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
                         {
-                            //// Don't do this for the other mask ones being overrided with this.
-                            //if (entry == entries["ChangeChrDrawMask"])
-                            //    GFX.ModelDrawer.DefaultAllMaskValues();
+                            // Start from beginning of simulation and simulate to current time.
+
+                            MODEL.ResetDrawMaskToDefault();
+
+                            foreach (var evBox in evBoxes)
+                            {
+                                if (evBox.MyEvent.StartTime > time)
+                                    continue;
+
+                                if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
+                                {
+                                    for (int i = 0; i < 32; i++)
+                                    {
+                                        var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
+                                    
+                                        // Before you get out the torch, be aware that the game 
+                                        // uses some value other than 0 to SKIP
+                                        if (maskByte == 0)
+                                            MODEL.DrawMask[i] = false;
+                                        else if (maskByte == 1)
+                                            MODEL.DrawMask[i] = true;
+                                    }
+                                }
+                                else if (evBox.PlaybackHighlight)
+                                {
+                                    if (evBox.MyEvent.TypeName == "ShowModelMask")
+                                    {
+                                        for (int i = 0; i < 32; i++)
+                                        {
+                                            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                                                    MODEL.DrawMask[i] = true;
+                                        }
+                                    }
+                                    else if (evBox.MyEvent.TypeName == "HideModelMask")
+                                    {
+                                        for (int i = 0; i < 32; i++)
+                                        {
+                                            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                                                    MODEL.DrawMask[i] = false;
+                                        }
+                                    }
+                                }
+                            }
                         },
                         EnterAction = (entry, evBox) =>
                         {
@@ -399,14 +439,14 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void OnSimulationFrameChange(List<TaeEditAnimEventBox> evBoxes)
+        public void OnSimulationFrameChange(List<TaeEditAnimEventBox> evBoxes, float time)
         {
             foreach (var kvp in entries)
             {
                 if (!GetSimEnabled(kvp.Key))
                     continue;
 
-                kvp.Value.SimulationFrameChangeAction?.Invoke(kvp.Value, evBoxes);
+                kvp.Value.SimulationFrameChangeAction?.Invoke(kvp.Value, evBoxes, time);
             }
         }
 
@@ -478,7 +518,7 @@ namespace DSAnimStudio.TaeEditor
             public Action<EventSimEntry, List<TaeEditAnimEventBox>> NewAnimSelectedAction;
             public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationStartAction;
             public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationEndAction;
-            public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationFrameChangeAction;
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>, float> SimulationFrameChangeAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> EnterAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> DuringAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> ExitAction;

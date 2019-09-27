@@ -33,8 +33,11 @@ namespace DSAnimStudio
         //VertexBufferBinding VertBufferBinding;
 
         public string TexNameDiffuse { get; private set; } = null;
+        public string TexNameDiffuse2 { get; private set; } = null;
         public string TexNameSpecular { get; private set; } = null;
+        public string TexNameSpecular2 { get; private set; } = null;
         public string TexNameNormal { get; private set; } = null;
+        public string TexNameNormal2 { get; private set; } = null;
         public string TexNameEmissive { get; private set; } = null;
         public string TexNameShininess { get; private set; } = null;
         public string TexNameBlendmask { get; private set; } = null;
@@ -42,8 +45,11 @@ namespace DSAnimStudio
         public string TexNameDOL2 { get; private set; } = null;
 
         public Texture2D TexDataDiffuse { get; private set; } = null;
+        public Texture2D TexDataDiffuse2 { get; private set; } = null;
         public Texture2D TexDataSpecular { get; private set; } = null;
+        public Texture2D TexDataSpecular2 { get; private set; } = null;
         public Texture2D TexDataNormal { get; private set; } = null;
+        public Texture2D TexDataNormal2 { get; private set; } = null;
         public Texture2D TexDataEmissive { get; private set; } = null;
         public Texture2D TexDataShininess { get; private set; } = null;
         public Texture2D TexDataBlendmask { get; private set; } = null;
@@ -261,10 +267,17 @@ namespace DSAnimStudio
                 var paramNameCheck = matParam.Type.ToUpper();
                 string shortTexPath = Utils.GetShortIngameFileName(matParam.Path);
                 // DS3/BB
-                if (paramNameCheck.Contains("DIFFUSE") || paramNameCheck.Contains("ALBEDO"))
+                if (paramNameCheck.Contains("DIFFUSE_2") || paramNameCheck.Contains("ALBEDO_2"))
+                    TexNameDiffuse2 = shortTexPath;
+                else if (paramNameCheck.Contains("DIFFUSE") || paramNameCheck.Contains("ALBEDO"))
                     TexNameDiffuse = shortTexPath;
+                else if (paramNameCheck.Contains("SPECULAR_2") || paramNameCheck.Contains("REFLECTANCE_2"))
+                    TexNameSpecular2 = shortTexPath;
                 else if (paramNameCheck.Contains("SPECULAR") || paramNameCheck.Contains("REFLECTANCE"))
                     TexNameSpecular = shortTexPath;
+                else if ((paramNameCheck.Contains("BUMPMAP_2") && !paramNameCheck.Contains("DETAILBUMP_2"))
+                    || paramNameCheck.Contains("NORMALMAP_2"))
+                    TexNameNormal2 = shortTexPath;
                 else if ((paramNameCheck.Contains("BUMPMAP") && !paramNameCheck.Contains("DETAILBUMP"))
                     || paramNameCheck.Contains("NORMALMAP"))
                     TexNameNormal = shortTexPath;
@@ -465,6 +478,9 @@ namespace DSAnimStudio
 
                 MeshVertices[i].Normal = Vector3.Normalize(new Vector3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
 
+                if (vert.Colors.Count >= 1)
+                    MeshVertices[i].Color = new Vector4(vert.Colors[0].R, vert.Colors[0].G, vert.Colors[0].B, vert.Colors[0].A);
+
                 if (vert.Tangents.Count > 0)
                 {
                     MeshVertices[i].Bitangent = new Vector4(vert.Tangents[0].X, vert.Tangents[0].Y, vert.Tangents[0].Z, vert.Tangents[0].W);
@@ -561,49 +577,52 @@ namespace DSAnimStudio
                     else
                         MeshVertices[i].TextureCoordinate = new Vector2(vert.UVs[0].X, vert.UVs[0].Y);
 
-
-
-                    if (vert.UVs.Count > 1 && hasLightmap)
+                    if (vert.UVs.Count >= 2)
                     {
-                        if (mtd == null)
-                        {
-                            // Really stupid heuristic to determine light map UVs without reading mtd files or something
-                            if (vert.UVs.Count > 2 && flvr.Materials[mesh.MaterialIndex].Textures.Count > 11)
-                            {
-                                MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[2].X, vert.UVs[2].Y);
-                            }
-                            else
-                            {
-                                MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[1].X, vert.UVs[1].Y);
-                            }
-                        }
-                        else
-                        {
-                            // Better heuristic with MTDs
-                            int uvindex = mtd.Textures.Find(tex => tex.Type.ToUpper() == "G_LIGHTMAP" || tex.Type.ToUpper() == "G_DOLTEXTURE1").UVNumber;
-                            int uvoffset = 1;
-                            for (int j = 1; j < uvindex; j++)
-                            {
-                                if (!mtd.Textures.Any(t => (t.UVNumber == j)))
-                                {
-                                    uvoffset++;
-                                }
-                            }
-                            uvindex -= uvoffset;
-                            if (vert.UVs.Count > uvindex)
-                            {
-                                MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[uvindex].X, vert.UVs[uvindex].Y);
-                            }
-                            else
-                            {
-                                MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[1].X, vert.UVs[1].Y);
-                            }
-                        }
+                        MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[1].X, vert.UVs[1].Y);
                     }
-                    else
-                    {
-                        MeshVertices[i].TextureCoordinate2 = Vector2.Zero;
-                    }
+
+                    //if (vert.UVs.Count > 1 && hasLightmap)
+                    //{
+                    //    if (mtd == null)
+                    //    {
+                    //        // Really stupid heuristic to determine light map UVs without reading mtd files or something
+                    //        if (vert.UVs.Count > 2 && flvr.Materials[mesh.MaterialIndex].Textures.Count > 11)
+                    //        {
+                    //            MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[2].X, vert.UVs[2].Y);
+                    //        }
+                    //        else
+                    //        {
+                    //            MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[1].X, vert.UVs[1].Y);
+                    //        }
+                    //    }
+                    //    else
+                    //    {
+                    //        // Better heuristic with MTDs
+                    //        int uvindex = mtd.Textures.Find(tex => tex.Type.ToUpper() == "G_LIGHTMAP" || tex.Type.ToUpper() == "G_DOLTEXTURE1").UVNumber;
+                    //        int uvoffset = 1;
+                    //        for (int j = 1; j < uvindex; j++)
+                    //        {
+                    //            if (!mtd.Textures.Any(t => (t.UVNumber == j)))
+                    //            {
+                    //                uvoffset++;
+                    //            }
+                    //        }
+                    //        uvindex -= uvoffset;
+                    //        if (vert.UVs.Count > uvindex)
+                    //        {
+                    //            MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[uvindex].X, vert.UVs[uvindex].Y);
+                    //        }
+                    //        else
+                    //        {
+                    //            MeshVertices[i].TextureCoordinate2 = new Vector2(vert.UVs[1].X, vert.UVs[1].Y);
+                    //        }
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    MeshVertices[i].TextureCoordinate2 = Vector2.Zero;
+                    //}
                 }
                 else
                 {
@@ -691,6 +710,15 @@ namespace DSAnimStudio
             if (TexDataNormal == null && TexNameNormal != null)
                 result.Add(Utils.GetShortIngameFileName(TexNameNormal));
 
+            if (TexDataDiffuse2 == null && TexNameDiffuse2 != null)
+                result.Add(Utils.GetShortIngameFileName(TexNameDiffuse2));
+
+            if (TexDataSpecular2 == null && TexNameSpecular2 != null)
+                result.Add(Utils.GetShortIngameFileName(TexNameSpecular2));
+
+            if (TexDataNormal2 == null && TexNameNormal2 != null)
+                result.Add(Utils.GetShortIngameFileName(TexNameNormal2));
+
             if (TexDataEmissive == null && TexNameEmissive != null)
                 result.Add(Utils.GetShortIngameFileName(TexNameEmissive));
 
@@ -719,6 +747,15 @@ namespace DSAnimStudio
 
             if (TexDataNormal == null && TexNameNormal != null)
                 TexDataNormal = TexturePool.FetchTexture2D(TexNameNormal);
+
+            if (TexDataDiffuse2 == null && TexNameDiffuse2 != null)
+                TexDataDiffuse2 = TexturePool.FetchTexture2D(TexNameDiffuse2);
+
+            if (TexDataSpecular2 == null && TexNameSpecular2 != null)
+                TexDataSpecular2 = TexturePool.FetchTexture2D(TexNameSpecular2);
+
+            if (TexDataNormal2 == null && TexNameNormal2 != null)
+                TexDataNormal2 = TexturePool.FetchTexture2D(TexNameNormal2);
 
             if (TexDataEmissive == null && TexNameEmissive != null)
                 TexDataEmissive = TexturePool.FetchTexture2D(TexNameEmissive);
@@ -779,6 +816,30 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
 
+                GFX.FlverShader.Effect.EnableBlendMaskMap = TexDataBlendmask != null
+                    && TexNameBlendmask != "SYSTEX_DummyBurn_m"; // aa
+
+                if (TexDataDiffuse2 == null)
+                {
+                    GFX.FlverShader.Effect.EnableBlendTextures = false;
+
+                    GFX.FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
+                    GFX.FlverShader.Effect.ColorMap2 = Main.DEFAULT_TEXTURE_DIFFUSE;
+                    GFX.FlverShader.Effect.SpecularMap2 = Main.DEFAULT_TEXTURE_SPECULAR;
+                    GFX.FlverShader.Effect.NormalMap2 = Main.DEFAULT_TEXTURE_NORMAL;
+                }
+                else
+                {
+                    GFX.FlverShader.Effect.EnableBlendTextures = true;
+
+                    GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+                    GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? Main.DEFAULT_TEXTURE_SPECULAR;
+                    GFX.FlverShader.Effect.NormalMap2 = TexDataNormal2 ?? Main.DEFAULT_TEXTURE_NORMAL;
+
+                    GFX.FlverShader.Effect.BlendmaskMap = TexDataBlendmask ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                }
+                
+
                 // Hotfix because loading the DS3 character embered effect with the default shader just makes
                 // them have various fixed glowing orange spots
                 if (TexNameEmissive != "SYSTEX_DummyBurn_em")
@@ -788,8 +849,6 @@ namespace DSAnimStudio
 
                 GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
-
-                GFX.FlverShader.Effect.BlendmaskMap = TexDataBlendmask ?? Main.DEFAULT_TEXTURE_EMISSIVE;
 
                 GFX.FlverShader.Effect.WorkflowType = GFX.ForcedFlverShadingMode ?? ShadingMode;
             }

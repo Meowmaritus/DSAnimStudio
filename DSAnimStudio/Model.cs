@@ -26,6 +26,33 @@ namespace DSAnimStudio
 
         public BoundingBox Bounds;
 
+        public const int DRAW_MASK_LENGTH = 96;
+
+        public bool[] DefaultDrawMask = new bool[DRAW_MASK_LENGTH];
+        public bool[] DrawMask = new bool[DRAW_MASK_LENGTH];
+
+        public enum ModelType
+        {
+            ModelTypeFlver,
+            ModelTypeCollision,
+        };
+        ModelType Type;
+
+        public Transform StartTransform = Transform.Default;
+
+        public Transform CurrentRootMotionTransform => new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+
+        public Transform CurrentTransform => new Transform(StartTransform.WorldMatrix *
+            AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+
+        /// <summary>
+        /// This is needed to make weapon hitboxes work.
+        /// </summary>
+        public bool IS_PLAYER = false;
+
+        public bool IS_PLAYER_WEAPON = false;
+
+
         private Model()
         {
             DummyPolyMan = new DummyPolyManager(this);
@@ -68,39 +95,13 @@ namespace DSAnimStudio
             return result;
         }
 
-        public const int DRAW_MASK_LENGTH = 96;
-
-        private bool[] DefaultDrawMask = new bool[DRAW_MASK_LENGTH];
-        public bool[] DrawMask = new bool[DRAW_MASK_LENGTH];
-
-        public void DefaultAllMaskValues()
+        public void ResetDrawMaskToDefault()
         {
             for (int i = 0; i < DRAW_MASK_LENGTH; i++)
             {
                 DrawMask[i] = DefaultDrawMask[i];
             }
         }
-
-        public enum ModelType
-        {
-            ModelTypeFlver,
-            ModelTypeCollision,
-        };
-        ModelType Type;
-
-        public Transform StartTransform = Transform.Default;
-
-        public Transform CurrentRootMotionTransform => new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
-
-        public Transform CurrentTransform => new Transform(StartTransform.WorldMatrix * 
-            AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
-
-        /// <summary>
-        /// This is needed to make weapon hitboxes work.
-        /// </summary>
-        public bool IS_PLAYER = false;
-
-        public bool IS_PLAYER_WEAPON = false;
 
         public Model(IProgress<double> loadingProgress, string name, IBinder chrbnd, int modelIndex, 
             IBinder anibnd, IBinder texbnd = null, List<string> additionalTpfNames = null, 
