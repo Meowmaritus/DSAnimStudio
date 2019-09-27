@@ -86,6 +86,18 @@ namespace DSAnimStudio
             }
         }
 
+        public static bool DbgPrimXRay = false;
+
+        public static Color COLOR_FLVER_BONE = Color.Cyan;
+        public static string COLOR_FLVER_BONE_NAME = "Cyan";
+
+        public static Color COLOR_HKX_BONE = Color.Yellow;
+        public static string COLOR_HKX_BONE_NAME = "Yellow";
+
+        public static Color COLOR_FLVER_BONE_BBOX = Color.Cyan;
+        public static string COLOR_FLVER_BONE_BBOX_NAME = "Cyan";
+
+
         private static object _lock_primitives = new object();
 
         public static bool EnableMenu = false;
@@ -147,7 +159,7 @@ namespace DSAnimStudio
 
         public static void DrawBehindPrims()
         {
-            if (Environment.DrawCubemap)
+            if (Environment.DrawCubemap && !GFX.IsInDebugShadingMode)
             {
                 GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
                 DbgPrim_Skybox.Draw(null, Matrix.Identity);
@@ -350,11 +362,11 @@ namespace DSAnimStudio
 
             screenPos3D += new Vector3(screenPixelOffset.X, screenPixelOffset.Y, 0);
 
-            if (screenPos3D.X < 0 ||
-               screenPos3D.X > GFX.Device.Viewport.Width ||
-               screenPos3D.Y < 0 ||
-               screenPos3D.Y > GFX.Device.Viewport.Height)
-                return;
+            //if (screenPos3D.X < 0 ||
+            //   screenPos3D.X > GFX.Device.Viewport.Width ||
+            //   screenPos3D.Y < 0 ||
+            //   screenPos3D.Y > GFX.Device.Viewport.Height)
+            //    return;
 
 
 
@@ -670,8 +682,7 @@ namespace DSAnimStudio
                         if (ShowPrimitiveNametags)
                         {
                             if (!string.IsNullOrWhiteSpace(p.Name) && p.EnableNameDraw &&
-                                DBG.CategoryEnableNameDraw[p.Category] && (p.EnableDraw &&
-                                DBG.CategoryEnableDraw[p.Category]))
+                                DBG.CategoryEnableNameDraw[p.Category])
                             {
                                 DrawTextOn3DLocation(p.Transform.WorldMatrix * MODEL.CurrentTransform.WorldMatrix,
                                     Vector3.Zero,

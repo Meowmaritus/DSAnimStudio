@@ -14,9 +14,12 @@ namespace DSAnimStudio
         public Matrix[] ShaderMatrix1 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
         public Matrix[] ShaderMatrix2 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
         public Matrix[] ShaderMatrix3 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
+        public Matrix[] ShaderMatrix4 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
 
         public List<FlverBoneInfo> FlverSkeleton = new List<FlverBoneInfo>();
         public List<HkxBoneInfo> HkxSkeleton = new List<HkxBoneInfo>();
+
+        public List<int> RootBoneIndices = new List<int>();
 
         public HKX.HKASkeleton OriginalHavokSkeleton = null;
 
@@ -51,10 +54,10 @@ namespace DSAnimStudio
                         skeleton.Transforms[i].Scale.Vector.Y,
                         skeleton.Transforms[i].Scale.Vector.Z))
                     * Matrix.CreateFromQuaternion(new Quaternion(
-                        skeleton.Transforms[i].Position.Vector.X,
-                        skeleton.Transforms[i].Position.Vector.Y,
-                        skeleton.Transforms[i].Position.Vector.Z,
-                        skeleton.Transforms[i].Position.Vector.W))
+                        skeleton.Transforms[i].Rotation.Vector.X,
+                        skeleton.Transforms[i].Rotation.Vector.Y,
+                        skeleton.Transforms[i].Rotation.Vector.Z,
+                        skeleton.Transforms[i].Rotation.Vector.W))
                     * Matrix.CreateTranslation(new Vector3(
                         skeleton.Transforms[i].Position.Vector.X,
                         skeleton.Transforms[i].Position.Vector.Y,
@@ -90,13 +93,22 @@ namespace DSAnimStudio
             for (int i = 0; i < HkxSkeleton.Count; i++)
             {
                 HkxSkeleton[i].ReferenceMatrix = GetAbsoluteReferenceMatrix(i);
+                for (int j = 0; j < HkxSkeleton.Count; j++)
+                {
+                    if (HkxSkeleton[j].ParentIndex == i)
+                    {
+                        HkxSkeleton[i].ChildIndices.Add(j);
+                    }
+                }
+                if (HkxSkeleton[i].ParentIndex < 0)
+                    RootBoneIndices.Add(i);
             }
         }
 
         public void SetHkxBoneMatrix(int hkxBoneIndex, Matrix m)
         {
             int flverBoneIndex = HkxSkeleton[hkxBoneIndex].FlverBoneIndex;
-            if (flverBoneIndex >= 0 && HkxSkeleton[hkxBoneIndex].FlverBoneIndex < FlverSkeleton.Count)
+            if (flverBoneIndex >= 0)
             {
                 this[flverBoneIndex] = Matrix.Invert(FlverSkeleton[flverBoneIndex].ReferenceMatrix) * m;
             }
@@ -106,25 +118,39 @@ namespace DSAnimStudio
         {
             get
             {
-                if (boneIndex >= GFXShaders.FlverShader.NUM_BONES * 3)
-                    return ShaderMatrix3[boneIndex % GFXShaders.FlverShader.NUM_BONES];
-                else if (boneIndex >= GFXShaders.FlverShader.NUM_BONES * 2)
-                    return ShaderMatrix2[boneIndex % GFXShaders.FlverShader.NUM_BONES];
-                if (boneIndex >= GFXShaders.FlverShader.NUM_BONES * 1)
-                    return ShaderMatrix1[boneIndex % GFXShaders.FlverShader.NUM_BONES];
+                int bank = boneIndex / GFXShaders.FlverShader.NUM_BONES;
+                int bone = boneIndex % GFXShaders.FlverShader.NUM_BONES;
+
+                if (bank == 0)
+                    return ShaderMatrix0[bone];
+                else if (bank == 1)
+                    return ShaderMatrix1[bone];
+                else if (bank == 2)
+                    return ShaderMatrix2[bone];
+                else if (bank == 3)
+                    return ShaderMatrix3[bone];
+                else if (bank == 4)
+                    return ShaderMatrix4[bone];
                 else
-                    return ShaderMatrix0[boneIndex];
+                    throw new Exception("NOT ENOUGH BANKS IN SHADER");
             }
             set
             {
-                if (boneIndex >= GFXShaders.FlverShader.NUM_BONES * 3)
-                    ShaderMatrix3[boneIndex % GFXShaders.FlverShader.NUM_BONES] = value;
-                else if (boneIndex >= GFXShaders.FlverShader.NUM_BONES * 2)
-                    ShaderMatrix2[boneIndex % GFXShaders.FlverShader.NUM_BONES] = value;
-                if (boneIndex >= GFXShaders.FlverShader.NUM_BONES * 1)
-                    ShaderMatrix1[boneIndex % GFXShaders.FlverShader.NUM_BONES] = value;
+                int bank = boneIndex / GFXShaders.FlverShader.NUM_BONES;
+                int bone = boneIndex % GFXShaders.FlverShader.NUM_BONES;
+
+                if (bank == 0)
+                    ShaderMatrix0[bone] = value;
+                else if (bank == 1)
+                    ShaderMatrix1[bone] = value;
+                else if (bank == 2)
+                    ShaderMatrix2[bone] = value;
+                else if (bank == 3)
+                    ShaderMatrix3[bone] = value;
+                else if (bank == 4)
+                    ShaderMatrix4[bone] = value;
                 else
-                    ShaderMatrix0[boneIndex] = value;
+                    throw new Exception("NOT ENOUGH BANKS IN SHADER");
 
                 if (MODEL.DummyPolyMan.AnimatedDummyPolyClusters.ContainsKey(boneIndex))
                 {
@@ -144,7 +170,7 @@ namespace DSAnimStudio
         public class FlverBoneInfo
         {
             public string Name;
-            public Matrix ReferenceMatrix;
+            public Matrix ReferenceMatrix = Matrix.Identity;
             public int HkxBoneIndex = -1;
 
             public FlverBoneInfo(FLVER2.Bone bone, List<FLVER2.Bone> boneList)
@@ -181,10 +207,11 @@ namespace DSAnimStudio
         public class HkxBoneInfo
         {
             public string Name;
-            public short ParentIndex;
-            public Matrix RelativeReferenceMatrix;
-            public Matrix ReferenceMatrix;
-            public int FlverBoneIndex;
+            public short ParentIndex = -1;
+            public Matrix RelativeReferenceMatrix = Matrix.Identity;
+            public Matrix ReferenceMatrix = Matrix.Identity;
+            public int FlverBoneIndex = -1;
+            public List<int> ChildIndices = new List<int>();
         }
     }
 }

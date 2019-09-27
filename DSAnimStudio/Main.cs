@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "v1.0";
+        public const string VERSION = "Version 1.0";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -40,12 +40,12 @@ namespace DSAnimStudio
 
         public static bool Active { get; private set; }
 
-        public static bool DISABLE_DRAW_ERROR_HANDLE = true;
+        public static bool DISABLE_DRAW_ERROR_HANDLE = false;
 
         private static float MemoryUsageCheckTimer = 0;
         private static long MemoryUsage_Unmanaged = 0;
         private static long MemoryUsage_Managed = 0;
-        private const float MemoryUsageCheckInterval = 0.5f;
+        private const float MemoryUsageCheckInterval = 0.25f;
 
         public static readonly Color SELECTED_MESH_COLOR = Color.Yellow * 0.05f;
         //public static readonly Color SELECTED_MESH_WIREFRAME_COLOR = Color.Yellow;
@@ -282,11 +282,11 @@ namespace DSAnimStudio
 
             GFX.World.ResetCameraLocation();
 
-            //DbgMenuItem.Init();
+            DbgMenuItem.Init();
 
             UpdateMemoryUsage();
 
-            CFG.Init();
+            CFG.AttemptLoadOrDefault();
 
             TAE_EDITOR_FONT = Content.Load<SpriteFont>($@"{Main.Directory}\Content\Fonts\DbgMenuFontSmall");
             TAE_EDITOR_BLANK_TEX = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
@@ -324,10 +324,10 @@ namespace DSAnimStudio
                 return $"{prefix}{(1.0 * MemoryUsage):0} B";
             else if (MemoryUsage < MEM_MB)
                 return $"{prefix}{(1.0 * MemoryUsage / MEM_KB):0.00} KB";
-            else if (MemoryUsage < MEM_GB)
+            else// if (MemoryUsage < MEM_GB)
                 return $"{prefix}{(1.0 * MemoryUsage / MEM_MB):0.00} MB";
-            else
-                return $"{prefix}{(1.0 * MemoryUsage / MEM_GB):0.00} GB";
+            //else
+            //    return $"{prefix}{(1.0 * MemoryUsage / MEM_GB):0.00} GB";
         }
 
         private Color GetMemoryUseColor(long MemoryUsage)
@@ -402,7 +402,16 @@ namespace DSAnimStudio
         {
             DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
 
-            DELTA_UPDATE_ROUNDED = (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+            if (!FIXED_TIME_STEP && GFX.AverageFPS >= 200)
+            {
+                DELTA_UPDATE_ROUNDED = (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+            }
+            else
+            {
+                DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
+            }
+
+            
 
             Active = IsActive && ApplicationIsActivated();
 
@@ -548,7 +557,9 @@ namespace DSAnimStudio
 
                 //TaeInterop.TaeViewportDrawPre(gameTime);
                 GFX.DrawScene3D();
-                GFX.DrawSceneOver3D();
+
+                if (!DBG.DbgPrimXRay)
+                    GFX.DrawSceneOver3D();
 
                 GFX.Device.SetRenderTarget(null);
 
@@ -559,7 +570,7 @@ namespace DSAnimStudio
                 InitTonemapShader();
                 GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
 
-                if (GFX.UseTonemap)
+                if (GFX.UseTonemap && !GFX.IsInDebugShadingMode)
                     MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
 
                 GFX.SpriteBatch.Draw(SceneRenderTarget,
@@ -614,6 +625,10 @@ namespace DSAnimStudio
 
             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
             //DBG.DrawPrimitiveNames(gameTime);
+
+            if (DBG.DbgPrimXRay)
+                GFX.DrawSceneOver3D();
+
             GFX.DrawSceneGUI();
 
             TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebug();

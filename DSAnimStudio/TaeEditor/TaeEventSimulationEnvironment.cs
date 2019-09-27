@@ -136,6 +136,7 @@ namespace DSAnimStudio.TaeEditor
                         //},
                         SimulationFrameChangeAction = (entry, evBoxes) =>
                         {
+                            MODEL.DummyPolyMan.DeactivateAllHitboxes();
                             foreach (var evBox in evBoxes.Where(b => entry.DoesEventMatch(b)))
                             {
                                 var atkParam = GetAtkParamFromEventBox(evBox);
@@ -144,8 +145,6 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     if (evBox.PlaybackHighlight)
                                         MODEL.DummyPolyMan.ActivateHitbox(atkParam);
-                                    else
-                                        MODEL.DummyPolyMan.DeactivateHitbox(atkParam);
                                 }
                             }
                         }
@@ -168,7 +167,8 @@ namespace DSAnimStudio.TaeEditor
                         SimulationFrameChangeAction = (entry, evBoxes) =>
                         {
                             bool anyOpacityHappeningThisFrame = false;
-                            foreach (var evBox in evBoxes.Where(b => entry.DoesEventMatch(b)))
+
+                            foreach (var evBox in evBoxes.Where(b => b.PlaybackHighlight && entry.DoesEventMatch(b)))
                             {
                                 float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
                                 float timeSinceFadeStart = (float)Main.TAE_EDITOR.PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
@@ -329,7 +329,11 @@ namespace DSAnimStudio.TaeEditor
         public void BuildEventSimMenuBar(TaeMenuBarBuilder menu)
         {
             if (menu["Simulation"] != null)
+            {
                 menu.ClearItem("Simulation");
+                menu["Simulation"].Visible = true;
+                menu["Simulation"].Enabled = true;
+            }
 
             foreach (var kvp in Entries)
             {

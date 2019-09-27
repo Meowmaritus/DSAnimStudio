@@ -104,6 +104,44 @@ namespace DSAnimStudio
             FmgManager.LoadAllFMG(forceReload: true);
         }
 
+        //public enum MapModelSearchType
+        //{
+        //    CHR,
+        //    OBJ,
+        //    MAP
+        //}
+        //public static string GetMapThatModelIsIn(string modelName, MapModelSearchType searchType)
+        //{
+        //    if (GameType == GameTypes.DS3)
+        //    {
+        //        foreach (var msbName in System.IO.Directory.GetFiles($@"{InterrootPath}\map\MapStudio", "*.msb.dcx"))
+        //        {
+        //            var shortMsbName = Utils.GetShortIngameFileName(msbName);
+        //            var msb = MSB3.Read(msbName);
+
+        //            if (searchType == MapModelSearchType.CHR)
+        //            {
+        //                foreach (var m in msb.Models.Enemies)
+        //                    if (m.Name == modelName)
+        //                        return shortMsbName;
+        //            }
+        //            else if (searchType == MapModelSearchType.OBJ)
+        //            {
+        //                foreach (var m in msb.Models.Objects)
+        //                    if (m.Name == modelName)
+        //                        return shortMsbName;
+        //            }
+        //            else if (searchType == MapModelSearchType.MAP)
+        //            {
+        //                foreach (var m in msb.Models.MapPieces)
+        //                    if (m.Name == modelName)
+        //                        return shortMsbName;
+        //            }
+        //        }
+        //    }
+        //}
+
+
         public static void LoadSystex()
         {
             LoadingTaskMan.DoLoadingTask("LoadSystex", "Loading SYSTEX textures...", progress =>
@@ -211,7 +249,7 @@ namespace DSAnimStudio
                         int objGroup = int.Parse(id.Substring(1)) / 1_0000;
                         var tpfBnds = System.IO.Directory.GetFiles($@"{InterrootPath}\map\m{objGroup:D2}", "*.tpfbhd");
                         foreach (var t in tpfBnds)
-                            TexturePool.AddSpecificTexturesFromBXF4(t, texturesToLoad);
+                            TexturePool.AddSpecificTexturesFromBinder(t, texturesToLoad);
                     }
                     obj.MainMesh.TextureReloadQueued = true;
                 });
@@ -230,26 +268,63 @@ namespace DSAnimStudio
                 if (GameType == GameTypes.DS3)
                 {
                     var chrbnd = BND4.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
-                    var texbnd = BND4.Read($@"{InterrootPath}\chr\{id}.texbnd.dcx");
-                    var anibnd = BND4.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+                    IBinder texbnd = null;
+                    IBinder anibnd = null;
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.texbnd.dcx"))
+                        texbnd = BND4.Read($@"{InterrootPath}\chr\{id}.texbnd.dcx");
+
+                    if (texbnd == null && System.IO.File.Exists($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.texbnd.dcx"))
+                        texbnd = BND4.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.texbnd.dcx");
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd.dcx"))
+                        anibnd = BND4.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd, ignoreStaticTransforms: true);
                 }
                 else if (GameType == GameTypes.DS1)
                 {
                     var chrbnd = BND3.Read($@"{InterrootPath}\chr\{id}.chrbnd");
-                    var anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd");
+                    IBinder anibnd = null;
+                    IBinder texbnd = null;
 
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
-                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd"))
+                        anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd");
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.chrtpfbdt"))
+                    {
+                        var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
+
+                        if (chrtpfbhd != null)
+                        {
+                            texbnd = BXF3.Read(chrtpfbhd.Bytes, $@"{InterrootPath}\chr\{id}.chrtpfbdt");
+                        }
+                    }
+
+                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
+                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
                 }
                 else if (GameType == GameTypes.DS1R)
                 {
                     var chrbnd = BND3.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
-                    var anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+                    IBinder anibnd = null;
+                    IBinder texbnd = null;
 
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
-                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd.dcx"))
+                        anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.chrtpfbdt"))
+                    {
+                        var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
+
+                        if (chrtpfbhd != null)
+                        {
+                            texbnd = BXF3.Read(chrtpfbhd.Bytes, $@"{InterrootPath}\chr\{id}.chrtpfbdt");
+                        }
+                    }
+
+                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
+                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
                 }
                 else if (GameType == GameTypes.BB)
                 {
@@ -258,7 +333,7 @@ namespace DSAnimStudio
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
                         additionalTpfNames: new List<string> { $@"{InterrootPath}\chr\{id}_2.tpf.dcx" },
-                        possibleLooseDdsFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
+                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
                 }
 
                 Scene.AddModel(chr);
@@ -301,6 +376,30 @@ namespace DSAnimStudio
 
                     progress.Report(1);
                 });
+            }
+            else
+            {
+                var additionalAnibnds = System.IO.Directory.GetFiles($@"{InterrootPath}\chr", $"{id}_*.anibnd*");
+
+                if (additionalAnibnds.Length > 0)
+                {
+                    LoadingTaskMan.DoLoadingTask($"{id}_ANIBNDs",
+                    "Loading additional character ANIBNDs...", progress =>
+                    {
+                        for (int i = 0; i < additionalAnibnds.Length; i++)
+                        {
+                            IBinder anibnd = null;
+                            if (BND3.Is(additionalAnibnds[i]))
+                                anibnd = BND3.Read(additionalAnibnds[i]);
+                            else
+                                anibnd = BND4.Read(additionalAnibnds[i]);
+
+                            chr.AnimContainer.LoadAdditionalANIBND(anibnd, null);
+
+                            progress.Report(1.0 * i / additionalAnibnds.Length);
+                        }
+                    });
+                }
             }
 
             return chr;

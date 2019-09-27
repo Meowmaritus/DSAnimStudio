@@ -294,16 +294,41 @@ namespace DSAnimStudio
             }
         }
 
-        public static void AddSpecificTexturesFromBXF4(string name, List<string> textures)
+        public static void AddSpecificTexturesFromBinder(string name, List<string> textures)
         {
-            var bxf = BXF4.Read(name, name.Substring(0, name.Length - 7) + ".tpfbdt");
+            if (!File.Exists(name))
+                return;
 
-            foreach (var f in bxf.Files)
+            IBinder bnd = null;
+
+            if (BXF4.IsBHD(name))
+                bnd = BXF4.Read(name, name.Substring(0, name.Length - 7) + ".tpfbdt");
+            else if (BXF4.IsBDT(name))
+                bnd = BXF4.Read(name.Substring(0, name.Length - 7) + ".tpfbhd", name);
+            else if (BXF3.IsBHD(name))
+                bnd = BXF3.Read(name, name.Substring(0, name.Length - 7) + ".tpfbdt");
+            else if (BXF3.IsBDT(name))
+                bnd = BXF3.Read(name.Substring(0, name.Length - 7) + ".tpfbhd", name);
+            else if (BND4.Is(name))
+                bnd = BND4.Read(name);
+            else if (BND3.Is(name))
+                bnd = BND3.Read(name);
+
+            foreach (var f in bnd.Files)
             {
-                if (f.Name != null && f.Name.ToLower().Contains(".tpf") && 
-                    textures.Contains(Utils.GetShortIngameFileName(f.Name)))
+                if (TPF.Is(f.Bytes))
                 {
-                    AddTpf(TPF.Read(f.Bytes));
+                    var tpf = TPF.Read(f.Bytes);
+                    foreach (var tx in tpf.Textures)
+                    {
+                        var shortTexName = Utils.GetShortIngameFileName(tx.Name);
+                        if (textures.Contains(shortTexName))
+                        {
+                            AddFetchTPF(tpf, tx.Name);
+
+                            textures.Remove(shortTexName);
+                        }
+                    }
                 }
             }
         }

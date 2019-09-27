@@ -496,24 +496,33 @@ namespace DSAnimStudio.Havok
                 }
             }
 
-            public float GetValueX(float frame)
+            public float? GetValueX(float frame)
             {
+                if (ChannelX == null)
+                    return null;
+
                 if (ChannelX.Values.Count == 1)
                     return ChannelX.Values[0];
                 int knotspan = FindKnotSpan(Degree, frame, ChannelX.Values.Count, Knots);
                 return GetSinglePoint(knotspan, Degree, frame, Knots, ChannelX.Values);
             }
 
-            public float GetValueY(float frame)
+            public float? GetValueY(float frame)
             {
+                if (ChannelY == null)
+                    return null;
+
                 if (ChannelY.Values.Count == 1)
                     return ChannelY.Values[0];
                 int knotspan = FindKnotSpan(Degree, frame, ChannelY.Values.Count, Knots);
                 return GetSinglePoint(knotspan, Degree, frame, Knots, ChannelY.Values);
             }
 
-            public float GetValueZ(float frame)
+            public float? GetValueZ(float frame)
             {
+                if (ChannelZ == null)
+                    return null;
+
                 if (ChannelZ.Values.Count == 1)
                     return ChannelZ.Values[0];
                 int knotspan = FindKnotSpan(Degree, frame, ChannelZ.Values.Count, Knots);

@@ -38,13 +38,19 @@ namespace DSAnimStudio
             public void Activate()
             {
                 foreach (var prim in Primitives)
+                {
                     prim.EnableDraw = true;
+                    prim.EnableNameDraw = true;
+                }
             }
 
             public void Deactivate()
             {
                 foreach (var prim in Primitives)
+                {
                     prim.EnableDraw = false;
+                    prim.EnableNameDraw = false;
+                }
             }
         }
 
@@ -632,28 +638,28 @@ namespace DSAnimStudio
             AnimatedDummyPolyClusters = new Dictionary<int, DbgPrimDummyPolyCluster>();
             ClusterWhichDmyPresidesIn = new Dictionary<int, List<DbgPrimDummyPolyCluster>>();
 
-            var dummiesByID = new Dictionary<int, List<FLVER2.Dummy>>();
+            var dummiesByBoneID = new Dictionary<int, List<FLVER2.Dummy>>();
 
             foreach (var dmy in flver.Dummies)
             {
-                if (dummiesByID.ContainsKey(dmy.AttachBoneIndex))
+                if (dummiesByBoneID.ContainsKey(dmy.AttachBoneIndex))
                 {
-                    dummiesByID[dmy.AttachBoneIndex].Add(dmy);
+                    dummiesByBoneID[dmy.AttachBoneIndex].Add(dmy);
                 }
                 else
                 {
-                    dummiesByID.Add(dmy.AttachBoneIndex, new List<FLVER2.Dummy> { dmy });
+                    dummiesByBoneID.Add(dmy.AttachBoneIndex, new List<FLVER2.Dummy> { dmy });
                 }
             }
 
             List<FLVER2.Dummy> stationaryDmy = new List<FLVER2.Dummy>();
 
-            foreach (var kvp in dummiesByID)
+            for (int i = 0; i < flver.Bones.Count; i++)
             {
-                if (kvp.Key >= 0)
+                if (dummiesByBoneID.ContainsKey(i))
                 {
-                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, kvp.Value, flver.Bones, baseDmyPolyID);
-                    foreach (var dmy in kvp.Value)
+                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, dummiesByBoneID[i], flver.Bones, baseDmyPolyID);
+                    foreach (var dmy in dummiesByBoneID[i])
                     {
                         if (!ClusterWhichDmyPresidesIn.ContainsKey(dmy.ReferenceID + baseDmyPolyID))
                         {
@@ -665,13 +671,27 @@ namespace DSAnimStudio
 
                     }
                     MODEL.DbgPrimDrawer.AddPrimitive(dmyPrim);
-                    AnimatedDummyPolyClusters.Add(kvp.Key, dmyPrim);
+                    AnimatedDummyPolyClusters.Add(i, dmyPrim);
+                }
+                else
+                {
+                    var dmyPrim = new DbgPrimDummyPolyCluster(0.5f, new List<FLVER2.Dummy>(), flver.Bones, baseDmyPolyID);
+                    MODEL.DbgPrimDrawer.AddPrimitive(dmyPrim);
+                    AnimatedDummyPolyClusters.Add(i, dmyPrim);
                 }
             }
 
-            if (dummiesByID.ContainsKey(-1))
+            foreach (var kvp in dummiesByBoneID)
             {
-                StationaryDummyPolys = new DbgPrimDummyPolyCluster(0.5f, dummiesByID[-1], flver.Bones, baseDmyPolyID);
+                if (kvp.Key >= 0)
+                {
+                    
+                }
+            }
+
+            if (dummiesByBoneID.ContainsKey(-1))
+            {
+                StationaryDummyPolys = new DbgPrimDummyPolyCluster(0.5f, dummiesByBoneID[-1], flver.Bones, baseDmyPolyID);
                 MODEL.DbgPrimDrawer.AddPrimitive(StationaryDummyPolys);
             }
             else

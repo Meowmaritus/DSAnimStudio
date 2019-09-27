@@ -21,8 +21,8 @@ namespace DSAnimStudio
 
         private object _lock_boneMatrixStuff = new object();
 
-        private Dictionary<int, Matrix> boneMatrixCache = new Dictionary<int, Matrix>();
-        private List<Matrix> boneMatrices = new List<Matrix>();
+        private List<NewBlendableTransform> blendableTransforms = new List<NewBlendableTransform>();
+        private List<int> bonesAlreadyCalculated = new List<int>();
 
         public bool IsAdditiveBlend =>
             BlendHint == HKX.AnimationBlendHint.ADDITIVE ||
@@ -38,7 +38,7 @@ namespace DSAnimStudio
 
         public float CurrentFrame => CurrentTime / FrameDuration;
 
-        public abstract Matrix GetBoneMatrixOnCurrentFrame(int hkxBoneIndex);
+        public abstract NewBlendableTransform GetBlendableTransformOnCurrentFrame(int hkxBoneIndex);
 
         public void ApplyMotionToSkeleton()
         {
@@ -147,58 +147,39 @@ namespace DSAnimStudio
 
             lock (_lock_boneMatrixStuff)
             {
-                boneMatrices = new List<Matrix>();
+                blendableTransforms = new List<NewBlendableTransform>();
                 for (int i = 0; i < skeleton.HkxSkeleton.Count; i++)
                 {
-                    boneMatrices.Add(Matrix.Identity);
+                    blendableTransforms.Add(NewBlendableTransform.Identity);
                 }
             }
-           
+
             BlendHint = binding.BlendHint;
         }
 
         public void WriteCurrentFrameToSkeleton()
         {
+            bonesAlreadyCalculated.Clear();
+
             lock (_lock_boneMatrixStuff)
             {
-                boneMatrixCache.Clear();
-
-                Matrix GetParentTransformedBoneMatrix(int i)
+                void WalkTree(int i, Matrix currentMatrix, Vector3 currentScale)
                 {
-                    Matrix result = Matrix.Identity;
-
-                    do
+                    if (!bonesAlreadyCalculated.Contains(i))
                     {
-                        Matrix thisBone = Matrix.Identity;
-
-                        if (boneMatrixCache.ContainsKey(i))
-                        {
-                            thisBone *= boneMatrixCache[i];
-                        }
-                        else
-                        {
-                            thisBone *= boneMatrices[i];
-                            boneMatrixCache.Add(i, thisBone);
-                        }
-
-                        result *= thisBone;
-
-                        i = Skeleton.HkxSkeleton[i].ParentIndex;
+                        blendableTransforms[i] = GetBlendableTransformOnCurrentFrame(i);
+                        currentMatrix = blendableTransforms[i].GetMatrix() * currentMatrix;
+                        currentScale *= blendableTransforms[i].Scale;
+                        Skeleton.SetHkxBoneMatrix(i, Matrix.CreateScale(currentScale) * currentMatrix);
+                        bonesAlreadyCalculated.Add(i);
                     }
-                    while (i >= 0);
 
-                    return result;
+                    foreach (var c in Skeleton.HkxSkeleton[i].ChildIndices)
+                        WalkTree(c, currentMatrix, currentScale);
                 }
 
-                for (int i = 0; i < Skeleton.HkxSkeleton.Count; i++)
-                {
-                    boneMatrices[i] = GetBoneMatrixOnCurrentFrame(i);
-                }
-
-                for (int i = 0; i < Skeleton.HkxSkeleton.Count; i++)
-                {
-                    Skeleton.SetHkxBoneMatrix(i, GetParentTransformedBoneMatrix(i));
-                }
+                foreach (var root in Skeleton.RootBoneIndices)
+                    WalkTree(root, Matrix.Identity, Vector3.One);
             }
 
         }

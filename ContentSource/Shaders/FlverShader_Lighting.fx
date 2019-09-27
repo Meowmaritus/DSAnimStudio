@@ -11,21 +11,12 @@
 
 #define MAXLIGHTS 3
 
-#define WORKFLOW_TEXDEBUG_DIFFUSEMAP 0
-#define WORKFLOW_TEXDEBUG_SPECULARMAP 1
-#define WORKFLOW_TEXDEBUG_NORMALMAP 2
-#define WORKFLOW_TEXDEBUG_EMISSIVEMAP 3
-#define WORKFLOW_TEXDEBUG_BLENDMASKMAP 4
-#define WORKFLOW_TEXDEBUG_SHININESSMAP 5
-#define WORKFLOW_TEXDEBUG_NORMALMAP_BLUE 6
+//TEMP DISABLED FOR COLOR TESTING
 
-#define WORKFLOW_MESHDEBUG_NORMALS 100
-#define WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY 101
-
-#define WORKFLOW_LEGACY 200
-#define WORKFLOW_PBR_GLOSS_DS3 201
-#define WORKFLOW_PBR_GLOSS_BB 202
-#define WORKFLOW_CLASSIC_DIFFUSE_PTDE 203
+#define WORKFLOW_ASS 0
+#define WORKFLOW_GLOSS 1
+#define WORKFLOW_ROUGHNESS 2
+#define WORKFLOW_METALNESS 3
 
 #ifndef NO_SKINNING
 cbuffer cbSkinned
@@ -38,16 +29,10 @@ cbuffer cbSkinned
     float4x4 Bones1[255];
 };
 
-
-cbuffer cbSkinned1
+cbuffer cbSkinned2
 {
     float4x4 Bones2[255];
     float4x4 Bones3[255];
-};
-
-cbuffer cbSkinned2
-{
-    float4x4 Bones4[255];
 };
 #endif
 
@@ -87,6 +72,7 @@ float DirectLightMult = 1.0;
 float IndirectLightMult = 1.0;
 float EmissiveMapMult = 1.0;
 float SceneBrightness = 1.0;
+bool UseSpecularMapBB = false;
 
 // Textures
 texture2D ColorMap;
@@ -138,17 +124,6 @@ texture2D EmissiveMap;
 sampler2D EmissiveMapSampler = sampler_state
 {
 	Texture = <EmissiveMap>;
-	MinFilter = linear;
-	MagFilter = linear;
-	MipFilter = linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-texture2D BlendmaskMap;
-sampler2D BlendmaskMapSampler = sampler_state
-{
-	Texture = <BlendmaskMap>;
 	MinFilter = linear;
 	MagFilter = linear;
 	MipFilter = linear;
@@ -217,13 +192,9 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.x)]) * input.BoneWeights.x;
     }
-    else if (input.BoneIndicesBank.x == 4)
-    {
-        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.x)]) * input.BoneWeights.x;
-    }
     else
     {
-        return shit;
+        posA = shit * input.BoneWeights.x;
     }
     
     if (input.BoneIndicesBank.y == 0)
@@ -242,13 +213,9 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.y)]) * input.BoneWeights.y;
     }
-    else if (input.BoneIndicesBank.y == 4)
-    {
-        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.y)]) * input.BoneWeights.y;
-    }
     else
     {
-        return shit;
+        posB = shit * input.BoneWeights.y;
     }
     
     if (input.BoneIndicesBank.z == 0)
@@ -267,13 +234,9 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.z)]) * input.BoneWeights.z;
     }
-    else if (input.BoneIndicesBank.z == 4)
-    {
-        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.z)]) * input.BoneWeights.z;
-    }
     else
     {
-        return shit;
+        posC = shit * input.BoneWeights.z;
     }
     
     if (input.BoneIndicesBank.w == 0)
@@ -292,13 +255,9 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     {
         posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.w)]) * input.BoneWeights.w;
     }
-    else if (input.BoneIndicesBank.w == 4)
-    {
-        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.w)]) * input.BoneWeights.w;
-    }
     else
     {
-        return shit;
+        posD = shit * input.BoneWeights.w;
     }
     
     return ((posA + posB + posC + posD) / (input.BoneWeights.x + input.BoneWeights.y + input.BoneWeights.z + input.BoneWeights.w));
@@ -388,63 +347,58 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     }
     
     float4 specularMapColor = tex2D(SpecularMapSampler, input.TexCoord);
+    
+    //specularMapColor *= tex2D(SpecularMapBBSampler, input.TexCoord);
+    
+    //specularMapColor *= specularMapColor;
+    
     float4 emissiveMapColor = tex2D(EmissiveMapSampler, input.TexCoord);
+    
+    //return float4(1,2,3,4);
+    
+    //color = color * float4(color.w, color.w, color.w, color.w);
+    
+    /*
+    if (color.w < AlphaTest)
+    {
+        clip(-1);
+        return color;
+        
+        //DEBUG:
+        //return float4(1,0,1,1);
+    }
+    */
     float3 nmapcol = tex2D(NormalMapSampler, input.TexCoord);
-    float4 blendmaskColor = tex2D(BlendmaskMapSampler, input.TexCoord);
-    float4 shininessMapColor = tex2D(SpecularMapBBSampler, input.TexCoord);
     
     [branch]
-    if (WorkflowType == WORKFLOW_TEXDEBUG_DIFFUSEMAP)
-    {
-        return color;
-    }
-    else if (WorkflowType == WORKFLOW_TEXDEBUG_SPECULARMAP)
-    {
-        return specularMapColor;
-    }
-    else if (WorkflowType == WORKFLOW_TEXDEBUG_NORMALMAP)
-    {
-        return float4(nmapcol, 1);
-    }
-    else if (WorkflowType == WORKFLOW_TEXDEBUG_EMISSIVEMAP)
-    {
-        return emissiveMapColor;
-    }
-    else if (WorkflowType == WORKFLOW_TEXDEBUG_BLENDMASKMAP)
-    {
-        return blendmaskColor;
-    }
-    else if (WorkflowType == WORKFLOW_TEXDEBUG_SHININESSMAP)
-    {
-        return shininessMapColor;
-    }
-    else if (WorkflowType == WORKFLOW_TEXDEBUG_NORMALMAP_BLUE)
-    {
-        return float4(nmapcol.b, nmapcol.b, nmapcol.b, 1);
-    }
-    else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS)
-    {
-        float3 normalMap;
-        normalMap.xy = nmapcol.xy * 2.0 - 1.0;
-        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
-        normalMap = normalize(normalMap);
-
-        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
-        float3 normal = (!isFrontFacing ? normalMap : -normalMap);
-        
-        return float4(normal * 0.25 + 0.5, 1);
-    }
-    else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY)
-    {
-        return float4(input.Normal * 0.25 + 0.5, 1);
-    }
-    if (WorkflowType == WORKFLOW_PBR_GLOSS_DS3)
+    if (WorkflowType != WORKFLOW_ASS)
     {
         //float3 normal = input.Normal;
         
         float normalMapBlueChannel = nmapcol.z;
         
-        float roughness = 1 - normalMapBlueChannel;
+        
+        [branch]
+        if (UseSpecularMapBB)
+        {
+            normalMapBlueChannel *= tex2D(SpecularMapBBSampler, input.TexCoord).r;
+        }
+        
+        
+        float roughness = normalMapBlueChannel;
+        float metalness = normalMapBlueChannel;
+        
+        [branch]
+        if (WorkflowType == WORKFLOW_GLOSS)
+        {
+            roughness = 1 - roughness;
+        }
+        
+        [branch]
+        if (WorkflowType == WORKFLOW_METALNESS)
+        {
+            metalness = normalMapBlueChannel;
+        }
         
         float3 normalMap;
         normalMap.xy = nmapcol.xy * 2.0 - 1.0;
@@ -462,7 +416,16 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         float3 F0 = float3(0,0,0);
         
-        F0 = specularMapColor.rgb;
+        [branch]
+        if (WorkflowType == WORKFLOW_METALNESS)
+        {
+            F0 = lerp(float3(0.04,0.04,0.04), diffuseColor, metalness);
+            diffuseColor *= 1 - metalness;
+        }
+        else
+        {
+            F0 = specularMapColor.rgb;
+        }
         
         // TEST
         F0 *= F0;
@@ -533,201 +496,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult) + (emissiveMapColor * EmissiveMapMult)) * SceneBrightness), 1);
     }
-    else if (WorkflowType == WORKFLOW_PBR_GLOSS_BB)
-    {
-        //float3 normal = input.Normal;
-        
-        float normalMapBlueChannel = nmapcol.z;
-        
-        
-        normalMapBlueChannel *= shininessMapColor.r;
-        
-        float roughness = 1 - normalMapBlueChannel;
-        
-        float3 normalMap;
-        normalMap.xy = nmapcol.xy * 2.0 - 1.0;
-        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
-        normalMap = normalize(normalMap);
-
-        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
-        float3 N = (!isFrontFacing ? normalMap : -normalMap);
-        
-        float3 viewVec = normalize(input.View);
-        float3 diffuseColor = color.xyz;
-        float3 L = -LightDirection;
-        
-        float3 H = normalize(L + viewVec);
-        
-        float3 F0 = float3(0,0,0);
-        
-        F0 = specularMapColor.rgb;
-        
-        // TEST
-        
-        F0 *= F0;
-        
-        float LdotN = saturate(dot(N, L));
-        float NdotV = abs(saturate(dot(viewVec, N)));
-        float NdotH = abs(saturate(dot(H, N)));
-        float VdotH = saturate(dot(H, viewVec));
-        
-        float alpha = roughness * roughness;
-        float alphasquare = alpha * alpha;
-        
-        float3 finalDiffuse = diffuseColor * (LdotN);
-        
-        float3 F = pow(1.0 - VdotH, 5) * (1.0 - F0) + F0;
-        
-        float denom = NdotH * NdotH * (alphasquare - 1.0) + 1.0;
-        
-        //[OLD D]
-        //float D = alphasquare / (Pi * denom * denom);
-        
-        float specPower = exp2((1 - roughness) * 13.0);
-        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0));
-        float D = pow(NdotH, specPower) * (specPower * 0.125 + 0.25);
-        
-        //float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
-        //  NdotV * sqrt(alphasquare + ((1.0 - alphasquare) * (LdotN * LdotN )));
-        //V = min(0.5 / max(V, Epsilon), 1.0);
-        
-        float3 specular = D * F * LdotN;//D * F * V * LdotN;
-        
-        uint envWidth, envHeight, envLevels;
-        
-        EnvironmentMap.GetDimensions(0, envWidth, envHeight, envLevels);
-        
-        float envMip =  min(6.0, -(1 - roughness) * 6.5 + 6.5);//log2(alpha * float(envWidth));
-        float3 reflectVec = reflect(-viewVec, N);
-        
-        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(reflectVec * float3(1,1,-1), envMip));
-        //ambientSpec *= ambientSpec;
-        ambientSpec *= AmbientLightMult;
-        
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(N * float3(1,1,-1), 5));
-        //ambientDiffuse *= ambientDiffuse;
-        ambientDiffuse *= AmbientLightMult;
-        
-        NdotV = max(NdotV, Epsilon);
-        float K = roughness * roughness * 0.5;
-        float G = (NdotV/ (NdotV* (1.0 - K) + K));
-        //float iV = min(G / (4.0 * NdotV), 1.0);
-        
-        float3 aF = pow(1.0 - NdotV, 5) * (1 - roughness) * (1 - roughness) * (1.0 - F0) + F0;
-        
-        float3 diffuse = finalDiffuse * (1 - F0);
-        
-        float3 indirectDiffuse = finalDiffuse * ambientDiffuse * (1 - F0);
-        
-        float3 indirectSpecular = ambientSpec * aF;// * iV;
-        
-        float reflectionThing = saturate(dot(reflectVec, N) + 1.0);
-        reflectionThing  *= reflectionThing;
-        indirectSpecular *= reflectionThing;
-        
-        float3 direct = diffuse + specular;
-        float3 indirect = indirectDiffuse + indirectSpecular;
-        
-        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult) + (emissiveMapColor * EmissiveMapMult)) * SceneBrightness), 1);
-    }
-    else if (WorkflowType == WORKFLOW_CLASSIC_DIFFUSE_PTDE)
-    {
-        //float3 normal = input.Normal;
-        
-        float normalMapBlueChannel = nmapcol.z;
-        
-        
-        normalMapBlueChannel *= tex2D(SpecularMapBBSampler, input.TexCoord).r;
-        
-        float roughness = 1 - normalMapBlueChannel;
-        
-        float3 normalMap;
-        normalMap.xy = nmapcol.xy * 2.0 - 1.0;
-        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
-        normalMap = normalize(normalMap);
-
-        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
-        float3 N = (!isFrontFacing ? normalMap : -normalMap);
-        
-        float3 viewVec = normalize(input.View);
-        float3 diffuseColor = color.xyz;
-        float3 L = -LightDirection;
-        
-        float3 H = normalize(L + viewVec);
-        
-        float3 F0 = float3(0,0,0);
-        
-        F0 = specularMapColor.rgb;
-        
-        // TEST
-        
-        //F0 *= F0;
-        
-        float LdotN = saturate(dot(N, L));
-        float NdotV = abs(saturate(dot(viewVec, N)));
-        float NdotH = abs(saturate(dot(H, N)));
-        float VdotH = saturate(dot(H, viewVec));
-        
-        float alpha = roughness * roughness;
-        float alphasquare = alpha * alpha;
-        
-        float3 finalDiffuse = diffuseColor * (LdotN);
-        
-        float3 F = pow(1.0 - VdotH, 5) * (1.0 - F0) + F0;
-        
-        float denom = NdotH * NdotH * (alphasquare - 1.0) + 1.0;
-        
-        //[OLD D]
-        //float D = alphasquare / (Pi * denom * denom);
-        
-        float specPower = exp2((1 - roughness) * 13.0);
-        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0));
-        float D = pow(NdotH, specPower) * (specPower * 0.125 + 0.25);
-        
-        //float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
-        //  NdotV * sqrt(alphasquare + ((1.0 - alphasquare) * (LdotN * LdotN )));
-        //V = min(0.5 / max(V, Epsilon), 1.0);
-        
-        float3 specular = D * F * LdotN;//D * F * V * LdotN;
-        
-        uint envWidth, envHeight, envLevels;
-        
-        EnvironmentMap.GetDimensions(0, envWidth, envHeight, envLevels);
-        
-        float envMip =  min(6.0, -(1 - roughness) * 6.5 + 6.5);//log2(alpha * float(envWidth));
-        float3 reflectVec = reflect(-viewVec, N);
-        
-        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(reflectVec * float3(1,1,-1), envMip));
-        //ambientSpec *= ambientSpec;
-        ambientSpec *= AmbientLightMult;
-        
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(N * float3(1,1,-1), 5));
-        //ambientDiffuse *= ambientDiffuse;
-        ambientDiffuse *= AmbientLightMult;
-        
-        NdotV = max(NdotV, Epsilon);
-        float K = roughness * roughness * 0.5;
-        float G = (NdotV/ (NdotV* (1.0 - K) + K));
-        //float iV = min(G / (4.0 * NdotV), 1.0);
-        
-        float3 aF = pow(1.0 - NdotV, 5) * (1 - roughness) * (1 - roughness) * (1.0 - F0) + F0;//pow(1.0 - NdotV, 5) * (1.0 - F0) + F0;
-        
-        float3 diffuse = finalDiffuse * (1 - F0);
-        
-        float3 indirectDiffuse = finalDiffuse * ambientDiffuse * (1 - F0);
-        
-        float3 indirectSpecular = ambientSpec * aF;// * iV;
-        
-        float reflectionThing = saturate(dot(reflectVec, N) + 1.0);
-        reflectionThing  *= reflectionThing;
-        indirectSpecular *= reflectionThing;
-        
-        float3 direct = diffuse + specular;
-        float3 indirect = indirectDiffuse + indirectSpecular;
-        
-        return float4((((direct * DirectLightMult) + (indirect * IndirectLightMult) + (emissiveMapColor * EmissiveMapMult)) * SceneBrightness), 1);
-    }
-    else if (WorkflowType == WORKFLOW_LEGACY)
+    else
     {
         color = pow(color,Legacy_DiffusePower);
         
@@ -786,8 +555,9 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //		);
     }
     
-    // Default if nothing selected. Same as WorkflowType 0
-    return color;
+    
+    
+    
 }
 
 technique BasicColorDrawing
