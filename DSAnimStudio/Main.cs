@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.1";
+        public const string VERSION = "Version 1.1.1";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -213,39 +213,49 @@ namespace DSAnimStudio
 
         protected override void Initialize()
         {
-            var winForm = (Form)Control.FromHandle(Window.Handle);
-            winForm.AllowDrop = true;
-            winForm.DragEnter += GameWindowForm_DragEnter;
-            winForm.DragDrop += GameWindowForm_DragDrop;
+            try
+            {
+                var winForm = (Form)Control.FromHandle(Window.Handle);
+                winForm.AllowDrop = true;
+                winForm.DragEnter += GameWindowForm_DragEnter;
+                winForm.DragDrop += GameWindowForm_DragDrop;
 
 
-            IsMouseVisible = true;
+                IsMouseVisible = true;
 
-            DEFAULT_TEXTURE_DIFFUSE = new Texture2D(GraphicsDevice, 1, 1);
-            DEFAULT_TEXTURE_DIFFUSE.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
+                DEFAULT_TEXTURE_DIFFUSE = new Texture2D(GraphicsDevice, 1, 1);
+                DEFAULT_TEXTURE_DIFFUSE.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
 
-            DEFAULT_TEXTURE_SPECULAR = new Texture2D(GraphicsDevice, 1, 1);
-            DEFAULT_TEXTURE_SPECULAR.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
+                DEFAULT_TEXTURE_SPECULAR = new Texture2D(GraphicsDevice, 1, 1);
+                DEFAULT_TEXTURE_SPECULAR.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
 
-            DEFAULT_TEXTURE_NORMAL = new Texture2D(GraphicsDevice, 1, 1);
-            DEFAULT_TEXTURE_NORMAL.SetData(new Color[] { new Color(0.5f, 0.5f, 1.0f) });
+                DEFAULT_TEXTURE_NORMAL = new Texture2D(GraphicsDevice, 1, 1);
+                DEFAULT_TEXTURE_NORMAL.SetData(new Color[] { new Color(0.5f, 0.5f, 1.0f) });
 
-            DEFAULT_TEXTURE_EMISSIVE = new Texture2D(GraphicsDevice, 1, 1);
-            DEFAULT_TEXTURE_EMISSIVE.SetData(new Color[] { Color.Black });
+                DEFAULT_TEXTURE_EMISSIVE = new Texture2D(GraphicsDevice, 1, 1);
+                DEFAULT_TEXTURE_EMISSIVE.SetData(new Color[] { Color.Black });
 
-            DEFAULT_TEXTURE_MISSING = Content.Load<Texture2D>(DEFAULT_TEXTURE_MISSING_NAME);
+                DEFAULT_TEXTURE_MISSING = Content.Load<Texture2D>(DEFAULT_TEXTURE_MISSING_NAME);
 
-            DEFAULT_TEXTURE_MISSING_CUBE = new TextureCube(GraphicsDevice, 1, false, SurfaceFormat.Color);
-            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveX, new Color[] { Color.Fuchsia });
-            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveY, new Color[] { Color.Fuchsia });
-            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveZ, new Color[] { Color.Fuchsia });
-            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeX, new Color[] { Color.Fuchsia });
-            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeY, new Color[] { Color.Fuchsia });
-            DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeZ, new Color[] { Color.Fuchsia });
+                DEFAULT_TEXTURE_MISSING_CUBE = new TextureCube(GraphicsDevice, 1, false, SurfaceFormat.Color);
+                DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveX, new Color[] { Color.Fuchsia });
+                DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveY, new Color[] { Color.Fuchsia });
+                DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.PositiveZ, new Color[] { Color.Fuchsia });
+                DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeX, new Color[] { Color.Fuchsia });
+                DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeY, new Color[] { Color.Fuchsia });
+                DEFAULT_TEXTURE_MISSING_CUBE.SetData(CubeMapFace.NegativeZ, new Color[] { Color.Fuchsia });
 
-            GFX.Device = GraphicsDevice;
+                GFX.Device = GraphicsDevice;
 
-            base.Initialize();
+                base.Initialize();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show(
+                    $"Error occurred while initializing DS Anim Studio (please report):\n\n{ex.ToString()}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            
         }
 
         private void GameWindowForm_DragDrop(object sender, DragEventArgs e)
@@ -282,7 +292,7 @@ namespace DSAnimStudio
 
             GFX.World.ResetCameraLocation();
 
-            DbgMenuItem.Init();
+            //DbgMenuItem.Init();
 
             UpdateMemoryUsage();
 
