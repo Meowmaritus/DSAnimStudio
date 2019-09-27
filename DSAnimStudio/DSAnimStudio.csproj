@@ -1,6 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\Lib\MSBuildExtensions\MonoGame\v3.0\MonoGame.Common.props" Condition="Exists('..\Lib\MSBuildExtensions\MonoGame\v3.0\MonoGame.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
@@ -543,7 +542,6 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\Lib\MSBuildExtensions\MonoGame\v3.0\MonoGame.Content.Builder.targets" />
   <PropertyGroup>
     <PostBuildEvent>md "$(TargetDir)lib"
 for %25%25f in ($(TargetDir)*.dll) do (
