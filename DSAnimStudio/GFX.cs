@@ -377,7 +377,7 @@ namespace DSAnimStudio
             if (FlverAutoRotateLight)
             {
                 LightSpinTimer = (LightSpinTimer + Main.DELTA_UPDATE);
-                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * LightSpinTimer * 0.25f));
+                FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * LightSpinTimer * 0.05f));
             }
             else if (FlverLightFollowsCamera)
             {

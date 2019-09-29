@@ -336,7 +336,9 @@ namespace DSAnimStudio.TaeEditor
 
                     foreach (var anim in taeSection.InfoMap)
                     {
-                        string animNameStr = (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
+                        string animIDText = (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
+
+                        string animNameText = (anim.Value.Ref.AnimFileName ?? "<null>");
 
                         if (offset + AnimHeight < ScrollViewer.Scroll.Y || offset > ScrollViewer.Scroll.Y + Rect.Height)
                         {
@@ -361,23 +363,23 @@ namespace DSAnimStudio.TaeEditor
                                     thisAnimRect.Width - border * 2,
                                     thisAnimRect.Height - border * 2),
                                 MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.CornflowerBlue);
-
-                            sb.DrawString(font, animNameStr, new Vector2(
-                                    GroupBraceMarginLeft + 4,
-                                    (int)(sectionStartOffset + anim.Value.VerticalOffset)) + Vector2.One, Color.Black);
-                            sb.DrawString(font, animNameStr, new Vector2(
-                                GroupBraceMarginLeft + 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
                         }
-                        else
-                        {
-                            sb.DrawString(font, animNameStr, new Vector2(
+
+                        sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
                                 (int)(sectionStartOffset + anim.Value.VerticalOffset)) + Vector2.One, Color.Black);
-                            sb.DrawString(font, animNameStr, new Vector2(
-                                GroupBraceMarginLeft + 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
-                        }
+                        sb.DrawString(font, animIDText, new Vector2(
+                            GroupBraceMarginLeft + 4,
+                            (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
+
+                        var animNameTextSize = font.MeasureString(animNameText);
+
+                        sb.DrawString(font, animNameText, new Vector2(
+                                ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
+                                (int)(sectionStartOffset + anim.Value.VerticalOffset)) + Vector2.One, Color.Black);
+                        sb.DrawString(font, animNameText, new Vector2(
+                            ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
+                            (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
 
                         offset += AnimHeight;
                     }
