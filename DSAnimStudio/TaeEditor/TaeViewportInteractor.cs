@@ -63,7 +63,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (entityType != TaeEntityType.PC)
             {
-                EquipForm.Close();
+                EquipForm?.Close();
                 EquipForm?.Dispose();
                 EquipForm = null;
             }
@@ -218,7 +218,7 @@ namespace DSAnimStudio.TaeEditor
                             {
                                 CurrentModel.DrawMask[i] = true;
                             }
-                        });
+                        }, closeOnClick: false);
 
                         foreach (var npc in validNpcParams)
                         {
@@ -226,7 +226,7 @@ namespace DSAnimStudio.TaeEditor
                                 $"{npc.GetDisplayName()}|{npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams)}", () =>
                                 {
                                     npc.ApplyMaskToModel(CurrentModel);
-                                });
+                                }, closeOnClick: false);
                         }
 
                         //foreach (var npc in validNpcParams)

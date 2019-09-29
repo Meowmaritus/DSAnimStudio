@@ -806,6 +806,7 @@ namespace DSAnimStudio.TaeEditor
                 MenuBar["Edit/Expand All TAE Sections"].Enabled = true;
                 MenuBar["Edit/Go To Animation ID..."].Enabled = true;
                 MenuBar["Edit/Set Animation Name..."].Enabled = true;
+                MenuBar["Animation/Set Playback Speed..."].Enabled = true;
                 LastFindInfo = null;
             }));
         }
@@ -1278,10 +1279,14 @@ namespace DSAnimStudio.TaeEditor
                 }
 
                 PauseUpdate = false;
-            });
+            }, startDisabled: true);
 
             MenuBar["Animation"].DropDownOpening += (o, e) =>
-            MenuBar["Animation/Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
+            {
+                if (PlaybackCursor != null)
+                    MenuBar["Animation/Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
+            };
+            
 
             //////////////
             // Viewport //
