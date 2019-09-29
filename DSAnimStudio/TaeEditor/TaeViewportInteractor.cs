@@ -43,6 +43,7 @@ namespace DSAnimStudio.TaeEditor
                     if (CurrentModel.NpcParam != null)
                     {
                         CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
+                        CurrentModel.NpcParam.ApplyMaskToModel(CurrentModel);
                     }
                 }
             }
@@ -62,6 +63,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (entityType != TaeEntityType.PC)
             {
+                EquipForm.Close();
                 EquipForm?.Dispose();
                 EquipForm = null;
             }
@@ -88,8 +90,6 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeViewportInteractor(TaeEditAnimEventGraph graph)
         {
-            DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = false;
-
             Graph = graph;
             Graph.PlaybackCursor.PlaybackStarted += PlaybackCursor_PlaybackStarted;
             Graph.PlaybackCursor.PlaybackFrameChange += PlaybackCursor_PlaybackFrameChange;
@@ -394,6 +394,8 @@ namespace DSAnimStudio.TaeEditor
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.CurrentTime);
 
+            CurrentModel.ChrAsm?.UpdateWeaponTransforms();
+
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxes, (float)Graph.PlaybackCursor.CurrentTime);
         }
@@ -441,6 +443,9 @@ namespace DSAnimStudio.TaeEditor
 
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
+
+            CurrentModel.ChrAsm?.UpdateWeaponTransforms();
+
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxes, (float)Graph.PlaybackCursor.GUICurrentTime);
         }
@@ -575,6 +580,8 @@ namespace DSAnimStudio.TaeEditor
 
                 Graph.PlaybackCursor.HkxAnimationLength = CurrentModel.AnimContainer.CurrentAnimDuration;
                 Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
+                Graph.PlaybackCursor.CurrentTime = 0;
+                Graph.PlaybackCursor.StartTime = 0;
 
                 CheckChrAsmWeapons();
 
@@ -584,6 +591,15 @@ namespace DSAnimStudio.TaeEditor
                 CheckSimEnvironment();
 
                 EventSim.OnNewAnimSelected(Graph.EventBoxes);
+
+                if (CurrentModel.AnimContainer.CurrentAnimation != null)
+                {
+                    CurrentModel.AnimContainer.ScrubCurrentAnimation(0, forceUpdate: true, stopPlaying: false);
+                }
+                else
+                {
+                    CurrentModel.Skeleton.RevertToReferencePose();
+                }
             }
             
         }
@@ -602,7 +618,20 @@ namespace DSAnimStudio.TaeEditor
         {
             var printer = new StatusPrinter(Vector2.Zero, Color.Yellow);
 
-            printer.AppendLine($"Animation: {(CurrentModel?.AnimContainer?.CurrentAnimationName ?? "None")}");
+            if (CurrentModel != null)
+            {
+                if (CurrentModel.AnimContainer.CurrentAnimation != null)
+                {
+                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName ?? "None")}");
+                }
+                else if (CurrentModel.AnimContainer.CurrentAnimationName != null)
+                {
+                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Doesn't Exist)", Color.Red);
+                }
+            }
+            
+
+            
             
 
             if (EntityType == TaeEntityType.PC)

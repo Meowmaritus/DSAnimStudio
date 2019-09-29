@@ -167,6 +167,14 @@ namespace DSAnimStudio
             }
         }
 
+        public void RevertToReferencePose()
+        {
+            for (int i = 0; i < FlverSkeleton.Count; i++)
+            {
+                this[i] = Matrix.Identity;
+            }
+        }
+
         public class FlverBoneInfo
         {
             public string Name;

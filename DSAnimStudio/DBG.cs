@@ -80,10 +80,16 @@ namespace DSAnimStudio
             var categories = (DbgPrimCategory[])Enum.GetValues(typeof(DbgPrimCategory));
             foreach (var c in categories)
             {
-                CategoryEnableDraw.Add(c, true);
-                CategoryEnableDbgLabelDraw.Add(c, true);
-                CategoryEnableNameDraw.Add(c, true);
+                CategoryEnableDraw.Add(c, false);
+                CategoryEnableDbgLabelDraw.Add(c, false);
+                CategoryEnableNameDraw.Add(c, false);
             }
+
+            CategoryEnableDraw[DbgPrimCategory.DummyPolyHelper] = true;
+            CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
+
+            CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
+            CategoryEnableDraw[DbgPrimCategory.Other] = true;
         }
 
         public static bool DbgPrimXRay = false;

@@ -271,7 +271,7 @@ namespace DSAnimStudio
                         EnableDraw = false,
                         OverrideColor = c,
                         Name = showText ? primText : "",
-                        EnableNameDraw = showText,
+                        EnableNameDraw = false,
                         NameColor = c,
                     };
                     MODEL.DbgPrimDrawer.AddPrimitive(capsule);
@@ -285,7 +285,7 @@ namespace DSAnimStudio
                         EnableDraw = false,
                         OverrideColor = c,
                         Name = showText ? primText : "",
-                        EnableNameDraw = showText,
+                        EnableNameDraw = false,
                         NameColor = c,
                     };
                     MODEL.DbgPrimDrawer.AddPrimitive(sphere);

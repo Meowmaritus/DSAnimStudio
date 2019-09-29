@@ -25,13 +25,18 @@ namespace DSAnimStudio
             {
                 MainInstance = new Main();
 
-                MainInstance.Run(Microsoft.Xna.Framework.GameRunBehavior.Synchronous);
+                
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
                     $"Error occurred before DS Anim Studio had a chance to initialize (please report):\n\n{ex.ToString()}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            try
+            {
+                MainInstance.Run(Microsoft.Xna.Framework.GameRunBehavior.Synchronous);
             }
             finally
             {
