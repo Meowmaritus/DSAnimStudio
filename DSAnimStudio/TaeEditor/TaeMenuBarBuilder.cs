@@ -562,9 +562,9 @@ namespace DSAnimStudio.TaeEditor
             if (click != null)
                 newItem.Click += (o, e) =>
                 {
-                    click();
                     if (closeOnClick)
                         CloseAll();
+                    click();
                 };
 
             if (startDisabled)
