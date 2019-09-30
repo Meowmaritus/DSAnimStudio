@@ -618,26 +618,27 @@ namespace DSAnimStudio.TaeEditor
         {
             var printer = new StatusPrinter(Vector2.Zero, Color.Yellow);
 
-            if (CurrentModel != null)
+            if (CurrentModel != null && CurrentModel.AnimContainer != null)
             {
+                if (CurrentModel.Skeleton.BoneLimitExceeded)
+                {
+                    printer.AppendLine($"Warning: Model exceeds max bone count.", Color.Orange);
+                }
+
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)
                 {
-                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName ?? "None")}");
+                    printer.AppendLine($"Animation: {CurrentModel.AnimContainer.CurrentAnimation}");
                 }
                 else if (CurrentModel.AnimContainer.CurrentAnimationName != null)
                 {
                     printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Doesn't Exist)", Color.Red);
                 }
             }
-            
-
-            
-            
 
             if (EntityType == TaeEntityType.PC)
             {
-                printer.AppendLine($"R Weapon Animation: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
-                printer.AppendLine($"L Weapon Animation: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimationName ?? "NONE")}");
+                printer.AppendLine($"R Weapon Animation: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
+                printer.AppendLine($"L Weapon Animation: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
             }
 
             //printer.AppendLine($"RWPN ANIM LIST:");

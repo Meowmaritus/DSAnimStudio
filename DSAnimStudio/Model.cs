@@ -293,23 +293,28 @@ namespace DSAnimStudio
             }
             else
             {
-                GFX.FlverShader.Effect.Bones0 = Skeleton.ShaderMatrix0;
+                GFX.FlverShader.Effect.Bones0 = Skeleton.ShaderMatrices0;
 
-                if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES)
+                if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray)
                 {
-                    GFX.FlverShader.Effect.Bones1 = Skeleton.ShaderMatrix1;
+                    GFX.FlverShader.Effect.Bones1 = Skeleton.ShaderMatrices1;
 
-                    if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES * 2)
+                    if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 2)
                     {
-                        GFX.FlverShader.Effect.Bones2 = Skeleton.ShaderMatrix2;
+                        GFX.FlverShader.Effect.Bones2 = Skeleton.ShaderMatrices2;
 
-                        if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES * 3)
+                        if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 3)
                         {
-                            GFX.FlverShader.Effect.Bones3 = Skeleton.ShaderMatrix3;
+                            GFX.FlverShader.Effect.Bones3 = Skeleton.ShaderMatrices3;
 
-                            if (Skeleton.FlverSkeleton.Count >= FlverShader.NUM_BONES * 4)
+                            if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 4)
                             {
-                                GFX.FlverShader.Effect.Bones4 = Skeleton.ShaderMatrix4;
+                                GFX.FlverShader.Effect.Bones4 = Skeleton.ShaderMatrices4;
+
+                                if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 5)
+                                {
+                                    GFX.FlverShader.Effect.Bones5 = Skeleton.ShaderMatrices5;
+                                }
                             }
                         }
                     }

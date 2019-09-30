@@ -519,7 +519,7 @@ namespace DSAnimStudio.TaeEditor
 
             baseItem.MouseEnter += (o, e) =>
             {
-                ClearItem(basePath);
+                ClearItem(currentPath);
                 //newItem.DropDownItems.Clear();
                 addEntries.Invoke(this);
             };

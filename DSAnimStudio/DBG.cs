@@ -374,49 +374,51 @@ namespace DSAnimStudio
             //   screenPos3D.Y > GFX.Device.Viewport.Height)
             //    return;
 
-
+            simpleFontScale *= (GFX.EffectiveSSAA / 2f);
 
             //screenPos3D += new Vector3(32, 32, 0);
 
+            int shadowOffset = GFX.EffectiveSSAA;
+
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y + 2),
+                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y + shadowOffset),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y - 2),
+                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y - shadowOffset),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X - 2, (int)screenPos3D.Y),
+                new Vector2((int)screenPos3D.X - shadowOffset, (int)screenPos3D.Y),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y),
+                new Vector2((int)screenPos3D.X + shadowOffset, (int)screenPos3D.Y),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
 
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-               new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y + 2),
+               new Vector2((int)screenPos3D.X + shadowOffset, (int)screenPos3D.Y + shadowOffset),
                Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                0.0001f);
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X - 2, (int)screenPos3D.Y - 2),
+                new Vector2((int)screenPos3D.X - shadowOffset, (int)screenPos3D.Y - shadowOffset),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X - 2, (int)screenPos3D.Y + 2),
+                new Vector2((int)screenPos3D.X - shadowOffset, (int)screenPos3D.Y + shadowOffset),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X + 2, (int)screenPos3D.Y - 2),
+                new Vector2((int)screenPos3D.X + shadowOffset, (int)screenPos3D.Y - shadowOffset),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 

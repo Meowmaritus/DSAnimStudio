@@ -350,6 +350,11 @@ namespace DSAnimStudio
 
                 MeshVertices[i] = new FlverShaderVertInput();
 
+                if (vert.BoneWeights[0] == 0 && vert.BoneWeights[1] == 0 && vert.BoneWeights[2] == 0 && vert.BoneWeights[3] == 0)
+                {
+                    vert.BoneWeights[0] = 1;
+                }
+
                 // Apply normal W channel bone index (for some weapons etc)
                 if (!vert.UsesBoneIndices)
                 {
@@ -448,16 +453,16 @@ namespace DSAnimStudio
                 }
 
                 MeshVertices[i].BoneIndices = new Vector4(
-                    (int)(vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] % FlverShader.NUM_BONES : -1),
-                    (int)(vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] % FlverShader.NUM_BONES : -1),
-                    (int)(vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] % FlverShader.NUM_BONES : -1),
-                    (int)(vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] % FlverShader.NUM_BONES : -1));
+                    (int)(vert.BoneIndices[0] >= 0 ? vert.BoneIndices[0] % FlverShader.MaxBonePerMatrixArray : -1),
+                    (int)(vert.BoneIndices[1] >= 0 ? vert.BoneIndices[1] % FlverShader.MaxBonePerMatrixArray : -1),
+                    (int)(vert.BoneIndices[2] >= 0 ? vert.BoneIndices[2] % FlverShader.MaxBonePerMatrixArray : -1),
+                    (int)(vert.BoneIndices[3] >= 0 ? vert.BoneIndices[3] % FlverShader.MaxBonePerMatrixArray : -1));
 
                 MeshVertices[i].BoneIndicesBank = new Vector4(
-                   (float)(vert.BoneIndices[0] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[0] / FlverShader.NUM_BONES) : -1.0),
-                   (float)(vert.BoneIndices[1] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[1] / FlverShader.NUM_BONES) : -1.0),
-                   (float)(vert.BoneIndices[2] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[2] / FlverShader.NUM_BONES) : -1.0),
-                   (float)(vert.BoneIndices[3] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[3] / FlverShader.NUM_BONES) : -1.0));
+                   (float)(vert.BoneIndices[0] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[0] / FlverShader.MaxBonePerMatrixArray) : -1.0),
+                   (float)(vert.BoneIndices[1] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[1] / FlverShader.MaxBonePerMatrixArray) : -1.0),
+                   (float)(vert.BoneIndices[2] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[2] / FlverShader.MaxBonePerMatrixArray) : -1.0),
+                   (float)(vert.BoneIndices[3] >= 0 ? Math.Floor(1.0f * vert.BoneIndices[3] / FlverShader.MaxBonePerMatrixArray) : -1.0));
 
                 if (vert.BoneIndices[0] < 0)
                     MeshVertices[i].BoneWeights.X = 0;

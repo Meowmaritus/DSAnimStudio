@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.2.1";
+        public const string VERSION = "Version 1.3";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -187,6 +187,8 @@ namespace DSAnimStudio
                 TimeBeforeNextRenderTargetUpdate = TimeBeforeNextRenderTargetUpdate_Max;
 
                 RequestViewportRenderTargetResolutionChange = false;
+
+                GFX.EffectiveSSAA = GFX.SSAA;
             }
         }
 

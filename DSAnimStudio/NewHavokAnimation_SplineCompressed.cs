@@ -31,7 +31,7 @@ namespace DSAnimStudio
             FrameDuration = anim.FrameDuration;
 
             BlockCount = anim.BlockCount;
-            NumFramesPerBlock = anim.FramesPerBlock;
+            NumFramesPerBlock = anim.FramesPerBlock - 1;
 
             HkxBoneIndexToTransformTrackMap = new int[skeleton.HkxSkeleton.Count];
             TransformTrackIndexToHkxBoneMap = new int[binding.TransformTrackToBoneIndices.Size];
@@ -60,7 +60,7 @@ namespace DSAnimStudio
 
         private NewBlendableTransform GetTransformOnSpecificBlockAndFrame(int transformIndex, int block, float frame)
         {
-            frame = ((frame % FrameCount) + block) % NumFramesPerBlock;
+            frame = (frame % FrameCount) % NumFramesPerBlock;
 
             NewBlendableTransform result = NewBlendableTransform.Identity;
             var track = Tracks[block][transformIndex];
@@ -229,29 +229,21 @@ namespace DSAnimStudio
                 return defaultBoneTransformation;
             }
 
-            // Blend between blocks
-            if (CurrentFrame >= NumFramesPerBlock - 1 && CurrentBlock < Tracks.Count - 1)
+            float frame = (CurrentFrame % FrameCount) % NumFramesPerBlock;
+
+            if (frame >= FrameCount - 1)
             {
                 NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
-                    block: CurrentBlock, frame: (float)Math.Floor(CurrentFrame));
-                NewBlendableTransform nextFrame = GetTransformOnSpecificBlockAndFrame(track, block: CurrentBlock + 1, frame: 1);
-                currentFrame = NewBlendableTransform.Lerp(CurrentFrame % 1, currentFrame, nextFrame);
-                return currentFrame;
-            }
-            // Blend between loops
-            else if (CurrentFrame >= FrameCount - 1)
-            {
-                NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
-                    block: CurrentBlock, frame: (float)Math.Floor(CurrentFrame));
+                    block: CurrentBlock, frame: (float)Math.Floor(frame));
                 NewBlendableTransform nextFrame = GetTransformOnSpecificBlockAndFrame(track, block: 0, frame: 0);
-                currentFrame = NewBlendableTransform.Lerp(CurrentFrame % 1, currentFrame, nextFrame);
+                currentFrame = NewBlendableTransform.Lerp(frame % 1, currentFrame, nextFrame);
                 return currentFrame;
             }
             // Regular frame
             else
             {
                 NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
-                    block: CurrentBlock, frame: CurrentFrame);
+                    block: CurrentBlock, frame);
                 return currentFrame;
             }
         }

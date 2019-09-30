@@ -10,11 +10,25 @@ namespace DSAnimStudio
 {
     public class NewAnimSkeleton
     {
-        public Matrix[] ShaderMatrix0 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
-        public Matrix[] ShaderMatrix1 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
-        public Matrix[] ShaderMatrix2 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
-        public Matrix[] ShaderMatrix3 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
-        public Matrix[] ShaderMatrix4 = new Matrix[GFXShaders.FlverShader.NUM_BONES];
+        public bool BoneLimitExceeded => FlverSkeleton.Count > MaxBoneCount;
+
+        public const int MaxBoneCount = 
+            // There is no point to writing this out like this
+            // other than to remind me to update it if I add
+            // another bone list
+            GFXShaders.FlverShader.MaxBonePerMatrixArray/*0*/ +
+            GFXShaders.FlverShader.MaxBonePerMatrixArray/*1*/ +
+            GFXShaders.FlverShader.MaxBonePerMatrixArray/*2*/ +
+            GFXShaders.FlverShader.MaxBonePerMatrixArray/*3*/ +
+            GFXShaders.FlverShader.MaxBonePerMatrixArray/*4*/ +
+            GFXShaders.FlverShader.MaxBonePerMatrixArray/*5*/;
+
+        public Matrix[] ShaderMatrices0 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices1 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices2 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices3 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices4 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices5 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
 
         public List<FlverBoneInfo> FlverSkeleton = new List<FlverBoneInfo>();
         public List<HkxBoneInfo> HkxSkeleton = new List<HkxBoneInfo>();
@@ -30,12 +44,14 @@ namespace DSAnimStudio
             MODEL = mdl;
             FlverSkeleton = flverBones.Select(b => new FlverBoneInfo(b, flverBones)).ToList();
 
-            for (int i = 0; i < GFXShaders.FlverShader.NUM_BONES; i++)
+            for (int i = 0; i < GFXShaders.FlverShader.MaxBonePerMatrixArray; i++)
             {
-                ShaderMatrix0[i] = Matrix.Identity;
-                ShaderMatrix1[i] = Matrix.Identity;
-                ShaderMatrix2[i] = Matrix.Identity;
-                ShaderMatrix3[i] = Matrix.Identity;
+                ShaderMatrices0[i] = Matrix.Identity;
+                ShaderMatrices1[i] = Matrix.Identity;
+                ShaderMatrices2[i] = Matrix.Identity;
+                ShaderMatrices3[i] = Matrix.Identity;
+                ShaderMatrices4[i] = Matrix.Identity;
+                ShaderMatrices5[i] = Matrix.Identity;
             }
         }
 
@@ -118,39 +134,41 @@ namespace DSAnimStudio
         {
             get
             {
-                int bank = boneIndex / GFXShaders.FlverShader.NUM_BONES;
-                int bone = boneIndex % GFXShaders.FlverShader.NUM_BONES;
+                int bank = boneIndex / GFXShaders.FlverShader.MaxBonePerMatrixArray;
+                int bone = boneIndex % GFXShaders.FlverShader.MaxBonePerMatrixArray;
 
                 if (bank == 0)
-                    return ShaderMatrix0[bone];
+                    return ShaderMatrices0[bone];
                 else if (bank == 1)
-                    return ShaderMatrix1[bone];
+                    return ShaderMatrices1[bone];
                 else if (bank == 2)
-                    return ShaderMatrix2[bone];
+                    return ShaderMatrices2[bone];
                 else if (bank == 3)
-                    return ShaderMatrix3[bone];
+                    return ShaderMatrices3[bone];
                 else if (bank == 4)
-                    return ShaderMatrix4[bone];
+                    return ShaderMatrices4[bone];
+                else if (bank == 5)
+                    return ShaderMatrices5[bone];
                 else
-                    throw new Exception("NOT ENOUGH BANKS IN SHADER");
+                    return Matrix.Identity;
             }
             set
             {
-                int bank = boneIndex / GFXShaders.FlverShader.NUM_BONES;
-                int bone = boneIndex % GFXShaders.FlverShader.NUM_BONES;
+                int bank = boneIndex / GFXShaders.FlverShader.MaxBonePerMatrixArray;
+                int bone = boneIndex % GFXShaders.FlverShader.MaxBonePerMatrixArray;
 
                 if (bank == 0)
-                    ShaderMatrix0[bone] = value;
+                    ShaderMatrices0[bone] = value;
                 else if (bank == 1)
-                    ShaderMatrix1[bone] = value;
+                    ShaderMatrices1[bone] = value;
                 else if (bank == 2)
-                    ShaderMatrix2[bone] = value;
+                    ShaderMatrices2[bone] = value;
                 else if (bank == 3)
-                    ShaderMatrix3[bone] = value;
+                    ShaderMatrices3[bone] = value;
                 else if (bank == 4)
-                    ShaderMatrix4[bone] = value;
-                else
-                    throw new Exception("NOT ENOUGH BANKS IN SHADER");
+                    ShaderMatrices4[bone] = value;
+                else if (bank == 5)
+                    ShaderMatrices5[bone] = value;
 
                 if (MODEL.DummyPolyMan.AnimatedDummyPolyClusters.ContainsKey(boneIndex))
                 {
