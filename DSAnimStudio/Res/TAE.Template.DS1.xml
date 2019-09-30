@@ -143,7 +143,7 @@
       <s32 name="WeaponSlotID"/>
     </event>
     <!-- For c0000 -->
-    <event id="34" name="Unequip Crossbow Bolt">
+    <event id="34" name="UnequipCrossbowBolt">
       <s32 name="HandType">
         <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>
@@ -153,7 +153,7 @@
       <s32 assert="0"/>
     </event>
     <!-- For c0000 -->
-    <event id="35" name="Equip Crossbow Bolt">
+    <event id="35" name="EquipCrossbowBolt">
       <s32 name="HandType">
         <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>

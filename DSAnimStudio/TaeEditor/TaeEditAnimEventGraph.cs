@@ -2213,12 +2213,12 @@ namespace DSAnimStudio.TaeEditor
                 // HOWEVER it was super delayed because of the vsync 
                 // and didn't follow the cursor well and looked weird
 
-                //if (CtrlHeld && !ShiftHeld && !AltHeld)
+                //if (MainScreen.CtrlHeld && !MainScreen.ShiftHeld && !MainScreen.AltHeld)
                 //{
                 //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
                 //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
                 //}
-                //else if (!CtrlHeld && ShiftHeld && !AltHeld)
+                //else if (!MainScreen.CtrlHeld && MainScreen.ShiftHeld && !MainScreen.AltHeld)
                 //{
                 //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
                 //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
