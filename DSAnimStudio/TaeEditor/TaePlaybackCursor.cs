@@ -47,6 +47,7 @@ namespace DSAnimStudio.TaeEditor
             * (SnapInterval ?? SnapInterval_Default)) : StartTime;
 
         private double oldGUICurrentTime = 0;
+        private double oldGUICurrentFrame = 0;
 
         public double StartTime = 0;
         public double MaxTime { get; private set; } = 1;
@@ -194,10 +195,10 @@ namespace DSAnimStudio.TaeEditor
                     //    prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
                     //}
 
-                    currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
-                    prevFrameInEvent = !justStartedPlaying && 
-                        oldGUICurrentTime >= box.MyEvent.StartTime && 
-                        oldGUICurrentTime < box.MyEvent.EndTime;
+                    currentlyInEvent = GUICurrentFrame >= box.MyEvent.GetStartFrame() && GUICurrentFrame < box.MyEvent.GetEndFrame();
+                    prevFrameInEvent = !justStartedPlaying &&
+                        oldGUICurrentFrame >= box.MyEvent.GetStartFrame() &&
+                        oldGUICurrentFrame < box.MyEvent.GetEndFrame();
 
                     if (currentlyInEvent)
                     {
@@ -266,6 +267,7 @@ namespace DSAnimStudio.TaeEditor
             }
 
             oldGUICurrentTime = GUICurrentTime;
+            oldGUICurrentFrame = GUICurrentFrame;
             prevScrubbing = Scrubbing;
             prevFrameLoopCount = curFrameLoopCount;
         }

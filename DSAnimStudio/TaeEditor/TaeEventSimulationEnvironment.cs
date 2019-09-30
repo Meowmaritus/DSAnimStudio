@@ -213,6 +213,11 @@ namespace DSAnimStudio.TaeEditor
                         {
                             // Start from beginning of simulation and simulate to current time.
 
+                             int maskLength = 32;
+
+                                    if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+                                        maskLength = 8;
+
                             MODEL.ResetDrawMaskToDefault();
 
                             foreach (var evBox in evBoxes)
@@ -222,7 +227,8 @@ namespace DSAnimStudio.TaeEditor
 
                                 if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
                                 {
-                                    for (int i = 0; i < 32; i++)
+                                   
+                                    for (int i = 0; i < maskLength; i++)
                                     {
                                         var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
                                     
@@ -238,7 +244,7 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     if (evBox.MyEvent.TypeName == "ShowModelMask")
                                     {
-                                        for (int i = 0; i < 32; i++)
+                                        for (int i = 0; i < maskLength; i++)
                                         {
                                             if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
                                                     MODEL.DrawMask[i] = true;
@@ -246,7 +252,7 @@ namespace DSAnimStudio.TaeEditor
                                     }
                                     else if (evBox.MyEvent.TypeName == "HideModelMask")
                                     {
-                                        for (int i = 0; i < 32; i++)
+                                        for (int i = 0; i < maskLength; i++)
                                         {
                                             if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
                                                     MODEL.DrawMask[i] = false;
