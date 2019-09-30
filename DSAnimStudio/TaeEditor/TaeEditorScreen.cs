@@ -327,7 +327,13 @@ namespace DSAnimStudio.TaeEditor
             "Space Bar:\n" +
             "    Play/Pause Anim.\n" +
             "Shift+Space Bar:\n" +
-            "    Play Anim from beginning.\n";
+            "    Play Anim from beginning.\n" +
+            "Ctrl+Mouse Wheel:\n" +
+            "    Zoom timeline in/out.\n" +
+            "Ctrl+(+/-/0):\n" +
+            "   Zoom in/out/reset, exactly like in web browsers.\n" +
+            "Left/Right Arrow Keys:\n" +
+            "    Goes to previous/next frame.\n";
 
         private static object _lock_PauseUpdate = new object();
         private bool _PauseUpdate;
@@ -1123,8 +1129,6 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("Scene", "Render Meshes", () => !GFX.HideFLVERs,
                     b => GFX.HideFLVERs = !b);
 
-            MenuBar.AddSeparator("Scene");
-
             // Okay, look, I know this entire next part is hyper ultra stupid, but,
             // I spent like multiple hours trying to get other less stupid ways
             // to work and the UI just never updated correctly.
@@ -1225,6 +1229,8 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
             });
+
+            MenuBar.AddSeparator("Scene");
 
             //MenuBar.AddItem("Scene", $"Render HKX Skeleton ({DBG.COLOR_HKX_BONE_NAME})", 
             //    () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
@@ -1407,7 +1413,7 @@ namespace DSAnimStudio.TaeEditor
             }, () => $"{GFX.SSAA}x");
 
 
-            MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "TAE Editor Help",
+            MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "DS Anim Studio Help - Basic Controls",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
 
             BuildDebugMenuBar();
@@ -2478,14 +2484,14 @@ namespace DSAnimStudio.TaeEditor
 
                 if (CtrlHeld && !ShiftHeld && !AltHeld)
                 {
-                    if (Input.KeyDown(Keys.OemPlus))
+                    if (Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add))
                     {
                         Graph?.ZoomInOneNotch(
                             (float)(
                             (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
                             - Graph.ScrollViewer.Scroll.X));
                     }
-                    else if (Input.KeyDown(Keys.OemMinus))
+                    else if (Input.KeyDown(Keys.OemMinus) || Input.KeyDown(Keys.Subtract))
                     {
                         Graph?.ZoomOutOneNotch(
                             (float)(
@@ -2596,11 +2602,16 @@ namespace DSAnimStudio.TaeEditor
                     if (NextFrameRepeaterButton.State)
                     {
                         PlaybackCursor.IsStepping = true;
-                        PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
-                        PlaybackCursor.CurrentTime += 0.03333333f
-                            * (NextFrameRepeaterButton.IsInitalButtonTap ? 1 : 0.25f) * (ShiftHeld ? 5 : 1);
+
+                        if (NextFrameRepeaterButton.IsInitalButtonTap)
+                            PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
+
+                        PlaybackCursor.CurrentTime += PlaybackCursor.CurrentSnapInterval
+                            * (NextFrameRepeaterButton.IsInitalButtonTap ? 1 : (Config.LockFramerateToOriginalAnimFramerate ? 1 : 0.25f)) * (ShiftHeld ? 5 : 1);
                         if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime)
                             PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
+
+                        PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
                     }
 
                     PrevFrameRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Left));
@@ -2608,11 +2619,16 @@ namespace DSAnimStudio.TaeEditor
                     if (PrevFrameRepeaterButton.State)
                     {
                         PlaybackCursor.IsStepping = true;
-                        PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
-                        PlaybackCursor.CurrentTime -= 0.03333333f
-                            * (PrevFrameRepeaterButton.IsInitalButtonTap ? 1 : 0.25f) * (ShiftHeld ? 5 : 1);
+
+                        if (PrevFrameRepeaterButton.IsInitalButtonTap)
+                            PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
+
+                        PlaybackCursor.CurrentTime -= PlaybackCursor.CurrentSnapInterval
+                            * (PrevFrameRepeaterButton.IsInitalButtonTap ? 1 : (Config.LockFramerateToOriginalAnimFramerate ? 1 : 0.25f)) * (ShiftHeld ? 5 : 1);
                         if (PlaybackCursor.CurrentTime < 0)
                             PlaybackCursor.CurrentTime += PlaybackCursor.MaxTime;
+
+                        PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
                     }
                 }
 

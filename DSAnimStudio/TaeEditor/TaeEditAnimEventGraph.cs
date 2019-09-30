@@ -76,6 +76,10 @@ namespace DSAnimStudio.TaeEditor
             VerticalScroll,
         }
 
+        // Setting to 1 to remove smoothing, but lower values will add smoothing
+        // later if I want it.
+        public float AutoScrollLerpDistMult = 1;
+
         private Dictionary<int, TAE.EventGroup> EventGroupsByRow = new Dictionary<int, TAE.EventGroup>();
 
         public float ZoomSpeed = 1.25f;
@@ -147,8 +151,8 @@ namespace DSAnimStudio.TaeEditor
             //    SecondsPixelSize -= SecondsPixelSizeScrollNotch;
             //}
 
-            float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
-            float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
+            float newAbsoluteOffset = (mousePointTime * SecondsPixelSize);
+            float scrollAmountToCorrectOffset = (newAbsoluteOffset - (mouseScreenPosX + ScrollViewer.Scroll.X));
             ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
         }
 
@@ -170,8 +174,8 @@ namespace DSAnimStudio.TaeEditor
             //    SecondsPixelSize += SecondsPixelSizeScrollNotch;
             //}
 
-            float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
-            float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
+            float newAbsoluteOffset = (mousePointTime * SecondsPixelSize);
+            float scrollAmountToCorrectOffset = (newAbsoluteOffset - (mouseScreenPosX + ScrollViewer.Scroll.X));
             ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
         }
 
@@ -190,8 +194,8 @@ namespace DSAnimStudio.TaeEditor
             //    SecondsPixelSize += SecondsPixelSizeScrollNotch;
             //}
 
-            float newOnscreenOffset = (mousePointTime * SecondsPixelSize) - ScrollViewer.Scroll.X;
-            float scrollAmountToCorrectOffset = (newOnscreenOffset - mouseScreenPosX);
+            float newAbsoluteOffset = (mousePointTime * SecondsPixelSize);
+            float scrollAmountToCorrectOffset = (newAbsoluteOffset - (mouseScreenPosX + ScrollViewer.Scroll.X));
             ScrollViewer.ScrollByVirtualScrollUnits(new Vector2(scrollAmountToCorrectOffset, 0));
         }
 
@@ -1737,13 +1741,69 @@ namespace DSAnimStudio.TaeEditor
             foreach (var kvp in secondVerticalLineXPositions)
             {
                 if (!MainScreen.Config.EnableColorBlindMode)
-                    sb.DrawString(font, $"{(kvp.Key)}", new Vector2(kvp.Value + 4 + 1, (int)ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
-                sb.DrawString(font, $"{(kvp.Key)}", new Vector2(kvp.Value + 4, (int)ScrollViewer.Scroll.Y + 1), MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White);
+                    sb.DrawString(font, kvp.Key.ToString(), new Vector2(kvp.Value + 4 + 1, (int)ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
+                sb.DrawString(font, kvp.Key.ToString(), new Vector2(kvp.Value + 4, (int)ScrollViewer.Scroll.Y + 1), MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White);
             }
         }
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
         {
+            var playbackCursorPixelCheckX = SecondsPixelSize * (float)PlaybackCursor.CurrentTime;
+            float centerOfScreenCheckX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
+            //float rightOfScreenCheckX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
+
+            float maxHorizontalScrollNeededForAnimEndToBeInScreen =
+                ((SecondsPixelSize * (float)PlaybackCursor.MaxTime)
+                + AfterAutoScrollHorizontalMargin) - ScrollViewer.Viewport.Width;
+
+            if (PlaybackCursor.Scrubbing &&
+                !(MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) ||
+                MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)))
+            {
+                float rightScrubScrollMarginStart = (ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) - ScrubScrollStartMargin;
+                float leftScrubScrollMarginStart = (ScrollViewer.Scroll.X + ScrubScrollStartMargin);
+                if (playbackCursorPixelCheckX > rightScrubScrollMarginStart)
+                {
+                    float scrubScrollSpeedMult = MathHelper.Max(
+                        playbackCursorPixelCheckX - rightScrubScrollMarginStart, 0) / ScrubScrollStartMargin;
+
+                    ScrollViewer.Scroll.X += ScrubScrollSpeed * (scrubScrollSpeedMult * scrubScrollSpeedMult);
+
+                    ScrollViewer.ClampScroll();
+                }
+                else if (playbackCursorPixelCheckX < leftScrubScrollMarginStart)
+                {
+                    float scrubScrollSpeedMult = MathHelper.Max(
+                        leftScrubScrollMarginStart - playbackCursorPixelCheckX, 0) / ScrubScrollStartMargin;
+
+                    ScrollViewer.Scroll.X -= ScrubScrollSpeed * (scrubScrollSpeedMult * scrubScrollSpeedMult);
+                    ScrollViewer.ClampScroll();
+                }
+            }
+            else if (MainScreen.Config.AutoScrollDuringAnimPlayback && PlaybackCursor.IsPlaying)
+            {
+                if ((ScrollViewer.Scroll.X < maxHorizontalScrollNeededForAnimEndToBeInScreen) ||
+                    playbackCursorPixelCheckX < ScrollViewer.Scroll.X)
+                {
+                    if (playbackCursorPixelCheckX < ScrollViewer.Scroll.X)
+                    {
+                        ScrollViewer.Scroll.X = playbackCursorPixelCheckX;
+                    }
+                    else
+
+                    {
+                        float distFromScrollToCursor = playbackCursorPixelCheckX - centerOfScreenCheckX;
+
+                        ScrollViewer.Scroll.X += distFromScrollToCursor * AutoScrollLerpDistMult;
+                        ScrollViewer.Scroll.X = Math.Min(ScrollViewer.Scroll.X, maxHorizontalScrollNeededForAnimEndToBeInScreen);
+                        ScrollViewer.ClampScroll();
+                    }
+
+
+                }
+            }
+
+
             ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
 
             ScrollViewer.Draw(gd, sb, boxTex, font);
@@ -1981,6 +2041,8 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
 
+                bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText);
+
                 if (SecondsPixelSize >= (30 * MinPixelsBetweenFramesForHelperLines))
                 {
                     int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / FramePixelSize);
@@ -2003,9 +2065,9 @@ namespace DSAnimStudio.TaeEditor
                         {
                             if (PlaybackCursor.SnapInterval > 0)
                             {
-                                if (((i % PlaybackCursor.SnapInterval) != 0) && SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText))
+                                if (((i % PlaybackCursor.SnapInterval) != 0) && zoomedEnoughForFrameNumbers)
                                 {
-                                    sb.DrawString(font, i.ToString(), new Vector2(i * FramePixelSize + 2, ScrollViewer.Scroll.Y + 2), Color.Cyan);
+                                    sb.DrawString(font, i.ToString(), new Vector2(i * FramePixelSize + 2, ScrollViewer.Scroll.Y + 2), Color.White);
                                 }
                             }
                             
@@ -2017,12 +2079,12 @@ namespace DSAnimStudio.TaeEditor
                         
                     }
                 }
-
+                
                 if (SecondsPixelSize >= 4f)
                 {
                     var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
 
-                    if (SecondsPixelSize >= 32f)
+                    if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
                     {
                         DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
                     }
@@ -2113,9 +2175,9 @@ namespace DSAnimStudio.TaeEditor
                         );
                 }
 
-                var playbackCursorPixelX = SecondsPixelSize * (float)PlaybackCursor.GUICurrentTime;
+                var playbackCursorPixelX = (int)(SecondsPixelSize * (float)(PlaybackCursor.IsPlaying 
+                    ? PlaybackCursor.CurrentTime : PlaybackCursor.GUICurrentTime));
 
-                //-- BOTTOM Side <-- I have no idea what I meant by this <-- turns out i just copy pasted the draw call above
                 // Draw PlaybackCursor CurrentTime vertical line
                 sb.Draw(texture: boxTex,
                     position: new Vector2(playbackCursorPixelX - (PlaybackCursorThickness / 2), ScrollViewer.Scroll.Y),
@@ -2131,56 +2193,7 @@ namespace DSAnimStudio.TaeEditor
                 float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
                 float rightOfScreenX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
 
-                float maxHorizontalScrollNeededForAnimEndToBeInScreen = 
-                    ((SecondsPixelSize * (float)PlaybackCursor.MaxTime) 
-                    + AfterAutoScrollHorizontalMargin) - ScrollViewer.Viewport.Width;
-
-                if (PlaybackCursor.Scrubbing && 
-                    !(MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || 
-                    MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)))
-                {
-                    float rightScrubScrollMarginStart = (ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) - ScrubScrollStartMargin;
-                    float leftScrubScrollMarginStart = (ScrollViewer.Scroll.X + ScrubScrollStartMargin);
-                    if (playbackCursorPixelX > rightScrubScrollMarginStart)
-                    {
-                        float scrubScrollSpeedMult = MathHelper.Max(
-                            playbackCursorPixelX - rightScrubScrollMarginStart, 0) / ScrubScrollStartMargin;
-
-                        ScrollViewer.Scroll.X += ScrubScrollSpeed * (scrubScrollSpeedMult * scrubScrollSpeedMult);
-
-                        ScrollViewer.ClampScroll();
-                    }
-                    else if (playbackCursorPixelX < leftScrubScrollMarginStart)
-                    {
-                        float scrubScrollSpeedMult = MathHelper.Max(
-                            leftScrubScrollMarginStart - playbackCursorPixelX, 0) / ScrubScrollStartMargin;
-
-                        ScrollViewer.Scroll.X -= ScrubScrollSpeed * (scrubScrollSpeedMult * scrubScrollSpeedMult);
-                        ScrollViewer.ClampScroll();
-                    }
-                }
-                else if (MainScreen.Config.AutoScrollDuringAnimPlayback && PlaybackCursor.IsPlaying)
-                {
-                    if ((ScrollViewer.Scroll.X < maxHorizontalScrollNeededForAnimEndToBeInScreen) ||
-                        playbackCursorPixelX < ScrollViewer.Scroll.X)
-                    {
-                        if (playbackCursorPixelX < ScrollViewer.Scroll.X)
-                        {
-                            ScrollViewer.Scroll.X = playbackCursorPixelX;
-                        }
-                        else
-
-                        {
-                            float distFromScrollToCursor = playbackCursorPixelX - centerOfScreenX;
-
-                            ScrollViewer.Scroll.X += distFromScrollToCursor * 0.1f;
-                            ScrollViewer.Scroll.X = Math.Min(ScrollViewer.Scroll.X, maxHorizontalScrollNeededForAnimEndToBeInScreen);
-                            ScrollViewer.ClampScroll();
-                        }
-
-                        
-                    }
-                }
+                
 
                 // Draw PlaybackCursor StartTime vertical line
                 sb.Draw(texture: boxTex,
@@ -2229,6 +2242,58 @@ namespace DSAnimStudio.TaeEditor
                           layerDepth: 0
                           );
                 }
+
+                var playbackCursorSmoothPixelX = (PlaybackCursor.IsPlaying || PlaybackCursor.Scrubbing) ?
+                    (int)(SecondsPixelSize * PlaybackCursor.CurrentTime) : playbackCursorPixelX;
+
+                string playbackCursorText = 
+                    (MainScreen.Config.LockFramerateToOriginalAnimFramerate ?
+                    $"{(int)(PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame)}" :
+                    $"{(PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame):F02}") +
+                    $"/{(int)((Math.Round(PlaybackCursor.MaxFrame) - 1))}";
+
+                Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
+
+                // Draw PlaybackCursor CurrentTime BG Rect
+
+                sb.Draw(texture: boxTex,
+                   position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
+                   (int)(ScrollViewer.Scroll.Y + 2)),
+                   sourceRectangle: null,
+                   color: Color.Black,
+                   rotation: 0,
+                   origin: Vector2.Zero,
+                   scale: playbackCursorTextSize + new Vector2(10, -4),
+                   effects: SpriteEffects.None,
+                   layerDepth: 0
+                   );
+
+                sb.Draw(texture: boxTex,
+                    position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
+                    (int)(ScrollViewer.Scroll.Y + 2)) + Vector2.One,
+                    sourceRectangle: null,
+                    color: new Color(64, 64, 64, 255),
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: playbackCursorTextSize + new Vector2(10,-4) - (Vector2.One * 2),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+
+                Vector2 playbackCursorTextPos = new Vector2(
+                    playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 6, 
+                    (int)(ScrollViewer.Scroll.Y + 1));
+
+                // Draw PlaybackCursor CurrentTime string
+                sb.DrawString(font, playbackCursorText,
+                    position: playbackCursorTextPos + Vector2.One,
+                    color: Color.Black
+                    );
+
+                sb.DrawString(font, playbackCursorText,
+                    position: playbackCursorTextPos,
+                    color: Color.Cyan
+                    );
 
                 sb.End();
             }

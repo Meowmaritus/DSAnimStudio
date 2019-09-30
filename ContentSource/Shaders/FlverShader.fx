@@ -48,6 +48,7 @@ cbuffer cbSkinned1
 cbuffer cbSkinned2
 {
     float4x4 Bones4[255];
+    float4x4 Bones5[255];
 };
 #endif
 
@@ -216,12 +217,17 @@ struct VertexShaderOutput
 	float4 Color : TEXCOORD6;
 };
 
-float4 SkinShit(VertexShaderInput input, float4 shit)
+float4 SkinVert(VertexShaderInput input, float4 v)
 {
     [branch]
     if (IsSkybox)
     {
-        return shit;
+        return v;
+    }
+    
+    if (!any(input.BoneWeights))
+    {
+        return v;
     }
     
     //TEMP DISABLED FOR COLOR TESTING
@@ -233,116 +239,132 @@ float4 SkinShit(VertexShaderInput input, float4 shit)
     
     if (input.BoneIndicesBank.x == 0)
     {
-        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+        posA = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.x)]) * input.BoneWeights.x;
     }
     else if (input.BoneIndicesBank.x == 1)
     {
-        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+        posA = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.x)]) * input.BoneWeights.x;
     }
     else if (input.BoneIndicesBank.x == 2)
     {
-        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+        posA = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.x)]) * input.BoneWeights.x;
     }
     else if (input.BoneIndicesBank.x == 3)
     {
-        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+        posA = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.x)]) * input.BoneWeights.x;
     }
     else if (input.BoneIndicesBank.x == 4)
     {
-        posA = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+        posA = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.x)]) * input.BoneWeights.x;
+    }
+    else if (input.BoneIndicesBank.x == 5)
+    {
+        posA = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones5[int(input.BoneIndices.x)]) * input.BoneWeights.x;
     }
     else
     {
-        return shit;
+        return v;
     }
     
     if (input.BoneIndicesBank.y == 0)
     {
-        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.y)]) * input.BoneWeights.y;
+        posB = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.y)]) * input.BoneWeights.y;
     }
     else if (input.BoneIndicesBank.y == 1)
     {
-        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.y)]) * input.BoneWeights.y;
+        posB = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.y)]) * input.BoneWeights.y;
     }
     else if (input.BoneIndicesBank.y == 2)
     {
-        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.y)]) * input.BoneWeights.y;
+        posB = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.y)]) * input.BoneWeights.y;
     }
     else if (input.BoneIndicesBank.y == 3)
     {
-        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.y)]) * input.BoneWeights.y;
+        posB = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.y)]) * input.BoneWeights.y;
     }
     else if (input.BoneIndicesBank.y == 4)
     {
-        posB = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.y)]) * input.BoneWeights.y;
+        posB = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.y)]) * input.BoneWeights.y;
+    }
+    else if (input.BoneIndicesBank.y == 5)
+    {
+        posB = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones5[int(input.BoneIndices.y)]) * input.BoneWeights.y;
     }
     else
     {
-        return shit;
+        return v;
     }
     
     if (input.BoneIndicesBank.z == 0)
     {
-        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.z)]) * input.BoneWeights.z;
+        posC = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.z)]) * input.BoneWeights.z;
     }
     else if (input.BoneIndicesBank.z == 1)
     {
-        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.z)]) * input.BoneWeights.z;
+        posC = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.z)]) * input.BoneWeights.z;
     }
     else if (input.BoneIndicesBank.z == 2)
     {
-        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.z)]) * input.BoneWeights.z;
+        posC = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.z)]) * input.BoneWeights.z;
     }
     else if (input.BoneIndicesBank.z == 3)
     {
-        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.z)]) * input.BoneWeights.z;
+        posC = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.z)]) * input.BoneWeights.z;
     }
     else if (input.BoneIndicesBank.z == 4)
     {
-        posC = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.z)]) * input.BoneWeights.z;
+        posC = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.z)]) * input.BoneWeights.z;
+    }
+    else if (input.BoneIndicesBank.z == 5)
+    {
+        posC = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones5[int(input.BoneIndices.z)]) * input.BoneWeights.z;
     }
     else
     {
-        return shit;
+        return v;
     }
     
     if (input.BoneIndicesBank.w == 0)
     {
-        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+        posD = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones0[int(input.BoneIndices.w)]) * input.BoneWeights.w;
     }
     else if (input.BoneIndicesBank.w == 1)
     {
-        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+        posD = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones1[int(input.BoneIndices.w)]) * input.BoneWeights.w;
     }
     else if (input.BoneIndicesBank.w == 2)
     {
-        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+        posD = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones2[int(input.BoneIndices.w)]) * input.BoneWeights.w;
     }
     else if (input.BoneIndicesBank.w == 3)
     {
-        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+        posD = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones3[int(input.BoneIndices.w)]) * input.BoneWeights.w;
     }
     else if (input.BoneIndicesBank.w == 4)
     {
-        posD = mul(shit, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+        posD = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones4[int(input.BoneIndices.w)]) * input.BoneWeights.w;
+    }
+    else if (input.BoneIndicesBank.w == 5)
+    {
+        posD = mul(v, /*float4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)*/Bones5[int(input.BoneIndices.w)]) * input.BoneWeights.w;
     }
     else
     {
-        return shit;
+        return v;
     }
     
     return ((posA + posB + posC + posD) / (input.BoneWeights.x + input.BoneWeights.y + input.BoneWeights.z + input.BoneWeights.w));
     #else
-    return shit;
+    return v;
     #endif
-    //return shit;
+    //return v;
 }
 
 VertexShaderOutput MainVS(in VertexShaderInput input)
 {
 	VertexShaderOutput output;
     
-    float4 inPos = SkinShit(input, input.Position);
+    float4 inPos = SkinVert(input, input.Position);
 
     
 
@@ -363,10 +385,10 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 	output.TexCoord = input.TexCoord;
 	output.TexCoord2.xy = input.TexCoord2.xy;// * input.AtlasScale.xy + input.AtlasOffset.xy;
 
-    output.Normal = normalize(SkinShit(input, float4(input.Normal, 0)).xyz);
+    output.Normal = normalize(SkinVert(input, float4(input.Normal, 0)).xyz);
 
-	output.WorldToTangentSpace[0] = mul(normalize(SkinShit(input, float4(input.Bitangent.xyz, 0)).xyz), World);
-	output.WorldToTangentSpace[1] = mul(normalize(SkinShit(input, float4(input.Binormal, 0)).xyz), World);
+	output.WorldToTangentSpace[0] = mul(normalize(SkinVert(input, float4(input.Bitangent.xyz, 0)).xyz), World);
+	output.WorldToTangentSpace[1] = mul(normalize(SkinVert(input, float4(input.Binormal, 0)).xyz), World);
 	output.WorldToTangentSpace[2] = mul(normalize(output.Normal), World);
 	
 	output.View = normalize(EyePosition - worldPosition);
@@ -682,12 +704,9 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     }
     else if (WorkflowType == WORKFLOW_CLASSIC_DIFFUSE_PTDE)
     {
-        //float3 normal = input.Normal;
+       //float3 normal = input.Normal;
         
         float normalMapBlueChannel = nmapcol.z;
-        
-        
-        normalMapBlueChannel *= tex2D(SpecularMapBBSampler, input.TexCoord).r;
         
         float roughness = 1 - normalMapBlueChannel;
         
@@ -710,8 +729,9 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         F0 = specularMapColor.rgb;
         
         // TEST
-        
-        //F0 *= F0;
+        F0 *= F0;
+        //F0 = 1;
+        ///////
         
         float LdotN = saturate(dot(N, L));
         float NdotV = abs(saturate(dot(viewVec, N)));

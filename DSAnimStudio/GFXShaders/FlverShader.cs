@@ -10,10 +10,7 @@ namespace DSAnimStudio.GFXShaders
 {
     public class FlverShader : Effect, IGFXShader<FlverShader>
     {
-        public const int NUM_BONES = 255;
-        public const int MAX_ALL_BONE_ARRAYS = NUM_BONES * 4;
-
-        public const int DS3_MAXLIGHTS = 40;
+        public const int MaxBonePerMatrixArray = 255;
 
         public FlverShader Effect => this;
 
@@ -256,32 +253,38 @@ namespace DSAnimStudio.GFXShaders
         #region SKINNING
         public Matrix[] Bones0
         {
-            get => Parameters[nameof(Bones0)].GetValueMatrixArray(NUM_BONES);
+            get => Parameters[nameof(Bones0)].GetValueMatrixArray(MaxBonePerMatrixArray);
             set => Parameters[nameof(Bones0)]?.SetValue(value);
         }
 
         public Matrix[] Bones1
         {
-            get => Parameters[nameof(Bones1)].GetValueMatrixArray(NUM_BONES);
+            get => Parameters[nameof(Bones1)].GetValueMatrixArray(MaxBonePerMatrixArray);
             set => Parameters[nameof(Bones1)]?.SetValue(value);
         }
 
         public Matrix[] Bones2
         {
-            get => Parameters[nameof(Bones2)].GetValueMatrixArray(NUM_BONES);
+            get => Parameters[nameof(Bones2)].GetValueMatrixArray(MaxBonePerMatrixArray);
             set => Parameters[nameof(Bones2)]?.SetValue(value);
         }
 
         public Matrix[] Bones3
         {
-            get => Parameters[nameof(Bones3)].GetValueMatrixArray(NUM_BONES);
+            get => Parameters[nameof(Bones3)].GetValueMatrixArray(MaxBonePerMatrixArray);
             set => Parameters[nameof(Bones3)]?.SetValue(value);
         }
 
         public Matrix[] Bones4
         {
-            get => Parameters[nameof(Bones4)].GetValueMatrixArray(NUM_BONES);
+            get => Parameters[nameof(Bones4)].GetValueMatrixArray(MaxBonePerMatrixArray);
             set => Parameters[nameof(Bones4)]?.SetValue(value);
+        }
+
+        public Matrix[] Bones5
+        {
+            get => Parameters[nameof(Bones5)].GetValueMatrixArray(MaxBonePerMatrixArray);
+            set => Parameters[nameof(Bones5)]?.SetValue(value);
         }
         #endregion
 

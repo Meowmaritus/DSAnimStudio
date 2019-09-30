@@ -37,7 +37,6 @@ namespace DSAnimStudio
 
         public IReadOnlyDictionary<string, byte[]> Animations => animHKXsToLoad;
 
-        private string lastLoadedAnimName = null;
         private NewHavokAnimation lastLoadedAnim;
 
         private string _currentAnimationName = null;
@@ -81,19 +80,19 @@ namespace DSAnimStudio
         {
             get
             {
+                string name = CurrentAnimationName;
                 NewHavokAnimation anim = null;
                 lock (_lock_animDict)
                 {
-                    if (CurrentAnimationName != null)
+                    if (name != null)
                     {
-                        if (lastLoadedAnimName != CurrentAnimationName)
+                        if (lastLoadedAnim == null || lastLoadedAnim?.Name != name)
                         {
                             lastLoadedAnim?.Scrub(0, false, forceUpdate: true);
 
-                            if (animHKXsToLoad.ContainsKey(CurrentAnimationName))
+                            if (animHKXsToLoad.ContainsKey(name))
                             {
-                                LoadAnimHKX(animHKXsToLoad[CurrentAnimationName]);
-                                lastLoadedAnimName = CurrentAnimationName;
+                                LoadAnimHKX(animHKXsToLoad[name], name);
                             }
                             else
                             {
@@ -149,11 +148,11 @@ namespace DSAnimStudio
             }
         }
 
-        private void LoadAnimHKX(byte[] hkxBytes)
+        private void LoadAnimHKX(byte[] hkxBytes, string name)
         {
             var hkxVariation = GameDataManager.GetCurrentLegacyHKXType();
             var hkx = HKX.Read(hkxBytes, hkxVariation);
-            LoadAnimHKX(hkx);
+            LoadAnimHKX(hkx, name);
         }
 
         private void AddAnimHKXFetch(string name, byte[] hkx)
@@ -164,7 +163,7 @@ namespace DSAnimStudio
                 animHKXsToLoad[name] = hkx;
         }
 
-        private void LoadAnimHKX(HKX hkx)
+        private void LoadAnimHKX(HKX hkx, string name)
         {
             HKX.HKASplineCompressedAnimation anim = null;
             HKX.HKAAnimationBinding animBinding = null;
@@ -189,6 +188,7 @@ namespace DSAnimStudio
             if (anim != null)
             {
                 lastLoadedAnim = new NewHavokAnimation_SplineCompressed(MODEL.Skeleton, animRefFrame, animBinding, anim);
+                lastLoadedAnim.Name = name;
             }
             else
             {

@@ -70,6 +70,8 @@ namespace DSAnimStudio
             }
         }
 
+        public static int EffectiveSSAA = 2;
+
         public static int MSAA
         {
             get => Device.PresentationParameters.MultiSampleCount;

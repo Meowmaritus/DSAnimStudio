@@ -12,6 +12,13 @@ namespace DSAnimStudio
     {
         public HKX.AnimationBlendHint BlendHint = HKX.AnimationBlendHint.NORMAL;
 
+        public string Name;
+
+        public override string ToString()
+        {
+            return $"{Name} [{Math.Round(1 / FrameDuration)} FPS]";
+        }
+
         public readonly NewAnimSkeleton Skeleton;
 
         public readonly Vector4[] RootMotionFrames = null;

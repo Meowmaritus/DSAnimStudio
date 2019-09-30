@@ -55,15 +55,17 @@ namespace DSAnimStudio.TaeEditor
 
         public double? SnapInterval = null;
 
-        const double SnapInterval_Default = 0.0333333;
+        public const double SnapInterval_Default = 0.0333333;
+
+        public double CurrentSnapInterval => SnapInterval ?? SnapInterval_Default;
 
         public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
-            ? (Math.Round(CurrentTime / (SnapInterval ?? SnapInterval_Default))) 
-            :  (CurrentTime / (SnapInterval ?? SnapInterval_Default));
+            ? (Math.Round(CurrentTime / CurrentSnapInterval)) 
+            :  (CurrentTime / CurrentSnapInterval);
 
         public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
-            ? (Math.Round(MaxTime / (SnapInterval ?? SnapInterval_Default))) 
-            : (MaxTime / (SnapInterval ?? SnapInterval_Default));
+            ? (Math.Round(MaxTime / CurrentSnapInterval)) 
+            : (MaxTime / CurrentSnapInterval);
 
         public bool IsRepeat = true;
         public bool IsPlaying = false;

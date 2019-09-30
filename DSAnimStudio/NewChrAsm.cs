@@ -145,13 +145,13 @@ namespace DSAnimStudio
 
         public void UpdateWeaponAnimation()
         {
-            if (RightWeaponModel != null)
+            if (RightWeaponModel != null && RightWeaponModel.AnimContainer != null)
             {
                 RightWeaponModel.AnimContainer.IsLoop = false;
                 RightWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime);
             }
 
-            if (LeftWeaponModel != null)
+            if (LeftWeaponModel != null && RightWeaponModel.AnimContainer != null)
             {
                 LeftWeaponModel.AnimContainer.IsLoop = false;
                 LeftWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime);
