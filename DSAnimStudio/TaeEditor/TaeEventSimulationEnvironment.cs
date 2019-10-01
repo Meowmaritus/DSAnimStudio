@@ -213,17 +213,17 @@ namespace DSAnimStudio.TaeEditor
                         {
                             // Start from beginning of simulation and simulate to current time.
 
-                             int maskLength = 32;
+                            int maskLength = 32;
 
-                                    if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
-                                        maskLength = 8;
+                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+                                maskLength = 8;
 
                             MODEL.ResetDrawMaskToDefault();
 
-                            foreach (var evBox in evBoxes)
+                            foreach (var evBox in evBoxes.OrderBy(evb => evb.MyEvent.StartTime))
                             {
                                 if (evBox.MyEvent.StartTime > time)
-                                    continue;
+                                    break;
 
                                 if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
                                 {

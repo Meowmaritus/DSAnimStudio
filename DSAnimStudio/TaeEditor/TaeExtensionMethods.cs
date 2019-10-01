@@ -97,33 +97,48 @@ namespace DSAnimStudio.TaeEditor
 
 
 
-        const double FRAME = 0.0333333333333333;
+        const double TAE_FRAME = 0.0333333333333333;
 
-        public static float RoundTimeToFrame(float time)
+        public static float RoundTimeToFrame(float time, double frameDuration)
         {
-            return (float)(Math.Round(time / FRAME) * FRAME);
+            return (float)(Math.Round(time / frameDuration) * frameDuration);
+        }
+
+        public static float RoundTimeToTAEFrame(float time)
+        {
+            return (float)(Math.Round(time / TAE_FRAME) * TAE_FRAME);
         }
 
         public static float GetStartTimeFr(this TAE.Event ev)
         {
             return Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements 
-                ? RoundTimeToFrame(ev.StartTime) : ev.StartTime;
+                ? RoundTimeToFrame(ev.StartTime, TAE_FRAME) : ev.StartTime;
         }
 
-        public static int GetStartFrame(this TAE.Event ev)
+        public static int GetStartFrame(this TAE.Event ev, double frameDuration)
         {
-            return (int)Math.Round(ev.StartTime / FRAME);
+            return (int)Math.Round(ev.StartTime / frameDuration);
         }
 
-        public static int GetEndFrame(this TAE.Event ev)
+        public static int GetEndFrame(this TAE.Event ev, double frameDuration)
         {
-            return (int)Math.Round(ev.EndTime / FRAME);
+            return (int)Math.Round(ev.EndTime / frameDuration);
+        }
+
+        public static int GetStartTAEFrame(this TAE.Event ev)
+        {
+            return (int)Math.Round(ev.StartTime / TAE_FRAME);
+        }
+
+        public static int GetEndTAEFrame(this TAE.Event ev)
+        {
+            return (int)Math.Round(ev.EndTime / TAE_FRAME);
         }
 
         public static float GetEndTimeFr(this TAE.Event ev)
         {
             return Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements
-                ? RoundTimeToFrame(ev.EndTime) : ev.EndTime;
+                ? RoundTimeToFrame(ev.EndTime, TAE_FRAME) : ev.EndTime;
         }
     }
 }

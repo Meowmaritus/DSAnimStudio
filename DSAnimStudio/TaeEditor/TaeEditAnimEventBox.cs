@@ -66,8 +66,8 @@ namespace DSAnimStudio.TaeEditor
         {
             x = MathHelper.Max(x, 0);
 
-            int originalStartFrame = MyEvent.GetStartFrame();
-            int originalEndFrame = MyEvent.GetEndFrame();
+            int originalStartFrame = MyEvent.GetStartTAEFrame();
+            int originalEndFrame = MyEvent.GetEndTAEFrame();
 
             float eventLength = MyEvent.GetEndTimeFr() - MyEvent.GetStartTimeFr();
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
@@ -75,29 +75,29 @@ namespace DSAnimStudio.TaeEditor
 
             MyEvent.ApplyRounding();
 
-            return (MyEvent.GetStartFrame() != originalStartFrame || 
-                MyEvent.GetEndFrame() != originalEndFrame);
+            return (MyEvent.GetStartTAEFrame() != originalStartFrame || 
+                MyEvent.GetEndTAEFrame() != originalEndFrame);
         }
 
         public bool DragLeftSideOfBoxToVirtualUnitX(float x)
         {
-            int originalStartFrame = MyEvent.GetStartFrame();
+            int originalStartFrame = MyEvent.GetStartTAEFrame();
 
             MyEvent.StartTime = (float)Math.Min(x / OwnerPane.SecondsPixelSize, MyEvent.EndTime - FRAME);
             MyEvent.ApplyRounding();
 
-            return (MyEvent.GetStartFrame() != originalStartFrame);
+            return (MyEvent.GetStartTAEFrame() != originalStartFrame);
         }
 
         public bool DragRightSideOfBoxToVirtualUnitX(float x)
         {
-            float originalEndFrame = MyEvent.GetEndFrame();
+            float originalEndFrame = MyEvent.GetEndTAEFrame();
 
             MyEvent.EndTime = (float)Math.Max(x / OwnerPane.SecondsPixelSize, MyEvent.StartTime + FRAME);
 
             MyEvent.ApplyRounding();
 
-            return (MyEvent.GetEndFrame() != originalEndFrame);
+            return (MyEvent.GetEndTAEFrame() != originalEndFrame);
         }
 
         public TaeEditAnimEventBox(TaeEditAnimEventGraph owner, TAE.Event myEvent)
