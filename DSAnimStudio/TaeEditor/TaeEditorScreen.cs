@@ -307,21 +307,31 @@ namespace DSAnimStudio.TaeEditor
         public bool ShiftHeld;
         public bool AltHeld;
 
-        const string HELP_TEXT = 
+        const string HELP_TEXT =
+            "Left Click + Drag on Timeline:\n" +
+            "    Scrub animation frame.\n" +
+            "Left Click + Hold Shift + Drag on Timeline:\n" +
+            "    Scrub animation frame while ignoring autoscroll.\n" +
             "Left Click + Drag Middle of Event:\n" +
-            "    Move whole event\n" +
+            "    Move whole event.\n" +
             "Left Click + Drag Left/Right Side of Event:\n" +
-            "    Move start/end of event\n" +
+            "    Move start/end of event.\n" +
             "Left Click:\n" +
-            "    Highlight event under mouse cursor\n" +
+            "    Highlight event under mouse cursor.\n" +
+            "Left Click and Drag:\n" +
+            "    Drag selection rectangle to highlight multiple events.\n" +
+            "Shift + Left Click:\n" +
+            "    Add to current selection (works for multiselect as well).\n" +
+            "Ctrl + Left Click:\n" +
+            "    Subtract from current selection (works for multiselect as well).\n" +
             "Right Click:\n" +
-            "    Place copy of last highlighted event at mouse cursor\n" +
+            "    Place copy of last highlighted event at mouse cursor.\n" +
             "Delete Key:\n" +
             "    Delete highlighted event.\n" +
             "Ctrl+X/Ctrl+C/Ctrl+V:\n" +
-            "    CUT/COPY/PASTE\n" +
+            "    CUT/COPY/PASTE.\n" +
             "Ctrl+Z/Ctrl+Y:\n" +
-            "    UNDO/REDO\n" +
+            "    UNDO/REDO.\n" +
             "F1 Key:\n" +
             "    Change type of highlighted event.\n" +
             "Space Bar:\n" +

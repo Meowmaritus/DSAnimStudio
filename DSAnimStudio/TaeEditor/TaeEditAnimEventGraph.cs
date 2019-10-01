@@ -795,7 +795,7 @@ namespace DSAnimStudio.TaeEditor
 
                                 if (!isAbsoluteLocation)
                                 {
-                                    float start = copyOfEventStartTimes[i] - copyOfClipboardStartTime + TaeExtensionMethods.RoundTimeToFrame(copyOfRelMouse.X / SecondsPixelSize);
+                                    float start = copyOfEventStartTimes[i] - copyOfClipboardStartTime + TaeExtensionMethods.RoundTimeToTAEFrame(copyOfRelMouse.X / SecondsPixelSize);
                                     float end = start + (copyOfEventEndTimes[i] - copyOfEventStartTimes[i]);
 
                                     startTime = start;
