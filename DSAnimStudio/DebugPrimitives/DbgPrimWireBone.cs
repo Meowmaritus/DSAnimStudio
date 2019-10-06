@@ -9,47 +9,58 @@ namespace DSAnimStudio.DebugPrimitives
 {
     public class DbgPrimWireBone : DbgPrimWire
     {
-        public DbgPrimWireBone(string name, Transform location, Quaternion rotation, float thickness, float length, Color color)
-        {
-            Category = DbgPrimCategory.HkxBone;
+        public const float ThicknessRatio = 0.25f;
 
+        private static DbgPrimGeometryData GeometryData = null;
+
+        public DbgPrimWireBone(string name, Transform location, Color color)
+        {
             Transform = location;
             NameColor = color;
+            OverrideColor = color;
             Name = name;
 
-            thickness = Math.Min(length / 2, thickness);
+            if (GeometryData != null)
+            {
+                SetBuffers(GeometryData.VertBuffer, GeometryData.IndexBuffer);
+            }
+            else
+            {
+                Vector3 pt_start = Vector3.Zero;
+                Vector3 pt_cardinal1 = Vector3.Up * ThicknessRatio + Vector3.Right * ThicknessRatio;
+                Vector3 pt_cardinal2 = Vector3.Forward * ThicknessRatio + Vector3.Right * ThicknessRatio;
+                Vector3 pt_cardinal3 = Vector3.Down * ThicknessRatio + Vector3.Right * ThicknessRatio;
+                Vector3 pt_cardinal4 = Vector3.Backward * ThicknessRatio + Vector3.Right * ThicknessRatio;
+                Vector3 pt_tip = Vector3.Right;
 
-            Vector3 pt_start = Vector3.Zero;
-            Vector3 pt_cardinal1 = Vector3.Up * thickness + Vector3.Right * thickness;
-            Vector3 pt_cardinal2 = Vector3.Forward * thickness + Vector3.Right * thickness;
-            Vector3 pt_cardinal3 = Vector3.Down * thickness + Vector3.Right * thickness;
-            Vector3 pt_cardinal4 = Vector3.Backward * thickness + Vector3.Right * thickness;
-            Vector3 pt_tip = Vector3.Right * length;
+                //Start to cardinals
+                AddLine(pt_start, pt_cardinal1);
+                AddLine(pt_start, pt_cardinal2);
+                AddLine(pt_start, pt_cardinal3);
+                AddLine(pt_start, pt_cardinal4);
 
-            pt_start = Vector3.Transform(pt_start, Matrix.CreateFromQuaternion(rotation));
-            pt_cardinal1 = Vector3.Transform(pt_cardinal1, Matrix.CreateFromQuaternion(rotation));
-            pt_cardinal2 = Vector3.Transform(pt_cardinal2, Matrix.CreateFromQuaternion(rotation));
-            pt_cardinal3 = Vector3.Transform(pt_cardinal3, Matrix.CreateFromQuaternion(rotation));
-            pt_cardinal4 = Vector3.Transform(pt_cardinal4, Matrix.CreateFromQuaternion(rotation));
-            pt_tip = Vector3.Transform(pt_tip, Matrix.CreateFromQuaternion(rotation));
+                //Cardinals to end
+                AddLine(pt_cardinal1, pt_tip);
+                AddLine(pt_cardinal2, pt_tip);
+                AddLine(pt_cardinal3, pt_tip);
+                AddLine(pt_cardinal4, pt_tip);
 
-            //Start to cardinals
-            AddLine(pt_start, pt_cardinal1, color);
-            AddLine(pt_start, pt_cardinal2, color);
-            AddLine(pt_start, pt_cardinal3, color);
-            AddLine(pt_start, pt_cardinal4, color);
+                //Connecting the cardinals
+                AddLine(pt_cardinal1, pt_cardinal2);
+                AddLine(pt_cardinal2, pt_cardinal3);
+                AddLine(pt_cardinal3, pt_cardinal4);
+                AddLine(pt_cardinal4, pt_cardinal1);
 
-            //Cardinals to end
-            AddLine(pt_cardinal1, pt_tip, color);
-            AddLine(pt_cardinal2, pt_tip, color);
-            AddLine(pt_cardinal3, pt_tip, color);
-            AddLine(pt_cardinal4, pt_tip, color);
+                FinalizeBuffers(true);
 
-            //Connecting the cardinals
-            AddLine(pt_cardinal1, pt_cardinal2, color);
-            AddLine(pt_cardinal2, pt_cardinal3, color);
-            AddLine(pt_cardinal3, pt_cardinal4, color);
-            AddLine(pt_cardinal4, pt_cardinal1, color);
+                GeometryData = new DbgPrimGeometryData()
+                {
+                    VertBuffer = VertBuffer,
+                    IndexBuffer = IndexBuffer,
+                };
+            }
+
+            
         }
     }
 }

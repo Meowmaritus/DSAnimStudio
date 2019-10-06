@@ -11,87 +11,126 @@ namespace DSAnimStudio.DebugPrimitives
     {
         public class DbgPrimWireCapsule_End : DbgPrimWire
         {
-            public DbgPrimWireCapsule_End(int segments)
+            private static DbgPrimGeometryData GeometryData = null;
+
+            public const int Segments = 12;
+
+            public DbgPrimWireCapsule_End()
             {
-                if (!(segments >= 4))
-                    throw new ArgumentException($"Number of segments must be >= 4", nameof(segments));
+                //if (!(Segments >= 4))
+                //    throw new ArgumentException($"Number of segments must be >= 4", nameof(Segments));
 
-                var topPoint = Vector3.Up * 1;
-                var bottomPoint = Vector3.Down * 1;
-                var points = new Vector3[segments, segments];
-
-                int verticalSegments = segments / 2;
-
-                for (int i = 0; i <= verticalSegments; i++)
+                if (GeometryData != null)
                 {
-                    for (int j = 0; j < segments; j++)
-                    {
-                        float horizontalAngle = (1.0f * j / segments) * MathHelper.TwoPi;
-                        float verticalAngle = ((1.0f * (i) / (verticalSegments)) * MathHelper.PiOver2);
-                        float altitude = (float)Math.Sin(verticalAngle);
-                        float horizontalDist = (float)Math.Cos(verticalAngle);
-                        points[i, j] = new Vector3((float)Math.Cos(horizontalAngle) * horizontalDist, altitude, (float)Math.Sin(horizontalAngle) * horizontalDist) * 1;
-                    }
+                    SetBuffers(GeometryData.VertBuffer, GeometryData.IndexBuffer);
                 }
-
-                for (int i = 0; i <= verticalSegments; i++)
+                else
                 {
-                    for (int j = 0; j < segments; j++)
+                    var topPoint = Vector3.Up * 1;
+                    var bottomPoint = Vector3.Down * 1;
+                    var points = new Vector3[Segments, Segments];
+
+                    int verticalSegments = Segments / 2;
+
+                    for (int i = 0; i <= verticalSegments; i++)
                     {
-                        //// On the bottom, we must connect each to the bottom point
-                        //if (i == 0)
-                        //{
-                        //    AddLine(points[i, j], bottomPoint, Color.White);
-                        //}
-
-                        // On the top, we must connect each point to the top
-                        // Note: this isn't "else if" because with 2 segments, 
-                        // these are both true for the only ring
-                        if (i == segments - 1)
+                        for (int j = 0; j < Segments; j++)
                         {
-                            AddLine(points[i, j], topPoint, Color.White);
-                        }
-
-                        // Make vertical lines that connect from this 
-                        // horizontal ring to the one above
-                        // Since we are connecting 
-                        // (current) -> (the one above current)
-                        // we dont need to do this for the very last one.
-                        if (i < segments - 1)
-                        {
-                            AddLine(points[i, j], points[i + 1, j], Color.White);
-                        }
-
-
-                        // Make lines that connect points horizontally
-                        //---- if we reach end, we must wrap around, 
-                        //---- otherwise, simply make line to next one
-                        if (j == segments - 1)
-                        {
-                            AddLine(points[i, j], points[i, 0], Color.White);
-                        }
-                        else
-                        {
-                            AddLine(points[i, j], points[i, j + 1], Color.White);
+                            float horizontalAngle = (1.0f * j / Segments) * MathHelper.TwoPi;
+                            float verticalAngle = ((1.0f * (i) / (verticalSegments)) * MathHelper.PiOver2);
+                            float altitude = (float)Math.Sin(verticalAngle);
+                            float horizontalDist = (float)Math.Cos(verticalAngle);
+                            points[i, j] = new Vector3((float)Math.Cos(horizontalAngle) * horizontalDist, altitude, (float)Math.Sin(horizontalAngle) * horizontalDist) * 1;
                         }
                     }
-                }
 
+                    for (int i = 0; i <= verticalSegments; i++)
+                    {
+                        for (int j = 0; j < Segments; j++)
+                        {
+                            //// On the bottom, we must connect each to the bottom point
+                            //if (i == 0)
+                            //{
+                            //    AddLine(points[i, j], bottomPoint, Color.White);
+                            //}
+
+                            // On the top, we must connect each point to the top
+                            // Note: this isn't "else if" because with 2 segments, 
+                            // these are both true for the only ring
+                            if (i == Segments - 1)
+                            {
+                                AddLine(points[i, j], topPoint, Color.White);
+                            }
+
+                            // Make vertical lines that connect from this 
+                            // horizontal ring to the one above
+                            // Since we are connecting 
+                            // (current) -> (the one above current)
+                            // we dont need to do this for the very last one.
+                            if (i < Segments - 1)
+                            {
+                                AddLine(points[i, j], points[i + 1, j], Color.White);
+                            }
+
+
+                            // Make lines that connect points horizontally
+                            //---- if we reach end, we must wrap around, 
+                            //---- otherwise, simply make line to next one
+                            if (j == Segments - 1)
+                            {
+                                AddLine(points[i, j], points[i, 0], Color.White);
+                            }
+                            else
+                            {
+                                AddLine(points[i, j], points[i, j + 1], Color.White);
+                            }
+                        }
+                    }
+
+                    FinalizeBuffers(true);
+
+                    GeometryData = new DbgPrimGeometryData()
+                    {
+                        VertBuffer = VertBuffer,
+                        IndexBuffer = IndexBuffer,
+                    };
+                }
 
             }
         }
 
         public class DbgPrimWireCapsule_Middle : DbgPrimWire
         {
-            public DbgPrimWireCapsule_Middle(int segments)
+            private static DbgPrimGeometryData GeometryData = null;
+
+            public const int Segments = 12;
+
+            public DbgPrimWireCapsule_Middle()
             {
-                for (int i = 0; i < segments; i++)
+                if (GeometryData != null)
                 {
-                    float horizontalAngle = (1.0f * i / segments) * MathHelper.TwoPi;
-                    Vector3 a = new Vector3((float)Math.Cos(horizontalAngle), 0, (float)Math.Sin(horizontalAngle));
-                    Vector3 b = new Vector3(a.X, 1, a.Z);
-                    AddLine(a, b, Color.White);
+                    SetBuffers(GeometryData.VertBuffer, GeometryData.IndexBuffer);
                 }
+                else
+                {
+                    for (int i = 0; i < Segments; i++)
+                    {
+                        float horizontalAngle = (1.0f * i / Segments) * MathHelper.TwoPi;
+                        Vector3 a = new Vector3((float)Math.Cos(horizontalAngle), 0, (float)Math.Sin(horizontalAngle));
+                        Vector3 b = new Vector3(a.X, 1, a.Z);
+                        AddLine(a, b, Color.White);
+                    }
+
+                    FinalizeBuffers(true);
+
+                    GeometryData = new DbgPrimGeometryData()
+                    {
+                        VertBuffer = VertBuffer,
+                        IndexBuffer = IndexBuffer,
+                    };
+                }
+
+                
             }
         }
 
@@ -121,26 +160,36 @@ namespace DSAnimStudio.DebugPrimitives
             Midst.Transform = new Transform(mtMidst);
             HemisphereB.Transform = new Transform(mtHemisphereB);
 
-            Matrix hitboxMatrix = Matrix.CreateWorld(a, -Vector3.Normalize(b - a), Vector3.Up);
+            var forward = -Vector3.Normalize(b - a);
+
+            Matrix hitboxMatrix = Matrix.CreateWorld(a, forward, Vector3.Up);
+
+            if (forward.X == 0 && forward.Z == 0)
+            {
+                if (forward.Y >= 0)
+                    hitboxMatrix = Matrix.CreateRotationX(MathHelper.PiOver2) * Matrix.CreateTranslation(a);
+                else
+                    hitboxMatrix = Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateTranslation(a);
+            }
 
             //Matrix hitboxMatrix = Matrix.CreateFromQuaternion(Quaternion.CreateFromAxisAngle(Vector3.Normalize(b - a), 0)) * Matrix.CreateTranslation(a);
 
             Transform = new Transform(hitboxMatrix);
         }
 
-        public DbgPrimWireCapsule(int segments, Color color)
+        public DbgPrimWireCapsule(Color color)
         {
-            HemisphereA = new DbgPrimWireCapsule_End(segments)
+            HemisphereA = new DbgPrimWireCapsule_End()
             {
                 Category = DbgPrimCategory.DummyPolyHelper,
                 OverrideColor = color
             };
-            Midst = new DbgPrimWireCapsule_Middle(segments)
+            Midst = new DbgPrimWireCapsule_Middle()
             {
                 Category = DbgPrimCategory.DummyPolyHelper,
                 OverrideColor = color
             };
-            HemisphereB = new DbgPrimWireCapsule_End(segments)
+            HemisphereB = new DbgPrimWireCapsule_End()
             {
                 Category = DbgPrimCategory.DummyPolyHelper,
                 OverrideColor = color

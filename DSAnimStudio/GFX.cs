@@ -126,6 +126,7 @@ namespace DSAnimStudio
 
             { FlverShadingMode.MESHDEBUG_NORMALS, "MESH DEBUG: Normals" },
             { FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY, "MESH DEBUG: Normals (Mesh Only)" },
+            { FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA, "MESH DEBUG: Vertex Color Alpha" },
         };
 
         private static List<FlverShadingMode> _flverNonDebugShadingModes = new List<FlverShadingMode>
@@ -145,6 +146,8 @@ namespace DSAnimStudio
         public static bool FlverAutoRotateLight = false;
         private static float LightSpinTimer = 0;
         public static bool FlverLightFollowsCamera = true;
+
+        public static bool FlverDisableTextureBlending = false;
 
         public static bool UseTonemap = true;
 
@@ -352,6 +355,29 @@ namespace DSAnimStudio
 
         }
 
+        public static bool SpriteBatchHasBegun { get; private set; } = false;
+
+        public static void SpriteBatchBeginForText()
+        {
+            GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
+            SpriteBatchHasBegun = true;
+        }
+
+        public static void SpriteBatchBegin(SpriteSortMode sortMode = SpriteSortMode.Deferred, 
+            BlendState blendState = null, SamplerState samplerState = null, 
+            DepthStencilState depthStencilState = null, RasterizerState rasterizerState = null, 
+            Effect effect = null, Matrix? transformMatrix = null)
+        {
+            SpriteBatch.Begin(sortMode, blendState, samplerState, depthStencilState, 
+                rasterizerState, effect, transformMatrix);
+        }
+
+        public static void SpriteBatchEnd()
+        {
+            GFX.SpriteBatch.End();
+            SpriteBatchHasBegun = false;
+        }
+
         public static void BeginDraw()
         {
             InitDepthStencil();
@@ -437,6 +463,7 @@ namespace DSAnimStudio
                     DBG.DrawBehindPrims();
                     break;
                 case GFXDrawStep.GUI:
+                    DBG.DrawPrimitiveTexts();
                     if (DBG.EnableMenu)
                         DbgMenuItem.CurrentMenu.Draw();
                     break;
@@ -459,7 +486,17 @@ namespace DSAnimStudio
                 {
                     var errText = $"Draw Call Failed ({CurrentStep.ToString()}):\n\n{ex.ToString()}";
                     var errTextSize = DBG.DEBUG_FONT_SIMPLE.MeasureString(errText);
-                    DBG.DrawOutlinedText(errText, new Vector2(Device.Viewport.Width / 2, Device.Viewport.Height / 2), Color.Red, DBG.DEBUG_FONT_SIMPLE, 0, 0.25f, errTextSize / 2);
+                    float hScale = ((GFX.LastViewport.Width) / (errTextSize.X)) * GFX.EffectiveSSAA;
+
+                    if (SpriteBatchHasBegun)
+                        SpriteBatchEnd();
+
+                    SpriteBatchBeginForText();
+
+                    DBG.DrawOutlinedText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), 
+                        Color.Yellow, DBG.DEBUG_FONT_SIMPLE, 0, new Vector2(hScale, GFX.EffectiveSSAA), Vector2.Zero);
+
+                    SpriteBatchEnd();
                 }
             }
         }
@@ -494,7 +531,11 @@ namespace DSAnimStudio
 
             GFX.UpdateFPS((float)FpsStopwatch.Elapsed.TotalSeconds);
             if (Main.SceneRenderTarget != null)
-            DBG.DrawOutlinedText($"Rendering {(Main.SceneRenderTarget.Width)}x{(Main.SceneRenderTarget.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
+            {
+                GFX.SpriteBatchBeginForText();
+                DBG.DrawOutlinedText($"Rendering {(Main.SceneRenderTarget.Width)}x{(Main.SceneRenderTarget.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS", new Vector2(4, GFX.Device.Viewport.Height - 24), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
+                GFX.SpriteBatchEnd();
+            }
             //DBG.DrawOutlinedText($"FPS: {(Math.Round(1 / (float)gameTime.ElapsedGameTime.TotalSeconds))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
             FpsStopwatch.Restart();
         }

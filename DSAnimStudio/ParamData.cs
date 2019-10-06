@@ -29,6 +29,16 @@ namespace DSAnimStudio
                 Root = 2,
             }
 
+            public enum DummyPolySource
+            {
+                None = 0,
+                Body = 1,
+                RightWeapon = 2,
+                LeftWeapon = 3
+            }
+
+            public DummyPolySource SuggestedDummyPolySource;
+
             public struct Hit
             {
                 public float Radius;
@@ -58,6 +68,17 @@ namespace DSAnimStudio
                 //        DmyPoly2 = (short)(dmy2mod + (isLeftHand ? 11000 : 10000));
                 //    }
                 //}
+
+                public Color GetColor()
+                {
+                    switch (HitType)
+                    {
+                        case HitTypes.Tip: return new Color(231, 186, 50);
+                        case HitTypes.Middle: return new Color(230, 26, 26);
+                        case HitTypes.Root: return new Color(26, 26, 230);
+                        default: return Color.Fuchsia;
+                    }
+                }
 
                 public bool IsCapsule => DmyPoly1 >= 0 && DmyPoly2 >= 0 && DmyPoly1 != DmyPoly2;
             }
@@ -319,6 +340,30 @@ namespace DSAnimStudio
                     AtkDarkCorrection = br.ReadInt16();
                     AtkDark = br.ReadInt16();
                 }
+
+                SuggestedDummyPolySource = DummyPolySource.None;
+
+                for (int i = 0; i < Hits.Length; i++)
+                {
+                    if (Hits[i].DmyPoly1 >= 10000 && Hits[i].DmyPoly1 < 11000)
+                        SuggestedDummyPolySource = DummyPolySource.RightWeapon;
+                    else if (Hits[i].DmyPoly1 >= 11000 && Hits[i].DmyPoly1 < 12000)
+                        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
+                    else if (Hits[i].DmyPoly1 >= 12000 && Hits[i].DmyPoly1 < 13000)
+                        SuggestedDummyPolySource = DummyPolySource.RightWeapon;
+                    else if (Hits[i].DmyPoly1 >= 13000 && Hits[i].DmyPoly1 < 14000)
+                        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
+                    else if (Hits[i].DmyPoly1 >= 20000 && Hits[i].DmyPoly1 < 21000)
+                        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
+                }
+
+                if (SuggestedDummyPolySource == DummyPolySource.None)
+                {
+                    br.Position = start + 0x7C;
+                    byte hitSourceType = br.ReadByte();
+                    if (hitSourceType == 1)
+                        SuggestedDummyPolySource = DummyPolySource.Body;
+                }
             }
         }
 
@@ -330,7 +375,13 @@ namespace DSAnimStudio
             public int VariationID;
             public int BehaviorJudgeID;
             public byte EzStateBehaviorType_Old;
-            public byte RefType;
+            public enum RefTypes : byte
+            {
+                Attack = 0,
+                Bullet = 1,
+                SpEffect = 2,
+            }
+            public RefTypes RefType;
             public int RefID;
             public int SFXVariationID;
             public int Stamina;
@@ -343,7 +394,7 @@ namespace DSAnimStudio
                 VariationID = br.ReadInt32();
                 BehaviorJudgeID = br.ReadInt32();
                 EzStateBehaviorType_Old = br.ReadByte();
-                RefType = br.ReadByte();
+                RefType = br.ReadEnum8<RefTypes>();
                 br.Position += 2; //dummy8 pad0[2]
                 RefID = br.ReadInt32();
                 SFXVariationID = br.ReadInt32();

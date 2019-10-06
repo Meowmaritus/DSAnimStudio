@@ -13,39 +13,14 @@ namespace DSAnimStudio.DebugPrimitives
     {
         public override IGFXShader<DbgPrimSolidShader> Shader => GFX.DbgPrimSolidShader;
 
-        private int[] Indices = new int[0];
-        private VertexPositionColorNormal[] Vertices = new VertexPositionColorNormal[0];
-        private VertexBuffer VertBuffer;
-        private IndexBuffer IndexBuffer;
-        private bool NeedToRecreateVertBuffer = true;
-        private bool NeedToRecreateIndexBuffer = true;
+        protected override PrimitiveType PrimType => PrimitiveType.TriangleList;
 
-        public int VertexCount => Vertices.Length;
-        public int LineCount => Indices.Length / 2;
-        public int IndexCount => Indices.Length;
+        public int TriCount => Indices.Length / 3;
 
-        private void AddVertex(Vector3 pos, Color color, Vector3 normal)
+        public void AddQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color color)
         {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1].Position = pos;
-            Vertices[Vertices.Length - 1].Color = color;
-            Vertices[Vertices.Length - 1].Normal = normal;
-            NeedToRecreateVertBuffer = true;
-        }
-
-        private void AddVertex(VertexPositionColorNormal vert)
-        {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1] = vert;
-
-            NeedToRecreateVertBuffer = true;
-        }
-
-        private void AddIndex(int index)
-        {
-            Array.Resize(ref Indices, Indices.Length + 1);
-            Indices[Indices.Length - 1] = index;
-            NeedToRecreateIndexBuffer = true;
+            AddTri(a, b, c, color);
+            AddTri(a, c, d, color);
         }
 
         public void AddTri(Vector3 a, Vector3 b, Vector3 c, Color color)
@@ -87,9 +62,9 @@ namespace DSAnimStudio.DebugPrimitives
                 vertIndexC = Vertices.Length - 1;
             }
 
-            AddIndex(vertIndexA);
-            AddIndex(vertIndexB);
             AddIndex(vertIndexC);
+            AddIndex(vertIndexB);
+            AddIndex(vertIndexA);
 
             //if (NeedToRecreateVertBuffer)
             //{
@@ -105,28 +80,6 @@ namespace DSAnimStudio.DebugPrimitives
             //    IndexBuffer.SetData(Indices);
             //    NeedToRecreateIndexBuffer = false;
             //}
-        }
-
-        protected override void DrawPrimitive()
-        {
-            if (NeedToRecreateVertBuffer)
-            {
-                VertBuffer = new VertexBuffer(GFX.Device,
-                    typeof(VertexPositionColorNormal), Vertices.Length, BufferUsage.WriteOnly);
-                VertBuffer.SetData(Vertices);
-                NeedToRecreateVertBuffer = false;
-            }
-
-            if (NeedToRecreateIndexBuffer)
-            {
-                IndexBuffer = new IndexBuffer(GFX.Device, IndexElementSize.ThirtyTwoBits, Indices.Length, BufferUsage.WriteOnly);
-                IndexBuffer.SetData(Indices);
-                NeedToRecreateIndexBuffer = false;
-            }
-
-            GFX.Device.SetVertexBuffer(VertBuffer);
-            GFX.Device.Indices = IndexBuffer;
-            GFX.Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, Indices.Length);
         }
 
         protected override void DisposeBuffers()

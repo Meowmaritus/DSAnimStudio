@@ -103,13 +103,7 @@
       <s16 name="ArgE"/>
     </event>
     <event id="1" name="InvokeAttackBehavior">
-      <s32 name="AttackType">
-        <entry value="0" name="Standard"/>
-        <entry value="1" name="Unknown_InfestedGhoulJumpSlashDS1"/>
-        <entry value="2" name="ForwardR1"/>
-        <entry value="62" name="PlungingAttack"/>
-        <entry value="64" name="Parry"/>
-      </s32>
+      <s32/>
       <s32/>
       <s32 name="BehaviorSubID"/>
     </event>
@@ -123,7 +117,7 @@
     </event>
     <event id="5" name="InvokeCommonBehavior">
       <s32 name="AttackIndex (0-8)"/>
-      <s32 name="BehaviorParamID"/>
+      <s32 name="BehaviorSubID"/>
     </event>
     <event id="24" name="AnimationQueue">
       <s32/>
@@ -143,7 +137,7 @@
       <s32 name="WeaponSlotID"/>
     </event>
     <!-- For c0000 -->
-    <event id="34" name="UnequipCrossbowBolt">
+    <event id="34" name="Unequip Crossbow Bolt">
       <s32 name="HandType">
         <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>
@@ -153,7 +147,7 @@
       <s32 assert="0"/>
     </event>
     <!-- For c0000 -->
-    <event id="35" name="EquipCrossbowBolt">
+    <event id="35" name="Equip Crossbow Bolt">
       <s32 name="HandType">
         <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>

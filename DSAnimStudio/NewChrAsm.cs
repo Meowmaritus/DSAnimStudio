@@ -82,64 +82,76 @@ namespace DSAnimStudio
             {
                 Matrix absoluteWeaponTransform = Matrix.Identity;
 
-                if (RightWeaponAbsorpPosParam != null)
-                {
-                    if (DS3RightWeaponAbsorpPosType == 0)
-                        DS3RightWeaponAbsorpPosType = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand0;
+                //if (RightWeaponAbsorpPosParam != null)
+                //{
+                //    if (DS3RightWeaponAbsorpPosType == 0)
+                //        DS3RightWeaponAbsorpPosType = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand0;
 
-                    var wepAbsorpPos = MODEL.DummyPolyMan.GetDummyPolyAbsolutePosition(
-                        RightWeaponAbsorpPosParam.AbsorpPos[DS3RightWeaponAbsorpPosType], 
-                        leftHandDefault: false) ?? Vector3.Zero;
+                //    var wepAbsorpPos = MODEL.DummyPolyMan.GetDummyPolyAbsolutePosition(
+                //        RightWeaponAbsorpPosParam.AbsorpPos[DS3RightWeaponAbsorpPosType], 
+                //        leftHandDefault: false) ?? Vector3.Zero;
 
-                    absoluteWeaponTransform = Matrix.CreateFromQuaternion(
-                        Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(
-                            Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
-                        * Skeleton[RightWeaponBoneIndex]))) * Matrix.CreateTranslation(wepAbsorpPos);
-                }
-                else
-                {
-                    absoluteWeaponTransform = 
-                        Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
-                        * Skeleton[RightWeaponBoneIndex];
-                }
+                //    absoluteWeaponTransform = Matrix.CreateFromQuaternion(
+                //        Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(
+                //            Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
+                //        * Skeleton[RightWeaponBoneIndex]))) * Matrix.CreateTranslation(wepAbsorpPos);
+                //}
+                //else
+                //{
+                //    absoluteWeaponTransform = 
+                //        Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
+                //        * Skeleton[RightWeaponBoneIndex];
+                //}
+
+                absoluteWeaponTransform =
+                       Skeleton.FlverSkeleton[RightWeaponBoneIndex].ReferenceMatrix
+                       * Skeleton[RightWeaponBoneIndex];
 
                 RightWeaponModel.StartTransform = new Transform(
                         (RightWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (RightWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * absoluteWeaponTransform
                         * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
+
+                RightWeaponModel.AfterAnimUpdate();
             }
 
             if (LeftWeaponModel != null)
             {
                 Matrix absoluteWeaponTransform = Matrix.Identity;
 
-                if (LeftWeaponAbsorpPosParam != null)
-                {
-                    if (DS3LeftWeaponAbsorpPosType == 0)
-                        DS3LeftWeaponAbsorpPosType = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand1;
+                //if (LeftWeaponAbsorpPosParam != null)
+                //{
+                //    if (DS3LeftWeaponAbsorpPosType == 0)
+                //        DS3LeftWeaponAbsorpPosType = ParamData.WepAbsorpPosParam.WepAbsorpPosType.OneHand1;
 
-                    var wepAbsorpPos = MODEL.DummyPolyMan.GetDummyPolyAbsolutePosition(
-                        LeftWeaponAbsorpPosParam.AbsorpPos[DS3LeftWeaponAbsorpPosType],
-                        leftHandDefault: false) ?? Vector3.Zero;
+                //    var wepAbsorpPos = MODEL.DummyPolyMan.GetDummyPolyAbsolutePosition(
+                //        LeftWeaponAbsorpPosParam.AbsorpPos[DS3LeftWeaponAbsorpPosType],
+                //        leftHandDefault: false) ?? Vector3.Zero;
 
-                    absoluteWeaponTransform = Matrix.CreateFromQuaternion(
-                        Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(
-                            Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
-                        * Skeleton[LeftWeaponBoneIndex]))) * Matrix.CreateTranslation(wepAbsorpPos);
-                }
-                else
-                {
-                    absoluteWeaponTransform =
+                //    absoluteWeaponTransform = Matrix.CreateFromQuaternion(
+                //        Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(
+                //            Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
+                //        * Skeleton[LeftWeaponBoneIndex]))) * Matrix.CreateTranslation(wepAbsorpPos);
+                //}
+                //else
+                //{
+                //    absoluteWeaponTransform =
+                //        Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
+                //        * Skeleton[LeftWeaponBoneIndex];
+                //}
+
+                absoluteWeaponTransform =
                         Skeleton.FlverSkeleton[LeftWeaponBoneIndex].ReferenceMatrix
                         * Skeleton[LeftWeaponBoneIndex];
-                }
 
                 LeftWeaponModel.StartTransform = new Transform(
                         (LeftWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (LeftWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * absoluteWeaponTransform
                         * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
+
+                LeftWeaponModel.AfterAnimUpdate();
             }
         }
 
@@ -184,11 +196,11 @@ namespace DSAnimStudio
             var wpn = isLeft ? LeftWeapon : RightWeapon;
             var wpnMdl = isLeft ? LeftWeaponModel : RightWeaponModel;
 
-            if (wpn != null && wpnMdl != null)
-            {
-                MODEL.DummyPolyMan.ClearAllHitboxPrimitives();
-                MODEL.DummyPolyMan.BuildAllHitboxPrimitives(wpn, isLeft);
-            }
+            //if (wpn != null && wpnMdl != null)
+            //{
+            //    MODEL.DummyPolyMan.ClearAllHitboxPrimitives();
+            //    MODEL.DummyPolyMan.BuildAllHitboxPrimitives(wpn, isLeft);
+            //}
         }
 
         private NewMesh LoadArmorMesh(IBinder partsbnd)

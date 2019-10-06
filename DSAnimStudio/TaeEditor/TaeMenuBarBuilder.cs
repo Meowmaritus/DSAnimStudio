@@ -172,7 +172,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddItem(string path, string itemName, Dictionary<string, Action> choicesAndChooseAction, string defaultChoice)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
             string currentPath = pathStops[0];
 
@@ -180,7 +180,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
@@ -222,7 +222,7 @@ namespace DSAnimStudio.TaeEditor
                 };
             }
 
-            currentPath += "/" + itemName;
+            currentPath += "\\" + itemName;
 
             this[currentPath] = newItem;
 
@@ -235,7 +235,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddItem(string path, string itemName, Func<Dictionary<string, Action>> getChoicesAndChooseAction, Func<string> getWhichIsSelected)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
             string currentPath = pathStops[0];
 
@@ -243,7 +243,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
@@ -302,7 +302,7 @@ namespace DSAnimStudio.TaeEditor
             // For init so it has the > arrow on it and stuff
             createDropdownItems();
 
-            currentPath += "/" + itemName;
+            currentPath += "\\" + itemName;
 
             this[currentPath] = newItem;
 
@@ -323,7 +323,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddItem(string path, string itemName, Dictionary<string, Action> choicesAndChooseAction, Func<string> getWhichIsSelected)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
             string currentPath = pathStops[0];
 
@@ -331,7 +331,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
@@ -411,7 +411,7 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            currentPath += "/" + itemName;
+            currentPath += "\\" + itemName;
 
             this[currentPath] = newItem;
 
@@ -424,7 +424,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddItem(string path, string itemName, Func<bool> checkState, Action<bool> onCheckChange, Func<bool> getEnabled = null)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
 
 
@@ -434,7 +434,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
@@ -467,7 +467,7 @@ namespace DSAnimStudio.TaeEditor
                 onCheckChange(newItem.Checked);
             };
 
-            currentPath += "/" + itemName;
+            currentPath += "\\" + itemName;
 
             this[currentPath] = newItem;
 
@@ -480,7 +480,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddItem(string path, string itemName, Action<TaeMenuBarBuilder> addEntries, bool startDisabled = false)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
             string currentPath = pathStops[0];
 
@@ -488,7 +488,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
@@ -511,7 +511,7 @@ namespace DSAnimStudio.TaeEditor
 
             string basePath = currentPath;
 
-            currentPath += "/" + itemName;
+            currentPath += "\\" + itemName;
 
             this[currentPath] = newItem;
 
@@ -531,7 +531,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddItem(string path, string itemName, Action click = null, bool startDisabled = false, bool closeOnClick = true)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
 
 
@@ -541,7 +541,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
@@ -570,7 +570,7 @@ namespace DSAnimStudio.TaeEditor
             if (startDisabled)
                 newItem.Enabled = false;
 
-            currentPath += "/" + itemName;
+            currentPath += "\\" + itemName;
 
             this[currentPath] = newItem;
 
@@ -612,7 +612,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddItem(string path, ToolStripMenuItem item)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
             string currentPath = pathStops[0];
 
@@ -620,11 +620,11 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
-            currentPath += "/" + item.Text;
+            currentPath += "\\" + item.Text;
 
             this[currentPath] = item;
 
@@ -637,7 +637,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void AddSeparator(string path)
         {
-            string[] pathStops = path.Split('/');
+            string[] pathStops = path.Split('\\');
 
             string currentPath = pathStops[0];
 
@@ -645,7 +645,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = 1; i < pathStops.Length; i++)
             {
-                currentPath += "/" + pathStops[i];
+                currentPath += "\\" + pathStops[i];
                 baseItem = FindOrCreateItem(currentPath, baseItem, pathStops[i]);
             }
 
@@ -669,7 +669,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     if (ddi is ToolStripMenuItem tsmi)
                     {
-                        this[fullPath + "/" + tsmi.Text] = null;
+                        this[fullPath + "\\" + tsmi.Text] = null;
                     }
                 }
                 this[fullPath].DropDownItems.Clear();

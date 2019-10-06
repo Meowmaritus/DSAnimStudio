@@ -14,11 +14,14 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditorScreen
     {
+        public const string BackupExtension = ".dsasbak";
+
         public LightShaderAdjuster ShaderAdjuster = null;
 
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
+
             //MenuBar.AddTopItem("[TEST: SCAN HKXPWV]", () =>
             //{
 
@@ -416,7 +419,7 @@ namespace DSAnimStudio.TaeEditor
         {
             GameWindowAsForm.Invoke(new Action(() =>
             {
-                MenuBar["File/Save"].Enabled = IsModified;
+                MenuBar["File\\Save"].Enabled = IsModified;
             }));
         }
 
@@ -441,7 +444,7 @@ namespace DSAnimStudio.TaeEditor
         {
             GameWindowAsForm.Invoke(new Action(() =>
             {
-                MenuBar["File/Recent Files"].DropDownItems.Clear();
+                MenuBar["File\\Recent Files"].DropDownItems.Clear();
                 var toolStripFileRecentClear = new System.Windows.Forms.ToolStripMenuItem("Clear All Recent Files...");
                 toolStripFileRecentClear.Click += (s, e) =>
                 {
@@ -454,10 +457,11 @@ namespace DSAnimStudio.TaeEditor
                     {
                         Config.RecentFilesList.Clear();
                         SaveConfig();
+                        CreateRecentFilesList();
                     }
                 };
-                MenuBar["File/Recent Files"].DropDownItems.Add(toolStripFileRecentClear);
-                MenuBar["File/Recent Files"].DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
+                MenuBar["File\\Recent Files"].DropDownItems.Add(toolStripFileRecentClear);
+                MenuBar["File\\Recent Files"].DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
                 foreach (var f in Config.RecentFilesList)
                 {
                     var thisRecentFileEntry = new System.Windows.Forms.ToolStripMenuItem(f);
@@ -465,19 +469,19 @@ namespace DSAnimStudio.TaeEditor
                     {
                         DirectOpenFile(f);
                     };
-                    MenuBar["File/Recent Files"].DropDownItems.Add(thisRecentFileEntry);
+                    MenuBar["File\\Recent Files"].DropDownItems.Add(thisRecentFileEntry);
                 }
             }));
         }
 
         private void UndoMan_CanRedoMaybeChanged(object sender, EventArgs e)
         {
-            MenuBar["Edit/Redo"].Enabled = UndoMan.CanRedo;
+            MenuBar["Edit\\Redo"].Enabled = UndoMan.CanRedo;
         }
 
         private void UndoMan_CanUndoMaybeChanged(object sender, EventArgs e)
         {
-            MenuBar["Edit/Undo"].Enabled = UndoMan.CanUndo;
+            MenuBar["Edit\\Undo"].Enabled = UndoMan.CanUndo;
         }
 
 
@@ -721,8 +725,8 @@ namespace DSAnimStudio.TaeEditor
 
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
-                    MenuBar["File/Save As..."].Enabled = !IsReadOnlyFileMode;
-                    MenuBar["File/Force Ingame Character Reload Now (DS3 Only)"].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File\\Save As..."].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File\\Force Ingame Character Reload Now (DS3 Only)"].Enabled = !IsReadOnlyFileMode;
                 }));
 
                 //if (templateName != null)
@@ -764,11 +768,11 @@ namespace DSAnimStudio.TaeEditor
             }
 
             if (System.IO.File.Exists(FileContainerName) && 
-                !System.IO.File.Exists(FileContainerName + ".taedxbak"))
+                !System.IO.File.Exists(FileContainerName + BackupExtension))
             {
-                System.IO.File.Copy(FileContainerName, FileContainerName + ".taedxbak");
+                System.IO.File.Copy(FileContainerName, FileContainerName + BackupExtension);
                 System.Windows.Forms.MessageBox.Show(
-                    "A backup was not found and was created:\n" + FileContainerName + ".taedxbak",
+                    "A backup was not found and was created:\n" + FileContainerName + BackupExtension,
                     "Backup Created", System.Windows.Forms.MessageBoxButtons.OK, 
                     System.Windows.Forms.MessageBoxIcon.Information);
             }
@@ -815,14 +819,14 @@ namespace DSAnimStudio.TaeEditor
             {
                 ButtonEditCurrentAnimInfo.Enabled = true;
                 ButtonEditCurrentAnimInfo.Visible = true;
-                //MenuBar["Edit/Find First Event of Type..."].Enabled = true;
-                MenuBar["Edit/Find Value..."].Enabled = true;
-                MenuBar["Edit/Go To Animation ID..."].Enabled = true;
-                MenuBar["Edit/Collapse All TAE Sections"].Enabled = true;
-                MenuBar["Edit/Expand All TAE Sections"].Enabled = true;
-                MenuBar["Edit/Go To Animation ID..."].Enabled = true;
-                MenuBar["Edit/Set Animation Name..."].Enabled = true;
-                MenuBar["Animation/Set Playback Speed..."].Enabled = true;
+                //MenuBar["Edit\\Find First Event of Type..."].Enabled = true;
+                MenuBar["Edit\\Find Value..."].Enabled = true;
+                MenuBar["Edit\\Go To Animation ID..."].Enabled = true;
+                MenuBar["Edit\\Collapse All TAE Sections"].Enabled = true;
+                MenuBar["Edit\\Expand All TAE Sections"].Enabled = true;
+                MenuBar["Edit\\Go To Animation ID..."].Enabled = true;
+                MenuBar["Edit\\Set Animation Name..."].Enabled = true;
+                MenuBar["Animation\\Set Playback Speed..."].Enabled = true;
                 LastFindInfo = null;
             }));
         }
@@ -968,6 +972,12 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("File", "Force Ingame Character Reload Now (DS3 Only)", () => LiveRefresh(), startDisabled: true);
             MenuBar.AddItem("File", "Force Ingame Character Reload When Saving (DS3 Only)", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
             MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Manually Save Config", () =>
+            {
+                SaveConfig();
+                System.Windows.Forms.MessageBox.Show("Configuration saved.", "Save Complete");
+            });
+            MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
 
             /////////////////////
@@ -1037,8 +1047,51 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("Player Settings", "Show Equip Change Menu", () => Graph?.ViewportInteractor?.BringUpEquipForm());
 
             MenuBar.AddSeparator("Player Settings");
-            //MenuBar.AddItem("Player Settings/Select Right Weapon Anim", "Weapon has no animations.");
-            //MenuBar.AddItem("Player Settings/Select Left Weapon Anim", "Weapon has no animations.");
+
+            MenuBar.AddItem($"Player Settings", "Behavior / Hitbox Source", new Dictionary<string, Action>
+            {
+                { "Body", () =>
+                    {
+                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.Body;
+                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                        Graph.ViewportInteractor.OnScrubFrameChange();
+                        
+                    } 
+                },
+                { "Right Weapon", () =>
+                    {
+                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.RightWeapon;
+                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                        Graph.ViewportInteractor.OnScrubFrameChange();
+                    }
+                },
+                { "Left Weapon", () =>
+                    {
+                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.LeftWeapon;
+                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                        Graph.ViewportInteractor.OnScrubFrameChange();
+                        
+                    }
+                },
+            }, () =>
+            {
+                if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+                    return "Body";
+                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon)
+                    return "Right Weapon";
+                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon)
+                    return "Left Weapon";
+                else
+                    return "None";
+            });
+
+            MenuBar.AddSeparator("Player Settings");
+
+            //MenuBar.AddItem("Player Settings\\Select Right Weapon Anim", "Weapon has no animations.");
+            //MenuBar.AddItem("Player Settings\\Select Left Weapon Anim", "Weapon has no animations.");
 
             MenuBar.AddTopItem("Object Settings");
             MenuBar["Object Settings"].Enabled = false;
@@ -1152,7 +1205,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         if (kvp.Key >= 0 && kvp.Key < m.DrawMask.Length)
                         {
-                            menu.AddItem($"Scene/Models/{m.Name}", $"Mask {(kvp.Key)}",
+                            menu.AddItem($"Scene\\Models\\{m.Name}", $"Mask {(kvp.Key)}",
                             () => m.DefaultDrawMask[kvp.Key], 
                             b =>
                             {
@@ -1162,7 +1215,7 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     if (m.MainMesh.Submeshes[j].ModelMaskIndex >= 0)
                                     {
-                                        var mi2 = MenuBar[$"Scene/Models/{m.Name}/Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
+                                        var mi2 = MenuBar[$"Scene\\Models\\{m.Name}\\Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
                                         if (mi2 is System.Windows.Forms.ToolStripMenuItem tsmi2)
                                         {
                                             mi2.Enabled = m.DefaultDrawMask[m.MainMesh.Submeshes[j].ModelMaskIndex];
@@ -1170,7 +1223,7 @@ namespace DSAnimStudio.TaeEditor
                                     }
                                 }
 
-                                var miName = $"Scene/Models/{m.Name}/Mask {(kvp.Key)}";
+                                var miName = $"Scene\\Models\\{m.Name}\\Mask {(kvp.Key)}";
 
                                 var mi = MenuBar[miName];
                                 if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
@@ -1182,15 +1235,15 @@ namespace DSAnimStudio.TaeEditor
                         }
                     }
 
-                    menu.AddSeparator($"Scene/Models/{m.Name}");
+                    menu.AddSeparator($"Scene\\Models\\{m.Name}");
 
-                    menu.AddItem($"Scene/Models/{m.Name}", $"Hide All Meshes", () =>
+                    menu.AddItem($"Scene\\Models\\{m.Name}", $"Hide All Meshes", () =>
                     {
                         for (int j = 0; j < m.MainMesh.Submeshes.Count; j++)
                         {
                             m.MainMesh.Submeshes[j].IsVisible = false;
 
-                            var miName = $"Scene/Models/{m.Name}/Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}";
+                            var miName = $"Scene\\Models\\{m.Name}\\Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}";
 
                             var mi = MenuBar[miName];
                             if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
@@ -1206,13 +1259,13 @@ namespace DSAnimStudio.TaeEditor
                             }
                         }
                     }, closeOnClick: false);
-                    menu.AddItem($"Scene/Models/{m.Name}", $"Show All Meshes", () =>
+                    menu.AddItem($"Scene\\Models\\{m.Name}", $"Show All Meshes", () =>
                     {
                         for (int j = 0; j < m.MainMesh.Submeshes.Count; j++)
                         {
                             m.MainMesh.Submeshes[j].IsVisible = true;
 
-                            var mi = MenuBar[$"Scene/Models/{m.Name}/Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
+                            var mi = MenuBar[$"Scene\\Models\\{m.Name}\\Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
                             if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
                             {
                                 tsmi.Checked = true;
@@ -1226,12 +1279,12 @@ namespace DSAnimStudio.TaeEditor
                             }
                         }
                     }, closeOnClick: false);
-                    menu.AddSeparator($"Scene/Models/{m.Name}");
+                    menu.AddSeparator($"Scene\\Models\\{m.Name}");
 
                     int i = 1;
                     foreach (var sm in m.MainMesh.Submeshes)
                     {
-                        menu.AddItem($"Scene/Models/{m.Name}", $"Model {(i++)}: {sm.FullMaterialName}" +
+                        menu.AddItem($"Scene\\Models\\{m.Name}", $"Model {(i++)}: {sm.FullMaterialName}" +
                             (sm.ModelMaskIndex >= 0 && maskDict.ContainsKey(sm.ModelMaskIndex) 
                             ? $"|[Mask {sm.ModelMaskIndex}]" : ""), 
                             () => sm.IsVisible, b => sm.IsVisible = b, 
@@ -1254,23 +1307,25 @@ namespace DSAnimStudio.TaeEditor
                 () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
                 b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
 
-            MenuBar.AddItem("Scene", "Helper: DummyPoly (RGB)", () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+            MenuBar.AddItem("Scene", $"Helper: DummyPoly ({DBG.COLOR_DUMMY_POLY_NAME})", 
+                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-            MenuBar.AddItem("Scene", "Helper: DummyPoly IDs", () => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                   b => DBG.CategoryEnableDbgLabelDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+            MenuBar.AddItem("Scene", $"Helper: DummyPoly IDs ({DBG.COLOR_DUMMY_POLY_NAME}, tinted by spawn simulations)", 
+                () => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                   b => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
             MenuBar.AddSeparator("Scene");
 
-            MenuBar.AddItem("Scene", "Helper X-Ray Mode", () => DBG.DbgPrimXRay,
-                    b => DBG.DbgPrimXRay = b);
+            MenuBar.AddItem("Scene", "Helper X-Ray Mode", () => Config.DbgPrimXRay,
+                    b => Config.DbgPrimXRay = b);
 
             ///////////////
             // Animation //
             ///////////////
 
-            MenuBar.AddItem("Animation", "Lock to Frame Rate Defined in HKX", 
-                () => Config.LockFramerateToOriginalAnimFramerate, 
+            MenuBar.AddItem("Animation", "Lock to Frame Rate Defined in HKX",
+                () => Config.LockFramerateToOriginalAnimFramerate,
                 b => Config.LockFramerateToOriginalAnimFramerate = b);
 
             MenuBar.AddItem("Animation", "Set Playback Speed...", () =>
@@ -1285,7 +1340,7 @@ namespace DSAnimStudio.TaeEditor
                         if (float.TryParse(speed.Result, out float newSpeed))
                         {
                             PlaybackCursor.PlaybackSpeed = newSpeed;
-                            MenuBar["Animation/Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
+                            MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
                         }
                         else
                         {
@@ -1297,10 +1352,20 @@ namespace DSAnimStudio.TaeEditor
                 PauseUpdate = false;
             }, startDisabled: true);
 
+            MenuBar.AddSeparator("Animation");
+
+            MenuBar.AddItem("Animation", "Enable Root Motion",
+                () => Config.EnableAnimRootMotion,
+                b => Config.EnableAnimRootMotion = b);
+
+            MenuBar.AddItem("Animation", "Camera Follows Root Motion",
+                () => Config.CameraFollowsRootMotion,
+                b => Config.CameraFollowsRootMotion = b);
+
             MenuBar["Animation"].DropDownOpening += (o, e) =>
             {
                 if (PlaybackCursor != null)
-                    MenuBar["Animation/Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
+                    MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
             };
             
 
@@ -1350,10 +1415,12 @@ namespace DSAnimStudio.TaeEditor
 
             AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS);
             AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
+            AddShadingModeChoice(FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA);
 
             MenuBar.AddSeparator("3D Viewport");
 
             MenuBar.AddItem("3D Viewport", "Disable Texture Alphas", () => GFX.FlverShader.Effect.DisableAlpha, b => GFX.FlverShader.Effect.DisableAlpha = b);
+            MenuBar.AddItem("3D Viewport", "Disable Texture Blending", () => GFX.FlverDisableTextureBlending, b => GFX.FlverDisableTextureBlending = b);
 
             MenuBar.AddItem("3D Viewport", "Override FLVER Shading Mode", shadingModeChoicesDict, () =>
             {
@@ -1368,7 +1435,7 @@ namespace DSAnimStudio.TaeEditor
                 
             });
 
-            MenuBar.AddItem("3D Viewport", $@"Reload FLVER Shader (.\Content\Shaders\FlverShader.xnb)", () =>
+            MenuBar.AddItem("3D Viewport", $@"Reload FLVER Shader (./Content/Shaders/FlverShader.xnb)", () =>
             {
                 if (DebugReloadContentManager != null)
                 {
@@ -1737,7 +1804,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         System.Windows.Forms.ToolStripMenuItem matchingRecentFileItem = null;
 
-                        foreach (var x in MenuBar["File/Recent Files"].DropDownItems)
+                        foreach (var x in MenuBar["File\\Recent Files"].DropDownItems)
                         {
                             if (x is System.Windows.Forms.ToolStripMenuItem item)
                             {
@@ -1768,8 +1835,8 @@ namespace DSAnimStudio.TaeEditor
 
                             if (ask)
                             {
-                                if (MenuBar["File/Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
-                                    MenuBar["File/Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
+                                if (MenuBar["File\\Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
+                                    MenuBar["File\\Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
 
                                 if (Config.RecentFilesList.Contains(fileName))
                                     Config.RecentFilesList.Remove(fileName);
@@ -2117,8 +2184,8 @@ namespace DSAnimStudio.TaeEditor
             {
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
-                    MenuBar["Edit/Undo"].Enabled = UndoMan.CanUndo;
-                    MenuBar["Edit/Redo"].Enabled = UndoMan.CanRedo;
+                    MenuBar["Edit\\Undo"].Enabled = UndoMan.CanUndo;
+                    MenuBar["Edit\\Redo"].Enabled = UndoMan.CanRedo;
                 }));
                 
                 SelectedEventBox = null;
@@ -2144,8 +2211,8 @@ namespace DSAnimStudio.TaeEditor
             {
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
-                    MenuBar["Edit/Undo"].Enabled = false;
-                    MenuBar["Edit/Redo"].Enabled = false;
+                    MenuBar["Edit\\Undo"].Enabled = false;
+                    MenuBar["Edit\\Redo"].Enabled = false;
                 }));
                 
                 SelectedEventBox = null;
@@ -2581,13 +2648,17 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Graph != null && Input.KeyDown(Keys.Home) && !Graph.PlaybackCursor.Scrubbing)
                 {
-                    Graph.PlaybackCursor.IsPlaying = false;
-                    Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.StartTime;
+                    if (CtrlHeld)
+                        Graph.PlaybackCursor.IsPlaying = false;
+
+                    Graph.PlaybackCursor.CurrentTime = ShiftHeld ? 0 : Graph.PlaybackCursor.StartTime;
                 }
 
                 if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
                 {
-                    Graph.PlaybackCursor.IsPlaying = false;
+                    if (CtrlHeld)
+                        Graph.PlaybackCursor.IsPlaying = false;
+
                     Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime;
                 }
 
@@ -2890,7 +2961,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void UpdateLayout()
         {
-            if (Rect.IsEmpty || !Main.Active)
+            if (Rect.IsEmpty)
             {
                 return;
             }

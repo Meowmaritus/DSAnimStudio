@@ -9,20 +9,20 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio.DebugPrimitives
 {
-    public class DbgPrimSolidSkybox : DbgPrim<SkyboxShader>
+    public class DbgPrimSkybox : DbgPrim<SkyboxShader>
     {
         public override IGFXShader<SkyboxShader> Shader => GFX.SkyboxShader;
-        private int[] Indices = new int[0];
-        private VertexPosition[] Vertices = new VertexPosition[0];
-        private VertexBuffer VertBuffer;
-        private IndexBuffer IndexBuffer;
-        private bool NeedToRecreateVertBuffer = true;
-        private bool NeedToRecreateIndexBuffer = true;
+
+
+
+        protected override PrimitiveType PrimType => PrimitiveType.TriangleList;
 
         static float Radius = 100;
 
-        public DbgPrimSolidSkybox()
+        public DbgPrimSkybox()
         {
+            BackfaceCulling = false;
+
             Category = DbgPrimCategory.Skybox;
 
             Vector3 min = -Vector3.One * Radius;
@@ -64,40 +64,14 @@ namespace DSAnimStudio.DebugPrimitives
             AddTri(bbr, tfr, bfr);
         }
 
-        public int VertexCount => Vertices.Length;
-        public int LineCount => Indices.Length / 2;
-        public int IndexCount => Indices.Length;
-
-        private void AddVertex(Vector3 pos, Color color, Vector3 normal)
-        {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1].Position = pos;
-            NeedToRecreateVertBuffer = true;
-        }
-
-        private void AddVertex(VertexPosition vert)
-        {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1] = vert;
-
-            NeedToRecreateVertBuffer = true;
-        }
-
-        private void AddIndex(int index)
-        {
-            Array.Resize(ref Indices, Indices.Length + 1);
-            Indices[Indices.Length - 1] = index;
-            NeedToRecreateIndexBuffer = true;
-        }
-
         public void AddTri(Vector3 a, Vector3 b, Vector3 c)
         {
             //var dir = Vector3.Cross(b - a, c - a);
             //var norm = Vector3.Normalize(dir);
 
-            var vertA = new VertexPosition(a);
-            var vertB = new VertexPosition(b);
-            var vertC = new VertexPosition(c);
+            var vertA = new VertexPositionColorNormal(a, Color.White, Vector3.Zero);
+            var vertB = new VertexPositionColorNormal(b, Color.White, Vector3.Zero);
+            var vertC = new VertexPositionColorNormal(c, Color.White, Vector3.Zero);
 
             int vertIndexA = Array.IndexOf(Vertices, vertA);
             int vertIndexB = Array.IndexOf(Vertices, vertB);
@@ -144,37 +118,15 @@ namespace DSAnimStudio.DebugPrimitives
             //}
         }
 
-        protected override void DrawPrimitive()
-        {
-            if (NeedToRecreateVertBuffer)
-            {
-                VertBuffer = new VertexBuffer(GFX.Device,
-                    typeof(VertexPosition), Vertices.Length, BufferUsage.WriteOnly);
-                VertBuffer.SetData(Vertices);
-                NeedToRecreateVertBuffer = false;
-            }
-
-            if (NeedToRecreateIndexBuffer)
-            {
-                IndexBuffer = new IndexBuffer(GFX.Device, IndexElementSize.ThirtyTwoBits, Indices.Length, BufferUsage.WriteOnly);
-                IndexBuffer.SetData(Indices);
-                NeedToRecreateIndexBuffer = false;
-            }
-
-            GFX.Device.SetVertexBuffer(VertBuffer);
-            GFX.Device.Indices = IndexBuffer;
-            GFX.BackfaceCulling = false;
-            GFX.Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, Indices.Length);
-        }
-
         protected override void DisposeBuffers()
         {
             VertBuffer?.Dispose();
+            IndexBuffer?.Dispose();
         }
 
         public override DbgPrim<SkyboxShader> Instantiate(string newName, Transform newLocation, Color? newNameColor = null)
         {
-            var newPrim = new DbgPrimSolidSkybox();
+            var newPrim = new DbgPrimSkybox();
             newPrim.Indices = Indices;
             newPrim.VertBuffer = VertBuffer;
             newPrim.IndexBuffer = IndexBuffer;

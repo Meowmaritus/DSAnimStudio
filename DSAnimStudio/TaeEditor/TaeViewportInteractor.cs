@@ -26,7 +26,7 @@ namespace DSAnimStudio.TaeEditor
 
         public NewChrAsmEquipForm EquipForm = null;
 
-        TaeEventSimulationEnvironment EventSim;
+        public TaeEventSimulationEnvironment EventSim { get; private set; }
 
         public List<ParamData.NpcParam> PossibleNpcParams = new List<ParamData.NpcParam>();
         private int _selectedNpcParamIndex = -1;
@@ -42,7 +42,7 @@ namespace DSAnimStudio.TaeEditor
                     _selectedNpcParamIndex = value;
                     if (CurrentModel.NpcParam != null)
                     {
-                        CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
+                        //CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
                         CurrentModel.NpcParam.ApplyMaskToModel(CurrentModel);
                     }
                 }
@@ -157,13 +157,49 @@ namespace DSAnimStudio.TaeEditor
 
                     SetEntityType(TaeEntityType.NPC);
 
+                    var validNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
+
+                    var materialsPerMask = CurrentModel.GetMaterialNamesPerMask();
+
+                    var masksEnabledOnAllNpcParams = materialsPerMask.Select(kvp => kvp.Key).ToList();
+                    foreach (var kvp in materialsPerMask)
+                    {
+                        if (kvp.Key < 0)
+                            continue;
+
+                        foreach (var npcParam in validNpcParams)
+                        {
+                            if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
+                            {
+                                if (masksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                    masksEnabledOnAllNpcParams.Remove(kvp.Key);
+
+                                break;
+                            }
+                        }
+                    }
+
+                    var behaviorVariationChoicesDict = new Dictionary<string, Action>();
+
+                    foreach (var npc in validNpcParams)
+                    {
+                        behaviorVariationChoicesDict.Add($"{npc.GetDisplayName()}|" +
+                            npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
+                            $"\nBehaviorVariationID: {npc.BehaviorVariationID}",
+                            () =>
+                            {
+                                CurrentModel.NpcParam = npc;
+                                CurrentModel.NpcParam.ApplyMaskToModel(CurrentModel);
+                            });
+                    }
+
                     Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
                     {
                         EquipForm?.Dispose();
                         OnEquipFormClose();
                         EquipForm = null;
 
-                        var menuItemLoadTextures = Graph.MainScreen.MenuBar["NPC Settings/Load Additional Texture File(s)..."];
+                        var menuItemLoadTextures = Graph.MainScreen.MenuBar["NPC Settings\\Load Additional Texture File(s)..."];
 
                         Graph.MainScreen.MenuBar.ClearItem("NPC Settings");
 
@@ -171,48 +207,14 @@ namespace DSAnimStudio.TaeEditor
 
                         Graph.MainScreen.MenuBar.AddSeparator("NPC Settings");
 
-                        var validNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
-
-                        var materialsPerMask = CurrentModel.GetMaterialNamesPerMask();
-
-                        var masksEnabledOnAllNpcParams = materialsPerMask.Select(kvp => kvp.Key).ToList();
-                        foreach (var kvp in materialsPerMask)
-                        {
-                            if (kvp.Key < 0)
-                                continue;
-
-                            foreach (var npcParam in validNpcParams)
-                            {
-                                if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
-                                {
-                                    if (masksEnabledOnAllNpcParams.Contains(kvp.Key))
-                                        masksEnabledOnAllNpcParams.Remove(kvp.Key);
-
-                                    break;
-                                }
-                            }
-                        }
-
-                        var behaviorVariationChoicesDict = new Dictionary<string, Action>();
-
-                        foreach (var npc in validNpcParams)
-                        {
-                            behaviorVariationChoicesDict.Add($"{npc.GetDisplayName()}|" +
-                                npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
-                                $"\nBehaviorVariationID: {npc.BehaviorVariationID}",
-                                () =>
-                                {
-                                    CurrentModel.NpcParam = npc;
-                                    CurrentModel.NpcParam.ApplyMaskToModel(CurrentModel);
-                                });
-                        }
+                        
 
                         Graph.MainScreen.MenuBar.AddItem("NPC Settings", "NpcParam", behaviorVariationChoicesDict, 
                             () => $"{CurrentModel.NpcParam.GetDisplayName()}|" +
                             CurrentModel.NpcParam.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
                             $"\nBehaviorVariationID: {CurrentModel.NpcParam.BehaviorVariationID}");
 
-                        Graph.MainScreen.MenuBar.AddItem("NPC Settings/Override Draw Mask", "Show All", () =>
+                        Graph.MainScreen.MenuBar.AddItem("NPC Settings\\Override Draw Mask", "Show All", () =>
                         {
                             for (int i = 0; i < CurrentModel.DrawMask.Length; i++)
                             {
@@ -220,30 +222,38 @@ namespace DSAnimStudio.TaeEditor
                             }
                         }, closeOnClick: false);
 
-                        foreach (var npc in validNpcParams)
+                    }));
+
+                    foreach (var npc in validNpcParams)
+                    {
+                        Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
                         {
-                            Graph.MainScreen.MenuBar.AddItem("NPC Settings/Override Draw Mask",
+                            Graph.MainScreen.MenuBar.AddItem("NPC Settings\\Override Draw Mask",
                                 $"{npc.GetDisplayName()}|{npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams)}", () =>
                                 {
                                     npc.ApplyMaskToModel(CurrentModel);
                                 }, closeOnClick: false);
-                        }
+                        }));
+                    }
 
-                        //foreach (var npc in validNpcParams)
-                        //{
-                        //    Graph.MainScreen.MenuBar.AddItem("Behavior Variation ID", $"Apply Behavior Variation ID " +
-                        //        $"from NpcParam {npc.ID} {npc.Name}", () =>
-                        //    {
-                        //        npc.ApplyMaskToModel(CurrentModel);
-                        //    });
-                        //}
-                    }));
+                    //foreach (var npc in validNpcParams)
+                    //{
+                    //    Graph.MainScreen.MenuBar.AddItem("Behavior Variation ID", $"Apply Behavior Variation ID " +
+                    //        $"from NpcParam {npc.ID} {npc.Name}", () =>
+                    //    {
+                    //        npc.ApplyMaskToModel(CurrentModel);
+                    //    });
+                    //}
+                    
 
                     //throw new NotImplementedException("Implement NPC param change you lazy fuck :tremblecat:");
                 }
 
+                CurrentModel.AfterAnimUpdate();
+
                 GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
                 GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
+                GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
                 GFX.World.OrbitCamReset();
             }
             else if (shortFileName.StartsWith("o"))
@@ -254,6 +264,7 @@ namespace DSAnimStudio.TaeEditor
 
                 GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
                 GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
+                GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
                 GFX.World.OrbitCamReset();
 
                 //throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
@@ -276,10 +287,11 @@ namespace DSAnimStudio.TaeEditor
         {
             Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
             {
-                var thingToKeep = Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"];
-                Graph.MainScreen.MenuBar.ClearItem("Player Settings");
-                Graph.MainScreen.MenuBar.AddItem("Player Settings", thingToKeep);
-                Graph.MainScreen.MenuBar.AddSeparator("Player Settings");
+                //var thingToKeep = Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"];
+                Graph.MainScreen.MenuBar.ClearItem("Player Settings\\Select Right Weapon Anim");
+                Graph.MainScreen.MenuBar.ClearItem("Player Settings\\Select Left Weapon Anim");
+                //Graph.MainScreen.MenuBar.AddItem("Player Settings", thingToKeep);
+                //Graph.MainScreen.MenuBar.AddSeparator("Player Settings");
 
                 // Right weapon
                 //Graph.MainScreen.MenuBar.ClearItem("Player Settings/Select Right Weapon Anim");
@@ -300,7 +312,7 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else
                 {
-                    Graph.MainScreen.MenuBar.AddItem("Player Settings/Select Right Weapon Anim", "Weapon is not animated.");
+                    Graph.MainScreen.MenuBar.AddItem("Player Settings\\Select Right Weapon Anim", "Weapon is not animated.");
                 }
 
                 //Left Weapon
@@ -322,9 +334,11 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else
                 {
-                    Graph.MainScreen.MenuBar.AddItem("Player Settings/Select Left Weapon Anim", "Weapon is not animated.");
+                    Graph.MainScreen.MenuBar.AddItem("Player Settings\\Select Left Weapon Anim", "Weapon is not animated.");
                 }
             }));
+
+            CurrentModel.AfterAnimUpdate();
         }
 
         //private void EquipForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
@@ -339,15 +353,15 @@ namespace DSAnimStudio.TaeEditor
                 throw new Exception("ERROR: Equip menu failed to initialize (please report).");
             }
 
-            if (Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked)
+            if (Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked)
             {
-                Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked = false;
+                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = false;
 
                 EquipForm.Close();
             }
             else
             {
-                Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked = true;
+                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = true;
 
                 if (EquipForm.ChrAsm != CurrentModel.ChrAsm)
                 {
@@ -363,7 +377,7 @@ namespace DSAnimStudio.TaeEditor
         {
             Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
             {
-                Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"].Checked = false;
+                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = false;
             }));
         }
 
@@ -394,6 +408,8 @@ namespace DSAnimStudio.TaeEditor
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.CurrentTime);
 
+            CurrentModel.AfterAnimUpdate();
+
             CurrentModel.ChrAsm?.UpdateWeaponTransforms();
 
             CheckSimEnvironment();
@@ -404,7 +420,7 @@ namespace DSAnimStudio.TaeEditor
         {
             if (EventSim == null || EventSim.MODEL != CurrentModel)
             {
-                EventSim = new TaeEventSimulationEnvironment(CurrentModel);
+                EventSim = new TaeEventSimulationEnvironment(Graph, CurrentModel);
                 Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
                 {
                     EventSim.BuildEventSimMenuBar(Graph.MainScreen.MenuBar);
@@ -436,7 +452,7 @@ namespace DSAnimStudio.TaeEditor
             EventSim.OnSimulationEnd(Graph.EventBoxes);
         }
 
-        private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
+        public void OnScrubFrameChange()
         {
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
@@ -444,10 +460,17 @@ namespace DSAnimStudio.TaeEditor
             CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
 
+            CurrentModel.AfterAnimUpdate();
+
             CurrentModel.ChrAsm?.UpdateWeaponTransforms();
 
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxes, (float)Graph.PlaybackCursor.GUICurrentTime);
+        }
+
+        private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
+        {
+            OnScrubFrameChange();
         }
 
         private void PlaybackCursor_PlaybackStarted(object sender, EventArgs e)
@@ -600,23 +623,45 @@ namespace DSAnimStudio.TaeEditor
                 {
                     CurrentModel.Skeleton.RevertToReferencePose();
                 }
+
+                CurrentModel.AfterAnimUpdate();
             }
             
         }
 
         public void GeneralUpdate()
         {
-            if (Graph.MainScreen.Config.CameraFollowsRootMotion && CurrentModel != null)
+            DBG.DbgPrimXRay = Graph.MainScreen.Config.DbgPrimXRay;
+
+            
+            if (CurrentModel != null)
             {
-                GFX.World.WorldMatrixMOD = Matrix.CreateTranslation(
-                    -Vector3.Transform(Vector3.Zero, 
-                    CurrentModel.CurrentRootMotionTransform.WorldMatrix));
+                if (Graph.MainScreen.Config.CameraFollowsRootMotion)
+                {
+                    GFX.World.WorldMatrixMOD = Matrix.CreateTranslation(
+                        -Vector3.Transform(Vector3.Zero,
+                        CurrentModel.CurrentRootMotionTransform.WorldMatrix));
+                }
+                else
+                {
+                    GFX.World.WorldMatrixMOD = Matrix.Identity;
+                }
+
+                if (CurrentModel.AnimContainer != null)
+                {
+                    CurrentModel.AnimContainer.EnableRootMotion = Graph.MainScreen.Config.EnableAnimRootMotion;
+                }
             }
+            else
+            {
+                GFX.World.WorldMatrixMOD = Matrix.Identity;
+            }
+            
         }
 
         public void DrawDebug()
         {
-            var printer = new StatusPrinter(Vector2.Zero, Color.Yellow);
+            var printer = new StatusPrinter(Vector2.One * 4, Color.Yellow);
 
             if (CurrentModel != null && CurrentModel.AnimContainer != null)
             {
@@ -637,8 +682,32 @@ namespace DSAnimStudio.TaeEditor
 
             if (EntityType == TaeEntityType.PC)
             {
-                printer.AppendLine($"R Weapon Animation: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
-                printer.AppendLine($"L Weapon Animation: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
+                printer.AppendLine();
+                
+                
+
+                if (CurrentModel?.ChrAsm?.RightWeapon != null)
+                {
+                    printer.AppendLine($"R Weapon Animation: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
+
+                    var atk = CurrentModel.ChrAsm.RightWeapon.WepMotionCategory;
+                    var spAtk = CurrentModel.ChrAsm.RightWeapon.SpAtkCategory;
+
+                    printer.AppendLine($"R Weapon Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+                }
+
+                printer.AppendLine();
+                
+
+                if (CurrentModel?.ChrAsm?.LeftWeapon != null)
+                {
+                    printer.AppendLine($"L Weapon Animation: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
+
+                    var atk = CurrentModel.ChrAsm.LeftWeapon.WepMotionCategory;
+                    var spAtk = CurrentModel.ChrAsm.LeftWeapon.SpAtkCategory;
+
+                    printer.AppendLine($"L Weapon Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+                }
             }
 
             //printer.AppendLine($"RWPN ANIM LIST:");
@@ -660,8 +729,9 @@ namespace DSAnimStudio.TaeEditor
             //    }
             //}
 
-
+            GFX.SpriteBatchBeginForText();
             printer.Draw();
+            GFX.SpriteBatchEnd();
         }
     }
 }

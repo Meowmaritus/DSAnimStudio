@@ -349,12 +349,12 @@ namespace DSAnimStudio.TaeEditor
                         if (anim.Value.Ref == MainScreen.SelectedTaeAnim)
                         {
                             var thisAnimRect = new Rectangle(
-                                GroupBraceMarginLeft, 
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset), 
-                                ScrollViewer.Viewport.Width - (GroupBraceMarginLeft * 2), 
-                                AnimHeight);
+                                GroupBraceMarginLeft / 2, 
+                                (int)(sectionStartOffset + anim.Value.VerticalOffset) - 1, 
+                                ScrollViewer.Viewport.Width - (GroupBraceMarginLeft), 
+                                AnimHeight + 1);
 
-                            sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : Color.Blue);
+                            sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : new Color(200, 200, 200));
 
                             sb.Draw(boxTex,
                                 new Rectangle(
@@ -362,12 +362,12 @@ namespace DSAnimStudio.TaeEditor
                                     thisAnimRect.Y + border,
                                     thisAnimRect.Width - border * 2,
                                     thisAnimRect.Height - border * 2),
-                                MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.CornflowerBlue);
+                                MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.DodgerBlue);
                         }
 
                         sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset)) + Vector2.One, Color.Black);
+                                (int)(sectionStartOffset + anim.Value.VerticalOffset)) + (Vector2.One * 1.25f), Color.Black);
                         sb.DrawString(font, animIDText, new Vector2(
                             GroupBraceMarginLeft + 4,
                             (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
@@ -376,10 +376,10 @@ namespace DSAnimStudio.TaeEditor
 
                         sb.DrawString(font, animNameText, new Vector2(
                                 ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset)) + Vector2.One, Color.Black);
+                                (int)(sectionStartOffset + anim.Value.VerticalOffset)) + (Vector2.One * 1.25f), Color.Black);
                         sb.DrawString(font, animNameText, new Vector2(
                             ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                            (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
+                            (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.PaleGoldenrod);
 
                         offset += AnimHeight;
                     }

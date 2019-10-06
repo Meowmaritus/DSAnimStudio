@@ -11,10 +11,16 @@ namespace DSAnimStudio.TaeEditor
     public class TaeEventSimulationEnvironment
     {
         public Model MODEL;
+        public TaeEditAnimEventGraph Graph;
 
-        public TaeEventSimulationEnvironment(Model mdl)
+        private ParamData.AtkParam.DummyPolySource HitViewDummyPolySource => 
+            MODEL.IS_PLAYER ? (Graph?.MainScreen.Config.HitViewDummyPolySource ?? ParamData.AtkParam.DummyPolySource.Body) 
+            : ParamData.AtkParam.DummyPolySource.Body;
+
+        public TaeEventSimulationEnvironment(TaeEditAnimEventGraph graph, Model mdl)
         {
             MODEL = mdl;
+            Graph = graph;
 
             InitAllEntries();
         }
@@ -22,77 +28,112 @@ namespace DSAnimStudio.TaeEditor
         private Dictionary<string, EventSimEntry> entries;
         public IReadOnlyDictionary<string, EventSimEntry> Entries => entries;
 
-        private ParamData.AtkParam GetAtkParamFromEventBox(TaeEditAnimEventBox evBox)
+        private ParamData.BehaviorParam GetBehaviorParamFromEvBox(TaeEditAnimEventBox evBox)
         {
-            ParamData.AtkParam atkParam = null;
-            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior" || evBox.MyEvent.TypeName == "InvokeThrowDamageBehavior")
+            if (evBox.MyEvent.TypeName == "InvokeAttackBehavior" || 
+                evBox.MyEvent.TypeName == "InvokeThrowDamageBehavior" ||
+                evBox.MyEvent.TypeName == "InvokeBulletBehavior" ||
+                evBox.MyEvent.TypeName == "InvokeCommonBehavior" ||
+                evBox.MyEvent.TypeName == "InvokePCBehavior" ||
+                evBox.MyEvent.TypeName == "InvokeGunBehavior")
             {
-
-
-                if (!MODEL.IS_PLAYER)
+                int behaviorSubID = (int)evBox.MyEvent.Parameters["BehaviorSubID"];
+                if (MODEL.IS_PLAYER)
                 {
-                     atkParam = ParamManager.GetNpcBasicAtkParam(MODEL.NpcParam, (int)evBox.MyEvent.Parameters["BehaviorSubID"]);
+                    var id = -1;
+                    if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon && MODEL.ChrAsm?.RightWeapon != null)
+                        id = 10_0000_000 + (MODEL.ChrAsm.RightWeapon.BehaviorVariationID * 1_000) + behaviorSubID;
+                    else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon && MODEL.ChrAsm?.LeftWeapon != null)
+                        id = 10_0000_000 + (MODEL.ChrAsm.LeftWeapon.BehaviorVariationID * 1_000) + behaviorSubID;
+                    else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+                        id = behaviorSubID;
+
+                    if (ParamManager.BehaviorParam_PC.ContainsKey(id))
+                        return ParamManager.BehaviorParam_PC[id];
+
+                    if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon && MODEL.ChrAsm?.RightWeapon != null)
+                        id = 10_0000_000 + ((MODEL.ChrAsm.RightWeapon.WepMotionCategory * 100) * 1_000) + behaviorSubID;
+                    else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon && MODEL.ChrAsm?.LeftWeapon != null)
+                        id = 10_0000_000 + ((MODEL.ChrAsm.LeftWeapon.WepMotionCategory * 100) * 1_000) + behaviorSubID;
+
+                    if (ParamManager.BehaviorParam_PC.ContainsKey(id))
+                        return ParamManager.BehaviorParam_PC[id];
                 }
                 else
                 {
-                    bool isLeftHand = MODEL.DummyPolyMan.IsViewingLeftHandHit;
+                    if (MODEL.NpcParam == null)
+                        return null;
 
-                    if (evBox.MyEvent.TypeName == "InvokeAttackBehavior")
+                    if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
                     {
-                        var atkType = (int)evBox.MyEvent.Parameters["AttackType"];
+                        var id = 2_00000_000 + (MODEL.NpcParam.BehaviorVariationID * 1_000) + behaviorSubID;
 
-                        if (atkType == 64/*Parry*/)
-                        {
-                            isLeftHand = true;
-                        }
-                        else if (atkType == 2 /*Forward+R1*/ || atkType == 62 /*Plunging attack*/)
-                        {
-                            isLeftHand = false;
-                        }
+                        if (ParamManager.BehaviorParam.ContainsKey(id))
+                            return ParamManager.BehaviorParam[id];
                     }
-                    
-
-                    atkParam = ParamManager.GetPlayerBasicAtkParam(
-                        isLeftHand ? MODEL.ChrAsm.LeftWeapon : MODEL.ChrAsm.RightWeapon,
-                        (int)evBox.MyEvent.Parameters["BehaviorSubID"],
-                        isLeftHand);
                 }
             }
-            else if (evBox.MyEvent.TypeName == "InvokeCommonBehavior")
-            {
-                atkParam = ParamManager.GetPlayerCommonAttack((int)evBox.MyEvent.Parameters["BehaviorParamID"]);
-            }
-            else if (evBox.MyEvent.TypeName == "InvokePCBehavior")
+
+            return null;
+        }
+
+        private ParamData.AtkParam GetAtkParamFromEventBox(TaeEditAnimEventBox evBox)
+        {
+            var behaviorParam = GetBehaviorParamFromEvBox(evBox);
+
+            if (behaviorParam == null)
+                return null;
+
+            if (behaviorParam.RefType == ParamData.BehaviorParam.RefTypes.Attack)
             {
                 if (MODEL.IS_PLAYER)
                 {
-                    int condition = (int)evBox.MyEvent.Parameters["Condition"];
-                    if (condition == 4)
-                    {
-                        atkParam = ParamManager.GetPlayerCommonAttack((int)evBox.MyEvent.Parameters["BehaviorSubID"]);
-                    }
-                    else if (condition == 8)
-                    {
-                        atkParam = ParamManager.GetPlayerBasicAtkParam(
-                            MODEL.DummyPolyMan.IsViewingLeftHandHit ? 
-                            MODEL.ChrAsm.LeftWeapon : MODEL.ChrAsm.RightWeapon,
-                            (int)evBox.MyEvent.Parameters["BehaviorSubID"], 
-                            isLeftHand: MODEL.DummyPolyMan.IsViewingLeftHandHit);
-                    }
-                    else if (condition == 2)
-                    {
-                        atkParam = ParamManager.GetPlayerBasicAtkParam(
-                            MODEL.ChrAsm.LeftWeapon,
-                            (int)evBox.MyEvent.Parameters["BehaviorSubID"], isLeftHand: true);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Unknown InvokePCBehavior condition: {condition}");
-                    }
+                    if (ParamManager.AtkParam_Pc.ContainsKey(behaviorParam.RefID))
+                        return ParamManager.AtkParam_Pc[behaviorParam.RefID];
+                }
+                else
+                {
+                    if (ParamManager.AtkParam_Npc.ContainsKey(behaviorParam.RefID))
+                        return ParamManager.AtkParam_Npc[behaviorParam.RefID];
                 }
             }
 
-            return atkParam;
+            return null;
+        }
+
+        private int GetBulletParamIDFromEvBox(TaeEditAnimEventBox evBox)
+        {
+            var behaviorParam = GetBehaviorParamFromEvBox(evBox);
+
+            if (behaviorParam == null)
+                return -1;
+
+            if (behaviorParam.RefType == ParamData.BehaviorParam.RefTypes.Bullet)
+            {
+                return behaviorParam.RefID;
+            }
+
+            return -1;
+        }
+
+        private NewDummyPolyManager GetCurrentDummyPolyMan()
+        {
+            if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+            {
+                return MODEL.DummyPolyMan;
+            }
+            else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
+                MODEL.ChrAsm?.RightWeaponModel != null)
+            {
+                return MODEL.ChrAsm.RightWeaponModel.DummyPolyMan;
+            }
+            else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
+                MODEL.ChrAsm?.LeftWeaponModel != null)
+            {
+                return MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan;
+            }
+
+            return null;
         }
 
         private void InitAllEntries()
@@ -102,41 +143,29 @@ namespace DSAnimStudio.TaeEditor
 
                 {
                     "EventSimAttackBehaviors",
-                    new EventSimEntry("Simulate Hitbox Events", true,
+                    new EventSimEntry("Simulate Hitbox Events", isEnabledByDefault: true,
                         "InvokeAttackBehavior", "InvokePCBehavior", "InvokeCommonBehavior", "InvokeThrowDamageBehavior")
                     {
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
-                            MODEL.DummyPolyMan.DeactivateAllHitboxes();
+                            MODEL.DummyPolyMan.HideAllHitboxes();
+
+                            if (MODEL.ChrAsm?.RightWeaponModel != null)
+                                MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.HideAllHitboxes();
+
+                            if (MODEL.ChrAsm?.LeftWeaponModel != null)
+                                MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.HideAllHitboxes();
                         },
-                        //EnterAction = (entry, evBox) =>
-                        //{
-                        //    var atkParam = GetAtkParamFromEventBox(evBox);
-
-                        //    if (atkParam != null)
-                        //    {
-                        //        MODEL.DummyPolyMan.ActivateHitbox(atkParam);
-                        //    }
-                        //    //if (MODEL.DummyPolyMan.HitboxPrimitiveInfos.ContainsKey(evBox))
-                        //    //    foreach (var hitbox in MODEL.DummyPolyMan.HitboxPrimitiveInfos[evBox].Primitives)
-                        //    //        hitbox.EnableDraw = true;
-                        //},
-                        //ExitAction = (entry, evBox) =>
-                        //{
-                        //    var atkParam = GetAtkParamFromEventBox(evBox);
-
-                        //    if (atkParam != null)
-                        //    {
-                        //        MODEL.DummyPolyMan.DeactivateHitbox(atkParam);
-                        //    }
-
-                        //   //if (MODEL.DummyPolyMan.HitboxPrimitiveInfos.ContainsKey(evBox))
-                        //   //     foreach (var hitbox in MODEL.DummyPolyMan.HitboxPrimitiveInfos[evBox].Primitives)
-                        //   //         hitbox.EnableDraw = false;
-                        //},
                         SimulationFrameChangeAction = (entry, evBoxes, time) =>
                         {
-                            MODEL.DummyPolyMan.DeactivateAllHitboxes();
+                            MODEL.DummyPolyMan.HideAllHitboxes();
+
+                            if (MODEL.ChrAsm?.RightWeaponModel != null)
+                                MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.HideAllHitboxes();
+
+                            if (MODEL.ChrAsm?.LeftWeaponModel != null)
+                                MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.HideAllHitboxes();
+
                             foreach (var evBox in evBoxes.Where(b => entry.DoesEventMatch(b)))
                             {
                                 var atkParam = GetAtkParamFromEventBox(evBox);
@@ -144,7 +173,140 @@ namespace DSAnimStudio.TaeEditor
                                 if (atkParam != null)
                                 {
                                     if (evBox.PlaybackHighlight)
-                                        MODEL.DummyPolyMan.ActivateHitbox(atkParam);
+                                    {
+                                        var dmyPolySource = HitViewDummyPolySource;
+
+                                        if (atkParam.SuggestedDummyPolySource != ParamData.AtkParam.DummyPolySource.None)
+                                        {
+                                            dmyPolySource = atkParam.SuggestedDummyPolySource;
+                                        }
+
+                                        if (dmyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+                                        {
+                                            MODEL.DummyPolyMan.SetAttackVisibility(atkParam, true);
+                                        }
+                                        else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
+                                            MODEL.ChrAsm?.RightWeaponModel != null)
+                                        {
+                                            MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(atkParam, true);
+                                        }
+                                        else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
+                                            MODEL.ChrAsm?.LeftWeaponModel != null)
+                                        {
+                                            MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(atkParam, true);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+
+                {
+                    "EventSimBulletBehaviors",
+                    new EventSimEntry("Simulate Bullet Spawns", isEnabledByDefault: true,
+                        "InvokeBulletBehavior")
+                    {
+                        NewAnimSelectedAction = (entry, evBoxes) =>
+                        {
+                            MODEL.DummyPolyMan.ClearAllBulletSpawns();
+                        },
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        {
+                            MODEL.DummyPolyMan.ClearAllBulletSpawns();
+                            foreach (var evBox in evBoxes
+                                .Where(evb => evb.MyEvent.Template != null && 
+                                     evb.PlaybackHighlight && entry.DoesEventMatch(evb))
+                                .OrderBy(evb => evb.MyEvent.StartTime))
+                            {
+                                if (evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
+                                {
+                                    var bulletParamID = GetBulletParamIDFromEvBox(evBox);
+                                    int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
+                                    if (bulletParamID >= 0)
+                                    {
+                                        MODEL.DummyPolyMan.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID);
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                },
+
+                {
+                    "EventSimSFXSpawns",
+                    new EventSimEntry("Simulate SFX Spawns", isEnabledByDefault: true,
+                        "N/A")
+                    {
+                        NewAnimSelectedAction = (entry, evBoxes) =>
+                        {
+                            MODEL.DummyPolyMan.ClearAllSFXSpawns();
+                        },
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        {
+                            MODEL.DummyPolyMan.ClearAllSFXSpawns();
+
+                            foreach (var evBox in evBoxes
+                                .Where(evb => evb.MyEvent.Template != null && evb.PlaybackHighlight)
+                                .OrderBy(evb => evb.MyEvent.StartTime))
+                            {
+
+                                if (evBox.MyEvent.Parameters.Template.ContainsKey("FFXID") &&
+                                    evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
+                                {
+                                    // Using convert here since they might be various numeric
+                                    // value types.
+                                    int ffxid = Convert.ToInt32(evBox.MyEvent.Parameters["FFXID"]);
+                                    int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
+
+                                    MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
+                                }
+                            }
+                        }
+                    }
+                },
+
+                {
+                    "EventSimMiscDummyPolySpawns",
+                    new EventSimEntry("Simulate Misc. DummyPoly Spawn Events", isEnabledByDefault: true,
+                        "N/A")
+                    {
+                        NewAnimSelectedAction = (entry, evBoxes) =>
+                        {
+                            MODEL.DummyPolyMan.ClearAllMiscSpawns();
+
+                            if (MODEL.ChrAsm?.RightWeaponModel != null)
+                                MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.ClearAllMiscSpawns();
+
+                            if (MODEL.ChrAsm?.LeftWeaponModel != null)
+                                MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.ClearAllMiscSpawns();
+                        },
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        {
+                            MODEL.DummyPolyMan.ClearAllMiscSpawns();
+
+                            if (MODEL.ChrAsm?.RightWeaponModel != null)
+                                MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.ClearAllMiscSpawns();
+
+                            if (MODEL.ChrAsm?.LeftWeaponModel != null)
+                                MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.ClearAllMiscSpawns();
+
+                            foreach (var evBox in evBoxes
+                                .Where(evb => evb.MyEvent.Template != null && evb.PlaybackHighlight)
+                                .OrderBy(evb => evb.MyEvent.StartTime))
+                            {
+                                if (evBox.MyEvent.TypeName == "InvokeBulletBehavior")
+                                    continue;
+
+                                if (!evBox.MyEvent.Parameters.Template.ContainsKey("FFXID") &&
+                                    evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
+                                {
+                                    // Using convert here since they might be various numeric
+                                    // value types.
+                                    int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
+
+                                    GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.EventText.Text, dummyPolyID);
                                 }
                             }
                         }
@@ -153,7 +315,7 @@ namespace DSAnimStudio.TaeEditor
 
                 {
                     "EventSimOpacity",
-                    new EventSimEntry("Simulate Opacity Change Events", true,
+                    new EventSimEntry("Simulate Opacity Change Events", isEnabledByDefault: true,
                         "SetOpacityKeyframe")
                     {
                         NewAnimSelectedAction = (entry, evBoxes) =>
@@ -168,7 +330,8 @@ namespace DSAnimStudio.TaeEditor
                         {
                             bool anyOpacityHappeningThisFrame = false;
 
-                            foreach (var evBox in evBoxes.Where(b => b.PlaybackHighlight && entry.DoesEventMatch(b)))
+                            foreach (var evBox in evBoxes.Where(b => b.MyEvent.Template != null && 
+                                b.PlaybackHighlight && entry.DoesEventMatch(b)))
                             {
                                 float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
                                 float timeSinceFadeStart = (float)Main.TAE_EDITOR.PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
@@ -196,8 +359,8 @@ namespace DSAnimStudio.TaeEditor
 
                 {
                     "EventSimDrawMasks",
-                    new EventSimEntry("Simulate Draw Mask Changes", true,
-                        "ShowModelMask", "HideModelMask", "ChangeChrDrawMask")
+                    new EventSimEntry("Simulate Draw Mask Changes", isEnabledByDefault: true,
+                        "ShowModelMask", "HideModelMask", "ChangeChrDrawMask", "HideEquippedWeapon")
                     {
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
@@ -220,7 +383,18 @@ namespace DSAnimStudio.TaeEditor
 
                             MODEL.ResetDrawMaskToDefault();
 
-                            foreach (var evBox in evBoxes.OrderBy(evb => evb.MyEvent.StartTime))
+                            if (MODEL.ChrAsm != null)
+                            {
+                                if (MODEL.ChrAsm.RightWeaponModel != null)
+                                    MODEL.ChrAsm.RightWeaponModel.IsVisible = true;
+
+                                if (MODEL.ChrAsm.LeftWeaponModel != null)
+                                    MODEL.ChrAsm.LeftWeaponModel.IsVisible = true;
+                            }
+                            
+
+                            foreach (var evBox in evBoxes.Where(evb => evb.MyEvent.Template != null)
+                                .OrderBy(evb => evb.MyEvent.StartTime))
                             {
                                 if (evBox.MyEvent.StartTime > time)
                                     break;
@@ -239,6 +413,24 @@ namespace DSAnimStudio.TaeEditor
                                         else if (maskByte == 1)
                                             MODEL.DrawMask[i] = true;
                                     }
+                                }
+                                else if (MODEL.ChrAsm != null && evBox.MyEvent.TypeName == "HideEquippedWeapon")
+                                {
+                                    if (evBox.PlaybackHighlight)
+                                    {
+                                        if ((bool)evBox.MyEvent.Parameters["RightHand"])
+                                        {
+                                            if (MODEL.ChrAsm.RightWeaponModel != null)
+                                                MODEL.ChrAsm.RightWeaponModel.IsVisible = false;
+                                        }
+
+                                        if ((bool)evBox.MyEvent.Parameters["LeftHand"])
+                                        {
+                                            if (MODEL.ChrAsm.LeftWeaponModel != null)
+                                                MODEL.ChrAsm.LeftWeaponModel.IsVisible = false;
+                                        }
+                                    }
+                                    
                                 }
                                 else if (evBox.PlaybackHighlight)
                                 {
@@ -384,7 +576,14 @@ namespace DSAnimStudio.TaeEditor
             foreach (var kvp in Entries)
             {
                 if (kvp.Value.MenuOptionName != null)
-                    menu.AddItem("Simulation", kvp.Value.MenuOptionName, () => GetSimEnabled(kvp.Key), b => SetSimEnabled(kvp.Key, b));
+                    menu.AddItem("Simulation", kvp.Value.MenuOptionName, 
+                        () => GetSimEnabled(kvp.Key), b =>
+                        {
+                            OnNewAnimSelected(Graph.EventBoxes);
+                            SetSimEnabled(kvp.Key, b);
+                            OnNewAnimSelected(Graph.EventBoxes);
+                            Graph.ViewportInteractor.OnScrubFrameChange();
+                        });
             }
         }
 

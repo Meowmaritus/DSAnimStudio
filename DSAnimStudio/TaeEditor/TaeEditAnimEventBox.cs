@@ -59,8 +59,16 @@ namespace DSAnimStudio.TaeEditor
         public Color ColorOutline = Color.Black;
         public Color ColorFG => Color.White;
 
-        public bool PlaybackHighlight = false;
-        public bool PrevCyclePlaybackHighlight = false;
+        public bool PlaybackHighlight => OwnerPane.PlaybackCursor.GUICurrentFrame >= 
+            MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval) && 
+            OwnerPane.PlaybackCursor.GUICurrentFrame < 
+            MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
+
+        public bool PrevCyclePlaybackHighlight => !OwnerPane.PlaybackCursor.JustStartedPlaying &&
+            OwnerPane.PlaybackCursor.OldGUICurrentFrame >=
+            MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval) &&
+            OwnerPane.PlaybackCursor.OldGUICurrentFrame <
+            MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
 
         public bool DragWholeBoxToVirtualUnitX(float x)
         {

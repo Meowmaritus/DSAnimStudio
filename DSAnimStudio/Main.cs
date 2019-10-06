@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.3.2";
+        public const string VERSION = "Version 1.4";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -59,6 +59,7 @@ namespace DSAnimStudio
         public string DEFAULT_TEXTURE_MISSING_NAME => $@"{Main.Directory}\Content\Utility\MissingTexture";
 
         public static TaeEditor.TaeEditorScreen TAE_EDITOR;
+        private static SpriteBatch TaeEditorSpriteBatch;
         public static Texture2D TAE_EDITOR_BLANK_TEX;
         public static SpriteFont TAE_EDITOR_FONT;
 
@@ -306,6 +307,8 @@ namespace DSAnimStudio
 
             TAE_EDITOR = new TaeEditor.TaeEditorScreen((System.Windows.Forms.Form)System.Windows.Forms.Form.FromHandle(Window.Handle));
 
+            TaeEditorSpriteBatch = new SpriteBatch(GFX.Device);
+
             if (Program.ARGS.Length > 0)
             {
                 TAE_EDITOR.FileContainerName = Program.ARGS[0];
@@ -371,10 +374,11 @@ namespace DSAnimStudio
             //DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
             //    GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
             //    Color.Cyan, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
-
-            DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 2,
-                GFX.Device.Viewport.Height - (strSize_unmanaged.Y)),
-                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT, scale: 1, scaleOrigin: new Vector2(strSize_unmanaged.X, 0));
+            GFX.SpriteBatchBeginForText();
+            DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 6,
+                GFX.Device.Viewport.Height),
+                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT, scale: 1, scaleOrigin: strSize_unmanaged);
+            GFX.SpriteBatchEnd();
         }
 
         private void UpdateMemoryUsage()
@@ -585,14 +589,14 @@ namespace DSAnimStudio
                 GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
 
                 InitTonemapShader();
-                GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
 
                 if (GFX.UseTonemap && !GFX.IsInDebugShadingMode)
                     MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
 
                 GFX.SpriteBatch.Draw(SceneRenderTarget,
                     new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
-                GFX.SpriteBatch.End();
+                GFX.SpriteBatchEnd();
 
                 //try
                 //{
@@ -658,12 +662,12 @@ namespace DSAnimStudio
 
             TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
 
-            TAE_EDITOR.Draw(GraphicsDevice, GFX.SpriteBatch,
+            TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
                 TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT, (float)gameTime.ElapsedGameTime.TotalSeconds);
 
             if (IsLoadingTaskRunning)
             {
-                TAE_EDITOR.DrawDimmingRect(GraphicsDevice, GFX.SpriteBatch, TAE_EDITOR_BLANK_TEX);
+                TAE_EDITOR.DrawDimmingRect(GraphicsDevice, TaeEditorSpriteBatch, TAE_EDITOR_BLANK_TEX);
             }
 
 

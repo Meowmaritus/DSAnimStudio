@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using DSAnimStudio.DebugPrimitives;
+using Microsoft.Xna.Framework;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -42,7 +43,47 @@ namespace DSAnimStudio
         public NewAnimSkeleton(Model mdl, List<FLVER2.Bone> flverBones)
         {
             MODEL = mdl;
-            FlverSkeleton = flverBones.Select(b => new FlverBoneInfo(b, flverBones)).ToList();
+
+            int[] childCounts = new int[flverBones.Count];
+
+            FlverSkeleton = new List<FlverBoneInfo>();
+
+            for (int i = 0; i < flverBones.Count; i++)
+            {
+                var newBone = new FlverBoneInfo(flverBones[i], flverBones);
+                if (flverBones[i].ParentIndex >= 0)
+                    childCounts[flverBones[i].ParentIndex]++;
+                FlverSkeleton.Add(newBone);
+            }
+
+            for (int i = 0; i < FlverSkeleton.Count; i++)
+            {
+                FlverSkeleton[i].Length = Math.Max(0.1f, 
+                    (flverBones[i].BoundingBoxMax.Z - flverBones[i].BoundingBoxMin.Z) * 0.8f);
+
+                if (childCounts[i] == 1 && flverBones[i].ChildIndex >= 0)
+                {
+                    var parentChildDifference = Vector3.Transform(Vector3.Zero, 
+                        FlverSkeleton[flverBones[i].ChildIndex].ReferenceMatrix) -
+                        Vector3.Transform(Vector3.Zero, FlverSkeleton[i].ReferenceMatrix);
+
+                    var parentChildDirection = Vector3.Normalize(parentChildDifference);
+
+                    var parentDir = Vector3.TransformNormal(Vector3.Backward,
+                        Matrix.CreateRotationX(flverBones[i].Rotation.X) *
+                        Matrix.CreateRotationZ(flverBones[i].Rotation.Z) *
+                        Matrix.CreateRotationY(flverBones[i].Rotation.Y));
+
+                    var dot = Vector3.Dot(parentDir, parentChildDirection);
+
+                    FlverSkeleton[i].Length = parentChildDifference.Length() * (float)Math.Cos(dot);
+                }
+                else
+                {
+                     FlverSkeleton[i].Length = Math.Max(0.1f, 
+                    (flverBones[i].BoundingBoxMax.Z - flverBones[i].BoundingBoxMin.Z) * 0.8f);
+                }
+            }
 
             for (int i = 0; i < GFXShaders.FlverShader.MaxBonePerMatrixArray; i++)
             {
@@ -130,6 +171,12 @@ namespace DSAnimStudio
             }
         }
 
+        public void DrawPrimitives()
+        {
+            foreach (var f in FlverSkeleton)
+                f.DrawPrim(MODEL.CurrentTransform.WorldMatrix);
+        }
+
         public Matrix this[int boneIndex]
         {
             get
@@ -154,6 +201,8 @@ namespace DSAnimStudio
             }
             set
             {
+                FlverSkeleton[boneIndex].CurrentMatrix = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+
                 int bank = boneIndex / GFXShaders.FlverShader.MaxBonePerMatrixArray;
                 int bone = boneIndex % GFXShaders.FlverShader.MaxBonePerMatrixArray;
 
@@ -170,10 +219,7 @@ namespace DSAnimStudio
                 else if (bank == 5)
                     ShaderMatrices5[bone] = value;
 
-                if (MODEL.DummyPolyMan.AnimatedDummyPolyClusters.ContainsKey(boneIndex))
-                {
-                    MODEL.DummyPolyMan.AnimatedDummyPolyClusters[boneIndex].UpdateWithBoneMatrix(value);
-                }
+                MODEL.DummyPolyMan.UpdateFlverBone(boneIndex, value);
             }
         }
 
@@ -198,6 +244,11 @@ namespace DSAnimStudio
             public string Name;
             public Matrix ReferenceMatrix = Matrix.Identity;
             public int HkxBoneIndex = -1;
+            public Matrix CurrentMatrix = Matrix.Identity;
+
+            public float Length = 1.0f;
+            public IDbgPrim BonePrim;
+            public DbgPrimWireBox BoundingBoxPrim;
 
             public FlverBoneInfo(FLVER2.Bone bone, List<FLVER2.Bone> boneList)
             {
@@ -227,6 +278,34 @@ namespace DSAnimStudio
 
                 ReferenceMatrix = GetBoneMatrix(bone);
                 Name = bone.Name;
+
+                if (bone.Unk3C == 0)
+                {
+                    BonePrim = new DbgPrimWireBone(bone.Name, new Transform(ReferenceMatrix), DBG.COLOR_FLVER_BONE)
+                    {
+                        Category = DbgPrimCategory.FlverBone,
+                    };
+
+                    BoundingBoxPrim = new DbgPrimWireBox(Transform.Default,
+                        new Vector3(bone.BoundingBoxMin.X, bone.BoundingBoxMin.Y, bone.BoundingBoxMin.Z),
+                        new Vector3(bone.BoundingBoxMax.X, bone.BoundingBoxMax.Y, bone.BoundingBoxMax.Z),
+                        DBG.COLOR_FLVER_BONE_BBOX)
+                    {
+                        Category = DbgPrimCategory.FlverBoneBoundingBox,
+                    };
+                }
+               
+            }
+
+            public void DrawPrim(Matrix world)
+            {
+                if (BonePrim != null && BoundingBoxPrim != null)
+                {
+                    BonePrim.Transform = new Transform(Matrix.CreateScale(Length) * CurrentMatrix);
+                    BonePrim.Draw(null, world);
+                    BoundingBoxPrim.UpdateTransform(new Transform(CurrentMatrix));
+                    BoundingBoxPrim.Draw(null, world);
+                }
             }
         }
 

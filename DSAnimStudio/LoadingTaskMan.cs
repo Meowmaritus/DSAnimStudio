@@ -269,7 +269,7 @@ namespace DSAnimStudio
             {
                 if (TaskDict.Count > 0)
                 {
-                    GFX.SpriteBatch.Begin();
+                    GFX.SpriteBatchBegin();
 
                     //int i = 0;
                     int currentVerticalOffset = 0;
@@ -322,7 +322,7 @@ namespace DSAnimStudio
                         currentVerticalOffset += (GuiDistBetweenProgressRects + taskRectHeight);
                     }
 
-                    GFX.SpriteBatch.End();
+                    GFX.SpriteBatchEnd();
                 }
             }
         }

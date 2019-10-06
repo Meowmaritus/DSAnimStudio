@@ -31,6 +31,7 @@ namespace DSAnimStudio.TaeEditor
                                 : ((GameDataManager.GameTypeHasLongAnimIDs
                                 ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
 
+                            
 
                             result.Add(new TaeFindResult()
                             {
@@ -41,8 +42,8 @@ namespace DSAnimStudio.TaeEditor
                                     ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}"),
                                 EventTypeString = ev.TypeName,
                                 EventRef = ev,
-                                ParameterName = "Event Type",
-                                MatchedValue = ev.Type.ToString(),
+                                ParameterName = "Event Type Num",
+                                MatchedValue = $"[{ev.Type}]({string.Join(" ", ev.GetParameterBytes(false).Select(b => b.ToString("X2")))})",
                             });
                         }
                     }
@@ -60,7 +61,7 @@ namespace DSAnimStudio.TaeEditor
                 var tae = taeKvp.Value;
                 foreach (var anim in tae.Animations)
                 {
-                    foreach (var ev in anim.Events)
+                    foreach (var ev in anim.Events.Where(evt => evt.Template != null))
                     {
                         if (requireWholeValue ? ev.TypeName.Equals(paramVal) : ev.TypeName.Contains(paramVal))
                         {
@@ -72,6 +73,21 @@ namespace DSAnimStudio.TaeEditor
                                 : ((GameDataManager.GameTypeHasLongAnimIDs
                                 ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
 
+                            var sb = new StringBuilder($"{ev.Template.Name}(");
+                            bool first = true;
+                            foreach (var kvp in ev.Parameters.Template)
+                            {
+                                if (kvp.Value.ValueToAssert == null)
+                                {
+                                    if (first)
+                                        first = false;
+                                    else
+                                        sb.Append(", ");
+
+                                    sb.Append(ev.Parameters[kvp.Key].ToString());
+                                }
+                            }
+                            sb.Append(")");
 
                             result.Add(new TaeFindResult()
                             {
@@ -83,7 +99,7 @@ namespace DSAnimStudio.TaeEditor
                                 EventTypeString = ev.TypeName,
                                 EventRef = ev,
                                 ParameterName = "Event Name",
-                                MatchedValue = ev.TypeName,
+                                MatchedValue = sb.ToString(),
                             });
                         }
                     }

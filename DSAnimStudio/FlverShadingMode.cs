@@ -18,6 +18,7 @@ namespace DSAnimStudio
 
         MESHDEBUG_NORMALS = 100,
         MESHDEBUG_NORMALS_MESH_ONLY = 101,
+        MESHDEBUG_VERTEX_COLOR_ALPHA = 102,
 
         LEGACY = 200,
         PBR_GLOSS_DS3 = 201,

@@ -19,7 +19,7 @@ namespace DSAnimStudio
 
         public NewAnimSkeleton Skeleton;
         public NewAnimationContainer AnimContainer;
-        public DummyPolyManager DummyPolyMan;
+        public NewDummyPolyManager DummyPolyMan;
         public DBG.DbgPrimDrawer DbgPrimDrawer;
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
@@ -40,10 +40,9 @@ namespace DSAnimStudio
 
         public Transform StartTransform = Transform.Default;
 
-        public Transform CurrentRootMotionTransform => new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+        public Transform CurrentRootMotionTransform = Transform.Default;
 
-        public Transform CurrentTransform => new Transform(StartTransform.WorldMatrix *
-            AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+        public Transform CurrentTransform = Transform.Default;
 
         /// <summary>
         /// This is needed to make weapon hitboxes work.
@@ -55,7 +54,7 @@ namespace DSAnimStudio
 
         private Model()
         {
-            DummyPolyMan = new DummyPolyManager(this);
+            DummyPolyMan = new NewDummyPolyManager(this);
             DbgPrimDrawer = new DBG.DbgPrimDrawer(this);
 
             for (int i = 0; i < DRAW_MASK_LENGTH; i++)
@@ -240,7 +239,7 @@ namespace DSAnimStudio
 
             Bounds = MainMesh.Bounds;
 
-            DummyPolyMan.LoadDummiesFromFLVER(flver, baseDmyPolyID);
+            DummyPolyMan.AddAllDummiesFromFlver(flver);
 
             //DEBUG//
             //Console.WriteLine($"{flver.Meshes[0].DefaultBoneIndex}");
@@ -259,15 +258,41 @@ namespace DSAnimStudio
             LoadFLVER2(flver, useSecondUV);
         }
 
-        public void UpdateAnimation()
+        public void AfterAnimUpdate()
         {
-            AnimContainer.Update();
+            CurrentRootMotionTransform = new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+
+            CurrentTransform = new Transform(StartTransform.WorldMatrix *
+                AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
 
             if (ChrAsm != null)
             {
                 ChrAsm.UpdateWeaponTransforms();
                 ChrAsm.UpdateWeaponAnimation();
             }
+
+            DummyPolyMan.UpdateAllHitPrims();
+
+            if (ChrAsm != null)
+            {
+                if (ChrAsm.RightWeaponModel != null)
+                {
+                    ChrAsm.RightWeaponModel.DummyPolyMan.UpdateAllHitPrims();
+                }
+
+                if (ChrAsm.LeftWeaponModel != null)
+                {
+                    ChrAsm.LeftWeaponModel.DummyPolyMan.UpdateAllHitPrims();
+                }
+            }
+        }
+
+        public void UpdateAnimation()
+        {
+            AnimContainer.Update();
+
+            if (AnimContainer.IsPlaying)
+                AfterAnimUpdate();
         }
 
         public void TryToLoadTextures()
@@ -280,6 +305,52 @@ namespace DSAnimStudio
         {
             List<string> textures = MainMesh.GetAllTexNamesToLoad();
             TexturePool.AddSpecificTexturesFromBinder(path, textures);
+        }
+
+        public void DrawAllPrimitiveShapes()
+        {
+            DummyPolyMan.DrawAllHitPrims();
+
+            DbgPrimDrawer.DrawPrimitives();
+
+            if (ChrAsm != null)
+            {
+                if (ChrAsm.RightWeaponModel != null)
+                {
+                    //ChrAsm.RightWeaponModel.DummyPolyMan.UpdateAllHitPrims();
+                    ChrAsm.RightWeaponModel.DummyPolyMan.DrawAllHitPrims();
+                    ChrAsm.RightWeaponModel.DbgPrimDrawer.DrawPrimitives();
+                }
+
+                if (ChrAsm.LeftWeaponModel != null)
+                {
+                    //ChrAsm.LeftWeaponModel.DummyPolyMan.UpdateAllHitPrims();
+                    ChrAsm.LeftWeaponModel.DummyPolyMan.DrawAllHitPrims();
+                    ChrAsm.LeftWeaponModel.DbgPrimDrawer.DrawPrimitives();
+                }
+            }
+
+            Skeleton.DrawPrimitives();
+        }
+
+        public void DrawAllPrimitiveTexts()
+        {
+            DummyPolyMan.DrawAllHitPrimTexts();
+
+            DbgPrimDrawer.DrawPrimitiveNames();
+
+            if (ChrAsm != null)
+            {
+                if (ChrAsm.RightWeaponModel != null)
+                {
+                    ChrAsm.RightWeaponModel.DummyPolyMan.DrawAllHitPrimTexts();
+                }
+
+                if (ChrAsm.LeftWeaponModel != null)
+                {
+                    ChrAsm.LeftWeaponModel.DummyPolyMan.DrawAllHitPrimTexts();
+                }
+            }
         }
 
         public void Draw(int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
@@ -323,8 +394,12 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.IsSkybox = false;
             }
 
-            MainMesh.DrawMask = DrawMask;
-            MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+            if (IsVisible)
+            {
+                MainMesh.DrawMask = DrawMask;
+                MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+            }
+            
             if (ChrAsm != null)
             {
                 ChrAsm.Draw(DrawMask, lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);

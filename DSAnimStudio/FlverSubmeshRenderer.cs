@@ -835,7 +835,7 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    GFX.FlverShader.Effect.EnableBlendTextures = true;
+                    GFX.FlverShader.Effect.EnableBlendTextures = !GFX.FlverDisableTextureBlending;
 
                     GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
                     GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? Main.DEFAULT_TEXTURE_SPECULAR;

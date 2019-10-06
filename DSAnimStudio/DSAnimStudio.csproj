@@ -73,7 +73,10 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DebugPrimitives\DbgPrimGeometryData.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidBox.cs" />
+    <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
+    <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
     <Compile Include="FlverShadingMode.cs" />
     <Compile Include="NewBlendableTransform.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
@@ -83,6 +86,7 @@
     <Compile Include="NewChrAsmEquipForm.Designer.cs">
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="NewDummyPolyManager.cs" />
     <Compile Include="TaeEditor\TaeAnimRefChainSolver.cs" />
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxDepthStencilStateAdjust.cs" />
@@ -98,14 +102,13 @@
     <Compile Include="DbgMenus\DbgMenuPadRepeater.cs" />
     <Compile Include="DDSDeswizzler.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolid.cs" />
-    <Compile Include="DebugPrimitives\DbgPrimSolidSkybox.cs" />
+    <Compile Include="DebugPrimitives\DbgPrimSkybox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWire.cs" />
     <Compile Include="DebugPrimitives\DbgPrim.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidBone.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireBone.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireBox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireCylinder.cs" />
-    <Compile Include="DebugPrimitives\DbgPrimDummyPolyCluster.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireCapsule.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireSphere.cs" />
     <Compile Include="DebugPrimitives\IDbgPrim.cs" />
@@ -125,13 +128,11 @@
     <Compile Include="GFXShaders\FlverTonemapShader.cs" />
     <Compile Include="GFXShaders\SkyboxShader.cs" />
     <Compile Include="Havok\SplineCompressedAnimation.cs" />
-    <Compile Include="DummyPolyManager.cs" />
     <Compile Include="LiveRefresh\Kernel32.cs" />
     <Compile Include="LiveRefresh\Memory.cs" />
     <Compile Include="LiveRefresh\RequestFileReload.cs" />
     <Compile Include="LoadingTaskMan.cs" />
     <Compile Include="NewHavokAnimation.cs" />
-    <Compile Include="NPC.cs" />
     <Compile Include="ParamData.cs" />
     <Compile Include="ParamManager.cs" />
     <Compile Include="StatusPrinter.cs" />
