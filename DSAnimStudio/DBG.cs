@@ -23,7 +23,7 @@ namespace DSAnimStudio
         public static float PrimitiveNametagSize = 0.75f;
 
         public static DbgPrimWireGrid DbgPrim_Grid;
-        public static DbgPrimSolidSkybox DbgPrim_Skybox;
+        public static DbgPrimSkybox DbgPrim_Skybox;
 
         public static bool ShowModelNames = true;
         public static bool ShowModelBoundingBoxes = false;
@@ -86,6 +86,9 @@ namespace DSAnimStudio
             }
 
             CategoryEnableDraw[DbgPrimCategory.DummyPolyHelper] = true;
+
+            CategoryEnableDraw[DbgPrimCategory.DummyPolySpawnArrow] = true;
+
             CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
 
             CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
@@ -103,6 +106,8 @@ namespace DSAnimStudio
         public static Color COLOR_FLVER_BONE_BBOX = Color.Cyan;
         public static string COLOR_FLVER_BONE_BBOX_NAME = "Cyan";
 
+        public static Color COLOR_DUMMY_POLY = Color.MonoGameOrange;
+        public static string COLOR_DUMMY_POLY_NAME = "Orange";
 
         private static object _lock_primitives = new object();
 
@@ -140,10 +145,10 @@ namespace DSAnimStudio
         public static void CreateDebugPrimitives()
         {
             // This is the green grid, which is just hardcoded lel
-            DbgPrim_Grid = new DbgPrimWireGrid(new Color(32, 112, 39), new Color(32, 112, 39), 100, 1);
+            DbgPrim_Grid = new DbgPrimWireGrid(Color.Lime, new Color(32, 112, 39), 100, 1);
             //DbgPrim_Grid.OverrideColor = new Color(32, 112, 39);
             //DbgPrim_Grid.OverrideColor = Color.Green;
-            DbgPrim_Skybox = new DbgPrimSolidSkybox();
+            DbgPrim_Skybox = new DbgPrimSkybox();
 
             DbgPrim_Grid.Transform = Transform.Default;
             DbgPrim_Skybox.Transform = new Transform(0,0,0,0,0,0,100,100,100);
@@ -186,23 +191,29 @@ namespace DSAnimStudio
             {
                 foreach (var mdl in Scene.Models)
                 {
-                    mdl.DummyPolyMan.UpdateAllHitboxPrimitives();
-                    mdl.DbgPrimDrawer.DrawPrimitives();
-                    mdl.DbgPrimDrawer.DrawPrimitiveNames();
-
-                    if (mdl.ChrAsm != null)
-                    {
-                        if (mdl.ChrAsm.RightWeaponModel != null)
-                        {
-                            mdl.ChrAsm.RightWeaponModel.DbgPrimDrawer.DrawPrimitiveNames();
-                        }
-
-                        if (mdl.ChrAsm.LeftWeaponModel != null)
-                        {
-                            mdl.ChrAsm.LeftWeaponModel.DbgPrimDrawer.DrawPrimitiveNames();
-                        }
-                    }
+                    mdl.DrawAllPrimitiveShapes();
                 }
+            }
+        }
+
+
+        public static void DrawPrimitiveTexts()
+        {
+            if (BeepVolume > 0)
+                BeepVolume -= (0.016666667f * 30);
+            else
+                BeepVolume = 0;
+
+            lock (Scene._lock_ModelLoad_Draw)
+            {
+                GFX.SpriteBatchBeginForText();
+
+                foreach (var mdl in Scene.Models)
+                {
+                    mdl.DrawAllPrimitiveTexts();
+                }
+
+                GFX.SpriteBatchEnd();
             }
         }
 
@@ -278,7 +289,7 @@ namespace DSAnimStudio
                 GFX.World.CameraTransform.Position, Vector3.Up);
             SpriteBatch3DBillboardEffect.Projection = GFX.World.MatrixProjection;
 
-            GFX.SpriteBatch.Begin(0, null, null, DepthStencilState.DepthRead, RasterizerState.CullNone, SpriteBatch3DBillboardEffect);
+            GFX.SpriteBatchBegin(0, null, null, DepthStencilState.DepthRead, RasterizerState.CullNone, SpriteBatch3DBillboardEffect);
 
             var centerThing = DEBUG_FONT.MeasureString(text) / 2;
 
@@ -297,7 +308,7 @@ namespace DSAnimStudio
             GFX.SpriteBatch.DrawString(DEBUG_FONT, text, Vector2.Zero, c, 0, centerThing, 1.0f, se, 0);
 
 
-            GFX.SpriteBatch.End();
+            GFX.SpriteBatchEnd();
         }
 
         //public static void DrawLine(Vector3 start, Vector3 end, Color startColor, Color? endColor = null, string startName = null, string endName = null)
@@ -346,10 +357,11 @@ namespace DSAnimStudio
             DrawTextOn3DLocation_FixedPixelSize(m, location, text, color, simpleFontScale * 3, startAndEndSpriteBatchForMe, screenPixelOffset);
         }
 
-        public static void DrawTextOn3DLocation_FixedPixelSize(Matrix m, Vector3 location, string text, Color color, float simpleFontScale, bool startAndEndSpriteBatchForMe = false, Vector2 screenPixelOffset = default)
+        public static void DrawTextOn3DLocation_FixedPixelSize(Matrix m, Vector3 location, string text, 
+            Color color, float simpleFontScale, bool startAndEndSpriteBatchForMe = false, Vector2 screenPixelOffset = default)
         {
             if (startAndEndSpriteBatchForMe)
-                GFX.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+                GFX.SpriteBatchBeginForText();
 
             Vector3 screenPos3D = GFX.Device.Viewport.Project(location,
                 GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix 
@@ -430,10 +442,11 @@ namespace DSAnimStudio
                 0);
 
             if (startAndEndSpriteBatchForMe)
-                GFX.SpriteBatch.End();
+                GFX.SpriteBatchEnd();
         }
 
-        private static void DrawTextOn3DLocation_Fast__OLD(Matrix m, Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
+        private static void DrawTextOn3DLocation_Fast__OLD(Matrix m, Vector3 location, string text, 
+            Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false)
         {
             // Project the 3d position first
             Vector3 screenPos3D_Top = GFX.Device.Viewport.Project(location + new Vector3(0, physicalHeight / 2, 0),
@@ -478,7 +491,7 @@ namespace DSAnimStudio
                 return;
 
             if (startAndEndSpriteBatchForMe)
-                GFX.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+                GFX.SpriteBatchBeginForText();
 
             //GFX.SpriteBatch.DrawString(DEBUG_FONT_SIMPLE, text, 
             //    new Vector2(screenPos3D.X, screenPos3D.Y) - 
@@ -506,11 +519,13 @@ namespace DSAnimStudio
 
 
             if (startAndEndSpriteBatchForMe)
-                GFX.SpriteBatch.End();
+                GFX.SpriteBatchEnd();
 
         }
 
-        public static void DrawTextOn3DLocation_PhysicalSize(Matrix m, Vector3 location, string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = true, Vector2 screenPixelOffset = default)
+        public static void DrawTextOn3DLocation_PhysicalSize(Matrix m, Vector3 location, 
+            string text, Color color, float physicalHeight, bool startAndEndSpriteBatchForMe = false, 
+            Vector2 screenPixelOffset = default)
         {
             
 
@@ -595,11 +610,11 @@ namespace DSAnimStudio
 
         public static void DrawOutlinedText(
             string text, Vector2 pos, Color color, SpriteFont font = null,
-            float depth = 0, float scale = 1, Vector2 scaleOrigin = default(Vector2), 
-            bool startAndEndSpriteBatchForMe = true, bool disableSmoothing = false)
+            float depth = 0, float scale = 1, Vector2 scaleOrigin = default(Vector2),
+            bool startAndEndSpriteBatchForMe = false)
         {
             if (startAndEndSpriteBatchForMe)
-                GFX.SpriteBatch.Begin(samplerState: disableSmoothing ? SamplerState.PointClamp : SamplerState.AnisotropicWrap);
+                GFX.SpriteBatchBeginForText();
 
             // Top, Bottom, Left, Right
             GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(1, 0), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
@@ -616,7 +631,33 @@ namespace DSAnimStudio
             GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos, color, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth);
 
             if (startAndEndSpriteBatchForMe)
-                GFX.SpriteBatch.End();
+                GFX.SpriteBatchEnd();
+        }
+
+        public static void DrawOutlinedText(
+            string text, Vector2 pos, Color color, SpriteFont font,
+            float depth, Vector2 scale, Vector2 scaleOrigin = default(Vector2),
+            bool startAndEndSpriteBatchForMe = false)
+        {
+            if (startAndEndSpriteBatchForMe)
+                GFX.SpriteBatchBeginForText();
+
+            // Top, Bottom, Left, Right
+            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(1, 0), Color.Black, 0, scaleOrigin, scale, SpriteEffects.None, depth + 0.000001f);
+            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(-1, 0), Color.Black, 0, scaleOrigin, scale, SpriteEffects.None, depth + 0.000001f);
+            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(0, 1), Color.Black, 0, scaleOrigin, scale, SpriteEffects.None, depth + 0.000001f);
+            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(0, -1), Color.Black, 0, scaleOrigin, scale, SpriteEffects.None, depth + 0.000001f);
+
+            // Top-Left, Top-Right, Bottom-Left, Bottom-Right
+            //GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(-1, 1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+            //GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(-1, -1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+            //GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(1, 1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+            //GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(1, -1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+
+            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos, color, 0, scaleOrigin, scale, SpriteEffects.None, depth);
+
+            if (startAndEndSpriteBatchForMe)
+                GFX.SpriteBatchEnd();
         }
 
         public class DbgPrimDrawer : IDisposable
@@ -683,8 +724,6 @@ namespace DSAnimStudio
             {
                 lock (_lock_primitives)
                 {
-                    GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, blendState:
-                        BlendState.AlphaBlend, samplerState: SamplerState.PointClamp);
                     foreach (var p in GetPrimitivesByDistance())
                     {
                         if (ShowPrimitiveNametags)
@@ -704,7 +743,6 @@ namespace DSAnimStudio
                             //p.LabelDraw_Billboard(MODEL.CurrentTransform.WorldMatrix);
                         }
                     }
-                    GFX.SpriteBatch.End();
                 }
             }
 

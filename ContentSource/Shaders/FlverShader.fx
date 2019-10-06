@@ -21,6 +21,7 @@
 
 #define WORKFLOW_MESHDEBUG_NORMALS 100
 #define WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY 101
+#define WORKFLOW_MESHDEBUG_VERTEX_COLOR_ALPHA 102
 
 #define WORKFLOW_LEGACY 200
 #define WORKFLOW_PBR_GLOSS_DS3 201
@@ -446,6 +447,8 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         inputTexAlpha = color.a;
     }
     
+    color.a = 1;
+    
     float dissolve = B16(input.Position.xy);
         
     if ((((Opacity * inputTexAlpha) * 1.05) + 0.125) < dissolve)
@@ -509,6 +512,10 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY)
     {
         return float4((input.Normal * float3(1,1,-1)) * 0.25 + 0.5, 1);
+    }
+    else if (WorkflowType == WORKFLOW_MESHDEBUG_VERTEX_COLOR_ALPHA)
+    {
+        return float4(input.Color.a, input.Color.a, input.Color.a, 1);
     }
     if (WorkflowType == WORKFLOW_PBR_GLOSS_DS3)
     {

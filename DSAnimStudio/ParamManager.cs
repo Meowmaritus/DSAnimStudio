@@ -76,6 +76,7 @@ namespace DSAnimStudio
             var npcParams = new List<ParamData.NpcParam>();
             foreach (var kvp in NpcParam.Where(r => (r.Key / 100 == chrId || 
                 (GameDataManager.GameType == GameDataManager.GameTypes.BB && 
+                npcParams.Count == 0 &&
                 ((r.Key % 1_0000_00) / 100 == chrId)))))
             {
                 npcParams.Add(kvp.Value);

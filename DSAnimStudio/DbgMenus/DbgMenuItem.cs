@@ -543,8 +543,8 @@ namespace DSAnimStudio.DbgMenus
         {
             var darkTitleRect = new Rectangle(MenuRect.X + DbgMenuTopLeftButtonRect.Width, MenuRect.Y, MenuRect.Width - DbgMenuTopLeftButtonRect.Width, DbgMenuTopLeftButtonRect.Height);
 
-            
-            GFX.SpriteBatch.Begin();
+
+            GFX.SpriteBatchBeginForText();
 
             var clickMeSize = DBG.DEBUG_FONT_SMALL.MeasureString("MENU");
 
@@ -554,7 +554,7 @@ namespace DSAnimStudio.DbgMenus
 
             if (MenuOpenState == DbgMenuOpenState.Closed)
             {
-                GFX.SpriteBatch.End();
+                GFX.SpriteBatchEnd();
                 return;
             }
 
@@ -670,7 +670,7 @@ namespace DSAnimStudio.DbgMenus
                 else if (roughEndDrawIndex >= Items.Count)
                     roughEndDrawIndex = Items.Count - 1;
 
-                GFX.SpriteBatch.End();
+                GFX.SpriteBatchEnd();
 
                 // Store current viewport, then switch viewport to JUST the menu rect
                 var oldViewport = GFX.Device.Viewport;
@@ -680,7 +680,7 @@ namespace DSAnimStudio.DbgMenus
                     SubMenuRect.Width,
                     SubMenuRect.Height);
                 
-                GFX.SpriteBatch.Begin();
+                GFX.SpriteBatchBegin();
                 // ---- These braces manually force a smaller scope so we 
                 //      don't forget to return to the old viewport immediately afterward.
                 {
@@ -725,7 +725,7 @@ namespace DSAnimStudio.DbgMenus
                             // drawing is relative to the VIEWPORT, which takes up just the actual menu rect
                             DBG.DrawOutlinedText(entryText,
                                 new Vector2(itemRect.X - SubMenuRect.X, itemRect.Y - SubMenuRect.Y),
-                                itemTextColor, FONT, disableSmoothing: true, startAndEndSpriteBatchForMe: false);
+                                itemTextColor, FONT, startAndEndSpriteBatchForMe: false);
                         }
 
                     }
@@ -748,7 +748,7 @@ namespace DSAnimStudio.DbgMenus
                     }
                 }
                 //---- Return to old viewport
-                GFX.SpriteBatch.End();
+                GFX.SpriteBatchEnd();
                 GFX.Device.Viewport = oldViewport;
                 
 

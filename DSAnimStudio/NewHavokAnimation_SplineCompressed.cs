@@ -18,14 +18,14 @@ namespace DSAnimStudio
         private int[] TransformTrackIndexToHkxBoneMap;
 
         public int BlockCount = 1;
-        public int NumFramesPerBlock = 256;
+        public int NumFramesPerBlock = 255;
 
         int CurrentBlock => (int)((CurrentFrame % FrameCount) / NumFramesPerBlock);
 
         public NewHavokAnimation_SplineCompressed(NewAnimSkeleton skeleton, HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding, HKX.HKASplineCompressedAnimation anim)
             : base(skeleton, refFrame, binding)
         {
-            Duration = anim.Duration;
+            Duration = anim.Duration;// Math.Max(anim.Duration, anim.FrameDuration * anim.FrameCount);
             FrameCount = anim.FrameCount;
 
             FrameDuration = anim.FrameDuration;
@@ -114,7 +114,7 @@ namespace DSAnimStudio
             //    Console.WriteLine(":fatoof:");
             //}
 
-            if (track.HasSplineRotation)
+            if (track.SplineRotation != null)//track.HasSplineRotation)
             {
                 result.Rotation = track.SplineRotation.GetValue(frame);
             }
@@ -125,11 +125,11 @@ namespace DSAnimStudio
             }
             else
             {
-                result.Rotation = IsAdditiveBlend ? Quaternion.Identity : new Quaternion(
-                    skeleTransform.Rotation.Vector.X,
-                    skeleTransform.Rotation.Vector.Y,
-                    skeleTransform.Rotation.Vector.Z,
-                    skeleTransform.Rotation.Vector.W);
+                //result.Rotation = IsAdditiveBlend ? Quaternion.Identity : new Quaternion(
+                //    skeleTransform.Rotation.Vector.X,
+                //    skeleTransform.Rotation.Vector.Y,
+                //    skeleTransform.Rotation.Vector.Z,
+                //    skeleTransform.Rotation.Vector.W);
             }
 
             if (IsAdditiveBlend)

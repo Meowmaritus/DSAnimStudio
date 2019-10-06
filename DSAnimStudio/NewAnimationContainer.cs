@@ -19,6 +19,8 @@ namespace DSAnimStudio
 
         private Dictionary<string, byte[]> timeactFiles = new Dictionary<string, byte[]>();
 
+        public bool EnableRootMotion = true;
+
         public IReadOnlyDictionary<string, byte[]> TimeActFiles
         {
             get
@@ -122,7 +124,8 @@ namespace DSAnimStudio
         public bool IsPlaying = true;
         public bool IsLoop = true;
 
-        public Matrix CurrentAnimRootMotionMatrix => CurrentAnimation?.CurrentRootMotionMatrix ?? Matrix.Identity;
+        public Matrix CurrentAnimRootMotionMatrix => EnableRootMotion 
+            ? (CurrentAnimation?.CurrentRootMotionMatrix ?? Matrix.Identity) : Matrix.Identity;
 
         public bool Paused = false; 
 

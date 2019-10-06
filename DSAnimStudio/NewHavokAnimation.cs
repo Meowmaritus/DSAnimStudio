@@ -21,6 +21,8 @@ namespace DSAnimStudio
 
         public readonly NewAnimSkeleton Skeleton;
 
+        public readonly Vector4 RootMotionUp = new Vector4(0, 1, 0, 0);
+        public readonly Vector4 RootMotionForward = new Vector4(0, 0, 1, 0);
         public readonly Vector4[] RootMotionFrames = null;
 
         private Vector4 currentRootMotionVector4 = Vector4.Zero;
@@ -132,8 +134,14 @@ namespace DSAnimStudio
                 currentRootMotionVector4 = Vector4.Zero;
             }
 
-            CurrentRootMotionMatrix = Matrix.CreateRotationY(currentRootMotionVector4.W)
-                * Matrix.CreateTranslation(currentRootMotionVector4.X, currentRootMotionVector4.Y, currentRootMotionVector4.Z);
+            
+
+            CurrentRootMotionMatrix = 
+                Matrix.CreateRotationY(currentRootMotionVector4.W) *
+                Matrix.CreateWorld(
+                    new Vector3(currentRootMotionVector4.X, currentRootMotionVector4.Y, currentRootMotionVector4.Z),
+                    new Vector3(RootMotionForward.X, RootMotionForward.Y, -RootMotionForward.Z),
+                    new Vector3(RootMotionUp.X, RootMotionUp.Y, RootMotionUp.Z));
         }
 
         public NewHavokAnimation(NewAnimSkeleton skeleton, HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding)
@@ -150,6 +158,8 @@ namespace DSAnimStudio
                         refFrame.ReferenceFrameSamples[i].Vector.Z, 
                         refFrame.ReferenceFrameSamples[i].Vector.W);
                 }
+                RootMotionUp = new Vector4(refFrame.Up.X, refFrame.Up.Y, refFrame.Up.Z, refFrame.Up.W);
+                RootMotionForward = new Vector4(refFrame.Forward.X, refFrame.Forward.Y, refFrame.Forward.Z, refFrame.Forward.W);
             }
 
             lock (_lock_boneMatrixStuff)

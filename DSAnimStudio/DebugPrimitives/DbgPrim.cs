@@ -18,6 +18,7 @@ namespace DSAnimStudio.DebugPrimitives
         WeaponDummyPoly,
         DummyPolyHelper,
         Skybox,
+        DummyPolySpawnArrow,
         Other,
     }
 
@@ -59,6 +60,83 @@ namespace DSAnimStudio.DebugPrimitives
         public List<IDbgPrim> Children { get; set; } = new List<IDbgPrim>();
         public List<IDbgPrim> UnparentedChildren { get; set; } = new List<IDbgPrim>();
 
+        protected int[] Indices = new int[0];
+        protected VertexPositionColorNormal[] Vertices = new VertexPositionColorNormal[0];
+        protected VertexBuffer VertBuffer;
+        protected IndexBuffer IndexBuffer;
+        protected bool NeedToRecreateVertBuffer = true;
+        protected bool NeedToRecreateIndexBuffer = true;
+
+        protected abstract PrimitiveType PrimType { get; }
+
+        public bool BackfaceCulling = true;
+        public bool Wireframe = false;
+        public bool DisableLighting = false;
+
+        public int VertexCount => Vertices.Length;
+        public int IndexCount => Indices.Length;
+
+        protected void SetBuffers(VertexBuffer vertBuffer, IndexBuffer indexBuffer)
+        {
+            VertBuffer = vertBuffer;
+            IndexBuffer = indexBuffer;
+            NeedToRecreateIndexBuffer = false;
+            NeedToRecreateVertBuffer = false;
+        }
+
+        protected void FinalizeBuffers(bool force = false)
+        {
+            if (force || NeedToRecreateVertBuffer)
+            {
+                VertBuffer?.Dispose();
+                VertBuffer = null;
+                if (Vertices.Length > 0)
+                {
+                    VertBuffer = new VertexBuffer(GFX.Device,
+                    typeof(VertexPositionColorNormal), Vertices.Length, BufferUsage.WriteOnly);
+                    VertBuffer.SetData(Vertices);
+                }
+                NeedToRecreateVertBuffer = false;
+            }
+
+            if (force || NeedToRecreateIndexBuffer)
+            {
+                IndexBuffer?.Dispose();
+                IndexBuffer = null;
+                if (Indices.Length > 0)
+                {
+                    IndexBuffer = new IndexBuffer(GFX.Device, IndexElementSize.ThirtyTwoBits, Indices.Length, BufferUsage.WriteOnly);
+                    IndexBuffer.SetData(Indices);
+                }
+                NeedToRecreateIndexBuffer = false;
+            }
+        }
+
+        protected void AddVertex(Vector3 pos, Color color, Vector3? normal = null)
+        {
+            Array.Resize(ref Vertices, Vertices.Length + 1);
+            Vertices[Vertices.Length - 1].Position = pos;
+            Vertices[Vertices.Length - 1].Color = color;
+            Vertices[Vertices.Length - 1].Normal = normal ?? Vector3.Forward;
+
+            NeedToRecreateVertBuffer = true;
+        }
+
+        protected void AddVertex(VertexPositionColorNormal vert)
+        {
+            Array.Resize(ref Vertices, Vertices.Length + 1);
+            Vertices[Vertices.Length - 1] = vert;
+
+            NeedToRecreateVertBuffer = true;
+        }
+
+        protected void AddIndex(int index)
+        {
+            Array.Resize(ref Indices, Indices.Length + 1);
+            Indices[Indices.Length - 1] = index;
+            NeedToRecreateIndexBuffer = true;
+        }
+
         public void AddDbgLabel(Vector3 position, float height, string text, Color color)
         {
             DbgLabels.Add(new DbgLabel(Matrix.CreateTranslation(position), height, text, color));
@@ -79,7 +157,31 @@ namespace DSAnimStudio.DebugPrimitives
         /// </summary>
         public virtual string[] ShaderTechniquesSelection => null;
 
-        protected abstract void DrawPrimitive();
+        private void DrawPrimitive()
+        {
+            FinalizeBuffers();
+
+            if (VertBuffer == null || IndexBuffer == null || VertBuffer.VertexCount == 0 || IndexBuffer.IndexCount == 0)
+            {
+                // This is some dummy parent thing with no geometry.
+                if (Children.Count > 0 || UnparentedChildren.Count > 0)
+                    return;
+
+                //If it's NOT a parent thing, then it shouldn't have empty geometry.
+                // Some mistake was made.
+                throw new Exception("DbgPrim geometry is empty and it had no children. Something went wrong...");
+            }
+
+            GFX.Device.SetVertexBuffer(VertBuffer);
+            GFX.Device.Indices = IndexBuffer;
+            GFX.BackfaceCulling = BackfaceCulling;
+            GFX.Wireframe = Wireframe;
+
+            if (Shader is DbgPrimSolidShader solid)
+                solid.Effect.LightingEnabled = !DisableLighting;
+
+            GFX.Device.DrawIndexedPrimitives(PrimType, 0, 0, IndexBuffer.IndexCount);
+        }
 
         protected virtual void PreDraw()
         {

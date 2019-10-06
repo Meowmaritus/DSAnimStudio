@@ -13,39 +13,14 @@ namespace DSAnimStudio.DebugPrimitives
     {
         public override IGFXShader<DbgPrimWireShader> Shader => GFX.DbgPrimWireShader;
 
-        private int[] Indices = new int[0];
-        private VertexPositionColor[] Vertices = new VertexPositionColor[0];
-        private VertexBuffer VertBuffer;
-        private IndexBuffer IndexBuffer;
-        private bool NeedToRecreateVertBuffer = true;
-        private bool NeedToRecreateIndexBuffer = true;
+        protected override PrimitiveType PrimType => PrimitiveType.LineList;
 
-        public int VertexCount => Vertices.Length;
         public int LineCount => Indices.Length / 2;
-        public int IndexCount => Indices.Length;
 
-        private void AddVertex(Vector3 pos, Color color)
+
+        public void AddLine(Vector3 start, Vector3 end)
         {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1].Position = pos;
-            Vertices[Vertices.Length - 1].Color = color;
-
-            NeedToRecreateVertBuffer = true;
-        }
-
-        private void AddVertex(VertexPositionColor vert)
-        {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1] = vert;
-
-            NeedToRecreateVertBuffer = true;
-        }
-
-        private void AddIndex(int index)
-        {
-            Array.Resize(ref Indices, Indices.Length + 1);
-            Indices[Indices.Length - 1] = index;
-            NeedToRecreateIndexBuffer = true;
+            AddLine(start, end, Color.White);
         }
 
         public void AddLine(Vector3 start, Vector3 end, Color color)
@@ -55,8 +30,8 @@ namespace DSAnimStudio.DebugPrimitives
 
         public void AddLine(Vector3 start, Vector3 end, Color startColor, Color endColor)
         {
-            var startVert = new VertexPositionColor(start, startColor);
-            var endVert = new VertexPositionColor(end, endColor);
+            var startVert = new VertexPositionColorNormal(start, startColor, Vector3.Zero);
+            var endVert = new VertexPositionColorNormal(end, endColor, Vector3.Zero);
             int startIndex = Array.IndexOf(Vertices, startVert);
             int endIndex = Array.IndexOf(Vertices, endVert);
 
@@ -91,51 +66,11 @@ namespace DSAnimStudio.DebugPrimitives
 
             AddIndex(startIndex);
             AddIndex(endIndex);
-
-            //if (NeedToRecreateVertBuffer)
-            //{
-            //    VertBuffer = new VertexBuffer(GFX.Device, 
-            //        typeof(VertexPositionColor), Vertices.Length, BufferUsage.WriteOnly);
-            //    VertBuffer.SetData(Vertices);
-            //    NeedToRecreateVertBuffer = false;
-            //} 
-
-            //if (NeedToRecreateIndexBuffer)
-            //{
-            //    IndexBuffer = new IndexBuffer(GFX.Device, IndexElementSize.ThirtyTwoBits, Indices.Length, BufferUsage.WriteOnly);
-            //    IndexBuffer.SetData(Indices);
-            //    NeedToRecreateIndexBuffer = false;
-            //}
-        }
-
-        protected override void DrawPrimitive()
-        {
-            if (Vertices.Length == 0)
-                return;
-
-            if (NeedToRecreateVertBuffer)
-            {
-                VertBuffer = new VertexBuffer(GFX.Device,
-                    typeof(VertexPositionColor), Vertices.Length, BufferUsage.WriteOnly);
-                VertBuffer.SetData(Vertices);
-                NeedToRecreateVertBuffer = false;
-            }
-
-            if (NeedToRecreateIndexBuffer)
-            {
-                IndexBuffer = new IndexBuffer(GFX.Device, IndexElementSize.ThirtyTwoBits, Indices.Length, BufferUsage.WriteOnly);
-                IndexBuffer.SetData(Indices);
-                NeedToRecreateIndexBuffer = false;
-            }
-
-            GFX.Device.SetVertexBuffer(VertBuffer);
-            GFX.Device.Indices = IndexBuffer;
-            GFX.Device.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, Indices.Length);
         }
 
         protected override void DisposeBuffers()
         {
-            VertBuffer?.Dispose();
+            //VertBuffer?.Dispose();
         }
 
         public override DbgPrim<DbgPrimWireShader> Instantiate(string newName, Transform newLocation, Color? newNameColor = null)

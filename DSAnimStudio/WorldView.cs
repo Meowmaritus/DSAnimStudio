@@ -19,6 +19,7 @@ namespace DSAnimStudio
         public Transform CameraPositionDefault = Transform.Default;
         public float OrbitCamDistance = 2;
         public float ModelHeight_ForOrbitCam = 1;
+        public float ModelDepth_ForOrbitCam = 1;
         public Vector3 ModelCenter_ForOrbitCam = Vector3.Zero;
         public Vector3 OrbitCamCenter = new Vector3(0, 0.5f, 0);
         public bool IsOrbitCam = true;
@@ -29,10 +30,11 @@ namespace DSAnimStudio
 
         public void OrbitCamReset()
         {
+            var distDetermine = Math.Max(ModelHeight_ForOrbitCam, ModelDepth_ForOrbitCam);
             if (ViewportAspectRatio < 1)
-                OrbitCamDistance = (float)Math.Sqrt((ModelHeight_ForOrbitCam * 2) / (ViewportAspectRatio * 0.66f));
+                OrbitCamDistance = (float)Math.Sqrt((distDetermine * 2) / (ViewportAspectRatio * 0.66f));
             else
-                OrbitCamDistance = (float)Math.Sqrt(ModelHeight_ForOrbitCam * 2);
+                OrbitCamDistance = (float)Math.Sqrt(distDetermine * 2);
 
             OrbitCamCenter = new Vector3(0, ModelCenter_ForOrbitCam.Y, 0);
 
