@@ -120,6 +120,7 @@
     <Compile Include="NewChrAsm.cs" />
     <Compile Include="NewHavokAnimation_SplineCompressed.cs" />
     <Compile Include="NewMesh.cs" />
+    <Compile Include="TaeEditor\TaeHoverInfoBox.cs" />
     <Compile Include="TaeEditor\TaeViewportInteractor.cs" />
     <Compile Include="TaeEditor\TaeEventSimulationEnvironment.cs" />
     <Compile Include="FmgManager.cs" />

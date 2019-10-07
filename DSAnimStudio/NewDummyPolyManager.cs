@@ -255,8 +255,11 @@ namespace DSAnimStudio
             }
         }
 
-        private Dictionary<ParamData.AtkParam.Hit, List<IDbgPrim>> HitPrims 
+        private Dictionary<ParamData.AtkParam.Hit, List<IDbgPrim>> HitPrims
             = new Dictionary<ParamData.AtkParam.Hit, List<IDbgPrim>>();
+
+        private Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource> HitFilters
+            = new Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource>();
 
         private void UpdateHitPrim(ParamData.AtkParam.Hit hit)
         {
@@ -265,13 +268,13 @@ namespace DSAnimStudio
                 int dmyPoly1 = hit.DmyPoly1;
                 int dmyPoly2 = hit.DmyPoly2;
 
-                if (MODEL.IS_PLAYER)
-                {
-                    if (dmyPoly1 >= 0)
-                        dmyPoly1 = dmyPoly1 % 1000;
+                var filter = ParamData.AtkParam.DummyPolySource.Body;
 
-                    if (dmyPoly2 >= 0)
-                        dmyPoly2 = dmyPoly2 % 1000;
+                if (HitFilters.ContainsKey(hit))
+                {
+                    dmyPoly1 = hit.GetFilteredDmyPoly1(HitFilters[hit]);
+                    dmyPoly2 = hit.GetFilteredDmyPoly2(HitFilters[hit]);
+                    filter = HitFilters[hit];
                 }
 
                 if (hit.IsCapsule)
@@ -293,7 +296,7 @@ namespace DSAnimStudio
                     else
                     {
                         if (DummyPolyByRefID[dmyPoly1].Count != HitPrims[hit].Count)
-                            AddNewHitPrim(hit, false, dontUpdate: true);
+                            AddNewHitPrim(hit, filter, false, dontUpdate: true);
 
                         for (int i = 0; i < Math.Min(HitPrims[hit].Count, DummyPolyByRefID[dmyPoly1].Count); i++)
                         {
@@ -356,10 +359,15 @@ namespace DSAnimStudio
 
         }
 
-        private void AddNewHitPrim(ParamData.AtkParam.Hit hit, bool visible = false, bool dontUpdate = false)
+        private void AddNewHitPrim(ParamData.AtkParam.Hit hit, ParamData.AtkParam.DummyPolySource dmyFilter, bool visible = false, bool dontUpdate = false)
         {
             if (!HitPrims.ContainsKey(hit))
                 HitPrims.Add(hit, new List<IDbgPrim>());
+
+            if (!HitFilters.ContainsKey(hit))
+                HitFilters.Add(hit, dmyFilter);
+            else
+                HitFilters[hit] = dmyFilter;
 
             if (hit.IsCapsule)
             {
@@ -398,7 +406,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void SetHitVisibility(ParamData.AtkParam.Hit hit, bool visible)
+        public void SetHitVisibility(ParamData.AtkParam.Hit hit, bool visible, ParamData.AtkParam.DummyPolySource dmyFilter)
         {
             lock (_lock_everything_monkaS)
             {
@@ -409,7 +417,7 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    AddNewHitPrim(hit, visible);
+                    AddNewHitPrim(hit, dmyFilter, visible);
                 }
                 if (visible && !VisibleHitsToHideForHideAll.Contains(hit))
                     VisibleHitsToHideForHideAll.Enqueue(hit);
@@ -421,6 +429,7 @@ namespace DSAnimStudio
             lock (_lock_everything_monkaS)
             {
                 HitPrims.Clear();
+                HitFilters.Clear();
                 VisibleHitsToHideForHideAll.Clear();
             }
 
@@ -433,28 +442,29 @@ namespace DSAnimStudio
             while (VisibleHitsToHideForHideAll.Count > 0)
             {
                 var nextHitToHide = VisibleHitsToHideForHideAll.Dequeue();
-                SetHitVisibility(nextHitToHide, false);
+                SetHitVisibility(nextHitToHide, false, ParamData.AtkParam.DummyPolySource.Body);
             }
         }
 
-        public void SetAttackVisibility(ParamData.AtkParam atk, bool visible)
+        public void SetAttackVisibility(ParamData.AtkParam atk, bool visible, ParamData.AtkParam.DummyPolySource dmyFilter)
         {
+            bool isFirstValidDmyPoly = true;
             for (int i = 0; i < atk.Hits.Length; i++)
             {
-                int dmyPoly1 = atk.Hits[i].DmyPoly1;
+                int dmyPoly1 = atk.Hits[i].GetFilteredDmyPoly1(dmyFilter);
 
-                if (dmyPoly1 != -1 && MODEL.IS_PLAYER)
+                if (dmyPoly1 == -1)
                 {
-                    if (dmyPoly1 >= 0)
-                        dmyPoly1 = dmyPoly1 % 1000;
+                    continue;
                 }
 
-                if (visible && i == 0 && dmyPoly1 != -1 && DummyPolyByRefID.ContainsKey(dmyPoly1))
+                if (visible && isFirstValidDmyPoly && dmyPoly1 != -1 && DummyPolyByRefID.ContainsKey(dmyPoly1))
                 {
                     ShowAttackOnDummyPoly(atk, dmyPoly1);
+                    isFirstValidDmyPoly = false;
                 }
 
-                SetHitVisibility(atk.Hits[i], visible);
+                SetHitVisibility(atk.Hits[i], visible, dmyFilter);
             }
         }
 

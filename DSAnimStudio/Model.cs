@@ -105,7 +105,7 @@ namespace DSAnimStudio
         public Model(IProgress<double> loadingProgress, string name, IBinder chrbnd, int modelIndex, 
             IBinder anibnd, IBinder texbnd = null, List<string> additionalTpfNames = null, 
             string possibleLooseTpfFolder = null, int baseDmyPolyID = 0, 
-            bool ignoreStaticTransforms = false)
+            bool ignoreStaticTransforms = false, IBinder additionalTexbnd = null)
             : this()
         {
             Name = name;
@@ -206,8 +206,19 @@ namespace DSAnimStudio
                 });
             }
 
-            // This will only be for PTDE so it will be extremely fast lol, 
-            // not gonna bother with progress bar update.
+            loadingProgress.Report(3.5 / 4.0);
+
+            if (additionalTexbnd != null)
+            {
+                LoadingTaskMan.DoLoadingTaskSynchronous($"{Name}_AdditionalTEXBND", 
+                    $"Loading extra TEXBND for {Name}...", innerProg =>
+                {
+                    TexturePool.AddTextureBnd(additionalTexbnd, innerProg);
+                    MainMesh.TextureReloadQueued = true;
+                });
+            }
+
+            loadingProgress.Report(3.9 / 4.0);
             if (possibleLooseTpfFolder != null && Directory.Exists(possibleLooseTpfFolder))
             {
                 TexturePool.AddTPFFolder(possibleLooseTpfFolder);

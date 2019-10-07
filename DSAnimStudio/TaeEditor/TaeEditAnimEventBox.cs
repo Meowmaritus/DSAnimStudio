@@ -55,20 +55,36 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeScrollingString EventText { get; private set; } = new TaeScrollingString();
 
-        public Color ColorBG = Color.SkyBlue;
+        public Color ColorBG = new Color(80, 80, 80, 255);
+        public Color ColorBGSelected = Color.DodgerBlue;
         public Color ColorOutline = Color.Black;
         public Color ColorFG => Color.White;
 
-        public bool PlaybackHighlight => OwnerPane.PlaybackCursor.GUICurrentFrame >= 
-            MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval) && 
-            OwnerPane.PlaybackCursor.GUICurrentFrame < 
-            MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
+        private bool CheckHighlight(double curFrame, TaeEditAnimEventBox hoverBox)
+        {
+            if (!OwnerPane.MainScreen.Config.SoloHighlightEventOnHover || 
+                hoverBox == null || OwnerPane.PlaybackCursor.IsPlaying || 
+                OwnerPane.PlaybackCursor.Scrubbing)
+            {
+                return curFrame >=
+                MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval) &&
+                curFrame <
+                MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
+            }
+            else
+            {
+                return hoverBox == this;
+            }
+            
+        }
+
+        public bool PlaybackHighlight => CheckHighlight(
+            OwnerPane.PlaybackCursor.GUICurrentFrameMod, 
+            OwnerPane.MainScreen.HoveringOverEventBox);
 
         public bool PrevCyclePlaybackHighlight => !OwnerPane.PlaybackCursor.JustStartedPlaying &&
-            OwnerPane.PlaybackCursor.OldGUICurrentFrame >=
-            MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval) &&
-            OwnerPane.PlaybackCursor.OldGUICurrentFrame <
-            MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
+            CheckHighlight(OwnerPane.PlaybackCursor.OldGUICurrentFrameMod,
+                OwnerPane.MainScreen.PrevHoveringOverEventBox);
 
         public bool DragWholeBoxToVirtualUnitX(float x)
         {
@@ -126,6 +142,11 @@ namespace DSAnimStudio.TaeEditor
         private void MyEvent_RowChanged(object sender, int e)
         {
             RaiseRowChanged(e);
+        }
+
+        public string GetPopupText()
+        {
+            return "[TODO: TaeEditAnimEventBox.GetPopupText()]\n\n\n\ntest test";
         }
 
         public void UpdateEventText()

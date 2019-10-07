@@ -76,6 +76,9 @@ namespace DSAnimStudio.TaeEditor
             VerticalScroll,
         }
 
+        public TaeHoverInfoBox HoverInfoBox = new TaeHoverInfoBox();
+        public Vector2 HoverInfoBoxOffsetFromMouse = Vector2.One * 16;
+
         // Setting to 1 to remove smoothing, but lower values will add smoothing
         // later if I want it.
         public float AutoScrollLerpDistMult = 1;
@@ -866,8 +869,31 @@ namespace DSAnimStudio.TaeEditor
             PlaybackCursor.Scrubbing = false;
         }
 
+        public void UpdateMiddleClickPan()
+        {
+            if (MainScreen.Input.MiddleClickHeld && Rect.Contains(MainScreen.Input.MiddleClickDownAnchor))
+            {
+                //MainScreen.Input.CursorType = MouseCursorType.GrabPan;
+                ScrollViewer.Scroll -= MainScreen.Input.MousePositionDelta;
+                ScrollViewer.ClampScroll();
+            }
+        }
+
         public void Update(bool allowMouseUpdate)
         {
+            if (MainScreen.Input.MiddleClickHeld && Rect.Contains(MainScreen.Input.MiddleClickDownAnchor))
+            {
+                MainScreen.HoveringOverEventBox = null;
+                MainScreen.PrevHoveringOverEventBox = null;
+                HoverInfoBox.Update(mouseInside: false, 0);
+                return;
+            }
+
+            //else if (MainScreen.Input.MiddleClickUp)
+            //{
+            //    MainScreen.Input.CursorType = MouseCursorType.Arrow;
+            //}
+
             if (!MainScreen.Input.LeftClickHeld)
             {
                 MouseReleaseStuff();
@@ -1819,7 +1845,7 @@ namespace DSAnimStudio.TaeEditor
                 sb.Draw(texture: boxTex,
                     position: ScrollViewer.Scroll - (Vector2.One * 2),
                     sourceRectangle: null,
-                    color: MainScreen.Config.EnableColorBlindMode ? Color.Gray : Color.DimGray,
+                    color: new Color(120, 120, 120, 255),
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
@@ -1886,15 +1912,15 @@ namespace DSAnimStudio.TaeEditor
                         Vector2 pos = new Vector2(box.LeftFr, box.Top);
                         Vector2 size = new Vector2(box.WidthFr, box.HeightFr);
 
-                        int boxOutlineThickness = isBoxSelected ? 2 : 1;
+                        int boxOutlineThickness = 1;// isBoxSelected ? 2 : 1;
 
                         Color textFG = Color.White;
                         Color textBG = Color.Black;
 
                         Color boxOutlineColor = box.ColorOutline;
 
-                        Color thisBoxBgColor = new Color(box.ColorBG.ToVector3() * 0.4f);
-                        Color thisBoxBgColorSelected = new Color(box.ColorBG.ToVector3() * 0.7f);
+                        Color thisBoxBgColor = new Color(box.ColorBG.ToVector3());
+                        Color thisBoxBgColorSelected = new Color(box.ColorBGSelected.ToVector3());
                         Color boxOutlineColorSelected = Color.White;
                         
 
@@ -1935,16 +1961,16 @@ namespace DSAnimStudio.TaeEditor
 
                         var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), (int)pos.Y);
 
-                        const string fixedPrefix = "< ";
+                        const string fixedPrefix = "<-";
 
                         var boxRect = box.GetTextRect(boxOutlineThickness);
 
-                        if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= 64)
+                        if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= 48)
                         {
                             var fancyTextRect = boxRect;
                             if (eventStartsBeforeScreen)
                             {
-                                var fixedPrefixSize = font.MeasureString(fixedPrefix).ToPoint();
+                                var fixedPrefixSize = (font.MeasureString(fixedPrefix)).ToPoint();
 
                                 int amountOutOfScreen = (int)ScrollViewer.Scroll.X - fancyTextRect.X;
 
@@ -1957,11 +1983,11 @@ namespace DSAnimStudio.TaeEditor
                                 var prefixPos = new Vector2((int)ScrollViewer.Scroll.X, boxRect.Y);
 
                                 sb.DrawString(font, fixedPrefix,
-                                    prefixPos + Vector2.One, textBG);
+                                    prefixPos + Vector2.One, textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                                //sb.DrawString(font, fixedPrefix,
+                                //    prefixPos + (Vector2.One * 2), textBG);
                                 sb.DrawString(font, fixedPrefix,
-                                    prefixPos + (Vector2.One * 2), textBG);
-                                sb.DrawString(font, fixedPrefix,
-                                    prefixPos, textFG);
+                                    prefixPos, textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                             }
 
                             box.EventText.TextColor = textFG;
@@ -1972,6 +1998,12 @@ namespace DSAnimStudio.TaeEditor
                             if (MainScreen.HoveringOverEventBox == box)
                             {
                                 box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, elapsedSeconds);
+
+                                if (MainScreen.PrevHoveringOverEventBox != box)
+                                {
+                                    HoverInfoBox.Text = box.GetPopupText();
+                                    HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
+                                }
                             }
                             else
                             {
@@ -1993,19 +2025,19 @@ namespace DSAnimStudio.TaeEditor
                             {
                                 sb.DrawString(font, fullTextWithPrefix,
                                     namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
-                                sb.DrawString(font, fullTextWithPrefix,
-                                    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
+                                //sb.DrawString(font, fullTextWithPrefix,
+                                //    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
                                 sb.DrawString(font, fullTextWithPrefix,
                                     namePos + new Vector2(1, 0) + thicknessOffset, textFG);
                             }
                             else
                             {
                                 string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
-                                    $"{(box.MyEvent.Type)}";
+                                    $"{(box.MyEvent.TypeName)}";
                                 sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
                                     textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                                sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
-                                    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                                //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                                //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
                                 sb.DrawString(font, shortTextWithPrefix, namePos + thicknessOffset,
                                     textFG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
                             }
@@ -2013,6 +2045,15 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
+                HoverInfoBox.Update(mouseInside: MainScreen.HoveringOverEventBox != null, elapsedSeconds);
+
+                // When you change which box (if any) is hovered, update the simulation and stuff.
+                if (MainScreen.PrevHoveringOverEventBox != MainScreen.HoveringOverEventBox)
+                {
+                    ViewportInteractor.OnScrubFrameChange();
+                }
+
+                MainScreen.PrevHoveringOverEventBox = MainScreen.HoveringOverEventBox;
 
 
                 //if (MouseRow >= 0)
@@ -2175,6 +2216,18 @@ namespace DSAnimStudio.TaeEditor
                         );
                 }
 
+                // Draw PlaybackCursor StartTime vertical line
+                sb.Draw(texture: boxTex,
+                    position: new Vector2((int)((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2)), 0),
+                    sourceRectangle: null,
+                    color: Color.Blue,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(PlaybackCursorThickness, Rect.Height),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+
                 var playbackCursorPixelX = (int)(SecondsPixelSize * (float)(PlaybackCursor.IsPlaying 
                     ? PlaybackCursor.CurrentTime : PlaybackCursor.GUICurrentTime));
 
@@ -2190,14 +2243,12 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
 
-                float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
-                float rightOfScreenX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
+                var playbackCursorPixelXMod = (int)(SecondsPixelSize * (float)(PlaybackCursor.IsPlaying
+                    ? PlaybackCursor.CurrentTimeMod : PlaybackCursor.GUICurrentTimeMod));
 
-                
-
-                // Draw PlaybackCursor StartTime vertical line
+                // Draw PlaybackCursor CurrentTimeMod vertical line
                 sb.Draw(texture: boxTex,
-                    position: new Vector2((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2), 0),
+                    position: new Vector2(playbackCursorPixelXMod - (PlaybackCursorThickness / 2), ScrollViewer.Scroll.Y),
                     sourceRectangle: null,
                     color: PlaybackCursorColor * 0.25f,
                     rotation: 0,
@@ -2206,6 +2257,9 @@ namespace DSAnimStudio.TaeEditor
                     effects: SpriteEffects.None,
                     layerDepth: 0
                     );
+
+                float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
+                float rightOfScreenX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
 
 
                 // This would draw a little +/- by the mouse cursor to signify that
@@ -2297,6 +2351,30 @@ namespace DSAnimStudio.TaeEditor
 
                 sb.End();
             }
+
+            
+
+            if (MainScreen.Config.ShowEventHoverInfo)
+            {
+                gd.Viewport = new Viewport(MainScreen.Rect);
+
+                sb.Begin(transformMatrix: scrollMatrix);
+
+                if (!Rect.Contains(MainScreen.Input.MousePositionPoint))
+                    HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
+
+                if (!HoverInfoBox.IsVisible)
+                {
+                    HoverInfoBox.DrawPosition = relMouse +
+                        new Vector2(Rect.X + HoverInfoBoxOffsetFromMouse.X,
+                        Rect.Y + HoverInfoBoxOffsetFromMouse.Y + TimeLineHeight);
+                }
+
+                HoverInfoBox.Draw(sb, boxTex);
+
+                sb.End();
+            }
+
             gd.Viewport = oldViewport;
         }
     }

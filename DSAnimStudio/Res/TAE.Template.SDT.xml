@@ -471,7 +471,7 @@
         <entry value="10" name="10: (g) Ghost"/>
       </s32>
       <s32 name="SoundID"/>
-      <s32 name="DummyPolyId"/>
+      <s32 name="DummyPolyID"/>
       <s32 assert="0"/>
     </event>
     <event id="132" name="PlaySound_Weapon">
@@ -1431,7 +1431,7 @@
     <event id="792" name="InvokeFootSfxParam_Entity">
       <u16 name="FootSFXIndex"/>
       <u16 assert="0"/>
-      <s32 name="DummyPolyId"/>
+      <s32 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
       <b name="IsIgnoreDummyPolyAngle"/>
       <b name="IsFollowDummyPoly"/>

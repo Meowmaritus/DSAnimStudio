@@ -14,6 +14,8 @@ namespace DSAnimStudio.TaeEditor
     {
         public double CurrentTime;
 
+        public double CurrentTimeMod => CurrentTime % MaxTime;
+
         public event EventHandler<TaeEditAnimEventBox> EventBoxEnter;
         private void OnEventBoxEnter(TaeEditAnimEventBox evBox) { EventBoxEnter?.Invoke(this, evBox); }
 
@@ -42,12 +44,19 @@ namespace DSAnimStudio.TaeEditor
             ? (Math.Round(CurrentTime / (SnapInterval ?? SnapInterval_Default)) 
             * (SnapInterval ?? SnapInterval_Default)) : CurrentTime;
 
+        public double GUICurrentTimeMod => GUICurrentTime % MaxTime;
+
         public double GUIStartTime => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Round(StartTime / (SnapInterval ?? SnapInterval_Default)) 
             * (SnapInterval ?? SnapInterval_Default)) : StartTime;
 
         public double OldGUICurrentTime { get; private set; } = 0;
+
+        public double OldGUICurrentTimeMod => OldGUICurrentTime % MaxTime;
+
         public double OldGUICurrentFrame { get; private set; } = 0;
+
+        public double OldGUICurrentFrameMod => OldGUICurrentFrame % MaxFrame;
 
         public double StartTime = 0;
         public double MaxTime { get; private set; } = 1;
@@ -63,6 +72,8 @@ namespace DSAnimStudio.TaeEditor
         public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Round(CurrentTime / CurrentSnapInterval)) 
             :  (CurrentTime / CurrentSnapInterval);
+
+        public double GUICurrentFrameMod => GUICurrentFrame % MaxFrame;
 
         public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Round(MaxTime / CurrentSnapInterval)) 

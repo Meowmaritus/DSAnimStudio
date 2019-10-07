@@ -14,15 +14,15 @@ namespace DSAnimStudio.TaeEditor
         public bool DbgPrimXRay { get; set; } = false;
         public bool EnableSnapTo30FPSIncrements { get; set; } = true;
         public bool LockFramerateToOriginalAnimFramerate { get; set; } = false;
-
         public bool EnableFancyScrollingStrings { get; set; } = true;
         public float FancyScrollingStringsScrollSpeed { get; set; } = 64;
         public bool FancyTextScrollSnapsToPixels { get; set; } = true;
         public bool AutoCollapseAllTaeSections { get; set; } = false;
         public bool AutoScrollDuringAnimPlayback { get; set; } = true;
+        public bool SoloHighlightEventOnHover { get; set; } = true;
+        public bool ShowEventHoverInfo { get; set; } = true;
         public List<string> RecentFilesList { get; set; } = new List<string>();
         public bool LiveRefreshOnSave { get; set; } = true;
-
         public bool CameraFollowsRootMotion { get; set; } = true;
         public bool EnableAnimRootMotion { get; set; } = true;
 
