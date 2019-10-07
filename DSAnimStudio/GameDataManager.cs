@@ -269,27 +269,33 @@ namespace DSAnimStudio
                 {
                     var chrbnd = BND4.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
                     IBinder texbnd = null;
+                    IBinder extraTexbnd = null;
                     IBinder anibnd = null;
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.texbnd.dcx"))
                         texbnd = BND4.Read($@"{InterrootPath}\chr\{id}.texbnd.dcx");
 
-                    if (texbnd == null && System.IO.File.Exists($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.texbnd.dcx"))
-                        texbnd = BND4.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.texbnd.dcx");
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.texbnd.dcx"))
+                        extraTexbnd = BND4.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.texbnd.dcx");
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd.dcx"))
                         anibnd = BND4.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
 
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd, ignoreStaticTransforms: true);
+                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd, 
+                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                 }
                 else if (GameType == GameTypes.DS1)
                 {
                     var chrbnd = BND3.Read($@"{InterrootPath}\chr\{id}.chrbnd");
                     IBinder anibnd = null;
                     IBinder texbnd = null;
+                    IBinder extraTexbnd = null;
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd"))
                         anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd");
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd"))
+                        extraTexbnd = BND3.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd");
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.chrtpfbdt"))
                     {
@@ -302,16 +308,21 @@ namespace DSAnimStudio
                     }
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
-                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
+                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", 
+                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                 }
                 else if (GameType == GameTypes.DS1R)
                 {
                     var chrbnd = BND3.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
                     IBinder anibnd = null;
                     IBinder texbnd = null;
+                    IBinder extraTexbnd = null;
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd.dcx"))
                         anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd.dcx"))
+                        extraTexbnd = BND3.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd.dcx");
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.chrtpfbdt"))
                     {
@@ -324,16 +335,25 @@ namespace DSAnimStudio
                     }
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
-                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
+                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", 
+                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                 }
                 else if (GameType == GameTypes.BB)
                 {
                     var chrbnd = BND4.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
-                    var anibnd = BND4.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+                    IBinder anibnd = null;
+                    IBinder extraTexbnd = null;
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd.dcx"))
+                        anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+
+                    if (System.IO.File.Exists($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd.dcx"))
+                        extraTexbnd = BND3.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd.dcx");
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
                         additionalTpfNames: new List<string> { $@"{InterrootPath}\chr\{id}_2.tpf.dcx" },
-                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", ignoreStaticTransforms: true);
+                        possibleLooseTpfFolder: $@"{InterrootPath}\chr\{id}\", 
+                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                 }
 
                 Scene.AddModel(chr);

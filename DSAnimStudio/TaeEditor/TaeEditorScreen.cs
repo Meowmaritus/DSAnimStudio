@@ -587,6 +587,8 @@ namespace DSAnimStudio.TaeEditor
             inspectorWinFormsControl.Focus();
         }
 
+        public TaeEditAnimEventBox PrevHoveringOverEventBox = null;
+
         public TaeEditAnimEventBox HoveringOverEventBox = null;
 
         private TaeEditAnimEventBox _selectedEventBox = null;
@@ -1166,9 +1168,16 @@ namespace DSAnimStudio.TaeEditor
                 },
                 defaultChoice: "Fast (64 px/s)");
             MenuBar.AddSeparator("Event Graph");
-            MenuBar.AddItem("Event Graph", "Start with all TAE sections collapsed", () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
+            MenuBar.AddItem("Event Graph", "Start with all TAE sections collapsed", 
+                () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
             MenuBar.AddSeparator("Event Graph");
-            MenuBar.AddItem("Event Graph", "Auto-scroll During Anim Playback", () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
+            MenuBar.AddItem("Event Graph", "Auto-scroll During Anim Playback", 
+                () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
+            MenuBar.AddSeparator("Event Graph");
+            MenuBar.AddItem("Event Graph", "Solo Highlight Event on Hover",
+                () => Config.SoloHighlightEventOnHover, b => Config.SoloHighlightEventOnHover = b);
+            MenuBar.AddItem("Event Graph", "Show Event Info Popup When Hovering Over Event",
+                () => Config.ShowEventHoverInfo, b => Config.ShowEventHoverInfo = b);
 
             //MenuBar.AddSeparator("Event Graph");
 
@@ -1180,7 +1189,7 @@ namespace DSAnimStudio.TaeEditor
             ////////////////
             // Simulation //
             ////////////////
-            
+
             MenuBar.AddTopItem("Simulation");
             MenuBar["Simulation"].Enabled = false;
             MenuBar["Simulation"].Visible = false;
@@ -2908,26 +2917,37 @@ namespace DSAnimStudio.TaeEditor
                 if (editScreenAnimList != null)
                 {
 
-                    if (MouseHoverKind == ScreenMouseHoverKind.AnimList || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
+                    if (MouseHoverKind == ScreenMouseHoverKind.AnimList || 
+                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
                     {
                         Input.CursorType = MouseCursorType.Arrow;
-                        editScreenAnimList.Update(Main.DELTA_UPDATE, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        editScreenAnimList.Update(Main.DELTA_UPDATE, 
+                            allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                     }
                     else
                     {
-                        editScreenAnimList.UpdateMouseOutsideRect(Main.DELTA_UPDATE, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        editScreenAnimList.UpdateMouseOutsideRect(Main.DELTA_UPDATE, 
+                            allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                     }
                 }
 
                 if (Graph != null)
                 {
-                    if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
+                    Graph.UpdateMiddleClickPan();
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || 
+                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
+                    {
                         Graph.Update(allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                    }
                     else
+                    {
                         Graph.UpdateMouseOutsideRect(Main.DELTA_UPDATE, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                    }
                 }
 
-                if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
+                if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || 
+                    WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
                 {
                     Input.CursorType = MouseCursorType.Arrow;
                     GFX.World.DisableAllInput = false;
@@ -2937,7 +2957,8 @@ namespace DSAnimStudio.TaeEditor
                     //GFX.World.DisableAllInput = true;
                 }
 
-                if (MouseHoverKind == ScreenMouseHoverKind.Inspector || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
+                if (MouseHoverKind == ScreenMouseHoverKind.Inspector || 
+                    WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
                 {
                     Input.CursorType = MouseCursorType.Arrow;
                 }

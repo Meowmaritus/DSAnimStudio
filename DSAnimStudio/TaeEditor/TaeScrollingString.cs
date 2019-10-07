@@ -124,7 +124,7 @@ namespace DSAnimStudio.TaeEditor
 
                 var pos = new Vector2(rect.Left, rect.Center.Y - (TextSize.Y / 2f));
                 sb.DrawString(font, Text, pos + Vector2.One, TextShadowColor);
-                sb.DrawString(font, Text, pos + (Vector2.One * 2), TextShadowColor);
+                //sb.DrawString(font, Text, pos + (Vector2.One * 2), TextShadowColor);
                 sb.DrawString(font, Text, pos, TextColor);
 
                 sb.End();
@@ -158,7 +158,7 @@ namespace DSAnimStudio.TaeEditor
 
                 {
                     sb.DrawString(font, Text, textPos + Vector2.One, TextShadowColor);
-                    sb.DrawString(font, Text, textPos + (Vector2.One * 2), TextShadowColor);
+                    //sb.DrawString(font, Text, textPos + (Vector2.One * 2), TextShadowColor);
                     sb.DrawString(font, Text, textPos, TextColor);
                 }
 

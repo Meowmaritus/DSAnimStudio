@@ -46,6 +46,47 @@ namespace DSAnimStudio
                 public short DmyPoly2;
                 public HitTypes HitType;
 
+                const int DS3PairR = 10000;
+                const int DS3PairL = 11000;
+
+                private static int GetFilteredDmyPolyID(ParamData.AtkParam.DummyPolySource dmyFilter, int id)
+                {
+                    if (id < 0)
+                        return -1;
+
+                    int check = id / 1000;
+                    id = id % 1000;
+
+                    if (dmyFilter == DummyPolySource.None)
+                    {
+                        return -1;
+                    }
+                    else if (dmyFilter == DummyPolySource.Body)
+                    {
+                        return (check < 10) ? id : -1;
+                    }
+                    else if (dmyFilter == DummyPolySource.RightWeapon)
+                    {
+                        return (check == 10 || check == 12) ? id : -1;
+                    }
+                    else if (dmyFilter == DummyPolySource.LeftWeapon)
+                    {
+                        return (check == 11 || check == 13 || check == 20) ? id : -1;
+                    }
+
+                    return -1;
+                }
+
+                public int GetFilteredDmyPoly1(ParamData.AtkParam.DummyPolySource dmyFilter)
+                {
+                    return GetFilteredDmyPolyID(dmyFilter, DmyPoly1);
+                }
+
+                public int GetFilteredDmyPoly2(ParamData.AtkParam.DummyPolySource dmyFilter)
+                {
+                    return GetFilteredDmyPolyID(dmyFilter, DmyPoly2);
+                }
+
                 //public void ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(bool isLeftHand)
                 //{
                 //    if (DmyPoly1 >= 0 && DmyPoly1 < 10000)

@@ -183,17 +183,32 @@ namespace DSAnimStudio.TaeEditor
 
                                         if (dmyPolySource == ParamData.AtkParam.DummyPolySource.Body)
                                         {
-                                            MODEL.DummyPolyMan.SetAttackVisibility(atkParam, true);
+                                            MODEL.DummyPolyMan.SetAttackVisibility(
+                                                atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
                                         }
                                         else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
                                             MODEL.ChrAsm?.RightWeaponModel != null)
                                         {
-                                            MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(atkParam, true);
+                                            MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                                atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
                                         }
                                         else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
                                             MODEL.ChrAsm?.LeftWeaponModel != null)
                                         {
-                                            MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(atkParam, true);
+                                            MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                                atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
+                                        }
+
+                                        if (MODEL.ChrAsm?.RightWeaponModel != null)
+                                        {
+                                            MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                                atkParam, true, ParamData.AtkParam.DummyPolySource.RightWeapon);
+                                        }
+
+                                         if (MODEL.ChrAsm?.LeftWeaponModel != null)
+                                        {
+                                            MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                                atkParam, true, ParamData.AtkParam.DummyPolySource.LeftWeapon);
                                         }
                                     }
                                 }
@@ -306,7 +321,15 @@ namespace DSAnimStudio.TaeEditor
                                     // value types.
                                     int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
 
-                                    GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.EventText.Text, dummyPolyID);
+
+                                    if (evBox.MyEvent.TypeName == "SpawnFFX_ChrType")
+                                    {
+                                        GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.MyEvent.TypeName, dummyPolyID);
+                                    }
+                                    else
+                                    {
+                                        GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.EventText.Text, dummyPolyID);
+                                    }
                                 }
                             }
                         }

@@ -11,6 +11,7 @@ namespace DSAnimStudio.TaeEditor
         DragX,
         DragY,
         DragXY,
+        GrabPan,
     }
 
     public class TaeInputHandler
@@ -122,6 +123,10 @@ namespace DSAnimStudio.TaeEditor
                         break;
                     case MouseCursorType.DragXY:
                         Microsoft.Xna.Framework.Input.Mouse.SetCursor(MouseCursor.SizeAll);
+                        //System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.SizeWE;
+                        break;
+                    case MouseCursorType.GrabPan:
+                        Microsoft.Xna.Framework.Input.Mouse.SetCursor(MouseCursor.Crosshair);
                         //System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.SizeWE;
                         break;
                 }
