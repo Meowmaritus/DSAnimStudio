@@ -142,6 +142,27 @@
 /processorParam:TextureFormat=Compressed
 /build:Fonts/DbgMenuFontSmall.spritefont
 
+#begin Fonts/DbgMenuFontSmaller.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Fonts/DbgMenuFontSmaller.spritefont
+
+#begin Fonts/TaeEditorFont.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Fonts/TaeEditorFont.spritefont
+
+#begin Fonts/TaeEditorFontSmall.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Fonts/TaeEditorFontSmall.spritefont
+
 #begin Shaders/CollisionShader.fx
 /importer:EffectImporter
 /processor:EffectProcessor
@@ -177,4 +198,16 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Utility/MissingTexture.png
+
+#begin Utility/TaeEditorScrollbarArrow.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Utility/TaeEditorScrollbarArrow.png
 

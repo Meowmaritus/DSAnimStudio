@@ -20,7 +20,7 @@ namespace DSAnimStudio
     {
         public static bool ShowPrimitiveNametags = true;
         public static bool SimpleTextLabelSize = false;
-        public static float PrimitiveNametagSize = 0.75f;
+        public static float PrimitiveNametagSize = 1;
 
         public static DbgPrimWireGrid DbgPrim_Grid;
         public static DbgPrimSkybox DbgPrim_Skybox;
@@ -39,6 +39,9 @@ namespace DSAnimStudio
 
         public static SpriteFont DEBUG_FONT_SMALL { get; private set; }
         static string DEBUG_FONT_SMALL_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFontSmall";
+
+        public static SpriteFont DEBUG_FONT_VERY_SMALL { get; private set; }
+        static string DEBUG_FONT_VERY_SMALL_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFontSmaller";
 
         public static SpriteFont DEBUG_FONT_SIMPLE { get; private set; }
         static string DEBUG_FONT_SIMPLE_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFontSimple";
@@ -223,6 +226,7 @@ namespace DSAnimStudio
         {
             DEBUG_FONT = c.Load<SpriteFont>(DEBUG_FONT_NAME);
             DEBUG_FONT_SMALL = c.Load<SpriteFont>(DEBUG_FONT_SMALL_NAME);
+            DEBUG_FONT_VERY_SMALL = c.Load<SpriteFont>(DEBUG_FONT_VERY_SMALL_NAME);
             DEBUG_FONT_SIMPLE = c.Load<SpriteFont>(DEBUG_FONT_SIMPLE_NAME);
 
             Sounds = new Dictionary<string, SoundEffect>();

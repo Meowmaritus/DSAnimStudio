@@ -320,14 +320,14 @@ namespace DSAnimStudio.TaeEditor
         }
 
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, Texture2D arrowTex)
         {
             //var oldViewport = gd.Viewport;
             //gd.Viewport = new Viewport(FullDisplayRect);
             //{
             sb.Begin();
 
-            var scrollArrowOrigin = font.MeasureString(ScrollArrowStr) / 2;
+            //var scrollArrowOrigin = font.MeasureString(ScrollArrowStr) / 2;
 
             if (!DisableHorizontalScroll)
             {
@@ -342,15 +342,11 @@ namespace DSAnimStudio.TaeEditor
                     ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundActive
                     : ColorScrollArrowButtonForegroundInactive);
 
-                sb.DrawString(font, ScrollArrowStr, ScrollLeftArrowBox.Center.ToVector2(),
-                ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundInactive
-                : ColorScrollArrowButtonForegroundActive,
-                MathHelper.PiOver2 * 3, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+                sb.Draw(arrowTex, new Vector2(ScrollLeftArrowBox.X, ScrollLeftArrowBox.Y) + Vector2.One * 8, null, ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                : ColorScrollArrowButtonForegroundActive, MathHelper.PiOver2 * 3, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
 
-                sb.DrawString(font, ScrollArrowStr, ScrollRightArrowBox.Center.ToVector2(),
-                    ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundInactive
-                    : ColorScrollArrowButtonForegroundActive,
-                    MathHelper.PiOver2 * 1, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+                sb.Draw(arrowTex, new Vector2(ScrollRightArrowBox.X, ScrollRightArrowBox.Y) + Vector2.One * 8, null, ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundInactive
+               : ColorScrollArrowButtonForegroundActive, MathHelper.PiOver2 * 1, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
             }
 
             if (!DisableVerticalScroll)
@@ -366,15 +362,11 @@ namespace DSAnimStudio.TaeEditor
                     ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundActive
                     : ColorScrollArrowButtonForegroundInactive);
 
-                sb.DrawString(font, ScrollArrowStr, ScrollUpArrowBox.Center.ToVector2(),
-                ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundInactive
-                : ColorScrollArrowButtonForegroundActive,
-                0, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+                sb.Draw(arrowTex, new Vector2(ScrollUpArrowBox.X, ScrollUpArrowBox.Y) + Vector2.One * 8, null, ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                : ColorScrollArrowButtonForegroundActive, 0, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
 
-                sb.DrawString(font, ScrollArrowStr, ScrollDownArrowBox.Center.ToVector2(),
-                    ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundInactive
-                    : ColorScrollArrowButtonForegroundActive,
-                    MathHelper.PiOver2 * 2, scrollArrowOrigin, 1.0f, SpriteEffects.None, 0);
+                sb.Draw(arrowTex, new Vector2(ScrollDownArrowBox.X, ScrollDownArrowBox.Y) + Vector2.One * 8, null, ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundInactive
+               : ColorScrollArrowButtonForegroundActive, MathHelper.Pi, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
             }
 
             sb.End();

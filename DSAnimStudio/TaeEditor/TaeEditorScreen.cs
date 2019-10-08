@@ -241,6 +241,11 @@ namespace DSAnimStudio.TaeEditor
             //});
         }
 
+        public void SetInspectorVisibility(bool visible)
+        {
+            inspectorWinFormsControl.Visible = visible;
+        }
+
         enum DividerDragMode
         {
             None,
@@ -346,7 +351,12 @@ namespace DSAnimStudio.TaeEditor
             "Ctrl+(+/-/0):\n" +
             "   Zoom in/out/reset, exactly like in web browsers.\n" +
             "Left/Right Arrow Keys:\n" +
-            "    Goes to previous/next frame.\n";
+            "    Goes to previous/next frame.\n" +
+            "Home/End:\n" +
+            "    Without Shift: Go to playback start point / playback end point.\n" +
+            "    With Shift: Go to start of animation / end of animation.\n" +
+            "    With Ctrl: Stop playing animation after jumping.\n" +
+            "    (Ctrl and Shift can be combined.)\n";
 
         private static object _lock_PauseUpdate = new object();
         private bool _PauseUpdate;
@@ -2496,6 +2506,11 @@ namespace DSAnimStudio.TaeEditor
 
         public void Update()
         {
+            if (!Input.LeftClickHeld)
+            {
+                Graph?.ReleaseCurrentDrag();
+            }
+
             if (!Main.Active)
             {
                 MenuBar.CloseAll();
@@ -3083,10 +3098,11 @@ namespace DSAnimStudio.TaeEditor
             sb.End();
         }
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
+        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
+            SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex)
         {
             sb.Begin();
-            sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), Config.EnableColorBlindMode ? Color.Black : new Color(0.2f, 0.2f, 0.2f));
+            sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), new Color(0.2f, 0.2f, 0.2f));
 
             // Draw model viewer background lel
             //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
@@ -3102,7 +3118,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (editScreenAnimList != null)
             {
-                editScreenAnimList.Draw(gd, sb, boxTex, font);
+                editScreenAnimList.Draw(gd, sb, boxTex, font, scrollbarArrowTex);
 
                 Rectangle curAnimInfoTextRect = new Rectangle(
                     (int)(MiddleSectionStartX),
@@ -3133,7 +3149,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (Graph != null)
             {
-                Graph.Draw(gd, sb, boxTex, font, elapsedSeconds);
+                Graph.Draw(gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex);
             }
             //editScreenGraphInspector.Draw(gd, sb, boxTex, font);
 

@@ -9,8 +9,6 @@ namespace DSAnimStudio.TaeEditor
     {
         public ParamData.AtkParam.DummyPolySource HitViewDummyPolySource { get; set; } = ParamData.AtkParam.DummyPolySource.Body;
 
-        public bool EnableColorBlindMode { get; set; } = false;
-
         public bool DbgPrimXRay { get; set; } = false;
         public bool EnableSnapTo30FPSIncrements { get; set; } = true;
         public bool LockFramerateToOriginalAnimFramerate { get; set; } = false;

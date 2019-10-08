@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -113,63 +114,104 @@ namespace DSAnimStudio.TaeEditor
                 transformedBottom - transformedTop);
 
 
+            Vector2 textPos = new Vector2(ScrollingSnapsToPixels ? (float)Math.Round(-Scroll) : -Scroll,
+                    (float)Math.Round((rect.Height / 2f) - font.LineSpacing / 2f) + 1);
+
+            sb.End();
+
+            var oldViewport = gd.Viewport;
+            // Get sub-viewport inside this one.
+            int finalRectLeft = MathHelper.Max(oldViewport.Bounds.Left, oldViewport.Bounds.Left + rect.Left);
+            int finalRectTop = MathHelper.Max(oldViewport.Bounds.Top, oldViewport.Bounds.Top + rect.Top);
+            int finalRectRight = MathHelper.Min(oldViewport.Bounds.Right, oldViewport.Bounds.Left + rect.Right);
+            int finalRectBottom = MathHelper.Min(oldViewport.Bounds.Bottom, oldViewport.Bounds.Top + rect.Bottom);
 
             if (TextSize.X <= rect.Width)
             {
-                sb.End();
-
-                sb.Begin();
-
-                ResetScroll();
-
-                var pos = new Vector2(rect.Left, rect.Center.Y - (TextSize.Y / 2f));
-                sb.DrawString(font, Text, pos + Vector2.One, TextShadowColor);
-                //sb.DrawString(font, Text, pos + (Vector2.One * 2), TextShadowColor);
-                sb.DrawString(font, Text, pos, TextColor);
-
-                sb.End();
-
-                sb.Begin(transformMatrix: spriteBatchMatrix);
+                UpdateTimer(elapsedSeconds, 0);
             }
             else
             {
-                
-
-                Vector2 textPos = new Vector2(ScrollingSnapsToPixels ? (int)(-Scroll) : -Scroll, (rect.Height / 2f) - (TextSize.Y / 2f));
-
-                sb.End();
-
-                var oldViewport = gd.Viewport;
-                // Get sub-viewport inside this one.
-                int finalRectLeft = MathHelper.Max(oldViewport.Bounds.Left, oldViewport.Bounds.Left + rect.Left);
-                int finalRectTop = MathHelper.Max(oldViewport.Bounds.Top, oldViewport.Bounds.Top + rect.Top);
-                int finalRectRight = MathHelper.Min(oldViewport.Bounds.Right, oldViewport.Bounds.Left + rect.Right);
-                int finalRectBottom = MathHelper.Min(oldViewport.Bounds.Bottom, oldViewport.Bounds.Top + rect.Bottom);
-
                 UpdateTimer(elapsedSeconds, TextSize.X - (finalRectRight - finalRectLeft));
-
-                gd.Viewport = new Viewport(
-                    finalRectLeft,
-                    finalRectTop,
-                    finalRectRight - finalRectLeft,
-                    finalRectBottom - finalRectTop);
-
-                sb.Begin(transformMatrix: Matrix.Identity);
-
-                {
-                    sb.DrawString(font, Text, textPos + Vector2.One, TextShadowColor);
-                    //sb.DrawString(font, Text, textPos + (Vector2.One * 2), TextShadowColor);
-                    sb.DrawString(font, Text, textPos, TextColor);
-                }
-
-                sb.End();
-
-                gd.Viewport = oldViewport;
-
-                sb.Begin(transformMatrix: spriteBatchMatrix);
             }
 
-            
+            gd.Viewport = new Viewport(
+                finalRectLeft,
+                finalRectTop,
+                finalRectRight - finalRectLeft,
+                finalRectBottom - finalRectTop);
+
+            sb.Begin(transformMatrix: Matrix.Identity);
+
+            {
+                sb.DrawString(font, Text, textPos + Vector2.One, TextShadowColor);
+                //sb.DrawString(font, Text, textPos + (Vector2.One * 2), TextShadowColor);
+                sb.DrawString(font, Text, textPos, TextColor);
+            }
+
+            sb.End();
+
+            gd.Viewport = oldViewport;
+
+            sb.Begin(transformMatrix: spriteBatchMatrix);
+
+            //if (TextSize.X <= rect.Width)
+            //{
+            //    sb.End();
+
+            //    sb.Begin();
+
+            //    ResetScroll();
+
+            //    var pos = new Vector2(rect.Left, (float)Math.Round((rect.Top + (rect.Height / 2f)) - font.LineSpacing / 2f));
+            //    sb.DrawString(font, Text, pos + Vector2.One, TextShadowColor);
+            //    //sb.DrawString(font, Text, pos + (Vector2.One * 2), TextShadowColor);
+            //    sb.DrawString(font, Text, pos, TextColor);
+
+            //    sb.End();
+
+            //    sb.Begin(transformMatrix: spriteBatchMatrix);
+            //}
+            //else
+            //{
+
+
+            //    Vector2 textPos = new Vector2(ScrollingSnapsToPixels ? (float)Math.Round(-Scroll) : -Scroll, 
+            //        (float)Math.Round((rect.Height / 2f) - font.LineSpacing / 2f));
+
+            //    sb.End();
+
+            //    var oldViewport = gd.Viewport;
+            //    // Get sub-viewport inside this one.
+            //    int finalRectLeft = MathHelper.Max(oldViewport.Bounds.Left, oldViewport.Bounds.Left + rect.Left);
+            //    int finalRectTop = MathHelper.Max(oldViewport.Bounds.Top, oldViewport.Bounds.Top + rect.Top);
+            //    int finalRectRight = MathHelper.Min(oldViewport.Bounds.Right, oldViewport.Bounds.Left + rect.Right);
+            //    int finalRectBottom = MathHelper.Min(oldViewport.Bounds.Bottom, oldViewport.Bounds.Top + rect.Bottom);
+
+            //    UpdateTimer(elapsedSeconds, TextSize.X - (finalRectRight - finalRectLeft));
+
+            //    gd.Viewport = new Viewport(
+            //        finalRectLeft,
+            //        finalRectTop,
+            //        finalRectRight - finalRectLeft,
+            //        finalRectBottom - finalRectTop);
+
+            //    sb.Begin(transformMatrix: Matrix.Identity);
+
+            //    {
+            //        sb.DrawString(font, Text, textPos + Vector2.One, TextShadowColor);
+            //        //sb.DrawString(font, Text, textPos + (Vector2.One * 2), TextShadowColor);
+            //        sb.DrawString(font, Text, textPos, TextColor);
+            //    }
+
+            //    sb.End();
+
+            //    gd.Viewport = oldViewport;
+
+            //    sb.Begin(transformMatrix: spriteBatchMatrix);
+            //}
+
+
         }
     }
 }

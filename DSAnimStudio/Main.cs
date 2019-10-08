@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.4";
+        public const string VERSION = "Version 1.5";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -62,6 +62,8 @@ namespace DSAnimStudio
         private static SpriteBatch TaeEditorSpriteBatch;
         public static Texture2D TAE_EDITOR_BLANK_TEX;
         public static SpriteFont TAE_EDITOR_FONT;
+        public static SpriteFont TAE_EDITOR_FONT_SMALL;
+        public static Texture2D TAE_EDITOR_SCROLLVIEWER_ARROW;
 
         public static FlverTonemapShader MainFlverTonemapShader = null;
 
@@ -302,8 +304,10 @@ namespace DSAnimStudio
             CFG.AttemptLoadOrDefault();
 
             TAE_EDITOR_FONT = Content.Load<SpriteFont>($@"{Main.Directory}\Content\Fonts\DbgMenuFontSmall");
+            TAE_EDITOR_FONT_SMALL = Content.Load<SpriteFont>($@"{Main.Directory}\Content\Fonts\DbgMenuFontSmaller");
             TAE_EDITOR_BLANK_TEX = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
             TAE_EDITOR_BLANK_TEX.SetData(new Color[] { Color.White }, 0, 1);
+            TAE_EDITOR_SCROLLVIEWER_ARROW = Content.Load<Texture2D>($@"{Main.Directory}\Content\Utility\TaeEditorScrollbarArrow");
 
             TAE_EDITOR = new TaeEditor.TaeEditorScreen((System.Windows.Forms.Form)System.Windows.Forms.Form.FromHandle(Window.Handle));
 
@@ -663,7 +667,9 @@ namespace DSAnimStudio
             TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
 
             TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
-                TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT, (float)gameTime.ElapsedGameTime.TotalSeconds);
+                TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT, 
+                (float)gameTime.ElapsedGameTime.TotalSeconds, TAE_EDITOR_FONT_SMALL,
+                TAE_EDITOR_SCROLLVIEWER_ARROW);
 
             if (IsLoadingTaskRunning)
             {

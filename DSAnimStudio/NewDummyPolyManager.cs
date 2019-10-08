@@ -30,6 +30,8 @@ namespace DSAnimStudio
 
             public StatusPrinter SpawnPrinter = new StatusPrinter(null);
 
+            public bool DisableTextDraw = false;
+
             public DummyPolyInfo(FLVER2.Dummy dmy, NewAnimSkeleton skeleton)
             {
                 ReferenceID = dmy.ReferenceID;
@@ -51,8 +53,8 @@ namespace DSAnimStudio
                     OverrideColor = Color.Cyan,
                 };
 
-                SpawnPrinter.Font = DBG.DEBUG_FONT_SMALL;
-                
+                SpawnPrinter.Font = DBG.DEBUG_FONT_VERY_SMALL;
+                SpawnPrinter.FullyOutlined = true;
             }
 
             private Color GetCurrentSpawnColor()
@@ -99,14 +101,19 @@ namespace DSAnimStudio
 
             public void DrawPrimText(Matrix world)
             {
+                if (DisableTextDraw)
+                    return;
+
                 SpawnPrinter.Clear();
 
                 bool hasSpawnStuff = !(SFXSpawnIDs.Count == 0 && BulletSpawnIDs.Count == 0 && MiscSpawnTexts.Count == 0);
 
+                string dmyIDTxt = (ReferenceID == 200) ? $"[{ReferenceID} (All Over Body)]" : $"[{ReferenceID}]";
+
                 if (hasSpawnStuff)
-                    SpawnPrinter.AppendLine($"[{ReferenceID}]", GetCurrentSpawnColor() * 2);
+                    SpawnPrinter.AppendLine(dmyIDTxt, GetCurrentSpawnColor() * 2);
                 else if (DBG.CategoryEnableNameDraw[DbgPrimCategory.DummyPoly])
-                    SpawnPrinter.AppendLine($"[{ReferenceID}]", DBG.COLOR_DUMMY_POLY * 2);
+                    SpawnPrinter.AppendLine(dmyIDTxt, DBG.COLOR_DUMMY_POLY * 3);
                 
 
                 Vector3 currentPos = Vector3.Transform(Vector3.Zero, CurrentMatrix * world);
@@ -196,12 +203,16 @@ namespace DSAnimStudio
             if (!DummyPolyByRefID.ContainsKey(dummyPolyID))
                 return;
 
-            foreach (var dmy in DummyPolyByRefID[dummyPolyID])
+            for (int i = 0; i < DummyPolyByRefID[dummyPolyID].Count; i++)
             {
-                dmy.MiscSpawnTexts.Add(misc);
+                if (dummyPolyID == 200 && i > 0)
+                    misc = "";
 
-                if (!CurrentMiscSpawnQueueForClearAll.Contains(dmy))
-                    CurrentMiscSpawnQueueForClearAll.Enqueue(dmy);
+                DummyPolyByRefID[dummyPolyID][i].MiscSpawnTexts.Add(misc);
+
+                if (!CurrentMiscSpawnQueueForClearAll.Contains(DummyPolyByRefID[dummyPolyID][i]))
+                    CurrentMiscSpawnQueueForClearAll.Enqueue(DummyPolyByRefID[dummyPolyID][i]);
+
             }
         }
 
@@ -512,6 +523,14 @@ namespace DSAnimStudio
         {
             foreach (var d in flver.Dummies)
                 AddDummyPoly(d);
+
+            if (DummyPolyByRefID.ContainsKey(200))
+            {
+                for (int i = 0; i < DummyPolyByRefID[200].Count; i++)
+                {
+                    DummyPolyByRefID[200][i].DisableTextDraw = i > 0;
+                }
+            }
         }
 
         public NewDummyPolyManager(Model mdl)
