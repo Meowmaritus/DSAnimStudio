@@ -79,6 +79,8 @@ namespace DSAnimStudio.TaeEditor
         public TaeHoverInfoBox HoverInfoBox = new TaeHoverInfoBox();
         public Vector2 HoverInfoBoxOffsetFromMouse = Vector2.One * 16;
 
+        public int TinyTextBoxWidth = 96;
+
         // Setting to 1 to remove smoothing, but lower values will add smoothing
         // later if I want it.
         public float AutoScrollLerpDistMult = 1;
@@ -104,9 +106,9 @@ namespace DSAnimStudio.TaeEditor
 
         public float PlaybackCursorThickness = 2;
 
-        public int MultiSelectRectOutlineThickness => MainScreen.Config.EnableColorBlindMode ? 4 : 1;
-        public Color MultiSelectRectFillColor => Color.LightGray * 0.5f;
-        public Color MultiSelectRectOutlineColor => MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White;
+        public int MultiSelectRectOutlineThickness => 1;
+        public Color MultiSelectRectFillColor => Color.DodgerBlue * 0.5f;
+        public Color MultiSelectRectOutlineColor => Color.White;
 
         public readonly TaeEditorScreen MainScreen;
         public TAE.Animation AnimRef { get; private set; }
@@ -118,9 +120,9 @@ namespace DSAnimStudio.TaeEditor
 
         const float SecondsPixelSizeDefault = 128 * 4;
         public float SecondsPixelSize = SecondsPixelSizeDefault;
-        public float FramePixelSize => SecondsPixelSize / 30.0f;
-        public float MinPixelsBetweenFramesForHelperLines = 8;
-        public float MinPixelsBetweenFramesForFrameNumberText = 24;
+        public float FramePixelSize => SecondsPixelSize / (1 / (float)PlaybackCursor.CurrentSnapInterval);
+        public float MinPixelsBetweenFramesForHelperLines = 4;
+        public float MinPixelsBetweenFramesForFrameNumberText = 20;
 
         public float SecondsPixelSizeFarAwayModeUpperBound = SecondsPixelSizeDefault;
         public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 2048);
@@ -216,7 +218,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public float RowHeight = 24;
+        public float RowHeight = 26;
 
         private Dictionary<int, List<TaeEditAnimEventBox>> sortedByRow = new Dictionary<int, List<TaeEditAnimEventBox>>();
 
@@ -956,8 +958,14 @@ namespace DSAnimStudio.TaeEditor
 
             MouseRow = (int)(relMouse.Y / RowHeight);
 
-            if (ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y))
-                || MainScreen.Input.LeftClickHeld)
+            // Fix for stuff being highlighted while mouse is over timeline
+            if ((MainScreen.Input.MousePosition.Y - Rect.Y) < TimeLineHeight)
+            {
+                MouseRow = -1;
+            }
+
+            if ((ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y))
+                || MainScreen.Input.LeftClickHeld) && !MainScreen.MenuBar.BlockInput)
             {
                 if (currentUnselectedMouseDragType == UnselectedMouseDragType.None)
                 {
@@ -1122,7 +1130,13 @@ namespace DSAnimStudio.TaeEditor
                         else if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.Arrow;
-                            MainScreen.HoveringOverEventBox = box;
+
+                            if (!(MainScreen.Input.LeftClickHeld || MainScreen.Input.MiddleClickHeld ||
+                                MainScreen.Input.RightClickHeld || !Rect.Contains(MainScreen.Input.MousePositionPoint)))
+                            {
+                                MainScreen.HoveringOverEventBox = box;
+                            }
+                            
                             if (MainScreen.Input.LeftClickDown)
                             {
                                 if (MainScreen.MultiSelectedEventBoxes.Count == 0)
@@ -1478,232 +1492,237 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else // Releasing click after a drag
                 {
-                    if (currentDrag.DragType != BoxDragType.None)
-                    {
-                        if (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback))
-                        {
-                            if (currentDrag.DragType == BoxDragType.LeftOfEventBox ||
-                        currentDrag.DragType == BoxDragType.RightOfEventBox ||
-                        currentDrag.DragType == BoxDragType.MiddleOfEventBox)
-                            {
-                                TaeEditAnimEventBox copyOfBox = currentDrag.Box;
-
-                                float copyOfOldBoxStart = currentDrag.BoxOriginalStart;
-                                float copyOfOldBoxEnd = currentDrag.BoxOriginalEnd;
-                                int copyOfOldBoxRow = currentDrag.BoxOriginalRow;
-
-                                float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
-                                float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
-                                int copyOfCurrentBoxRow = copyOfBox.Row;
-
-                                bool copyOfIsMainScreenModified = MainScreen.IsModified;
-                                bool copyOfIsAnimModified = MainScreen.SelectedTaeAnim.GetIsModified();
-
-                                MainScreen.UndoMan.NewAction(
-                                    doAction: () =>
-                                    {
-                                        copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
-                                        copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
-                                        copyOfBox.Row = copyOfCurrentBoxRow;
-
-                                        copyOfBox.MyEvent.ApplyRounding();
-
-                                        MainScreen.SelectedTaeAnim.SetIsModified(
-                                            MainScreen.SelectedTaeAnim.GetIsModified() ||
-                                            (!MainScreen.IsReadOnlyFileMode && ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
-                                            (copyOfCurrentBoxEnd != copyOfOldBoxEnd) ||
-                                            (copyOfCurrentBoxRow != copyOfOldBoxRow))));
-                                    },
-                                    undoAction: () =>
-                                    {
-                                        copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
-                                        copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
-                                        copyOfBox.Row = copyOfOldBoxRow;
-
-                                    // Check if user saved, to flag as modified from the value changing
-                                    // Otherwise, if it was still modified afterwards we can un-modified it
-                                    if (!MainScreen.SelectedTaeAnim.GetIsModified())
-                                        {
-                                            MainScreen.SelectedTaeAnim.SetIsModified(
-                                                MainScreen.SelectedTaeAnim.GetIsModified() ||
-                                                (!MainScreen.IsReadOnlyFileMode && ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
-                                                (copyOfCurrentBoxEnd != copyOfOldBoxEnd) ||
-                                                (copyOfCurrentBoxRow != copyOfOldBoxRow))));
-                                        }
-                                        else
-                                        {
-                                            MainScreen.SelectedTaeAnim.SetIsModified(copyOfIsAnimModified);
-                                        }
-                                    });
-
-                                currentDrag.DragType = BoxDragType.None;
-                                currentDrag.Box = null;
-                            }
-                            else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox ||
-                                currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox ||
-                                currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
-                            {
-                                List<TaeEditAnimEventBox> copiesOfBox = new List<TaeEditAnimEventBox>();
-
-                                List<float> copiesOfOldBoxStart = new List<float>();
-                                List<float> copiesOfOldBoxEnd = new List<float>();
-                                List<int> copiesOfOldBoxRow = new List<int>();
-
-                                List<float> copiesOfCurrentBoxStart = new List<float>();
-                                List<float> copiesOfCurrentBoxEnd = new List<float>();
-                                List<int> copiesOfCurrentBoxRow = new List<int>();
-
-                                bool copyOfIsMainScreenModified = MainScreen.IsModified;
-                                bool copyOfIsAnimModified = MainScreen.SelectedTaeAnim.GetIsModified();
-
-                                foreach (var multiDrag in currentMultiDrag)
-                                {
-                                    copiesOfBox.Add(multiDrag.Box);
-
-                                    copiesOfOldBoxStart.Add(multiDrag.BoxOriginalStart);
-                                    copiesOfOldBoxEnd.Add(multiDrag.BoxOriginalEnd);
-                                    copiesOfOldBoxRow.Add(multiDrag.BoxOriginalRow);
-
-                                    copiesOfCurrentBoxStart.Add(multiDrag.Box.MyEvent.StartTime);
-                                    copiesOfCurrentBoxEnd.Add(multiDrag.Box.MyEvent.EndTime);
-                                    copiesOfCurrentBoxRow.Add(multiDrag.Box.Row);
-                                }
-
-                                MainScreen.UndoMan.NewAction(
-                                        doAction: () =>
-                                        {
-                                            for (int i = 0; i < copiesOfBox.Count; i++)
-                                            {
-                                                copiesOfBox[i].MyEvent.StartTime = copiesOfCurrentBoxStart[i];
-                                                copiesOfBox[i].MyEvent.EndTime = copiesOfCurrentBoxEnd[i];
-                                                copiesOfBox[i].Row = copiesOfCurrentBoxRow[i];
-
-                                                copiesOfBox[i].MyEvent.ApplyRounding();
-
-                                                MainScreen.SelectedTaeAnim.SetIsModified(
-                                                    MainScreen.SelectedTaeAnim.GetIsModified() ||
-                                                    (!MainScreen.IsReadOnlyFileMode && ((copiesOfCurrentBoxStart[i] != copiesOfOldBoxStart[i]) ||
-                                                    (copiesOfCurrentBoxEnd[i] != copiesOfOldBoxEnd[i]) ||
-                                                    (copiesOfCurrentBoxRow[i] != copiesOfOldBoxRow[i]))));
-                                            }
-                                        },
-                                        undoAction: () =>
-                                        {
-                                            for (int i = 0; i < copiesOfBox.Count; i++)
-                                            {
-                                                copiesOfBox[i].MyEvent.StartTime = copiesOfOldBoxStart[i];
-                                                copiesOfBox[i].MyEvent.EndTime = copiesOfOldBoxEnd[i];
-                                                copiesOfBox[i].Row = copiesOfOldBoxRow[i];
-
-                                            // Check if user saved, to flag as modified from the value changing
-                                            // Otherwise, if it was still modified afterwards we can un-modified it
-                                            if (!MainScreen.SelectedTaeAnim.GetIsModified())
-                                                {
-                                                    MainScreen.SelectedTaeAnim.SetIsModified(
-                                                    MainScreen.SelectedTaeAnim.GetIsModified() ||
-                                                    (!MainScreen.IsReadOnlyFileMode && ((copiesOfCurrentBoxStart[i] != copiesOfOldBoxStart[i]) ||
-                                                    (copiesOfCurrentBoxEnd[i] != copiesOfOldBoxEnd[i]) ||
-                                                    (copiesOfCurrentBoxRow[i] != copiesOfOldBoxRow[i]))));
-                                                }
-                                                else
-                                                {
-                                                    MainScreen.SelectedTaeAnim.SetIsModified(copyOfIsAnimModified);
-                                                }
-
-
-                                            }
-                                        });
-
-
-                                //foreach (var multiDrag in currentMultiDrag)
-                                //{
-                                //    TaeEditAnimEventBox copyOfBox = multiDrag.Box;
-
-                                //    float copyOfOldBoxStart = multiDrag.BoxOriginalStart;
-                                //    float copyOfOldBoxEnd = multiDrag.BoxOriginalEnd;
-                                //    int copyOfOldBoxRow = multiDrag.BoxOriginalRow;
-
-                                //    float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
-                                //    float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
-                                //    int copyOfCurrentBoxRow = copyOfBox.MyEvent.Row;
-
-                                //    MainScreen.UndoMan.NewAction(
-                                //        doAction: () =>
-                                //        {
-                                //            copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
-                                //            copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
-                                //            copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
-
-                                //            MainScreen.IsModified = true;
-                                //            MainScreen.SelectedTaeAnim.IsModified = true;
-                                //        },
-                                //        undoAction: () =>
-                                //        {
-                                //            copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
-                                //            copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
-                                //            copyOfBox.MyEvent.Row = copyOfOldBoxRow;
-
-                                //            MainScreen.IsModified = true;
-                                //            MainScreen.SelectedTaeAnim.IsModified = true;
-                                //        });
-
-                                //    multiDrag.DragType = BoxDragType.None;
-                                //    multiDrag.Box = null;
-                                //}
-
-                                currentMultiDrag.Clear();
-                                currentDrag.DragType = BoxDragType.None;
-                            }
-                            else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
-                                || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
-                                || currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
-                            {
-                                currentDrag.DragType = BoxDragType.None;
-                                if (MainScreen.MultiSelectedEventBoxes.Count == 1)
-                                {
-                                    MainScreen.SelectedEventBox = MainScreen.MultiSelectedEventBoxes[0];
-                                    MainScreen.MultiSelectedEventBoxes.Clear();
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // this happens after releasing drag while playing anim with autoscroll
-                            if (currentDrag.DragType == BoxDragType.MiddleOfEventBox)
-                            {
-                                currentDrag.DragType = BoxDragType.None;
-                                currentDrag.Box = null;
-                            }
-                            else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox ||
-                                currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox ||
-                                currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
-                            {
-                                currentMultiDrag.Clear();
-                                currentDrag.DragType = BoxDragType.None;
-                            }
-                            else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
-                                || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
-                                || currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
-                            {
-                                currentDrag.DragType = BoxDragType.None;
-                                if (MainScreen.MultiSelectedEventBoxes.Count == 1)
-                                {
-                                    MainScreen.SelectedEventBox = MainScreen.MultiSelectedEventBoxes[0];
-                                    MainScreen.MultiSelectedEventBoxes.Clear();
-                                }
-                            }
-                        }
-
-                            
-
-                        
-                    }
+                    ReleaseCurrentDrag();
                 }
 
                 
             }
 
             previousUnselectedMouseDragType = currentUnselectedMouseDragType;
+        }
+
+        public void ReleaseCurrentDrag()
+        {
+            if (currentDrag.DragType != BoxDragType.None)
+            {
+                if (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback))
+                {
+                    if (currentDrag.DragType == BoxDragType.LeftOfEventBox ||
+                currentDrag.DragType == BoxDragType.RightOfEventBox ||
+                currentDrag.DragType == BoxDragType.MiddleOfEventBox)
+                    {
+                        TaeEditAnimEventBox copyOfBox = currentDrag.Box;
+
+                        float copyOfOldBoxStart = currentDrag.BoxOriginalStart;
+                        float copyOfOldBoxEnd = currentDrag.BoxOriginalEnd;
+                        int copyOfOldBoxRow = currentDrag.BoxOriginalRow;
+
+                        float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
+                        float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
+                        int copyOfCurrentBoxRow = copyOfBox.Row;
+
+                        bool copyOfIsMainScreenModified = MainScreen.IsModified;
+                        bool copyOfIsAnimModified = MainScreen.SelectedTaeAnim.GetIsModified();
+
+                        MainScreen.UndoMan.NewAction(
+                            doAction: () =>
+                            {
+                                copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
+                                copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
+                                copyOfBox.Row = copyOfCurrentBoxRow;
+
+                                copyOfBox.MyEvent.ApplyRounding();
+
+                                MainScreen.SelectedTaeAnim.SetIsModified(
+                                    MainScreen.SelectedTaeAnim.GetIsModified() ||
+                                    (!MainScreen.IsReadOnlyFileMode && ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
+                                    (copyOfCurrentBoxEnd != copyOfOldBoxEnd) ||
+                                    (copyOfCurrentBoxRow != copyOfOldBoxRow))));
+                            },
+                            undoAction: () =>
+                            {
+                                copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
+                                copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
+                                copyOfBox.Row = copyOfOldBoxRow;
+
+                                        // Check if user saved, to flag as modified from the value changing
+                                        // Otherwise, if it was still modified afterwards we can un-modified it
+                                        if (!MainScreen.SelectedTaeAnim.GetIsModified())
+                                {
+                                    MainScreen.SelectedTaeAnim.SetIsModified(
+                                        MainScreen.SelectedTaeAnim.GetIsModified() ||
+                                        (!MainScreen.IsReadOnlyFileMode && ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
+                                        (copyOfCurrentBoxEnd != copyOfOldBoxEnd) ||
+                                        (copyOfCurrentBoxRow != copyOfOldBoxRow))));
+                                }
+                                else
+                                {
+                                    MainScreen.SelectedTaeAnim.SetIsModified(copyOfIsAnimModified);
+                                }
+                            });
+
+                        currentDrag.DragType = BoxDragType.None;
+                        currentDrag.Box = null;
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox ||
+                        currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox ||
+                        currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
+                    {
+                        List<TaeEditAnimEventBox> copiesOfBox = new List<TaeEditAnimEventBox>();
+
+                        List<float> copiesOfOldBoxStart = new List<float>();
+                        List<float> copiesOfOldBoxEnd = new List<float>();
+                        List<int> copiesOfOldBoxRow = new List<int>();
+
+                        List<float> copiesOfCurrentBoxStart = new List<float>();
+                        List<float> copiesOfCurrentBoxEnd = new List<float>();
+                        List<int> copiesOfCurrentBoxRow = new List<int>();
+
+                        bool copyOfIsMainScreenModified = MainScreen.IsModified;
+                        bool copyOfIsAnimModified = MainScreen.SelectedTaeAnim.GetIsModified();
+
+                        foreach (var multiDrag in currentMultiDrag)
+                        {
+                            copiesOfBox.Add(multiDrag.Box);
+
+                            copiesOfOldBoxStart.Add(multiDrag.BoxOriginalStart);
+                            copiesOfOldBoxEnd.Add(multiDrag.BoxOriginalEnd);
+                            copiesOfOldBoxRow.Add(multiDrag.BoxOriginalRow);
+
+                            copiesOfCurrentBoxStart.Add(multiDrag.Box.MyEvent.StartTime);
+                            copiesOfCurrentBoxEnd.Add(multiDrag.Box.MyEvent.EndTime);
+                            copiesOfCurrentBoxRow.Add(multiDrag.Box.Row);
+                        }
+
+                        MainScreen.UndoMan.NewAction(
+                                doAction: () =>
+                                {
+                                    for (int i = 0; i < copiesOfBox.Count; i++)
+                                    {
+                                        copiesOfBox[i].MyEvent.StartTime = copiesOfCurrentBoxStart[i];
+                                        copiesOfBox[i].MyEvent.EndTime = copiesOfCurrentBoxEnd[i];
+                                        copiesOfBox[i].Row = copiesOfCurrentBoxRow[i];
+
+                                        copiesOfBox[i].MyEvent.ApplyRounding();
+
+                                        MainScreen.SelectedTaeAnim.SetIsModified(
+                                            MainScreen.SelectedTaeAnim.GetIsModified() ||
+                                            (!MainScreen.IsReadOnlyFileMode && ((copiesOfCurrentBoxStart[i] != copiesOfOldBoxStart[i]) ||
+                                            (copiesOfCurrentBoxEnd[i] != copiesOfOldBoxEnd[i]) ||
+                                            (copiesOfCurrentBoxRow[i] != copiesOfOldBoxRow[i]))));
+                                    }
+                                },
+                                undoAction: () =>
+                                {
+                                    for (int i = 0; i < copiesOfBox.Count; i++)
+                                    {
+                                        copiesOfBox[i].MyEvent.StartTime = copiesOfOldBoxStart[i];
+                                        copiesOfBox[i].MyEvent.EndTime = copiesOfOldBoxEnd[i];
+                                        copiesOfBox[i].Row = copiesOfOldBoxRow[i];
+
+                                                // Check if user saved, to flag as modified from the value changing
+                                                // Otherwise, if it was still modified afterwards we can un-modified it
+                                                if (!MainScreen.SelectedTaeAnim.GetIsModified())
+                                        {
+                                            MainScreen.SelectedTaeAnim.SetIsModified(
+                                            MainScreen.SelectedTaeAnim.GetIsModified() ||
+                                            (!MainScreen.IsReadOnlyFileMode && ((copiesOfCurrentBoxStart[i] != copiesOfOldBoxStart[i]) ||
+                                            (copiesOfCurrentBoxEnd[i] != copiesOfOldBoxEnd[i]) ||
+                                            (copiesOfCurrentBoxRow[i] != copiesOfOldBoxRow[i]))));
+                                        }
+                                        else
+                                        {
+                                            MainScreen.SelectedTaeAnim.SetIsModified(copyOfIsAnimModified);
+                                        }
+
+
+                                    }
+                                });
+
+
+                        //foreach (var multiDrag in currentMultiDrag)
+                        //{
+                        //    TaeEditAnimEventBox copyOfBox = multiDrag.Box;
+
+                        //    float copyOfOldBoxStart = multiDrag.BoxOriginalStart;
+                        //    float copyOfOldBoxEnd = multiDrag.BoxOriginalEnd;
+                        //    int copyOfOldBoxRow = multiDrag.BoxOriginalRow;
+
+                        //    float copyOfCurrentBoxStart = copyOfBox.MyEvent.StartTime;
+                        //    float copyOfCurrentBoxEnd = copyOfBox.MyEvent.EndTime;
+                        //    int copyOfCurrentBoxRow = copyOfBox.MyEvent.Row;
+
+                        //    MainScreen.UndoMan.NewAction(
+                        //        doAction: () =>
+                        //        {
+                        //            copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
+                        //            copyOfBox.MyEvent.EndTime = copyOfCurrentBoxEnd;
+                        //            copyOfBox.MyEvent.Row = copyOfCurrentBoxRow;
+
+                        //            MainScreen.IsModified = true;
+                        //            MainScreen.SelectedTaeAnim.IsModified = true;
+                        //        },
+                        //        undoAction: () =>
+                        //        {
+                        //            copyOfBox.MyEvent.StartTime = copyOfOldBoxStart;
+                        //            copyOfBox.MyEvent.EndTime = copyOfOldBoxEnd;
+                        //            copyOfBox.MyEvent.Row = copyOfOldBoxRow;
+
+                        //            MainScreen.IsModified = true;
+                        //            MainScreen.SelectedTaeAnim.IsModified = true;
+                        //        });
+
+                        //    multiDrag.DragType = BoxDragType.None;
+                        //    multiDrag.Box = null;
+                        //}
+
+                        currentMultiDrag.Clear();
+                        currentDrag.DragType = BoxDragType.None;
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
+                        || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
+                        || currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
+                    {
+                        currentDrag.DragType = BoxDragType.None;
+                        if (MainScreen.MultiSelectedEventBoxes.Count == 1)
+                        {
+                            MainScreen.SelectedEventBox = MainScreen.MultiSelectedEventBoxes[0];
+                            MainScreen.MultiSelectedEventBoxes.Clear();
+                        }
+                    }
+                }
+                else
+                {
+                    // this happens after releasing drag while playing anim with autoscroll
+                    if (currentDrag.DragType == BoxDragType.MiddleOfEventBox)
+                    {
+                        currentDrag.DragType = BoxDragType.None;
+                        currentDrag.Box = null;
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox ||
+                        currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox ||
+                        currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
+                    {
+                        currentMultiDrag.Clear();
+                        currentDrag.DragType = BoxDragType.None;
+                    }
+                    else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
+                        || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
+                        || currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
+                    {
+                        currentDrag.DragType = BoxDragType.None;
+                        if (MainScreen.MultiSelectedEventBoxes.Count == 1)
+                        {
+                            MainScreen.SelectedEventBox = MainScreen.MultiSelectedEventBoxes[0];
+                            MainScreen.MultiSelectedEventBoxes.Clear();
+                        }
+                    }
+                }
+
+
+
+
+            }
         }
 
         public void UpdateMouseOutsideRect(float elapsedSeconds, bool allowMouseUpdate)
@@ -1755,7 +1774,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = (int)startRow; i <= (int)endRow; i++)
             {
-                result.Add(i, (i * RowHeight));
+                result.Add(i, (i * RowHeight) - 2);
             }
 
             return result;
@@ -1766,13 +1785,13 @@ namespace DSAnimStudio.TaeEditor
         {
             foreach (var kvp in secondVerticalLineXPositions)
             {
-                if (!MainScreen.Config.EnableColorBlindMode)
-                    sb.DrawString(font, kvp.Key.ToString(), new Vector2(kvp.Value + 4 + 1, (int)ScrollViewer.Scroll.Y + 1 + 1), Color.Black);
-                sb.DrawString(font, kvp.Key.ToString(), new Vector2(kvp.Value + 4, (int)ScrollViewer.Scroll.Y + 1), MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.White);
+                sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4 + 1), (float)Math.Round(ScrollViewer.Scroll.Y + 3 + 1)), Color.Black);
+                sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4), (float)Math.Round(ScrollViewer.Scroll.Y + 3)), Color.White);
             }
         }
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, float elapsedSeconds)
+        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, 
+            SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex)
         {
             var playbackCursorPixelCheckX = SecondsPixelSize * (float)PlaybackCursor.CurrentTime;
             float centerOfScreenCheckX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
@@ -1832,7 +1851,7 @@ namespace DSAnimStudio.TaeEditor
 
             ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
 
-            ScrollViewer.Draw(gd, sb, boxTex, font);
+            ScrollViewer.Draw(gd, sb, boxTex, scrollbarArrowTex);
 
             var scrollMatrix = ScrollViewer.GetScrollMatrix();
 
@@ -1856,7 +1875,7 @@ namespace DSAnimStudio.TaeEditor
                 sb.Draw(texture: boxTex,
                     position: ScrollViewer.Scroll - (Vector2.One * 4),
                     sourceRectangle: null,
-                    color: MainScreen.Config.EnableColorBlindMode ? Color.Fuchsia : (new Color(64, 64, 64, 255)),
+                    color: new Color(64, 64, 64, 255),
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
@@ -1884,7 +1903,7 @@ namespace DSAnimStudio.TaeEditor
                     sb.Draw(texture: boxTex,
                     position: new Vector2(ScrollViewer.Scroll.X, kvp.Value),
                     sourceRectangle: null,
-                    color: MainScreen.Config.EnableColorBlindMode ? Color.White * 0.5f : Color.Black * 0.25f,
+                    color: Color.Black * 0.25f,
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(ScrollViewer.Viewport.Width, 1),
@@ -1909,8 +1928,8 @@ namespace DSAnimStudio.TaeEditor
 
                         bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.Scroll.X;
 
-                        Vector2 pos = new Vector2(box.LeftFr, box.Top);
-                        Vector2 size = new Vector2(box.WidthFr, box.HeightFr);
+                        Vector2 pos = new Vector2((float)Math.Round(box.LeftFr), box.Top + 1);
+                        Vector2 size = new Vector2((float)Math.Round(box.WidthFr), box.HeightFr - 1);
 
                         int boxOutlineThickness = 1;// isBoxSelected ? 2 : 1;
 
@@ -1922,17 +1941,6 @@ namespace DSAnimStudio.TaeEditor
                         Color thisBoxBgColor = new Color(box.ColorBG.ToVector3());
                         Color thisBoxBgColorSelected = new Color(box.ColorBGSelected.ToVector3());
                         Color boxOutlineColorSelected = Color.White;
-                        
-
-                        if (MainScreen.Config.EnableColorBlindMode)
-                        {
-                            thisBoxBgColor = Color.Black;
-                            thisBoxBgColorSelected = Color.White;
-                            boxOutlineColor = Color.Gray;
-                            boxOutlineColorSelected = Color.White;
-                            textFG = box.PlaybackHighlight ? Color.Black : Color.White;
-                            textBG = Color.Transparent;
-                        }
 
                         // outline
                         sb.Draw(texture: boxTex,
@@ -1965,7 +1973,7 @@ namespace DSAnimStudio.TaeEditor
 
                         var boxRect = box.GetTextRect(boxOutlineThickness);
 
-                        if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= 48)
+                        if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= TinyTextBoxWidth)
                         {
                             var fancyTextRect = boxRect;
                             if (eventStartsBeforeScreen)
@@ -1980,7 +1988,7 @@ namespace DSAnimStudio.TaeEditor
                                     fancyTextRect.Width - fixedPrefixSize.X - amountOutOfScreen,
                                     fancyTextRect.Height);
 
-                                var prefixPos = new Vector2((int)ScrollViewer.Scroll.X, boxRect.Y);
+                                var prefixPos = namePos;// new Vector2((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round((float)boxRect.Y));
 
                                 sb.DrawString(font, fixedPrefix,
                                     prefixPos + Vector2.One, textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
@@ -2001,7 +2009,8 @@ namespace DSAnimStudio.TaeEditor
 
                                 if (MainScreen.PrevHoveringOverEventBox != box)
                                 {
-                                    HoverInfoBox.Text = box.GetPopupText();
+                                    //HoverInfoBox.Title = box.GetPopupTitle();
+                                    //HoverInfoBox.Text = box.GetPopupText();
                                     HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
                                 }
                             }
@@ -2021,37 +2030,51 @@ namespace DSAnimStudio.TaeEditor
 
                             var nameSize = font.MeasureString(fullTextWithPrefix);
 
-                            if ((namePos.X + nameSize.X) <= box.RightFr)
-                            {
-                                sb.DrawString(font, fullTextWithPrefix,
-                                    namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
-                                //sb.DrawString(font, fullTextWithPrefix,
-                                //    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
-                                sb.DrawString(font, fullTextWithPrefix,
-                                    namePos + new Vector2(1, 0) + thicknessOffset, textFG);
-                            }
-                            else
-                            {
-                                string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
-                                    $"{(box.MyEvent.TypeName)}";
-                                sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
-                                    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                                //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
-                                //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                                sb.DrawString(font, shortTextWithPrefix, namePos + thicknessOffset,
-                                    textFG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            }
+                            string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
+                                   $"{(box.MyEvent.TypeName)}";
+                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
+                                textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                            //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                            //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
+                                textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                            //if ((namePos.X + nameSize.X) <= box.RightFr)
+                            //{
+                            //    sb.DrawString(font, fullTextWithPrefix,
+                            //        namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
+                            //    //sb.DrawString(font, fullTextWithPrefix,
+                            //    //    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
+                            //    sb.DrawString(font, fullTextWithPrefix,
+                            //        namePos + new Vector2(1, 0) + thicknessOffset, textFG);
+                            //}
+                            //else
+                            //{
+                            //    string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
+                            //        $"{(box.MyEvent.TypeName)}";
+                            //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
+                            //        textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                            //    //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                            //    //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                            //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
+                            //        textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                            //}
                         }
                     }
                 }
 
-                HoverInfoBox.Update(mouseInside: MainScreen.HoveringOverEventBox != null, elapsedSeconds);
+                
 
                 // When you change which box (if any) is hovered, update the simulation and stuff.
                 if (MainScreen.PrevHoveringOverEventBox != MainScreen.HoveringOverEventBox)
                 {
                     ViewportInteractor.OnScrubFrameChange();
+                    HoverInfoBox.Update(false, 0);
                 }
+
+                HoverInfoBox.Box = MainScreen.HoveringOverEventBox;
+
+                HoverInfoBox.Update(mouseInside: MainScreen.HoveringOverEventBox != null, elapsedSeconds);
 
                 MainScreen.PrevHoveringOverEventBox = MainScreen.HoveringOverEventBox;
 
@@ -2074,7 +2097,7 @@ namespace DSAnimStudio.TaeEditor
                 sb.Draw(texture: boxTex,
                     position: ScrollViewer.Scroll - (Vector2.One * 4),
                     sourceRectangle: null,
-                    color: MainScreen.Config.EnableColorBlindMode ? Color.Fuchsia : (new Color(75, 75, 75, 255)),
+                    color: new Color(75, 75, 75, 255),
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
@@ -2082,9 +2105,9 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
 
-                bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= (30 * MinPixelsBetweenFramesForFrameNumberText);
+                bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForFrameNumberText);
 
-                if (SecondsPixelSize >= (30 * MinPixelsBetweenFramesForHelperLines))
+                if (SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForHelperLines))
                 {
                     int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / FramePixelSize);
                     int endFrame = (int)Math.Floor((ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) / FramePixelSize);
@@ -2094,7 +2117,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                         position: new Vector2(i * FramePixelSize, ScrollViewer.Scroll.Y),
                         sourceRectangle: null,
-                        color: MainScreen.Config.EnableColorBlindMode ? Color.White * 0.25f : Color.Black * 0.125f,
+                        color: Color.Black * 0.125f,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(1, TimeLineHeight),
@@ -2108,14 +2131,14 @@ namespace DSAnimStudio.TaeEditor
                             {
                                 if (((i % PlaybackCursor.SnapInterval) != 0) && zoomedEnoughForFrameNumbers)
                                 {
-                                    sb.DrawString(font, i.ToString(), new Vector2(i * FramePixelSize + 2, ScrollViewer.Scroll.Y + 2), Color.White);
+                                    sb.DrawString(smallFont, i.ToString(), new Vector2((float)Math.Round(i * FramePixelSize + 2), (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Color.White);
                                 }
                             }
                             
                         }
                         catch
                         {
-
+                            // todo: see why this was needed lol?
                         }
                         
                     }
@@ -2135,7 +2158,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                         position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
                         sourceRectangle: null,
-                        color: MainScreen.Config.EnableColorBlindMode ? Color.White * 0.5f : Color.Black * 0.25f,
+                        color: Color.Black * 0.25f,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(1, ScrollViewer.Viewport.Height),
@@ -2288,7 +2311,7 @@ namespace DSAnimStudio.TaeEditor
                     sb.Draw(texture: boxTex,
                           position: new Vector2(animStopPixelX, (int)ScrollViewer.Scroll.Y),
                           sourceRectangle: null,
-                          color: (MainScreen.Config.EnableColorBlindMode ? Color.Green : Color.Black) * 0.25f,
+                          color: Color.Black * 0.25f,
                           rotation: 0,
                           origin: Vector2.Zero,
                           scale: new Vector2(darkenedPortionWidth, ScrollViewer.Viewport.Height),
@@ -2307,6 +2330,8 @@ namespace DSAnimStudio.TaeEditor
                     $"/{(int)((Math.Round(PlaybackCursor.MaxFrame) - 1))}";
 
                 Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
+
+                playbackCursorTextSize = new Vector2(playbackCursorTextSize.X, TimeLineHeight - 1);
 
                 // Draw PlaybackCursor CurrentTime BG Rect
 
@@ -2336,7 +2361,7 @@ namespace DSAnimStudio.TaeEditor
 
                 Vector2 playbackCursorTextPos = new Vector2(
                     playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 6, 
-                    (int)(ScrollViewer.Scroll.Y + 1));
+                    (int)(ScrollViewer.Scroll.Y + 3));
 
                 // Draw PlaybackCursor CurrentTime string
                 sb.DrawString(font, playbackCursorText,
@@ -2365,12 +2390,29 @@ namespace DSAnimStudio.TaeEditor
 
                 if (!HoverInfoBox.IsVisible)
                 {
-                    HoverInfoBox.DrawPosition = relMouse +
-                        new Vector2(Rect.X + HoverInfoBoxOffsetFromMouse.X,
-                        Rect.Y + HoverInfoBoxOffsetFromMouse.Y + TimeLineHeight);
+                    //HoverInfoBox.DrawPosition = relMouse +
+                    //    new Vector2(Rect.X + HoverInfoBoxOffsetFromMouse.X,
+                    //    Rect.Y + HoverInfoBoxOffsetFromMouse.Y + TimeLineHeight);
+
+                    HoverInfoBox.DrawPosition = MainScreen.Input.MousePosition + new Vector2(32, 48);
+
+                    //MainScreen.SetInspectorVisibility(true);
+                }
+                else
+                {
+                    //MainScreen.SetInspectorVisibility(false);
                 }
 
-                HoverInfoBox.Draw(sb, boxTex);
+                bool cancelTooltipCompletely = (MainScreen.Input.LeftClickHeld || MainScreen.Input.MiddleClickHeld || 
+                    MainScreen.Input.RightClickHeld || !Rect.Contains(MainScreen.Input.MousePositionPoint)) || MainScreen.MenuBar.BlockInput;
+
+                if (cancelTooltipCompletely)
+                {
+                    HoverInfoBox.Update(false, 0);
+                }
+
+                //HoverInfoBox.Draw(sb, boxTex);
+                HoverInfoBox.UpdateTooltip(MainScreen.GameWindowAsForm);
 
                 sb.End();
             }

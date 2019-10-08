@@ -26,6 +26,8 @@ namespace DSAnimStudio
 
         public bool ScaleByEffectiveSSAA = false;
 
+        public bool FullyOutlined = false;
+
         public StatusPrinter(Vector2? pos, Color? color = null, SpriteFont font = null)
         {
             Position = pos;
@@ -104,8 +106,40 @@ namespace DSAnimStudio
                 var color = line.Color ?? Color ?? Microsoft.Xna.Framework.Color.Cyan;
                 var textSize = font.MeasureString(line.Text) * scale;
 
+                //SE
                 GFX.SpriteBatch.DrawString(font, line.Text, currentPos + Vector2.One * scale, 
                     Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+
+                if (FullyOutlined)
+                {
+                    //E
+                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(1, 0) * scale,
+                       Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+
+                    //NE
+                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(1, -1) * scale,
+                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+
+                    //N
+                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(0, -1) * scale,
+                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+
+                    //NW
+                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(-1, -1) * scale,
+                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+
+                    //W
+                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(-1, 0) * scale,
+                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+
+                    //SW
+                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(-1, 1) * scale,
+                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+
+                    //S
+                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(0, 1) * scale,
+                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
+                }
 
                 GFX.SpriteBatch.DrawString(font, line.Text, currentPos, color, 0, 
                     Vector2.Zero, scale, SpriteEffects.None, 0);

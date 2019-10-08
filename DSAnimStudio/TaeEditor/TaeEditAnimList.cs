@@ -8,6 +8,8 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditAnimList
     {
+        public const int BorderThickness = 1;
+
         public class TaeEditAnimInfo
         {
             public Func<string> GetName;
@@ -32,7 +34,7 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeScrollViewer ScrollViewer;
 
-        private int AnimHeight = 24;
+        private int AnimHeight = 25;
 
         public List<TaeEditAnimListTaeSection> AnimTaeSections = new List<TaeEditAnimListTaeSection>();
 
@@ -257,11 +259,11 @@ namespace DSAnimStudio.TaeEditor
             ScrollViewer.SetDisplayRect(Rect, new Point(Rect.Width, (int)EntireListHeight));
         }
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font)
+        public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, Texture2D scrollbarArrowTex)
         {
             UpdateScrollViewerRect();
 
-            ScrollViewer.Draw(gd, sb, boxTex, font);
+            ScrollViewer.Draw(gd, sb, boxTex, scrollbarArrowTex);
 
             var oldViewport = gd.Viewport;
             gd.Viewport = new Viewport(ScrollViewer.Viewport);
@@ -284,7 +286,7 @@ namespace DSAnimStudio.TaeEditor
                 foreach (var taeSection in AnimTaeSections)
                 {
                     var thisGroupRect = new Rectangle(1, (int)offset + 1, ScrollViewer.Viewport.Width - 2, AnimHeight - 2);
-                    int border = MainScreen.Config.EnableColorBlindMode ? 2 : 1;
+                    int border = BorderThickness;
                     sb.Draw(boxTex, thisGroupRect, Color.White);
                     sb.Draw(boxTex, 
                         new Rectangle(
@@ -292,10 +294,10 @@ namespace DSAnimStudio.TaeEditor
                             thisGroupRect.Y + border, 
                             thisGroupRect.Width - border * 2, 
                             thisGroupRect.Height - border * 2), 
-                        MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.Gray);
-                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset)) + Vector2.One, Color.Black);
-                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset)) + (Vector2.One * 2), Color.Black);
-                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset)), Color.White);
+                        Color.Gray);
+                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset) + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))) + Vector2.One, Color.Black);
+                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset) + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))) + (Vector2.One * 2), Color.Black);
+                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset) + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))), Color.White);
 
 
                     Rectangle sectionCollapseButton = new Rectangle(
@@ -354,7 +356,7 @@ namespace DSAnimStudio.TaeEditor
                                 ScrollViewer.Viewport.Width - (GroupBraceMarginLeft), 
                                 AnimHeight + 1);
 
-                            sb.Draw(boxTex, thisAnimRect, MainScreen.Config.EnableColorBlindMode ? Color.White : new Color(200, 200, 200));
+                            sb.Draw(boxTex, thisAnimRect, new Color(200, 200, 200));
 
                             sb.Draw(boxTex,
                                 new Rectangle(
@@ -362,24 +364,24 @@ namespace DSAnimStudio.TaeEditor
                                     thisAnimRect.Y + border,
                                     thisAnimRect.Width - border * 2,
                                     thisAnimRect.Height - border * 2),
-                                MainScreen.Config.EnableColorBlindMode ? Color.Black : Color.DodgerBlue);
+                                Color.DodgerBlue);
                         }
 
                         sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset)) + (Vector2.One * 1.25f), Color.Black);
+                                (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f), Color.Black);
                         sb.DrawString(font, animIDText, new Vector2(
                             GroupBraceMarginLeft + 4,
-                            (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.White);
+                            (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))), Color.White);
 
                         var animNameTextSize = font.MeasureString(animNameText);
 
                         sb.DrawString(font, animNameText, new Vector2(
                                 ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset)) + (Vector2.One * 1.25f), Color.Black);
+                                (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f), Color.Black);
                         sb.DrawString(font, animNameText, new Vector2(
                             ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                            (int)(sectionStartOffset + anim.Value.VerticalOffset)), Color.PaleGoldenrod);
+                            (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))), Color.PaleGoldenrod);
 
                         offset += AnimHeight;
                     }

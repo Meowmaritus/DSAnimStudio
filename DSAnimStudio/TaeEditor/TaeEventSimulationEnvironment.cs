@@ -41,7 +41,9 @@ namespace DSAnimStudio.TaeEditor
                 if (MODEL.IS_PLAYER)
                 {
                     var id = -1;
-                    if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon && MODEL.ChrAsm?.RightWeapon != null)
+                    if (evBox.MyEvent.TypeName == "InvokeCommonBehavior")
+                        id = behaviorSubID;
+                    else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon && MODEL.ChrAsm?.RightWeapon != null)
                         id = 10_0000_000 + (MODEL.ChrAsm.RightWeapon.BehaviorVariationID * 1_000) + behaviorSubID;
                     else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon && MODEL.ChrAsm?.LeftWeapon != null)
                         id = 10_0000_000 + (MODEL.ChrAsm.LeftWeapon.BehaviorVariationID * 1_000) + behaviorSubID;
@@ -64,13 +66,19 @@ namespace DSAnimStudio.TaeEditor
                     if (MODEL.NpcParam == null)
                         return null;
 
-                    if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
-                    {
-                        var id = 2_00000_000 + (MODEL.NpcParam.BehaviorVariationID * 1_000) + behaviorSubID;
+                    int id = -1;
 
-                        if (ParamManager.BehaviorParam.ContainsKey(id))
-                            return ParamManager.BehaviorParam[id];
+                    if (evBox.MyEvent.TypeName == "InvokeCommonBehavior")
+                    {
+                        id = behaviorSubID;
                     }
+                    else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+                    {
+                        id = 2_00000_000 + (MODEL.NpcParam.BehaviorVariationID * 1_000) + behaviorSubID;
+                    }
+
+                    if (ParamManager.BehaviorParam.ContainsKey(id))
+                        return ParamManager.BehaviorParam[id];
                 }
             }
 

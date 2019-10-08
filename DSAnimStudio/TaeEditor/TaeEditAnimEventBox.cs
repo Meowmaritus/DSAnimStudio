@@ -22,7 +22,7 @@ namespace DSAnimStudio.TaeEditor
 
         public float Left => MyEvent.StartTime * OwnerPane.SecondsPixelSize;
         public float Right => MyEvent.EndTime * OwnerPane.SecondsPixelSize;
-        public float Top => (Row * OwnerPane.RowHeight) + 1 + OwnerPane.TimeLineHeight;
+        public float Top => (Row * OwnerPane.RowHeight) + 2 + OwnerPane.TimeLineHeight;
         public float Bottom => Top + OwnerPane.RowHeight;
         public float Width => (MyEvent.EndTime - MyEvent.StartTime) * OwnerPane.SecondsPixelSize;
         public float Height => OwnerPane.RowHeight - 2;
@@ -30,7 +30,7 @@ namespace DSAnimStudio.TaeEditor
         public float LeftFr => MyEvent.GetStartTimeFr() * OwnerPane.SecondsPixelSize;
         public float RightFr => MyEvent.GetEndTimeFr() * OwnerPane.SecondsPixelSize;
         public float WidthFr => (MyEvent.GetEndTimeFr() - MyEvent.GetStartTimeFr()) * OwnerPane.SecondsPixelSize;
-        public float HeightFr => OwnerPane.RowHeight - 2;
+        public float HeightFr => OwnerPane.RowHeight - 4;
 
         private int _row = -1;
         public int Row
@@ -56,7 +56,7 @@ namespace DSAnimStudio.TaeEditor
         public TaeScrollingString EventText { get; private set; } = new TaeScrollingString();
 
         public Color ColorBG = new Color(80, 80, 80, 255);
-        public Color ColorBGSelected = Color.DodgerBlue;
+        public Color ColorBGSelected = new Color((30.0f / 255.0f) * 1, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);// Color.DodgerBlue;
         public Color ColorOutline = Color.Black;
         public Color ColorFG => Color.White;
 
@@ -144,9 +144,73 @@ namespace DSAnimStudio.TaeEditor
             RaiseRowChanged(e);
         }
 
+        public string GetPopupTitle()
+        {
+            if (MyEvent.Template == null)
+                return $"Event Type {MyEvent.Type} [Unmapped]";
+            else
+                return MyEvent.TypeName;
+        }
+
         public string GetPopupText()
         {
-            return "[TODO: TaeEditAnimEventBox.GetPopupText()]\n\n\n\ntest test";
+            var sb = new StringBuilder();
+
+            if (MyEvent.Template == null)
+            {
+                var paramBytes = MyEvent.GetParameterBytes(OwnerPane.MainScreen.SelectedTae.BigEndian/*lol*/);
+                int bytesOnCurrentLine = 0;
+
+                for (int i = 0; i < paramBytes.Length; i++)
+                {
+                    if (bytesOnCurrentLine >= 8)
+                    {
+                        sb.AppendLine();
+                        bytesOnCurrentLine = 0;
+                    }
+
+                    sb.Append($"{paramBytes[i]:X2} ");
+                    bytesOnCurrentLine++;
+                }
+            }
+            else
+            {
+                int startFrame = MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
+                int endFrame = MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
+                int frameCount = endFrame - startFrame;
+                sb.AppendLine($"Start Frame: {startFrame}");
+                sb.AppendLine($"  End Frame: {endFrame}");
+                sb.AppendLine($"Frame Count: {frameCount}");
+
+                var paramKvps = MyEvent.Parameters.Template.Where(kvp => kvp.Value.ValueToAssert == null).ToList();
+                
+                if (paramKvps.Count > 0)
+                    sb.AppendLine();
+
+                int longestParamNameLength = 0;
+                int longestParamValueLength = 0;
+                foreach (var kvp in paramKvps)
+                {
+                    if (kvp.Key.Length > longestParamNameLength)
+                        longestParamNameLength = kvp.Key.Length;
+
+                    var valStr = MyEvent.Parameters.Template[kvp.Key].ValueToString(MyEvent.Parameters[kvp.Key]);
+                    if (valStr.Length > longestParamValueLength)
+                        longestParamValueLength = valStr.Length;
+                }
+
+                foreach (var kvp in paramKvps)
+                {
+                    var nameStr = string.Format($"{{0,-{(longestParamNameLength + 1)}}}", kvp.Key + ":");
+                    var valStr = string.Format($"{{0, {longestParamValueLength}}}",
+                        MyEvent.Parameters.Template[kvp.Key].ValueToString(MyEvent.Parameters[kvp.Key]));
+                    sb.AppendLine($"[{kvp.Value.Type,3}] {nameStr}    {valStr}");
+                }
+
+                
+            }
+
+            return sb.ToString();
         }
 
         public void UpdateEventText()
