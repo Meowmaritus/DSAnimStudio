@@ -290,10 +290,19 @@ namespace DSAnimStudio
 
                 if (hit.IsCapsule)
                 {
-                    Vector3 pointA = Vector3.Transform(Vector3.Zero, DummyPolyByRefID[dmyPoly1][0].CurrentMatrix);
-                    Vector3 pointB = Vector3.Transform(Vector3.Zero, DummyPolyByRefID[dmyPoly2][0].CurrentMatrix);
+                    if (DummyPolyByRefID.ContainsKey(dmyPoly1) && DummyPolyByRefID.ContainsKey(dmyPoly2))
+                    {
+                        Vector3 pointA = Vector3.Transform(Vector3.Zero, DummyPolyByRefID[dmyPoly1][0].CurrentMatrix);
+                        Vector3 pointB = Vector3.Transform(Vector3.Zero, DummyPolyByRefID[dmyPoly2][0].CurrentMatrix);
 
-                    ((DbgPrimWireCapsule)HitPrims[hit][0]).UpdateCapsuleEndPoints(pointA, pointB, hit.Radius);
+                        ((DbgPrimWireCapsule)HitPrims[hit][0]).UpdateCapsuleEndPoints(pointA, pointB, hit.Radius);
+
+                        
+                    } 
+                    else
+                    {
+                        ((DbgPrimWireCapsule)HitPrims[hit][0]).UpdateCapsuleEndPoints(Vector3.Zero, Vector3.Zero, hit.Radius);
+                    }
                 }
                 else
                 {
@@ -304,7 +313,7 @@ namespace DSAnimStudio
                             HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius));
                         }
                     }
-                    else
+                    else if (DummyPolyByRefID.ContainsKey(dmyPoly1))
                     {
                         if (DummyPolyByRefID[dmyPoly1].Count != HitPrims[hit].Count)
                             AddNewHitPrim(hit, filter, false, dontUpdate: true);
@@ -313,6 +322,13 @@ namespace DSAnimStudio
                         {
                             Matrix m = DummyPolyByRefID[dmyPoly1][i].CurrentMatrix;
                             HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius) * m);
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < HitPrims[hit].Count; i++)
+                        {
+                            HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius));
                         }
                     }
                    
