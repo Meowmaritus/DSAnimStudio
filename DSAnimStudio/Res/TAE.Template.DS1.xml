@@ -192,6 +192,11 @@
     <event id="101" name="SpawnFFX_General">
       <s32 name="FFXID"/>
     </event>
+    <event id="104" name="SpawnFFX_Unk104">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerNumber"/>
+    </event>
     <event id="108" name="SpawnFFX_108">
       <s32 name="FFXID"/>
       <s32 name="DummyPolyID"/>

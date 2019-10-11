@@ -345,10 +345,10 @@ namespace DSAnimStudio
                     IBinder extraTexbnd = null;
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id}.anibnd.dcx"))
-                        anibnd = BND3.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
+                        anibnd = BND4.Read($@"{InterrootPath}\chr\{id}.anibnd.dcx");
 
                     if (System.IO.File.Exists($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd.dcx"))
-                        extraTexbnd = BND3.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd.dcx");
+                        extraTexbnd = BND4.Read($@"{InterrootPath}\chr\{id.Substring(0, 4)}9.chrbnd.dcx");
 
                     chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
                         additionalTpfNames: new List<string> { $@"{InterrootPath}\chr\{id}_2.tpf.dcx" },
