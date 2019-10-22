@@ -69,15 +69,49 @@ namespace DSAnimStudio
             throw new InvalidOperationException($"Param '{paramName}' not found :tremblecat:");
         }
 
-        public static List<ParamData.NpcParam> FindNpcParams(string modelName)
+        private static bool CheckNpcParamForCurrentGameType(int chrId, ParamData.NpcParam r, bool isFirst, bool matchCXXX0)
+        {
+            long checkId = r.ID;
+
+            if (matchCXXX0)
+            {
+                chrId /= 10;
+                checkId /= 10;
+            }
+
+            if (GameDataManager.GameType != GameDataManager.GameTypes.SDT)
+            {
+                if ((checkId / 100) == chrId)
+                {
+                    return true;
+                }
+                else if (isFirst && GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                {
+                    return ((checkId % 1_0000_00) / 100 == chrId);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            {
+                return (checkId / 1_0000) == chrId;
+            }
+            else
+            {
+                throw new NotImplementedException(
+                    $"ParamManager.CheckNpcParamForCurrentGameType not implemented for game type {GameDataManager.GameType}");
+            }
+        }
+
+        public static List<ParamData.NpcParam> FindNpcParams(string modelName, bool matchCXXX0 = false)
         {
             int chrId = int.Parse(modelName.Substring(1));
 
             var npcParams = new List<ParamData.NpcParam>();
-            foreach (var kvp in NpcParam.Where(r => (r.Key / 100 == chrId || 
-                (GameDataManager.GameType == GameDataManager.GameTypes.BB && 
-                npcParams.Count == 0 &&
-                ((r.Key % 1_0000_00) / 100 == chrId)))))
+            foreach (var kvp in NpcParam.Where(r 
+                => CheckNpcParamForCurrentGameType(chrId, r.Value, npcParams.Count == 0, matchCXXX0)))
             {
                 npcParams.Add(kvp.Value);
             }
@@ -209,7 +243,7 @@ namespace DSAnimStudio
                     else
                         return false;
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.BB || GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
                         ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");

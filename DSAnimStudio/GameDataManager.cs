@@ -69,8 +69,7 @@ namespace DSAnimStudio
             else if (GameType == GameTypes.BB)
                 return HKX.HKXVariation.HKXBloodBorne;
 
-            // TODO MAKE LESS SHIT
-            return HKX.HKXVariation.HKXDS3;
+            return HKX.HKXVariation.Invalid;
         }
 
         public static string InterrootPath { get; private set; } = null;
@@ -205,7 +204,7 @@ namespace DSAnimStudio
 
             LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_OBJ_{id}", $"Loading object {id}...", progress =>
             {
-                if (GameType == GameTypes.DS3)
+                if (GameType == GameTypes.DS3 || GameType == GameTypes.BB || GameType == GameTypes.SDT)
                 {
                     var chrbnd = BND4.Read($@"{InterrootPath}\obj\{id}.objbnd.dcx");
 
@@ -218,12 +217,6 @@ namespace DSAnimStudio
                     obj = new Model(progress, id, chrbnd, 0, null, null);
                 }
                 else if (GameType == GameTypes.DS1R)
-                {
-                    var chrbnd = BND4.Read($@"{InterrootPath}\obj\{id}.objbnd.dcx");
-
-                    obj = new Model(progress, id, chrbnd, 0, null, null);
-                }
-                else if (GameType == GameTypes.BB)
                 {
                     var chrbnd = BND4.Read($@"{InterrootPath}\obj\{id}.objbnd.dcx");
 
@@ -244,7 +237,7 @@ namespace DSAnimStudio
                             TexturePool.AddTpfFromPath($@"{InterrootPath}\map\tx\{tex}.tpf");
                         }
                     }
-                    else if (GameType == GameTypes.DS3)
+                    else if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT || GameType == GameTypes.BB)
                     {
                         int objGroup = int.Parse(id.Substring(1)) / 1_0000;
                         var tpfBnds = System.IO.Directory.GetFiles($@"{InterrootPath}\map\m{objGroup:D2}", "*.tpfbhd");
@@ -265,7 +258,7 @@ namespace DSAnimStudio
 
             LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_CHR_{id}", $"Loading character {id}...", progress =>
             {
-                if (GameType == GameTypes.DS3)
+                if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT)
                 {
                     var chrbnd = BND4.Read($@"{InterrootPath}\chr\{id}.chrbnd.dcx");
                     IBinder texbnd = null;

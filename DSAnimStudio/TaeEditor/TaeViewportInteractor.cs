@@ -150,6 +150,22 @@ namespace DSAnimStudio.TaeEditor
                 else
                 {
                     PossibleNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
+
+                    
+
+                    if (PossibleNpcParams.Count == 0)
+                    {
+                        var cname = CurrentModel.Name;
+                        var cname0 = CurrentModel.Name.Substring(0, 4) + "0";
+                        var dlgres = System.Windows.Forms.MessageBox.Show(
+                            $"No NpcParams matched for {cname}.\nWould you like to try to use NpcParams matching {cname0}?",
+                            "No NpcParams Matched", System.Windows.Forms.MessageBoxButtons.YesNo, System.Windows.Forms.MessageBoxIcon.Warning);
+                        if (dlgres == System.Windows.Forms.DialogResult.Yes)
+                        {
+                            PossibleNpcParams = ParamManager.FindNpcParams(CurrentModel.Name, matchCXXX0: true);
+                        }
+                    }
+
                     if (PossibleNpcParams.Count > 0)
                         SelectedNpcParamIndex = 0;
                     else
@@ -157,7 +173,7 @@ namespace DSAnimStudio.TaeEditor
 
                     SetEntityType(TaeEntityType.NPC);
 
-                    var validNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
+                    var validNpcParams = PossibleNpcParams;
 
                     var materialsPerMask = CurrentModel.GetMaterialNamesPerMask();
 
@@ -208,11 +224,17 @@ namespace DSAnimStudio.TaeEditor
                         Graph.MainScreen.MenuBar.AddSeparator("NPC Settings");
 
                         
-
-                        Graph.MainScreen.MenuBar.AddItem("NPC Settings", "NpcParam", behaviorVariationChoicesDict, 
+                        if (CurrentModel.NpcParam != null)
+                        {
+                            Graph.MainScreen.MenuBar.AddItem("NPC Settings", "NpcParam", behaviorVariationChoicesDict,
                             () => $"{CurrentModel.NpcParam.GetDisplayName()}|" +
                             CurrentModel.NpcParam.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
                             $"\nBehaviorVariationID: {CurrentModel.NpcParam.BehaviorVariationID}");
+                        }
+                        else
+                        {
+                            Graph.MainScreen.MenuBar.AddItem("NPC Settings", "NpcParam (None Found)");
+                        }
 
                         Graph.MainScreen.MenuBar.AddItem("NPC Settings\\Override Draw Mask", "Show All", () =>
                         {

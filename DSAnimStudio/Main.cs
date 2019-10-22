@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.5.2";
+        public const string VERSION = "Version 1.5.4";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -337,7 +337,7 @@ namespace DSAnimStudio
         {
             const double MEM_KB = 1024f;
             const double MEM_MB = 1024f * 1024f;
-            const double MEM_GB = 1024f * 1024f * 1024f;
+            //const double MEM_GB = 1024f * 1024f * 1024f;
 
             if (MemoryUsage < MEM_KB)
                 return $"{prefix}{(1.0 * MemoryUsage):0} B";

@@ -31,12 +31,12 @@ namespace DSAnimStudio
         public bool[] DefaultDrawMask = new bool[DRAW_MASK_LENGTH];
         public bool[] DrawMask = new bool[DRAW_MASK_LENGTH];
 
-        public enum ModelType
-        {
-            ModelTypeFlver,
-            ModelTypeCollision,
-        };
-        ModelType Type;
+        //public enum ModelType
+        //{
+        //    ModelTypeFlver,
+        //    ModelTypeCollision,
+        //};
+        //ModelType Type;
 
         public Transform StartTransform = Transform.Default;
 
@@ -242,7 +242,7 @@ namespace DSAnimStudio
 
         private void LoadFLVER2(FLVER2 flver, bool useSecondUV, int baseDmyPolyID = 0, bool ignoreStaticTransforms = false)
         {
-            Type = ModelType.ModelTypeFlver;
+            //Type = ModelType.ModelTypeFlver;
 
             Skeleton = new NewAnimSkeleton(this, flver.Bones);
 

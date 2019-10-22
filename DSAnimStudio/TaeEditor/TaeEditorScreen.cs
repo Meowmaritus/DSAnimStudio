@@ -715,13 +715,32 @@ namespace DSAnimStudio.TaeEditor
 
                 try
                 {
+                    string folder = new System.IO.FileInfo(FileContainerName).DirectoryName;
+
+                    int lastSlashInFolder = folder.LastIndexOf("\\");
+
+                    string interroot = folder.Substring(0, lastSlashInFolder);
+
+                    string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
+
+                    string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
+
+                    if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
+                    {
+                        System.IO.File.Copy(oodleSource, oodleTarget, true);
+
+                        System.Windows.Forms.MessageBox.Show("Oodle compression library was automatically copied from game directory " +
+                            "to editor's '/lib' directory and Sekiro files will load.\n\n", "Required Library Copied", 
+                            System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+                    }
+
                     FileContainer.LoadFromPath(FileContainerName);
                 }
                 catch (System.DllNotFoundException)
                 {
                     System.Windows.Forms.MessageBox.Show("Cannot open Sekiro files unless you " +
                         "copy the `oo2core_6_win64.dll` file from the Sekiro folder into the " +
-                        "same folder as this editor's EXE.", "Additional DLL Required", 
+                        "'lib' folder next to DS Anim Studio.exe.", "Additional DLL Required", 
                         System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
 
                     return false;
@@ -1699,14 +1718,14 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                bool needsAnimReload = false;
+                //bool needsAnimReload = false;
                 if (editForm.WasAnimIDChanged)
                 {
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
                     SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     RecreateAnimList();
                     UpdateSelectedTaeAnimInfoText();
-                    needsAnimReload = true;
+                    //needsAnimReload = true;
                 }
 
                 if (editForm.WereThingsChanged)
@@ -1714,7 +1733,7 @@ namespace DSAnimStudio.TaeEditor
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
                     SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     UpdateSelectedTaeAnimInfoText();
-                    needsAnimReload = true;
+                    //needsAnimReload = true;
                 }
 
                 //if (needsAnimReload)

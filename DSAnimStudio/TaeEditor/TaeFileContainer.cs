@@ -126,10 +126,10 @@ namespace DSAnimStudio.TaeEditor
                 taeInBND.Add(file, TAE.Read(file));
             }
 
-            void DoBnd(IBinder bnd)
-            {
+            //void DoBnd(IBinder bnd)
+            //{
                
-            }
+            //}
 
             if (ContainerType == TaeFileContainerType.ANIBND)
             {

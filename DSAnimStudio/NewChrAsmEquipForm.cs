@@ -57,7 +57,8 @@ namespace DSAnimStudio
                     cb.Items.Add(kvp.Value);
                     idList.Add(kvp.Key);
                 }
-                cb.SelectedIndex = 0;
+                if (cb.Items.Count > 0)
+                    cb.SelectedIndex = 0;
             }
 
             DoParamList(comboBoxHD, ParamID_HD, FmgManager.ProtectorNames_HD);
