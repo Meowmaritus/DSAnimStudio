@@ -53,7 +53,7 @@ namespace DSAnimStudio
                     OverrideColor = Color.Cyan,
                 };
 
-                SpawnPrinter.Font = DBG.DEBUG_FONT_VERY_SMALL;
+                SpawnPrinter.Font = DBG.DEBUG_FONT_SMALL;
                 SpawnPrinter.FullyOutlined = true;
             }
 

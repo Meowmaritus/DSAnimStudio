@@ -22,7 +22,7 @@ namespace DSAnimStudio.TaeEditor
         private Color ColorScrollArrowButtonForegroundInactive = new Color(0.35f, 0.35f, 0.35f);
         private Color ColorScrollArrowButtonForegroundActive = new Color(0.45f, 0.45f, 0.45f);
 
-        private string ScrollArrowStr = "▲";
+        //private string ScrollArrowStr = "▲";
 
         private Point VirtualAreaSize;
         private Rectangle FullDisplayRect;

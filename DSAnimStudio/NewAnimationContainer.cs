@@ -203,53 +203,62 @@ namespace DSAnimStudio
         {
             var hkxVariation = GameDataManager.GetCurrentLegacyHKXType();
 
-            Dictionary<string, byte[]> animHKXs = new Dictionary<string, byte[]>();
-            Dictionary<string, byte[]> taes = new Dictionary<string, byte[]>();
-            double i = 1;
-            int fileCount = anibnd.Files.Count;
-            foreach (var f in anibnd.Files)
+            if (hkxVariation == HKX.HKXVariation.Invalid)
             {
-                string shortName = new FileInfo(f.Name).Name.ToLower();
-                if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
-                {
-                    animHKXs.Add(shortName, f.Bytes);
-                }
-                else if (shortName.EndsWith(".tae") || TAE.Is(f.Bytes))
-                {
-                    taes.Add(shortName, f.Bytes);
-                }
-                progress?.Report(((i++) / fileCount) / 2.0);
+                //TODO
+                Console.WriteLine("NewAnimationContainer.LoadAdditionalANIBND: Invalid legacy HKX type.");
             }
-
-            i = 0;
-            fileCount = animHKXs.Count;
-
-            foreach (var kvp in animHKXs)
+            else
             {
-                AddAnimHKXFetch(kvp.Key, kvp.Value);
-
-                progress?.Report(0.5 + (((i++) / fileCount) / 2.0));
-            }
-
-            foreach (var kvp in taes)
-            {
-                lock (_lock_timeactDict)
+                Dictionary<string, byte[]> animHKXs = new Dictionary<string, byte[]>();
+                Dictionary<string, byte[]> taes = new Dictionary<string, byte[]>();
+                double i = 1;
+                int fileCount = anibnd.Files.Count;
+                foreach (var f in anibnd.Files)
                 {
-                    if (!timeactFiles.ContainsKey(kvp.Key))
-                        timeactFiles.Add(kvp.Key, kvp.Value);
-                    else
-                        timeactFiles[kvp.Key] = kvp.Value;
-                }
-            }
-
-            if (CurrentAnimationName == null && animHKXsToLoad.Count > 0)
-            {
-                lock (_lock_animDict)
-                {
-                    CurrentAnimationName = animHKXsToLoad.Keys.First();
+                    string shortName = new FileInfo(f.Name).Name.ToLower();
+                    if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
+                    {
+                        animHKXs.Add(shortName, f.Bytes);
+                    }
+                    else if (shortName.EndsWith(".tae") || TAE.Is(f.Bytes))
+                    {
+                        taes.Add(shortName, f.Bytes);
+                    }
+                    progress?.Report(((i++) / fileCount) / 2.0);
                 }
 
-                CurrentAnimation?.Scrub(0, loop: false, forceUpdate: true);
+                i = 0;
+                fileCount = animHKXs.Count;
+
+                foreach (var kvp in animHKXs)
+                {
+                    AddAnimHKXFetch(kvp.Key, kvp.Value);
+
+                    progress?.Report(0.5 + (((i++) / fileCount) / 2.0));
+                }
+
+                foreach (var kvp in taes)
+                {
+                    lock (_lock_timeactDict)
+                    {
+                        if (!timeactFiles.ContainsKey(kvp.Key))
+                            timeactFiles.Add(kvp.Key, kvp.Value);
+                        else
+                            timeactFiles[kvp.Key] = kvp.Value;
+                    }
+                }
+
+                if (CurrentAnimationName == null && animHKXsToLoad.Count > 0)
+                {
+                    lock (_lock_animDict)
+                    {
+                        CurrentAnimationName = animHKXsToLoad.Keys.First();
+                    }
+
+                    CurrentAnimation?.Scrub(0, loop: false, forceUpdate: true);
+                }
+
             }
 
             progress?.Report(1.0);
@@ -259,82 +268,92 @@ namespace DSAnimStudio
         {
             var hkxVariation = GameDataManager.GetCurrentLegacyHKXType();
 
-            HKX.HKASkeleton hkaSkeleton = null;
-            HKX skeletonHKX = null;
-            Dictionary<string, byte[]> animHKXs = new Dictionary<string, byte[]>();
-            Dictionary<string, byte[]> taes = new Dictionary<string, byte[]>();
-            double i = 1;
-            int fileCount = anibnd.Files.Count;
-            foreach (var f in anibnd.Files)
+            if (hkxVariation == HKX.HKXVariation.Invalid)
             {
-                string shortName = new FileInfo(f.Name).Name.ToLower();
-                if (shortName == "skeleton.hkx"  //fatcat
-                    || shortName == "skeleton_1.hkx" 
-                    || shortName == "skeleton_2.hkx"
-                    || shortName == "skeleton_3.hkx")
+                //TODO
+                Console.WriteLine("NewAnimationContainer.LoadBaseANIBND: Invalid legacy HKX type.");
+            }
+            else
+            {
+                HKX.HKASkeleton hkaSkeleton = null;
+                HKX skeletonHKX = null;
+                Dictionary<string, byte[]> animHKXs = new Dictionary<string, byte[]>();
+                Dictionary<string, byte[]> taes = new Dictionary<string, byte[]>();
+                double i = 1;
+                int fileCount = anibnd.Files.Count;
+                foreach (var f in anibnd.Files)
                 {
-                    skeletonHKX = HKX.Read(f.Bytes, hkxVariation);
+                    string shortName = new FileInfo(f.Name).Name.ToLower();
+                    if (shortName == "skeleton.hkx"  //fatcat
+                        || shortName == "skeleton_1.hkx"
+                        || shortName == "skeleton_2.hkx"
+                        || shortName == "skeleton_3.hkx")
+                    {
+                        skeletonHKX = HKX.Read(f.Bytes, hkxVariation);
+                    }
+                    else if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
+                    {
+                        animHKXs.Add(shortName, f.Bytes);
+                    }
+                    else if (shortName.EndsWith(".tae") || TAE.Is(f.Bytes))
+                    {
+                        taes.Add(shortName, f.Bytes);
+                    }
+                    progress.Report(((i++) / fileCount) / 2.0);
                 }
-                else if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
+
+                if (skeletonHKX == null)
                 {
-                    animHKXs.Add(shortName, f.Bytes);
+                    throw new InvalidOperationException("HKX file had no skeleton.");
                 }
-                else if (shortName.EndsWith(".tae") || TAE.Is(f.Bytes))
+
+                foreach (var o in skeletonHKX.DataSection.Objects)
                 {
-                    taes.Add(shortName, f.Bytes);
+                    if (o is HKX.HKASkeleton asSkeleton)
+                    {
+                        hkaSkeleton = asSkeleton;
+                    }
                 }
-                progress.Report(((i++) / fileCount) / 2.0);
-            }
 
-            if (skeletonHKX == null)
-            {
-                throw new InvalidOperationException("HKX file had no skeleton.");
-            }
-
-            foreach (var o in skeletonHKX.DataSection.Objects)
-            {
-                if (o is HKX.HKASkeleton asSkeleton)
+                if (hkaSkeleton == null)
                 {
-                    hkaSkeleton = asSkeleton;
+                    throw new InvalidOperationException("HKX skeleton file had no actual skeleton class");
                 }
-            }
 
-            if (hkaSkeleton == null)
-            {
-                throw new InvalidOperationException("HKX skeleton file had no actual skeleton class");
-            }
+                MODEL.Skeleton.LoadHKXSkeleton(hkaSkeleton);
 
-            MODEL.Skeleton.LoadHKXSkeleton(hkaSkeleton);
+                i = 0;
+                fileCount = animHKXs.Count;
 
-            i = 0;
-            fileCount = animHKXs.Count;
-
-            foreach (var kvp in animHKXs)
-            {
-                AddAnimHKXFetch(kvp.Key, kvp.Value);
-
-                progress.Report(0.5 + (((i++) / fileCount) / 2.0));
-            }
-
-            foreach (var kvp in taes)
-            {
-                lock (_lock_timeactDict)
+                foreach (var kvp in animHKXs)
                 {
-                    if (!timeactFiles.ContainsKey(kvp.Key))
-                        timeactFiles.Add(kvp.Key, kvp.Value);
-                    else
-                        timeactFiles[kvp.Key] = kvp.Value;
+                    AddAnimHKXFetch(kvp.Key, kvp.Value);
+
+                    progress.Report(0.5 + (((i++) / fileCount) / 2.0));
+                }
+
+                foreach (var kvp in taes)
+                {
+                    lock (_lock_timeactDict)
+                    {
+                        if (!timeactFiles.ContainsKey(kvp.Key))
+                            timeactFiles.Add(kvp.Key, kvp.Value);
+                        else
+                            timeactFiles[kvp.Key] = kvp.Value;
+                    }
+                }
+
+                lock (_lock_animDict)
+                {
+                    if (animHKXsToLoad.Count > 0)
+                    {
+                        CurrentAnimationName = animHKXsToLoad.Keys.First();
+                        CurrentAnimation?.Scrub(0, loop: false, forceUpdate: true);
+                    }
                 }
             }
 
-            lock (_lock_animDict)
-            {
-                if (animHKXsToLoad.Count > 0)
-                {
-                    CurrentAnimationName = animHKXsToLoad.Keys.First();
-                    CurrentAnimation?.Scrub(0, loop: false, forceUpdate: true);
-                }
-            }
+            
 
             progress.Report(1.0);
         }

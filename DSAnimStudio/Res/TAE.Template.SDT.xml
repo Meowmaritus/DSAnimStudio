@@ -222,7 +222,7 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
     </event>
-    <event id="FFX_110">
+    <event id="110" name="FFX_110">
       <s32 name="FFXID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -431,7 +431,7 @@
       <s32 name="DummyPolyID"/>
       <s32 name="TimerID (probably)"/>
       <s16 name="StateInfo"/>
-      <s16 assert="0"/>
+      <s16/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -453,7 +453,7 @@
       <s32 name="SoundID"/>
       <s32 name="DummyPolyID"/>
       <f32 name="TimerID (probably)"/>
-      <s32 assert="0"/>
+      <s32/>
       <s32 assert="0"/>
     </event>
     <event id="131" name="PlaySound_ByDummypoly">
@@ -1333,13 +1333,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="740">
-      <s32 assert="0"/>
-      <s32 assert="0"/>
-      <s32 assert="0"/>
-      <s32 assert="0"/>
-    </event>
-    <event id="740" name="NewengineFlag8">
+    <event id="750" name="NewengineFlag8">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1773,5 +1767,8 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
+  </bank>
+  <bank id="13" name="Bank13?" basedon="14">
+    
   </bank>
 </event_template>

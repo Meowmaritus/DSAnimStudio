@@ -202,6 +202,11 @@ namespace DSAnimStudio
             {
                 ShadingMode = FlverShadingMode.CLASSIC_DIFFUSE_PTDE;
             }
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            {
+                //TEMP
+                ShadingMode = FlverShadingMode.PBR_GLOSS_DS3;
+            }
             else
             {
                 ShadingMode = FlverShadingMode.TEXDEBUG_DIFFUSEMAP;
@@ -228,7 +233,7 @@ namespace DSAnimStudio
                 DrawStep = GFXDrawStep.Opaque;
             }
 
-            bool hasLightmap = false;
+            //bool hasLightmap = false;
 
             Dictionary<int, int> finalBoneRemapper = null;
 
@@ -290,7 +295,7 @@ namespace DSAnimStudio
                 else if (paramNameCheck == "G_DOLTEXTURE1")
                 {
                     TexNameDOL1 = shortTexPath;
-                    hasLightmap = true;
+                    //hasLightmap = true;
                 }
                 else if (paramNameCheck == "G_DOLTEXTURE2")
                     TexNameDOL2 = shortTexPath;
@@ -298,7 +303,7 @@ namespace DSAnimStudio
                 else if (paramNameCheck == "G_LIGHTMAP")
                 {
                     TexNameDOL1 = shortTexPath;
-                    hasLightmap = true;
+                    //hasLightmap = true;
                 }
                 else
                 {
@@ -308,7 +313,7 @@ namespace DSAnimStudio
             }
 
             // MTD lookup
-            MTD mtd = null; //InterrootLoader.GetMTD(flvr.Materials[mesh.MaterialIndex].MTD);
+            //MTD mtd = null; //InterrootLoader.GetMTD(flvr.Materials[mesh.MaterialIndex].MTD);
 
             //var debug_LowestBoneWeight = float.MaxValue;
             //var debug_HighestBoneWeight = float.MinValue;

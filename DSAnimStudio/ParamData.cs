@@ -49,6 +49,9 @@ namespace DSAnimStudio
                 const int DS3PairR = 10000;
                 const int DS3PairL = 11000;
 
+                const int SDTSomething1 = 10000;
+                const int SDTSomething2 = 21000;
+
                 private static int GetFilteredDmyPolyID(ParamData.AtkParam.DummyPolySource dmyFilter, int id)
                 {
                     if (id < 0)
@@ -181,7 +184,8 @@ namespace DSAnimStudio
             {
                 var start = br.Position;
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     Hits = new Hit[16];
                 }
@@ -205,6 +209,13 @@ namespace DSAnimStudio
 
                 //f32 knockbackDist
                 //f32 hitStopTime
+
+                //[SDT]
+                //f32 Unk01
+                //f32 Unk02
+                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                    br.Position += (4 * 2);
+
                 //s32 spEffectId0
                 //s32 spEffectId1
                 //s32 spEffectId2
@@ -248,6 +259,10 @@ namespace DSAnimStudio
 
 
                 br.Position = start + 0x68;
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                    br.Position += (4 * 2);
+
                 ThrowTypeID = br.ReadInt16();
 
                 
@@ -258,7 +273,8 @@ namespace DSAnimStudio
                 }
 
                 //TODO: Read DS3 hit 4-15
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     //u8 Hit0_hitType
                     //u8 Hit1_hitType
@@ -366,7 +382,7 @@ namespace DSAnimStudio
                     //u8 Hit13_hitType
                     //u8 Hit14_hitType
                     //u8 Hit15_hitType
-                    br.Position += (1 * 12);
+                    //br.Position += (1 * 12);
 
                     //s32 0x174
                     //s32 0x178
@@ -513,16 +529,24 @@ namespace DSAnimStudio
                 var start = br.Position;
                 BehaviorVariationID = br.ReadInt32();
 
-                br.Position = start + 0x146;
-
                 if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                    GameDataManager.GameType == GameDataManager.GameTypes.BB ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     DrawMask = new bool[32];
                 }
                 else
                 {
                     DrawMask = new bool[16];
+                }
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                {
+                    br.Position = start + 0x146;
+                }
+                else
+                {
+                    br.Position = start + 0x146;
                 }
 
                 byte mask1 = br.ReadByte();
@@ -533,9 +557,18 @@ namespace DSAnimStudio
                     DrawMask[8 + i] = ((mask2 & (1 << i)) != 0);
 
                 if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
-                    GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                    GameDataManager.GameType == GameDataManager.GameTypes.BB ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
-                    br.Position = start + 0x14A;
+                    if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                    {
+                        br.Position = start + 0x14A;
+                    }
+                    else
+                    {
+                        br.Position = start + 0x14A;
+                    }
+                    
                     byte mask3 = br.ReadByte();
                     byte mask4 = br.ReadByte();
                     for (int i = 0; i < 8; i++)
@@ -563,8 +596,8 @@ namespace DSAnimStudio
             public short SpAtkCategory;
             public int WepAbsorpPosID = -1;
 
-            public bool IsPairedWeaponDS3 => GameDataManager.GameType == GameDataManager.GameTypes.DS3 && (DS3PairedSpAtkCategories.Contains(SpAtkCategory)
-                || (WepMotionCategory == 42)) // DS3 Fist weapons
+            public bool IsPairedWeaponDS3 => GameDataManager.GameType == GameDataManager.GameTypes.DS3 
+                && (DS3PairedSpAtkCategories.Contains(SpAtkCategory) || (WepMotionCategory == 42)) // DS3 Fist weapons
                 ;
 
             public string GetFullPartBndPath()
@@ -613,12 +646,14 @@ namespace DSAnimStudio
                 WepMotionCategory = br.ReadByte();
 
                 br.Position = start + 0xEA;
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                     SpAtkCategory = br.ReadInt16();
                 else
                     SpAtkCategory = br.ReadByte();
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
+                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     br.Position = start + 0x170;
                     WepAbsorpPosID = br.ReadInt32();
@@ -731,7 +766,8 @@ namespace DSAnimStudio
                         InvisibleFlags.AddRange(mask48to62);
                     }
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     var firstBitmask = ReadBitmask(br, 5);
                     //IsDeposit = firstBitmask[0]

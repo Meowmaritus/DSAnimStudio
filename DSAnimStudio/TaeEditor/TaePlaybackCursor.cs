@@ -174,8 +174,8 @@ namespace DSAnimStudio.TaeEditor
                             MaxTime = box.MyEvent.EndTime;
                     }
 
-                    bool currentlyInEvent = false;
-                    bool prevFrameInEvent = false;
+                    //bool currentlyInEvent = false;
+                    //bool prevFrameInEvent = false;
 
                     //if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
                     //{

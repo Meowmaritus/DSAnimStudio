@@ -66,7 +66,7 @@ with.
         <End>&#x31FF;</End>
       </CharacterRegion>
       <!-- Everything Else -->
-      <!--
+      
       <CharacterRegion><Start>&#x4E00;</Start><End>&#x4E01;</End></CharacterRegion>
       <CharacterRegion><Start>&#x4E03;</Start><End>&#x4E03;</End></CharacterRegion>
       <CharacterRegion><Start>&#x4E07;</Start><End>&#x4E08;</End></CharacterRegion>
@@ -1730,7 +1730,7 @@ with.
       <CharacterRegion><Start>&#x9F13;</Start><End>&#x9F13;</End></CharacterRegion>
       <CharacterRegion><Start>&#x9F3B;</Start><End>&#x9F3B;</End></CharacterRegion>
       <CharacterRegion><Start>&#x9F62;</Start><End>&#x9F62;</End></CharacterRegion>
-      -->
+      
       <!-- Fat Chars -->
       <CharacterRegion>
         <Start>&#xFF00;</Start>

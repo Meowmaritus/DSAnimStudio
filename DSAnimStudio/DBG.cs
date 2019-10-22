@@ -48,12 +48,12 @@ namespace DSAnimStudio
 
 
 
-        private static VertexPositionColor[] DebugLinePositionBuffer = new VertexPositionColor[2];
-        private static VertexBuffer DebugLineVertexBuffer;
-        private static readonly int[] DebugLineIndexBuffer = new int[] { 0, 1 };
+        //private static VertexPositionColor[] DebugLinePositionBuffer = new VertexPositionColor[2];
+        //private static VertexBuffer DebugLineVertexBuffer;
+        //private static readonly int[] DebugLineIndexBuffer = new int[] { 0, 1 };
 
-        private static VertexPositionColor[] DebugBoundingBoxPositionBuffer = new VertexPositionColor[8];
-        private static VertexBuffer DebugBoundingBoxVertexBuffer;
+        //private static VertexPositionColor[] DebugBoundingBoxPositionBuffer = new VertexPositionColor[8];
+        //private static VertexBuffer DebugBoundingBoxVertexBuffer;
         /*
          * 0 = Top Front Left
          * 1 = Top Front Right
@@ -579,38 +579,38 @@ namespace DSAnimStudio
                 startAndEndSpriteBatchForMe);
         }
 
-        public static void DrawBoundingBox(BoundingBox bb, Color color, Transform transform)
-        {
-            DebugBoundingBoxPositionBuffer[0].Position = new Vector3(bb.Min.X, bb.Max.Y, bb.Max.Z);
-            DebugBoundingBoxPositionBuffer[1].Position = new Vector3(bb.Max.X, bb.Max.Y, bb.Max.Z);
-            DebugBoundingBoxPositionBuffer[2].Position = new Vector3(bb.Max.X, bb.Min.Y, bb.Max.Z);
-            DebugBoundingBoxPositionBuffer[3].Position = new Vector3(bb.Min.X, bb.Min.Y, bb.Max.Z);
-            DebugBoundingBoxPositionBuffer[4].Position = new Vector3(bb.Min.X, bb.Max.Y, bb.Min.Z);
-            DebugBoundingBoxPositionBuffer[5].Position = new Vector3(bb.Max.X, bb.Max.Y, bb.Min.Z);
-            DebugBoundingBoxPositionBuffer[6].Position = new Vector3(bb.Max.X, bb.Min.Y, bb.Min.Z);
-            DebugBoundingBoxPositionBuffer[7].Position = new Vector3(bb.Min.X, bb.Min.Y, bb.Min.Z);
+        //public static void DrawBoundingBox(BoundingBox bb, Color color, Transform transform)
+        //{
+        //    DebugBoundingBoxPositionBuffer[0].Position = new Vector3(bb.Min.X, bb.Max.Y, bb.Max.Z);
+        //    DebugBoundingBoxPositionBuffer[1].Position = new Vector3(bb.Max.X, bb.Max.Y, bb.Max.Z);
+        //    DebugBoundingBoxPositionBuffer[2].Position = new Vector3(bb.Max.X, bb.Min.Y, bb.Max.Z);
+        //    DebugBoundingBoxPositionBuffer[3].Position = new Vector3(bb.Min.X, bb.Min.Y, bb.Max.Z);
+        //    DebugBoundingBoxPositionBuffer[4].Position = new Vector3(bb.Min.X, bb.Max.Y, bb.Min.Z);
+        //    DebugBoundingBoxPositionBuffer[5].Position = new Vector3(bb.Max.X, bb.Max.Y, bb.Min.Z);
+        //    DebugBoundingBoxPositionBuffer[6].Position = new Vector3(bb.Max.X, bb.Min.Y, bb.Min.Z);
+        //    DebugBoundingBoxPositionBuffer[7].Position = new Vector3(bb.Min.X, bb.Min.Y, bb.Min.Z);
 
-            for (int i = 0; i < DebugBoundingBoxPositionBuffer.Length; i++)
-            {
-                DebugBoundingBoxPositionBuffer[i].Color = color;
-            }
+        //    for (int i = 0; i < DebugBoundingBoxPositionBuffer.Length; i++)
+        //    {
+        //        DebugBoundingBoxPositionBuffer[i].Color = color;
+        //    }
 
-            if (DebugBoundingBoxVertexBuffer == null)
-                DebugBoundingBoxVertexBuffer = new VertexBuffer(GFX.Device,
-                    typeof(VertexPositionColor), 8, BufferUsage.None);
+        //    if (DebugBoundingBoxVertexBuffer == null)
+        //        DebugBoundingBoxVertexBuffer = new VertexBuffer(GFX.Device,
+        //            typeof(VertexPositionColor), 8, BufferUsage.None);
 
-            GFX.World.ApplyViewToShader(GFX.DbgPrimWireShader, transform);
+        //    GFX.World.ApplyViewToShader(GFX.DbgPrimWireShader, transform);
 
-            foreach (var pass in GFX.DbgPrimWireShader.Effect.CurrentTechnique.Passes)
-            {
-                pass.Apply();
+        //    foreach (var pass in GFX.DbgPrimWireShader.Effect.CurrentTechnique.Passes)
+        //    {
+        //        pass.Apply();
 
-                GFX.Device.SetVertexBuffer(DebugLineVertexBuffer);
-                GFX.Device.DrawUserIndexedPrimitives(PrimitiveType.LineList,
-                    DebugBoundingBoxPositionBuffer, 0, 8, DebugBoundingBoxIndexBuffer, 0, 12);
-            }
+        //        GFX.Device.SetVertexBuffer(DebugLineVertexBuffer);
+        //        GFX.Device.DrawUserIndexedPrimitives(PrimitiveType.LineList,
+        //            DebugBoundingBoxPositionBuffer, 0, 8, DebugBoundingBoxIndexBuffer, 0, 12);
+        //    }
 
-        }
+        //}
 
         public static void DrawOutlinedText(
             string text, Vector2 pos, Color color, SpriteFont font = null,

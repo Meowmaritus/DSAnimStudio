@@ -66,7 +66,7 @@ namespace DSAnimStudio
             {
                 foreach (var mdl in Models)
                 {
-                    mdl.UpdateAnimation();
+                    mdl?.UpdateAnimation();
                 }
             }
         }
