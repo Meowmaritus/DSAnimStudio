@@ -87,9 +87,9 @@
         <entry value="86"  name="86: InvokeAiAtkCancelType_Default_hks120"/>
         <entry value="87"  name="87: InvokeAttackAction_Complex"/>
         <entry value="88"  name="88: SetBool32_0x7C_And_0x1A09"/>
-        <entry value="89"  name="89: 0x4F4_Set3"/>
-        <entry value="90"  name="90: 0x4F4_Set2"/>
-        <entry value="91"  name="91: 0x4F4_Set1"/>
+        <entry value="89"  name="89: DisableAllMovement"/>
+        <entry value="90"  name="90: OnlyAllowSlowWalk"/>
+        <entry value="91"  name="91: DisableSprinting"/>
         <entry value="92"  name="92: SetBool32_0x7C"/>
         <entry value="94"  name="94: SetStartbit0_0x140884499"/>
         <entry value="95"  name="95: CallFunction"/>
