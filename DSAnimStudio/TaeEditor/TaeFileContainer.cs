@@ -159,11 +159,17 @@ namespace DSAnimStudio.TaeEditor
                         }
                         else if (TAE.Is(f.Bytes))
                         {
-                            taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                            if (!taeInBND.ContainsKey(f.Name))
+                                taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                            else
+                                taeInBND[f.Name] = TAE.Read(f.Bytes);
                         }
                         else if (f.Name.ToUpper().EndsWith(".HKX"))
                         {
-                            hkxInBND.Add(f.Name, f.Bytes);
+                            if (!hkxInBND.ContainsKey(f.Name))
+                                hkxInBND.Add(f.Name, f.Bytes);
+                            else
+                                hkxInBND[f.Name] = f.Bytes;
                         }
                     }
                     innerProgress.Report(1);
@@ -178,11 +184,17 @@ namespace DSAnimStudio.TaeEditor
                             CheckGameVersionForTaeInterop(f.Name);
                             if (TAE.Is(f.Bytes))
                             {
-                                taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                                if (!taeInBND.ContainsKey(f.Name))
+                                    taeInBND.Add(f.Name, TAE.Read(f.Bytes));
+                                else
+                                    taeInBND[f.Name] = TAE.Read(f.Bytes);
                             }
                             else if (f.Name.ToUpper().EndsWith(".HKX"))
                             {
-                                hkxInBND.Add(f.Name, f.Bytes);
+                                if (!hkxInBND.ContainsKey(f.Name))
+                                    hkxInBND.Add(f.Name, f.Bytes);
+                                else
+                                    hkxInBND[f.Name] = f.Bytes;
                             }
                         }
                         innerProgress.Report(1);

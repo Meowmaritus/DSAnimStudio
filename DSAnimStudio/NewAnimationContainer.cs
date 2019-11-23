@@ -293,11 +293,18 @@ namespace DSAnimStudio
                     }
                     else if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
                     {
-                        animHKXs.Add(shortName, f.Bytes);
+                        if (!animHKXs.ContainsKey(shortName))
+                            animHKXs.Add(shortName, f.Bytes);
+                        else
+                            animHKXs[shortName] = f.Bytes;
+
                     }
                     else if (shortName.EndsWith(".tae") || TAE.Is(f.Bytes))
                     {
-                        taes.Add(shortName, f.Bytes);
+                        if (!taes.ContainsKey(shortName))
+                            taes.Add(shortName, f.Bytes);
+                        else
+                            taes[shortName] = f.Bytes;
                     }
                     progress.Report(((i++) / fileCount) / 2.0);
                 }
