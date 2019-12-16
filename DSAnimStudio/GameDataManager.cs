@@ -74,14 +74,14 @@ namespace DSAnimStudio
 
         public static string InterrootPath { get; private set; } = null;
 
-        public static void Init(GameTypes gameType, string interroot)
+        public static void Init(GameTypes gameType, string interroot, bool forceReload = false)
         {
             GameType = gameType;
             InterrootPath = interroot;
-            if (gameType != lastGameType)
+            if (gameType != lastGameType || forceReload)
             {
-                ParamManager.LoadParamBND(forceReload: false);
-                FmgManager.LoadAllFMG(forceReload: false);
+                ParamManager.LoadParamBND(forceReload);
+                FmgManager.LoadAllFMG(forceReload);
                 LoadSystex();
             }
             lastGameType = GameType;

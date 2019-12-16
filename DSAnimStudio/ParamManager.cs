@@ -232,6 +232,21 @@ namespace DSAnimStudio
 
             bool justNowLoadedParamBND = false;
 
+            if (forceReload)
+            {
+                ParamBNDs.Clear();
+                LoadedParams.Clear();
+
+                BehaviorParam?.Clear();
+                BehaviorParam_PC?.Clear();
+                AtkParam_Pc?.Clear();
+                AtkParam_Npc?.Clear();
+                NpcParam?.Clear();
+                EquipParamWeapon?.Clear();
+                EquipParamProtector?.Clear();
+                WepAbsorpPosParam?.Clear();
+            }
+
             if (forceReload || !ParamBNDs.ContainsKey(GameDataManager.GameType))
             {
                 ParamBNDs.Add(GameDataManager.GameType, null);

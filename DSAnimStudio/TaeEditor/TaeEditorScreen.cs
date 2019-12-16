@@ -758,6 +758,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     MenuBar["File\\Save As..."].Enabled = !IsReadOnlyFileMode;
                     MenuBar["File\\Force Ingame Character Reload Now (DS3 Only)"].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File\\Reload GameParam"].Enabled = true;
                 }));
 
                 //if (templateName != null)
@@ -884,8 +885,8 @@ namespace DSAnimStudio.TaeEditor
         public void AddNewAnimation()
         {
             var newAnimRef = new TAE.Animation(
-                SelectedTaeAnim.ID, SelectedTaeAnim.AnimFileReference, 
-                SelectedTaeAnim.Unknown1, SelectedTaeAnim.Unknown2, SelectedTaeAnim.AnimFileName);
+                SelectedTaeAnim.ID, SelectedTaeAnim.MiniHeader.GetClone(), 
+                SelectedTaeAnim.AnimFileName);
 
             var index = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
             SelectedTae.Animations.Insert(index + 1, newAnimRef);
@@ -996,6 +997,26 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Recent Files");
             CreateRecentFilesList();
+            MenuBar.AddSeparator("File");
+            MenuBar.AddItem("File", "Reload GameParam", () =>
+            {
+                LoadingTaskMan.DoLoadingTask("FileReloadGameParam", "Reloading GameParam...", prog =>
+                {
+                    GameDataManager.ReloadParams();
+                    //var curTime = Graph.PlaybackCursor.CurrentTime;
+                    //SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+                    //Graph.PlaybackCursor.CurrentTime = curTime;
+                    Graph.ViewportInteractor.OnScrubFrameChange();
+                }, disableProgressBarByDefault: true);
+            }, startDisabled: true);
+            //MenuBar.AddItem("File", "Reload Text", () =>
+            //{
+            //    LoadingTaskMan.DoLoadingTask("FileReloadMSG", "Reloading Text...", prog =>
+            //    {
+            //        GameDataManager.ReloadFmgs();
+            //        SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+            //    }, disableProgressBarByDefault: true);
+            //}, startDisabled: true);
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
             MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
@@ -1685,7 +1706,7 @@ namespace DSAnimStudio.TaeEditor
         public void ShowDialogEditCurrentAnimInfo()
         {
             PauseUpdate = true;
-            var editForm = new TaeEditAnimPropertiesForm(SelectedTaeAnim);
+            var editForm = new TaeEditAnimPropertiesForm(SelectedTaeAnim, FileContainer.AllTAE.Count() == 1);
             editForm.Owner = GameWindowAsForm;
             editForm.ShowDialog();
 
@@ -1718,14 +1739,14 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                //bool needsAnimReload = false;
+                bool needsAnimReload = false;
                 if (editForm.WasAnimIDChanged)
                 {
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
                     SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     RecreateAnimList();
                     UpdateSelectedTaeAnimInfoText();
-                    //needsAnimReload = true;
+                    needsAnimReload = true;
                 }
 
                 if (editForm.WereThingsChanged)
@@ -1733,11 +1754,12 @@ namespace DSAnimStudio.TaeEditor
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
                     SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     UpdateSelectedTaeAnimInfoText();
-                    //needsAnimReload = true;
+                    needsAnimReload = true;
                 }
 
-                //if (needsAnimReload)
-                //    TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
+                if (needsAnimReload)
+                    Graph.ViewportInteractor.OnNewAnimSelected();
+
             }
 
             PauseUpdate = false;
@@ -2144,6 +2166,55 @@ namespace DSAnimStudio.TaeEditor
             ChangeTypeOfSelectedEvent();
         }
 
+        private (long Upper, long Lower) GetSplitAnimID(long id)
+        {
+            return ((GameDataManager.GameType == GameDataManager.GameTypes.BB ||
+                GameDataManager.GameType == GameDataManager.GameTypes.DS3) 
+                ? (id / 1000000) : (id / 10000),
+                (GameDataManager.GameType == GameDataManager.GameTypes.BB || 
+                GameDataManager.GameType == GameDataManager.GameTypes.DS3) 
+                ? (id % 1000000) : (id % 10000));
+        }
+
+        private string HKXNameFromCompositeID(long compositeID)
+        {
+            if (compositeID < 0)
+                return "<NONE>";
+
+            var splitID = GetSplitAnimID(compositeID);
+
+            if (GameDataManager.GameType == GameDataManager.GameTypes.BB ||
+                GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            {
+                return $"a{splitID.Upper:D3}_{splitID.Lower:D6}";
+            }
+            else
+            {
+                return $"a{splitID.Upper:D2}_{splitID.Lower:D4}";
+            }
+        }
+
+        private string HKXSubIDDispNameFromInt(long subID)
+        {
+            if (FileContainer.AllTAE.Count() == 1)
+            {
+                return HKXNameFromCompositeID(subID);
+            }
+            else
+            {
+                if (GameDataManager.GameType == GameDataManager.GameTypes.BB ||
+                GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                {
+                    return $"aXXX_{subID:D6}";
+                }
+                else
+                {
+                    return $"aXX_{subID:D4}";
+                }
+            }
+            
+        }
+
         public void UpdateSelectedTaeAnimInfoText()
         {
             var stringBuilder = new StringBuilder();
@@ -2154,10 +2225,32 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                stringBuilder.Append($"[ID: {SelectedTaeAnim.ID}]");
-                stringBuilder.Append($" [REF: {SelectedTaeAnim.AnimFileReference}]");
-                stringBuilder.Append($" [UNK1: {SelectedTaeAnim.Unknown1}]");
-                stringBuilder.Append($" [UNK2: {SelectedTaeAnim.Unknown2}]");
+                stringBuilder.Append($"{HKXSubIDDispNameFromInt(SelectedTaeAnim.ID)}");
+
+                if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+                {
+                    if (asStandard.IsLoopByDefault)
+                        stringBuilder.Append($" [{nameof(TAE.Animation.AnimMiniHeader.Standard.IsLoopByDefault)}]");
+
+                    if (asStandard.ImportsEvents && asStandard.ImportsHKX)
+                    {
+                        stringBuilder.Append($" [IMPORTS EVENTS + HKX FROM: {HKXNameFromCompositeID(asStandard.ImportFromAnimID)}]");
+                    }
+                    else if (asStandard.ImportsEvents && !asStandard.ImportsHKX)
+                    {
+                        stringBuilder.Append($" [IMPORTS EVENTS FROM: {HKXNameFromCompositeID(asStandard.ImportFromAnimID)}]");
+                    }
+                    else if (!asStandard.ImportsEvents && asStandard.ImportsHKX)
+                    {
+                        stringBuilder.Append($" [IMPORTS HKX FROM: {HKXNameFromCompositeID(asStandard.ImportFromAnimID)}]");
+                    }
+
+                }
+                else if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+                {
+                    stringBuilder.Append($" [IMPORTS ALL FROM: {HKXNameFromCompositeID(asImportOtherAnim.ImportFromAnimID)}]");
+                    stringBuilder.Append($" [UNK: {asImportOtherAnim.Unknown}]");
+                }
 
                 //SFTODO
 
