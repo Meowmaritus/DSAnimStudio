@@ -2032,11 +2032,11 @@ namespace DSAnimStudio.TaeEditor
 
                             string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
                                    $"{(box.MyEvent.TypeName)}";
-                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset + Main.GlobalTaeEditorFontOffset,
+                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
                                 textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                             //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
                             //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset + Main.GlobalTaeEditorFontOffset,
+                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
                                 textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
                             //if ((namePos.X + nameSize.X) <= box.RightFr)
@@ -2133,7 +2133,7 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     sb.DrawString(smallFont, i.ToString(), 
                                         new Vector2((float)Math.Round(i * FramePixelSize + 2), 
-                                        (float)Math.Round(ScrollViewer.Scroll.Y + 8)) + Main.GlobalTaeEditorFontOffset, Color.White);
+                                        (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Color.White);
                                 }
                             }
                             

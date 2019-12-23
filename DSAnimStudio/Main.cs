@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.6.1";
+        public const string VERSION = "Version 1.6.2";
 
         public static bool FIXED_TIME_STEP = false;
 
