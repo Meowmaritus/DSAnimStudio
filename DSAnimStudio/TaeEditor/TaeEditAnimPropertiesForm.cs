@@ -187,7 +187,7 @@ namespace DSAnimStudio.TaeEditor
             }
             else if (miniHeaderType == TAE.Animation.MiniHeaderType.ImportOtherAnim)
             {
-                groupBoxMiniHeader.Text = "Mini-Header Data: Import Other Animation";
+                groupBoxMiniHeader.Text = "Mini-Header Data: Direct Reference";
 
                 checkBoxMHStandardImportEvents.Enabled = false;
                 checkBoxMHStandardImportEvents.Visible = false;

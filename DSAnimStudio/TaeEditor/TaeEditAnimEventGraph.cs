@@ -1785,8 +1785,8 @@ namespace DSAnimStudio.TaeEditor
         {
             foreach (var kvp in secondVerticalLineXPositions)
             {
-                sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4 + 1), (float)Math.Round(ScrollViewer.Scroll.Y + 3 + 1)), Color.Black);
-                sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4), (float)Math.Round(ScrollViewer.Scroll.Y + 3)), Color.White);
+                sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4 + 1), (float)Math.Round(ScrollViewer.Scroll.Y + 3 + 1)) + Main.GlobalTaeEditorFontOffset, Color.Black);
+                sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4), (float)Math.Round(ScrollViewer.Scroll.Y + 3)) + Main.GlobalTaeEditorFontOffset, Color.White);
             }
         }
 
@@ -1991,11 +1991,11 @@ namespace DSAnimStudio.TaeEditor
                                 var prefixPos = namePos;// new Vector2((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round((float)boxRect.Y));
 
                                 sb.DrawString(font, fixedPrefix,
-                                    prefixPos + Vector2.One, textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                                    prefixPos + Vector2.One + Main.GlobalTaeEditorFontOffset, textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                                 //sb.DrawString(font, fixedPrefix,
                                 //    prefixPos + (Vector2.One * 2), textBG);
                                 sb.DrawString(font, fixedPrefix,
-                                    prefixPos, textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                                    prefixPos + Main.GlobalTaeEditorFontOffset, textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                             }
 
                             box.EventText.TextColor = textFG;
@@ -2032,11 +2032,11 @@ namespace DSAnimStudio.TaeEditor
 
                             string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
                                    $"{(box.MyEvent.TypeName)}";
-                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
+                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset + Main.GlobalTaeEditorFontOffset,
                                 textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                             //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
                             //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
+                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset + Main.GlobalTaeEditorFontOffset,
                                 textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
                             //if ((namePos.X + nameSize.X) <= box.RightFr)
@@ -2131,7 +2131,9 @@ namespace DSAnimStudio.TaeEditor
                             {
                                 if (((i % PlaybackCursor.SnapInterval) != 0) && zoomedEnoughForFrameNumbers)
                                 {
-                                    sb.DrawString(smallFont, i.ToString(), new Vector2((float)Math.Round(i * FramePixelSize + 2), (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Color.White);
+                                    sb.DrawString(smallFont, i.ToString(), 
+                                        new Vector2((float)Math.Round(i * FramePixelSize + 2), 
+                                        (float)Math.Round(ScrollViewer.Scroll.Y + 8)) + Main.GlobalTaeEditorFontOffset, Color.White);
                                 }
                             }
                             
@@ -2361,16 +2363,16 @@ namespace DSAnimStudio.TaeEditor
 
                 Vector2 playbackCursorTextPos = new Vector2(
                     playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 6, 
-                    (int)(ScrollViewer.Scroll.Y + 3));
+                    (int)(ScrollViewer.Scroll.Y + 2));
 
                 // Draw PlaybackCursor CurrentTime string
                 sb.DrawString(font, playbackCursorText,
-                    position: playbackCursorTextPos + Vector2.One,
+                    position: playbackCursorTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset,
                     color: Color.Black
                     );
 
                 sb.DrawString(font, playbackCursorText,
-                    position: playbackCursorTextPos,
+                    position: playbackCursorTextPos + Main.GlobalTaeEditorFontOffset,
                     color: Color.Cyan
                     );
 

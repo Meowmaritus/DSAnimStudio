@@ -537,6 +537,50 @@ namespace DSAnimStudio
 
         public void AddAllDummiesFromFlver(FLVER2 flver)
         {
+            //var newDmy = new FLVER2.Dummy();
+
+            //newDmy.ReferenceID = 205;
+
+            //newDmy.AttachBoneIndex = 19;
+            //float newX = (-0.09398f / 2.25f) + 0.01f;
+            //float newY = (((1.659459f) + (1.54340553f)) / 2) + 0.007f;
+            //float newZ = (((-0.2146896f) + (-0.09559878f)) / 2) * 0.68f;
+
+            //newDmy.Position = new System.Numerics.Vector3(newX, newY, newZ);
+
+            //newDmy.Upward = new System.Numerics.Vector3(0, 1, 0);
+            //newDmy.Forward = new System.Numerics.Vector3(0, 0, -1);
+
+            //newDmy.UseUpwardVector = true;
+
+            //newDmy.DummyBoneIndex = 59;
+
+            //flver.Dummies.Add(newDmy);
+
+
+
+            //newDmy = new FLVER2.Dummy();
+
+            //newDmy.ReferenceID = 205;
+
+            //newDmy.AttachBoneIndex = 19;
+            //newX = -((-0.09398f / 2.25f) + 0.01f);
+            //newY = (((1.659459f) + (1.54340553f)) / 2) + 0.007f;
+            //newZ = (((-0.2146896f) + (-0.09559878f)) / 2) * 0.68f;
+
+            //newDmy.Position = new System.Numerics.Vector3(newX, newY, newZ);
+
+            //newDmy.Upward = new System.Numerics.Vector3(0, 1, 0);
+            //newDmy.Forward = new System.Numerics.Vector3(0, 0, -1);
+
+            //newDmy.UseUpwardVector = true;
+
+            //newDmy.DummyBoneIndex = 59;
+
+            //flver.Dummies.Add(newDmy);
+
+            //flver.Write(@"C:\Users\Meowmaritus\GitHub\DSAnimStudio\DSAnimStudio\bin\x64\Debug\OUTPUTFLVER.flver");
+
             foreach (var d in flver.Dummies)
                 AddDummyPoly(d);
 
