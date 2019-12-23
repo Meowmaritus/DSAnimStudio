@@ -144,9 +144,9 @@ namespace DSAnimStudio.TaeEditor
             sb.Begin(transformMatrix: Matrix.Identity);
 
             {
-                sb.DrawString(font, Text, textPos + Vector2.One, TextShadowColor);
+                sb.DrawString(font, Text, textPos + Vector2.One + Main.GlobalTaeEditorFontOffset, TextShadowColor);
                 //sb.DrawString(font, Text, textPos + (Vector2.One * 2), TextShadowColor);
-                sb.DrawString(font, Text, textPos, TextColor);
+                sb.DrawString(font, Text, textPos + Main.GlobalTaeEditorFontOffset, TextColor);
             }
 
             sb.End();

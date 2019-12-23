@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(TaeEditAnimPropertiesForm));
             this.buttonDiscardChanges = new System.Windows.Forms.Button();
             this.buttonSaveChanges = new System.Windows.Forms.Button();
@@ -227,10 +228,10 @@
             this.radioButtonMHImportOtherAnimation.AutoSize = true;
             this.radioButtonMHImportOtherAnimation.Location = new System.Drawing.Point(186, 71);
             this.radioButtonMHImportOtherAnimation.Name = "radioButtonMHImportOtherAnimation";
-            this.radioButtonMHImportOtherAnimation.Size = new System.Drawing.Size(132, 17);
+            this.radioButtonMHImportOtherAnimation.Size = new System.Drawing.Size(106, 17);
             this.radioButtonMHImportOtherAnimation.TabIndex = 11;
             this.radioButtonMHImportOtherAnimation.TabStop = true;
-            this.radioButtonMHImportOtherAnimation.Text = "Import Other Animation";
+            this.radioButtonMHImportOtherAnimation.Text = "Direct Reference";
             this.radioButtonMHImportOtherAnimation.UseVisualStyleBackColor = true;
             this.radioButtonMHImportOtherAnimation.CheckedChanged += new System.EventHandler(this.radioButtonMHImportOtherAnimation_CheckedChanged);
             // 
@@ -238,7 +239,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(419, 229);
+            this.ClientSize = new System.Drawing.Size(415, 225);
             this.ControlBox = false;
             this.Controls.Add(this.radioButtonMHImportOtherAnimation);
             this.Controls.Add(this.radioButtonMHStandard);

@@ -3248,9 +3248,9 @@ namespace DSAnimStudio.TaeEditor
                 {
                     var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
 
-                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One, Color.Black);
-                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
-                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos, Color.White);
+                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset, Color.Black);
+                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2) + Main.GlobalTaeEditorFontOffset, Color.Black);
+                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Main.GlobalTaeEditorFontOffset, Color.White);
                 }
 
                 //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + Vector2.One, Color.Black);

@@ -24,7 +24,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.6";
+        public const string VERSION = "Version 1.6.1";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -33,6 +33,8 @@ namespace DSAnimStudio
         public static float DELTA_UPDATE;
         public static float DELTA_UPDATE_ROUNDED;
         public static float DELTA_DRAW;
+
+        public static Vector2 GlobalTaeEditorFontOffset = new Vector2(0, -3);
 
         public static IServiceProvider ContentServiceProvider = null;
 

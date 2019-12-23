@@ -11,13 +11,13 @@ with.
     <!--
     Modify this string to change the font that will be imported.
     -->
-    <FontName>mplus-1m-medium</FontName>
+    <FontName>NotoSansMonoCJKjp-Regular</FontName>
 
     <!--
     Size is a float value, measured in points. Modify this value to change
     the size of the font.
     -->
-    <Size>12</Size>
+    <Size>11.5</Size>
 
     <!--
     Spacing is a float value, measured in pixels. Modify this value to change
@@ -66,6 +66,7 @@ with.
         <End>&#x31FF;</End>
       </CharacterRegion>
       <!-- Everything Else -->
+      
       
       <CharacterRegion><Start>&#x4E00;</Start><End>&#x4E01;</End></CharacterRegion>
       <CharacterRegion><Start>&#x4E03;</Start><End>&#x4E03;</End></CharacterRegion>
@@ -1730,6 +1731,7 @@ with.
       <CharacterRegion><Start>&#x9F13;</Start><End>&#x9F13;</End></CharacterRegion>
       <CharacterRegion><Start>&#x9F3B;</Start><End>&#x9F3B;</End></CharacterRegion>
       <CharacterRegion><Start>&#x9F62;</Start><End>&#x9F62;</End></CharacterRegion>
+      
       
       <!-- Fat Chars -->
       <CharacterRegion>
