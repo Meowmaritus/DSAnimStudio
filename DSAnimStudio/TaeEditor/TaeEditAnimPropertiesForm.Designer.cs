@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(TaeEditAnimPropertiesForm));
             this.buttonDiscardChanges = new System.Windows.Forms.Button();
             this.buttonSaveChanges = new System.Windows.Forms.Button();
@@ -54,7 +53,8 @@
             // buttonDiscardChanges
             // 
             this.buttonDiscardChanges.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonDiscardChanges.Location = new System.Drawing.Point(297, 196);
+            this.buttonDiscardChanges.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.buttonDiscardChanges.Location = new System.Drawing.Point(285, 197);
             this.buttonDiscardChanges.Name = "buttonDiscardChanges";
             this.buttonDiscardChanges.Size = new System.Drawing.Size(114, 23);
             this.buttonDiscardChanges.TabIndex = 1;
@@ -65,7 +65,7 @@
             // buttonSaveChanges
             // 
             this.buttonSaveChanges.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonSaveChanges.Location = new System.Drawing.Point(186, 196);
+            this.buttonSaveChanges.Location = new System.Drawing.Point(174, 197);
             this.buttonSaveChanges.Name = "buttonSaveChanges";
             this.buttonSaveChanges.Size = new System.Drawing.Size(105, 23);
             this.buttonSaveChanges.TabIndex = 2;
@@ -76,7 +76,7 @@
             // buttonDeleteAnim
             // 
             this.buttonDeleteAnim.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.buttonDeleteAnim.Location = new System.Drawing.Point(12, 196);
+            this.buttonDeleteAnim.Location = new System.Drawing.Point(12, 197);
             this.buttonDeleteAnim.Name = "buttonDeleteAnim";
             this.buttonDeleteAnim.Size = new System.Drawing.Size(108, 23);
             this.buttonDeleteAnim.TabIndex = 3;
@@ -237,9 +237,11 @@
             // 
             // TaeEditAnimPropertiesForm
             // 
+            this.AcceptButton = this.buttonSaveChanges;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(415, 225);
+            this.CancelButton = this.buttonDiscardChanges;
+            this.ClientSize = new System.Drawing.Size(407, 226);
             this.ControlBox = false;
             this.Controls.Add(this.radioButtonMHImportOtherAnimation);
             this.Controls.Add(this.radioButtonMHStandard);

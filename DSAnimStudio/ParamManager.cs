@@ -258,6 +258,13 @@ namespace DSAnimStudio
                     else
                         return false;
                 }
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                {
+                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
+                        ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
+                    else
+                        return false;
+                }
                 else if (GameDataManager.GameType == GameDataManager.GameTypes.BB || GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
