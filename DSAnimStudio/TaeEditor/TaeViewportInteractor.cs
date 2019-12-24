@@ -435,7 +435,7 @@ namespace DSAnimStudio.TaeEditor
             CurrentModel.ChrAsm?.UpdateWeaponTransforms();
 
             CheckSimEnvironment();
-            EventSim.OnSimulationFrameChange(Graph.EventBoxes, (float)Graph.PlaybackCursor.CurrentTime);
+            EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTime);
         }
 
         private void CheckSimEnvironment()
@@ -471,7 +471,7 @@ namespace DSAnimStudio.TaeEditor
         private void PlaybackCursor_PlaybackEnded(object sender, EventArgs e)
         {
             CheckSimEnvironment();
-            EventSim.OnSimulationEnd(Graph.EventBoxes);
+            EventSim.OnSimulationEnd(Graph.EventBoxesToSimulate);
         }
 
         public void OnScrubFrameChange()
@@ -487,7 +487,7 @@ namespace DSAnimStudio.TaeEditor
             CurrentModel.ChrAsm?.UpdateWeaponTransforms();
 
             CheckSimEnvironment();
-            EventSim.OnSimulationFrameChange(Graph.EventBoxes, (float)Graph.PlaybackCursor.GUICurrentTime);
+            EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTime);
         }
 
         private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
@@ -498,13 +498,13 @@ namespace DSAnimStudio.TaeEditor
         private void PlaybackCursor_PlaybackStarted(object sender, EventArgs e)
         {
             CheckSimEnvironment();
-            EventSim.OnSimulationStart(Graph.EventBoxes);
+            EventSim.OnSimulationStart(Graph.EventBoxesToSimulate);
         }
 
         private void PlaybackCursor_PlaybackLooped(object sender, EventArgs e)
         {
             CheckSimEnvironment();
-            EventSim.OnSimulationStart(Graph.EventBoxes);
+            EventSim.OnSimulationStart(Graph.EventBoxesToSimulate);
         }
 
         Model lastRightWeaponModelTAEWasReadFrom = null;

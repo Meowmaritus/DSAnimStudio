@@ -73,7 +73,7 @@ namespace DSAnimStudio.TaeEditor
             ? (Math.Round(CurrentTime / CurrentSnapInterval)) 
             :  (CurrentTime / CurrentSnapInterval);
 
-        public double GUICurrentFrameMod => GUICurrentFrame % MaxFrame;
+        public double GUICurrentFrameMod => MaxFrame > 0 ? (GUICurrentFrame % MaxFrame) : 0;
 
         public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Round(MaxTime / CurrentSnapInterval)) 
@@ -155,13 +155,13 @@ namespace DSAnimStudio.TaeEditor
                         CurrentTime += MaxTime;
                 }
 
-                bool justReachedAnimEnd = (CurrentTime > MaxTime);
+                bool justReachedAnimEnd = (CurrentTime >= MaxTime);
 
                 // Single frame anim
-                if (MaxTime <= (SnapInterval))
-                {
-                    CurrentTime = 0;
-                }
+                //if (MaxTime <= (SnapInterval))
+                //{
+                //    CurrentTime = 0;
+                //}
 
                 if (!HkxAnimationLength.HasValue)
                     MaxTime = 0;

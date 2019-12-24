@@ -23,6 +23,7 @@ namespace DSAnimStudio.TaeEditor
         public bool LiveRefreshOnSave { get; set; } = true;
         public bool CameraFollowsRootMotion { get; set; } = true;
         public bool EnableAnimRootMotion { get; set; } = true;
+        //public bool SimulateReferencedEvents { get; set; } = true;
 
         public Dictionary<string, bool> EventSimulationsEnabled { get; set; }
             = new Dictionary<string, bool>();

@@ -304,8 +304,31 @@ namespace DSAnimStudio.TaeEditor
         private int TopMenuBarMargin = 32;
 
         private int TopOfGraphAnimInfoMargin = 24;
-        private int ButtonEditCurrentAnimInfoWidth = 200;
+
+        private int ButtonEditCurrentAnimInfoWidth = 128;
         private System.Windows.Forms.Button ButtonEditCurrentAnimInfo;
+
+        private int ButtonGotoEventSourceWidth = 140;
+        public System.Windows.Forms.Button ButtonGotoEventSource;
+
+        public void GoToEventSource()
+        {
+            if (Graph.AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+            {
+                var animRef = FileContainer.GetAnimRefFull(asImportOtherAnim.ImportFromAnimID);
+
+                SelectNewAnimRef(animRef.Item1, animRef.Item2);
+            }
+            else if (Graph.AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+            {
+                if (asStandard.ImportsEvents)
+                {
+                    var animRef = FileContainer.GetAnimRefFull(asStandard.ImportFromAnimID);
+
+                    SelectNewAnimRef(animRef.Item1, animRef.Item2);
+                }
+            }
+        }
 
         private int EditTaeHeaderButtonMargin = 32;
         private int EditTaeHeaderButtonHeight = 20;
@@ -840,7 +863,7 @@ namespace DSAnimStudio.TaeEditor
             }));
             SelectedTaeAnim = SelectedTae.Animations[0];
             editScreenAnimList = new TaeEditAnimList(this);
-            Graph = new TaeEditAnimEventGraph(this);
+            Graph = new TaeEditAnimEventGraph(this, false, SelectedTaeAnim);
             //if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
             //{
             //    TaeInterop.OnLoadANIBND(MenuBar, progress);
@@ -851,6 +874,8 @@ namespace DSAnimStudio.TaeEditor
             {
                 ButtonEditCurrentAnimInfo.Enabled = true;
                 ButtonEditCurrentAnimInfo.Visible = true;
+                ButtonGotoEventSource.Enabled = false;
+                ButtonGotoEventSource.Visible = false;
                 //MenuBar["Edit\\Find First Event of Type..."].Enabled = true;
                 MenuBar["Edit\\Find Value..."].Enabled = true;
                 MenuBar["Edit\\Go To Animation ID..."].Enabled = true;
@@ -1562,7 +1587,7 @@ namespace DSAnimStudio.TaeEditor
             ButtonEditCurrentAnimInfo = new System.Windows.Forms.Button();
             ButtonEditCurrentAnimInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             ButtonEditCurrentAnimInfo.TabStop = false;
-            ButtonEditCurrentAnimInfo.Text = "Edit Anim Info...";
+            ButtonEditCurrentAnimInfo.Text = "Edit Anim Info (F3)";
             ButtonEditCurrentAnimInfo.Click += ButtonEditCurrentAnimInfo_Click;
             ButtonEditCurrentAnimInfo.BackColor = inspectorWinFormsControl.BackColor;
             ButtonEditCurrentAnimInfo.ForeColor = inspectorWinFormsControl.ForeColor;
@@ -1570,6 +1595,18 @@ namespace DSAnimStudio.TaeEditor
             ButtonEditCurrentAnimInfo.Visible = false;
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
+
+            ButtonGotoEventSource = new System.Windows.Forms.Button();
+            ButtonGotoEventSource.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            ButtonGotoEventSource.TabStop = false;
+            ButtonGotoEventSource.Text = "Goto Event Source (F4)";
+            ButtonGotoEventSource.Click += ButtonGotoEventSource_Click;
+            ButtonGotoEventSource.BackColor = inspectorWinFormsControl.BackColor;
+            ButtonGotoEventSource.ForeColor = inspectorWinFormsControl.ForeColor;
+            ButtonGotoEventSource.Enabled = false;
+            ButtonGotoEventSource.Visible = false;
+
+            GameWindowAsForm.Controls.Add(ButtonGotoEventSource);
 
             ButtonEditCurrentTaeHeader = new System.Windows.Forms.Button();
             ButtonEditCurrentTaeHeader.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -1595,6 +1632,11 @@ namespace DSAnimStudio.TaeEditor
             GameWindowAsForm.Controls.Add(ShaderAdjuster);
 
             UpdateLayout();
+        }
+
+        private void ButtonGotoEventSource_Click(object sender, EventArgs e)
+        {
+            GoToEventSource();
         }
 
         private void InspectorWinFormsControl_TaeEventValueChanged(object sender, EventArgs e)
@@ -1746,6 +1788,7 @@ namespace DSAnimStudio.TaeEditor
                     SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     RecreateAnimList();
                     UpdateSelectedTaeAnimInfoText();
+                    Graph.InitGhostEventBoxes();
                     needsAnimReload = true;
                 }
 
@@ -1754,6 +1797,7 @@ namespace DSAnimStudio.TaeEditor
                     SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
                     SelectedTae.SetIsModified(!IsReadOnlyFileMode);
                     UpdateSelectedTaeAnimInfoText();
+                    Graph.InitGhostEventBoxes();
                     needsAnimReload = true;
                 }
 
@@ -2322,7 +2366,7 @@ namespace DSAnimStudio.TaeEditor
                 SelectedEventBox = null;
 
                 if (Graph == null)
-                    Graph = new TaeEditAnimEventGraph(this);
+                    Graph = new TaeEditAnimEventGraph(this, false, SelectedTaeAnim);
 
                 Graph.ChangeToNewAnimRef(SelectedTaeAnim);
 
@@ -2687,6 +2731,12 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F2))
                     ShowDialogChangeAnimName();
+
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F3))
+                    ShowDialogEditCurrentAnimInfo();
+
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F4))
+                    GoToEventSource();
 
                 CtrlHeld = Input.KeyHeld(Keys.LeftControl) || Input.KeyHeld(Keys.RightControl);
                 ShiftHeld = Input.KeyHeld(Keys.LeftShift) || Input.KeyHeld(Keys.RightShift);
@@ -3062,6 +3112,11 @@ namespace DSAnimStudio.TaeEditor
                 {
                     Graph.UpdateMiddleClickPan();
 
+                    if (!Graph.Rect.Contains(Input.MousePositionPoint))
+                    {
+                        HoveringOverEventBox = null;
+                    }
+
                     if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || 
                         WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
                     {
@@ -3164,9 +3219,15 @@ namespace DSAnimStudio.TaeEditor
                     Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
 
                 ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
-                    plannedGraphRect.Right - ButtonEditCurrentAnimInfoWidth,
-                    Rect.Top + TopMenuBarMargin,
+                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
+                    Rect.Top + TopMenuBarMargin - 4,
                     ButtonEditCurrentAnimInfoWidth,
+                    TopOfGraphAnimInfoMargin);
+
+                ButtonGotoEventSource.Bounds = new System.Drawing.Rectangle(
+                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
+                    Rect.Top + TopMenuBarMargin - 4,
+                    ButtonGotoEventSourceWidth,
                     TopOfGraphAnimInfoMargin);
 
             }
@@ -3179,9 +3240,15 @@ namespace DSAnimStudio.TaeEditor
                     Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
 
                 ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
-                    plannedGraphRect.Right - ButtonEditCurrentAnimInfoWidth, 
-                    Rect.Top + TopMenuBarMargin, 
-                    ButtonEditCurrentAnimInfoWidth, 
+                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
+                    Rect.Top + TopMenuBarMargin - 4,
+                    ButtonEditCurrentAnimInfoWidth,
+                    TopOfGraphAnimInfoMargin);
+
+                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
+                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
+                    Rect.Top + TopMenuBarMargin - 4,
+                    ButtonGotoEventSourceWidth,
                     TopOfGraphAnimInfoMargin);
             }
 

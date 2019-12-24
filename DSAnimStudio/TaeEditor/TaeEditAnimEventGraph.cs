@@ -76,6 +76,8 @@ namespace DSAnimStudio.TaeEditor
             VerticalScroll,
         }
 
+        public bool IsGhostEventGraph { get; private set; } = false;
+
         public TaeHoverInfoBox HoverInfoBox = new TaeHoverInfoBox();
         public Vector2 HoverInfoBoxOffsetFromMouse = Vector2.One * 16;
 
@@ -115,6 +117,13 @@ namespace DSAnimStudio.TaeEditor
         public Rectangle Rect;
 
         public List<TaeEditAnimEventBox> EventBoxes = new List<TaeEditAnimEventBox>();
+        //public List<TaeEditAnimEventBox> EventBoxesToSimulate =>
+        //    (GhostEventGraph != null && MainScreen.Config.SimulateReferencedEvents) ? (EventBoxes.Concat(GhostEventGraph.EventBoxes).ToList()) : EventBoxes;
+
+        public List<TaeEditAnimEventBox> EventBoxesToSimulate =>
+            GhostEventGraph != null ? GhostEventGraph.EventBoxes : EventBoxes;
+
+        public TaeEditAnimEventGraph GhostEventGraph = null;
 
         public TaeScrollViewer ScrollViewer { get; private set; } = new TaeScrollViewer();
 
@@ -252,8 +261,12 @@ namespace DSAnimStudio.TaeEditor
                 box.RowChanged -= Box_RowChanged;
 
             EventBoxes.Clear();
+            GhostEventGraph = null;
             sortedByRow.Clear();
             AnimRef = newAnimRef;
+
+            if (AnimRef == null)
+                return;
 
             void RegisterBoxToRow(TaeEditAnimEventBox box, int row)
             {
@@ -315,24 +328,75 @@ namespace DSAnimStudio.TaeEditor
                 eventIndex++;
             }
 
+            InitGhostEventBoxes();
+
             //Console.WriteLine("EventGroups Start");
             //for (int i = 0; i < AnimRef.EventGroups.Count; i++)
             //{
-                
+
             //    Console.WriteLine(AnimRef.EventGroups[i].EventType);
-                
+
             //}
             //Console.WriteLine("EventGroups End");
         }
 
-        public TaeEditAnimEventGraph(TaeEditorScreen mainScreen)
+        public void InitGhostEventBoxes()
+        {
+            MainScreen.ButtonGotoEventSource.Enabled = false;
+            MainScreen.ButtonGotoEventSource.Visible = false;
+            if (!IsGhostEventGraph)
+            {
+                if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+                {
+                    var animRef = MainScreen.FileContainer.GetAnimRef(asImportOtherAnim.ImportFromAnimID);
+
+                    GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
+                    GhostEventGraph.PlaybackCursor = PlaybackCursor;
+
+                    MainScreen.ButtonGotoEventSource.Enabled = true;
+                    MainScreen.ButtonGotoEventSource.Visible = true;
+                }
+                else if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+                {
+                    if (asStandard.ImportsEvents)
+                    {
+                        var animRef = MainScreen.FileContainer.GetAnimRef(asStandard.ImportFromAnimID);
+
+                        GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
+                        GhostEventGraph.PlaybackCursor = PlaybackCursor;
+
+                        MainScreen.ButtonGotoEventSource.Enabled = true;
+                        MainScreen.ButtonGotoEventSource.Visible = true;
+                    }
+                }
+                else
+                {
+                    GhostEventGraph = null;
+                }
+            }
+            else
+            {
+                GhostEventGraph = null;
+            }
+           
+        }
+
+        public TaeEditAnimEventGraph(TaeEditorScreen mainScreen, bool isGhostGraph, TAE.Animation startingAnimRef)
         {
             MainScreen = mainScreen;
-            ChangeToNewAnimRef(MainScreen.SelectedTaeAnim);
 
-            PlaybackCursor = new TaePlaybackCursor();
+            IsGhostEventGraph = isGhostGraph;
 
-            ViewportInteractor = new TaeViewportInteractor(this);
+            ChangeToNewAnimRef(startingAnimRef);
+
+            if (!isGhostGraph)
+            {
+                PlaybackCursor = new TaePlaybackCursor();
+
+                ViewportInteractor = new TaeViewportInteractor(this);
+            }
+
+           
         }
 
         private void RemoveEventBoxFromGroups(TaeEditAnimEventBox box)
@@ -857,12 +921,25 @@ namespace DSAnimStudio.TaeEditor
 
         public void UpdatePlaybackCursor(bool allowPlayPauseInput)
         {
-            PlaybackCursor.Update(
+            if (GhostEventGraph != null)
+            {
+                PlaybackCursor.Update(
                 Main.Active && allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space),
-                Main.Active && allowPlayPauseInput && 
-                (MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || 
-                MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)), 
+                Main.Active && allowPlayPauseInput &&
+                (MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) ||
+                MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)),
+                GhostEventGraph.EventBoxes);
+            }
+            else
+            {
+                PlaybackCursor.Update(
+                Main.Active && allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space),
+                Main.Active && allowPlayPauseInput &&
+                (MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) ||
+                MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)),
                 EventBoxes);
+            }
+            
         }
 
         public void MouseReleaseStuff()
@@ -1006,12 +1083,18 @@ namespace DSAnimStudio.TaeEditor
 
                 MainScreen.Input.CursorType = MouseCursorType.Arrow;
 
+                if (GhostEventGraph != null)
+                {
+                    MainScreen.SelectedEventBox = null;
+                    MainScreen.MultiSelectedEventBoxes.Clear();
+                }
+
                 if (MainScreen.Input.LeftClickDown && !MainScreen.ShiftHeld && !MainScreen.CtrlHeld)
                 {
                     MainScreen.SelectedEventBox = null;
                 }
 
-                if (MainScreen.Input.RightClickDown &&
+                if (GhostEventGraph == null && MainScreen.Input.RightClickDown &&
                     currentDrag.DragType == BoxDragType.None)
                 {
                     PlaceNewEventAtMouse();
@@ -1021,6 +1104,9 @@ namespace DSAnimStudio.TaeEditor
                 var rowOrderedByTime = masterRowBoxList.OrderByDescending(x => x.MyEvent.StartTime);
 
                 MainScreen.HoveringOverEventBox = null;
+
+                if (GhostEventGraph != null)
+                    return;
 
                 foreach (var box in rowOrderedByTime)
                 {
@@ -1744,12 +1830,28 @@ namespace DSAnimStudio.TaeEditor
 
         private Point GetVirtualAreaSize()
         {
-            if (EventBoxes.Count == 0)
-                return Point.Zero;
+            
 
-            return new Point(
-                (int)EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 64, 
+            if (GhostEventGraph != null)
+            {
+                if (GhostEventGraph.EventBoxes.Count == 0)
+                    return Point.Zero;
+
+                return new Point(
+                (int)GhostEventGraph.EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 64,
+                (int)GhostEventGraph.EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 64);
+            }
+            else
+            {
+                if (EventBoxes.Count == 0)
+                    return Point.Zero;
+
+                return new Point(
+                (int)EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 64,
                 (int)EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 64);
+            }
+
+            
         }
 
         private Dictionary<int, float> GetSecondVerticalLineXPositions()
@@ -1787,6 +1889,161 @@ namespace DSAnimStudio.TaeEditor
             {
                 sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4 + 1), (float)Math.Round(ScrollViewer.Scroll.Y + 3 + 1)) + Main.GlobalTaeEditorFontOffset, Color.Black);
                 sb.DrawString(font, kvp.Key.ToString(), new Vector2((float)Math.Round(kvp.Value + 4), (float)Math.Round(ScrollViewer.Scroll.Y + 3)) + Main.GlobalTaeEditorFontOffset, Color.White);
+            }
+        }
+
+        private void DrawAllEventBoxes(float opacity, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
+            SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex, Matrix scrollMatrix)
+        {
+            foreach (var kvp in sortedByRow)
+            {
+                var boxesOrderedByTime = kvp.Value.OrderBy(x => x.MyEvent.StartTime);
+                foreach (var box in boxesOrderedByTime)
+                {
+                    var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
+
+                    if (isBoxSelected)
+                        box.UpdateEventText();
+
+                    if (box.LeftFr > ScrollViewer.RelativeViewport.Right
+                        || box.RightFr < ScrollViewer.RelativeViewport.Left)
+                        continue;
+
+                    bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.Scroll.X;
+
+                    Vector2 pos = new Vector2((float)Math.Round(box.LeftFr), box.Top + 1);
+                    Vector2 size = new Vector2((float)Math.Round(box.WidthFr), box.HeightFr - 1);
+
+                    int boxOutlineThickness = 1;// isBoxSelected ? 2 : 1;
+
+                    Color textFG = Color.White;
+                    Color textBG = Color.Black;
+
+                    Color boxOutlineColor = box.ColorOutline;
+
+                    Color thisBoxBgColor = new Color(box.ColorBG.ToVector3());
+                    Color thisBoxBgColorSelected = new Color(box.ColorBGSelected.ToVector3());
+                    Color boxOutlineColorSelected = Color.White;
+
+                    // outline
+                    sb.Draw(texture: boxTex,
+                        position: pos + new Vector2(0, -1),
+                        sourceRectangle: null,
+                        color: (isBoxSelected ? boxOutlineColorSelected : boxOutlineColor) * opacity,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: size + new Vector2(0, 2),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+
+
+                    sb.Draw(texture: boxTex,
+                        position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
+                        sourceRectangle: null,
+                        color: ((box.PlaybackHighlight) ? thisBoxBgColorSelected : thisBoxBgColor) * opacity,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+                    var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), (int)pos.Y);
+
+                    const string fixedPrefix = "<-";
+
+                    var boxRect = box.GetTextRect(boxOutlineThickness);
+
+                    if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= TinyTextBoxWidth)
+                    {
+                        var fancyTextRect = boxRect;
+                        if (eventStartsBeforeScreen)
+                        {
+                            var fixedPrefixSize = (font.MeasureString(fixedPrefix)).ToPoint();
+
+                            int amountOutOfScreen = (int)ScrollViewer.Scroll.X - fancyTextRect.X;
+
+                            fancyTextRect = new Rectangle(
+                                fancyTextRect.X + fixedPrefixSize.X + amountOutOfScreen,
+                                fancyTextRect.Y,
+                                fancyTextRect.Width - fixedPrefixSize.X - amountOutOfScreen,
+                                fancyTextRect.Height);
+
+                            var prefixPos = namePos;// new Vector2((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round((float)boxRect.Y));
+
+                            sb.DrawString(font, fixedPrefix,
+                                prefixPos + Vector2.One + Main.GlobalTaeEditorFontOffset, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                            //sb.DrawString(font, fixedPrefix,
+                            //    prefixPos + (Vector2.One * 2), textBG);
+                            sb.DrawString(font, fixedPrefix,
+                                prefixPos + Main.GlobalTaeEditorFontOffset, textFG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                        }
+
+                        box.EventText.TextColor = textFG * opacity;
+                        box.EventText.TextShadowColor = textBG * opacity;
+                        box.EventText.ScrollPixelsPerSecond = MainScreen.Config.FancyScrollingStringsScrollSpeed;
+                        box.EventText.ScrollingSnapsToPixels = MainScreen.Config.FancyTextScrollSnapsToPixels;
+
+                        if (MainScreen.HoveringOverEventBox == box)
+                        {
+                            box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, elapsedSeconds);
+
+                            if (MainScreen.PrevHoveringOverEventBox != box)
+                            {
+                                //HoverInfoBox.Title = box.GetPopupTitle();
+                                //HoverInfoBox.Text = box.GetPopupText();
+                                HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
+                            }
+                        }
+                        else
+                        {
+                            box.EventText.ResetScroll(startImmediatelyNextTime: true);
+                            box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, 0);
+                        }
+                    }
+                    else
+                    {
+                        box.EventText.ResetScroll(startImmediatelyNextTime: true);
+
+                        var thicknessOffset = new Vector2(2/*boxOutlineThickness*/ * 2, 0);
+
+                        string fullTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}{box.EventText.Text}";
+
+                        var nameSize = font.MeasureString(fullTextWithPrefix);
+
+                        string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
+                               $"{(box.MyEvent.TypeName)}";
+                        sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
+                            textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                        //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                        //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                        sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
+                            textFG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                        //if ((namePos.X + nameSize.X) <= box.RightFr)
+                        //{
+                        //    sb.DrawString(font, fullTextWithPrefix,
+                        //        namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
+                        //    //sb.DrawString(font, fullTextWithPrefix,
+                        //    //    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
+                        //    sb.DrawString(font, fullTextWithPrefix,
+                        //        namePos + new Vector2(1, 0) + thicknessOffset, textFG);
+                        //}
+                        //else
+                        //{
+                        //    string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
+                        //        $"{(box.MyEvent.TypeName)}";
+                        //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
+                        //        textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                        //    //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                        //    //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                        //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
+                        //        textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                        //}
+                    }
+                }
             }
         }
 
@@ -1896,6 +2153,32 @@ namespace DSAnimStudio.TaeEditor
                 //    );
 
 
+                
+
+                if (GhostEventGraph != null)
+                {
+                    GhostEventGraph.SecondsPixelSize = SecondsPixelSize;
+                    GhostEventGraph.ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
+                    GhostEventGraph.ScrollViewer.Scroll = ScrollViewer.Scroll;
+                    GhostEventGraph.DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+
+                    // Draw semitransparent overlay.
+                    sb.Draw(texture: boxTex,
+                    position: ScrollViewer.Scroll - (Vector2.One * 2),
+                    sourceRectangle: null,
+                    color: new Color(120, 120, 120, 255) * 0.5f,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+                }
+                else
+                {
+                    DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+                }
+
                 var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
 
                 foreach (var kvp in rowHorizontalLineYPositions)
@@ -1911,159 +2194,6 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
                 }
-
-                foreach (var kvp in sortedByRow)
-                {
-                    var boxesOrderedByTime = kvp.Value.OrderBy(x => x.MyEvent.StartTime);
-                    foreach (var box in boxesOrderedByTime)
-                    {
-                        var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
-
-                        if (isBoxSelected)
-                            box.UpdateEventText();
-
-                        if (box.LeftFr > ScrollViewer.RelativeViewport.Right
-                            || box.RightFr < ScrollViewer.RelativeViewport.Left)
-                            continue;
-
-                        bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.Scroll.X;
-
-                        Vector2 pos = new Vector2((float)Math.Round(box.LeftFr), box.Top + 1);
-                        Vector2 size = new Vector2((float)Math.Round(box.WidthFr), box.HeightFr - 1);
-
-                        int boxOutlineThickness = 1;// isBoxSelected ? 2 : 1;
-
-                        Color textFG = Color.White;
-                        Color textBG = Color.Black;
-
-                        Color boxOutlineColor = box.ColorOutline;
-
-                        Color thisBoxBgColor = new Color(box.ColorBG.ToVector3());
-                        Color thisBoxBgColorSelected = new Color(box.ColorBGSelected.ToVector3());
-                        Color boxOutlineColorSelected = Color.White;
-
-                        // outline
-                        sb.Draw(texture: boxTex,
-                            position: pos + new Vector2(0, -1),
-                            sourceRectangle: null,
-                            color: isBoxSelected ? boxOutlineColorSelected : boxOutlineColor,
-                            rotation: 0,
-                            origin: Vector2.Zero,
-                            scale: size + new Vector2(0, 2),
-                            effects: SpriteEffects.None,
-                            layerDepth: 0
-                            );
-
-                        
-
-                        sb.Draw(texture: boxTex,
-                            position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
-                            sourceRectangle: null,
-                            color: (box.PlaybackHighlight) ? thisBoxBgColorSelected : thisBoxBgColor,
-                            rotation: 0,
-                            origin: Vector2.Zero,
-                            scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
-                            effects: SpriteEffects.None,
-                            layerDepth: 0
-                            );
-
-                        var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), (int)pos.Y);
-
-                        const string fixedPrefix = "<-";
-
-                        var boxRect = box.GetTextRect(boxOutlineThickness);
-
-                        if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= TinyTextBoxWidth)
-                        {
-                            var fancyTextRect = boxRect;
-                            if (eventStartsBeforeScreen)
-                            {
-                                var fixedPrefixSize = (font.MeasureString(fixedPrefix)).ToPoint();
-
-                                int amountOutOfScreen = (int)ScrollViewer.Scroll.X - fancyTextRect.X;
-
-                                fancyTextRect = new Rectangle(
-                                    fancyTextRect.X + fixedPrefixSize.X + amountOutOfScreen,
-                                    fancyTextRect.Y,
-                                    fancyTextRect.Width - fixedPrefixSize.X - amountOutOfScreen,
-                                    fancyTextRect.Height);
-
-                                var prefixPos = namePos;// new Vector2((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round((float)boxRect.Y));
-
-                                sb.DrawString(font, fixedPrefix,
-                                    prefixPos + Vector2.One + Main.GlobalTaeEditorFontOffset, textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                                //sb.DrawString(font, fixedPrefix,
-                                //    prefixPos + (Vector2.One * 2), textBG);
-                                sb.DrawString(font, fixedPrefix,
-                                    prefixPos + Main.GlobalTaeEditorFontOffset, textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                            }
-
-                            box.EventText.TextColor = textFG;
-                            box.EventText.TextShadowColor = textBG;
-                            box.EventText.ScrollPixelsPerSecond = MainScreen.Config.FancyScrollingStringsScrollSpeed;
-                            box.EventText.ScrollingSnapsToPixels = MainScreen.Config.FancyTextScrollSnapsToPixels;
-
-                            if (MainScreen.HoveringOverEventBox == box)
-                            {
-                                box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, elapsedSeconds);
-
-                                if (MainScreen.PrevHoveringOverEventBox != box)
-                                {
-                                    //HoverInfoBox.Title = box.GetPopupTitle();
-                                    //HoverInfoBox.Text = box.GetPopupText();
-                                    HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
-                                }
-                            }
-                            else
-                            {
-                                box.EventText.ResetScroll(startImmediatelyNextTime: true);
-                                box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, 0);
-                            }
-                        }
-                        else
-                        {
-                            box.EventText.ResetScroll(startImmediatelyNextTime: true);
-
-                            var thicknessOffset = new Vector2(2/*boxOutlineThickness*/ * 2, 0);
-
-                            string fullTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}{box.EventText.Text}";
-
-                            var nameSize = font.MeasureString(fullTextWithPrefix);
-
-                            string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
-                                   $"{(box.MyEvent.TypeName)}";
-                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
-                                textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                            //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
-                            //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
-                                textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-
-                            //if ((namePos.X + nameSize.X) <= box.RightFr)
-                            //{
-                            //    sb.DrawString(font, fullTextWithPrefix,
-                            //        namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
-                            //    //sb.DrawString(font, fullTextWithPrefix,
-                            //    //    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
-                            //    sb.DrawString(font, fullTextWithPrefix,
-                            //        namePos + new Vector2(1, 0) + thicknessOffset, textFG);
-                            //}
-                            //else
-                            //{
-                            //    string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
-                            //        $"{(box.MyEvent.TypeName)}";
-                            //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
-                            //        textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                            //    //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
-                            //    //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                            //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
-                            //        textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                            //}
-                        }
-                    }
-                }
-
-                
 
                 // When you change which box (if any) is hovered, update the simulation and stuff.
                 if (MainScreen.PrevHoveringOverEventBox != MainScreen.HoveringOverEventBox)
@@ -2328,8 +2458,8 @@ namespace DSAnimStudio.TaeEditor
                 string playbackCursorText = 
                     (MainScreen.Config.LockFramerateToOriginalAnimFramerate ?
                     $"{(int)(PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame)}" :
-                    $"{(PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame):F02}") +
-                    $"/{(int)((Math.Round(PlaybackCursor.MaxFrame) - 1))}";
+                    $"{(PlaybackCursor.MaxFrame <= 0 ? 0 : (PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame)):F02}") +
+                    $"/{(int)((Math.Max(Math.Round(PlaybackCursor.MaxFrame) - 1, 0)))}";
 
                 Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
 

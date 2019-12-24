@@ -61,6 +61,83 @@ namespace DSAnimStudio.TaeEditor
             return folder.Substring(0, lastSlashInFolder);
         }
 
+        private (long Upper, long Lower) GetSplitAnimID(long id)
+        {
+            return ((GameDataManager.GameType == GameDataManager.GameTypes.BB || GameDataManager.GameType == GameDataManager.GameTypes.DS3) ? (id / 1000000) : (id / 10000),
+                (GameDataManager.GameType == GameDataManager.GameTypes.BB || GameDataManager.GameType == GameDataManager.GameTypes.DS3) ? (id % 1000000) : (id % 10000));
+        }
+
+        private (long UpperID, TAE.Animation Anim) GetTAEAnim(long compositeId)
+        {
+            var id = GetSplitAnimID(compositeId);
+
+            if (AllTAEDict.Count > 1)
+            {
+                var tae = GetTAE(id.Upper);
+                if (tae != null)
+                {
+                    var anim = GetAnimInTAE(tae, id.Lower);
+                    if (anim != null)
+                        return (id.Upper, anim);
+                }
+            }
+            else
+            {
+                var tae = AllTAEDict.First().Value;
+                var anim = GetAnimInTAE(tae, GetCompositeAnimID(id));
+                if (anim != null)
+                    return (id.Upper, anim);
+            }
+            return (0, null);
+        }
+
+        private TAE GetTAE(long id)
+        {
+            foreach (var kvp in AllTAEDict)
+            {
+                if (kvp.Key.ToUpper().EndsWith($"{id:D2}.TAE"))
+                {
+                    return kvp.Value;
+                }
+            }
+            return null;
+        }
+
+        private TAE.Animation GetAnimInTAE(TAE tae, long id)
+        {
+            foreach (var a in tae.Animations)
+            {
+                if (a.ID == id)
+                    return a;
+            }
+            return null;
+        }
+
+        private long GetCompositeAnimID((long Upper, long Lower) id)
+        {
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || GameDataManager.GameType == GameDataManager.GameTypes.BB)
+            {
+                return (id.Upper * 1_000000) + (id.Lower % 1_000000);
+            }
+            else
+            {
+                return (id.Upper * 1_0000) + (id.Lower % 1_0000);
+            }
+        }
+
+        public TAE.Animation GetAnimRef(int compositeID)
+        {
+            var anim = GetTAEAnim(compositeID);
+            return anim.Anim;
+        }
+
+        public (TAE, TAE.Animation) GetAnimRefFull(int compositeID)
+        {
+            var anim = GetTAEAnim(compositeID);
+            var tae = GetTAE(anim.UpperID);
+            return (tae, anim.Anim);
+        }
+
         private void CheckGameVersionForTaeInterop(string filePath)
         {
             var check = filePath.ToUpper();
