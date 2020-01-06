@@ -342,25 +342,15 @@ namespace DSAnimStudio.TaeEditor
 
         public void InitGhostEventBoxes()
         {
-            MainScreen.ButtonGotoEventSource.Enabled = false;
-            MainScreen.ButtonGotoEventSource.Visible = false;
-            if (!IsGhostEventGraph)
+            MainScreen.GameWindowAsForm.Invoke(new Action(() =>
             {
-                if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+                MainScreen.ButtonGotoEventSource.Enabled = false;
+                MainScreen.ButtonGotoEventSource.Visible = false;
+                if (!IsGhostEventGraph)
                 {
-                    var animRef = MainScreen.FileContainer.GetAnimRef(asImportOtherAnim.ImportFromAnimID);
-
-                    GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
-                    GhostEventGraph.PlaybackCursor = PlaybackCursor;
-
-                    MainScreen.ButtonGotoEventSource.Enabled = true;
-                    MainScreen.ButtonGotoEventSource.Visible = true;
-                }
-                else if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
-                {
-                    if (asStandard.ImportsEvents)
+                    if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
                     {
-                        var animRef = MainScreen.FileContainer.GetAnimRef(asStandard.ImportFromAnimID);
+                        var animRef = MainScreen.FileContainer.GetAnimRef(asImportOtherAnim.ImportFromAnimID);
 
                         GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
                         GhostEventGraph.PlaybackCursor = PlaybackCursor;
@@ -368,16 +358,31 @@ namespace DSAnimStudio.TaeEditor
                         MainScreen.ButtonGotoEventSource.Enabled = true;
                         MainScreen.ButtonGotoEventSource.Visible = true;
                     }
+                    else if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+                    {
+                        if (asStandard.ImportsEvents)
+                        {
+                            var animRef = MainScreen.FileContainer.GetAnimRef(asStandard.ImportFromAnimID);
+
+                            GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
+                            GhostEventGraph.PlaybackCursor = PlaybackCursor;
+
+                            MainScreen.ButtonGotoEventSource.Enabled = true;
+                            MainScreen.ButtonGotoEventSource.Visible = true;
+                        }
+                    }
+                    else
+                    {
+                        GhostEventGraph = null;
+                    }
                 }
                 else
                 {
                     GhostEventGraph = null;
                 }
-            }
-            else
-            {
-                GhostEventGraph = null;
-            }
+            }));
+
+            
            
         }
 

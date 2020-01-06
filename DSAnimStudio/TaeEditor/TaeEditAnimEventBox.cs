@@ -78,7 +78,7 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
-        public bool PlaybackHighlight => CheckHighlight(
+        public bool PlaybackHighlight => OwnerPane?.PlaybackCursor == null ? false : CheckHighlight(
             OwnerPane.PlaybackCursor.GUICurrentFrameMod, 
             OwnerPane.MainScreen.HoveringOverEventBox);
 
