@@ -1987,7 +1987,17 @@ namespace DSAnimStudio.TaeEditor
                 {
                     SaveCurrentFile(afterSaveAction: () =>
                     {
-                        DoActualFileOpen();
+                        try
+                        {
+                            DoActualFileOpen();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Windows.Forms.MessageBox.Show(ex.ToString(),
+                                "Error While Loading File",
+                                System.Windows.Forms.MessageBoxButtons.OK,
+                                System.Windows.Forms.MessageBoxIcon.Error);
+                        }
                     },
                     saveMessage: "Saving ANIBND then loading new one...");
                     return;
@@ -1999,7 +2009,17 @@ namespace DSAnimStudio.TaeEditor
                 //If they chose no, continue as normal.
             }
 
-            DoActualFileOpen();
+            try
+            {
+                DoActualFileOpen();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show(ex.ToString(), 
+                    "Error While Loading File", 
+                    System.Windows.Forms.MessageBoxButtons.OK, 
+                    System.Windows.Forms.MessageBoxIcon.Error);
+            }
                 
             
         }
