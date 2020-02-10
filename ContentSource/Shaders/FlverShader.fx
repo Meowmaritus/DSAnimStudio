@@ -93,6 +93,10 @@ float IndirectLightMult = 1.0;
 float EmissiveMapMult = 1.0;
 float SceneBrightness = 1.0;
 
+float LdotNPower = 0.1;
+
+float SpecularPowerMult = 1;
+
 // Textures
 texture2D ColorMap;
 sampler2D ColorMapSampler = sampler_state
@@ -464,6 +468,9 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     
     float4 specularMapColor = lerp(tex2D(SpecularMapSampler, input.TexCoord), tex2D(SpecularMap2Sampler, input.TexCoord2), texBlendVal);
     float4 emissiveMapColor = tex2D(EmissiveMapSampler, input.TexCoord);
+    
+    emissiveMapColor.rgb *= emissiveMapColor.rgb;
+    
     float3 nmapcol = lerp(tex2D(NormalMapSampler, input.TexCoord), tex2D(NormalMap2Sampler, input.TexCoord2), texBlendVal);
     
     float4 shininessMapColor = tex2D(SpecularMapBBSampler, input.TexCoord);
@@ -534,7 +541,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float3 N = (!isFrontFacing ? normalMap : -normalMap);
         
         float3 viewVec = normalize(input.View);
-        float3 diffuseColor = color.xyz;
+        float3 diffuseColor = color.xyz * color.xyz;
         float3 L = -LightDirection;
         
         float3 H = normalize(L + viewVec);
@@ -566,14 +573,14 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //float D = alphasquare / (Pi * denom * denom);
         
         float specPower = exp2((1 - roughness) * 13.0);
-        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0));
+        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0)) * SpecularPowerMult;
         float D = pow(NdotH, specPower) * (specPower * 0.125 + 0.25);
         
         //float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
         //  NdotV * sqrt(alphasquare + ((1.0 - alphasquare) * (LdotN * LdotN )));
         //V = min(0.5 / max(V, Epsilon), 1.0);
         
-        float3 specular = D * F * LdotN;//D * F * V * LdotN;
+        float3 specular = D * F * pow(LdotN, LdotNPower);//D * F * V * LdotN;
         
         uint envWidth, envHeight, envLevels;
         
@@ -632,7 +639,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float3 N = (!isFrontFacing ? normalMap : -normalMap);
         
         float3 viewVec = normalize(input.View);
-        float3 diffuseColor = color.xyz;
+        float3 diffuseColor = color.xyz * color.xyz;
         float3 L = -LightDirection;
         
         float3 H = normalize(L + viewVec);
@@ -663,14 +670,14 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //float D = alphasquare / (Pi * denom * denom);
         
         float specPower = exp2((1 - roughness) * 13.0);
-        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0));
+        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0)) * SpecularPowerMult * 8;
         float D = pow(NdotH, specPower) * (specPower * 0.125 + 0.25);
         
         //float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
         //  NdotV * sqrt(alphasquare + ((1.0 - alphasquare) * (LdotN * LdotN )));
         //V = min(0.5 / max(V, Epsilon), 1.0);
         
-        float3 specular = D * F * LdotN;//D * F * V * LdotN;
+        float3 specular = D * F * pow(LdotN, LdotNPower);//D * F * V * LdotN;
         
         uint envWidth, envHeight, envLevels;
         

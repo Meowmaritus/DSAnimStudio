@@ -22,8 +22,9 @@ namespace DSAnimStudio
 
         int CurrentBlock => (int)((CurrentFrame % FrameCount) / NumFramesPerBlock);
 
-        public NewHavokAnimation_SplineCompressed(NewAnimSkeleton skeleton, HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding, HKX.HKASplineCompressedAnimation anim)
-            : base(skeleton, refFrame, binding)
+        public NewHavokAnimation_SplineCompressed(NewAnimSkeleton skeleton, 
+            HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding, HKX.HKASplineCompressedAnimation anim, NewAnimationContainer container)
+            : base(skeleton, refFrame, binding, container)
         {
             Duration = anim.Duration;// Math.Max(anim.Duration, anim.FrameDuration * anim.FrameCount);
             FrameCount = anim.FrameCount;

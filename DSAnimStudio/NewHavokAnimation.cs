@@ -10,6 +10,8 @@ namespace DSAnimStudio
 {
     public abstract class NewHavokAnimation
     {
+        public readonly NewAnimationContainer ParentContainer;
+
         public HKX.AnimationBlendHint BlendHint = HKX.AnimationBlendHint.NORMAL;
 
         public string Name;
@@ -21,12 +23,7 @@ namespace DSAnimStudio
 
         public readonly NewAnimSkeleton Skeleton;
 
-        public readonly Vector4 RootMotionUp = new Vector4(0, 1, 0, 0);
-        public readonly Vector4 RootMotionForward = new Vector4(0, 0, 1, 0);
-        public readonly Vector4[] RootMotionFrames = null;
-
-        private Vector4 currentRootMotionVector4 = Vector4.Zero;
-        public Matrix CurrentRootMotionMatrix = Matrix.Identity;
+        public NewRootMotionHandler RootMotion = null;
 
         private object _lock_boneMatrixStuff = new object();
 
@@ -45,6 +42,10 @@ namespace DSAnimStudio
 
         public float CurrentTime;
 
+        private int loopCountThisFrame = 0;
+        private int prevLoopCount = 0;
+        private bool forceAbsoluteRootMotionThisFrame = false;
+
         public float CurrentFrame => CurrentTime / FrameDuration;
 
         public abstract NewBlendableTransform GetBlendableTransformOnCurrentFrame(int hkxBoneIndex);
@@ -55,26 +56,46 @@ namespace DSAnimStudio
             UpdateCurrentRootMotion();
         }
 
-        public void Scrub(float newTime, bool loop, bool forceUpdate = false)
+        public void Scrub(float newTime, bool loop, bool forceUpdate, int loopCount, bool forceAbsoluteRootMotion)
         {
+            if (!forceAbsoluteRootMotionThisFrame && forceAbsoluteRootMotion)
+                forceAbsoluteRootMotionThisFrame = forceAbsoluteRootMotion;
+
+            loopCountThisFrame = loopCount;
+
             if (newTime != CurrentTime)
             {
+                float deltaTime = newTime - CurrentTime;
                 CurrentTime = newTime;
 
                 if (loop)
                 {
-                    if (CurrentTime >= Duration)
+                    if (deltaTime > 0)
                     {
-                        CurrentTime = CurrentTime % Duration;
+                        while (CurrentTime >= Duration)
+                        {
+                            CurrentTime -= Duration;
+                            //loopCountDeltaThisFrame++;
+                            //loopCountThisFrame++;
+                        }
+                    }
+                    else if (deltaTime < 0)
+                    {
+                        while (CurrentTime < 0)
+                        {
+                            CurrentTime += Duration;
+                            //loopCountDeltaThisFrame--;
+                            //loopCountThisFrame--;
+                        }
                     }
                 }
-                else
-                {
-                    if (CurrentTime > (Duration - FrameDuration))
-                    {
-                        CurrentTime = (Duration - FrameDuration);
-                    }
-                }  
+                //else
+                //{
+                //    if (CurrentTime > (Duration - FrameDuration))
+                //    {
+                //        CurrentTime = (Duration - FrameDuration);
+                //    }
+                //}  
 
                 ApplyMotionToSkeleton();
             }
@@ -84,14 +105,35 @@ namespace DSAnimStudio
             }
         }
 
-        public void Play(float deltaTime, bool loop, bool forceUpdate = false)
+        public void Play(float deltaTime, bool loop, bool forceUpdate, bool forceAbsoluteRootMotion)
         {
+            //loopCountDeltaThisFrame = 0;
+
+            if (!forceAbsoluteRootMotionThisFrame && forceAbsoluteRootMotion)
+                forceAbsoluteRootMotionThisFrame = forceAbsoluteRootMotion;
+
             float oldTime = CurrentTime;
 
             if (loop)
             {
                 CurrentTime += deltaTime;
-                CurrentTime = CurrentTime % Duration;
+
+                if (deltaTime > 0)
+                {
+                    while (CurrentTime >= Duration)
+                    {
+                        CurrentTime -= Duration;
+                        loopCountThisFrame++;
+                    }
+                }
+                else if (deltaTime < 0)
+                {
+                    while (CurrentTime < 0)
+                    {
+                        CurrentTime += Duration;
+                        loopCountThisFrame--;
+                    }
+                }
             }
             else
             {
@@ -108,58 +150,52 @@ namespace DSAnimStudio
 
         private void UpdateCurrentRootMotion()
         {
-            if (RootMotionFrames != null)
+            int loopCountDelta = loopCountThisFrame - prevLoopCount;
+
+            if (RootMotion != null)
             {
-                float frameFloor = (float)Math.Floor(CurrentFrame % RootMotionFrames.Length);
-                currentRootMotionVector4 = RootMotionFrames[(int)frameFloor];
+                (Vector4 motion, float direction) rootMotionState = RootMotion.UpdateRootMotion(ParentContainer.CurrentRootMotionVector,
+                    ParentContainer.CurrentRootMotionDirection, CurrentFrame, loopCountDelta,
+                    forceAbsoluteRootMotionThisFrame);
 
-                if (CurrentFrame != frameFloor)
-                {
-                    float frameMod = CurrentFrame % 1;
+                ParentContainer.CurrentRootMotionVector = rootMotionState.motion;
+                ParentContainer.CurrentRootMotionDirection = rootMotionState.direction;
 
-                    Vector4 nextFrameRootMotion;
-                    if (CurrentFrame >= RootMotionFrames.Length - 1)
-                        nextFrameRootMotion = RootMotionFrames[0];
-                    else
-                        nextFrameRootMotion = RootMotionFrames[(int)(frameFloor + 1)];
-
-                    currentRootMotionVector4.X = MathHelper.Lerp(currentRootMotionVector4.X, nextFrameRootMotion.X, frameMod);
-                    currentRootMotionVector4.Y = MathHelper.Lerp(currentRootMotionVector4.Y, nextFrameRootMotion.Y, frameMod);
-                    currentRootMotionVector4.Z = MathHelper.Lerp(currentRootMotionVector4.Z, nextFrameRootMotion.Z, frameMod);
-                    currentRootMotionVector4.W = MathHelper.Lerp(currentRootMotionVector4.W, nextFrameRootMotion.W, frameMod);
-                }
+                forceAbsoluteRootMotionThisFrame = false;
+                prevLoopCount = loopCountThisFrame;
             }
             else
             {
-                currentRootMotionVector4 = Vector4.Zero;
+                ParentContainer.CurrentRootMotionDirection = 0;
+                ParentContainer.CurrentRootMotionVector = Vector4.Zero;
             }
 
-            
 
-            CurrentRootMotionMatrix = 
-                Matrix.CreateRotationY(currentRootMotionVector4.W) *
-                Matrix.CreateWorld(
-                    new Vector3(currentRootMotionVector4.X, currentRootMotionVector4.Y, currentRootMotionVector4.Z),
-                    new Vector3(RootMotionForward.X, RootMotionForward.Y, -RootMotionForward.Z),
-                    new Vector3(RootMotionUp.X, RootMotionUp.Y, RootMotionUp.Z));
+           
+
+            
         }
 
-        public NewHavokAnimation(NewAnimSkeleton skeleton, HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding)
+        public NewHavokAnimation(NewAnimSkeleton skeleton, HKX.HKADefaultAnimatedReferenceFrame refFrame, 
+            HKX.HKAAnimationBinding binding, NewAnimationContainer container)
         {
+            ParentContainer = container;
             Skeleton = skeleton;
             if (refFrame != null)
             {
-                RootMotionFrames = new Vector4[refFrame.ReferenceFrameSamples.Size];
+                var rootMotionFrames = new Vector4[refFrame.ReferenceFrameSamples.Size];
                 for (int i = 0; i < refFrame.ReferenceFrameSamples.Size; i++)
                 {
-                    RootMotionFrames[i] = new Vector4(
+                    rootMotionFrames[i] = new Vector4(
                         refFrame.ReferenceFrameSamples[i].Vector.X, 
                         refFrame.ReferenceFrameSamples[i].Vector.Y, 
                         refFrame.ReferenceFrameSamples[i].Vector.Z, 
                         refFrame.ReferenceFrameSamples[i].Vector.W);
                 }
-                RootMotionUp = new Vector4(refFrame.Up.X, refFrame.Up.Y, refFrame.Up.Z, refFrame.Up.W);
-                RootMotionForward = new Vector4(refFrame.Forward.X, refFrame.Forward.Y, refFrame.Forward.Z, refFrame.Forward.W);
+                var rootMotionUp = new Vector4(refFrame.Up.X, refFrame.Up.Y, refFrame.Up.Z, refFrame.Up.W);
+                var rootMotionForward = new Vector4(refFrame.Forward.X, refFrame.Forward.Y, refFrame.Forward.Z, refFrame.Forward.W);
+
+                RootMotion = new NewRootMotionHandler(rootMotionUp, rootMotionForward, refFrame.Duration, rootMotionFrames);
             }
 
             lock (_lock_boneMatrixStuff)

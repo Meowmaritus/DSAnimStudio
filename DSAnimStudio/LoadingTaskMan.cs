@@ -130,6 +130,7 @@ namespace DSAnimStudio
                     if (addFluffMilliseconds > 0)
                         Thread.Sleep(addFluffMilliseconds);
                 }, disableProgressBarByDefault ? -1 : 0));
+                OSD.RequestCollapse = true;
             }
 
             if (waitForTaskToComplete)
@@ -253,7 +254,7 @@ namespace DSAnimStudio
         }
 
         public const int GuiDistFromEdgesOfScreenX = 8;
-        public const int GuiDistFromEdgesOfScreenY = 20;
+        public const int GuiDistFromEdgesOfScreenY = 40;
         public const int GuiDistBetweenProgressRects = 8;
         public const int GuiTaskRectWidth = 360;
         public const int GuiTaskRectHeightWithBar = 64;

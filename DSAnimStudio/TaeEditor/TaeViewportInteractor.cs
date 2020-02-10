@@ -428,7 +428,8 @@ namespace DSAnimStudio.TaeEditor
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
             CurrentModel.AnimContainer.IsPlaying = false;
-            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.CurrentTime);
+            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.CurrentTime, 
+                false, false, Graph.PlaybackCursor.CurrentLoopCount);
 
             CurrentModel.AfterAnimUpdate();
 
@@ -480,7 +481,8 @@ namespace DSAnimStudio.TaeEditor
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
             CurrentModel.AnimContainer.IsPlaying = false;
-            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime);
+            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime, 
+                false, false, Graph.PlaybackCursor.CurrentLoopCount);
 
             CurrentModel.AfterAnimUpdate();
 
@@ -576,7 +578,7 @@ namespace DSAnimStudio.TaeEditor
         //            var matchingAnim = weaponTae.Animations.Where(a => a.ID == compositeAnimID).FirstOrDefault();
         //            if (matchingAnim != null)
         //            {
-                        
+
 
         //                int animID = (int)matchingAnim.ID;
 
@@ -614,6 +616,24 @@ namespace DSAnimStudio.TaeEditor
         //    }
         //}
 
+        public void ResetRootMotion(float frame)
+        {
+            if (CurrentModel != null)
+            {
+                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion.Reset(frame);
+            }
+        }
+
+        public void RootMotionSendHome()
+        {
+            if (CurrentModel != null)
+            {
+                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(0);
+                CurrentModel.AnimContainer.CurrentRootMotionVector = Vector4.Zero;
+                CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
+            }
+        }
+
         public void OnNewAnimSelected()
         {
             if (CurrentModel != null)
@@ -621,12 +641,17 @@ namespace DSAnimStudio.TaeEditor
                 var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
                 var mainChrAnimName = mainChrSolver.GetHKXName(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
 
+                CurrentModel.AnimContainer.StoreRootMotionRotation();
+
                 CurrentModel.AnimContainer.CurrentAnimationName = mainChrAnimName;
+
+                Graph.PlaybackCursor.ResetAll();
 
                 Graph.PlaybackCursor.HkxAnimationLength = CurrentModel.AnimContainer.CurrentAnimDuration;
                 Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
                 Graph.PlaybackCursor.CurrentTime = 0;
                 Graph.PlaybackCursor.StartTime = 0;
+                
 
                 CheckChrAsmWeapons();
 
@@ -639,7 +664,8 @@ namespace DSAnimStudio.TaeEditor
 
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)
                 {
-                    CurrentModel.AnimContainer.ScrubCurrentAnimation(0, forceUpdate: true, stopPlaying: false);
+                    CurrentModel.AnimContainer.ScrubCurrentAnimation(0, forceUpdate: true, 
+                        stopPlaying: false, 0, forceAbsoluteRootMotion: true);
                 }
                 else
                 {
@@ -672,6 +698,8 @@ namespace DSAnimStudio.TaeEditor
                 if (CurrentModel.AnimContainer != null)
                 {
                     CurrentModel.AnimContainer.EnableRootMotion = Graph.MainScreen.Config.EnableAnimRootMotion;
+                    if (CurrentModel.AnimContainer.CurrentAnimation != null && CurrentModel.AnimContainer.CurrentAnimation.RootMotion != null)
+                        CurrentModel.AnimContainer.CurrentAnimation.RootMotion.Accumulate = Graph.MainScreen.Config.AccumulateRootMotion;
                 }
             }
             else

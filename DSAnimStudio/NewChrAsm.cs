@@ -160,13 +160,13 @@ namespace DSAnimStudio
             if (RightWeaponModel != null && RightWeaponModel.AnimContainer != null)
             {
                 RightWeaponModel.AnimContainer.IsLoop = false;
-                RightWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime);
+                RightWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime, false, false, 0);
             }
 
             if (LeftWeaponModel != null && RightWeaponModel.AnimContainer != null)
             {
                 LeftWeaponModel.AnimContainer.IsLoop = false;
-                LeftWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime);
+                LeftWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime, false, false, 0);
             }
         }
 

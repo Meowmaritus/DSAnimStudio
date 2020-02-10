@@ -49,40 +49,19 @@ namespace DSAnimStudio
             public static SurfaceFormat Format = SurfaceFormat.Color;
             public static bool Vsync = true;
             public static bool Fullscreen = false;
-            public static bool SimpleMSAA = true;
             public static void Apply()
             {
-                Main.ApplyPresentationParameters(Width, Height, Format, Vsync, Fullscreen, SimpleMSAA);
+                Main.ApplyPresentationParameters(Width, Height, Format, Vsync, Fullscreen);
             }
         }
 
-        private static int _ssaa = 2;
-        public static int SSAA
-        {
-            get => _ssaa;
-            set
-            {
-                if (value != _ssaa)
-                {
-                    _ssaa = value;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                }
-            }
-        }
+        public static int SSAA = 2;
 
-        public static int EffectiveSSAA = 2;
+        public static int EffectiveSSAA = 1;
 
-        public static int MSAA
-        {
-            get => Device.PresentationParameters.MultiSampleCount;
-            set
-            {
-                if (value != Device.PresentationParameters.MultiSampleCount)
-                {
-                    Device.PresentationParameters.MultiSampleCount = value;
-                }
-            }
-        }
+        public static int MSAA = 2;
+
+        public static int EffectiveMSAA = 2;
 
         public static void InitShaders()
         {
@@ -106,11 +85,28 @@ namespace DSAnimStudio
             //GFX.FlverOpacity = 0.15f;
         }
 
-        public static FlverShadingMode? ForcedFlverShadingMode = null;
+        public static int ForcedFlverShadingModeIndex = 0;
+
+        public static string[] FlverShadingModeNamesList;
+        public static List<FlverShadingMode> FlverShadingModeList;
+
+        static GFX()
+        {
+            DRAW_STEP_LIST = (GFXDrawStep[])Enum.GetValues(typeof(GFXDrawStep));
+
+            FlverShadingModeNamesList = _flverShadingModeNames.Values.ToArray();
+            FlverShadingModeList = _flverShadingModeNames.Keys.ToList();
+        }
+
+        public static FlverShadingMode ForcedFlverShadingMode =>
+            ForcedFlverShadingModeIndex >= 0 && ForcedFlverShadingModeIndex < FlverShadingModeNamesList.Length
+            ? FlverShadingModeList[ForcedFlverShadingModeIndex] : FlverShadingMode.DEFAULT;
 
         private static Dictionary<FlverShadingMode, string> _flverShadingModeNames
             = new Dictionary<FlverShadingMode, string>
         {
+            { FlverShadingMode.DEFAULT, "Default" },
+
             { FlverShadingMode.PBR_GLOSS_DS3, "PBR Gloss (Dark Souls III)" },
             { FlverShadingMode.PBR_GLOSS_BB, "PBR Gloss (Bloodborne) [WIP]" },
             { FlverShadingMode.CLASSIC_DIFFUSE_PTDE, "Classic Diffuse (PTDE) [Placeholder]" },
@@ -131,6 +127,7 @@ namespace DSAnimStudio
 
         private static List<FlverShadingMode> _flverNonDebugShadingModes = new List<FlverShadingMode>
         {
+            FlverShadingMode.DEFAULT,
             FlverShadingMode.LEGACY,
             FlverShadingMode.PBR_GLOSS_DS3,
             FlverShadingMode.PBR_GLOSS_BB,
@@ -139,7 +136,7 @@ namespace DSAnimStudio
 
         public static IReadOnlyList<FlverShadingMode> FlverNonDebugShadingModes => _flverNonDebugShadingModes;
 
-        public static bool IsInDebugShadingMode => !((GFX.ForcedFlverShadingMode == null || GFX.FlverNonDebugShadingModes.Contains(GFX.ForcedFlverShadingMode.Value)));
+        public static bool IsInDebugShadingMode => !((GFX.ForcedFlverShadingMode == FlverShadingMode.DEFAULT || GFX.FlverNonDebugShadingModes.Contains(GFX.ForcedFlverShadingMode)));
 
         public static IReadOnlyDictionary<FlverShadingMode, string> FlverShadingModeNames => _flverShadingModeNames;
 
@@ -147,19 +144,19 @@ namespace DSAnimStudio
         private static float LightSpinTimer = 0;
         public static bool FlverLightFollowsCamera = true;
 
-        public static bool FlverDisableTextureBlending = false;
+        public static bool FlverEnableTextureBlending = true;
+        public static bool FlverEnableTextureAlphas = true;
 
         public static bool UseTonemap = true;
 
         public static float FlverOpacity = 1.0f;
 
+        public static float LdotNPower = 0.1f;
+        public static float SpecularPowerMult = 1;
+
         public static GFXDrawStep CurrentStep = GFXDrawStep.Opaque;
 
         public static readonly GFXDrawStep[] DRAW_STEP_LIST;
-        static GFX()
-        {
-            DRAW_STEP_LIST = (GFXDrawStep[])Enum.GetValues(typeof(GFXDrawStep));
-        }
 
         public static bool HideFLVERs = false;
 
@@ -194,6 +191,9 @@ namespace DSAnimStudio
         public static WorldView World = new WorldView();
 
         public static GraphicsDevice Device;
+
+        //public static int MSAA = 0;
+
         //public static FlverShader FlverShader;
         //public static DbgPrimShader DbgPrimShader;
         public static SpriteBatch SpriteBatch;
@@ -383,6 +383,8 @@ namespace DSAnimStudio
             InitDepthStencil();
             //InitBlendState();
 
+            Device.BlendState = BlendState.NonPremultiplied;
+
             World.ApplyViewToShader(DbgPrimWireShader, Matrix.Identity);
             World.ApplyViewToShader(DbgPrimSolidShader, Matrix.Identity);
             World.ApplyViewToShader(FlverShader, Matrix.Identity);
@@ -411,7 +413,12 @@ namespace DSAnimStudio
             {
                 FlverShader.Effect.LightDirection = -Vector3.Normalize(World.CameraTransform.Position);
             }
+            else
+            {
+                FlverShader.Effect.LightDirection = World.LightDirectionVector;
+            }
             
+
 
             //FlverShader.Effect.LightDirection = World.CameraTransform.RotationMatrix;
             FlverShader.Effect.ColorMap = Main.DEFAULT_TEXTURE_DIFFUSE;
@@ -430,9 +437,13 @@ namespace DSAnimStudio
             FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
             FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
             FlverShader.Effect.Opacity = FlverOpacity;
+            FlverShader.Effect.Parameters["SpecularPowerMult"].SetValue(SpecularPowerMult);
+            FlverShader.Effect.Parameters["LdotNPower"].SetValue(LdotNPower);
 
             SkyboxShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
             SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
+
+            Main.MainFlverTonemapShader.Effect.Parameters["SceneContrast"].SetValue(Environment.FlverSceneContrast);
 
             DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;

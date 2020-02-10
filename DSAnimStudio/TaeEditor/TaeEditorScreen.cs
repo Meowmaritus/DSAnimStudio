@@ -16,8 +16,6 @@ namespace DSAnimStudio.TaeEditor
     {
         public const string BackupExtension = ".dsasbak";
 
-        public LightShaderAdjuster ShaderAdjuster = null;
-
         private ContentManager DebugReloadContentManager = null;
         private void BuildDebugMenuBar()
         {
@@ -369,6 +367,8 @@ namespace DSAnimStudio.TaeEditor
             "    Play/Pause Anim.\n" +
             "Shift+Space Bar:\n" +
             "    Play Anim from beginning.\n" +
+            "R Key:\n" +
+            "    Reset root motion (useful for root motion accumulation option).\n" +
             "Ctrl+Mouse Wheel:\n" +
             "    Zoom timeline in/out.\n" +
             "Ctrl+(+/-/0):\n" +
@@ -1446,6 +1446,10 @@ namespace DSAnimStudio.TaeEditor
                 () => Config.CameraFollowsRootMotion,
                 b => Config.CameraFollowsRootMotion = b);
 
+            MenuBar.AddItem("Animation", "Accumulate Root Motion",
+                () => Config.AccumulateRootMotion,
+                b => Config.AccumulateRootMotion = b);
+
             MenuBar["Animation"].DropDownOpening += (o, e) =>
             {
                 if (PlaybackCursor != null)
@@ -1457,121 +1461,122 @@ namespace DSAnimStudio.TaeEditor
             // Viewport //
             //////////////
 
-            MenuBar.AddItem("3D Viewport", "Vsync", () => GFX.Display.Vsync, b =>
-            {
-                GFX.Display.Vsync = b;
-                GFX.Display.Width = GFX.Device.Viewport.Width;
-                GFX.Display.Height = GFX.Device.Viewport.Height;
-                GFX.Display.Fullscreen = false;
-                GFX.Display.Apply();
-            });
+            //MenuBar.AddItem("3D Viewport", "Vsync", () => GFX.Display.Vsync, b =>
+            //{
+            //    GFX.Display.Vsync = b;
+            //    GFX.Display.Width = GFX.Device.Viewport.Width;
+            //    GFX.Display.Height = GFX.Device.Viewport.Height;
+            //    GFX.Display.Fullscreen = false;
+            //    GFX.Display.Apply();
+            //});
 
-            MenuBar.AddItem("3D Viewport", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
-            MenuBar.AddItem("3D Viewport", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
+            //MenuBar.AddItem("3D Viewport", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
+            //MenuBar.AddItem("3D Viewport", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
 
-            Dictionary<string, Action> shadingModeChoicesDict = new Dictionary<string, Action>();
+            //Dictionary<string, Action> shadingModeChoicesDict = new Dictionary<string, Action>();
 
-            void AddShadingModeChoice(FlverShadingMode mode)
-            {
-                shadingModeChoicesDict.Add(GFX.FlverShadingModeNames[mode], () => GFX.ForcedFlverShadingMode = mode);
-            }
+            //void AddShadingModeChoice(FlverShadingMode mode)
+            //{
+            //    shadingModeChoicesDict.Add(GFX.FlverShadingModeNames[mode], () => GFX.ForcedFlverShadingMode = mode);
+            //}
 
-            shadingModeChoicesDict.Add("Do Not Override", () => GFX.ForcedFlverShadingMode = null);
+            //shadingModeChoicesDict.Add("Do Not Override", () => GFX.ForcedFlverShadingMode = null);
 
-            shadingModeChoicesDict.Add("SEPARATOR:0", null);
+            //shadingModeChoicesDict.Add("SEPARATOR:0", null);
 
-            AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_DS3);
-            AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_BB);
-            AddShadingModeChoice(FlverShadingMode.CLASSIC_DIFFUSE_PTDE);
-            AddShadingModeChoice(FlverShadingMode.LEGACY);
+            //AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_DS3);
+            //AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_BB);
+            //AddShadingModeChoice(FlverShadingMode.CLASSIC_DIFFUSE_PTDE);
+            //AddShadingModeChoice(FlverShadingMode.LEGACY);
 
-            shadingModeChoicesDict.Add("SEPARATOR:1", null);
+            //shadingModeChoicesDict.Add("SEPARATOR:1", null);
 
-            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_DIFFUSEMAP);
-            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SPECULARMAP);
-            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP);
-            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_EMISSIVEMAP);
-            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_BLENDMASKMAP);
-            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SHININESSMAP);
-            AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP_BLUE);
+            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_DIFFUSEMAP);
+            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SPECULARMAP);
+            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP);
+            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_EMISSIVEMAP);
+            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_BLENDMASKMAP);
+            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SHININESSMAP);
+            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP_BLUE);
 
-            shadingModeChoicesDict.Add("SEPARATOR:2", null);
+            //shadingModeChoicesDict.Add("SEPARATOR:2", null);
 
-            AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS);
-            AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
-            AddShadingModeChoice(FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA);
+            //AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS);
+            //AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
+            //AddShadingModeChoice(FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA);
 
-            MenuBar.AddSeparator("3D Viewport");
+            //MenuBar.AddSeparator("3D Viewport");
 
-            MenuBar.AddItem("3D Viewport", "Disable Texture Alphas", () => GFX.FlverShader.Effect.DisableAlpha, b => GFX.FlverShader.Effect.DisableAlpha = b);
-            MenuBar.AddItem("3D Viewport", "Disable Texture Blending", () => GFX.FlverDisableTextureBlending, b => GFX.FlverDisableTextureBlending = b);
+            //MenuBar.AddItem("3D Viewport", "Disable Texture Alphas", () => GFX.FlverShader.Effect.DisableAlpha, b => GFX.FlverShader.Effect.DisableAlpha = b);
+            //MenuBar.AddItem("3D Viewport", "Disable Texture Blending", () => GFX.FlverDisableTextureBlending, b => GFX.FlverDisableTextureBlending = b);
 
-            MenuBar.AddItem("3D Viewport", "Override FLVER Shading Mode", shadingModeChoicesDict, () =>
-            {
-                if (GFX.ForcedFlverShadingMode == null)
-                {
-                    return "Do Not Override";
-                }
-                else
-                {
-                    return GFX.FlverShadingModeNames[GFX.ForcedFlverShadingMode.Value];
-                }
+            //MenuBar.AddItem("3D Viewport", "Override FLVER Shading Mode", shadingModeChoicesDict, () =>
+            //{
+            //    if (GFX.ForcedFlverShadingMode == null)
+            //    {
+            //        return "Do Not Override";
+            //    }
+            //    else
+            //    {
+            //        return GFX.FlverShadingModeNames[GFX.ForcedFlverShadingMode.Value];
+            //    }
                 
-            });
+            //});
 
-            MenuBar.AddItem("3D Viewport", $@"Reload FLVER Shader (./Content/Shaders/FlverShader.xnb)", () =>
-            {
-                if (DebugReloadContentManager != null)
-                {
-                    DebugReloadContentManager.Unload();
-                    DebugReloadContentManager.Dispose();
-                }
+            //MenuBar.AddItem("3D Viewport", $@"Reload FLVER Shader (./Content/Shaders/FlverShader.xnb)", () =>
+            //{
+            //    if (DebugReloadContentManager != null)
+            //    {
+            //        DebugReloadContentManager.Unload();
+            //        DebugReloadContentManager.Dispose();
+            //    }
 
-                using (DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider))
-                {
-                    GFX.FlverShader.Effect.Dispose();
-                    GFX.FlverShader = null;
-                    GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
-                }
+            //    using (DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider))
+            //    {
+            //        GFX.FlverShader.Effect.Dispose();
+            //        GFX.FlverShader = null;
+            //        GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
+            //    }
 
-                GFX.InitShaders();
-            });
+            //    GFX.InitShaders();
+            //});
 
-            MenuBar.AddSeparator("3D Viewport");
+            //MenuBar.AddSeparator("3D Viewport");
 
-            if (Environment.Cubemaps.ContainsKey(Config.LastCubemapUsed))
-            {
-                Environment.CurrentCubemapName = Config.LastCubemapUsed;
-            }
+            //if (Environment.Cubemaps.ContainsKey(Config.LastCubemapUsed))
+            //{
+            //    Environment.CubemapNameIndex = 
+            //        Environment.Cubemaps.Keys.ToList().IndexOf(Config.LastCubemapUsed);
+            //}
 
-            MenuBar.AddItem("3D Viewport", "Cubemap", () =>
-            {
-                var result = new Dictionary<string, Action>();
-                foreach (var kvp in Environment.Cubemaps)
-                {
-                    result.Add(kvp.Key, () =>
-                    {
-                        Environment.CurrentCubemapName = kvp.Key;
-                        Config.LastCubemapUsed = kvp.Key;
-                    });
-                }
-                return result;
-            },
-            () => Environment.CurrentCubemapName);
+            //MenuBar.AddItem("3D Viewport", "Cubemap", () =>
+            //{
+            //    var result = new Dictionary<string, Action>();
+            //    foreach (var kvp in Environment.Cubemaps)
+            //    {
+            //        result.Add(kvp.Key, () =>
+            //        {
+            //            Environment.CubemapNameIndex = Environment.Cubemaps.Keys.ToList().IndexOf(kvp.Key);
+            //            Config.LastCubemapUsed = kvp.Key;
+            //        });
+            //    }
+            //    return result;
+            //},
+            //() => Environment.CurrentCubemapName);
 
-            MenuBar.AddItem("3D Viewport", "Resolution Multiplier", new Dictionary<string, Action>
-            {
-                { "1x", () => GFX.SSAA = 1 },
-                { "2x", () => GFX.SSAA = 2 },
-                { "3x", () => GFX.SSAA = 3 },
-                { "4x", () => GFX.SSAA = 4 },
-                //{ "5x", () => GFX.SSAA = 5 },
-                //{ "6x", () => GFX.SSAA = 6 },
-                //{ "7x", () => GFX.SSAA = 7 },
-                //{ "8x", () => GFX.SSAA = 8 },
-                //{ "16x", () => GFX.SSAA = 16 },
-                //{ "32x", () => GFX.SSAA = 32 },
-            }, () => $"{GFX.SSAA}x");
+            //MenuBar.AddItem("3D Viewport", "Resolution Multiplier", new Dictionary<string, Action>
+            //{
+            //    { "1x", () => GFX.SSAA = 1 },
+            //    { "2x", () => GFX.SSAA = 2 },
+            //    { "3x", () => GFX.SSAA = 3 },
+            //    { "4x", () => GFX.SSAA = 4 },
+            //    //{ "5x", () => GFX.SSAA = 5 },
+            //    //{ "6x", () => GFX.SSAA = 6 },
+            //    //{ "7x", () => GFX.SSAA = 7 },
+            //    //{ "8x", () => GFX.SSAA = 8 },
+            //    //{ "16x", () => GFX.SSAA = 16 },
+            //    //{ "32x", () => GFX.SSAA = 32 },
+            //}, () => $"{GFX.SSAA}x");
 
 
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "DS Anim Studio Help - Basic Controls",
@@ -1620,16 +1625,12 @@ namespace DSAnimStudio.TaeEditor
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
 
-            ShaderAdjuster = new LightShaderAdjuster();
-
             //ShaderAdjuster.BackColor = inspectorWinFormsControl.BackColor;
             //ShaderAdjuster.ForeColor = inspectorWinFormsControl.ForeColor;
 
             //GameWindowAsForm.BackColor = System.Drawing.Color.Fuchsia;
             GameWindowAsForm.AllowTransparency = false;
             //GameWindowAsForm.TransparencyKey = System.Drawing.Color.Fuchsia;
-
-            GameWindowAsForm.Controls.Add(ShaderAdjuster);
 
             UpdateLayout();
         }
@@ -2395,12 +2396,11 @@ namespace DSAnimStudio.TaeEditor
                 editScreenAnimList.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
 
                 Graph.ViewportInteractor.OnNewAnimSelected();
-
                 Graph.PlaybackCursor.CurrentTime = 0;
 
                 //TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
 
-                
+
             }
             else
             {
@@ -2858,6 +2858,15 @@ namespace DSAnimStudio.TaeEditor
                         Graph.PlaybackCursor.IsPlaying = false;
 
                     Graph.PlaybackCursor.CurrentTime = ShiftHeld ? 0 : Graph.PlaybackCursor.StartTime;
+                    Graph.ViewportInteractor.ResetRootMotion(0);
+
+                    
+                }
+
+                if (Graph != null && Input.KeyDown(Keys.R) && Config.AccumulateRootMotion)
+                {
+                    Graph.ViewportInteractor.RootMotionSendHome();
+                    Graph.ViewportInteractor.OnScrubFrameChange();
                 }
 
                 if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
@@ -2866,6 +2875,7 @@ namespace DSAnimStudio.TaeEditor
                         Graph.PlaybackCursor.IsPlaying = false;
 
                     Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime;
+                    Graph.ViewportInteractor.ResetRootMotion((float)Graph.PlaybackCursor.MaxFrame);
                 }
 
                 NextAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.PageDown));
@@ -3001,6 +3011,7 @@ namespace DSAnimStudio.TaeEditor
                     LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidth - (DividerVisiblePad * 2));
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
                     Main.RequestViewportRenderTargetResolutionChange = true;
+                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                 }
                 else
                 {
@@ -3018,6 +3029,7 @@ namespace DSAnimStudio.TaeEditor
                     RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidth - (DividerVisiblePad * 2));
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
                     Main.RequestViewportRenderTargetResolutionChange = true;
+                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                 }
                 else
                 {
@@ -3035,6 +3047,7 @@ namespace DSAnimStudio.TaeEditor
                     TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin);
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
                     Main.RequestViewportRenderTargetResolutionChange = true;
+                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                 }
                 else
                 {
@@ -3096,8 +3109,8 @@ namespace DSAnimStudio.TaeEditor
                         )
                         .Contains(Input.MousePositionPoint))
                     MouseHoverKind = ScreenMouseHoverKind.Inspector;
-                else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
-                    MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
+                //else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
+                //    MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
                 else if (
                     ModelViewerBounds.Contains(Input.MousePositionPoint))
                 {
@@ -3184,110 +3197,120 @@ namespace DSAnimStudio.TaeEditor
 
         private void UpdateLayout()
         {
+           
+
             if (Rect.IsEmpty)
             {
                 return;
             }
 
-            if (TopRightPaneHeight < TopRightPaneHeightMinNew)
-                TopRightPaneHeight = TopRightPaneHeightMinNew;
-
-
-
-
-            if (RightSectionWidth < RightSectionWidthMin)
-                RightSectionWidth = RightSectionWidthMin;
-
-            if (TopRightPaneHeight > (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin))
+            GameWindowAsForm.Invoke(new Action(() =>
             {
-                TopRightPaneHeight = (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin);
-                Main.RequestViewportRenderTargetResolutionChange = true;
-            }
+                if (TopRightPaneHeight < TopRightPaneHeightMinNew)
+                    TopRightPaneHeight = TopRightPaneHeightMinNew;
 
-            if (editScreenAnimList != null && Graph != null)
-            {
-                if (LeftSectionWidth < LeftSectionWidthMin)
+
+
+
+                if (RightSectionWidth < RightSectionWidthMin)
+                    RightSectionWidth = RightSectionWidthMin;
+
+                if (TopRightPaneHeight > (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin))
                 {
-                    LeftSectionWidth = LeftSectionWidthMin;
+                    TopRightPaneHeight = (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin);
                     Main.RequestViewportRenderTargetResolutionChange = true;
+                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                 }
 
-
-                if (MiddleSectionWidth < MiddleSectionWidthMin)
+                if (editScreenAnimList != null && Graph != null)
                 {
-                    var adjustment = MiddleSectionWidthMin - MiddleSectionWidth;
-                    RightSectionWidth -= adjustment;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
+                    if (LeftSectionWidth < LeftSectionWidthMin)
+                    {
+                        LeftSectionWidth = LeftSectionWidthMin;
+                        Main.RequestViewportRenderTargetResolutionChange = true;
+                        Main.RequestHideOSD = Main.RequestHideOSD_MAX;
+                    }
+
+
+                    if (MiddleSectionWidth < MiddleSectionWidthMin)
+                    {
+                        var adjustment = MiddleSectionWidthMin - MiddleSectionWidth;
+                        RightSectionWidth -= adjustment;
+                        Main.RequestViewportRenderTargetResolutionChange = true;
+                        Main.RequestHideOSD = Main.RequestHideOSD_MAX;
+                    }
+
+                    editScreenAnimList.Rect = new Rectangle(
+                        (int)LeftSectionStartX,
+                        Rect.Top + TopMenuBarMargin,
+                        (int)LeftSectionWidth,
+                        Rect.Height - TopMenuBarMargin - EditTaeHeaderButtonMargin);
+
+                    Graph.Rect = new Rectangle(
+                        (int)MiddleSectionStartX,
+                        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                        (int)MiddleSectionWidth,
+                        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                    var plannedGraphRect = new Rectangle(
+                        (int)MiddleSectionStartX,
+                        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                        (int)MiddleSectionWidth,
+                        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                    ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
+                        plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
+                        Rect.Top + TopMenuBarMargin - 4,
+                        ButtonEditCurrentAnimInfoWidth,
+                        TopOfGraphAnimInfoMargin);
+
+                    ButtonGotoEventSource.Bounds = new System.Drawing.Rectangle(
+                        plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
+                        Rect.Top + TopMenuBarMargin - 4,
+                        ButtonGotoEventSourceWidth,
+                        TopOfGraphAnimInfoMargin);
+
+                }
+                else
+                {
+                    var plannedGraphRect = new Rectangle(
+                        (int)MiddleSectionStartX,
+                        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                        (int)MiddleSectionWidth,
+                        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                    ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
+                        plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
+                        Rect.Top + TopMenuBarMargin - 4,
+                        ButtonEditCurrentAnimInfoWidth,
+                        TopOfGraphAnimInfoMargin);
+
+                    ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
+                        plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
+                        Rect.Top + TopMenuBarMargin - 4,
+                        ButtonGotoEventSourceWidth,
+                        TopOfGraphAnimInfoMargin);
                 }
 
-                editScreenAnimList.Rect = new Rectangle(
-                    (int)LeftSectionStartX,
-                    Rect.Top + TopMenuBarMargin, 
-                    (int)LeftSectionWidth, 
-                    Rect.Height - TopMenuBarMargin - EditTaeHeaderButtonMargin);
+                ButtonEditCurrentTaeHeader.Bounds = new System.Drawing.Rectangle(
+                        (int)LeftSectionStartX,
+                        Rect.Bottom - EditTaeHeaderButtonHeight,
+                        (int)LeftSectionWidth,
+                        EditTaeHeaderButtonHeight);
 
-                Graph.Rect = new Rectangle(
-                    (int)MiddleSectionStartX, 
-                    Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
-                    (int)MiddleSectionWidth,
-                    Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
-
-                var plannedGraphRect = new Rectangle(
-                    (int)MiddleSectionStartX,
-                    Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
-                    (int)MiddleSectionWidth,
-                    Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
-
-                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
-                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
-                    Rect.Top + TopMenuBarMargin - 4,
-                    ButtonEditCurrentAnimInfoWidth,
-                    TopOfGraphAnimInfoMargin);
-
-                ButtonGotoEventSource.Bounds = new System.Drawing.Rectangle(
-                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
-                    Rect.Top + TopMenuBarMargin - 4,
-                    ButtonGotoEventSourceWidth,
-                    TopOfGraphAnimInfoMargin);
-
-            }
-            else
-            {
-                var plannedGraphRect = new Rectangle(
-                    (int)MiddleSectionStartX,
-                    Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
-                    (int)MiddleSectionWidth,
-                    Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
-
-                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
-                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
-                    Rect.Top + TopMenuBarMargin - 4,
-                    ButtonEditCurrentAnimInfoWidth,
-                    TopOfGraphAnimInfoMargin);
-
-                ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
-                    plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
-                    Rect.Top + TopMenuBarMargin - 4,
-                    ButtonGotoEventSourceWidth,
-                    TopOfGraphAnimInfoMargin);
-            }
-
-            ButtonEditCurrentTaeHeader.Bounds = new System.Drawing.Rectangle(
-                    (int)LeftSectionStartX,
-                    Rect.Bottom - EditTaeHeaderButtonHeight,
-                    (int)LeftSectionWidth,
-                    EditTaeHeaderButtonHeight);
-
-            //editScreenGraphInspector.Rect = new Rectangle(Rect.Width - LayoutInspectorWidth, 0, LayoutInspectorWidth, Rect.Height);
+                //editScreenGraphInspector.Rect = new Rectangle(Rect.Width - LayoutInspectorWidth, 0, LayoutInspectorWidth, Rect.Height);
 
 
-            //inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(Rect.Height - TopMenuBarMargin - BottomRightPaneHeight - DividerVisiblePad));
-            //ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Bottom - BottomRightPaneHeight), (int)RightSectionWidth, (int)(BottomRightPaneHeight));
+                //inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(Rect.Height - TopMenuBarMargin - BottomRightPaneHeight - DividerVisiblePad));
+                //ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Bottom - BottomRightPaneHeight), (int)RightSectionWidth, (int)(BottomRightPaneHeight));
 
-            //ShaderAdjuster.Size = new System.Drawing.Size((int)RightSectionWidth, ShaderAdjuster.Size.Height);
-            ModelViewerBounds = new Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(TopRightPaneHeight));
-            inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad), (int)RightSectionWidth, (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin));
-            ShaderAdjuster.Location = new System.Drawing.Point(Rect.Right - ShaderAdjuster.Size.Width, Rect.Top + TopMenuBarMargin);
+                //ShaderAdjuster.Size = new System.Drawing.Size((int)RightSectionWidth, ShaderAdjuster.Size.Height);
+                ModelViewerBounds = new Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(TopRightPaneHeight));
+                inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad), (int)RightSectionWidth, (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin));
+                //ShaderAdjuster.Location = new System.Drawing.Point(Rect.Right - ShaderAdjuster.Size.Width, Rect.Top + TopMenuBarMargin);
+            }));
+
+           
         }
 
         public void DrawDimmingRect(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex)

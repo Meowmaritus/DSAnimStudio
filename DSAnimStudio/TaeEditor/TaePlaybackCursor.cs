@@ -14,6 +14,10 @@ namespace DSAnimStudio.TaeEditor
     {
         public double CurrentTime;
 
+        public int CurrentLoopCount { get; private set; } = 0;
+        public int OldLoopCount { get; private set; } = 0;
+        public int CurrentLoopCountDelta { get; private set; } = 0;
+
         public double CurrentTimeMod => CurrentTime % MaxTime;
 
         public event EventHandler<TaeEditAnimEventBox> EventBoxEnter;
@@ -85,13 +89,31 @@ namespace DSAnimStudio.TaeEditor
         public bool Scrubbing = false;
         public bool prevScrubbing = false;
 
-        private int prevFrameLoopCount = 0;
-
         public float PlaybackSpeed = 1.0f;
 
         public bool IsStepping = false;
 
         public bool JustStartedPlaying = false;
+
+        public void ResetAll()
+        {
+            CurrentLoopCount = 0;
+            CurrentLoopCountDelta = 0;
+            CurrentTime = 0;
+            //IsPlaying = false;
+            //IsRepeat = true;
+            //IsStepping = false;
+            JustStartedPlaying = false;
+            MaxTime = 0;
+            OldGUICurrentFrame = 0;
+            OldGUICurrentTime = 0;
+            OldLoopCount = 0;
+            //prevScrubbing = false;
+            //Scrubbing = false;
+            StartTime = 0;
+
+            //PlaybackSpeed = 1.0f;
+        }
 
         public void Update(bool playPauseBtnDown, bool shiftDown, IEnumerable<TaeEditAnimEventBox> eventBoxes)
         {
@@ -102,10 +124,8 @@ namespace DSAnimStudio.TaeEditor
             //    Scrubbing = true;
             //}
 
-            if (CurrentTime < 0)
-                CurrentTime = 0;
-
-            int curFrameLoopCount = (int)(CurrentTime / MaxTime);
+            //if (CurrentTime < 0)
+            //    CurrentTime = 0;
 
             if (Scrubbing)
             {
@@ -136,7 +156,12 @@ namespace DSAnimStudio.TaeEditor
 
             JustStartedPlaying = !prevPlayState && IsPlaying;
 
-            if (JustStartedPlaying || (curFrameLoopCount != prevFrameLoopCount))
+            if (Scrubbing || JustStartedPlaying)
+            {
+                CurrentLoopCount = (int)(CurrentTime / MaxTime);
+            }
+
+            if (JustStartedPlaying || (CurrentLoopCount != OldLoopCount))
                 OnPlaybackStarted();
 
             if (HkxAnimationLength.HasValue)
@@ -144,6 +169,8 @@ namespace DSAnimStudio.TaeEditor
 
             if (IsPlaying || Scrubbing || IsStepping)
             {
+               
+
                 if (IsPlaying)
                 {
                     CurrentTime += (Main.DELTA_UPDATE * PlaybackSpeed);
@@ -152,7 +179,10 @@ namespace DSAnimStudio.TaeEditor
                 if (GUICurrentTime != OldGUICurrentTime)
                 {
                     if (CurrentTime < 0)
+                    {
                         CurrentTime += MaxTime;
+                        CurrentLoopCount--;
+                    }
                 }
 
                 bool justReachedAnimEnd = (CurrentTime >= MaxTime);
@@ -225,6 +255,42 @@ namespace DSAnimStudio.TaeEditor
 
                 }
 
+                if (IsPlaying)
+                {
+
+
+                    if (JustStartedPlaying)
+                    {
+                        //CurrentTime = 0;
+                    }
+                    else if (MaxTime <= 0)
+                    {
+                        CurrentTime = MaxTime;
+                        CurrentLoopCount = 0;
+                    }
+                    else
+                    {
+                        if (IsRepeat)
+                        {
+                            while (CurrentTime >= MaxTime)
+                            {
+                                CurrentTime -= MaxTime;
+                                CurrentLoopCount++;
+                                //previousFrameTime -= MaxTime;
+                                OnPlaybackLooped();
+                            }
+
+                            // way simpler
+                            //CurrentTime %= MaxTime;
+
+
+
+                        }
+                    }
+
+
+                }
+
                 if (GUICurrentTime != OldGUICurrentTime)
                 {
                     if (Scrubbing)
@@ -233,39 +299,21 @@ namespace DSAnimStudio.TaeEditor
                         OnPlaybackFrameChange();
                 }
 
-                if (IsPlaying && justReachedAnimEnd)
-                {
-                    if (JustStartedPlaying)
-                    {
-                        CurrentTime = 0;
-                    }
-                    else
-                    {
-                        if (IsRepeat && MaxTime > 0)
-                        {
-                            //while (CurrentTime >= MaxTime)
-                            //{
-                            //    CurrentTime -= MaxTime;
-                            //    //previousFrameTime -= MaxTime;
-                            //}
-
-                            // way simpler
-                            CurrentTime %= MaxTime;
-                            OnPlaybackLooped();
-                        }
-                        else
-                        {
-                            CurrentTime = MaxTime;
-                        }
-                    }
-                }
+               
 
             }
 
             OldGUICurrentTime = GUICurrentTime;
             OldGUICurrentFrame = GUICurrentFrame;
             prevScrubbing = Scrubbing;
-            prevFrameLoopCount = curFrameLoopCount;
+
+            if (CurrentTime < 0 && CurrentLoopCount == 0)
+                CurrentLoopCount--;
+
+            CurrentLoopCountDelta = CurrentLoopCount - OldLoopCount;
+
+            OldLoopCount = CurrentLoopCount;
+
         }
     }
 }

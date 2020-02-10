@@ -832,6 +832,7 @@ namespace DSAnimStudio
                 if (TexDataDiffuse2 == null)
                 {
                     GFX.FlverShader.Effect.EnableBlendTextures = false;
+                    GFX.FlverShader.Effect.DisableAlpha = !GFX.FlverEnableTextureAlphas;
 
                     GFX.FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
                     GFX.FlverShader.Effect.ColorMap2 = Main.DEFAULT_TEXTURE_DIFFUSE;
@@ -840,7 +841,8 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    GFX.FlverShader.Effect.EnableBlendTextures = !GFX.FlverDisableTextureBlending;
+                    GFX.FlverShader.Effect.EnableBlendTextures = GFX.FlverEnableTextureBlending;
+                    GFX.FlverShader.Effect.DisableAlpha = !GFX.FlverEnableTextureAlphas;
 
                     GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
                     GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? Main.DEFAULT_TEXTURE_SPECULAR;
@@ -860,7 +862,10 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
 
-                GFX.FlverShader.Effect.WorkflowType = GFX.ForcedFlverShadingMode ?? ShadingMode;
+                if (GFX.ForcedFlverShadingMode == FlverShadingMode.DEFAULT)
+                    GFX.FlverShader.Effect.WorkflowType = ShadingMode;
+                else
+                    GFX.FlverShader.Effect.WorkflowType = GFX.ForcedFlverShadingMode;
             }
 
             // TEMPORARY

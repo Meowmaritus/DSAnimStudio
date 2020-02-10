@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DSAnimStudio
@@ -41,13 +42,42 @@ namespace DSAnimStudio
             CameraTransform.EulerRotation = CameraDefaultRot;
         }
 
-        public Vector3 LightRotation = Vector3.Zero;
-        public Vector3 LightDirectionVector => 
-            Vector3.Transform(Vector3.Backward,
-            Matrix.CreateRotationY(LightRotation.Y)
-            * Matrix.CreateRotationZ(LightRotation.Z)
-            * Matrix.CreateRotationX(LightRotation.X)
-            );
+
+        public static int BGUpdateWaitMS = 16;
+        private Thread BGUpdateThread = null;
+        public WorldView()
+        {
+            //BGUpdateThread = new Thread(new ThreadStart(new Action(() =>
+            //{
+            //    var stopwatch = new System.Diagnostics.Stopwatch();
+            //    float lastFrame = 0;
+            //    while (true)
+            //    {
+            //        stopwatch.Restart();
+            //        UpdateInput(Program.MainInstance, 0.0166667f);
+            //        Thread.Sleep(BGUpdateWaitMS);
+            //        stopwatch.Stop();
+            //        lastFrame = (float)stopwatch.Elapsed.TotalSeconds;
+            //    }
+                
+            //})));
+
+            //BGUpdateThread.IsBackground = true;
+            //BGUpdateThread.Start();
+        }
+
+
+        public float LightRotationH = 0;
+        public float LightRotationV = 0;
+        public Vector3 LightDirectionVector
+        {
+            get
+            {
+                var horiz = Vector3.Transform(Vector3.Backward, Matrix.CreateRotationY(LightRotationH));
+                float y = (float)Math.Sin(LightRotationV);
+                return new Vector3(horiz.X, y, horiz.Z);
+            }
+        }
 
         public Matrix MatrixWorld;
         public Matrix MatrixProjection;
@@ -55,8 +85,8 @@ namespace DSAnimStudio
         public float FieldOfView = 43;
         public float NearClipDistance = 0.1f;
         public float FarClipDistance = 10000;
-        public float CameraTurnSpeedGamepad = 1.5f * 0.1f;
-        public float CameraTurnSpeedMouse = 1.5f * 0.25f;
+        public float CameraTurnSpeedGamepad = 0.15f;
+        public float CameraTurnSpeedMouse = 1;
         public float CameraMoveSpeed = 1;
 
         public static readonly Vector3 CameraDefaultPos = new Vector3(0, 0.25f, -5);
@@ -292,7 +322,7 @@ namespace DSAnimStudio
 
         
 
-        public void MoveCamera_OrbitCenterPoint_MouseDelta(Vector2 curMouse, Vector2 oldMouse)
+        public void MoveCamera_OrbitCenterPoint_MouseDelta(Vector2 curMouse, Vector2 oldMouse, float elapsed)
         {
             var curMouse3DX = GFX.LastViewport.Unproject(new Vector3(curMouse.X - GFX.LastViewport.X, GFX.LastViewport.Height / 2f, 0),
                 GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
@@ -324,7 +354,7 @@ namespace DSAnimStudio
             bool isNegH = (curMouse.X - oldMouse.X) < 0;
             bool isNegV = (curMouse.Y - oldMouse.Y) < 0;
 
-            MoveCamera_OrbitCenterPoint(-hDist * (isNegH ? -1 : 1), vDist * (isNegV ? -1 : 1), 0, 50 * 40 * Main.DELTA_UPDATE_ROUNDED);
+            MoveCamera_OrbitCenterPoint(-hDist * (isNegH ? -1 : 1), vDist * (isNegV ? -1 : 1), 0, 50 * 40 * elapsed * CameraMoveSpeed);
         }
 
         public void MoveCamera_OrbitCenterPoint(float x, float y, float z, float speed)
@@ -387,13 +417,16 @@ namespace DSAnimStudio
             Extra2,
         }
 
-        public void UpdateInput(Main game)
+        public void UpdateInput(Main game, float elapsed)
         {
-            if (DisableAllInput)
-            {
-                oldWheel = Mouse.GetState(game.Window).ScrollWheelValue;
+            if (game == null)
                 return;
-            }
+            //if (DisableAllInput)
+            //{
+            //    oldWheel = Mouse.GetState(game.Window).ScrollWheelValue;
+                
+            //    return;
+            //}
 
             // Kinda lazy but I really don't wanna go replace instances of gameTime and shit
             //gameTime = new GameTime(Main.MeasuredTotalTime, Main.MeasuredElapsedTime);
@@ -408,7 +441,8 @@ namespace DSAnimStudio
 
             MouseState mouse = DBG.EnableMouseInput ? Mouse.GetState(game.Window) : DBG.DisabledMouseState;
 
-            float clampedLerpF = MathHelper.Clamp(30 * Main.DELTA_UPDATE, 0, 1);
+            //TODO: Figure out what I was thinking here??
+            float clampedLerpF = 1;// MathHelper.Clamp(30 * elapsed, 0, 1);
 
             mousePos = new Vector2(MathHelper.Lerp(oldMouse.X, mouse.X, clampedLerpF),
                 MathHelper.Lerp(oldMouse.Y, mouse.Y, clampedLerpF));
@@ -417,6 +451,23 @@ namespace DSAnimStudio
 
             KeyboardState keyboard = DBG.EnableKeyboardInput ? Keyboard.GetState() : DBG.DisabledKeyboardState;
             int currentWheel = mouse.ScrollWheelValue;
+
+            if (DisableAllInput || OSD.Focused)
+            {
+                oldMouseClickL = false;
+                oldMouseClickM = false;
+                oldMouseClickR = false;
+
+                if (mousePos.X != oldMouse.X || mousePos.Y != oldMouse.Y)
+                    OSD.CancelTooltip();
+
+                oldMouse = mousePos;
+                oldClickType = MouseClickType.None;
+                oldWheel = currentWheel;
+                oldResetKeyPressed = false;
+                oldOrbitCamToggleKeyPressed = false;
+                return;
+            }
 
             bool mouseInWindow = Main.Active && mousePos.X >= game.ClientBounds.Left && mousePos.X < game.ClientBounds.Right && mousePos.Y > game.ClientBounds.Top && mousePos.Y < game.ClientBounds.Bottom;
 
@@ -481,7 +532,7 @@ namespace DSAnimStudio
                     CameraTransform.EulerRotation.X = MathHelper.Clamp(CameraTransform.EulerRotation.X, -MathHelper.PiOver2, MathHelper.PiOver2);
                 }
 
-                LightRotation.X = MathHelper.Clamp(LightRotation.X, -MathHelper.PiOver2, MathHelper.PiOver2);
+                //LightRotation.X = MathHelper.Clamp(LightRotation.X, -MathHelper.PiOver2, MathHelper.PiOver2);
                 oldWheel = currentWheel;
 
                 //prev_isToggleAllSubmeshKeyPressed = isToggleAllSubmeshKeyPressed;
@@ -544,7 +595,7 @@ namespace DSAnimStudio
                 PointCameraToLocation(CameraPositionDefault.Position);
             }
 
-            float moveMult = Main.DELTA_UPDATE_ROUNDED * CameraMoveSpeed;
+            float moveMult = elapsed * CameraMoveSpeed;
 
             if (isSpeedupKeyPressed)
             {
@@ -566,8 +617,8 @@ namespace DSAnimStudio
 
                 if (IsOrbitCam && !isMoveLightKeyPressed)
                 {
-                    float camH = gamepad.ThumbSticks.Left.X * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
-                    float camV = gamepad.ThumbSticks.Left.Y * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
+                    float camH = gamepad.ThumbSticks.Left.X * (float)1.5f * CameraTurnSpeedGamepad * elapsed;
+                    float camV = gamepad.ThumbSticks.Left.Y * (float)1.5f * CameraTurnSpeedGamepad * elapsed;
 
 
 
@@ -604,13 +655,13 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    float camH = gamepad.ThumbSticks.Right.X * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
-                    float camV = gamepad.ThumbSticks.Right.Y * (float)1.5f * CameraTurnSpeedGamepad * Main.DELTA_UPDATE_ROUNDED;
+                    float camH = gamepad.ThumbSticks.Right.X * (float)1.5f * CameraTurnSpeedGamepad * elapsed;
+                    float camV = gamepad.ThumbSticks.Right.Y * (float)1.5f * CameraTurnSpeedGamepad * elapsed;
 
                     if (isMoveLightKeyPressed)
                     {
-                        LightRotation.Y += camH;
-                        LightRotation.X -= camV;
+                        LightRotationH += camH;
+                        LightRotationV -= camV;
                     }
                     else
                     {
@@ -662,7 +713,7 @@ namespace DSAnimStudio
                 }
                 else if (currentMouseClickR)
                 {
-                    MoveCamera_OrbitCenterPoint_MouseDelta(mousePos, oldMouse);
+                    MoveCamera_OrbitCenterPoint_MouseDelta(mousePos, oldMouse, elapsed);
                     //Vector2 mouseDelta = mousePos - oldMouse;
                     //MoveCamera_OrbitCenterPoint(-mouseDelta.X, mouseDelta.Y, 0, moveMult);
                 }
@@ -737,8 +788,8 @@ namespace DSAnimStudio
 
                     
 
-                    float camH = mouseDelta.X * 1 * CameraTurnSpeedMouse * Main.DELTA_UPDATE_ROUNDED;
-                    float camV = mouseDelta.Y * -1 * CameraTurnSpeedMouse * Main.DELTA_UPDATE_ROUNDED;
+                    float camH = mouseDelta.X * 1 * CameraTurnSpeedMouse * elapsed * 0.15f;
+                    float camV = mouseDelta.Y * -1 * CameraTurnSpeedMouse * elapsed * 0.15f;
 
                     if (IsOrbitCam && !isMoveLightKeyPressed)
                     {
@@ -756,8 +807,8 @@ namespace DSAnimStudio
                     }
                     else if (isMoveLightKeyPressed)
                     {
-                        LightRotation.Y += camH;
-                        LightRotation.X -= camV;
+                        LightRotationH += camH;
+                        LightRotationV -= camV;
                     }
                     else
                     {
@@ -806,8 +857,7 @@ namespace DSAnimStudio
                 CameraTransform.EulerRotation.X = MathHelper.Clamp(CameraTransform.EulerRotation.X, -MathHelper.PiOver2, MathHelper.PiOver2);
             }
 
-
-            LightRotation.X = MathHelper.Clamp(LightRotation.X, -MathHelper.PiOver2, MathHelper.PiOver2);
+            LightRotationV = MathHelper.Clamp(LightRotationV, -MathHelper.PiOver2, MathHelper.PiOver2);
             oldWheel = currentWheel;
 
             //prev_isToggleAllSubmeshKeyPressed = isToggleAllSubmeshKeyPressed;

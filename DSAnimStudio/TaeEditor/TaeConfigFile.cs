@@ -22,8 +22,12 @@ namespace DSAnimStudio.TaeEditor
         public List<string> RecentFilesList { get; set; } = new List<string>();
         public bool LiveRefreshOnSave { get; set; } = true;
         public bool CameraFollowsRootMotion { get; set; } = true;
+        public bool AccumulateRootMotion { get; set; } = true;
         public bool EnableAnimRootMotion { get; set; } = true;
         //public bool SimulateReferencedEvents { get; set; } = true;
+
+        public int MSAA = 2;
+        public int SSAA = 1;
 
         public Dictionary<string, bool> EventSimulationsEnabled { get; set; }
             = new Dictionary<string, bool>();
@@ -39,6 +43,11 @@ namespace DSAnimStudio.TaeEditor
             CategoryEnableDraw = DBG.CategoryEnableDraw.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
             CategoryEnableDbgLabelDraw = DBG.CategoryEnableDbgLabelDraw.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
             CategoryEnableNameDraw = DBG.CategoryEnableNameDraw.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
+
+            LastCubemapUsed = Environment.CurrentCubemapName;
+
+            MSAA = GFX.MSAA;
+            SSAA = GFX.SSAA;
         }
 
         public void AfterLoading()
@@ -71,6 +80,14 @@ namespace DSAnimStudio.TaeEditor
             foreach (var kvp in CategoryEnableNameDraw)
                 if (Enum.TryParse<DbgPrimCategory>(kvp.Key, out DbgPrimCategory category))
                     DBG.CategoryEnableNameDraw[category] = kvp.Value;
+
+            Environment.CubemapNameIndex = !string.IsNullOrWhiteSpace(LastCubemapUsed) 
+                ? Environment.CubemapNames.ToList().IndexOf(LastCubemapUsed) : 0;
+
+            GFX.MSAA = MSAA;
+            GFX.SSAA = SSAA;
+
+            Main.RequestViewportRenderTargetResolutionChange = true;
         }
 
         public Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }

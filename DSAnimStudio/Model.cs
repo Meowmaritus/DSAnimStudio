@@ -271,10 +271,12 @@ namespace DSAnimStudio
 
         public void AfterAnimUpdate()
         {
-            CurrentRootMotionTransform = new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+            if (AnimContainer?.EnableRootMotion == true)
+                CurrentRootMotionTransform = new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+            else
+                CurrentRootMotionTransform = new Transform(Matrix.Identity);
 
-            CurrentTransform = new Transform(StartTransform.WorldMatrix *
-                AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
+            CurrentTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionTransform.WorldMatrix);
 
             if (ChrAsm != null)
             {

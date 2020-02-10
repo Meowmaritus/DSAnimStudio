@@ -59,6 +59,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <LangVersion>7.3</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>bin\x64\Release\</OutputPath>
@@ -78,6 +79,7 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
     <Compile Include="FlverShadingMode.cs" />
+    <Compile Include="ImGuiRenderer.cs" />
     <Compile Include="NewBlendableTransform.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
     <Compile Include="NewChrAsmEquipForm.cs">
@@ -87,6 +89,8 @@
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
     </Compile>
     <Compile Include="NewDummyPolyManager.cs" />
+    <Compile Include="NewRootMotionHandler.cs" />
+    <Compile Include="OSD.cs" />
     <Compile Include="TaeEditor\TaeAnimRefChainSolver.cs" />
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxDepthStencilStateAdjust.cs" />
@@ -120,6 +124,7 @@
     <Compile Include="NewChrAsm.cs" />
     <Compile Include="NewHavokAnimation_SplineCompressed.cs" />
     <Compile Include="NewMesh.cs" />
+    <Compile Include="TaeEditor\WinformsTooltipHelper.cs" />
     <Compile Include="TaeEditor\TaeHoverInfoBox.cs" />
     <Compile Include="TaeEditor\TaeViewportInteractor.cs" />
     <Compile Include="TaeEditor\TaeEventSimulationEnvironment.cs" />
@@ -137,12 +142,6 @@
     <Compile Include="ParamData.cs" />
     <Compile Include="ParamManager.cs" />
     <Compile Include="StatusPrinter.cs" />
-    <Compile Include="TaeEditor\LightShaderAdjuster.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="TaeEditor\LightShaderAdjuster.Designer.cs">
-      <DependentUpon>LightShaderAdjuster.cs</DependentUpon>
-    </Compile>
     <Compile Include="TaeEditor\TaeButtonRepeater.cs" />
     <Compile Include="TaeEditor\TaeClipboardContents.cs" />
     <Compile Include="TaeEditor\TaeConfigFile.cs" />
@@ -216,6 +215,9 @@
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="ImGui.NET">
+      <HintPath>..\Lib\ImGui.NET.dll</HintPath>
+    </Reference>
     <Reference Include="Lidgren.Network, Version=3.8.0.93, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Lib\Lidgren.Network.dll</HintPath>
@@ -310,12 +312,16 @@
       <HintPath>..\packages\System.Net.Sockets.4.3.0\lib\net46\System.Net.Sockets.dll</HintPath>
     </Reference>
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
     <Reference Include="System.Reflection, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Reflection.4.3.0\lib\net462\System.Reflection.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="System.Runtime.Extensions, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.Extensions.4.3.0\lib\net462\System.Runtime.Extensions.dll</HintPath>
     </Reference>
@@ -348,6 +354,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="cimgui.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Content Include="Content\Cubemaps\m30_00_GILM0000.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -499,6 +508,9 @@
     <None Include="Content\Fonts\DbgMenuFontSmaller.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\Fonts\NotoSansCJKjp-Medium.otf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Content\Fonts\TaeEditorFont.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -534,9 +546,6 @@
   <ItemGroup>
     <EmbeddedResource Include="NewChrAsmEquipForm.resx">
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="TaeEditor\LightShaderAdjuster.resx">
-      <DependentUpon>LightShaderAdjuster.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="TaeEditor\TaeEditAnimPropertiesForm.resx">
       <DependentUpon>TaeEditAnimPropertiesForm.cs</DependentUpon>
