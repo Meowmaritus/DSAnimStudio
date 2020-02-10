@@ -34,7 +34,7 @@ namespace DSAnimStudio
                 DepthBias = rs.DepthBias,
                 DepthClipEnable = rs.DepthClipEnable,
                 FillMode = rs.FillMode,
-                MultiSampleAntiAlias = rs.MultiSampleAntiAlias,
+                MultiSampleAntiAlias = true,
                 Name = rs.Name,
                 ScissorTestEnable = rs.ScissorTestEnable,
                 SlopeScaleDepthBias = rs.SlopeScaleDepthBias,

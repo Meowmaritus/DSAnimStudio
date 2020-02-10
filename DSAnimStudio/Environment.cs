@@ -15,13 +15,19 @@ namespace DSAnimStudio
         public static float FlverDirectLightMult = 1.0f;
         public static float FlverIndirectLightMult = 1.0f;
         public static float FlverSceneBrightness = 1.0f;
+        public static float FlverSceneContrast = 0.5f;
         public static float FlverEmissiveMult = 1.0f;
 
         private static Dictionary<string, TextureCube> cubemaps 
             = new Dictionary<string, TextureCube>();
         public static IReadOnlyDictionary<string, TextureCube> Cubemaps => cubemaps;
 
-        public static string CurrentCubemapName = null;
+        public static string[] CubemapNames;
+        public static int CubemapNameIndex = -1;
+
+        public static string CurrentCubemapName => 
+            (CubemapNameIndex >= 0 && CubemapNameIndex < CubemapNames.Length)
+            ? CubemapNames[CubemapNameIndex] : null;
 
         public static TextureCube CurrentCubemap => CurrentCubemapName != null ? Cubemaps[CurrentCubemapName] : null;
 
@@ -50,7 +56,9 @@ namespace DSAnimStudio
                     new TextureFetchRequest(File.ReadAllBytes(cube), cube).FetchCube());
             }
 
-            CurrentCubemapName = cubemaps.Keys.First();
+            CubemapNames = Cubemaps.Keys.ToArray();
+
+            CubemapNameIndex = 0;
 
             //var testFetch = new TextureFetchRequest(File.ReadAllBytes($@"{Main.Directory}\Content\Cubemaps\m30_00_GILM0000.dds.bc3.dds"), "TEST");
 

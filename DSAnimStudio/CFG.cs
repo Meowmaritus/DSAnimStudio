@@ -61,8 +61,8 @@ namespace DSAnimStudio
             if (IsEnabled)
             {
                 GFX.World.CameraMoveSpeed = 1;
-                GFX.World.CameraTurnSpeedGamepad = 1.5f * 0.5f;
-                GFX.World.CameraTurnSpeedMouse = 1.5f * 0.5f;
+                GFX.World.CameraTurnSpeedGamepad = 1;
+                GFX.World.CameraTurnSpeedMouse = 1;
 
                 Save();
                 Load();
@@ -78,7 +78,7 @@ namespace DSAnimStudio
                 GFX.Display.Format = SurfaceFormat.Color;
                 GFX.Display.Vsync = true;
                 GFX.Display.Fullscreen = false;
-                GFX.Display.SimpleMSAA = true;
+                //GFX.Display.SimpleMSAA = true;
 
                 Save();
                 Load();
@@ -127,7 +127,7 @@ namespace DSAnimStudio
                     GFX.Display.Format = Current.GFX_Display_Format;
                     GFX.Display.Vsync = Current.GFX_Display_Vsync;
                     GFX.Display.Fullscreen = Current.GFX_Display_Fullscreen;
-                    GFX.Display.SimpleMSAA = Current.GFX_Display_SimpleMSAA;
+                    //GFX.Display.SimpleMSAA = Current.GFX_Display_SimpleMSAA;
 
                     GFX.Display.Apply();
                 }
@@ -174,7 +174,7 @@ namespace DSAnimStudio
                     Current.GFX_Display_Format = GFX.Display.Format;
                     Current.GFX_Display_Vsync = GFX.Display.Vsync;
                     Current.GFX_Display_Fullscreen = GFX.Display.Fullscreen;
-                    Current.GFX_Display_SimpleMSAA = GFX.Display.SimpleMSAA;
+                    //Current.GFX_Display_SimpleMSAA = GFX.Display.SimpleMSAA;
 
                     var json = Newtonsoft.Json.JsonConvert.SerializeObject(
                         Current, Newtonsoft.Json.Formatting.Indented);

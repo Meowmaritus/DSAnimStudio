@@ -12,6 +12,19 @@ namespace DSAnimStudio.GFXShaders
     {
         public FlverTonemapShader Effect => this;
 
+        public Vector2 ScreenSize
+        {
+            get
+            {
+                return Parameters["ScreenSize"].GetValueVector2();
+            }
+            set
+            {
+                Parameters["ScreenSize"].SetValue(value);
+            }
+        }
+
+
         public FlverTonemapShader(GraphicsDevice graphicsDevice, byte[] effectCode) : base(graphicsDevice, effectCode)
         {
         }

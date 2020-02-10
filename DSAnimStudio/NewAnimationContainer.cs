@@ -90,7 +90,7 @@ namespace DSAnimStudio
                     {
                         if (lastLoadedAnim == null || lastLoadedAnim?.Name != name)
                         {
-                            lastLoadedAnim?.Scrub(0, false, forceUpdate: true);
+                            lastLoadedAnim?.Scrub(0, false, forceUpdate: true, loopCount: 0, forceAbsoluteRootMotion: true);
 
                             if (animHKXsToLoad.ContainsKey(name))
                             {
@@ -104,7 +104,7 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        lastLoadedAnim?.Scrub(0, false, forceUpdate: true);
+                        lastLoadedAnim?.Scrub(0, false, forceUpdate: true, loopCount: 0, forceAbsoluteRootMotion: true);
                         lastLoadedAnim = null;
                     }
 
@@ -124,8 +124,24 @@ namespace DSAnimStudio
         public bool IsPlaying = true;
         public bool IsLoop = true;
 
-        public Matrix CurrentAnimRootMotionMatrix => EnableRootMotion 
-            ? (CurrentAnimation?.CurrentRootMotionMatrix ?? Matrix.Identity) : Matrix.Identity;
+        public float CurrentRootMotionDirection = 0;
+        public Vector4 CurrentRootMotionVector = Vector4.Zero;
+
+        public void StoreRootMotionRotation()
+        {
+            CurrentRootMotionDirection += CurrentRootMotionVector.W;
+            //CurrentRootMotionVector.W = 0;
+        }
+
+
+        public Matrix CurrentAnimRootMotionMatrix => CurrentAnimation?.RootMotion != null ? 
+            Matrix.CreateRotationY(CurrentRootMotionDirection + CurrentRootMotionVector.W) *
+                Matrix.CreateWorld(
+                    new Vector3(CurrentRootMotionVector.X, CurrentRootMotionVector.Y, CurrentRootMotionVector.Z),
+                    new Vector3(CurrentAnimation.RootMotion.Forward.X, CurrentAnimation.RootMotion.Forward.Y, -CurrentAnimation.RootMotion.Forward.Z),
+                    new Vector3(CurrentAnimation.RootMotion.Up.X, CurrentAnimation.RootMotion.Up.Y, CurrentAnimation.RootMotion.Up.Z)) : Matrix.Identity;
+
+
 
         public bool Paused = false; 
 
@@ -135,19 +151,20 @@ namespace DSAnimStudio
             IsPlaying = AutoPlayAnimContainersUponLoading;
         }
 
-        public void ScrubCurrentAnimation(float newTime, bool forceUpdate = false, bool stopPlaying = true)
+        public void ScrubCurrentAnimation(float newTime, bool forceUpdate, bool stopPlaying, 
+            int loopCount, bool forceAbsoluteRootMotion = false)
         {
             if (stopPlaying)
                 IsPlaying = false;
 
-            CurrentAnimation?.Scrub(newTime, IsLoop, forceUpdate);
+            CurrentAnimation?.Scrub(newTime, false, forceUpdate, loopCount, forceAbsoluteRootMotion);
         }
 
         public void Update()
         {
             if (IsPlaying && CurrentAnimation != null)
             {
-                CurrentAnimation.Play(Main.DELTA_UPDATE, IsLoop);
+                CurrentAnimation.Play(Main.DELTA_UPDATE, IsLoop, false, false);
             }
         }
 
@@ -190,7 +207,7 @@ namespace DSAnimStudio
 
             if (anim != null)
             {
-                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(MODEL.Skeleton, animRefFrame, animBinding, anim);
+                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(MODEL.Skeleton, animRefFrame, animBinding, anim, this);
                 lastLoadedAnim.Name = name;
             }
             else
@@ -256,7 +273,7 @@ namespace DSAnimStudio
                         CurrentAnimationName = animHKXsToLoad.Keys.First();
                     }
 
-                    CurrentAnimation?.Scrub(0, loop: false, forceUpdate: true);
+                    CurrentAnimation?.Scrub(0, false, forceUpdate: true, loopCount: 0, forceAbsoluteRootMotion: true);
                 }
 
             }
@@ -355,7 +372,7 @@ namespace DSAnimStudio
                     if (animHKXsToLoad.Count > 0)
                     {
                         CurrentAnimationName = animHKXsToLoad.Keys.First();
-                        CurrentAnimation?.Scrub(0, loop: false, forceUpdate: true);
+                        CurrentAnimation?.Scrub(0, false, forceUpdate: true, loopCount: 0, forceAbsoluteRootMotion: true);
                     }
                 }
             }

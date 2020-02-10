@@ -8,6 +8,8 @@ namespace DSAnimStudio
 {
     public enum FlverShadingMode
     {
+        DEFAULT = -1,
+
         TEXDEBUG_DIFFUSEMAP = 0,
         TEXDEBUG_SPECULARMAP = 1,
         TEXDEBUG_NORMALMAP = 2,

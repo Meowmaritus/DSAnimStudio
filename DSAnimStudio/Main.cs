@@ -20,11 +20,11 @@ namespace DSAnimStudio
     /// </summary>
     public class Main : Game
     {
-        //public static Form WinForm;
+        public static Form WinForm;
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.7.2";
+        public const string VERSION = "Version 1.8";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -33,6 +33,8 @@ namespace DSAnimStudio
         public static float DELTA_UPDATE;
         public static float DELTA_UPDATE_ROUNDED;
         public static float DELTA_DRAW;
+
+        public static ImGuiRenderer ImGuiDraw;
 
         public static Vector2 GlobalTaeEditorFontOffset = new Vector2(0, -3);
 
@@ -79,6 +81,9 @@ namespace DSAnimStudio
 
         public static RenderTarget2D SceneRenderTarget = null;
 
+        public static int RequestHideOSD = 0;
+        public static int RequestHideOSD_MAX = 10;
+
         public static bool RequestViewportRenderTargetResolutionChange = false;
         private const float TimeBeforeNextRenderTargetUpdate_Max = 0.5f;
         private static float TimeBeforeNextRenderTargetUpdate = 0;
@@ -112,14 +117,27 @@ namespace DSAnimStudio
         }
 
         public static void ApplyPresentationParameters(int width, int height, SurfaceFormat format,
-            bool vsync, bool fullscreen, bool simpleMsaa)
+            bool vsync, bool fullscreen)
         {
-            graphics.PreferMultiSampling = simpleMsaa;
             graphics.PreferredBackBufferWidth = width;
             graphics.PreferredBackBufferHeight = height;
             graphics.PreferredBackBufferFormat = GFX.BackBufferFormat;
             graphics.IsFullScreen = fullscreen;
             graphics.SynchronizeWithVerticalRetrace = vsync;
+
+            //if (GFX.MSAA > 0)
+            //{
+            //    graphics.PreferMultiSampling = true;
+            //    graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = GFX.MSAA;
+            //}
+            //else
+            //{
+            //    graphics.PreferMultiSampling = false;
+            //    graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
+            //}
+
+            graphics.PreferMultiSampling = false;
+            graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
 
             graphics.ApplyChanges();
         }
@@ -132,6 +150,8 @@ namespace DSAnimStudio
 
         public Main()
         {
+            WinForm = (Form)Form.FromHandle(Window.Handle);
+
             Directory = new FileInfo(typeof(Main).Assembly.Location).DirectoryName;
 
             graphics = new GraphicsDeviceManager(this);
@@ -146,7 +166,7 @@ namespace DSAnimStudio
             //IsFixedTimeStep = false;
             graphics.SynchronizeWithVerticalRetrace = GFX.Display.Vsync;
             graphics.IsFullScreen = GFX.Display.Fullscreen;
-            graphics.PreferMultiSampling = GFX.Display.SimpleMSAA;
+            //graphics.PreferMultiSampling = GFX.Display.SimpleMSAA;
             graphics.PreferredBackBufferWidth = GFX.Display.Width;
             graphics.PreferredBackBufferHeight = GFX.Display.Height;
             if (!GraphicsAdapter.DefaultAdapter.IsProfileSupported(GraphicsProfile.HiDef))
@@ -164,6 +184,8 @@ namespace DSAnimStudio
 
             graphics.PreferredBackBufferFormat = GFX.BackBufferFormat;
 
+            graphics.PreferMultiSampling = false;
+
             graphics.ApplyChanges();
 
             Window.AllowUserResizing = true;
@@ -177,23 +199,28 @@ namespace DSAnimStudio
 
         private void Window_ClientSizeChanged(object sender, EventArgs e)
         {
-            RequestViewportRenderTargetResolutionChange = true;
+            RequestHideOSD = RequestHideOSD_MAX;
         }
 
         public void RebuildRenderTarget()
         {
             if (TimeBeforeNextRenderTargetUpdate <= 0)
             {
+                int msaa = GFX.MSAA;
+                int ssaa = GFX.SSAA;
+
                 SceneRenderTarget?.Dispose();
                 GC.Collect();
-                SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
-                       TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Vector4, DepthFormat.Depth24);
+                SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * ssaa,
+                       TAE_EDITOR.ModelViewerBounds.Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24, 
+                       ssaa > 1 ? 1 : msaa, RenderTargetUsage.PlatformContents);
 
                 TimeBeforeNextRenderTargetUpdate = TimeBeforeNextRenderTargetUpdate_Max;
 
                 RequestViewportRenderTargetResolutionChange = false;
 
-                GFX.EffectiveSSAA = GFX.SSAA;
+                GFX.EffectiveSSAA = ssaa;
+                GFX.EffectiveMSAA = msaa;
             }
         }
 
@@ -254,6 +281,9 @@ namespace DSAnimStudio
 
                 GFX.Device = GraphicsDevice;
 
+                ImGuiDraw = new ImGuiRenderer(this);
+                //ImGuiDraw.RebuildFontAtlas();
+
                 base.Initialize();
             }
             catch (Exception ex)
@@ -299,6 +329,9 @@ namespace DSAnimStudio
 
             GFX.World.ResetCameraLocation();
 
+            //DBG.EnableMenu = true;
+            //DBG.EnableMouseInput = true;
+            //DBG.EnableKeyboardInput = true;
             //DbgMenuItem.Init();
 
             UpdateMemoryUsage();
@@ -328,6 +361,38 @@ namespace DSAnimStudio
             }
 
             MainFlverTonemapShader = new FlverTonemapShader(Content.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
+
+            var fonts = ImGuiNET.ImGui.GetIO().Fonts;
+
+            var fontFile = File.ReadAllBytes($@"{Directory}\Content\Fonts\NotoSansCJKjp-Medium.otf");
+
+            fonts.Clear();
+
+            unsafe
+            {
+                fixed (byte* p = fontFile)
+                {
+                    var ptr = ImGuiNET.ImGuiNative.ImFontConfig_ImFontConfig();
+                    var cfg = new ImGuiNET.ImFontConfigPtr(ptr);
+                    cfg.GlyphMinAdvanceX = 5.0f;
+                    cfg.OversampleH = 5;
+                    cfg.OversampleV = 5;
+                    var f = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length, 16.0f, cfg, fonts.GetGlyphRangesDefault());
+                }
+            }
+
+            fonts.Build();
+
+            ImGuiDraw.RebuildFontAtlas();
+        }
+
+        private static void DrawImGui(GameTime gameTime, int x, int y, int w, int h)
+        {
+            ImGuiDraw.BeforeLayout(gameTime, x, 0, w, h + y);
+
+            OSD.Build(Main.DELTA_DRAW, x, y);
+
+            ImGuiDraw.AfterLayout(x, 0, w, h + y);
         }
 
         private void InterrootLoader_OnLoadError(string contentName, string error)
@@ -550,7 +615,7 @@ namespace DSAnimStudio
             if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
             {
                 // Only update input if debug menu isnt fully open.
-                GFX.World.UpdateInput(this);
+                GFX.World.UpdateInput(this, 0.0166667f);
             }
 
             if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
@@ -598,7 +663,12 @@ namespace DSAnimStudio
                 GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
 
                 if (GFX.UseTonemap && !GFX.IsInDebugShadingMode)
+                {
+                    MainFlverTonemapShader.ScreenSize = new Vector2(
+                        TAE_EDITOR.ModelViewerBounds.Width, 
+                        TAE_EDITOR.ModelViewerBounds.Height);
                     MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                }
 
                 GFX.SpriteBatch.Draw(SceneRenderTarget,
                     new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
@@ -650,13 +720,19 @@ namespace DSAnimStudio
 
             }
 
+            
+
             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
             //DBG.DrawPrimitiveNames(gameTime);
+
+            
 
             //if (DBG.DbgPrimXRay)
             //    GFX.DrawSceneOver3D();
 
             GFX.DrawSceneGUI();
+
+            
 
             TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebug();
 
@@ -678,7 +754,10 @@ namespace DSAnimStudio
                 TAE_EDITOR.DrawDimmingRect(GraphicsDevice, TaeEditorSpriteBatch, TAE_EDITOR_BLANK_TEX);
             }
 
+            //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+            DrawImGui(gameTime, TAE_EDITOR.ModelViewerBounds.X, TAE_EDITOR.ModelViewerBounds.Y, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height);
 
+            GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
     }
 }

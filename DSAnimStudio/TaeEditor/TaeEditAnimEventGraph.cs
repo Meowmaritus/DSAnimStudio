@@ -2165,7 +2165,14 @@ namespace DSAnimStudio.TaeEditor
                     GhostEventGraph.SecondsPixelSize = SecondsPixelSize;
                     GhostEventGraph.ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
                     GhostEventGraph.ScrollViewer.Scroll = ScrollViewer.Scroll;
-                    GhostEventGraph.DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+                    try
+                    {
+                        GhostEventGraph.DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+                    }
+                    catch
+                    {
+
+                    }
 
                     // Draw semitransparent overlay.
                     sb.Draw(texture: boxTex,
@@ -2181,7 +2188,15 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else
                 {
-                    DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+                    try
+                    {
+                        DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+                    }
+                    catch
+                    {
+
+                    }
+                    
                 }
 
                 var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
