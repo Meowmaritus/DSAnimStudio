@@ -620,7 +620,7 @@ namespace DSAnimStudio.TaeEditor
         {
             if (CurrentModel != null)
             {
-                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion.Reset(frame);
+                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(frame);
             }
         }
 
