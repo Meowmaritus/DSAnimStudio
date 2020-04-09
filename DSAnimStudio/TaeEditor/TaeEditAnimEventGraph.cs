@@ -227,7 +227,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public float RowHeight = 26;
+        public float RowHeight = 24;
 
         private Dictionary<int, List<TaeEditAnimEventBox>> sortedByRow = new Dictionary<int, List<TaeEditAnimEventBox>>();
 
@@ -1881,7 +1881,7 @@ namespace DSAnimStudio.TaeEditor
 
             for (int i = (int)startRow; i <= (int)endRow; i++)
             {
-                result.Add(i, (i * RowHeight) - 2);
+                result.Add(i, ((i * RowHeight)) + TimeLineHeight);
             }
 
             return result;

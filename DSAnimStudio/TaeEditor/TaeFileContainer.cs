@@ -210,6 +210,37 @@ namespace DSAnimStudio.TaeEditor
 
             if (ContainerType == TaeFileContainerType.ANIBND)
             {
+                bool isSekiroMeme = false;
+
+                if (System.IO.File.Exists(filePath + ".2010"))
+                {
+                    isSekiroMeme = true; 
+
+                    IBinder anibnd2010 = null;
+                    if (BND3.Is(file + ".2010"))
+                    {
+                        anibnd2010 = BND3.Read(file);
+                    }
+                    else if (BND4.Is(file + ".2010"))
+                    {
+                        anibnd2010 = BND4.Read(file);
+                    }
+
+                    if (anibnd2010 != null)
+                    {
+                        foreach (var f in containerANIBND.Files)
+                        {
+                            if (f.Name.ToUpper().EndsWith(".HKX"))
+                            {
+                                if (!hkxInBND.ContainsKey(f.Name))
+                                    hkxInBND.Add(f.Name, f.Bytes);
+                                else
+                                    hkxInBND[f.Name] = f.Bytes;
+                            }
+                        }
+                    }
+                }
+
                 LoadingTaskMan.DoLoadingTaskSynchronous("TaeFileContainer_ANIBND", "Loading all TAE files in ANIBND...", innerProgress =>
                 {
                     double i = 0;
@@ -241,7 +272,7 @@ namespace DSAnimStudio.TaeEditor
                             else
                                 taeInBND[f.Name] = TAE.Read(f.Bytes);
                         }
-                        else if (f.Name.ToUpper().EndsWith(".HKX"))
+                        else if (!isSekiroMeme & f.Name.ToUpper().EndsWith(".HKX"))
                         {
                             if (!hkxInBND.ContainsKey(f.Name))
                                 hkxInBND.Add(f.Name, f.Bytes);

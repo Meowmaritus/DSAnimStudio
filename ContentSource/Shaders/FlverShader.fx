@@ -11,6 +11,8 @@
 
 #define MAXLIGHTS 3
 
+#define WORKFLOW_HIGHLIGHT -2
+
 #define WORKFLOW_TEXDEBUG_DIFFUSEMAP 0
 #define WORKFLOW_TEXDEBUG_SPECULARMAP 1
 #define WORKFLOW_TEXDEBUG_NORMALMAP 2
@@ -22,6 +24,7 @@
 #define WORKFLOW_MESHDEBUG_NORMALS 100
 #define WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY 101
 #define WORKFLOW_MESHDEBUG_VERTEX_COLOR_ALPHA 102
+#define WORKFLOW_MESHDEBUG_VERTEX_COLOR_RGB 103
 
 #define WORKFLOW_LEGACY 200
 #define WORKFLOW_PBR_GLOSS_DS3 201
@@ -65,6 +68,9 @@ float4x4 View;
 float4x4 Projection;
 bool IsSkybox = false;
 
+//Highlight
+float3 HighlightColor;
+
 // Legacy
 float4 Legacy_AmbientColor;
 float Legacy_AmbientIntensity;
@@ -96,6 +102,16 @@ float SceneBrightness = 1.0;
 float LdotNPower = 0.1;
 
 float SpecularPowerMult = 1;
+
+float2 ColorMapScale;
+float2 NormalMapScale;
+float2 SpecularMapScale;
+float2 ColorMapScale2;
+float2 NormalMapScale2;
+float2 SpecularMapScale2;
+float2 SpecularMapScaleBB;
+float2 EmissiveMapScale;
+float2 BlendmaskMapScale;
 
 // Textures
 texture2D ColorMap;
@@ -430,7 +446,7 @@ float B16(float2 avCoords)
 
 float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : COLOR
 {
-    float4 blendmaskColor = tex2D(BlendmaskMapSampler, input.TexCoord);
+    float4 blendmaskColor = tex2D(BlendmaskMapSampler, input.TexCoord / BlendmaskMapScale);
 
     float texBlendVal = (input.Color.a * EnableBlendTextures);
     
@@ -440,7 +456,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         texBlendVal = blendmaskColor.r;
     }
 
-	float4 color = lerp(tex2D(ColorMapSampler, input.TexCoord), tex2D(ColorMap2Sampler, input.TexCoord2), texBlendVal);
+	float4 color = lerp(tex2D(ColorMapSampler, input.TexCoord / ColorMapScale), tex2D(ColorMap2Sampler, input.TexCoord2 / ColorMapScale2), texBlendVal);
     //color = pow(color, 1.0 / 2.2);
     
     float inputTexAlpha = 1;
@@ -455,6 +471,17 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     
     float dissolve = B16(input.Position.xy);
         
+    [branch]
+	if (WorkflowType == WORKFLOW_HIGHLIGHT)
+	{
+        //if ((((inputTexAlpha) * 1.05) + 0.125) < dissolve)
+        //{
+        //    clip(-1);
+        //}
+		
+		return float4(HighlightColor.r, HighlightColor.g, HighlightColor.b, Opacity);
+	}
+        
     if ((((Opacity * inputTexAlpha) * 1.05) + 0.125) < dissolve)
     {
         clip(-1);
@@ -466,14 +493,14 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         return color;
     }
     
-    float4 specularMapColor = lerp(tex2D(SpecularMapSampler, input.TexCoord), tex2D(SpecularMap2Sampler, input.TexCoord2), texBlendVal);
-    float4 emissiveMapColor = tex2D(EmissiveMapSampler, input.TexCoord);
+    float4 specularMapColor = lerp(tex2D(SpecularMapSampler, input.TexCoord / SpecularMapScale), tex2D(SpecularMap2Sampler, input.TexCoord2 / SpecularMapScale2), texBlendVal);
+    float4 emissiveMapColor = tex2D(EmissiveMapSampler, input.TexCoord / EmissiveMapScale);
     
     emissiveMapColor.rgb *= emissiveMapColor.rgb;
     
-    float3 nmapcol = lerp(tex2D(NormalMapSampler, input.TexCoord), tex2D(NormalMap2Sampler, input.TexCoord2), texBlendVal);
+    float3 nmapcol = lerp(tex2D(NormalMapSampler, input.TexCoord / NormalMapScale), tex2D(NormalMap2Sampler, input.TexCoord2 / NormalMapScale2), texBlendVal);
     
-    float4 shininessMapColor = tex2D(SpecularMapBBSampler, input.TexCoord);
+    float4 shininessMapColor = tex2D(SpecularMapBBSampler, input.TexCoord / SpecularMapScaleBB);
     
     [branch]
     if (WorkflowType == WORKFLOW_TEXDEBUG_DIFFUSEMAP)
@@ -523,6 +550,10 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     else if (WorkflowType == WORKFLOW_MESHDEBUG_VERTEX_COLOR_ALPHA)
     {
         return float4(input.Color.a, input.Color.a, input.Color.a, 1);
+    }
+    else if (WorkflowType == WORKFLOW_MESHDEBUG_VERTEX_COLOR_RGB)
+    {
+        return float4(input.Color.r, input.Color.g, input.Color.b, 1);
     }
     if (WorkflowType == WORKFLOW_PBR_GLOSS_DS3)
     {

@@ -79,6 +79,7 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
     <Compile Include="FlverShadingMode.cs" />
+    <Compile Include="HavokDowngrade.cs" />
     <Compile Include="ImGuiRenderer.cs" />
     <Compile Include="NewBlendableTransform.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
@@ -354,6 +355,18 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Res\TagTools\AssetCc2.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\TagTools\CollisionConverter.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\TagTools\TagTools.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\TagTools\TypeDatabase.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="cimgui.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

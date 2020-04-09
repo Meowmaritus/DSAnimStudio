@@ -94,7 +94,14 @@ namespace DSAnimStudio
 
                             if (animHKXsToLoad.ContainsKey(name))
                             {
-                                LoadAnimHKX(animHKXsToLoad[name], name);
+                                try
+                                {
+                                    LoadAnimHKX(animHKXsToLoad[name], name);
+                                }
+                                catch
+                                {
+                                    animHKXsToLoad.Remove(name);
+                                }
                             }
                             else
                             {

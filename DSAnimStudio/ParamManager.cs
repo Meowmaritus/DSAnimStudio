@@ -175,7 +175,7 @@ namespace DSAnimStudio
             {
                 if (wpn != null)
                 {
-                    long baseBehaviorParamID = 10_0000_000 + ((wpn.WepMotionCategory * 100) * 1_000) + behaviorSubID;
+                    long baseBehaviorParamID = 10_0000_000 + ((((wpn.BehaviorVariationID / 100) * 100) * 100) * 1_000) + behaviorSubID;
 
                     if (BehaviorParam_PC.ContainsKey(baseBehaviorParamID))
                     {

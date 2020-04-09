@@ -166,10 +166,20 @@ namespace DSAnimStudio
 
             if (anibnd != null)
             {
-                LoadingTaskMan.DoLoadingTaskSynchronous($"{Name}_ANIBND", $"Loading ANIBND for {Name}...", innerProg =>
-                {
-                    AnimContainer.LoadBaseANIBND(anibnd, innerProg);
-                });
+                
+                    LoadingTaskMan.DoLoadingTaskSynchronous($"{Name}_ANIBND", $"Loading ANIBND for {Name}...", innerProg =>
+                    {
+                        try
+                        {
+                            AnimContainer.LoadBaseANIBND(anibnd, innerProg);
+                        }
+                        catch
+                        {
+                            System.Windows.Forms.MessageBox.Show("Failed to load animations.", "Error",
+                                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                        }
+                    });
+               
             }
             else
             {
