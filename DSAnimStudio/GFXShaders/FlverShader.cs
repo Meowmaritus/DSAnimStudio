@@ -225,12 +225,6 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(SpecularMapBB)]?.SetValue(value);
         }
 
-        //public bool UseSpecularMapBB
-        //{
-        //    get => Parameters[nameof(UseSpecularMapBB)].GetValueBoolean();
-        //    set => Parameters[nameof(UseSpecularMapBB)]?.SetValue(value);
-        //}
-
         public Texture2D EmissiveMap
         {
             get => Parameters[nameof(EmissiveMap)].GetValueTexture2D();
@@ -248,6 +242,62 @@ namespace DSAnimStudio.GFXShaders
             get => Parameters[nameof(EnvironmentMap)].GetValueTextureCube();
             set => Parameters[nameof(EnvironmentMap)]?.SetValue(value);
         }
+
+
+        public Vector2 ColorMapScale
+        {
+            get => Parameters[nameof(ColorMapScale)].GetValueVector2();
+            set => Parameters[nameof(ColorMapScale)]?.SetValue(value);
+        }
+
+        public Vector2 NormalMapScale
+        {
+            get => Parameters[nameof(NormalMapScale)].GetValueVector2();
+            set => Parameters[nameof(NormalMapScale)]?.SetValue(value);
+        }
+
+        public Vector2 SpecularMapScale
+        {
+            get => Parameters[nameof(SpecularMapScale)].GetValueVector2();
+            set => Parameters[nameof(SpecularMapScale)]?.SetValue(value);
+        }
+
+        public Vector2 ColorMapScale2
+        {
+            get => Parameters[nameof(ColorMapScale2)].GetValueVector2();
+            set => Parameters[nameof(ColorMapScale2)]?.SetValue(value);
+        }
+
+        public Vector2 NormalMapScale2
+        {
+            get => Parameters[nameof(NormalMapScale2)].GetValueVector2();
+            set => Parameters[nameof(NormalMapScale2)]?.SetValue(value);
+        }
+
+        public Vector2 SpecularMapScale2
+        {
+            get => Parameters[nameof(SpecularMapScale2)].GetValueVector2();
+            set => Parameters[nameof(SpecularMapScale2)]?.SetValue(value);
+        }
+
+        public Vector2 SpecularMapScaleBB
+        {
+            get => Parameters[nameof(SpecularMapScaleBB)].GetValueVector2();
+            set => Parameters[nameof(SpecularMapScaleBB)]?.SetValue(value);
+        }
+
+        public Vector2 EmissiveMapScale
+        {
+            get => Parameters[nameof(EmissiveMapScale)].GetValueVector2();
+            set => Parameters[nameof(EmissiveMapScale)]?.SetValue(value);
+        }
+
+        public Vector2 BlendmaskMapScale
+        {
+            get => Parameters[nameof(BlendmaskMapScale)].GetValueVector2();
+            set => Parameters[nameof(BlendmaskMapScale)]?.SetValue(value);
+        }
+
         #endregion
 
         #region SKINNING

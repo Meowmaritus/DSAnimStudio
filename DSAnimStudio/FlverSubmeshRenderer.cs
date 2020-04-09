@@ -56,6 +56,18 @@ namespace DSAnimStudio
         public Texture2D TexDataDOL1 { get; private set; } = null;
         public Texture2D TexDataDOL2 { get; private set; } = null;
 
+        public Vector2 TexScaleDiffuse { get; private set; } = Vector2.One;
+        public Vector2 TexScaleDiffuse2 { get; private set; } = Vector2.One;
+        public Vector2 TexScaleSpecular { get; private set; } = Vector2.One;
+        public Vector2 TexScaleSpecular2 { get; private set; } = Vector2.One;
+        public Vector2 TexScaleNormal { get; private set; } = Vector2.One;
+        public Vector2 TexScaleNormal2 { get; private set; } = Vector2.One;
+        public Vector2 TexScaleEmissive { get; private set; } = Vector2.One;
+        public Vector2 TexScaleShininess { get; private set; } = Vector2.One;
+        public Vector2 TexScaleBlendmask { get; private set; } = Vector2.One;
+        public Vector2 TexScaleDOL1 { get; private set; } = Vector2.One;
+        public Vector2 TexScaleDOL2 { get; private set; } = Vector2.One;
+
         public GFXDrawStep DrawStep { get; private set; }
 
         public int VertexCount { get; private set; }
@@ -206,6 +218,8 @@ namespace DSAnimStudio
             {
                 //TEMP
                 ShadingMode = FlverShadingMode.PBR_GLOSS_DS3;
+
+
             }
             else
             {
@@ -271,38 +285,81 @@ namespace DSAnimStudio
             {
                 var paramNameCheck = matParam.Type.ToUpper();
                 string shortTexPath = Utils.GetShortIngameFileName(matParam.Path);
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                {
+                    shortTexPath = Utils.GetShortIngameFileName(GameDataManager.LookupMTDTexture(flvr.Materials[mesh.MaterialIndex].MTD, matParam.Type));
+
+                    if (string.IsNullOrWhiteSpace(shortTexPath))
+                    {
+                        shortTexPath = Utils.GetShortIngameFileName(matParam.Path);
+                    }
+                }
+
                 // DS3/BB
                 if (paramNameCheck.Contains("DIFFUSE_2") || paramNameCheck.Contains("ALBEDO_2"))
+                {
                     TexNameDiffuse2 = shortTexPath;
+                    TexScaleDiffuse2 = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if (paramNameCheck.Contains("DIFFUSE") || paramNameCheck.Contains("ALBEDO"))
+                {
                     TexNameDiffuse = shortTexPath;
+                    TexScaleDiffuse = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if (paramNameCheck.Contains("SPECULAR_2") || paramNameCheck.Contains("REFLECTANCE_2"))
+                {
                     TexNameSpecular2 = shortTexPath;
+                    TexScaleSpecular2 = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if (paramNameCheck.Contains("SPECULAR") || paramNameCheck.Contains("REFLECTANCE"))
+                {
                     TexNameSpecular = shortTexPath;
+                    TexScaleSpecular = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if ((paramNameCheck.Contains("BUMPMAP_2") && !paramNameCheck.Contains("DETAILBUMP_2"))
                     || paramNameCheck.Contains("NORMALMAP_2"))
+                {
                     TexNameNormal2 = shortTexPath;
+                    TexScaleNormal2 = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if ((paramNameCheck.Contains("BUMPMAP") && !paramNameCheck.Contains("DETAILBUMP"))
                     || paramNameCheck.Contains("NORMALMAP"))
+                {
                     TexNameNormal = shortTexPath;
+                    TexScaleNormal = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if (paramNameCheck.Contains("EMISSIVE"))
+                {
                     TexNameEmissive = shortTexPath;
+                    TexScaleEmissive = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if (paramNameCheck.Contains("SHININESS"))
+                {
                     TexNameShininess = shortTexPath;
+                    TexScaleShininess = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if (paramNameCheck.Contains("BLENDMASK"))
+                {
                     TexNameBlendmask = shortTexPath;
+                    TexScaleBlendmask = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 else if (paramNameCheck == "G_DOLTEXTURE1")
                 {
                     TexNameDOL1 = shortTexPath;
+                    TexScaleDOL1 = new Vector2(matParam.Scale.X, matParam.Scale.Y);
                     //hasLightmap = true;
                 }
                 else if (paramNameCheck == "G_DOLTEXTURE2")
+                {
                     TexNameDOL2 = shortTexPath;
+                    TexScaleDOL2 = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                }
                 // DS1 params
                 else if (paramNameCheck == "G_LIGHTMAP")
                 {
                     TexNameDOL1 = shortTexPath;
+                    TexScaleDOL1 = new Vector2(matParam.Scale.X, matParam.Scale.Y);
                     //hasLightmap = true;
                 }
                 else
@@ -823,8 +880,13 @@ namespace DSAnimStudio
                     TryToLoadTextures();
 
                 GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+                GFX.FlverShader.Effect.ColorMapScale = TexScaleDiffuse;
+
                 GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
+                GFX.FlverShader.Effect.SpecularMapScale = TexScaleSpecular;
+
                 GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
+                GFX.FlverShader.Effect.NormalMapScale = TexScaleNormal;
 
                 GFX.FlverShader.Effect.EnableBlendMaskMap = TexDataBlendmask != null
                     && TexNameBlendmask != "SYSTEX_DummyBurn_m"; // aa
@@ -835,31 +897,52 @@ namespace DSAnimStudio
                     GFX.FlverShader.Effect.DisableAlpha = !GFX.FlverEnableTextureAlphas;
 
                     GFX.FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
+                    GFX.FlverShader.Effect.BlendmaskMapScale = Vector2.One;
+
                     GFX.FlverShader.Effect.ColorMap2 = Main.DEFAULT_TEXTURE_DIFFUSE;
+                    GFX.FlverShader.Effect.ColorMapScale2 = Vector2.One;
+
                     GFX.FlverShader.Effect.SpecularMap2 = Main.DEFAULT_TEXTURE_SPECULAR;
+                    GFX.FlverShader.Effect.SpecularMapScale2 = Vector2.One;
+
                     GFX.FlverShader.Effect.NormalMap2 = Main.DEFAULT_TEXTURE_NORMAL;
+                    GFX.FlverShader.Effect.NormalMapScale2 = Vector2.One;
                 }
                 else
                 {
                     GFX.FlverShader.Effect.EnableBlendTextures = GFX.FlverEnableTextureBlending;
                     GFX.FlverShader.Effect.DisableAlpha = !GFX.FlverEnableTextureAlphas;
 
-                    GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
-                    GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? Main.DEFAULT_TEXTURE_SPECULAR;
-                    GFX.FlverShader.Effect.NormalMap2 = TexDataNormal2 ?? Main.DEFAULT_TEXTURE_NORMAL;
+                    GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+                    GFX.FlverShader.Effect.ColorMapScale2 = TexScaleDiffuse2;
+
+                    GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
+                    GFX.FlverShader.Effect.SpecularMapScale2 = TexScaleSpecular2;
+
+                    GFX.FlverShader.Effect.NormalMap2 = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
+                    GFX.FlverShader.Effect.NormalMapScale2 = TexScaleNormal2;
 
                     GFX.FlverShader.Effect.BlendmaskMap = TexDataBlendmask ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                    GFX.FlverShader.Effect.BlendmaskMapScale = TexScaleBlendmask;
                 }
-                
+
 
                 // Hotfix because loading the DS3 character embered effect with the default shader just makes
                 // them have various fixed glowing orange spots
                 if (TexNameEmissive != "SYSTEX_DummyBurn_em")
+                {
                     GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                    GFX.FlverShader.Effect.EmissiveMapScale = TexScaleEmissive;
+                }
                 else
+                {
                     GFX.FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
+                    GFX.FlverShader.Effect.EmissiveMapScale = Vector2.One;
+                }
 
                 GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.SpecularMapScaleBB = TexScaleShininess;
+
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
 
                 if (GFX.ForcedFlverShadingMode == FlverShadingMode.DEFAULT)

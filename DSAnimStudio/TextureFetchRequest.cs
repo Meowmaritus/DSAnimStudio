@@ -535,13 +535,30 @@ namespace DSAnimStudio
                         //if (surfaceFormat == SurfaceFormat.Dxt1 || surfaceFormat == SurfaceFormat.Dxt1SRgb)
                         //    paddedSize /= 2;
 
+                        //if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R && surfaceFormat == SurfaceFormat.Dxt1)
+                        //    paddedSize /= 2;
+
                         if (isCubeMap)
                         {
                             ((TextureCube)tex).SetData((CubeMapFace)i, j, null, br.GetBytes(copyOffset, paddedSize), 0, paddedSize);
                         }
                         else
                         {
-                            ((Texture2D)tex).SetData(j, i, null, br.GetBytes(copyOffset, paddedSize), 0, paddedSize);
+                            try
+                            {
+                                ((Texture2D)tex).SetData(j, i, null, br.GetBytes(copyOffset, paddedSize), 0, paddedSize);
+                            }
+                            catch (ArgumentException)
+                            {
+                                try
+                                {
+                                    ((Texture2D)tex).SetData(j, i, null, br.GetBytes(copyOffset, paddedSize / 2), 0, paddedSize);
+                                }
+                                catch
+                                {
+
+                                }
+                            }
                         }
 
                         copyOffset += paddedSize;

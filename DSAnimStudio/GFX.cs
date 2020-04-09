@@ -123,6 +123,7 @@ namespace DSAnimStudio
             { FlverShadingMode.MESHDEBUG_NORMALS, "MESH DEBUG: Normals" },
             { FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY, "MESH DEBUG: Normals (Mesh Only)" },
             { FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA, "MESH DEBUG: Vertex Color Alpha" },
+            { FlverShadingMode.MESHDEBUG_VERTEX_COLOR_RGB, "MESH DEBUG: Vertex Color RGB" },
         };
 
         private static List<FlverShadingMode> _flverNonDebugShadingModes = new List<FlverShadingMode>

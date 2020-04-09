@@ -40,6 +40,13 @@ namespace DSAnimStudio
                 weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("武器名.fmg")).Bytes);
                 protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("防具名.fmg")).Bytes);
             }
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            {
+                var msgbnd = BND3.Read($@"{GameDataManager.InterrootPath}\msg\ENGLISH\item.msgbnd.dcx");
+
+                weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("Weapon_name_.fmg")).Bytes);
+                protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("Armor_name_.fmg")).Bytes);
+            }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
                 var msgbnd = BND4.Read($@"{GameDataManager.InterrootPath}\msg\engus\item_dlc2.msgbnd.dcx");
@@ -153,6 +160,34 @@ namespace DSAnimStudio
             ProtectorNames_BD = ProtectorNames_BD.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             ProtectorNames_AM = ProtectorNames_AM.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             ProtectorNames_LG = ProtectorNames_LG.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            foreach (var protector in ParamManager.EquipParamProtector)
+            {
+                if (protector.Value.HeadEquip && !ProtectorNames_HD.ContainsKey((int)protector.Key))
+                {
+                    ProtectorNames_HD.Add((int)protector.Key, $"<Head {protector.Key}>");
+                }
+                else if (protector.Value.BodyEquip && !ProtectorNames_BD.ContainsKey((int)protector.Key))
+                {
+                    ProtectorNames_BD.Add((int)protector.Key, $"<Body {protector.Key}>");
+                }
+                else if (protector.Value.ArmEquip && !ProtectorNames_AM.ContainsKey((int)protector.Key))
+                {
+                    ProtectorNames_AM.Add((int)protector.Key, $"<Arms {protector.Key}>");
+                }
+                else if (protector.Value.LegEquip && !ProtectorNames_LG.ContainsKey((int)protector.Key))
+                {
+                    ProtectorNames_LG.Add((int)protector.Key, $"<Legs {protector.Key}>");
+                }
+            }
+
+            foreach (var weapon in ParamManager.EquipParamWeapon)
+            {
+                if (!WeaponNames.ContainsKey((int)weapon.Key))
+                {
+                    WeaponNames.Add((int)weapon.Key, $"<Weapon {weapon.Key}>");
+                }
+            }
 
             GameTypeCurrentFmgsAreLoadedFrom = GameDataManager.GameType;
         }

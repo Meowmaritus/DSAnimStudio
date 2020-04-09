@@ -93,9 +93,33 @@ namespace DSAnimStudio.LiveRefresh
                     Memory.CloseHandle();
                 }
             }
-            else
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
             {
+                try
+                {
 
+                    Memory.AttachProc("DarkSoulsRemastered");
+
+                    Memory.WriteBoolean((IntPtr)0x141D151DB, true);
+
+                    var buffer = new byte[]
+                    {
+                        0x48, 0xBA, 0, 0, 0, 0, 0, 0, 0, 0, //mov rdx,Alloc
+                        0x48, 0xA1, 0xB0, 0x51, 0xD1, 0x41, 0x01, 0x00, 0x00, 0x00,  //mov rax,[141D151B0]
+                        0x48, 0x8B, 0xC8, //mov rcx,rax
+                        0x49, 0xBE, 0xA0, 0x12, 0x37, 0x40, 0x01, 0x00, 0x00, 0x00, //mov r14,00000001403712A0
+                        0x48, 0x83, 0xEC, 0x28, //sub rsp,28
+                        0x41, 0xFF, 0xD6, //call r14
+                        0x48, 0x83, 0xC4, 0x28,  //add rsp,28
+                        0xC3 //Ret
+                    };
+
+                    Memory.ExecuteBufferFunction(buffer, chrNameBytes);
+                }
+                finally
+                {
+                    Memory.CloseHandle();
+                }
             }
 
             

@@ -17,8 +17,154 @@ namespace DSAnimStudio.TaeEditor
         public const string BackupExtension = ".dsasbak";
 
         private ContentManager DebugReloadContentManager = null;
+
         private void BuildDebugMenuBar()
         {
+
+            MenuBar.AddTopItem("Tools");
+            MenuBar.AddItem("Tools", "Downgrade Sekiro/DS1R ANIBND(s)...", () =>
+            {
+
+                Main.WinForm.Invoke(new Action(() =>
+                {
+                    var browseDlg = new System.Windows.Forms.OpenFileDialog()
+                    {
+                        Filter = "*.ANIBND.DCX|*.ANIBND.DCX",
+                        ValidateNames = true,
+                        CheckFileExists = true,
+                        CheckPathExists = true,
+                        //ShowReadOnly = true,
+                        Title = "Choose *.ANIBND.DCX file(s) to downgrade to Havok 2010.",
+                        Multiselect = true,
+                    };
+
+                    var decision = browseDlg.ShowDialog();
+
+                    if (decision == System.Windows.Forms.DialogResult.OK)
+                    {
+                        //if (System.IO.File.Exists(browseDlg.FileName + ".2010"))
+                        //{
+                        //    var nextDecision = System.Windows.Forms.MessageBox.Show("A '*.anibnd.dcx.2010' version of the selected file already exists. Would you like to downgrade all animations and overwrite this file anyways?", "Convert Again?", System.Windows.Forms.MessageBoxButtons.YesNo);
+
+                        //    if (nextDecision == System.Windows.Forms.DialogResult.No)
+                        //        return;
+                        //}
+
+                        LoadingTaskMan.DoLoadingTask("PreprocessSekiroAnimations_Multi", "Downgrading all selected ANIBNDs...", prog =>
+                        {
+                            int numNames = browseDlg.FileNames.Length;
+                            for (int i = 0; i < numNames; i++)
+                            {
+                                string curName = browseDlg.FileNames[i];
+
+                                LoadingTaskMan.DoLoadingTaskSynchronous($"PreprocessSekiroAnimations_{curName}", $"Downgrading {Utils.GetShortIngameFileName(curName)}...", prog2 =>
+                                {
+
+                                    string debug_testConvert_filename = curName;
+
+                                    if (string.IsNullOrWhiteSpace(debug_testConvert_filename))
+                                        throw new Exception("WHAT THE FUCKING FUCK GOD FUCKING DAMMIT");
+
+                                    string folder = new System.IO.FileInfo(debug_testConvert_filename).DirectoryName;
+
+                                    int lastSlashInFolder = folder.LastIndexOf("\\");
+
+                                    string interroot = folder.Substring(0, lastSlashInFolder);
+
+                                    string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
+
+                                    string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
+
+                                    if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
+                                    {
+                                        System.IO.File.Copy(oodleSource, oodleTarget, true);
+
+                                        System.Windows.Forms.MessageBox.Show("Oodle compression library was automatically copied from game directory " +
+                                            "to editor's '/lib' directory and Sekiro files will load.\n\n", "Required Library Copied",
+                                            System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+                                    }
+
+                                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+
+                                    HavokDowngrade.DowngradeAnibnd(debug_testConvert_filename, prog2);
+                                    stopwatch.Stop();
+                                    int minutes = (int)(stopwatch.Elapsed.TotalSeconds / 60);
+                                    int seconds = (int)(Math.Round(stopwatch.Elapsed.TotalSeconds % 60));
+
+                                    //if (minutes > 0)
+                                    //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {minutes}m{seconds}s", "Animation Downgrading Complete");
+                                    //else
+                                    //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {seconds}s", "Animation Downgrading Complete");
+
+                                });
+
+                                prog.Report(1.0 * (i + 1) / browseDlg.FileNames.Length);
+                                //LoadingTaskMan.DoLoadingTaskSynchronous($"PreprocessSekiroAnimations_Multi_{i}",
+                                //    $"Downgrading anim {(i + 1)} of {browseDlg.FileNames.Length}...", prog2 =>
+                                //    {
+                                //        DoAnimDowngrade(browseDlg.FileNames[i]);
+                                //        prog.Report(1.0 * (i + 1) / browseDlg.FileNames.Length);
+
+                                //    });
+                            }
+                        });
+
+
+
+                    }
+
+                }));
+
+
+
+
+
+
+            });
+
+
+            MenuBar.AddItem("Tools", "Import All PTDE ANIBNDs to DS1R...", () =>
+            {
+                var browseDlgPTDE = new System.Windows.Forms.OpenFileDialog()
+                {
+                    Filter = "*.EXE|*.EXE",
+                    ValidateNames = true,
+                    CheckFileExists = true,
+                    CheckPathExists = true,
+                    //ShowReadOnly = true,
+                    Title = "Select your PTDE DARKSOULS.EXE...",
+                    Multiselect = false,
+                };
+
+                var browseDlgDS1R = new System.Windows.Forms.OpenFileDialog()
+                {
+                    Filter = "*.EXE|*.EXE",
+                    ValidateNames = true,
+                    CheckFileExists = true,
+                    CheckPathExists = true,
+                    //ShowReadOnly = true,
+                    Title = "Select your DS1R DarkSoulsRemastered.EXE...",
+                    Multiselect = false,
+                };
+
+                if (browseDlgPTDE.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    if (browseDlgDS1R.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    {
+                        string folderPTDE = Utils.Frankenpath(new System.IO.FileInfo(browseDlgPTDE.FileName).DirectoryName, "chr\\");
+                        string folderDS1R = Utils.Frankenpath(new System.IO.FileInfo(browseDlgDS1R.FileName).DirectoryName, "chr\\");
+
+                        foreach (var file in System.IO.Directory.GetFiles(folderPTDE, "*.anibnd"))
+                        {
+                            string nickname = Utils.GetShortIngameFileName(file);
+                            System.IO.File.Copy(file, Utils.Frankenpath(folderDS1R, $"{nickname}.anibnd.dcx.2010"), true);
+                        }
+
+                        System.Windows.Forms.MessageBox.Show("Imported all from PTDE.");
+                    }
+                }
+            });
 
             //MenuBar.AddTopItem("[TEST: SCAN HKXPWV]", () =>
             //{
@@ -780,7 +926,7 @@ namespace DSAnimStudio.TaeEditor
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
                     MenuBar["File\\Save As..."].Enabled = !IsReadOnlyFileMode;
-                    MenuBar["File\\Force Ingame Character Reload Now (DS3 Only)"].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File\\Force Ingame Character Reload Now (DS3/DS1R Only)"].Enabled = !IsReadOnlyFileMode;
                     MenuBar["File\\Reload GameParam"].Enabled = true;
                 }));
 
@@ -1046,8 +1192,8 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
             MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
             MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Force Ingame Character Reload Now (DS3 Only)", () => LiveRefresh(), startDisabled: true);
-            MenuBar.AddItem("File", "Force Ingame Character Reload When Saving (DS3 Only)", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
+            MenuBar.AddItem("File", "Force Ingame Character Reload Now (DS3/DS1R Only)", () => LiveRefresh(), startDisabled: true);
+            MenuBar.AddItem("File", "Force Ingame Character Reload When Saving (DS3/DS1R Only)", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Manually Save Config", () =>
             {
@@ -1379,7 +1525,7 @@ namespace DSAnimStudio.TaeEditor
 
             MenuBar.AddSeparator("Scene");
 
-            //MenuBar.AddItem("Scene", $"Render HKX Skeleton ({DBG.COLOR_HKX_BONE_NAME})", 
+            //MenuBar.AddItem("Scene", $"Render HKX Skeleton ({DBG.COLOR_HKX_BONE_NAME})",
             //    () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
             //        b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
 

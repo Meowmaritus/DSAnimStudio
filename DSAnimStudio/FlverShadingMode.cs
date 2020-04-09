@@ -8,6 +8,8 @@ namespace DSAnimStudio
 {
     public enum FlverShadingMode
     {
+        HIGHLIGHT = -2,
+
         DEFAULT = -1,
 
         TEXDEBUG_DIFFUSEMAP = 0,
@@ -21,6 +23,7 @@ namespace DSAnimStudio
         MESHDEBUG_NORMALS = 100,
         MESHDEBUG_NORMALS_MESH_ONLY = 101,
         MESHDEBUG_VERTEX_COLOR_ALPHA = 102,
+        MESHDEBUG_VERTEX_COLOR_RGB = 103,
 
         LEGACY = 200,
         PBR_GLOSS_DS3 = 201,

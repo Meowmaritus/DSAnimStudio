@@ -542,7 +542,7 @@ namespace DSAnimStudio
 
                 if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
-                    br.Position = start + 0x146;
+                    br.Position = start + 0x14E;
                 }
                 else
                 {
@@ -562,7 +562,7 @@ namespace DSAnimStudio
                 {
                     if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                     {
-                        br.Position = start + 0x14A;
+                        br.Position = start + 0x152;
                     }
                     else
                     {
@@ -743,6 +743,7 @@ namespace DSAnimStudio
                 br.Position = start + 0xD8;
 
                 if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+                    GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
                     GameDataManager.GameType == GameDataManager.GameTypes.BB)
                 {
                     var firstBitmask = ReadBitmask(br, 6 + 48);

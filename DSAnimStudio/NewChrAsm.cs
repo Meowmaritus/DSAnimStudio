@@ -163,7 +163,7 @@ namespace DSAnimStudio
                 RightWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime, false, false, 0);
             }
 
-            if (LeftWeaponModel != null && RightWeaponModel.AnimContainer != null)
+            if (LeftWeaponModel != null && LeftWeaponModel.AnimContainer != null)
             {
                 LeftWeaponModel.AnimContainer.IsLoop = false;
                 LeftWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime, false, false, 0);

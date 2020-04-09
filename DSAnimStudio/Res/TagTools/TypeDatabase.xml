@@ -1,0 +1,793 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<types>
+  <type alignment="8" byteSize="16" flags="41" hash="2517046881" id="1" name="hkRootLevelContainer" subTypeFlags="7">
+    <member flags="32" name="namedVariants" offset="0" type="2" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="188352321" id="2" name="hkArray" pointer="3" subTypeFlags="8">
+    <template name="tT" value="3" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="5" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="24" flags="45" hash="3786125824" id="3" name="hkRootLevelContainer::NamedVariant" subTypeFlags="7" version="1">
+    <member flags="36" name="name" offset="0" type="7" />
+    <member flags="36" name="className" offset="8" type="7" />
+    <member flags="36" name="variant" offset="16" type="8" />
+  </type>
+  <type alignment="1" byteSize="1" flags="57" id="4" name="hkContainerHeapAllocator" subTypeFlags="7" />
+  <type alignment="8" byteSize="8" flags="11" id="5" name="T*" pointer="3" subTypeFlags="6">
+    <template name="tT" value="3" />
+  </type>
+  <type alignment="4" byteSize="4" flags="9" id="6" name="int" subTypeFlags="33284" />
+  <type alignment="8" byteSize="8" flags="41" hash="2837000324" id="7" name="hkStringPtr" subTypeFlags="3">
+    <member flags="36" name="stringAndFlag" offset="0" type="9" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" hash="2872857893" id="8" name="hkRefVariant" pointer="10" subTypeFlags="6">
+    <member flags="36" name="ptr" offset="0" type="11" />
+  </type>
+  <type alignment="8" byteSize="8" flags="9" id="9" name="const char*" subTypeFlags="3" />
+  <type alignment="8" byteSize="16" flags="41" id="10" name="hkReferencedObject" parent="12" subTypeFlags="7">
+    <member flags="37" name="memSizeAndFlags" offset="8" type="13" />
+    <member flags="37" name="refCount" offset="10" type="13" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="11" name="T*" pointer="10" subTypeFlags="6">
+    <template name="tT" value="10" />
+  </type>
+  <type alignment="8" byteSize="8" flags="57" id="12" name="hkBaseObject" subTypeFlags="7" />
+  <type alignment="0" byteSize="0" flags="0" id="13" name="hkUint16" parent="14" />
+  <type alignment="2" byteSize="2" flags="9" id="14" name="unsigned short" subTypeFlags="16388" />
+  <type alignment="1" byteSize="1" flags="9" hash="4184862313" id="15" name="char" subTypeFlags="8196" />
+  <type alignment="8" byteSize="96" flags="45" hash="3294833177" id="16" name="hkaAnimationContainer" parent="10" subTypeFlags="7" version="1">
+    <member flags="32" name="skeletons" offset="16" type="17" />
+    <member flags="32" name="animations" offset="32" type="18" />
+    <member flags="32" name="bindings" offset="48" type="19" />
+    <member flags="32" name="attachments" offset="64" type="20" />
+    <member flags="32" name="skins" offset="80" type="21" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="17" name="hkArray" pointer="22" subTypeFlags="8">
+    <template name="tT" value="22" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="23" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="2995419249" id="18" name="hkArray" pointer="24" subTypeFlags="8">
+    <template name="tT" value="24" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="25" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="2651098392" id="19" name="hkArray" pointer="26" subTypeFlags="8">
+    <template name="tT" value="26" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="27" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="20" name="hkArray" pointer="28" subTypeFlags="8">
+    <template name="tT" value="28" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="29" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="21" name="hkArray" pointer="30" subTypeFlags="8">
+    <template name="tT" value="30" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="31" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="22" name="hkRefPtr" pointer="32" subTypeFlags="6">
+    <template name="tTYPE" value="32" />
+    <member flags="36" name="ptr" offset="0" type="33" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="23" name="T*" pointer="22" subTypeFlags="6">
+    <template name="tT" value="22" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" hash="835592334" id="24" name="hkRefPtr" pointer="34" subTypeFlags="6">
+    <template name="tTYPE" value="34" />
+    <member flags="36" name="ptr" offset="0" type="35" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="25" name="T*" pointer="24" subTypeFlags="6">
+    <template name="tT" value="24" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" hash="2009438005" id="26" name="hkRefPtr" pointer="36" subTypeFlags="6">
+    <template name="tTYPE" value="36" />
+    <member flags="36" name="ptr" offset="0" type="37" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="27" name="T*" pointer="26" subTypeFlags="6">
+    <template name="tT" value="26" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="28" name="hkRefPtr" pointer="38" subTypeFlags="6">
+    <template name="tTYPE" value="38" />
+    <member flags="36" name="ptr" offset="0" type="39" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="29" name="T*" pointer="28" subTypeFlags="6">
+    <template name="tT" value="28" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="30" name="hkRefPtr" pointer="40" subTypeFlags="6">
+    <template name="tTYPE" value="40" />
+    <member flags="36" name="ptr" offset="0" type="41" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="31" name="T*" pointer="30" subTypeFlags="6">
+    <template name="tT" value="30" />
+  </type>
+  <type alignment="8" byteSize="136" flags="45" id="32" name="hkaSkeleton" parent="10" subTypeFlags="7" version="6">
+    <member flags="32" name="name" offset="16" type="7" />
+    <member flags="32" name="parentIndices" offset="24" type="42" />
+    <member flags="32" name="bones" offset="40" type="43" />
+    <member flags="32" name="referencePose" offset="56" type="44" />
+    <member flags="32" name="referenceFloats" offset="72" type="45" />
+    <member flags="32" name="floatSlots" offset="88" type="46" />
+    <member flags="32" name="localFrames" offset="104" type="47" />
+    <member flags="32" name="partitions" offset="120" type="48" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="33" name="T*" pointer="32" subTypeFlags="6">
+    <template name="tT" value="32" />
+  </type>
+  <type alignment="8" byteSize="56" flags="61" id="34" name="hkaAnimation" parent="10" subTypeFlags="7" version="3">
+    <member flags="34" name="type" offset="16" type="49" />
+    <member flags="32" name="duration" offset="20" type="50" />
+    <member flags="32" name="numberOfTransformTracks" offset="24" type="6" />
+    <member flags="32" name="numberOfFloatTracks" offset="28" type="6" />
+    <member flags="34" name="extractedMotion" offset="32" type="51" />
+    <member flags="32" name="annotationTracks" offset="40" type="52" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="35" name="T*" pointer="34" subTypeFlags="6">
+    <template name="tT" value="34" />
+  </type>
+  <type alignment="8" byteSize="88" flags="45" hash="1548920428" id="36" name="hkaAnimationBinding" parent="10" subTypeFlags="7" version="3">
+    <member flags="32" name="originalSkeletonName" offset="16" type="7" />
+    <member flags="32" name="animation" offset="24" type="24" />
+    <member flags="32" name="transformTrackToBoneIndices" offset="32" type="42" />
+    <member flags="32" name="floatTrackToFloatSlotIndices" offset="48" type="42" />
+    <member flags="32" name="partitionIndices" offset="64" type="42" />
+    <member flags="32" name="blendHint" offset="80" type="53" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="37" name="T*" pointer="36" subTypeFlags="6">
+    <template name="tT" value="36" />
+  </type>
+  <type alignment="16" byteSize="128" flags="45" id="38" name="hkaBoneAttachment" parent="10" subTypeFlags="7" version="2">
+    <member flags="32" name="originalSkeletonName" offset="16" type="7" />
+    <member flags="32" name="boneFromAttachment" offset="32" type="54" />
+    <member flags="32" name="attachment" offset="96" type="8" />
+    <member flags="32" name="name" offset="104" type="7" />
+    <member flags="32" name="boneIndex" offset="112" type="55" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="39" name="T*" pointer="38" subTypeFlags="6">
+    <template name="tT" value="38" />
+  </type>
+  <type alignment="8" byteSize="80" flags="45" id="40" name="hkaMeshBinding" parent="10" subTypeFlags="7" version="3">
+    <member flags="32" name="mesh" offset="16" type="56" />
+    <member flags="32" name="originalSkeletonName" offset="24" type="7" />
+    <member flags="32" name="name" offset="32" type="7" />
+    <member flags="32" name="skeleton" offset="40" type="22" />
+    <member flags="32" name="mappings" offset="48" type="57" />
+    <member flags="32" name="boneFromSkinMeshTransforms" offset="64" type="58" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="41" name="T*" pointer="40" subTypeFlags="6">
+    <template name="tT" value="40" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="2354433887" id="42" name="hkArray" pointer="55" subTypeFlags="8">
+    <template name="tT" value="55" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="59" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="43" name="hkArray" pointer="60" subTypeFlags="8">
+    <template name="tT" value="60" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="61" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="44" name="hkArray" pointer="62" subTypeFlags="8">
+    <template name="tT" value="62" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="63" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="45" name="hkArray" pointer="50" subTypeFlags="8">
+    <template name="tT" value="50" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="64" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="46" name="hkArray" pointer="7" subTypeFlags="8">
+    <template name="tT" value="7" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="65" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="47" name="hkArray" pointer="66" subTypeFlags="8">
+    <template name="tT" value="66" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="67" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="48" name="hkArray" pointer="68" subTypeFlags="8">
+    <template name="tT" value="68" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="69" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="49" name="hkEnum" parent="70">
+    <template name="tENUM" value="71" />
+    <template name="tSTORAGE" value="70" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="50" name="hkReal" parent="72" />
+  <type alignment="8" byteSize="8" flags="43" hash="686995507" id="51" name="hkRefPtr" pointer="73" subTypeFlags="6">
+    <template name="tTYPE" value="73" />
+    <member flags="36" name="ptr" offset="0" type="74" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="409807455" id="52" name="hkArray" pointer="75" subTypeFlags="8">
+    <template name="tT" value="75" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="76" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="53" name="hkEnum" parent="77">
+    <template name="tENUM" value="78" />
+    <template name="tSTORAGE" value="77" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="54" name="hkMatrix4" parent="79" />
+  <type alignment="0" byteSize="0" flags="0" hash="1556469994" id="55" name="hkInt16" parent="80" />
+  <type alignment="8" byteSize="8" flags="43" id="56" name="hkRefPtr" pointer="81" subTypeFlags="6">
+    <template name="tTYPE" value="81" />
+    <member flags="36" name="ptr" offset="0" type="82" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="57" name="hkArray" pointer="83" subTypeFlags="8">
+    <template name="tT" value="83" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="84" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="58" name="hkArray" pointer="85" subTypeFlags="8">
+    <template name="tT" value="85" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="86" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="59" name="T*" pointer="55" subTypeFlags="6">
+    <template name="tT" value="55" />
+  </type>
+  <type alignment="8" byteSize="16" flags="41" id="60" name="hkaBone" subTypeFlags="7">
+    <member flags="32" name="name" offset="0" type="7" />
+    <member flags="32" name="lockTranslation" offset="8" type="87" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="61" name="T*" pointer="60" subTypeFlags="6">
+    <template name="tT" value="60" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="62" name="hkQsTransform" parent="88" />
+  <type alignment="8" byteSize="8" flags="11" id="63" name="T*" pointer="62" subTypeFlags="6">
+    <template name="tT" value="62" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="64" name="T*" pointer="50" subTypeFlags="6">
+    <template name="tT" value="50" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="65" name="T*" pointer="7" subTypeFlags="6">
+    <template name="tT" value="7" />
+  </type>
+  <type alignment="8" byteSize="16" flags="41" id="66" name="hkaSkeleton::LocalFrameOnBone" subTypeFlags="7">
+    <member flags="32" name="localFrame" offset="0" type="89" />
+    <member flags="32" name="boneIndex" offset="8" type="55" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="67" name="T*" pointer="66" subTypeFlags="6">
+    <template name="tT" value="66" />
+  </type>
+  <type alignment="8" byteSize="16" flags="45" id="68" name="hkaSkeleton::Partition" subTypeFlags="7" version="1">
+    <member flags="32" name="name" offset="0" type="7" />
+    <member flags="32" name="startBoneIndex" offset="8" type="55" />
+    <member flags="32" name="numBones" offset="10" type="55" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="69" name="T*" pointer="68" subTypeFlags="6">
+    <template name="tT" value="68" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="70" name="hkInt32" parent="6" />
+  <type alignment="4" byteSize="4" flags="9" id="71" name="hkaAnimation::AnimationType" subTypeFlags="33284" />
+  <type alignment="4" byteSize="4" flags="9" id="72" name="float" subTypeFlags="1525253" />
+  <type alignment="8" byteSize="24" flags="57" id="73" name="hkaAnimatedReferenceFrame" parent="10" subTypeFlags="7">
+    <member flags="33" name="frameType" offset="16" type="90" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="74" name="T*" pointer="73" subTypeFlags="6">
+    <template name="tT" value="73" />
+  </type>
+  <type alignment="8" byteSize="24" flags="41" hash="826888163" id="75" name="hkaAnnotationTrack" subTypeFlags="7">
+    <member flags="32" name="trackName" offset="0" type="7" />
+    <member flags="32" name="annotations" offset="8" type="91" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="76" name="T*" pointer="75" subTypeFlags="6">
+    <template name="tT" value="75" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="77" name="hkInt8" parent="92" />
+  <type alignment="4" byteSize="4" flags="9" id="78" name="hkaAnimationBinding::BlendHint" subTypeFlags="33284" />
+  <type alignment="16" byteSize="64" flags="43" id="79" name="hkMatrix4f" pointer="72" subTypeFlags="4136">
+    <member flags="34" name="col0" offset="0" type="93" />
+    <member flags="34" name="col1" offset="16" type="93" />
+    <member flags="34" name="col2" offset="32" type="93" />
+    <member flags="34" name="col3" offset="48" type="93" />
+  </type>
+  <type alignment="2" byteSize="2" flags="9" id="80" name="short" subTypeFlags="16900" />
+  <type alignment="8" byteSize="48" flags="45" id="81" name="hkxMesh" parent="10" subTypeFlags="7" version="1">
+    <member flags="32" name="sections" offset="16" type="94" />
+    <member flags="32" name="userChannelInfos" offset="32" type="95" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="82" name="T*" pointer="81" subTypeFlags="6">
+    <template name="tT" value="81" />
+  </type>
+  <type alignment="8" byteSize="16" flags="41" id="83" name="hkaMeshBinding::Mapping" subTypeFlags="7">
+    <member flags="32" name="mapping" offset="0" type="42" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="84" name="T*" pointer="83" subTypeFlags="6">
+    <template name="tT" value="83" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="85" name="hkTransform" parent="96" />
+  <type alignment="8" byteSize="8" flags="11" id="86" name="T*" pointer="85" subTypeFlags="6">
+    <template name="tT" value="85" />
+  </type>
+  <type alignment="1" byteSize="1" flags="41" id="87" name="hkBool" subTypeFlags="8194">
+    <member flags="36" name="bool" offset="0" type="15" />
+  </type>
+  <type alignment="16" byteSize="48" flags="41" id="88" name="hkQsTransformf" subTypeFlags="7">
+    <member flags="32" name="translation" offset="0" type="93" />
+    <member flags="32" name="rotation" offset="16" type="97" />
+    <member flags="32" name="scale" offset="32" type="93" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="89" name="hkRefPtr" pointer="98" subTypeFlags="6">
+    <template name="tTYPE" value="98" />
+    <member flags="36" name="ptr" offset="0" type="99" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="90" name="hkEnum" parent="77">
+    <template name="tENUM" value="100" />
+    <template name="tSTORAGE" value="77" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="91" name="hkArray" pointer="101" subTypeFlags="8">
+    <template name="tT" value="101" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="102" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="1" byteSize="1" flags="9" id="92" name="signed char" subTypeFlags="8708" />
+  <type alignment="16" byteSize="16" flags="11" id="93" name="hkVector4f" pointer="72" subTypeFlags="1064" />
+  <type alignment="8" byteSize="16" flags="43" id="94" name="hkArray" pointer="103" subTypeFlags="8">
+    <template name="tT" value="103" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="104" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="95" name="hkArray" pointer="105" subTypeFlags="8">
+    <template name="tT" value="105" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="106" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="16" byteSize="64" flags="43" id="96" name="hkTransformf" pointer="72" subTypeFlags="4136">
+    <member flags="34" name="rotation" offset="0" type="107" />
+    <member flags="34" name="translation" offset="48" type="93" />
+  </type>
+  <type alignment="16" byteSize="16" flags="43" id="97" name="hkQuaternionf" pointer="72" subTypeFlags="1064">
+    <member flags="32" name="vec" offset="0" type="93" />
+  </type>
+  <type alignment="8" byteSize="16" flags="57" id="98" name="hkLocalFrame" parent="10" subTypeFlags="7" />
+  <type alignment="8" byteSize="8" flags="11" id="99" name="T*" pointer="98" subTypeFlags="6">
+    <template name="tT" value="98" />
+  </type>
+  <type alignment="4" byteSize="4" flags="9" id="100" name="hkaAnimatedReferenceFrame::hkaReferenceFrameTypeEnum" subTypeFlags="33284" />
+  <type alignment="8" byteSize="16" flags="41" id="101" name="hkaAnnotationTrack::Annotation" subTypeFlags="7">
+    <member flags="32" name="time" offset="0" type="50" />
+    <member flags="32" name="text" offset="8" type="7" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="102" name="T*" pointer="101" subTypeFlags="6">
+    <template name="tT" value="101" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="103" name="hkRefPtr" pointer="108" subTypeFlags="6">
+    <template name="tTYPE" value="108" />
+    <member flags="36" name="ptr" offset="0" type="109" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="104" name="T*" pointer="103" subTypeFlags="6">
+    <template name="tT" value="103" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="105" name="hkRefPtr" pointer="110" subTypeFlags="6">
+    <template name="tTYPE" value="110" />
+    <member flags="36" name="ptr" offset="0" type="111" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="106" name="T*" pointer="105" subTypeFlags="6">
+    <template name="tT" value="105" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="107" name="hkRotationf" parent="112" />
+  <type alignment="8" byteSize="112" flags="45" id="108" name="hkxMeshSection" parent="10" subTypeFlags="7" version="5">
+    <member flags="32" name="vertexBuffer" offset="16" type="113" />
+    <member flags="32" name="indexBuffers" offset="24" type="114" />
+    <member flags="32" name="material" offset="40" type="115" />
+    <member flags="32" name="userChannels" offset="48" type="116" />
+    <member flags="32" name="vertexAnimations" offset="64" type="117" />
+    <member flags="32" name="linearKeyFrameHints" offset="80" type="118" />
+    <member flags="32" name="boneMatrixMap" offset="96" type="119" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="109" name="T*" pointer="108" subTypeFlags="6">
+    <template name="tT" value="108" />
+  </type>
+  <type alignment="8" byteSize="48" flags="41" id="110" name="hkxMesh::UserChannelInfo" parent="120" subTypeFlags="7">
+    <member flags="32" name="name" offset="32" type="7" />
+    <member flags="32" name="className" offset="40" type="7" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="111" name="T*" pointer="110" subTypeFlags="6">
+    <template name="tT" value="110" />
+  </type>
+  <type alignment="16" byteSize="48" flags="11" id="112" name="hkRotationImpl" pointer="72" subTypeFlags="3112">
+    <template name="tFT" value="72" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="113" name="hkRefPtr" pointer="121" subTypeFlags="6">
+    <template name="tTYPE" value="121" />
+    <member flags="36" name="ptr" offset="0" type="122" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="114" name="hkArray" pointer="123" subTypeFlags="8">
+    <template name="tT" value="123" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="124" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="115" name="hkRefPtr" pointer="125" subTypeFlags="6">
+    <template name="tTYPE" value="125" />
+    <member flags="36" name="ptr" offset="0" type="126" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="116" name="hkArray" pointer="8" subTypeFlags="8">
+    <template name="tT" value="8" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="127" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="117" name="hkArray" pointer="128" subTypeFlags="8">
+    <template name="tT" value="128" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="129" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="118" name="hkArray" pointer="72" subTypeFlags="8">
+    <template name="tT" value="72" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="130" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="119" name="hkArray" pointer="131" subTypeFlags="8">
+    <template name="tT" value="131" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="132" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="32" flags="45" id="120" name="hkxAttributeHolder" parent="10" subTypeFlags="7" version="2">
+    <member flags="32" name="attributeGroups" offset="16" type="133" />
+  </type>
+  <type alignment="8" byteSize="136" flags="45" id="121" name="hkxVertexBuffer" parent="10" subTypeFlags="7" version="1">
+    <member flags="34" name="data" offset="16" type="134" />
+    <member flags="34" name="desc" offset="120" type="135" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="122" name="T*" pointer="121" subTypeFlags="6">
+    <template name="tT" value="121" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="123" name="hkRefPtr" pointer="136" subTypeFlags="6">
+    <template name="tTYPE" value="136" />
+    <member flags="36" name="ptr" offset="0" type="137" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="124" name="T*" pointer="123" subTypeFlags="6">
+    <template name="tT" value="123" />
+  </type>
+  <type alignment="16" byteSize="224" flags="45" id="125" name="hkxMaterial" parent="120" subTypeFlags="7" version="5">
+    <member flags="32" name="name" offset="32" type="7" />
+    <member flags="32" name="stages" offset="40" type="138" />
+    <member flags="32" name="diffuseColor" offset="64" type="139" />
+    <member flags="32" name="ambientColor" offset="80" type="139" />
+    <member flags="32" name="specularColor" offset="96" type="139" />
+    <member flags="32" name="emissiveColor" offset="112" type="139" />
+    <member flags="32" name="subMaterials" offset="128" type="140" />
+    <member flags="32" name="extraData" offset="144" type="8" />
+    <member flags="32" name="uvMapScale" offset="152" type="141" />
+    <member flags="32" name="uvMapOffset" offset="160" type="141" />
+    <member flags="32" name="uvMapRotation" offset="168" type="50" />
+    <member flags="32" name="uvMapAlgorithm" offset="172" type="142" />
+    <member flags="32" name="specularMultiplier" offset="176" type="50" />
+    <member flags="32" name="specularExponent" offset="180" type="50" />
+    <member flags="32" name="transparency" offset="184" type="143" />
+    <member flags="32" name="userData" offset="192" type="144" />
+    <member flags="34" name="properties" offset="200" type="145" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="126" name="T*" pointer="125" subTypeFlags="6">
+    <template name="tT" value="125" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="127" name="T*" pointer="8" subTypeFlags="6">
+    <template name="tT" value="8" />
+  </type>
+  <type alignment="8" byteSize="8" flags="43" id="128" name="hkRefPtr" pointer="146" subTypeFlags="6">
+    <template name="tTYPE" value="146" />
+    <member flags="36" name="ptr" offset="0" type="147" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="129" name="T*" pointer="128" subTypeFlags="6">
+    <template name="tT" value="128" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="130" name="T*" pointer="72" subTypeFlags="6">
+    <template name="tT" value="72" />
+  </type>
+  <type alignment="8" byteSize="16" flags="41" id="131" name="hkMeshBoneIndexMapping" subTypeFlags="7">
+    <member flags="32" name="mapping" offset="0" type="42" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="132" name="T*" pointer="131" subTypeFlags="6">
+    <template name="tT" value="131" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="133" name="hkArray" pointer="148" subTypeFlags="8">
+    <template name="tT" value="148" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="149" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="104" flags="45" id="134" name="hkxVertexBuffer::VertexData" subTypeFlags="7" version="2">
+    <member flags="32" name="vectorData" offset="0" type="150" />
+    <member flags="32" name="floatData" offset="16" type="150" />
+    <member flags="32" name="uint32Data" offset="32" type="151" />
+    <member flags="32" name="uint16Data" offset="48" type="152" />
+    <member flags="32" name="uint8Data" offset="64" type="153" />
+    <member flags="32" name="numVerts" offset="80" type="154" />
+    <member flags="32" name="vectorStride" offset="84" type="154" />
+    <member flags="32" name="floatStride" offset="88" type="154" />
+    <member flags="32" name="uint32Stride" offset="92" type="154" />
+    <member flags="32" name="uint16Stride" offset="96" type="154" />
+    <member flags="32" name="uint8Stride" offset="100" type="154" />
+  </type>
+  <type alignment="8" byteSize="16" flags="45" id="135" name="hkxVertexDescription" subTypeFlags="7" version="1">
+    <member flags="32" name="decls" offset="0" type="155" />
+  </type>
+  <type alignment="8" byteSize="64" flags="45" id="136" name="hkxIndexBuffer" parent="10" subTypeFlags="7" version="1">
+    <member flags="32" name="indexType" offset="16" type="156" />
+    <member flags="32" name="indices16" offset="24" type="152" />
+    <member flags="32" name="indices32" offset="40" type="151" />
+    <member flags="32" name="vertexBaseOffset" offset="56" type="154" />
+    <member flags="32" name="length" offset="60" type="154" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="137" name="T*" pointer="136" subTypeFlags="6">
+    <template name="tT" value="136" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="138" name="hkArray" pointer="157" subTypeFlags="8">
+    <template name="tT" value="157" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="158" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" hash="3266831369" id="139" name="hkVector4" parent="93" />
+  <type alignment="8" byteSize="16" flags="43" id="140" name="hkArray" pointer="115" subTypeFlags="8">
+    <template name="tT" value="115" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="159" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="4" byteSize="8" flags="11" id="141" name="T[N]" pointer="50" subTypeFlags="552">
+    <template name="tT" value="50" />
+    <template name="vN" value="2" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="142" name="hkEnum" parent="154">
+    <template name="tENUM" value="160" />
+    <template name="tSTORAGE" value="154" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="143" name="hkEnum" parent="161">
+    <template name="tENUM" value="162" />
+    <template name="tSTORAGE" value="161" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="144" name="hkUlong" parent="163" />
+  <type alignment="8" byteSize="16" flags="43" id="145" name="hkArray" pointer="164" subTypeFlags="8">
+    <template name="tT" value="164" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="165" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="192" flags="45" id="146" name="hkxVertexAnimation" parent="10" subTypeFlags="7" version="0">
+    <member flags="32" name="time" offset="16" type="50" />
+    <member flags="32" name="vertData" offset="24" type="121" />
+    <member flags="32" name="vertexIndexMap" offset="160" type="166" />
+    <member flags="32" name="componentMap" offset="176" type="167" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="147" name="T*" pointer="146" subTypeFlags="6">
+    <template name="tT" value="146" />
+  </type>
+  <type alignment="8" byteSize="24" flags="41" id="148" name="hkxAttributeGroup" subTypeFlags="7">
+    <member flags="32" name="name" offset="0" type="7" />
+    <member flags="32" name="attributes" offset="8" type="168" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="149" name="T*" pointer="148" subTypeFlags="6">
+    <template name="tT" value="148" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="150" name="hkArray" pointer="169" subTypeFlags="8">
+    <template name="tT" value="169" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="170" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="4255738572" id="151" name="hkArray" pointer="154" subTypeFlags="8">
+    <template name="tT" value="154" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="171" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="152" name="hkArray" pointer="13" subTypeFlags="8">
+    <template name="tT" value="13" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="172" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="2877151166" id="153" name="hkArray" pointer="161" subTypeFlags="8">
+    <template name="tT" value="161" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="173" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" hash="1716249908" id="154" name="hkUint32" parent="169" />
+  <type alignment="8" byteSize="16" flags="43" id="155" name="hkArray" pointer="174" subTypeFlags="8">
+    <template name="tT" value="174" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="175" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="156" name="hkEnum" parent="77">
+    <template name="tENUM" value="176" />
+    <template name="tSTORAGE" value="77" />
+  </type>
+  <type alignment="8" byteSize="16" flags="45" id="157" name="hkxMaterial::TextureStage" subTypeFlags="7" version="1">
+    <member flags="32" name="texture" offset="0" type="8" />
+    <member flags="32" name="usageHint" offset="8" type="177" />
+    <member flags="32" name="tcoordChannel" offset="12" type="70" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="158" name="T*" pointer="157" subTypeFlags="6">
+    <template name="tT" value="157" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="159" name="T*" pointer="115" subTypeFlags="6">
+    <template name="tT" value="115" />
+  </type>
+  <type alignment="4" byteSize="4" flags="9" id="160" name="hkxMaterial::UVMappingAlgorithm" subTypeFlags="33284" />
+  <type alignment="0" byteSize="0" flags="0" hash="3721671547" id="161" name="hkUint8" parent="178" />
+  <type alignment="4" byteSize="4" flags="9" id="162" name="hkxMaterial::Transparency" subTypeFlags="33284" />
+  <type alignment="8" byteSize="8" flags="9" id="163" name="unsigned long long" subTypeFlags="65540" />
+  <type alignment="4" byteSize="8" flags="41" id="164" name="hkxMaterial::Property" subTypeFlags="7">
+    <member flags="32" name="key" offset="0" type="154" />
+    <member flags="32" name="value" offset="4" type="154" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="165" name="T*" pointer="164" subTypeFlags="6">
+    <template name="tT" value="164" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="166" name="hkArray" pointer="70" subTypeFlags="8">
+    <template name="tT" value="70" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="179" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="167" name="hkArray" pointer="180" subTypeFlags="8">
+    <template name="tT" value="180" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="181" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" id="168" name="hkArray" pointer="182" subTypeFlags="8">
+    <template name="tT" value="182" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="183" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="4" byteSize="4" flags="9" id="169" name="unsigned int" subTypeFlags="32772" />
+  <type alignment="8" byteSize="8" flags="11" id="170" name="T*" pointer="169" subTypeFlags="6">
+    <template name="tT" value="169" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="171" name="T*" pointer="154" subTypeFlags="6">
+    <template name="tT" value="154" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="172" name="T*" pointer="13" subTypeFlags="6">
+    <template name="tT" value="13" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="173" name="T*" pointer="161" subTypeFlags="6">
+    <template name="tT" value="161" />
+  </type>
+  <type alignment="8" byteSize="24" flags="45" id="174" name="hkxVertexDescription::ElementDecl" subTypeFlags="7" version="4">
+    <member flags="32" name="byteOffset" offset="0" type="154" />
+    <member flags="32" name="type" offset="4" type="184" />
+    <member flags="32" name="usage" offset="6" type="185" />
+    <member flags="32" name="byteStride" offset="8" type="154" />
+    <member flags="32" name="numElements" offset="12" type="161" />
+    <member flags="32" name="channelID" offset="16" type="7" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="175" name="T*" pointer="174" subTypeFlags="6">
+    <template name="tT" value="174" />
+  </type>
+  <type alignment="4" byteSize="4" flags="9" id="176" name="hkxIndexBuffer::IndexType" subTypeFlags="33284" />
+  <type alignment="0" byteSize="0" flags="0" id="177" name="hkEnum" parent="70">
+    <template name="tENUM" value="186" />
+    <template name="tSTORAGE" value="70" />
+  </type>
+  <type alignment="1" byteSize="1" flags="9" id="178" name="unsigned char" subTypeFlags="8196" />
+  <type alignment="8" byteSize="8" flags="11" id="179" name="T*" pointer="70" subTypeFlags="6">
+    <template name="tT" value="70" />
+  </type>
+  <type alignment="2" byteSize="4" flags="41" id="180" name="hkxVertexAnimation::UsageMap" subTypeFlags="7">
+    <member flags="32" name="use" offset="0" type="185" />
+    <member flags="32" name="useIndexOrig" offset="2" type="161" />
+    <member flags="32" name="useIndexLocal" offset="3" type="161" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="181" name="T*" pointer="180" subTypeFlags="6">
+    <template name="tT" value="180" />
+  </type>
+  <type alignment="8" byteSize="16" flags="45" id="182" name="hkxAttribute" subTypeFlags="7" version="1">
+    <member flags="32" name="name" offset="0" type="7" />
+    <member flags="32" name="value" offset="8" type="8" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="183" name="T*" pointer="182" subTypeFlags="6">
+    <template name="tT" value="182" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="184" name="hkEnum" parent="13">
+    <template name="tENUM" value="187" />
+    <template name="tSTORAGE" value="13" />
+  </type>
+  <type alignment="0" byteSize="0" flags="0" id="185" name="hkEnum" parent="13">
+    <template name="tENUM" value="188" />
+    <template name="tSTORAGE" value="13" />
+  </type>
+  <type alignment="4" byteSize="4" flags="9" id="186" name="hkxMaterial::TextureType" subTypeFlags="33284" />
+  <type alignment="4" byteSize="4" flags="9" id="187" name="hkxVertexDescription::DataType" subTypeFlags="33284" />
+  <type alignment="4" byteSize="4" flags="9" id="188" name="hkxVertexDescription::DataUsage" subTypeFlags="33284" />
+  <type alignment="8" byteSize="176" flags="41" hash="469459246" id="189" name="hkaSplineCompressedAnimation" parent="34" subTypeFlags="7">
+    <member flags="36" name="numFrames" offset="56" type="6" />
+    <member flags="36" name="numBlocks" offset="60" type="6" />
+    <member flags="36" name="maxFramesPerBlock" offset="64" type="6" />
+    <member flags="36" name="maskAndQuantizationSize" offset="68" type="6" />
+    <member flags="36" name="blockDuration" offset="72" type="50" />
+    <member flags="36" name="blockInverseDuration" offset="76" type="50" />
+    <member flags="36" name="frameDuration" offset="80" type="50" />
+    <member flags="36" name="blockOffsets" offset="88" type="151" />
+    <member flags="36" name="floatBlockOffsets" offset="104" type="151" />
+    <member flags="36" name="transformOffsets" offset="120" type="151" />
+    <member flags="36" name="floatOffsets" offset="136" type="151" />
+    <member flags="36" name="data" offset="152" type="153" />
+    <member flags="36" name="endian" offset="168" type="6" />
+  </type>
+  <type alignment="16" byteSize="96" flags="41" hash="2816999057" id="190" name="hkaDefaultAnimatedReferenceFrame" parent="73" subTypeFlags="7">
+    <member flags="32" name="up" offset="32" type="139" />
+    <member flags="32" name="forward" offset="48" type="139" />
+    <member flags="32" name="duration" offset="64" type="50" />
+    <member flags="32" name="referenceFrameSamples" offset="72" type="191" />
+  </type>
+  <type alignment="8" byteSize="16" flags="43" hash="2234779563" id="191" name="hkArray" pointer="139" subTypeFlags="8">
+    <template name="tT" value="139" />
+    <template name="tAllocator" value="4" />
+    <member flags="34" name="m_data" offset="0" type="192" />
+    <member flags="34" name="m_size" offset="8" type="6" />
+    <member flags="34" name="m_capacityAndFlags" offset="12" type="6" />
+  </type>
+  <type alignment="8" byteSize="8" flags="11" id="192" name="T*" pointer="139" subTypeFlags="6">
+    <template name="tT" value="139" />
+  </type>
+</types>

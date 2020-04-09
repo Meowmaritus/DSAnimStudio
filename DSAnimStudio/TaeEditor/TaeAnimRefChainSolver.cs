@@ -21,10 +21,14 @@ namespace DSAnimStudio.TaeEditor
             HKXDict = hkxDict;
         }
 
+        bool IsGameLongAnimNames => (Game == GameDataManager.GameTypes.BB || 
+            Game == GameDataManager.GameTypes.DS3 || 
+            Game == GameDataManager.GameTypes.SDT);
+
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {
-            return ((Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3) ? (id / 1000000) : (id / 10000), 
-                (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3) ? (id % 1000000) : (id % 10000));
+            return (IsGameLongAnimNames ? (id / 1000000) : (id / 10000),
+                IsGameLongAnimNames ? (id % 1000000) : (id % 10000));
         }
 
         private bool DoesAnimExist(int compositeID)
@@ -45,7 +49,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (TaeDict.Count > 1)
                 {
-                    if (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3)
+                    if (IsGameLongAnimNames)
                     {
                         result.Add($"a{GetTAEID(rc.tae):D3}_{rc.anim.ID:D6}");
                     }
@@ -58,7 +62,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     var split = GetSplitAnimID(rc.anim.ID);
 
-                    if (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3)
+                    if (IsGameLongAnimNames)
                     {
                         result.Add($"a{split.Upper:D3}_{split.Lower:D6}");
                     }
@@ -142,7 +146,7 @@ namespace DSAnimStudio.TaeEditor
 
         private long GetCompositeAnimID((long Upper, long Lower) id)
         {
-            if (Game == GameDataManager.GameTypes.DS3 || Game == GameDataManager.GameTypes.BB)
+            if (IsGameLongAnimNames)
             {
                 return (id.Upper * 1_000000) + (id.Lower % 1_000000);
             }
@@ -294,7 +298,7 @@ namespace DSAnimStudio.TaeEditor
         {
             var splitID = GetSplitAnimID(compositeID);
 
-            if (Game == GameDataManager.GameTypes.BB || Game == GameDataManager.GameTypes.DS3)
+            if (IsGameLongAnimNames)
             {
                 return $"a{splitID.Upper:D3}_{splitID.Lower:D6}.hkx";
             }
