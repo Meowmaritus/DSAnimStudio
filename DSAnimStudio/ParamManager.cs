@@ -131,7 +131,8 @@ namespace DSAnimStudio
                     rowData.ID = row.ID;
                     rowData.Name = row.Name;
                     rowData.Read(param.GetRowReader(row));
-                    paramDict.Add(row.ID, rowData);
+                    if (!paramDict.ContainsKey(row.ID))
+                        paramDict.Add(row.ID, rowData);
                 }
             }
 
