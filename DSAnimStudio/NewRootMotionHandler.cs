@@ -40,34 +40,12 @@ namespace DSAnimStudio
         }
 
         // TODO: Move this value's behavior to NewRootMotionHandler
-        public bool Accumulate { get { return data.Accumulate; } set { data.Accumulate = value; } }
+        public bool Accumulate;
 
         // TODO: Move this to data
         private Vector4 GetSample(float frame)
         {
-            float frameFloor = (float)Math.Floor(frame % (Frames.Length - 1));
-            Vector4 sample = Frames[(int)frameFloor];
-
-            if (frame != frameFloor)
-            {
-                float frameMod = frame % 1;
-
-                Vector4 nextFrameRootMotion;
-
-                //if (frame >= Frames.Length - 1)
-                //    nextFrameRootMotion = Frames[0];
-                //else
-                //    nextFrameRootMotion = Frames[(int)(frameFloor + 1)];
-
-                nextFrameRootMotion = Frames[(int)(frameFloor + 1)];
-
-                sample.X = MathHelper.Lerp(sample.X, nextFrameRootMotion.X, frameMod);
-                sample.Y = MathHelper.Lerp(sample.Y, nextFrameRootMotion.Y, frameMod);
-                sample.Z = MathHelper.Lerp(sample.Z, nextFrameRootMotion.Z, frameMod);
-                sample.W = MathHelper.Lerp(sample.W, nextFrameRootMotion.W, frameMod);
-            }
-
-            return sample;
+            return data.GetSample(frame).ToXna();
         }
 
         public void Reset(float frame)
@@ -75,18 +53,32 @@ namespace DSAnimStudio
             prevFrameData = GetSample(frame);
         }
 
+        private float lastFrame;
+
         public (Vector4 Motion, float Direction) UpdateRootMotion(Vector4 currentRootMotion, float currentDirection, float currentFrame, int loopCountDelta, bool forceAbsoluteRootMotion)
         {
-            var returned = data.UpdateRootMotion(currentRootMotion.ToCS(), prevFrameData.ToCS(), currentDirection, currentFrame, loopCountDelta, forceAbsoluteRootMotion);
-
-            // TODO: this code is left from UpdateRootMotion implementation
-            // that was moved into SoulsFormats; maybe remove it
-            if (!forceAbsoluteRootMotion)
+            if (forceAbsoluteRootMotion)
             {
-                prevFrameData = GetSample(currentFrame);
+                return (currentRootMotion, currentDirection);
             }
 
-            return (returned.Motion.ToXna(), returned.Direction);
+            float lastFrameToUse = Accumulate ? lastFrame : 0;
+
+            float lastTimeToUse = Duration * lastFrameToUse / Frames.Length;
+            float currentTime = Duration* currentFrame / Frames.Length;
+
+            float nextTimeToUse = currentTime + (Accumulate ? Duration * loopCountDelta : 0);
+
+            lastFrame = currentFrame;
+
+            var rootMotionChange = data.ExtractRootMotion(lastTimeToUse, nextTimeToUse);
+
+            if (Accumulate)
+            {
+                return (currentRootMotion + new Vector4(rootMotionChange.positionChange.ToXna(), 0), currentDirection + rootMotionChange.directionChange);
+            }
+
+            return (new Vector4(rootMotionChange.positionChange.ToXna(), 0), rootMotionChange.directionChange);
 
         }
     }
