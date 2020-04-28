@@ -190,19 +190,7 @@ namespace DSAnimStudio
             Skeleton = skeleton;
             if (refFrame != null)
             {
-                var rootMotionFrames = new Vector4[refFrame.ReferenceFrameSamples.Size];
-                for (int i = 0; i < refFrame.ReferenceFrameSamples.Size; i++)
-                {
-                    rootMotionFrames[i] = new Vector4(
-                        refFrame.ReferenceFrameSamples[i].Vector.X,
-                        refFrame.ReferenceFrameSamples[i].Vector.Y,
-                        refFrame.ReferenceFrameSamples[i].Vector.Z,
-                        refFrame.ReferenceFrameSamples[i].Vector.W);
-                }
-                var rootMotionUp = new Vector4(refFrame.Up.X, refFrame.Up.Y, refFrame.Up.Z, refFrame.Up.W);
-                var rootMotionForward = new Vector4(refFrame.Forward.X, refFrame.Forward.Y, refFrame.Forward.Z, refFrame.Forward.W);
-
-                RootMotion = new NewRootMotionHandler(rootMotionUp, rootMotionForward, refFrame.Duration, rootMotionFrames);
+                RootMotion = new NewRootMotionHandler(new NewRootMotionHandlerData(refFrame));
             }
 
             lock (_lock_boneMatrixStuff)

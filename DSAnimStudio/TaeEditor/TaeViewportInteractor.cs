@@ -630,7 +630,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(0);
                 CurrentModel.AnimContainer.CurrentRootMotionVector = Vector4.Zero;
-                CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
+                //CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
             }
         }
 
