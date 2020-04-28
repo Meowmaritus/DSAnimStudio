@@ -6,11 +6,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using SoulsFormats.Havok;
+
 namespace DSAnimStudio
 {
     public class NewHavokAnimation_SplineCompressed : NewHavokAnimation
     {
-        public List<Havok.SplineCompressedAnimation.TransformTrack[]> Tracks;
+        public List<SplineCompressedAnimation.TransformTrack[]> Tracks;
 
         // Index into array = hkx bone index, result = transform track index.
         private int[] HkxBoneIndexToTransformTrackMap;
@@ -55,7 +57,7 @@ namespace DSAnimStudio
                 TransformTrackIndexToHkxBoneMap[i] = boneIndex;
             }
 
-            Tracks = Havok.SplineCompressedAnimation.ReadSplineCompressedAnimByteBlock(
+            Tracks = SplineCompressedAnimation.ReadSplineCompressedAnimByteBlock(
                 isBigEndian: false, anim.GetData(), anim.TransformTrackCount, anim.BlockCount);
         }
 
@@ -87,17 +89,17 @@ namespace DSAnimStudio
             }
             else
             {
-                if (track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
+                if (track.Mask.ScaleTypes.Contains(SplineCompressedAnimation.FlagOffset.StaticX))
                     result.Scale.X = track.StaticScale.X;
                 else
                     result.Scale.X = IsAdditiveBlend ? 1 : skeleTransform.Scale.Vector.X;
 
-                if (track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
+                if (track.Mask.ScaleTypes.Contains(SplineCompressedAnimation.FlagOffset.StaticY))
                     result.Scale.Y = track.StaticScale.Y;
                 else
                     result.Scale.Y = IsAdditiveBlend ? 1 : skeleTransform.Scale.Vector.Y;
 
-                if (track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
+                if (track.Mask.ScaleTypes.Contains(SplineCompressedAnimation.FlagOffset.StaticZ))
                     result.Scale.Z = track.StaticScale.Z;
                 else
                     result.Scale.Z = IsAdditiveBlend ? 1 : skeleTransform.Scale.Vector.Z;
@@ -117,12 +119,12 @@ namespace DSAnimStudio
 
             if (track.SplineRotation != null)//track.HasSplineRotation)
             {
-                result.Rotation = track.SplineRotation.GetValue(frame);
+                result.Rotation = track.SplineRotation.GetValue(frame).ToXna();
             }
             else if (track.HasStaticRotation)
             {
                 // We actually need static rotation or Gael hands become unbent among others
-                result.Rotation = track.StaticRotation;
+                result.Rotation = track.StaticRotation.ToXna();
             }
             else
             {
@@ -155,17 +157,17 @@ namespace DSAnimStudio
             }
             else
             {
-                if (track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
+                if (track.Mask.PositionTypes.Contains(SplineCompressedAnimation.FlagOffset.StaticX))
                     result.Translation.X = track.StaticPosition.X;
                 else
                     result.Translation.X = IsAdditiveBlend ? 0 : skeleTransform.Position.Vector.X;
 
-                if (track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
+                if (track.Mask.PositionTypes.Contains(SplineCompressedAnimation.FlagOffset.StaticY))
                     result.Translation.Y = track.StaticPosition.Y;
                 else
                     result.Translation.Y = IsAdditiveBlend ? 0 : skeleTransform.Position.Vector.Y;
 
-                if (track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
+                if (track.Mask.PositionTypes.Contains(SplineCompressedAnimation.FlagOffset.StaticZ))
                     result.Translation.Z = track.StaticPosition.Z;
                 else
                     result.Translation.Z = IsAdditiveBlend ? 0 : skeleTransform.Position.Vector.Z;
