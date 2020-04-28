@@ -84,7 +84,7 @@ namespace DSAnimStudio
             prevFrameData = GetSample(frame);
         }
 
-        private Vector4 AddRootMotion(Vector4 start, Vector4 toAdd, float direction, bool dontAddRotation = false)
+        private static Vector4 AddRootMotion(Vector4 start, Vector4 toAdd, float direction, bool dontAddRotation = false)
         {
             if (!dontAddRotation)
                 start.W += toAdd.W;

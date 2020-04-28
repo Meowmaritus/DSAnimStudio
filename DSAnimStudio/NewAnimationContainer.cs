@@ -214,8 +214,7 @@ namespace DSAnimStudio
 
             if (anim != null)
             {
-                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(MODEL.Skeleton, animRefFrame, animBinding, anim, this);
-                lastLoadedAnim.Name = name;
+                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(name, MODEL.Skeleton, animRefFrame, animBinding, anim, this);
             }
             else
             {
