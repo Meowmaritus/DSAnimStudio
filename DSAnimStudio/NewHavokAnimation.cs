@@ -190,7 +190,7 @@ namespace DSAnimStudio
             Skeleton = skeleton;
             if (refFrame != null)
             {
-                RootMotion = new NewRootMotionHandler(new NewRootMotionHandlerData(refFrame));
+                RootMotion = new NewRootMotionHandler(new RootMotionData(refFrame));
             }
 
             lock (_lock_boneMatrixStuff)
