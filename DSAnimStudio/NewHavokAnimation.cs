@@ -181,16 +181,16 @@ namespace DSAnimStudio
             
         }
 
-        protected NewHavokAnimation(HavokAnimationData data, NewAnimSkeleton skeleton, HKX.HKADefaultAnimatedReferenceFrame refFrame,
-            HKX.HKAAnimationBinding binding, NewAnimationContainer container)
+        protected NewHavokAnimation(HavokAnimationData data, NewAnimSkeleton skeleton, NewAnimationContainer container)
         {
             this.data = data;
 
             ParentContainer = container;
             Skeleton = skeleton;
-            if (refFrame != null)
+
+            if (data.RootMotion != null)
             {
-                RootMotion = new NewRootMotionHandler(new RootMotionData(refFrame));
+                RootMotion = new NewRootMotionHandler(data.RootMotion);
             }
 
             lock (_lock_boneMatrixStuff)

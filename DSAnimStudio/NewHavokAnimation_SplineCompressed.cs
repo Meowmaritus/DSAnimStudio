@@ -28,7 +28,7 @@ namespace DSAnimStudio
 
         public NewHavokAnimation_SplineCompressed(string name, NewAnimSkeleton skeleton, 
             HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding, HKX.HKASplineCompressedAnimation anim, NewAnimationContainer container)
-            : base(new HavokAnimationData_SplineCompressed(name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), skeleton, refFrame, binding, container)
+            : base(new HavokAnimationData_SplineCompressed(name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), skeleton, container)
         {
         }
     }
