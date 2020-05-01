@@ -10,8 +10,6 @@ namespace DSAnimStudio
     public class NewRootMotionHandler
     {
         //public Matrix CurrentAbsoluteRootMotion = Matrix.Identity;
-        private Vector4 prevFrameData;
-
 
         public Vector4 Up => data.Up.ToXna();
         public Vector4 Forward => data.Forward.ToXna();
@@ -28,29 +26,22 @@ namespace DSAnimStudio
         /// </summary>
         public Vector4 LoopDeltaBackward => data.LoopDeltaBackward.ToXna();
 
-        private NewRootMotionHandlerData data;
+        private RootMotionData data;
 
-        public NewRootMotionHandler(NewRootMotionHandlerData data)
+        public NewRootMotionHandler(RootMotionData data)
         {
             this.data = data;
         }
 
-        public NewRootMotionHandler(Vector4 up, Vector4 forward, float duration, Vector4[] frames) : this(new NewRootMotionHandlerData(up.ToCS(), forward.ToCS(), duration, frames.Select(XnaExtensions.ToCS).ToArray()))
+        public NewRootMotionHandler(Vector4 up, Vector4 forward, float duration, Vector4[] frames) : this(new RootMotionData(up.ToCS(), forward.ToCS(), duration, frames.Select(XnaExtensions.ToCS).ToArray()))
         {
         }
 
-        // TODO: Move this value's behavior to NewRootMotionHandler
         public bool Accumulate;
-
-        // TODO: Move this to data
-        private Vector4 GetSample(float frame)
-        {
-            return data.GetSample(frame).ToXna();
-        }
 
         public void Reset(float frame)
         {
-            prevFrameData = GetSample(frame);
+            lastFrame = frame;
         }
 
         private float lastFrame;
@@ -67,7 +58,7 @@ namespace DSAnimStudio
             float lastTimeToUse = Duration * lastFrameToUse / Frames.Length;
             float currentTime = Duration* currentFrame / Frames.Length;
 
-            float nextTimeToUse = currentTime + (Accumulate ? Duration * loopCountDelta : 0);
+            float nextTimeToUse = currentTime + Duration * loopCountDelta;
 
             lastFrame = currentFrame;
 
