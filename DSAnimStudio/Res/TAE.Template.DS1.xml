@@ -4,99 +4,93 @@
   <bank id="0" name="Default">
     <event id="0" name="JumpTable">
       <s32 name="JumpTableID" default="1: ?">
-        <entry value="1"   name="1: ?"/>
-        <entry value="3"   name="3: SetIsGuard(ArgB)"/>
-        <entry value="4"   name="4: InvokeAttackAction"/>
-        <entry value="5"   name="5: SetIsStartbit10(ArgC)_0x140879AF6"/>
-        <entry value="6"   name="6: InvokeIs?"/>
-        <entry value="7"   name="7: InvokeIsNoMove?"/>
-        <entry value="8"   name="8: InvokeIsDodge"/>
-        <entry value="9"   name="9: ?"/>
-        <entry value="10"  name="10: ?"/>
-        <entry value="11"  name="11: ?"/>
-        <entry value="12"  name="12: InvokeDeath"/>
-        <entry value="14"  name="14: Set?Bool"/>
-        <entry value="15"  name="15: Set?"/>
-        <entry value="16"  name="16: Set?"/>
-        <entry value="17"  name="17: SetIsStartbit8_0x141B95B40"/>
-        <entry value="18"  name="18: SetIsStartbit3"/>
-        <entry value="19"  name="19: Set?"/>
-        <entry value="20"  name="20: Set?"/>
-        <entry value="21"  name="21: Set?"/>
-        <entry value="22"  name="22: Set?"/>
-        <entry value="23"  name="23: InvokeAiContinousActionType_Default_hks107"/>
-        <entry value="24"  name="24: Set?"/>
-        <entry value="25"  name="25: ActionRequest?"/>
-        <entry value="26"  name="26: ActionRequest?"/>
-        <entry value="27"  name="27: TryToInvokeIsSliding?"/>
-        <entry value="28"  name="28: InvokeIsLadder"/>
-        <entry value="29"  name="29: InvokeAction_AndTAEDebuggingClass"/>
-        <entry value="30"  name="30: ActionRequest?"/>
-        <entry value="31"  name="31: ActionRequest?"/>
-        <entry value="32"  name="32: ActionRequest_Set?"/>
-        <entry value="34"  name="34: Set?"/>
-        <entry value="35"  name="35: SetBool?"/>
-        <entry value="36"  name="36: SetBool?"/>
-        <entry value="37"  name="37: Set?"/>
-        <entry value="38"  name="38: Set?"/>
-        <entry value="39"  name="39: Set?"/>
-        <entry value="40"  name="40: Set?"/>
-        <entry value="41"  name="41: InvokeHasSpace_Hks305"/>
-        <entry value="42"  name="42: InvokeIsSweetSpot"/>
-        <entry value="43"  name="43: Set?"/>
-        <entry value="44"  name="44: Set?"/>
-        <entry value="46"  name="46: ExtraJumptable_IFAlive?"/>
-        <entry value="46"  name="47: ExtraJumptable1_InvokeDeath2"/>
-        <entry value="46"  name="48: ExtraJumptable2_InvokeCultPromtCheck1"/>
-        <entry value="49"  name="49: SetDeathFlag10x1408841C0"/>
-        <entry value="50"  name="50: Set?"/>
-        <entry value="51"  name="51: SetDeathFlag2"/>
-        <entry value="52"  name="52: Set?"/>
-        <entry value="53"  name="53: Set?"/>
-        <entry value="54"  name="54: WeirdCall"/>
-        <entry value="55"  name="55: Set?"/>
-        <entry value="56"  name="56: SetStartbit13_0x1409BAB46DamageModule"/>
-        <entry value="57"  name="57: SetStartbit14_0x1409BAB5FDamageModule"/>
-        <entry value="58"  name="58: SetStartbit6"/>
-        <entry value="59"  name="59: SetStartbit12"/>
-        <entry value="60"  name="60: SetBool32_0x7C"/>
-        <entry value="61"  name="61: SetBool32_0x7C"/>
-        <entry value="62"  name="62: SetYAxisAutoRot_AndUnk"/>
-        <entry value="63"  name="63: SetBool32_0x7C"/>
-        <entry value="64"  name="64: SetBool32_0x7C"/>
-        <entry value="65"  name="65: SetBool32_0x7C"/>
-        <entry value="66"  name="66: SetBool32_0x7C"/>
-        <entry value="67"  name="67: SetStartbit5"/>
-        <entry value="68"  name="68: InvokeHitSwing"/>
-        <entry value="69"  name="69: SetBool32_0x9C8"/>
-        <entry value="70"  name="70: SetBool32_0x9C8"/>
-        <entry value="71"  name="71: SetBool32_0x7C"/>
-        <entry value="72"  name="72: SetStartbit9(ArgA)"/>
-        <entry value="73"  name="73: SetBool32_0x7C"/>
-        <entry value="74"  name="74: SetBool32_0x7C"/>
-        <entry value="75"  name="75: SetBool32_0x7C"/>
-        <entry value="76"  name="76: InvokeCultPromtCheck2"/>
-        <entry value="78"  name="78: InvokeDisableCancel_hks2000"/>
-        <entry value="79"  name="79: InvokeAiContinousStepType_Default_hks118"/>
-        <entry value="80"  name="80: SetBool32_0x7C"/>
-        <entry value="81"  name="81: SetBool32_0x7C"/>
-        <entry value="82"  name="82: SetBool32_0x7C"/>
-        <entry value="83"  name="83: SetBool32_0x7C"/>
-        <entry value="84"  name="84: SetBool32_0x7C"/>
-        <entry value="85"  name="85: SetBool32_0x7C"/>
-        <entry value="86"  name="86: InvokeAiAtkCancelType_Default_hks120"/>
-        <entry value="87"  name="87: InvokeAttackAction_Complex"/>
-        <entry value="88"  name="88: SetBool32_0x7C_And_0x1A09"/>
-        <entry value="89"  name="89: DisableAllMovement"/>
-        <entry value="90"  name="90: OnlyAllowSlowWalk"/>
-        <entry value="91"  name="91: DisableSprinting"/>
-        <entry value="92"  name="92: SetBool32_0x7C"/>
-        <entry value="94"  name="94: SetStartbit0_0x140884499"/>
-        <entry value="95"  name="95: CallFunction"/>
-        <entry value="96"  name="96: SetBool32_0x80_Startbit1"/>
-        <entry value="97"  name="97: SetTrue_0xE7"/>
+        <entry value="0" name="0: ?"/>
+        <entry value="1" name="1: ?"/>
+        <entry value="3" name="3: Set Guard Type [ArgB]"/>
+        <entry value="4" name="4: End If R1 Queued"/>
+        <entry value="5" name="5: Get-Parried Window [ArgC]"/>
+        <entry value="6" name="6: Disable Movement?"/>
+        <entry value="7" name="7: Disable Turning"/>
+        <entry value="8" name="8: Flag As Dodging"/>
+        <entry value="9" name="9: ?"/>
+        <entry value="10" name="10: ?"/>
+        <entry value="11" name="11: End If LS Move Queued"/>
+        <entry value="12" name="12: Kill Character"/>
+        <entry value="13" name="13: ?"/>
+        <entry value="14" name="14: Set Some Bool?"/>
+        <entry value="15" name="15: Set Something?"/>
+        <entry value="16" name="16: End If L1 Attack Queued"/>
+        <entry value="18" name="18: ?"/>
+        <entry value="19" name="19: Disable Map Hit"/>
+        <entry value="20" name="20: ?"/>
+        <entry value="21" name="21: ?"/>
+        <entry value="22" name="22: End If Guard Queued"/>
+        <entry value="23" name="23: End If AI ComboAttack Queued"/>
+        <entry value="24" name="24: ?"/>
+        <entry value="25" name="25: ?"/>
+        <entry value="26" name="26: End If Dodge Queued"/>
+        <entry value="27" name="27: Set Gravity"/>
+        <entry value="28" name="28: ?"/>
+        <entry value="29" name="29: ?"/>
+        <entry value="30" name="30: End If Estus Queued?"/>
+        <entry value="31" name="31: End If Goods Queued"/>
+        <entry value="32" name="32: End If Two-Handing Queued"/>
+        <entry value="37" name="37: ?"/>
+        <entry value="38" name="38: ?"/>
+        <entry value="39" name="39: ?"/>
+        <entry value="40" name="40: ?"/>
+        <entry value="41" name="41: Flag Me As Open To Attack?"/>
+        <entry value="42" name="42: Go To Whiff Animation If Applicable"/>
+        <entry value="43" name="43: ?"/>
+        <entry value="44" name="44: ?"/>
+        <entry value="45" name="45: ?"/>
+        <entry value="46" name="46: Disable Character"/>
+        <entry value="49" name="49: Disable Locking Onto Character"/>
+        <entry value="50" name="50: Disable Chr Hit"/>
+        <entry value="51" name="51: Some Flag? -Set Upon Character Dying-"/>
+        <entry value="53" name="53: ?"/>
+        <entry value="54" name="54: Some Flag? -Only Used On Throws And ObjActs?-"/>
+        <entry value="55" name="55: Break Lockon"/>
+        <entry value="56" name="56: Set Some Hitbox Flag A?"/>
+        <entry value="57" name="57: Set Some Hitbox Flag B?"/>
+        <entry value="59" name="59: ?"/>
+        <entry value="60" name="60: Flag As Throw?"/>
+        <entry value="61" name="61: Flag As Something?"/>
+        <entry value="62" name="62: ?"/>
+        <entry value="63" name="63: Flag As Impending Attack Behavior"/>
+        <entry value="64" name="64: Flag As Something?"/>
+        <entry value="65" name="65: Flag As Something?"/>
+        <entry value="66" name="66: Flag As Dodge?"/>
+        <entry value="67" name="67: Force SuperArmor"/>
+        <entry value="68" name="68: End If ThrowEscape Queued"/>
+        <entry value="69" name="69: Transition To Throw Death Anim?"/>
+        <entry value="70" name="70: Some Throw Related Flag?"/>
+        <entry value="71" name="71: Flag As Knockback?"/>
+        <entry value="72" name="72: Set Something? [ArgA]"/>
+        <entry value="73" name="73: Set Some Bool?"/>
+        <entry value="74" name="74: Disable Hit"/>
+        <entry value="75" name="75: Flag As Picking Up Item?"/>
+        <entry value="76" name="76: ?"/>
+        <entry value="78" name="78: End If LS Move Queued -Alternate-"/>
+        <entry value="79" name="79: End If AI Dodge Queued?"/>
+        <entry value="80" name="80: Flag As Something?"/>
+        <entry value="81" name="81: Flag As Something?"/>
+        <entry value="82" name="82: Flag As Something?"/>
+        <entry value="83" name="83: Flag As Starting Guard?"/>
+        <entry value="84" name="84: Flag As Impending Jump Attack?"/>
+        <entry value="85" name="85: Flag As Holding Guard?"/>
+        <entry value="86" name="86: End If AI Attack Queued?"/>
+        <entry value="87" name="87: Flag As AttackAnimEnd?"/>
+        <entry value="88" name="88: Flag As On A Ladder?"/>
+        <entry value="89" name="89: Disable All Movement"/>
+        <entry value="90" name="90: Limit Move Speed To Walk"/>
+        <entry value="91" name="91: Limit Move Speed To Dash"/>
+        <entry value="92" name="92: Flag As Something?"/>
+        <entry value="94" name="94: ?"/>
+        <entry value="95" name="95: Disable Shadow"/>
+        <entry value="97" name="97: Flag As GeneralAnimEnd?"/>
       </s32>
-      <s32 name="ArgA"/>
+      <f32 name="ArgA"/>
       <s32 name="ArgB"/>
       <u8 name="ArgC"/>
       <u8 name="ArgD"/>
@@ -126,10 +120,11 @@
       <s32/>
     </event>
     <!-- For c0000 -->
-    <event id="32" name="SetSheathMode">
+    <event id="32" name="SetWeaponHoldType">
       <s32 name="SheathID">
-        <entry value="2" name="2: WeaponSheath"/>
-        <entry value="3" name="3: HandMode"/>
+        <entry value="1" name="1: One-Handed"/>
+        <entry value="2" name="2: Left Weapon Two-Handed"/>
+        <entry value="3" name="3: Right Weapon Two-Handed"/>
       </s32>
     </event>
     <!-- For c0000 -->

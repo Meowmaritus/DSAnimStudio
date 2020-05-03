@@ -586,6 +586,130 @@ namespace DSAnimStudio.Havok
             public SplineTrackVector3 SplineScale = null;
         }
 
+        public static List<NewBlendableTransform> ReadSplCmpAnimBytesAndSampleToUncomp(
+            byte[] animationData, int numTransformTracks, int numBlocks, int numFrames, int numFramesPerBlock)
+        {
+            var tracks = ReadSplineCompressedAnimByteBlock(
+                isBigEndian: false, animationData, numTransformTracks, numBlocks);
+
+            NewBlendableTransform GetTransformOnSpecificBlockAndFrame(int transformIndex, int block, float frame)
+            {
+                frame = (frame % numFrames) % numFramesPerBlock;
+
+                NewBlendableTransform result = NewBlendableTransform.Identity;
+                var track = tracks[block][transformIndex];
+
+                //result.Scale.X = track.SplineScale?.ChannelX == null
+                //    ? (IsAdditiveBlend ? 1 : track.StaticScale.X) : track.SplineScale.GetValueX(frame);
+                //result.Scale.Y = track.SplineScale?.ChannelY == null
+                //    ? (IsAdditiveBlend ? 1 : track.StaticScale.Y) : track.SplineScale.GetValueY(frame);
+                //result.Scale.Z = track.SplineScale?.ChannelZ == null
+                //    ? (IsAdditiveBlend ? 1 : track.StaticScale.Z) : track.SplineScale.GetValueZ(frame);
+
+                if (track.SplineScale != null)
+                {
+                    result.Scale.X = track.SplineScale.GetValueX(frame) ?? 1;
+
+                    result.Scale.Y = track.SplineScale.GetValueY(frame) ?? 1;
+
+                    result.Scale.Z = track.SplineScale.GetValueZ(frame) ?? 1;
+                }
+                else
+                {
+                    if (track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
+                        result.Scale.X = track.StaticScale.X;
+                    else
+                        result.Scale.X = 1;
+
+                    if (track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
+                        result.Scale.Y = track.StaticScale.Y;
+                    else
+                        result.Scale.Y = 1;
+
+                    if (track.Mask.ScaleTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
+                        result.Scale.Z = track.StaticScale.Z;
+                    else
+                        result.Scale.Z = 1;
+                }
+
+                if (track.SplineRotation != null)//track.HasSplineRotation)
+                {
+                    result.Rotation = track.SplineRotation.GetValue(frame);
+                }
+                else if (track.HasStaticRotation)
+                {
+                    // We actually need static rotation or Gael hands become unbent among others
+                    result.Rotation = track.StaticRotation;
+                }
+                else
+                {
+                    //result.Rotation = IsAdditiveBlend ? Quaternion.Identity : new Quaternion(
+                    //    skeleTransform.Rotation.Vector.X,
+                    //    skeleTransform.Rotation.Vector.Y,
+                    //    skeleTransform.Rotation.Vector.Z,
+                    //    skeleTransform.Rotation.Vector.W);
+                }
+
+                if (track.SplinePosition != null)
+                {
+                    result.Translation.X = track.SplinePosition.GetValueX(frame) ?? 0;
+
+                    result.Translation.Y = track.SplinePosition.GetValueY(frame) ?? 0;
+
+                    result.Translation.Z = track.SplinePosition.GetValueZ(frame) ?? 0;
+                }
+                else
+                {
+                    if (track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticX))
+                        result.Translation.X = track.StaticPosition.X;
+                    else
+                        result.Translation.X = 0;
+
+                    if (track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticY))
+                        result.Translation.Y = track.StaticPosition.Y;
+                    else
+                        result.Translation.Y = 0;
+
+                    if (track.Mask.PositionTypes.Contains(Havok.SplineCompressedAnimation.FlagOffset.StaticZ))
+                        result.Translation.Z = track.StaticPosition.Z;
+                    else
+                        result.Translation.Z = 0;
+                }
+
+                return result;
+            }
+
+            List<NewBlendableTransform> resultList = new List<NewBlendableTransform>();
+
+            for (int f = 0; f < numFrames; f++)
+            {
+                float frame = (f % numFrames) % numFramesPerBlock;
+
+                int currentBlock = (int)((f % numFrames) / numFramesPerBlock);
+
+                for (int t = 0; t < numTransformTracks; t++)
+                {
+                    if (frame >= numFrames - 1)
+                    {
+                        NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(t,
+                            block: currentBlock, frame: (float)Math.Floor(frame));
+                        NewBlendableTransform nextFrame = GetTransformOnSpecificBlockAndFrame(t, block: 0, frame: 0);
+                        currentFrame = NewBlendableTransform.Lerp(frame % 1, currentFrame, nextFrame);
+                        resultList.Add(currentFrame);
+                    }
+                    // Regular frame
+                    else
+                    {
+                        NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(t,
+                            block: currentBlock, frame);
+                        resultList.Add(currentFrame);
+                    }
+                }
+            }
+
+            return resultList;
+        }
+
         public static List<TransformTrack[]> ReadSplineCompressedAnimByteBlock(
             bool isBigEndian, byte[] animationData, int numTransformTracks, int numBlocks)
         {

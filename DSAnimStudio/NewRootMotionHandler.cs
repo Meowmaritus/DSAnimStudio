@@ -16,7 +16,7 @@ namespace DSAnimStudio
         public readonly Vector4 Up;
         public readonly Vector4 Forward;
         public readonly float Duration;
-        public readonly Vector4[] Frames;
+        public Vector4[] Frames;
 
         /// <summary>
         /// The accumulative root motion delta applied by playing the entire anim from the beginning to the end.
@@ -52,14 +52,45 @@ namespace DSAnimStudio
                     new Vector3(Up.X, Up.Y, Up.Z));
         }
 
-        private Vector4 GetSample(float frame)
+        private Vector4 GetSample(float frame, float animFrameCount)
         {
-            float frameFloor = (float)Math.Floor(frame % (Frames.Length - 1));
+            //int animFrameCountInt = (int)Math.Round(animFrameCount);
+            //if (Frames.Length < animFrameCountInt)
+            //{
+            //    int curFramesLength = Frames.Length;
+            //    Array.Resize(ref Frames, animFrameCountInt);
+            //    for (int i = curFramesLength; i < animFrameCountInt; i++)
+            //    {
+            //        Frames[i] = Frames[curFramesLength - 1];
+            //    }
+            //}
+
+            frame = frame % (animFrameCount - 1);
+
+            if (frame > Frames.Length - 1)
+                frame = Frames.Length - 1;
+
+            float frameFloor = (float)Math.Floor(frame);
+
+            //int nextFrameIndex = (int)(frameFloor + 1);
+
+            //if (nextFrameIndex >= Frames.Length)
+            //{
+            //    int curFramesLength = Frames.Length;
+            //    Array.Resize(ref Frames, nextFrameIndex + 1);
+            //    for (int i = curFramesLength; i < nextFrameIndex + 1; i++)
+            //    {
+            //        Frames[i] = Frames[curFramesLength - 1];
+            //    }
+            //}
+
             Vector4 sample = Frames[(int)frameFloor];
 
             if (frame != frameFloor)
             {
                 float frameMod = frame % 1;
+
+               
 
                 Vector4 nextFrameRootMotion;
 
@@ -79,9 +110,9 @@ namespace DSAnimStudio
             return sample;
         }
 
-        public void Reset(float frame)
+        public void Reset(float frame, float animFrameCount)
         {
-            prevFrameData = GetSample(frame);
+            prevFrameData = GetSample(frame, animFrameCount);
         }
 
         private Vector4 AddRootMotion(Vector4 start, Vector4 toAdd, float direction, bool dontAddRotation = false)
@@ -96,12 +127,12 @@ namespace DSAnimStudio
             return start;
         }
 
-        public (Vector4 Motion, float Direction) UpdateRootMotion(Vector4 currentRootMotion, float currentDirection, float currentFrame, int loopCountDelta, bool forceAbsoluteRootMotion)
+        public (Vector4 Motion, float Direction) UpdateRootMotion(Vector4 currentRootMotion, float currentDirection, float currentFrame, float animFrameCount, int loopCountDelta, bool forceAbsoluteRootMotion)
         {
             if (forceAbsoluteRootMotion)
                 return (currentRootMotion, currentDirection);
 
-            var nextFrameData = GetSample(currentFrame);
+            var nextFrameData = GetSample(currentFrame, animFrameCount);
 
             if (Accumulate)
             {

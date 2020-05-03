@@ -66,6 +66,7 @@ namespace DSAnimStudio.TaeEditor
         public double MaxTime { get; private set; } = 1;
 
         public double? HkxAnimationLength = null;
+        public double? HkxAnimationFrameLength = null;
 
         public double? SnapInterval = null;
 
@@ -158,7 +159,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (Scrubbing || JustStartedPlaying)
             {
-                CurrentLoopCount = (int)(CurrentTime / MaxTime);
+                CurrentLoopCount = (int)(CurrentTime / (MaxTime));
             }
 
             if (JustStartedPlaying || (CurrentLoopCount != OldLoopCount))

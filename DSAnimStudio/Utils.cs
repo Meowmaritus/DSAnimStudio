@@ -88,12 +88,18 @@ namespace DSAnimStudio
 
         public static string GetShortIngameFileName(string fileName)
         {
+            if (fileName == null)
+                return null;
+
             return GetFileNameWithoutAnyExtensions(GetFileNameWithoutDirectoryOrExtension(fileName));
         }
 
         private static readonly char[] _dirSep = new char[] { '\\', '/' };
         public static string GetFileNameWithoutDirectoryOrExtension(string fileName)
         {
+            if (fileName == null)
+                return null;
+
             if (fileName.EndsWith("\\") || fileName.EndsWith("/"))
                 fileName = fileName.TrimEnd(_dirSep);
 
@@ -108,6 +114,9 @@ namespace DSAnimStudio
 
         public static string GetFileNameWithoutAnyExtensions(string fileName)
         {
+            if (fileName == null)
+                return null;
+
             var dirSepIndex = fileName.LastIndexOfAny(_dirSep);
             if (dirSepIndex >= 0)
             {

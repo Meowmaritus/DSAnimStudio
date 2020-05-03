@@ -94,6 +94,8 @@ namespace DSAnimStudio
 
                             if (animHKXsToLoad.ContainsKey(name))
                             {
+                                LoadAnimHKX(animHKXsToLoad[name], name);
+
                                 try
                                 {
                                     LoadAnimHKX(animHKXsToLoad[name], name);
@@ -192,15 +194,21 @@ namespace DSAnimStudio
 
         private void LoadAnimHKX(HKX hkx, string name)
         {
-            HKX.HKASplineCompressedAnimation anim = null;
+            HKX.HKASplineCompressedAnimation animSplineCompressed = null;
+            HKX.HKAInterleavedUncompressedAnimation animInterleavedUncompressed = null;
+
             HKX.HKAAnimationBinding animBinding = null;
             HKX.HKADefaultAnimatedReferenceFrame animRefFrame = null;
 
             foreach (var cl in hkx.DataSection.Objects)
             {
-                if (cl is HKX.HKASplineCompressedAnimation asAnim)
+                if (cl is HKX.HKASplineCompressedAnimation asSplineCompressedAnim)
                 {
-                    anim = asAnim;
+                    animSplineCompressed = asSplineCompressedAnim;
+                }
+                else if (cl is HKX.HKAInterleavedUncompressedAnimation asInterleavedUncompressedAnim)
+                {
+                    animInterleavedUncompressed = asInterleavedUncompressedAnim;
                 }
                 else if (cl is HKX.HKAAnimationBinding asBinding)
                 {
@@ -212,9 +220,14 @@ namespace DSAnimStudio
                 }
             }
 
-            if (anim != null)
+            if (animSplineCompressed != null)
             {
-                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(MODEL.Skeleton, animRefFrame, animBinding, anim, this);
+                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(MODEL.Skeleton, animRefFrame, animBinding, animSplineCompressed, this);
+                lastLoadedAnim.Name = name;
+            }
+            else if (animInterleavedUncompressed != null)
+            {
+                lastLoadedAnim = new NewHavokAnimation_InterleavedUncompressed(MODEL.Skeleton, animRefFrame, animBinding, animInterleavedUncompressed, this);
                 lastLoadedAnim.Name = name;
             }
             else

@@ -2479,7 +2479,7 @@ namespace DSAnimStudio.TaeEditor
                     (MainScreen.Config.LockFramerateToOriginalAnimFramerate ?
                     $"{(int)(PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame)}" :
                     $"{(PlaybackCursor.MaxFrame <= 0 ? 0 : (PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame)):F02}") +
-                    $"/{(int)((Math.Max(Math.Round(PlaybackCursor.MaxFrame) - 1, 0)))}";
+                    $"/{(int)((Math.Max(Math.Round(PlaybackCursor.MaxFrame), 0)))}";
 
                 Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
 
