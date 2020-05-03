@@ -82,7 +82,6 @@
     <Compile Include="HavokDowngrade.cs" />
     <Compile Include="Havok\HKAnimRetarget.cs" />
     <Compile Include="ImGuiRenderer.cs" />
-    <Compile Include="NewBlendableTransform.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
     <Compile Include="NewChrAsmEquipForm.cs">
       <SubType>Form</SubType>
@@ -136,7 +135,6 @@
     <Compile Include="GFXShaders\DbgPrimSolidShader.cs" />
     <Compile Include="GFXShaders\FlverTonemapShader.cs" />
     <Compile Include="GFXShaders\SkyboxShader.cs" />
-    <Compile Include="Havok\SplineCompressedAnimation.cs" />
     <Compile Include="LiveRefresh\Kernel32.cs" />
     <Compile Include="LiveRefresh\Memory.cs" />
     <Compile Include="LiveRefresh\RequestFileReload.cs" />
@@ -216,6 +214,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils.cs" />
+    <Compile Include="XnaExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ImGui.NET">
