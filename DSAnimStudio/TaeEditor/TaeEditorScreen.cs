@@ -166,6 +166,51 @@ namespace DSAnimStudio.TaeEditor
                 }
             });
 
+            //MenuBar.AddItem("Tools", "TEST: Convert SplineCompressed to InterleavedUncompressed", () =>
+            //{
+            //    Havok.HKAnimRetarget.ConvertSplineXMLtoUncompressedXML(
+            //        @"C:\DarkSoulsModding\HKXtreme\a00_0500_Spline.xml",
+            //        @"C:\DarkSoulsModding\HKXtreme\c5270_a00_3017_Player.xml",
+            //        @"C:\DarkSoulsModding\HKXtreme\c5270_a00_3017.xml",
+            //        @"C:\DarkSoulsModding\HKXtreme\c0000_Skeleton.hkx",
+            //        @"C:\DarkSoulsModding\HKXtreme\c5270_Skeleton.hkx");
+
+            //    System.Windows.Forms.MessageBox.Show("DONE");
+            //});
+
+            //MenuBar.AddItem("Tools", "TEST: MIRROR ANIM", () =>
+            //{
+            //    Havok.HKAnimRetarget.MirrorSplineCompressedXMLtoInterleavedUncompressedXML(
+            //        @"C:\DarkSoulsModding\HKXtreme\c0000_a25_3300.xml",
+            //        @"C:\DarkSoulsModding\HKXtreme\c0000_a25_5300.xml",
+            //        @"C:\DarkSoulsModding\HKXtreme\c0000_Skeleton.hkx");
+
+            //    System.Windows.Forms.MessageBox.Show("DONE");
+            //});
+
+            MenuBar.AddSeparator("Tools");
+
+            MenuBar.AddItem("Tools", "TEST: Fuck with current anim", () =>
+            {
+                lock (Scene._lock_ModelLoad_Draw)
+                {
+                    if (Scene.Models.Count > 0 && Scene.Models[0].AnimContainer.CurrentAnimation is NewHavokAnimation_InterleavedUncompressed anim)
+                    {
+                        for (int i = 0; i < anim.Transforms.Count; i++)
+                        {
+                            var t = anim.Transforms[i];
+
+                            t.Translation += Main.RandSignedVector3() * 0.1f;
+
+                            t.Rotation *= Quaternion.Normalize(Quaternion.CreateFromAxisAngle(Main.RandSignedVector3(), MathHelper.Pi * Main.RandSignedFloat() * 0.1f));
+
+                            anim.Transforms[i] = t;
+                        }
+                    }
+                }
+                
+            });
+
             //MenuBar.AddTopItem("[TEST: SCAN HKXPWV]", () =>
             //{
 

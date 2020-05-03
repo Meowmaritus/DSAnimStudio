@@ -956,7 +956,7 @@ namespace DSAnimStudio
 
             //GFX.FlverShader.Effect.UseSpecularMapBB = true;
 
-            
+
 
             //if (GFX.EnableLightmapping /*&& !GFX.EnableLighting*/)
             //{
@@ -967,31 +967,34 @@ namespace DSAnimStudio
             //{
             //    shader.Effect.CurrentTechnique = technique;
 
-            
-
-            foreach (EffectPass pass in shader.Effect.CurrentTechnique.Passes)
+            if (MeshFacesets != null)
             {
-                pass.Apply();
-
-                GFX.Device.SetVertexBuffer(VertBuffer);
-
-                foreach (var faceSet in MeshFacesets)
+                foreach (EffectPass pass in shader.Effect.CurrentTechnique.Passes)
                 {
-                    if (faceSet.IndexCount == 0)
-                        continue;
+                    pass.Apply();
 
-                    if (!HasNoLODs && (lod != -1 && faceSet.LOD != lod) || (faceSet.IsMotionBlur != motionBlur))
-                        continue;
+                    GFX.Device.SetVertexBuffer(VertBuffer);
 
-                    GFX.Device.Indices = faceSet.IndexBuffer;
+                    foreach (var faceSet in MeshFacesets)
+                    {
+                        if (faceSet.IndexCount == 0)
+                            continue;
 
-                    GFX.BackfaceCulling = forceNoBackfaceCulling ? false : faceSet.BackfaceCulling;
+                        if (!HasNoLODs && (lod != -1 && faceSet.LOD != lod) || (faceSet.IsMotionBlur != motionBlur))
+                            continue;
 
-                    GFX.Device.DrawIndexedPrimitives(faceSet.IsTriangleStrip ? PrimitiveType.TriangleStrip : PrimitiveType.TriangleList, 0, 0,
-                        faceSet.IsTriangleStrip ? (faceSet.IndexCount - 2) : (faceSet.IndexCount / 3));
+                        GFX.Device.Indices = faceSet.IndexBuffer;
 
+                        GFX.BackfaceCulling = forceNoBackfaceCulling ? false : faceSet.BackfaceCulling;
+
+                        GFX.Device.DrawIndexedPrimitives(faceSet.IsTriangleStrip ? PrimitiveType.TriangleStrip : PrimitiveType.TriangleList, 0, 0,
+                            faceSet.IsTriangleStrip ? (faceSet.IndexCount - 2) : (faceSet.IndexCount / 3));
+
+                    }
                 }
-            }
+            }    
+
+            
 
             ((FlverShader)shader).World = oldWorldMatrix;
 

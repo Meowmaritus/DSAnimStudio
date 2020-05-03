@@ -155,7 +155,7 @@ namespace DSAnimStudio
             if (RootMotion != null)
             {
                 (Vector4 motion, float direction) rootMotionState = RootMotion.UpdateRootMotion(ParentContainer.CurrentRootMotionVector,
-                    ParentContainer.CurrentRootMotionDirection, CurrentFrame, loopCountDelta,
+                    ParentContainer.CurrentRootMotionDirection, CurrentFrame, FrameCount + ((this is NewHavokAnimation_InterleavedUncompressed) ? 1 : 0), loopCountDelta,
                     forceAbsoluteRootMotionThisFrame);
 
                 ParentContainer.CurrentRootMotionVector = rootMotionState.motion;

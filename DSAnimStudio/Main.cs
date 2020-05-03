@@ -22,9 +22,23 @@ namespace DSAnimStudio
     {
         public static Form WinForm;
 
+        public static Random Rand = new Random();
+        public static float RandFloat()
+        {
+            return (float)Rand.NextDouble();
+        }
+        public static float RandSignedFloat()
+        {
+            return (float)((Rand.NextDouble() * 2) - 1);
+        }
+        public static Vector3 RandSignedVector3()
+        {
+            return new Vector3(RandSignedFloat(), RandSignedFloat(), RandSignedFloat());
+        }
+
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.9-RC4";
+        public const string VERSION = "Version 1.9-RC5";
 
         public static bool FIXED_TIME_STEP = false;
 

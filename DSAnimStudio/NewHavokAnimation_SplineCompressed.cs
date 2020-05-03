@@ -230,23 +230,27 @@ namespace DSAnimStudio
                 return defaultBoneTransformation;
             }
 
-            float frame = (CurrentFrame % FrameCount) % NumFramesPerBlock;
+            float frame = (CurrentFrame % (FrameCount - 1)) % NumFramesPerBlock;
 
-            if (frame >= FrameCount - 1)
-            {
-                NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
-                    block: CurrentBlock, frame: (float)Math.Floor(frame));
-                NewBlendableTransform nextFrame = GetTransformOnSpecificBlockAndFrame(track, block: 0, frame: 0);
-                currentFrame = NewBlendableTransform.Lerp(frame % 1, currentFrame, nextFrame);
-                return currentFrame;
-            }
-            // Regular frame
-            else
-            {
-                NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
+            NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
                     block: CurrentBlock, frame);
                 return currentFrame;
-            }
+
+            //if (frame >= FrameCount - 1)
+            //{
+            //    NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
+            //        block: CurrentBlock, frame: (float)Math.Floor(frame));
+            //    NewBlendableTransform nextFrame = GetTransformOnSpecificBlockAndFrame(track, block: 0, frame: 0);
+            //    currentFrame = NewBlendableTransform.Lerp(frame % 1, currentFrame, nextFrame);
+            //    return currentFrame;
+            //}
+            //// Regular frame
+            //else
+            //{
+            //    NewBlendableTransform currentFrame = GetTransformOnSpecificBlockAndFrame(track, 
+            //        block: CurrentBlock, frame);
+            //    return currentFrame;
+            //}
         }
     }
 }

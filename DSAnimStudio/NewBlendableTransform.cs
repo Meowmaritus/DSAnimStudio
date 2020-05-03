@@ -9,6 +9,8 @@ namespace DSAnimStudio
 {
     public struct NewBlendableTransform
     {
+        public Matrix ComposedMatrix;
+
         public Vector3 Translation;
         public Vector3 Scale;
         public Quaternion Rotation;
@@ -18,6 +20,8 @@ namespace DSAnimStudio
             Translation = Vector3.Zero,
             Rotation = Quaternion.Identity,
             Scale = Vector3.One,
+
+            ComposedMatrix = Matrix.Identity,
         };
 
         public static NewBlendableTransform Lerp(float lerp, NewBlendableTransform a, NewBlendableTransform b)
@@ -51,10 +55,36 @@ namespace DSAnimStudio
         public Matrix GetMatrix()
         {
             return 
-                //Matrix.CreateScale(Scale) *
+                Matrix.CreateScale(Scale) *
                 Matrix.CreateFromQuaternion(Quaternion.Normalize(Rotation)) *
                 //Matrix.CreateFromQuaternion(Rotation) *
                 Matrix.CreateTranslation(Translation);
+        }
+
+        public NewBlendableTransform Decomposed()
+        {
+            if (ComposedMatrix.Decompose(out Vector3 scale, out Quaternion rotation, out Vector3 translation))
+            {
+                Scale = scale;
+                Rotation = rotation;
+                Translation = translation;
+            }
+            else
+            {
+                //throw new Exception("REEEEEEE");
+                Scale = Vector3.One;
+                Translation = Vector3.Zero;
+                Rotation = Quaternion.Identity;
+            }
+
+            return this;
+        }
+
+        public NewBlendableTransform Composed()
+        {
+            ComposedMatrix = GetMatrix();
+
+            return this;
         }
     }
 }
