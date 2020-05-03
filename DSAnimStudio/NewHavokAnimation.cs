@@ -6,15 +6,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using SoulsFormats.Havok;
+
 namespace DSAnimStudio
 {
     public abstract class NewHavokAnimation
     {
+        public HavokAnimationData data;
+
         public readonly NewAnimationContainer ParentContainer;
 
-        public HKX.AnimationBlendHint BlendHint = HKX.AnimationBlendHint.NORMAL;
+        public HKX.AnimationBlendHint BlendHint => data.BlendHint;
 
-        public string Name;
+        public string Name => data.Name;
 
         public override string ToString()
         {
@@ -30,13 +34,11 @@ namespace DSAnimStudio
         private List<NewBlendableTransform> blendableTransforms = new List<NewBlendableTransform>();
         private List<int> bonesAlreadyCalculated = new List<int>();
 
-        public bool IsAdditiveBlend =>
-            BlendHint == HKX.AnimationBlendHint.ADDITIVE ||
-            BlendHint == HKX.AnimationBlendHint.ADDITIVE_DEPRECATED;
+        public bool IsAdditiveBlend => data.IsAdditiveBlend;
 
-        public float Duration;
-        public float FrameDuration;
-        public int FrameCount;
+        public float Duration => data.Duration;
+        public float FrameDuration => data.FrameDuration;
+        public int FrameCount => data.FrameCount;
 
         public bool HasEnded => CurrentTime >= Duration;
 
@@ -48,7 +50,10 @@ namespace DSAnimStudio
 
         public float CurrentFrame => CurrentTime / FrameDuration;
 
-        public abstract NewBlendableTransform GetBlendableTransformOnCurrentFrame(int hkxBoneIndex);
+        public NewBlendableTransform GetBlendableTransformOnCurrentFrame(int hkxBoneIndex)
+        {
+            return data.GetBlendableTransformOnFrame(hkxBoneIndex, CurrentFrame);
+        }
 
         public void ApplyMotionToSkeleton()
         {
@@ -155,7 +160,7 @@ namespace DSAnimStudio
             if (RootMotion != null)
             {
                 (Vector4 motion, float direction) rootMotionState = RootMotion.UpdateRootMotion(ParentContainer.CurrentRootMotionVector,
-                    ParentContainer.CurrentRootMotionDirection, CurrentFrame, FrameCount + ((this is NewHavokAnimation_InterleavedUncompressed) ? 1 : 0), loopCountDelta,
+                    ParentContainer.CurrentRootMotionDirection, CurrentFrame, /*FrameCount + ((this is NewHavokAnimation_InterleavedUncompressed) ? 1 : 0),*/ loopCountDelta,
                     forceAbsoluteRootMotionThisFrame);
 
                 ParentContainer.CurrentRootMotionVector = rootMotionState.motion;
@@ -176,26 +181,16 @@ namespace DSAnimStudio
             
         }
 
-        public NewHavokAnimation(NewAnimSkeleton skeleton, HKX.HKADefaultAnimatedReferenceFrame refFrame, 
-            HKX.HKAAnimationBinding binding, NewAnimationContainer container)
+        protected NewHavokAnimation(HavokAnimationData data, NewAnimSkeleton skeleton, NewAnimationContainer container)
         {
+            this.data = data;
+
             ParentContainer = container;
             Skeleton = skeleton;
-            if (refFrame != null)
-            {
-                var rootMotionFrames = new Vector4[refFrame.ReferenceFrameSamples.Size];
-                for (int i = 0; i < refFrame.ReferenceFrameSamples.Size; i++)
-                {
-                    rootMotionFrames[i] = new Vector4(
-                        refFrame.ReferenceFrameSamples[i].Vector.X, 
-                        refFrame.ReferenceFrameSamples[i].Vector.Y, 
-                        refFrame.ReferenceFrameSamples[i].Vector.Z, 
-                        refFrame.ReferenceFrameSamples[i].Vector.W);
-                }
-                var rootMotionUp = new Vector4(refFrame.Up.X, refFrame.Up.Y, refFrame.Up.Z, refFrame.Up.W);
-                var rootMotionForward = new Vector4(refFrame.Forward.X, refFrame.Forward.Y, refFrame.Forward.Z, refFrame.Forward.W);
 
-                RootMotion = new NewRootMotionHandler(rootMotionUp, rootMotionForward, refFrame.Duration, rootMotionFrames);
+            if (data.RootMotion != null)
+            {
+                RootMotion = new NewRootMotionHandler(data.RootMotion);
             }
 
             lock (_lock_boneMatrixStuff)
@@ -206,8 +201,6 @@ namespace DSAnimStudio
                     blendableTransforms.Add(NewBlendableTransform.Identity);
                 }
             }
-
-            BlendHint = binding.BlendHint;
         }
 
         public void WriteCurrentFrameToSkeleton()
@@ -221,8 +214,8 @@ namespace DSAnimStudio
                     if (!bonesAlreadyCalculated.Contains(i))
                     {
                         blendableTransforms[i] = GetBlendableTransformOnCurrentFrame(i);
-                        currentMatrix = blendableTransforms[i].GetMatrix() * currentMatrix;
-                        currentScale *= blendableTransforms[i].Scale;
+                        currentMatrix = blendableTransforms[i].GetMatrix().ToXna() * currentMatrix;
+                        currentScale *= blendableTransforms[i].Scale.ToXna();
                         Skeleton.SetHkxBoneMatrix(i, Matrix.CreateScale(currentScale) * currentMatrix);
                         bonesAlreadyCalculated.Add(i);
                     }

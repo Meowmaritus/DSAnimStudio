@@ -4,182 +4,73 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using SoulsFormats.Havok;
 namespace DSAnimStudio
 {
     public class NewRootMotionHandler
     {
         //public Matrix CurrentAbsoluteRootMotion = Matrix.Identity;
-        private Vector4 prevFrameData;
 
-
-        public readonly Vector4 Up;
-        public readonly Vector4 Forward;
-        public readonly float Duration;
-        public Vector4[] Frames;
+        public Vector4 Up => data.Up.ToXna();
+        public Vector4 Forward => data.Forward.ToXna();
+        public float Duration => data.Duration;
+        public Vector4[] Frames => data.Frames.Select(XnaExtensions.ToXna).ToArray();
 
         /// <summary>
         /// The accumulative root motion delta applied by playing the entire anim from the beginning to the end.
         /// </summary>
-        public readonly Vector4 LoopDeltaForward;
+        public Vector4 LoopDeltaForward => data.LoopDeltaForward.ToXna();
 
         /// <summary>
         /// The accumulative root motion delta applied by playing the entire anim in reverse from the end to the beginning.
         /// </summary>
-        public readonly Vector4 LoopDeltaBackward;
+        public Vector4 LoopDeltaBackward => data.LoopDeltaBackward.ToXna();
 
+        private RootMotionData data;
 
-        public NewRootMotionHandler(Vector4 up, Vector4 forward, float duration, Vector4[] frames)
+        public NewRootMotionHandler(RootMotionData data)
         {
-            Up = up;
-            Forward = forward;
-            Duration = duration;
-            Frames = frames;
-
-            LoopDeltaForward = frames[frames.Length - 1] - frames[0];
-            LoopDeltaBackward = frames[0] - frames[frames.Length - 1];
+            this.data = data;
         }
 
-
-        public bool Accumulate = true;
-
-        private Matrix GetMatrixFromSample(Vector4 sample)
+        public NewRootMotionHandler(Vector4 up, Vector4 forward, float duration, Vector4[] frames) : this(new RootMotionData(up.ToCS(), forward.ToCS(), duration, frames.Select(XnaExtensions.ToCS).ToArray()))
         {
-            return Matrix.CreateRotationY(sample.W) *
-                Matrix.CreateWorld(
-                    new Vector3(sample.X, sample.Y, sample.Z),
-                    new Vector3(Forward.X, Forward.Y, -Forward.Z),
-                    new Vector3(Up.X, Up.Y, Up.Z));
         }
 
-        private Vector4 GetSample(float frame, float animFrameCount)
+        public bool Accumulate;
+
+        public void Reset(float frame)
         {
-            //int animFrameCountInt = (int)Math.Round(animFrameCount);
-            //if (Frames.Length < animFrameCountInt)
-            //{
-            //    int curFramesLength = Frames.Length;
-            //    Array.Resize(ref Frames, animFrameCountInt);
-            //    for (int i = curFramesLength; i < animFrameCountInt; i++)
-            //    {
-            //        Frames[i] = Frames[curFramesLength - 1];
-            //    }
-            //}
-
-            frame = frame % (animFrameCount - 1);
-
-            if (frame > Frames.Length - 1)
-                frame = Frames.Length - 1;
-
-            float frameFloor = (float)Math.Floor(frame);
-
-            //int nextFrameIndex = (int)(frameFloor + 1);
-
-            //if (nextFrameIndex >= Frames.Length)
-            //{
-            //    int curFramesLength = Frames.Length;
-            //    Array.Resize(ref Frames, nextFrameIndex + 1);
-            //    for (int i = curFramesLength; i < nextFrameIndex + 1; i++)
-            //    {
-            //        Frames[i] = Frames[curFramesLength - 1];
-            //    }
-            //}
-
-            Vector4 sample = Frames[(int)frameFloor];
-
-            if (frame != frameFloor)
-            {
-                float frameMod = frame % 1;
-
-               
-
-                Vector4 nextFrameRootMotion;
-
-                //if (frame >= Frames.Length - 1)
-                //    nextFrameRootMotion = Frames[0];
-                //else
-                //    nextFrameRootMotion = Frames[(int)(frameFloor + 1)];
-
-                nextFrameRootMotion = Frames[(int)(frameFloor + 1)];
-
-                sample.X = MathHelper.Lerp(sample.X, nextFrameRootMotion.X, frameMod);
-                sample.Y = MathHelper.Lerp(sample.Y, nextFrameRootMotion.Y, frameMod);
-                sample.Z = MathHelper.Lerp(sample.Z, nextFrameRootMotion.Z, frameMod);
-                sample.W = MathHelper.Lerp(sample.W, nextFrameRootMotion.W, frameMod);
-            }
-
-            return sample;
+            lastFrame = frame;
         }
 
-        public void Reset(float frame, float animFrameCount)
-        {
-            prevFrameData = GetSample(frame, animFrameCount);
-        }
+        private float lastFrame;
 
-        private Vector4 AddRootMotion(Vector4 start, Vector4 toAdd, float direction, bool dontAddRotation = false)
-        {
-            if (!dontAddRotation)
-                start.W += toAdd.W;
-
-            Vector3 displacement = Vector3.Transform(new Vector3(toAdd.X, toAdd.Y, toAdd.Z), Matrix.CreateRotationY(direction));
-            start.X += displacement.X;
-            start.Y += displacement.Y;
-            start.Z += displacement.Z;
-            return start;
-        }
-
-        public (Vector4 Motion, float Direction) UpdateRootMotion(Vector4 currentRootMotion, float currentDirection, float currentFrame, float animFrameCount, int loopCountDelta, bool forceAbsoluteRootMotion)
+        public (Vector4 Motion, float Direction) UpdateRootMotion(Vector4 currentRootMotion, float currentDirection, float currentFrame, int loopCountDelta, bool forceAbsoluteRootMotion)
         {
             if (forceAbsoluteRootMotion)
+            {
                 return (currentRootMotion, currentDirection);
+            }
 
-            var nextFrameData = GetSample(currentFrame, animFrameCount);
+            float lastFrameToUse = Accumulate ? lastFrame : 0;
+
+            float lastTimeToUse = Duration * lastFrameToUse / Frames.Length;
+            float currentTime = Duration* currentFrame / Frames.Length;
+
+            float nextTimeToUse = currentTime + Duration * loopCountDelta;
+
+            lastFrame = currentFrame;
+
+            var rootMotionChange = data.ExtractRootMotion(lastTimeToUse, nextTimeToUse);
 
             if (Accumulate)
             {
-                //currentRootMotion *= GetMatrixFromSample(nextFrameData - prevFrameData);
-
-                currentRootMotion = AddRootMotion(currentRootMotion, nextFrameData - prevFrameData, currentDirection, dontAddRotation: true);
-
-                currentRootMotion.W = nextFrameData.W;
-
-                while (loopCountDelta != 0)
-                {
-                    if (loopCountDelta > 0)
-                    {
-                        currentRootMotion = AddRootMotion(currentRootMotion, LoopDeltaForward, currentDirection, dontAddRotation: true);
-                        currentDirection += LoopDeltaForward.W;
-                        loopCountDelta--;
-                    }
-                    else if (loopCountDelta < 0)
-                    {
-                        currentRootMotion = AddRootMotion(currentRootMotion, LoopDeltaBackward, currentDirection, dontAddRotation: true);
-                        currentDirection += LoopDeltaBackward.W;
-                        loopCountDelta++;
-                    }
-                }
-            }
-            else
-            {
-                currentDirection = 0;
-                currentRootMotion = AddRootMotion(Vector4.Zero, nextFrameData, currentDirection); 
+                return (currentRootMotion + new Vector4(rootMotionChange.positionChange.ToXna(), 0), currentDirection + rootMotionChange.directionChange);
             }
 
-            prevFrameData = nextFrameData;
+            return (new Vector4(rootMotionChange.positionChange.ToXna(), 0), rootMotionChange.directionChange);
 
-            //CurrentAbsoluteRootMotion = GetMatrixFromSample(GetSample(currentFrame));
-
-            //if (forceAbsoluteRootMotion)
-            //{
-
-            //}
-            //else
-            //{
-            //    CurrentAbsoluteRootMotion *= GetMatrixFromSample(nextFrameData - prevFrameData);
-            //}
-
-
-
-            return (currentRootMotion, currentDirection);
         }
     }
 }
