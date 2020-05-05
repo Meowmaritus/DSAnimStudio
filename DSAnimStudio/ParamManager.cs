@@ -130,9 +130,7 @@ namespace DSAnimStudio
                     var rowData = new T();
                     rowData.ID = row.ID;
                     rowData.Name = row.Name;
-                    continue;
-                    throw new NotImplementedException("rowData.Read(param.GetRowReader(row)); was not implemented");
-                    //rowData.Read(param.GetRowReader(row));
+                    rowData.Read(param.GetRowReader(row));
                     if (!paramDict.ContainsKey(row.ID))
                         paramDict.Add(row.ID, rowData);
                 }
