@@ -621,7 +621,7 @@ namespace DSAnimStudio.TaeEditor
         {
             if (CurrentModel != null)
             {
-                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(frame, CurrentModel.AnimContainer.CurrentAnimation.FrameCount);
+                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(frame);
             }
         }
 
@@ -629,9 +629,9 @@ namespace DSAnimStudio.TaeEditor
         {
             if (CurrentModel != null)
             {
-                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(0, CurrentModel.AnimContainer.CurrentAnimation.FrameCount);
+                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(0);
                 CurrentModel.AnimContainer.CurrentRootMotionVector = Vector4.Zero;
-                CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
+                //CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
             }
         }
 

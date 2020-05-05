@@ -223,13 +223,11 @@ namespace DSAnimStudio
 
             if (animSplineCompressed != null)
             {
-                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(MODEL.Skeleton, animRefFrame, animBinding, animSplineCompressed, this);
-                lastLoadedAnim.Name = name;
+                lastLoadedAnim = new NewHavokAnimation_SplineCompressed(name, MODEL.Skeleton, animRefFrame, animBinding, animSplineCompressed, this);
             }
             else if (animInterleavedUncompressed != null)
             {
-                lastLoadedAnim = new NewHavokAnimation_InterleavedUncompressed(MODEL.Skeleton, animRefFrame, animBinding, animInterleavedUncompressed, this);
-                lastLoadedAnim.Name = name;
+                lastLoadedAnim = new NewHavokAnimation_InterleavedUncompressed(name, MODEL.Skeleton, animRefFrame, animBinding, animInterleavedUncompressed, this);
             }
             else
             {
