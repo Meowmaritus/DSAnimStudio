@@ -4,3 +4,6 @@
 [submodule "SoulsFormats"]
 	path = SoulsFormats
 	url = https://github.com/Meowmaritus/SoulsFormats
+[submodule "SFAnimExtensions"]
+	path = SFAnimExtensions
+	url = https://github.com/koriandrei/SFAnimExtensions.git

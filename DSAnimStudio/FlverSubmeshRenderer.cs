@@ -377,9 +377,9 @@ namespace DSAnimStudio
 
             //var debug_sortedByZ = new List<FLVER.Vertex>();
 
-            Matrix GetBoneMatrix(SoulsFormats.FLVER2.Bone b)
+            Matrix GetBoneMatrix(SoulsFormats.FLVER.Bone b)
             {
-                SoulsFormats.FLVER2.Bone parentBone = b;
+                SoulsFormats.FLVER.Bone parentBone = b;
 
                 var result = Matrix.Identity;
 
@@ -437,7 +437,7 @@ namespace DSAnimStudio
                 }
 
                 // Apply bind pose of bone to actual vert if !mesh.Dynamic
-                if (!mesh.Dynamic)
+                if (mesh.Dynamic == 0)
                 {
                     ApplySkin(vert, flvr.Bones.Select(b => GetBoneMatrix(b)).ToList(), mesh.BoneIndices, (flvr.Header.Version <= 0x2000D));
 

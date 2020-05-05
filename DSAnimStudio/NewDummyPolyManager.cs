@@ -32,7 +32,7 @@ namespace DSAnimStudio
 
             public bool DisableTextDraw = false;
 
-            public DummyPolyInfo(FLVER2.Dummy dmy, NewAnimSkeleton skeleton)
+            public DummyPolyInfo(FLVER.Dummy dmy, NewAnimSkeleton skeleton)
             {
                 ReferenceID = dmy.ReferenceID;
                 FollowBoneIndex = dmy.AttachBoneIndex;
@@ -41,7 +41,7 @@ namespace DSAnimStudio
                     Vector3.Normalize(new Vector3(dmy.Forward.X, dmy.Forward.Y, dmy.Forward.Z)),
                     dmy.UseUpwardVector ? Vector3.Normalize(new Vector3(dmy.Upward.X, dmy.Upward.Y, dmy.Upward.Z)) : Vector3.Up)
                     * Matrix.CreateTranslation(new Vector3(dmy.Position.X, dmy.Position.Y, dmy.Position.Z))
-                    * (dmy.DummyBoneIndex >= 0 ? skeleton.FlverSkeleton[dmy.DummyBoneIndex].ReferenceMatrix : Matrix.Identity);
+                    * (dmy.AttachBoneIndex >= 0 ? skeleton.FlverSkeleton[dmy.AttachBoneIndex].ReferenceMatrix : Matrix.Identity);
                 CurrentMatrix = ReferenceMatrix;
 
                 ArrowPrimitive = new DbgPrimWireArrow("DummyPoly Spawns", Transform.Default, Color.White)
@@ -514,7 +514,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void AddDummyPoly(FLVER2.Dummy dmy)
+        public void AddDummyPoly(FLVER.Dummy dmy)
         {
             lock (_lock_everything_monkaS)
             {

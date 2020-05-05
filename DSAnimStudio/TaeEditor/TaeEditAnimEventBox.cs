@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using SoulsFormats;
+using SFAnimExtensions;
 using System;
 using System.Linq;
 using System.Text;
