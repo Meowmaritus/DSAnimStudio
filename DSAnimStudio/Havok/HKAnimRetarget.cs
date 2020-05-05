@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
+using SFAnimExtensions;
+
 namespace DSAnimStudio.Havok
 {
     public class HKAnimRetarget
@@ -155,13 +157,13 @@ namespace DSAnimStudio.Havok
 
         private static Dictionary<string, HavokBoneMeme> LoadBonesFromHKX2010(string hkxName)
         {
-            var hkx = SoulsFormats.HKX.Read(hkxName, SoulsFormats.HKX.HKXVariation.HKXDS1);
+            var hkx = HKX.Read(hkxName, HKX.HKXVariation.HKXDS1);
 
             var result = new Dictionary<string, HavokBoneMeme>();
 
             foreach (var obj in hkx.DataSection.Objects)
             {
-                if (obj is SoulsFormats.HKX.HKASkeleton skelington)
+                if (obj is HKX.HKASkeleton skelington)
                 {
                     List<string> boneNames = new List<string>();
 

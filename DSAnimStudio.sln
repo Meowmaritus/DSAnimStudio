@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoulsFormats", "SoulsFormat
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dark Souls IO", "Dark Souls IO", "{D1BDEB2B-399D-497D-9D47-7F0C5967661B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SFAnimExtensions", "SFAnimExtensions\SFAnimExtensions\SFAnimExtensions.csproj", "{75032C68-5003-434A-919A-EC7E298C0300}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,12 +44,25 @@ Global
 		{22C664BD-877B-44DF-8ECF-2808522469A8}.Release|x64.Build.0 = Release|Any CPU
 		{22C664BD-877B-44DF-8ECF-2808522469A8}.Release|x86.ActiveCfg = Release|Any CPU
 		{22C664BD-877B-44DF-8ECF-2808522469A8}.Release|x86.Build.0 = Release|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Debug|x64.Build.0 = Debug|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Debug|x86.Build.0 = Debug|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Release|x64.ActiveCfg = Release|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Release|x64.Build.0 = Release|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Release|x86.ActiveCfg = Release|Any CPU
+		{75032C68-5003-434A-919A-EC7E298C0300}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{22C664BD-877B-44DF-8ECF-2808522469A8} = {D1BDEB2B-399D-497D-9D47-7F0C5967661B}
+		{75032C68-5003-434A-919A-EC7E298C0300} = {D1BDEB2B-399D-497D-9D47-7F0C5967661B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {305964B1-6068-4920-804B-F6729C4A7AED}
