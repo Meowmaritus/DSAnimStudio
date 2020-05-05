@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Xml;
 
 using SFAnimExtensions;
+using SFAnimExtensions.Havok;
 
 namespace DSAnimStudio.Havok
 {
@@ -47,7 +48,7 @@ namespace DSAnimStudio.Havok
 
                     if (newPos.LengthSquared() > 0)
                     {
-                        newPos = Vector3.Normalize(newPos) * targetTPose.Translation.Length();
+                        newPos = Vector3.Normalize(newPos.ToXna()).ToCS() * targetTPose.Translation.Length();
                     }
 
                     if (boneName == "MASTER")
@@ -60,7 +61,7 @@ namespace DSAnimStudio.Havok
                     {
                         Translation = newPos,
                         Scale = (Frames[i].Scale * (importTPose.Scale / targetTPose.Scale)),
-                        Rotation = (Frames[i].Rotation * (importTPose.Rotation * Quaternion.Inverse(targetTPose.Rotation))),
+                        Rotation = (Frames[i].Rotation.ToXna() * (importTPose.Rotation.ToXna() * Quaternion.Inverse(targetTPose.Rotation.ToXna()))).ToCS(),
                     });
                 }
                 Frames = newFrames;
@@ -178,21 +179,11 @@ namespace DSAnimStudio.Havok
 
                     for (int i = 0; i < skelingtonTransf.Count; i++)
                     {
-                        result[boneNames[i]].ReferenceTransform.Translation = new Vector3(
-                            skelingtonTransf[i].Position.Vector.X,
-                            skelingtonTransf[i].Position.Vector.Y,
-                            skelingtonTransf[i].Position.Vector.Z);
+                        result[boneNames[i]].ReferenceTransform.Translation = skelingtonTransf[i].Position.Vector.ToVector3();
 
-                        result[boneNames[i]].ReferenceTransform.Scale = new Vector3(
-                            skelingtonTransf[i].Scale.Vector.X,
-                            skelingtonTransf[i].Scale.Vector.Y,
-                            skelingtonTransf[i].Scale.Vector.Z);
+                        result[boneNames[i]].ReferenceTransform.Scale = skelingtonTransf[i].Scale.Vector.ToVector3();
 
-                        result[boneNames[i]].ReferenceTransform.Rotation = new Quaternion(
-                           skelingtonTransf[i].Rotation.Vector.X,
-                           skelingtonTransf[i].Rotation.Vector.Y,
-                           skelingtonTransf[i].Rotation.Vector.Z,
-                           skelingtonTransf[i].Rotation.Vector.W);
+                        result[boneNames[i]].ReferenceTransform.Rotation = skelingtonTransf[i].Rotation.Vector.ToQuat();
                     }
 
                     var skelingtonParentIndices = skelington.ParentIndices.GetArrayData().Elements;

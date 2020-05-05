@@ -201,9 +201,9 @@ namespace DSAnimStudio.TaeEditor
                         {
                             var t = anim.Transforms[i];
 
-                            t.Translation += Main.RandSignedVector3() * 0.1f;
+                            t.Translation += Main.RandSignedVector3().ToCS() * 0.1f;
 
-                            t.Rotation *= Quaternion.Normalize(Quaternion.CreateFromAxisAngle(Main.RandSignedVector3(), MathHelper.Pi * Main.RandSignedFloat() * 0.1f));
+                            t.Rotation *= Quaternion.Normalize(Quaternion.CreateFromAxisAngle(Main.RandSignedVector3(), MathHelper.Pi * Main.RandSignedFloat() * 0.1f)).ToCS();
 
                             anim.Transforms[i] = t;
                         }
