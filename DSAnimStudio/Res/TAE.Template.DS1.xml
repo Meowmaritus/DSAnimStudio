@@ -113,6 +113,7 @@
       <s32 name="AttackIndex (0-8)"/>
       <s32 name="BehaviorSubID"/>
     </event>
+	<event id="16" name="Blend"/>
     <event id="24" name="AnimationQueue">
       <s32/>
       <s32/>
