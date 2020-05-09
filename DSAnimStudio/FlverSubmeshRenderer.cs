@@ -418,7 +418,7 @@ namespace DSAnimStudio
                 }
 
                 // Apply normal W channel bone index (for some weapons etc)
-                if (!vert.UsesBoneIndices)
+                if (!vert.UsesBoneIndices())
                 {
                     int boneIndex = vert.NormalW;
 
