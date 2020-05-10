@@ -13,8 +13,8 @@ namespace DSAnimStudio
         private static Dictionary<GameDataManager.GameTypes, IBinder> ParamBNDs 
             = new Dictionary<GameDataManager.GameTypes, IBinder>();
 
-        private static Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM>> LoadedParams 
-            = new Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM>>();
+        private static Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM_Hack>> LoadedParams 
+            = new Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM_Hack>>();
 
         public static Dictionary<long, ParamData.BehaviorParam> BehaviorParam_PC 
             = new Dictionary<long, ParamData.BehaviorParam>();
@@ -42,13 +42,13 @@ namespace DSAnimStudio
 
         private static GameDataManager.GameTypes GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameTypes.None;
 
-        public static PARAM GetParam(string paramName)
+        public static PARAM_Hack GetParam(string paramName)
         {
             if (!ParamBNDs.ContainsKey(GameDataManager.GameType))
                 throw new InvalidOperationException("ParamBND not loaded :tremblecat:");
 
             if (!LoadedParams.ContainsKey(GameDataManager.GameType))
-                LoadedParams.Add(GameDataManager.GameType, new Dictionary<string, PARAM>());
+                LoadedParams.Add(GameDataManager.GameType, new Dictionary<string, PARAM_Hack>());
 
             if (LoadedParams[GameDataManager.GameType].ContainsKey(paramName))
             {
@@ -60,7 +60,7 @@ namespace DSAnimStudio
                 {
                     if (f.Name.ToUpper().Contains(paramName.ToUpper()))
                     {
-                        var p = PARAM.Read(f.Bytes);
+                        var p = PARAM_Hack.Read(f.Bytes);
                         LoadedParams[GameDataManager.GameType].Add(paramName, p);
                         return p;
                     }
