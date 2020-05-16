@@ -41,7 +41,7 @@ namespace DSAnimStudio
                     Vector3.Normalize(new Vector3(dmy.Forward.X, dmy.Forward.Y, dmy.Forward.Z)),
                     dmy.UseUpwardVector ? Vector3.Normalize(new Vector3(dmy.Upward.X, dmy.Upward.Y, dmy.Upward.Z)) : Vector3.Up)
                     * Matrix.CreateTranslation(new Vector3(dmy.Position.X, dmy.Position.Y, dmy.Position.Z))
-                    * (dmy.AttachBoneIndex >= 0 ? skeleton.FlverSkeleton[dmy.AttachBoneIndex].ReferenceMatrix : Matrix.Identity);
+                    * (dmy.ParentBoneIndex >= 0 ? skeleton.FlverSkeleton[dmy.ParentBoneIndex].ReferenceMatrix : Matrix.Identity);
                 CurrentMatrix = ReferenceMatrix;
 
                 ArrowPrimitive = new DbgPrimWireArrow("DummyPoly Spawns", Transform.Default, Color.White)
