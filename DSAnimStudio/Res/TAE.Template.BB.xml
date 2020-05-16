@@ -15,6 +15,7 @@
       <u8 name="DirectionType"/>
       <u8 name="Unk0D"/>
     </event>
+	<event id="16" name="Blend"/>
     <event id="307" name="InvokePCBehavior">
       <u16/>
       <u16/>
