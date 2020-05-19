@@ -38,7 +38,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.9-RC6";
+        public const string VERSION = "Version 1.9-RC7-WIP";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -57,6 +57,13 @@ namespace DSAnimStudio
         private bool prevFrameWasLoadingTaskRunning = false;
 
         public static bool Active { get; private set; }
+        public static bool prevActive { get; private set; }
+
+        public static bool IsFirstFrameActive { get; private set; } = false;
+
+        public static bool Minimized { get; private set; }
+
+        public static int JustStartedLayoutForceUpdateFrameAmountLeft { get; private set; } = 10;
 
         public static bool DISABLE_DRAW_ERROR_HANDLE = false;
 
@@ -206,14 +213,28 @@ namespace DSAnimStudio
 
             Window.ClientSizeChanged += Window_ClientSizeChanged;
 
+            this.Activated += Main_Activated;
+            this.Deactivated += Main_Deactivated;
+
             GFX.Display.SetFromDisplayMode(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode);
 
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
 
+        private void Main_Deactivated(object sender, EventArgs e)
+        {
+            UpdateActiveState();
+        }
+
+        private void Main_Activated(object sender, EventArgs e)
+        {
+            UpdateActiveState();
+        }
+
         private void Window_ClientSizeChanged(object sender, EventArgs e)
         {
             RequestHideOSD = RequestHideOSD_MAX;
+            UpdateActiveState();
         }
 
         public void RebuildRenderTarget()
@@ -398,6 +419,8 @@ namespace DSAnimStudio
             fonts.Build();
 
             ImGuiDraw.RebuildFontAtlas();
+
+            TAE_EDITOR.LoadContent(Content);
         }
 
         private static void DrawImGui(GameTime gameTime, int x, int y, int w, int h)
@@ -475,6 +498,22 @@ namespace DSAnimStudio
             MemoryUsage_Managed = GC.GetTotalMemory(forceFullCollection: false);
         }
 
+        private void UpdateActiveState()
+        {
+            Minimized = !(Window.ClientBounds.Width > 0 && Window.ClientBounds.Height > 0);
+
+            Active = !Minimized && IsActive && ApplicationIsActivated();
+
+            TargetElapsedTime = (Active || LoadingTaskMan.AnyTasksRunning()) ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
+
+            if (!prevActive && Active)
+            {
+                IsFirstFrameActive = true;
+            }
+
+            prevActive = Active;
+        }
+
         /// <summary>Returns true if the current application has focus, false otherwise</summary>
         public static bool ApplicationIsActivated()
         {
@@ -501,118 +540,135 @@ namespace DSAnimStudio
 
         protected override void Update(GameTime gameTime)
         {
-            DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+            UpdateActiveState();
 
-            if (!FIXED_TIME_STEP && GFX.AverageFPS >= 200)
+            if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
             {
-                DELTA_UPDATE_ROUNDED = (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
-            }
-            else
-            {
-                DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
-            }
-
-
-
-            Active = IsActive && ApplicationIsActivated();
-
-            TargetElapsedTime = Active ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
-
-            IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
-
-            Scene.UpdateAnimation();
-
-            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-            LoadingTaskMan.Update(elapsed);
-
-            IsFixedTimeStep = FIXED_TIME_STEP;
-
-            if (DBG.EnableMenu)
-            {
-                DbgMenuItem.UpdateInput(elapsed);
-                DbgMenuItem.UICursorBlinkUpdate(elapsed);
-            }
-
-            //if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
-            //{
-            //    // Only update input if debug menu isnt fully open.
-            //    GFX.World.UpdateInput(this, gameTime);
-            //}
-
-            GFX.World.UpdateMatrices(GraphicsDevice);
-
-            GFX.World.CameraPositionDefault.Position = Vector3.Zero;
-
-            GFX.World.CameraOrigin.Position = new Vector3(GFX.World.CameraPositionDefault.Position.X,
-                GFX.World.CameraOrigin.Position.Y, GFX.World.CameraPositionDefault.Position.Z);
-
-            if (DBG.DbgPrim_Grid != null)
-                DBG.DbgPrim_Grid.Transform = GFX.World.CameraPositionDefault;
-
-            if (REQUEST_EXIT)
-                Exit();
-
-            MemoryUsageCheckTimer += elapsed;
-            if (MemoryUsageCheckTimer >= MemoryUsageCheckInterval)
-            {
-                MemoryUsageCheckTimer = 0;
-                UpdateMemoryUsage();
-            }
-
-
-            // BELOW IS TAE EDITOR STUFF
-
-            if (IsLoadingTaskRunning != prevFrameWasLoadingTaskRunning)
-            {
-                TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
+                if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
                 {
-                    if (IsLoadingTaskRunning)
+                    if (JustStartedLayoutForceUpdateFrameAmountLeft == 1)
                     {
-                        Mouse.SetCursor(MouseCursor.Wait);
+                        TAE_EDITOR.SetInspectorVisibility(true);
                     }
 
-                    foreach (Control c in TAE_EDITOR.GameWindowAsForm.Controls)
+                    JustStartedLayoutForceUpdateFrameAmountLeft--;
+                }
+
+                GlobalInputState.Update();
+
+                DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+
+                if (!FIXED_TIME_STEP && GFX.AverageFPS >= 200)
+                {
+                    DELTA_UPDATE_ROUNDED = (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+                }
+                else
+                {
+                    DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
+                }
+
+                IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
+
+                Scene.UpdateAnimation();
+
+                float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                LoadingTaskMan.Update(elapsed);
+
+                IsFixedTimeStep = FIXED_TIME_STEP;
+
+                if (DBG.EnableMenu)
+                {
+                    DbgMenuItem.UpdateInput(elapsed);
+                    DbgMenuItem.UICursorBlinkUpdate(elapsed);
+                }
+
+                //if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+                //{
+                //    // Only update input if debug menu isnt fully open.
+                //    GFX.World.UpdateInput(this, gameTime);
+                //}
+
+                GFX.World.UpdateMatrices(GraphicsDevice);
+
+                GFX.World.CameraPositionDefault.Position = Vector3.Zero;
+
+                GFX.World.CameraOrigin.Position = new Vector3(GFX.World.CameraPositionDefault.Position.X,
+                    GFX.World.CameraOrigin.Position.Y, GFX.World.CameraPositionDefault.Position.Z);
+
+                if (DBG.DbgPrim_Grid != null)
+                    DBG.DbgPrim_Grid.Transform = GFX.World.CameraPositionDefault;
+
+                if (REQUEST_EXIT)
+                    Exit();
+
+                MemoryUsageCheckTimer += elapsed;
+                if (MemoryUsageCheckTimer >= MemoryUsageCheckInterval)
+                {
+                    MemoryUsageCheckTimer = 0;
+                    UpdateMemoryUsage();
+                }
+
+
+                // BELOW IS TAE EDITOR STUFF
+
+                if (IsLoadingTaskRunning != prevFrameWasLoadingTaskRunning)
+                {
+                    TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
                     {
-                        c.Enabled = !IsLoadingTaskRunning;
-                    }
+                        if (IsLoadingTaskRunning)
+                        {
+                            Mouse.SetCursor(MouseCursor.Wait);
+                        }
 
-                    if (!IsLoadingTaskRunning)
-                    {
-                        TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
-                    }
+                        foreach (Control c in TAE_EDITOR.GameWindowAsForm.Controls)
+                        {
+                            c.Enabled = !IsLoadingTaskRunning;
+                        }
+
+                        if (!IsLoadingTaskRunning)
+                        {
+                            TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
+                        }
 
 
-                }));
+                    }));
+                }
+
+                if (!IsLoadingTaskRunning)
+                {
+                    //MeasuredElapsedTime = UpdateStopwatch.Elapsed;
+                    //MeasuredTotalTime = MeasuredTotalTime.Add(MeasuredElapsedTime);
+
+                    //UpdateStopwatch.Restart();
+
+                    if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
+                        TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+
+                    if (Active)
+                        TAE_EDITOR.Update();
+                    else
+                        TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+
+                    if (!string.IsNullOrWhiteSpace(TAE_EDITOR.FileContainerName))
+                        Window.Title = $"{System.IO.Path.GetFileName(TAE_EDITOR.FileContainerName)}" +
+                            $"{(TAE_EDITOR.IsModified ? "*" : "")}" +
+                            $"{(TAE_EDITOR.IsReadOnlyFileMode ? " !READ ONLY!" : "")}" +
+                            $" - DS Anim Studio {VERSION}";
+                    else
+                        Window.Title = $"DS Anim Studio {VERSION}";
+                }
+
+                prevFrameWasLoadingTaskRunning = IsLoadingTaskRunning;
+
+                IsFirstFrameActive = false;
+
+                base.Update(gameTime);
             }
 
-            if (!IsLoadingTaskRunning)
-            {
-                //MeasuredElapsedTime = UpdateStopwatch.Elapsed;
-                //MeasuredTotalTime = MeasuredTotalTime.Add(MeasuredElapsedTime);
+            
 
-                //UpdateStopwatch.Restart();
-
-                if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
-                    TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
-
-                if (Active)
-                    TAE_EDITOR.Update();
-                else
-                    TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
-
-                if (!string.IsNullOrWhiteSpace(TAE_EDITOR.FileContainerName))
-                    Window.Title = $"{System.IO.Path.GetFileName(TAE_EDITOR.FileContainerName)}" +
-                        $"{(TAE_EDITOR.IsModified ? "*" : "")}" +
-                        $"{(TAE_EDITOR.IsReadOnlyFileMode ? " !READ ONLY!" : "")}" +
-                        $" - DS Anim Studio {VERSION}";
-                else
-                    Window.Title = $"DS Anim Studio {VERSION}";
-            }
-
-            prevFrameWasLoadingTaskRunning = IsLoadingTaskRunning;
-
-            base.Update(gameTime);
+            
         }
 
         private void InitTonemapShader()
@@ -622,156 +678,169 @@ namespace DSAnimStudio
 
         protected override void Draw(GameTime gameTime)
         {
-            DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
-
-            GFX.Device.Clear(Color.DimGray);
-
-            if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+            if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0)
             {
-                // Only update input if debug menu isnt fully open.
-                GFX.World.UpdateInput(this, 0.0166667f);
-            }
-
-            if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
-            {
-                if (SceneRenderTarget == null)
+                // Still initializing just blank out screen while layout freaks out lol
+                if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
                 {
-                    RebuildRenderTarget();
-                    if (TimeBeforeNextRenderTargetUpdate > 0)
-                        TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                }
-                else if (RequestViewportRenderTargetResolutionChange)
-                {
-                    RebuildRenderTarget();
-
-                    if (TimeBeforeNextRenderTargetUpdate > 0)
-                        TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
+                    return;
                 }
 
-                GFX.Device.SetRenderTarget(SceneRenderTarget);
+                DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
 
-                GFX.Device.Clear(Color.DimGray);
+                GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
 
-                GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
+                if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+                {
+                    // Only update input if debug menu isnt fully open.
+                    GFX.World.UpdateInput(this, DELTA_UPDATE);
+                }
 
-                GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
+                {
+                    if (SceneRenderTarget == null)
+                    {
+                        RebuildRenderTarget();
+                        if (TimeBeforeNextRenderTargetUpdate > 0)
+                            TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    }
+                    else if (RequestViewportRenderTargetResolutionChange)
+                    {
+                        RebuildRenderTarget();
 
-                //TaeInterop.TaeViewportDrawPre(gameTime);
-                GFX.DrawScene3D();
+                        if (TimeBeforeNextRenderTargetUpdate > 0)
+                            TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    }
 
-                //if (!DBG.DbgPrimXRay)
-                //    GFX.DrawSceneOver3D();
+                    GFX.Device.SetRenderTarget(SceneRenderTarget);
 
-                if (DBG.DbgPrimXRay)
-                    GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+                    GFX.Device.Clear(Color.DimGray);
 
-                GFX.DrawSceneOver3D();
+                    GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
 
-                GFX.Device.SetRenderTarget(null);
+                    GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
 
-                GFX.Device.Clear(Color.DimGray);
+                    //TaeInterop.TaeViewportDrawPre(gameTime);
+                    GFX.DrawScene3D();
+
+                    //if (!DBG.DbgPrimXRay)
+                    //    GFX.DrawSceneOver3D();
+
+                    if (DBG.DbgPrimXRay)
+                        GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+
+                    GFX.DrawSceneOver3D();
+
+                    GFX.Device.SetRenderTarget(null);
+
+                    GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
+
+                    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+
+                    InitTonemapShader();
+                    GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+
+                    if (GFX.UseTonemap && !GFX.IsInDebugShadingMode)
+                    {
+                        MainFlverTonemapShader.ScreenSize = new Vector2(
+                            TAE_EDITOR.ModelViewerBounds.Width, 
+                            TAE_EDITOR.ModelViewerBounds.Height);
+                        MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                    }
+
+                    GFX.SpriteBatch.Draw(SceneRenderTarget,
+                        new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                    GFX.SpriteBatchEnd();
+
+                    //try
+                    //{
+                    //    using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
+                    //   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Rgba1010102, DepthFormat.Depth24))
+                    //    {
+                    //        GFX.Device.SetRenderTarget(renderTarget3DScene);
+
+                    //        GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                    //        GFX.Device.Viewport = new Viewport(0, 0, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA, TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA);
+                    //        TaeInterop.TaeViewportDrawPre(gameTime);
+                    //        GFX.DrawScene3D(gameTime);
+
+                    //        GFX.Device.SetRenderTarget(null);
+
+                    //        GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                    //        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+
+                    //        InitTonemapShader();
+                    //        GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                    //        //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                    //        GFX.SpriteBatch.Draw(renderTarget3DScene,
+                    //            new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                    //        GFX.SpriteBatch.End();
+                    //    }
+                    //}
+                    //catch (SharpDX.SharpDXException ex)
+                    //{
+                    //    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                    //    GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                    //    GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                    //    //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                    //    var errorStr = $"FAILED TO RENDER VIEWPORT AT {(Main.TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA)}x{(Main.TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA)} Resolution";
+                    //    var errorStrPos = (Vector2.One * new Vector2(TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height) / 2.0f);
+
+                    //    errorStrPos -= DBG.DEBUG_FONT.MeasureString(errorStr) / 2.0f;
+
+                    //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos - Vector2.One, Color.Black);
+                    //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos, Color.Red);
+                    //    GFX.SpriteBatch.End();
+                    //}
+
+                }
+
+            
 
                 GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                //DBG.DrawPrimitiveNames(gameTime);
 
-                InitTonemapShader();
-                GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+            
 
-                if (GFX.UseTonemap && !GFX.IsInDebugShadingMode)
+                //if (DBG.DbgPrimXRay)
+                //    GFX.DrawSceneOver3D();
+
+                GFX.DrawSceneGUI();
+
+            
+
+                TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebug();
+
+                DrawMemoryUsage();
+
+                LoadingTaskMan.DrawAllTasks();
+
+            
+                GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+
+                TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
+
+                TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
+                    TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT,
+                    (float)gameTime.ElapsedGameTime.TotalSeconds, TAE_EDITOR_FONT_SMALL,
+                    TAE_EDITOR_SCROLLVIEWER_ARROW);
+
+                if (IsLoadingTaskRunning)
                 {
-                    MainFlverTonemapShader.ScreenSize = new Vector2(
-                        TAE_EDITOR.ModelViewerBounds.Width, 
-                        TAE_EDITOR.ModelViewerBounds.Height);
-                    MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                    TAE_EDITOR.DrawDimmingRect(GraphicsDevice, TaeEditorSpriteBatch, TAE_EDITOR_BLANK_TEX);
                 }
 
-                GFX.SpriteBatch.Draw(SceneRenderTarget,
-                    new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
-                GFX.SpriteBatchEnd();
+                //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                DrawImGui(gameTime, TAE_EDITOR.ModelViewerBounds.X, TAE_EDITOR.ModelViewerBounds.Y, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height);
 
-                //try
-                //{
-                //    using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
-                //   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Rgba1010102, DepthFormat.Depth24))
-                //    {
-                //        GFX.Device.SetRenderTarget(renderTarget3DScene);
-
-                //        GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                //        GFX.Device.Viewport = new Viewport(0, 0, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA, TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA);
-                //        TaeInterop.TaeViewportDrawPre(gameTime);
-                //        GFX.DrawScene3D(gameTime);
-
-                //        GFX.Device.SetRenderTarget(null);
-
-                //        GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                //        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-
-                //        InitTonemapShader();
-                //        GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-                //        //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
-                //        GFX.SpriteBatch.Draw(renderTarget3DScene,
-                //            new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
-                //        GFX.SpriteBatch.End();
-                //    }
-                //}
-                //catch (SharpDX.SharpDXException ex)
-                //{
-                //    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-                //    GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                //    GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-                //    //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
-                //    var errorStr = $"FAILED TO RENDER VIEWPORT AT {(Main.TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA)}x{(Main.TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA)} Resolution";
-                //    var errorStrPos = (Vector2.One * new Vector2(TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height) / 2.0f);
-
-                //    errorStrPos -= DBG.DEBUG_FONT.MeasureString(errorStr) / 2.0f;
-
-                //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos - Vector2.One, Color.Black);
-                //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos, Color.Red);
-                //    GFX.SpriteBatch.End();
-                //}
-
+                GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
             }
 
             
-
-            GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-            //DBG.DrawPrimitiveNames(gameTime);
-
-            
-
-            //if (DBG.DbgPrimXRay)
-            //    GFX.DrawSceneOver3D();
-
-            GFX.DrawSceneGUI();
-
-            
-
-            TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebug();
-
-            DrawMemoryUsage();
-
-            LoadingTaskMan.DrawAllTasks();
-
-            GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
-
-            TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
-
-            TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
-                TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT, 
-                (float)gameTime.ElapsedGameTime.TotalSeconds, TAE_EDITOR_FONT_SMALL,
-                TAE_EDITOR_SCROLLVIEWER_ARROW);
-
-            if (IsLoadingTaskRunning)
-            {
-                TAE_EDITOR.DrawDimmingRect(GraphicsDevice, TaeEditorSpriteBatch, TAE_EDITOR_BLANK_TEX);
-            }
-
-            //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-            DrawImGui(gameTime, TAE_EDITOR.ModelViewerBounds.X, TAE_EDITOR.ModelViewerBounds.Y, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height);
-
-            GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
     }
 }

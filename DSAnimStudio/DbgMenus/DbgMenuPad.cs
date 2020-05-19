@@ -70,9 +70,9 @@ namespace DSAnimStudio.DbgMenus
 
         public static void Update(float elapsedSeconds)
         {
-            var gamepad = DBG.EnableGamePadInput ? GamePad.GetState(0) : DBG.DisabledGamePadState;
-            var keyboard = DBG.EnableKeyboardInput ? Keyboard.GetState() : DBG.DisabledKeyboardState;
-            var mouse = DBG.EnableMouseInput ? Mouse.GetState() : DBG.DisabledMouseState;
+            var gamepad = DBG.EnableGamePadInput ? GlobalInputState.GamePad1 : DBG.DisabledGamePadState;
+            var keyboard = DBG.EnableKeyboardInput ? GlobalInputState.Keyboard : DBG.DisabledKeyboardState;
+            var mouse = DBG.EnableMouseInput ? GlobalInputState.Mouse : DBG.DisabledMouseState;
 
             if (DbgMenuItem.MenuOpenState == DbgMenuOpenState.Open)
             {

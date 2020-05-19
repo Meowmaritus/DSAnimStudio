@@ -80,6 +80,7 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
     <Compile Include="FlverShadingMode.cs" />
+    <Compile Include="GlobalInputState.cs" />
     <Compile Include="HavokDowngrade.cs" />
     <Compile Include="Havok\HKAnimRetarget.cs" />
     <Compile Include="ImGuiRenderer.cs" />
@@ -131,6 +132,7 @@
     <Compile Include="NewChrAsm.cs" />
     <Compile Include="NewHavokAnimation_SplineCompressed.cs" />
     <Compile Include="NewMesh.cs" />
+    <Compile Include="TaeEditor\TaeTransport.cs" />
     <Compile Include="TaeEditor\WinformsTooltipHelper.cs" />
     <Compile Include="TaeEditor\TaeHoverInfoBox.cs" />
     <Compile Include="TaeEditor\TaeViewportInteractor.cs" />

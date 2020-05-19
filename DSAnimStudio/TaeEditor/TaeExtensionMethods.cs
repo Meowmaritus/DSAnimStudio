@@ -13,6 +13,11 @@ namespace DSAnimStudio.TaeEditor
         static Dictionary<TAE.Animation, bool> isModified_Anim = new Dictionary<TAE.Animation, bool>();
         static Dictionary<TAE, bool> isModified_TAE = new Dictionary<TAE, bool>();
 
+        public static Microsoft.Xna.Framework.Vector2 Round(this Microsoft.Xna.Framework.Vector2 v)
+        {
+            return new Microsoft.Xna.Framework.Vector2((float)Math.Round(v.X), (float)Math.Round(v.Y));
+        }
+
         public static void ClearMemes()
         {
             lock (isModified_Anim)
@@ -49,11 +54,15 @@ namespace DSAnimStudio.TaeEditor
 
         public static void ApplyRounding(this TAE.Event ev)
         {
-            if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
-            {
-                ev.StartTime = ev.GetStartTimeFr();
-                ev.EndTime = ev.GetEndTimeFr();
-            }
+            ev.StartTime = ev.GetStartTimeFr();
+            ev.EndTime = ev.GetEndTimeFr();
+
+            if (Main.TAE_EDITOR.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+                ev.EndTime = (float)Math.Max(ev.EndTime, ev.StartTime + TAE_FRAME_30);
+            else if (Main.TAE_EDITOR.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS60)
+                ev.EndTime = (float)Math.Max(ev.EndTime, ev.StartTime + TAE_FRAME_60);
+            else
+                ev.EndTime = (float)Math.Max(ev.EndTime, ev.StartTime + 0.001f);
         }
 
         public static void SetIsModified(this TAE.Animation ev, bool v, bool updateGui = true)
@@ -98,48 +107,52 @@ namespace DSAnimStudio.TaeEditor
 
 
 
-        const double TAE_FRAME = 0.0333333333333333;
+        public const double TAE_FRAME_30 = 1.0 / 30.0;
+        public const double TAE_FRAME_60 = 1.0 / 60.0;
+
+        public static float RoundTimeToCurrentSnapInterval(float time)
+        {
+            if (Main.TAE_EDITOR.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+                return RoundTimeToFrame(time, TAE_FRAME_30);
+            else if (Main.TAE_EDITOR.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS60)
+                return RoundTimeToFrame(time, TAE_FRAME_60);
+            else
+                return time;
+        }
 
         public static float RoundTimeToFrame(float time, double frameDuration)
         {
             return (float)(Math.Round(time / frameDuration) * frameDuration);
         }
 
-        public static float RoundTimeToTAEFrame(float time)
-        {
-            return (float)(Math.Round(time / TAE_FRAME) * TAE_FRAME);
-        }
-
         public static float GetStartTimeFr(this TAE.Event ev)
         {
-            return Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements 
-                ? RoundTimeToFrame(ev.StartTime, TAE_FRAME) : ev.StartTime;
+            return RoundTimeToCurrentSnapInterval(ev.StartTime);
         }
 
-        public static int GetStartFrame(this TAE.Event ev, double frameDuration)
-        {
-            return (int)Math.Round(ev.StartTime / frameDuration);
-        }
+        //public static int GetStartFrame(this TAE.Event ev, double frameDuration)
+        //{
+        //    return (int)Math.Round(ev.StartTime / frameDuration);
+        //}
 
-        public static int GetEndFrame(this TAE.Event ev, double frameDuration)
-        {
-            return (int)Math.Round(ev.EndTime / frameDuration);
-        }
+        //public static int GetEndFrame(this TAE.Event ev, double frameDuration)
+        //{
+        //    return (int)Math.Round(ev.EndTime / frameDuration);
+        //}
 
-        public static int GetStartTAEFrame(this TAE.Event ev)
-        {
-            return (int)Math.Round(ev.StartTime / TAE_FRAME);
-        }
+        //public static int GetStartTAEFrame(this TAE.Event ev)
+        //{
+        //    return (int)Math.Round(ev.StartTime / TAE_FRAME);
+        //}
 
-        public static int GetEndTAEFrame(this TAE.Event ev)
-        {
-            return (int)Math.Round(ev.EndTime / TAE_FRAME);
-        }
+        //public static int GetEndTAEFrame(this TAE.Event ev)
+        //{
+        //    return (int)Math.Round(ev.EndTime / TAE_FRAME);
+        //}
 
         public static float GetEndTimeFr(this TAE.Event ev)
         {
-            return Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements
-                ? RoundTimeToFrame(ev.EndTime, TAE_FRAME) : ev.EndTime;
+            return RoundTimeToCurrentSnapInterval(ev.EndTime);
         }
     }
 }
