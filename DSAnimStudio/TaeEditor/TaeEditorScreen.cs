@@ -188,28 +188,28 @@ namespace DSAnimStudio.TaeEditor
             //    System.Windows.Forms.MessageBox.Show("DONE");
             //});
 
-            MenuBar.AddSeparator("Tools");
+            //MenuBar.AddSeparator("Tools");
 
-            MenuBar.AddItem("Tools", "TEST: Fuck with current anim", () =>
-            {
-                lock (Scene._lock_ModelLoad_Draw)
-                {
-                    if (Scene.Models.Count > 0 && Scene.Models[0].AnimContainer.CurrentAnimation is NewHavokAnimation_InterleavedUncompressed anim)
-                    {
-                        for (int i = 0; i < anim.Transforms.Count; i++)
-                        {
-                            var t = anim.Transforms[i];
+            //MenuBar.AddItem("Tools", "TEST: Fuck with current anim", () =>
+            //{
+            //    lock (Scene._lock_ModelLoad_Draw)
+            //    {
+            //        if (Scene.Models.Count > 0 && Scene.Models[0].AnimContainer.CurrentAnimation is NewHavokAnimation_InterleavedUncompressed anim)
+            //        {
+            //            for (int i = 0; i < anim.Transforms.Count; i++)
+            //            {
+            //                var t = anim.Transforms[i];
 
-                            t.Translation += Main.RandSignedVector3() * 0.1f;
+            //                t.Translation += Main.RandSignedVector3() * 0.1f;
 
-                            t.Rotation *= Quaternion.Normalize(Quaternion.CreateFromAxisAngle(Main.RandSignedVector3(), MathHelper.Pi * Main.RandSignedFloat() * 0.1f));
+            //                t.Rotation *= Quaternion.Normalize(Quaternion.CreateFromAxisAngle(Main.RandSignedVector3(), MathHelper.Pi * Main.RandSignedFloat() * 0.1f));
 
-                            anim.Transforms[i] = t;
-                        }
-                    }
-                }
+            //                anim.Transforms[i] = t;
+            //            }
+            //        }
+            //    }
                 
-            });
+            //});
 
             //MenuBar.AddTopItem("[TEST: SCAN HKXPWV]", () =>
             //{
@@ -430,6 +430,11 @@ namespace DSAnimStudio.TaeEditor
             //});
         }
 
+        public float AnimSwitchRenderCooldown = 0;
+        public float AnimSwitchRenderCooldownMax = 0.3f;
+        public float AnimSwitchRenderCooldownFadeLength = 0.1f;
+        public Color AnimSwitchRenderCooldownColor = Color.Black * 0.35f;
+
         public void SetInspectorVisibility(bool visible)
         {
             inspectorWinFormsControl.Visible = visible;
@@ -490,9 +495,13 @@ namespace DSAnimStudio.TaeEditor
 
         private const int RECENT_FILES_MAX = 32;
 
-        private int TopMenuBarMargin = 32;
+        private int TopMenuBarMargin = 24;
 
-        private int TopOfGraphAnimInfoMargin = 24;
+        private int TopOfGraphAnimInfoMargin = 20;
+
+        private int TransportHeight = 24;
+
+        public TaeTransport Transport;
 
         private int ButtonEditCurrentAnimInfoWidth = 128;
         private System.Windows.Forms.Button ButtonEditCurrentAnimInfo;
@@ -1418,9 +1427,26 @@ namespace DSAnimStudio.TaeEditor
             // Event Graph //
             /////////////////
 
-            MenuBar.AddItem("Event Graph", "Snap To 30 Hz Increments", () => Config.EnableSnapTo30FPSIncrements, b => Config.EnableSnapTo30FPSIncrements = b);
+            //MenuBar.AddItem("Event Graph", "Snap To 30 Hz Increments", () => Config.EnableSnapTo30FPSIncrements, b => Config.EnableSnapTo30FPSIncrements = b);
+
+            MenuBar.AddItem("Event Graph", "Snap Events To Framerate", new Dictionary<string, Action>
+            {
+                { "None" , () => Config.EventSnapType = TaeConfigFile.EventSnapTypes.None },
+                { "30 FPS (used by FromSoft)" , () => Config.EventSnapType = TaeConfigFile.EventSnapTypes.FPS30 },
+                { "60 FPS" , () => Config.EventSnapType = TaeConfigFile.EventSnapTypes.FPS60 },
+            }, () =>
+            {
+                if (Config.EventSnapType == TaeConfigFile.EventSnapTypes.None)
+                    return "None";
+                else if (Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+                    return "30 FPS (used by FromSoft)";
+                else
+                    return "60 FPS";
+            });
+
             //MenuBar.AddItem("Event Graph", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
             MenuBar.AddSeparator("Event Graph");
+            MenuBar.AddItem("Event Graph", "Use New Graph Design", () => Config.IsNewGraphVisiMode, b => Config.IsNewGraphVisiMode = b);
             MenuBar.AddItem("Event Graph", "Use Fancy Text Scrolling", () => Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
             MenuBar.AddItem("Event Graph", "Fancy Text Scroll Speed", new Dictionary<string, Action>
                 {
@@ -1606,7 +1632,7 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("Animation", "Set Playback Speed...", () =>
             {
                 PauseUpdate = true;
-                var speed = KeyboardInput.Show("Set Playback Speed", "Set animation playback speed.", PlaybackCursor.PlaybackSpeed.ToString("0.00"));
+                var speed = KeyboardInput.Show("Set Playback Speed", "Set animation playback speed.", PlaybackCursor.BasePlaybackSpeed.ToString("0.00"));
                 speed.Wait();
                 if (speed.IsCompleted && !speed.IsCanceled)
                 {
@@ -1614,8 +1640,8 @@ namespace DSAnimStudio.TaeEditor
                     {
                         if (float.TryParse(speed.Result, out float newSpeed))
                         {
-                            PlaybackCursor.PlaybackSpeed = newSpeed;
-                            MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
+                            PlaybackCursor.BasePlaybackSpeed = newSpeed;
+                            MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.BasePlaybackSpeed:0.00})";
                         }
                         else
                         {
@@ -1644,7 +1670,7 @@ namespace DSAnimStudio.TaeEditor
             MenuBar["Animation"].DropDownOpening += (o, e) =>
             {
                 if (PlaybackCursor != null)
-                    MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.PlaybackSpeed:0.00})";
+                    MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.BasePlaybackSpeed:0.00})";
             };
             
 
@@ -1823,7 +1849,14 @@ namespace DSAnimStudio.TaeEditor
             GameWindowAsForm.AllowTransparency = false;
             //GameWindowAsForm.TransparencyKey = System.Drawing.Color.Fuchsia;
 
+            Transport = new TaeTransport(this);
+
             UpdateLayout();
+        }
+
+        public void LoadContent(ContentManager c)
+        {
+            Transport.LoadContent(c);
         }
 
         private void ButtonGotoEventSource_Click(object sender, EventArgs e)
@@ -2546,13 +2579,15 @@ namespace DSAnimStudio.TaeEditor
             float right = Graph.ScrollViewer.Scroll.X + Graph.ScrollViewer.Viewport.Width;
             float bottom = Graph.ScrollViewer.Scroll.Y + Graph.ScrollViewer.Viewport.Height;
 
-            Graph.ScrollViewer.Scroll.X = box.LeftFr - (Graph.ScrollViewer.Viewport.Width / 2f);
+            Graph.ScrollViewer.Scroll.X = box.Left - (Graph.ScrollViewer.Viewport.Width / 2f);
             Graph.ScrollViewer.Scroll.Y = (box.Row * Graph.RowHeight) - (Graph.ScrollViewer.Viewport.Height / 2f);
             Graph.ScrollViewer.ClampScroll();
         }
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
+            AnimSwitchRenderCooldown = AnimSwitchRenderCooldownMax;
+
             PlaybackCursor.IsStepping = false;
 
             SelectedTae = tae;
@@ -2871,6 +2906,38 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
+        public void TransportNextFrame()
+        {
+            PlaybackCursor.IsPlaying = false;
+            PlaybackCursor.IsStepping = true;
+
+            PlaybackCursor.CurrentTime += PlaybackCursor.CurrentSnapInterval;
+            PlaybackCursor.CurrentTime = Math.Round(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
+
+            if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime)
+                PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
+
+            //PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
+            Graph.ScrollToPlaybackCursor(1);
+
+        }
+
+        public void TransportPreviousFrame()
+        {
+            PlaybackCursor.IsPlaying = false;
+            PlaybackCursor.IsStepping = true;
+
+            PlaybackCursor.CurrentTime -= PlaybackCursor.CurrentSnapInterval;
+            PlaybackCursor.CurrentTime = Math.Round(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
+
+            if (PlaybackCursor.CurrentTime < 0)
+                PlaybackCursor.CurrentTime += PlaybackCursor.MaxTime;
+
+            //PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
+
+            Graph.ScrollToPlaybackCursor(1);
+        }
+
         public void Update()
         {
             if (!Input.LeftClickHeld)
@@ -2930,10 +2997,14 @@ namespace DSAnimStudio.TaeEditor
                 Graph.ViewportInteractor?.GeneralUpdate();
             }
 
+            
+
             if (PauseUpdate)
             {
                 return;
             }
+
+            Transport.Update(Main.DELTA_UPDATE);
 
             if (Main.Active)
             {
@@ -3043,16 +3114,16 @@ namespace DSAnimStudio.TaeEditor
                     Graph.DeleteSelectedEvent();
                 }
 
-                if (Graph != null && Input.KeyDown(Keys.Home) && !Graph.PlaybackCursor.Scrubbing)
-                {
-                    if (CtrlHeld)
-                        Graph.PlaybackCursor.IsPlaying = false;
+                //if (Graph != null && Input.KeyDown(Keys.Home) && !Graph.PlaybackCursor.Scrubbing)
+                //{
+                //    if (CtrlHeld)
+                //        Graph.PlaybackCursor.IsPlaying = false;
 
-                    Graph.PlaybackCursor.CurrentTime = ShiftHeld ? 0 : Graph.PlaybackCursor.StartTime;
-                    Graph.ViewportInteractor.ResetRootMotion(0);
+                //    Graph.PlaybackCursor.CurrentTime = ShiftHeld ? 0 : Graph.PlaybackCursor.StartTime;
+                //    Graph.ViewportInteractor.ResetRootMotion(0);
 
-                    
-                }
+                //    Graph.ScrollToPlaybackCursor(1);
+                //}
 
                 if (Graph != null && Input.KeyDown(Keys.R) && Config.AccumulateRootMotion)
                 {
@@ -3060,63 +3131,45 @@ namespace DSAnimStudio.TaeEditor
                     Graph.ViewportInteractor.OnScrubFrameChange();
                 }
 
-                if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
-                {
-                    if (CtrlHeld)
-                        Graph.PlaybackCursor.IsPlaying = false;
+                //if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
+                //{
+                //    if (CtrlHeld)
+                //        Graph.PlaybackCursor.IsPlaying = false;
 
-                    Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime;
-                    Graph.ViewportInteractor.ResetRootMotion((float)Graph.PlaybackCursor.MaxFrame);
-                }
+                //    Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime;
+                //    Graph.ViewportInteractor.ResetRootMotion((float)Graph.PlaybackCursor.MaxFrame);
 
-                NextAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.PageDown));
+                //    Graph.ScrollToPlaybackCursor(1);
+                //}
+
+                NextAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Down) && !Input.KeyHeld(Keys.Up));
 
                 if (NextAnimRepeaterButton.State)
                 {
                     NextAnim(ShiftHeld, CtrlHeld);
                 }
 
-                PrevAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.PageUp));
+                PrevAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Up) && !Input.KeyHeld(Keys.Down));
 
                 if (PrevAnimRepeaterButton.State)
                 {
                     PrevAnim(ShiftHeld, CtrlHeld);
                 }
 
-                if (PlaybackCursor != null && !PlaybackCursor.IsPlaying)
+                if (PlaybackCursor != null)
                 {
                     NextFrameRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Right));
 
                     if (NextFrameRepeaterButton.State)
                     {
-                        PlaybackCursor.IsStepping = true;
-
-                        if (NextFrameRepeaterButton.IsInitalButtonTap)
-                            PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
-
-                        PlaybackCursor.CurrentTime += PlaybackCursor.CurrentSnapInterval
-                            * (NextFrameRepeaterButton.IsInitalButtonTap ? 1 : (Config.LockFramerateToOriginalAnimFramerate ? 1 : 0.25f)) * (ShiftHeld ? 5 : 1);
-                        if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime)
-                            PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
-
-                        PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
+                        TransportNextFrame();
                     }
 
                     PrevFrameRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Left));
 
                     if (PrevFrameRepeaterButton.State)
                     {
-                        PlaybackCursor.IsStepping = true;
-
-                        if (PrevFrameRepeaterButton.IsInitalButtonTap)
-                            PlaybackCursor.CurrentTime = PlaybackCursor.GUICurrentTime;
-
-                        PlaybackCursor.CurrentTime -= PlaybackCursor.CurrentSnapInterval
-                            * (PrevFrameRepeaterButton.IsInitalButtonTap ? 1 : (Config.LockFramerateToOriginalAnimFramerate ? 1 : 0.25f)) * (ShiftHeld ? 5 : 1);
-                        if (PlaybackCursor.CurrentTime < 0)
-                            PlaybackCursor.CurrentTime += PlaybackCursor.MaxTime;
-
-                        PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
+                        TransportPreviousFrame();
                     }
                 }
 
@@ -3234,8 +3287,8 @@ namespace DSAnimStudio.TaeEditor
                 if (Input.LeftClickHeld)
                 {
                     //Input.CursorType = MouseCursorType.DragY;
-                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
-                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin);
+                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin - TransportHeight) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
+                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
                     MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
                     Main.RequestViewportRenderTargetResolutionChange = true;
                     Main.RequestHideOSD = Main.RequestHideOSD_MAX;
@@ -3406,9 +3459,9 @@ namespace DSAnimStudio.TaeEditor
                 if (RightSectionWidth < RightSectionWidthMin)
                     RightSectionWidth = RightSectionWidthMin;
 
-                if (TopRightPaneHeight > (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin))
+                if (TopRightPaneHeight > (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin - TransportHeight))
                 {
-                    TopRightPaneHeight = (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin);
+                    TopRightPaneHeight = (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin - TransportHeight);
                     Main.RequestViewportRenderTargetResolutionChange = true;
                     Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                 }
@@ -3451,7 +3504,7 @@ namespace DSAnimStudio.TaeEditor
 
                     ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
                         plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
-                        Rect.Top + TopMenuBarMargin - 4,
+                        Rect.Top + TopMenuBarMargin,
                         ButtonEditCurrentAnimInfoWidth,
                         TopOfGraphAnimInfoMargin);
 
@@ -3483,6 +3536,12 @@ namespace DSAnimStudio.TaeEditor
                         TopOfGraphAnimInfoMargin);
                 }
 
+                Transport.Rect = new Rectangle(
+                        (int)RightSectionStartX,
+                        Rect.Top + TopMenuBarMargin,
+                        (int)RightSectionWidth,
+                        (int)(TransportHeight));
+
                 ButtonEditCurrentTaeHeader.Bounds = new System.Drawing.Rectangle(
                         (int)LeftSectionStartX,
                         Rect.Bottom - EditTaeHeaderButtonHeight,
@@ -3496,8 +3555,16 @@ namespace DSAnimStudio.TaeEditor
                 //ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Bottom - BottomRightPaneHeight), (int)RightSectionWidth, (int)(BottomRightPaneHeight));
 
                 //ShaderAdjuster.Size = new System.Drawing.Size((int)RightSectionWidth, ShaderAdjuster.Size.Height);
-                ModelViewerBounds = new Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(TopRightPaneHeight));
-                inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad), (int)RightSectionWidth, (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin));
+                ModelViewerBounds = new Rectangle(
+                    (int)RightSectionStartX, 
+                    Rect.Top + TopMenuBarMargin + TransportHeight, 
+                    (int)RightSectionWidth, 
+                    (int)(TopRightPaneHeight));
+                inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle(
+                    (int)RightSectionStartX, 
+                    (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad + TransportHeight), 
+                    (int)RightSectionWidth, 
+                    (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin - TransportHeight));
                 //ShaderAdjuster.Location = new System.Drawing.Point(Rect.Right - ShaderAdjuster.Size.Width, Rect.Top + TopMenuBarMargin);
             }));
 
@@ -3543,7 +3610,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Config.EnableFancyScrollingStrings)
                 {
-                    SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect, font, elapsedSeconds);
+                    SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect, font, elapsedSeconds, Main.GlobalTaeEditorFontOffset);
                 }
                 else
                 {
@@ -3563,7 +3630,56 @@ namespace DSAnimStudio.TaeEditor
             if (Graph != null)
             {
                 Graph.Draw(gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex);
+
+                
             }
+            else
+            {
+                // Draws a very, very blank graph is none is loaded:
+
+                //var graphRect = new Rectangle(
+                //        (int)MiddleSectionStartX,
+                //        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                //        (int)MiddleSectionWidth,
+                //        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                //sb.Begin();
+                //sb.Draw(texture: boxTex,
+                //    position: new Vector2(graphRect.X, graphRect.Y),
+                //    sourceRectangle: null,
+                //    color: new Color(120, 120, 120, 255),
+                //    rotation: 0,
+                //    origin: Vector2.Zero,
+                //    scale: new Vector2(graphRect.Width, graphRect.Height),
+                //    effects: SpriteEffects.None,
+                //    layerDepth: 0
+                //    );
+                
+                //sb.Draw(texture: boxTex,
+                //    position: new Vector2(graphRect.X, graphRect.Y),
+                //    sourceRectangle: null,
+                //    color: new Color(64, 64, 64, 255),
+                //    rotation: 0,
+                //    origin: Vector2.Zero,
+                //    scale: new Vector2(graphRect.Width, TaeEditAnimEventGraph.TimeLineHeight),
+                //    effects: SpriteEffects.None,
+                //    layerDepth: 0
+                //    );
+                //sb.End();
+            }
+
+            Transport.Draw(gd, sb, boxTex, smallFont);
+
+            if (AnimSwitchRenderCooldown > 0)
+            {
+                AnimSwitchRenderCooldown -= Main.DELTA_UPDATE;
+
+                //float ratio = Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, AnimSwitchRenderCooldown / AnimSwitchRenderCooldownFadeLength)));
+                //sb.Begin();
+                //sb.Draw(boxTex, graphRect, AnimSwitchRenderCooldownColor * ratio);
+                //sb.End();
+            }
+
             //editScreenGraphInspector.Draw(gd, sb, boxTex, font);
 
             //var oldViewport = gd.Viewport;

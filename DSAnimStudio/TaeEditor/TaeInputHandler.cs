@@ -63,6 +63,18 @@ namespace DSAnimStudio.TaeEditor
         private Dictionary<Keys, bool> keysUp = new Dictionary<Keys, bool>();
         private Dictionary<Keys, bool> oldKeysHeld = new Dictionary<Keys, bool>();
 
+        public bool ShiftHeld => KeyHeld(Keys.LeftShift) || KeyHeld(Keys.RightShift);
+        public bool ShiftDown => KeyDown(Keys.LeftShift) || KeyDown(Keys.RightShift);
+        public bool ShiftUp => KeyUp(Keys.LeftShift) || KeyUp(Keys.RightShift);
+
+        public bool CtrlHeld => KeyHeld(Keys.LeftControl) || KeyHeld(Keys.RightControl);
+        public bool CtrlDown => KeyDown(Keys.LeftControl) || KeyDown(Keys.RightControl);
+        public bool CtrlUp => KeyUp(Keys.LeftControl) || KeyUp(Keys.RightControl);
+
+        public bool AltHeld => KeyHeld(Keys.LeftAlt) || KeyHeld(Keys.RightAlt);
+        public bool AltDown => KeyDown(Keys.LeftAlt) || KeyDown(Keys.RightAlt);
+        public bool AltUp => KeyUp(Keys.LeftAlt) || KeyUp(Keys.RightAlt);
+
         private void KeepTrackOfNewKey(Keys k)
         {
             keysToKeepTrackOf.Add(k);
@@ -96,9 +108,41 @@ namespace DSAnimStudio.TaeEditor
             return keysUp[k];
         }
 
-        public void Update(Rectangle mouseCursorUpdateRect)
+        private void UpdateKeyboard()
         {
-            Mouse = Microsoft.Xna.Framework.Input.Mouse.GetState();
+            Keyboard = GlobalInputState.Keyboard;
+
+            foreach (var k in keysToKeepTrackOf)
+            {
+                ////////////////////////////////////////////////////////////////////////////////
+                // Get the current state.
+                ////////////////////////////////////////////////////////////////////////////////
+                keysHeld[k] = Keyboard.IsKeyDown(k);
+
+                ////////////////////////////////////////////////////////////////////////////////
+                // Cancel delta state when you alt+tab or click back into window.
+                ////////////////////////////////////////////////////////////////////////////////
+                if (Main.IsFirstFrameActive)
+                {
+                    oldKeysHeld[k] = keysHeld[k];
+                }
+
+                ////////////////////////////////////////////////////////////////////////////////
+                // Get the delta state.
+                ////////////////////////////////////////////////////////////////////////////////
+                keysDown[k] = keysHeld[k] && !oldKeysHeld[k];
+                keysUp[k] = !keysHeld[k] && oldKeysHeld[k];
+
+                ////////////////////////////////////////////////////////////////////////////////
+                // Store current state for getting the next delta state. 
+                ////////////////////////////////////////////////////////////////////////////////
+                oldKeysHeld[k] = keysHeld[k];
+            }
+        }
+
+        private void UpdateMouse(Rectangle mouseCursorUpdateRect)
+        {
+            Mouse = GlobalInputState.Mouse;
 
             MouseCursorUpdateRect = mouseCursorUpdateRect;
 
@@ -136,14 +180,35 @@ namespace DSAnimStudio.TaeEditor
                 System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.Arrow;
             }
 
-            Keyboard = Microsoft.Xna.Framework.Input.Keyboard.GetState();
-
+            ////////////////////////////////////////////////////////////////////////////////
+            // Get the current state.
+            ////////////////////////////////////////////////////////////////////////////////
+            
             LeftClickHeld = Mouse.LeftButton == ButtonState.Pressed;
             RightClickHeld = Mouse.RightButton == ButtonState.Pressed;
             MiddleClickHeld = Mouse.MiddleButton == ButtonState.Pressed;
             AccumulatedScroll = Mouse.ScrollWheelValue / 150f;
             MousePosition = new Vector2(Mouse.X, Mouse.Y);
             MousePositionPoint = Mouse.Position;
+
+            ////////////////////////////////////////////////////////////////////////////////
+            // Cancel delta state when you alt+tab or click back into window.
+            ////////////////////////////////////////////////////////////////////////////////
+
+            if (Main.IsFirstFrameActive)
+            {
+                System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.Arrow;
+
+                oldAccumulatedScroll = AccumulatedScroll;
+                oldLeftClickHeld = LeftClickHeld;
+                oldMiddleClickHeld = MiddleClickHeld;
+                oldMousePosition = MousePosition;
+                oldRightClickHeld = RightClickHeld;
+            }
+
+            ////////////////////////////////////////////////////////////////////////////////
+            // Get the delta state.
+            ////////////////////////////////////////////////////////////////////////////////
 
             LeftClickDown = LeftClickHeld && !oldLeftClickHeld;
             LeftClickUp = !LeftClickHeld && oldLeftClickHeld;
@@ -177,22 +242,21 @@ namespace DSAnimStudio.TaeEditor
             if (MiddleClickHeld)
                 MiddleClickDownOffset = MousePosition - MiddleClickDownAnchor;
 
-            foreach (var k in keysToKeepTrackOf)
-            {
-                keysHeld[k] = Keyboard.IsKeyDown(k);
-
-                keysDown[k] = keysHeld[k] && !oldKeysHeld[k];
-                keysUp[k] = !keysHeld[k] && oldKeysHeld[k];
-
-                oldKeysHeld[k] = keysHeld[k];
-            }
-
+            ////////////////////////////////////////////////////////////////////////////////
+            // Store current state for getting the next delta state.
+            ////////////////////////////////////////////////////////////////////////////////
 
             oldLeftClickHeld = LeftClickHeld;
             oldRightClickHeld = RightClickHeld;
             oldMiddleClickHeld = MiddleClickHeld;
             oldAccumulatedScroll = AccumulatedScroll;
             oldMousePosition = MousePosition;
+        }
+
+        public void Update(Rectangle mouseCursorUpdateRect)
+        {
+            UpdateMouse(mouseCursorUpdateRect);
+            UpdateKeyboard();
         }
     }
 }

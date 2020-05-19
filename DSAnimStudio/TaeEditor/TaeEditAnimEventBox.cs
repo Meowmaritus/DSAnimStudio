@@ -18,18 +18,19 @@ namespace DSAnimStudio.TaeEditor
             RowChanged?.Invoke(this, oldRow);
         }
 
-        public const double FRAME = 0.0333333333333333;
+        //public const double FRAME = 0.0333333333333333;
+        public const double FRAME = 0.01666666666666666;
 
         public float Left => MyEvent.StartTime * OwnerPane.SecondsPixelSize;
         public float Right => MyEvent.EndTime * OwnerPane.SecondsPixelSize;
-        public float Top => (Row * OwnerPane.RowHeight) + 2 + OwnerPane.TimeLineHeight;
+        public float Top => (Row * OwnerPane.RowHeight) + 2 + TaeEditAnimEventGraph.TimeLineHeight;
         public float Bottom => Top + OwnerPane.RowHeight;
         public float Width => (MyEvent.EndTime - MyEvent.StartTime) * OwnerPane.SecondsPixelSize;
         public float Height => OwnerPane.RowHeight - 2;
 
-        public float LeftFr => MyEvent.GetStartTimeFr() * OwnerPane.SecondsPixelSize;
-        public float RightFr => MyEvent.GetEndTimeFr() * OwnerPane.SecondsPixelSize;
-        public float WidthFr => (MyEvent.GetEndTimeFr() - MyEvent.GetStartTimeFr()) * OwnerPane.SecondsPixelSize;
+        //public float LeftFr => MyEvent.GetStartTimeFr() * OwnerPane.SecondsPixelSize;
+        //public float RightFr => MyEvent.GetEndTimeFr() * OwnerPane.SecondsPixelSize;
+        //public float WidthFr => (MyEvent.GetEndTimeFr() - MyEvent.GetStartTimeFr()) * OwnerPane.SecondsPixelSize;
         public float HeightFr => OwnerPane.RowHeight - 4;
 
         private int _row = -1;
@@ -47,51 +48,106 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public Rectangle GetTextRect(int outlineThickness)
+        public Rectangle GetTextRect(int outlineThickness, bool smallMode)
         {
-            return new Rectangle((int)LeftFr + 2 + 2/*outlineThickness*/, 
-                (int)Top + 1, (int)WidthFr - 4 - (2/*outlineThickness*/ * 2), (int)HeightFr - 2);
+            return smallMode ? new Rectangle((int)Math.Round(Left) + 5, (int)Math.Round(Top), (int)Math.Round(Width) - 10, (int)Math.Round(Height) - 1) : 
+                new Rectangle((int)Math.Round(Left) + 2 + 2/*outlineThickness*/, 
+                (int)Top + 1, (int)Width - (2/*outlineThickness*/ * 2), (int)Math.Round(HeightFr) - 2);
         }
 
         public TaeScrollingString EventText { get; private set; } = new TaeScrollingString();
 
         public Color ColorBG = new Color(80, 80, 80, 255);
-        public Color ColorBGSelected = new Color((30.0f / 255.0f) * 1, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);// Color.DodgerBlue;
-        public Color ColorOutline = Color.Black;
-        public Color ColorFG => Color.White;
+        public Color ColorBGHighlighted = new Color((30.0f / 255.0f) * 0.75f, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);// Color.DodgerBlue;
 
-        private bool CheckHighlight(double curFrame, TaeEditAnimEventBox hoverBox)
+        //public Color ColorBG_Selected = new Color(0, 196, 0, 255);// Color.White;// new Color(0, 127, 55, 255);
+        //public Color ColorBGHighlighted_Selected = new Color(0, 198, 0, 255); //Color.White;// new Color(0, 198, 86, 255);
+
+        private float selectionColorPulseRadians = 0;
+        private float selectionColorPulseLerpRatio = 0;
+        public float SelectionColorPulseRadiansPerSec = MathHelper.PiOver2;
+
+        private Color colorBG_Selected_PulseStart = Color.Purple;
+        private Color colorBG_Selected_PulseEnd = Color.Fuchsia;
+        private Color colorBGHighlighted_Selected_PulseStart = Color.Purple;
+        private Color colorBGHighlighted_Selected_PulseEnd = Color.Fuchsia;
+
+        public Color ColorBG_Selected => Color.Lerp(colorBG_Selected_PulseStart, colorBG_Selected_PulseEnd, selectionColorPulseLerpRatio);
+        public Color ColorBGHighlighted_Selected => Color.Lerp(colorBGHighlighted_Selected_PulseStart, colorBGHighlighted_Selected_PulseEnd, selectionColorPulseLerpRatio);
+
+        public void UpdateSelectionColorPulse(float elapsedTime, bool isSelected)
         {
-            if (!OwnerPane.MainScreen.Config.SoloHighlightEventOnHover || 
-                hoverBox == null || OwnerPane.PlaybackCursor.IsPlaying || 
-                OwnerPane.PlaybackCursor.Scrubbing)
+            if (isSelected)
             {
-                return curFrame >=
-                MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval) &&
-                curFrame <
-                MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
+                selectionColorPulseRadians += (elapsedTime * SelectionColorPulseRadiansPerSec);
+
+                // Loop circle
+                selectionColorPulseRadians = selectionColorPulseRadians % MathHelper.Pi;
+
+                selectionColorPulseLerpRatio = (float)((Math.Cos(selectionColorPulseRadians > MathHelper.PiOver2 ? (selectionColorPulseRadians + MathHelper.Pi) : selectionColorPulseRadians) / 2.0) + 0.5);
             }
             else
             {
-                return hoverBox == this;
+                selectionColorPulseRadians = 0;
+                selectionColorPulseLerpRatio = 0;
             }
-            
         }
 
-        public bool PlaybackHighlight => OwnerPane?.PlaybackCursor == null ? false : CheckHighlight(
-            OwnerPane.PlaybackCursor.GUICurrentFrameMod, 
-            OwnerPane.MainScreen.HoveringOverEventBox);
+        public Color ColorOutline = Color.Black;
+        public Color ColorFG => Color.White;
+
+        //private bool CheckHighlight(double startOfHitWindow, double endOfHitWindow, TaeEditAnimEventBox mouseHoverBox)
+        //{
+
+        //    if (!OwnerPane.MainScreen.Config.SoloHighlightEventOnHover || 
+        //        mouseHoverBox == null || OwnerPane.PlaybackCursor.IsPlaying || 
+        //        OwnerPane.PlaybackCursor.Scrubbing)
+        //    {
+        //        return !(MyEvent.StartTime > endOfHitWindow || MyEvent.EndTime < startOfHitWindow);
+        //    }
+        //    else
+        //    {
+        //        return mouseHoverBox == this;
+        //    }
+
+        //}
+
+        private bool CheckHighlight(double playbackCursorPos, TaeEditAnimEventBox mouseHoverBox)
+        {
+
+            if (!OwnerPane.MainScreen.Config.SoloHighlightEventOnHover ||
+                mouseHoverBox == null || OwnerPane.PlaybackCursor.IsPlaying ||
+                OwnerPane.PlaybackCursor.Scrubbing)
+            {
+                return playbackCursorPos >= MyEvent.StartTime && playbackCursorPos < MyEvent.EndTime;
+            }
+            else
+            {
+                return mouseHoverBox == this;
+            }
+
+        }
+
+        //public bool PlaybackHighlight => OwnerPane?.PlaybackCursor == null ? false : CheckHighlight(
+        //    OwnerPane.PlaybackCursor.HitWindowStart, OwnerPane.PlaybackCursor.HitWindowEnd, 
+        //    OwnerPane.MainScreen.HoveringOverEventBox);
+
+        //public bool PrevCyclePlaybackHighlight => !OwnerPane.PlaybackCursor.JustStartedPlaying &&
+        //    CheckHighlight(OwnerPane.PlaybackCursor.OldHitWindowStart, OwnerPane.PlaybackCursor.OldHitWindowEnd,
+        //        OwnerPane.MainScreen.PrevHoveringOverEventBox);
+
+        public bool PlaybackHighlight => OwnerPane?.PlaybackCursor == null ? false : 
+            CheckHighlight(OwnerPane.PlaybackCursor.CurrentTimeMod, OwnerPane.MainScreen.HoveringOverEventBox);
 
         public bool PrevCyclePlaybackHighlight => !OwnerPane.PlaybackCursor.JustStartedPlaying &&
-            CheckHighlight(OwnerPane.PlaybackCursor.OldGUICurrentFrameMod,
-                OwnerPane.MainScreen.PrevHoveringOverEventBox);
+            CheckHighlight(OwnerPane.PlaybackCursor.OldCurrentTimeMod, OwnerPane.MainScreen.PrevHoveringOverEventBox);
 
         public bool DragWholeBoxToVirtualUnitX(float x)
         {
             x = MathHelper.Max(x, 0);
 
-            int originalStartFrame = MyEvent.GetStartTAEFrame();
-            int originalEndFrame = MyEvent.GetEndTAEFrame();
+            var originalStartFrame = MyEvent.GetStartTimeFr();
+            var originalEndFrame = MyEvent.GetEndTimeFr();
 
             float eventLength = MyEvent.GetEndTimeFr() - MyEvent.GetStartTimeFr();
             MyEvent.StartTime = x / OwnerPane.SecondsPixelSize;
@@ -99,29 +155,29 @@ namespace DSAnimStudio.TaeEditor
 
             MyEvent.ApplyRounding();
 
-            return (MyEvent.GetStartTAEFrame() != originalStartFrame || 
-                MyEvent.GetEndTAEFrame() != originalEndFrame);
+            return (MyEvent.GetStartTimeFr() != originalStartFrame || 
+                MyEvent.GetEndTimeFr() != originalEndFrame);
         }
 
         public bool DragLeftSideOfBoxToVirtualUnitX(float x)
         {
-            int originalStartFrame = MyEvent.GetStartTAEFrame();
+            var originalStartFrame = MyEvent.GetStartTimeFr();
 
             MyEvent.StartTime = (float)Math.Min(x / OwnerPane.SecondsPixelSize, MyEvent.EndTime - FRAME);
             MyEvent.ApplyRounding();
 
-            return (MyEvent.GetStartTAEFrame() != originalStartFrame);
+            return (MyEvent.GetStartTimeFr() != originalStartFrame);
         }
 
         public bool DragRightSideOfBoxToVirtualUnitX(float x)
         {
-            float originalEndFrame = MyEvent.GetEndTAEFrame();
+            var originalEndFrame = MyEvent.GetEndTimeFr();
 
             MyEvent.EndTime = (float)Math.Max(x / OwnerPane.SecondsPixelSize, MyEvent.StartTime + FRAME);
 
             MyEvent.ApplyRounding();
 
-            return (MyEvent.GetEndTAEFrame() != originalEndFrame);
+            return (MyEvent.GetEndTimeFr() != originalEndFrame);
         }
 
         public TaeEditAnimEventBox(TaeEditAnimEventGraph owner, TAE.Event myEvent)
@@ -175,12 +231,12 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                int startFrame = MyEvent.GetStartFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
-                int endFrame = MyEvent.GetEndFrame(OwnerPane.PlaybackCursor.CurrentSnapInterval);
-                int frameCount = endFrame - startFrame;
-                sb.AppendLine($"Start Frame: {startFrame}");
-                sb.AppendLine($"  End Frame: {endFrame}");
-                sb.AppendLine($"Frame Count: {frameCount}");
+                float startFrame = (float)(MyEvent.StartTime / OwnerPane.PlaybackCursor.CurrentSnapInterval);
+                float endFrame = (float)(MyEvent.EndTime / OwnerPane.PlaybackCursor.CurrentSnapInterval);
+                float frameCount = endFrame - startFrame;
+                sb.AppendLine($"Start Frame: {startFrame:0.00}");
+                sb.AppendLine($"  End Frame: {endFrame:0.00}");
+                sb.AppendLine($"Frame Count: {frameCount:0.00}");
 
                 var paramKvps = MyEvent.Parameters.Template.Where(kvp => kvp.Value.ValueToAssert == null).ToList();
                 
@@ -228,7 +284,7 @@ namespace DSAnimStudio.TaeEditor
                         else
                             sb.Append(", ");
 
-                        sb.Append(MyEvent.Parameters[kvp.Key].ToString());
+                        sb.Append(kvp.Value.ValueToString(MyEvent.Parameters[kvp.Key]));
                     }
                 }
                 sb.Append(")");

@@ -28,6 +28,8 @@ namespace DSAnimStudio.TaeEditor
         private Dictionary<string, EventSimEntry> entries;
         public IReadOnlyDictionary<string, EventSimEntry> Entries => entries;
 
+        public List<string> SimulatedActiveSpEffects = new List<string>();
+
         private ParamData.BehaviorParam GetBehaviorParamFromEvBox(TaeEditAnimEventBox evBox)
         {
             if (evBox.MyEvent.TypeName == "InvokeAttackBehavior" || 
@@ -54,9 +56,9 @@ namespace DSAnimStudio.TaeEditor
                         return ParamManager.BehaviorParam_PC[id];
 
                     if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon && MODEL.ChrAsm?.RightWeapon != null)
-                        id = 10_0000_000 + ((MODEL.ChrAsm.RightWeapon.WepMotionCategory * 100) * 1_000) + behaviorSubID;
+                        id = 10_0000_000 + (MODEL.ChrAsm.RightWeapon.FallbackBehaviorVariationID * 1_000) + behaviorSubID;
                     else if (HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon && MODEL.ChrAsm?.LeftWeapon != null)
-                        id = 10_0000_000 + ((MODEL.ChrAsm.LeftWeapon.WepMotionCategory * 100) * 1_000) + behaviorSubID;
+                        id = 10_0000_000 + (MODEL.ChrAsm.LeftWeapon.FallbackBehaviorVariationID * 1_000) + behaviorSubID;
 
                     if (ParamManager.BehaviorParam_PC.ContainsKey(id))
                         return ParamManager.BehaviorParam_PC[id];
@@ -220,6 +222,59 @@ namespace DSAnimStudio.TaeEditor
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+                },
+
+                { 
+                    "EventSimSpEffects", 
+                    new EventSimEntry("Simulate SpEffects", true,
+                        "InvokeSpEffectBehavior_Multiplayer",
+                        "InvokeSpEffectBehavior", 
+                        "InvokeSpEffect", 
+                        "InvokeSpEffect_Multiplayer")
+                    {
+
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        {
+                            SimulatedActiveSpEffects.Clear();
+
+                            Graph.PlaybackCursor.ModPlaybackSpeed = 1;
+
+
+                            foreach (var evBox in evBoxes
+                            .Where(evb => evb.MyEvent.Template != null &&
+                                    evb.PlaybackHighlight && entry.DoesEventMatch(evb))
+                            .OrderBy(evb => evb.MyEvent.StartTime))
+                            {
+                                if (evBox.MyEvent.Parameters.Template.ContainsKey("SpEffectID"))
+                                {
+                                    int spEffectID = Convert.ToInt32(evBox.MyEvent.Parameters["SpEffectID"]);
+
+                                    if (ParamManager.SpEffectParam.ContainsKey(spEffectID))
+                                    {
+                                        var spEffect = ParamManager.SpEffectParam[spEffectID];
+
+                                        if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                                        {
+                                            if (spEffect.GrabityRate > 0)
+                                                Graph.PlaybackCursor.ModPlaybackSpeed *= spEffect.GrabityRate;
+                                        }
+
+                                        SimulatedActiveSpEffects.Add($"{spEffect.GetDisplayName()}");
+                                    }
+                                    else
+                                    {
+                                        SimulatedActiveSpEffects.Add($"[Doesn't Exist] {spEffectID}");
+                                    }
+
+                                        
+                                }
+
+                                
+
+
                             }
                         }
                     }

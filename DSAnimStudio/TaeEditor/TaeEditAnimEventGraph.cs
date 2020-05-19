@@ -4,6 +4,7 @@ using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+//using System.Numerics;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -104,6 +105,9 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeViewportInteractor ViewportInteractor;
 
+        public Color PlaybackCursorHitWindowStartColor = Color.DodgerBlue;
+        public Color PlaybackCursorHitWindowColor = Color.CornflowerBlue * 0.5f;
+
         public Color PlaybackCursorColor = Color.Black;
 
         public float PlaybackCursorThickness = 2;
@@ -129,7 +133,7 @@ namespace DSAnimStudio.TaeEditor
 
         const float SecondsPixelSizeDefault = 128 * 4;
         public float SecondsPixelSize = SecondsPixelSizeDefault;
-        public float FramePixelSize => SecondsPixelSize / (1 / (float)PlaybackCursor.CurrentSnapInterval);
+        public float FramePixelSize_HKX => SecondsPixelSize / (1 / (float)PlaybackCursor.CurrentSnapInterval);
         public float MinPixelsBetweenFramesForHelperLines = 4;
         public float MinPixelsBetweenFramesForFrameNumberText = 20;
 
@@ -137,13 +141,18 @@ namespace DSAnimStudio.TaeEditor
         public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 2048);
         public float SecondsPixelSizeScrollNotch = 128;
 
-        public float TimeLineHeight = 24;
+        public const float TimeLineHeight = 24;
 
         public float BoxSideScrollMarginSize = 4;
 
-
         public TaeDragState currentDrag = new TaeDragState();
         public List<TaeDragState> currentMultiDrag = new List<TaeDragState>();
+
+        public bool IsBoxDragging => 
+            currentDrag.DragType != BoxDragType.None &&
+            currentDrag.DragType != BoxDragType.MultiSelectionRectangle &&
+            currentDrag.DragType != BoxDragType.MultiSelectionRectangleADD &&
+            currentDrag.DragType != BoxDragType.MultiSelectionRectangleSUBTRACT;
 
 
         public void ZoomOutOneNotch(float mouseScreenPosX)
@@ -227,7 +236,9 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public float RowHeight = 24;
+        public bool IsNewGraphVisiMode => MainScreen.Config.IsNewGraphVisiMode;
+
+        public float RowHeight => IsNewGraphVisiMode ? 20 : 24;
 
         private Dictionary<int, List<TaeEditAnimEventBox>> sortedByRow = new Dictionary<int, List<TaeEditAnimEventBox>>();
 
@@ -290,7 +301,7 @@ namespace DSAnimStudio.TaeEditor
                 if (newBox.Row >= 0)
                 {
                     currentRow = newBox.Row;
-                    farthestRightOnCurrentRow = newBox.RightFr;
+                    farthestRightOnCurrentRow = newBox.Right;
                 }
                 else
                 {
@@ -298,16 +309,16 @@ namespace DSAnimStudio.TaeEditor
                     {
                         newBox.Row = currentRow;
 
-                        if (newBox.LeftFr < farthestRightOnCurrentRow)
+                        if (newBox.Left < farthestRightOnCurrentRow)
                         {
                             newBox.Row++;
                             currentRow++;
-                            farthestRightOnCurrentRow = newBox.RightFr;
+                            farthestRightOnCurrentRow = newBox.Right;
                         }
                         else
                         {
-                            if (newBox.RightFr > farthestRightOnCurrentRow)
-                                farthestRightOnCurrentRow = newBox.RightFr;
+                            if (newBox.Right > farthestRightOnCurrentRow)
+                                farthestRightOnCurrentRow = newBox.Right;
                         }
                     }
                     else
@@ -869,7 +880,7 @@ namespace DSAnimStudio.TaeEditor
 
                                 if (!isAbsoluteLocation)
                                 {
-                                    float start = copyOfEventStartTimes[i] - copyOfClipboardStartTime + TaeExtensionMethods.RoundTimeToTAEFrame(copyOfRelMouse.X / SecondsPixelSize);
+                                    float start = copyOfEventStartTimes[i] - copyOfClipboardStartTime + TaeExtensionMethods.RoundTimeToCurrentSnapInterval(copyOfRelMouse.X / SecondsPixelSize);
                                     float end = start + (copyOfEventEndTimes[i] - copyOfEventStartTimes[i]);
 
                                     startTime = start;
@@ -928,21 +939,11 @@ namespace DSAnimStudio.TaeEditor
         {
             if (GhostEventGraph != null)
             {
-                PlaybackCursor.Update(
-                Main.Active && allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space),
-                Main.Active && allowPlayPauseInput &&
-                (MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) ||
-                MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)),
-                GhostEventGraph.EventBoxes);
+                PlaybackCursor.Update(GhostEventGraph.EventBoxes);
             }
             else
             {
-                PlaybackCursor.Update(
-                Main.Active && allowPlayPauseInput && MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Space),
-                Main.Active && allowPlayPauseInput &&
-                (MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) ||
-                MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift)),
-                EventBoxes);
+                PlaybackCursor.Update(EventBoxes);
             }
             
         }
@@ -1120,9 +1121,9 @@ namespace DSAnimStudio.TaeEditor
 
                     if (currentDrag.DragType == BoxDragType.None)
                     {
-                        if (canManipulateBox && box.WidthFr >= 16 && 
-                            relMouse.X <= box.LeftFr + BoxSideScrollMarginSize && 
-                            relMouse.X >= box.LeftFr - BoxSideScrollMarginSize && 
+                        if (canManipulateBox && box.Width >= 16 && 
+                            relMouse.X <= box.Left + BoxSideScrollMarginSize && 
+                            relMouse.X >= box.Left - BoxSideScrollMarginSize && 
                             (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback)))
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
@@ -1134,7 +1135,7 @@ namespace DSAnimStudio.TaeEditor
 
                                     currentDrag.DragType = BoxDragType.LeftOfEventBox;
                                     currentDrag.Box = box;
-                                    currentDrag.Offset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
+                                    currentDrag.Offset = new Point((int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
                                     currentDrag.BoxOriginalWidth = box.Width;
                                     currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
                                     currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
@@ -1152,7 +1153,7 @@ namespace DSAnimStudio.TaeEditor
 
                                         newDrag.DragType = BoxDragType.LeftOfEventBox;
                                         newDrag.Box = multiBox;
-                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
+                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.Left), (int)(relMouse.Y - multiBox.Top));
                                         newDrag.BoxOriginalWidth = multiBox.Width;
                                         newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
                                         newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
@@ -1167,9 +1168,9 @@ namespace DSAnimStudio.TaeEditor
                             }
                         }
                         else if (canManipulateBox && 
-                            box.WidthFr >= 16 && 
-                            relMouse.X >= box.RightFr - BoxSideScrollMarginSize && 
-                            relMouse.X <= box.RightFr + BoxSideScrollMarginSize &&
+                            box.Width >= 16 && 
+                            relMouse.X >= box.Right - BoxSideScrollMarginSize && 
+                            relMouse.X <= box.Right + BoxSideScrollMarginSize &&
                             (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback)))
                         {
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
@@ -1182,7 +1183,7 @@ namespace DSAnimStudio.TaeEditor
                                     currentDrag.DragType = BoxDragType.RightOfEventBox;
                                     currentDrag.Box = box;
                                     currentDrag.Offset = new Point(
-                                        (int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
+                                        (int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
                                     currentDrag.BoxOriginalWidth = box.Width;
                                     currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
                                     currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
@@ -1202,7 +1203,7 @@ namespace DSAnimStudio.TaeEditor
                                         newDrag.DragType = BoxDragType.RightOfEventBox;
                                         newDrag.Box = multiBox;
                                         newDrag.Offset = new Point(
-                                            (int)(relMouse.X - multiBox.LeftFr), 
+                                            (int)(relMouse.X - multiBox.Left), 
                                             (int)(relMouse.Y - multiBox.Top));
                                         newDrag.BoxOriginalWidth = multiBox.Width;
                                         newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
@@ -1218,7 +1219,7 @@ namespace DSAnimStudio.TaeEditor
                                 
                             }
                         }
-                        else if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
+                        else if (relMouse.X >= box.Left && relMouse.X < box.Right)
                         {
                             MainScreen.Input.CursorType = MouseCursorType.Arrow;
 
@@ -1234,7 +1235,7 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     currentDrag.DragType = BoxDragType.MiddleOfEventBox;
                                     currentDrag.Box = box;
-                                    currentDrag.Offset = new Point((int)(relMouse.X - box.LeftFr), (int)(relMouse.Y - box.Top));
+                                    currentDrag.Offset = new Point((int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
                                     currentDrag.BoxOriginalWidth = box.Width;
                                     currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
                                     currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
@@ -1254,7 +1255,7 @@ namespace DSAnimStudio.TaeEditor
 
                                             newDrag.DragType = BoxDragType.MiddleOfEventBox;
                                             newDrag.Box = multiBox;
-                                            newDrag.Offset = new Point((int)(relMouse.X - multiBox.LeftFr), (int)(relMouse.Y - multiBox.Top));
+                                            newDrag.Offset = new Point((int)(relMouse.X - multiBox.Left), (int)(relMouse.Y - multiBox.Top));
                                             newDrag.BoxOriginalWidth = multiBox.Width;
                                             newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
                                             newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
@@ -1312,7 +1313,7 @@ namespace DSAnimStudio.TaeEditor
 
                     if (isSingleSelect && MainScreen.Input.LeftClickDown && !(MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight))
                     {
-                        if (relMouse.X >= box.LeftFr && relMouse.X < box.RightFr)
+                        if (relMouse.X >= box.Left && relMouse.X < box.Right)
                         {
                             currentMultiDrag.Clear();
 
@@ -1481,7 +1482,7 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     foreach (var box in sortedByRow[i])
                                     {
-                                        var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.WidthFr, (int)box.HeightFr);
+                                        var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.Width, (int)box.HeightFr);
                                         if (boxRect.Intersects(dragRect))
                                         {
                                             if (currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
@@ -1542,7 +1543,7 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     foreach (var box in sortedByRow[i])
                                     {
-                                        var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.WidthFr, (int)box.HeightFr);
+                                        var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.Width, (int)box.HeightFr);
                                         if (boxRect.Intersects(dragRect))
                                         {
                                             if (currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
@@ -1897,158 +1898,615 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void DrawAllEventBoxes(float opacity, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
-            SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex, Matrix scrollMatrix)
+        private void DrawFrameSnapLines(Texture2D boxTex, SpriteBatch sb, Color col)
         {
+            double framePixelSize_TAE = 0;
+
+            if (MainScreen.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS60)
+                framePixelSize_TAE = (SecondsPixelSize / (1 / TaeExtensionMethods.TAE_FRAME_60));
+            else if (MainScreen.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+                framePixelSize_TAE = (SecondsPixelSize / (1 / TaeExtensionMethods.TAE_FRAME_30));
+
+            bool zoomedEnoughForFrameLines_TAE = false;
+
+            if (MainScreen.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS60)
+                zoomedEnoughForFrameLines_TAE = SecondsPixelSize >= ((1 / TaeExtensionMethods.TAE_FRAME_60) * MinPixelsBetweenFramesForHelperLines);
+            else if (MainScreen.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+                zoomedEnoughForFrameLines_TAE = SecondsPixelSize >= ((1 / TaeExtensionMethods.TAE_FRAME_30) * MinPixelsBetweenFramesForHelperLines);
+
+
+            if (zoomedEnoughForFrameLines_TAE)
+            {
+                int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / framePixelSize_TAE);
+                int endFrame = (int)Math.Ceiling((ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) / framePixelSize_TAE);
+
+                for (int i = startFrame; i <= endFrame; i++)
+                {
+                    sb.Draw(texture: boxTex,
+                    position: new Vector2((float)(i * framePixelSize_TAE), ScrollViewer.Scroll.Y + TimeLineHeight),
+                    sourceRectangle: null,
+                    color: col,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(1, ScrollViewer.Viewport.Height - TimeLineHeight),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+                }
+            }
+        }
+
+        private void DrawEventBox(float elapsedSeconds, Matrix scrollMatrix, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, SpriteFont smallFont, 
+            TaeEditAnimEventBox box, bool isHover, float opacity, bool updateColorPulse)
+        {
+            var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
+
+            var boxHighlightedAndVisiActive = box.PlaybackHighlight && IsNewGraphVisiMode && (PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying);
+
+            isHover = isHover && IsNewGraphVisiMode && (PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying);
+
+            if (isBoxSelected)
+                box.UpdateEventText();
+
+            if (box.Left > ScrollViewer.RelativeViewport.Right
+                || box.Right < ScrollViewer.RelativeViewport.Left)
+                return;
+
+            bool eventStartsBeforeScreen = box.Left < ScrollViewer.Scroll.X;
+
+            Vector2 pos = new Vector2(box.Left + 1, box.Top + 1);
+            Vector2 size = new Vector2(box.Width - 1, box.HeightFr - 1);
+
+            Vector2 outlinePos = pos + new Vector2(0, -1);
+            Vector2 outlineSize = size + new Vector2(0, 2);
+
+            int boxOutlineThickness = 1;// isBoxSelected ? 2 : 1;
+
+            Color textFG = /* isBoxSelected ? new Color(255, 180, 255, 255) : */ (box.PlaybackHighlight ? Color.Yellow : Color.White);
+            Color textBG = Color.Black;
+
+            Color boxOutlineColor = box.ColorOutline;
+
+            if (updateColorPulse)
+                box.UpdateSelectionColorPulse(elapsedSeconds, isBoxSelected);
+
+            Color thisBoxBgColor =  isBoxSelected ? Color.Gray :  box.ColorBG;
+            Color thisBoxBgColorSelected = /* isBoxSelected ? box.ColorBGHighlighted_Selected : */ box.ColorBGHighlighted;
+
+            const string fixedPrefix = "<-";
+
+            var boxRect = box.GetTextRect(boxOutlineThickness, IsNewGraphVisiMode);
+
+            var fontOffsetToUse = IsNewGraphVisiMode ? new Vector2(0, -1) : Main.GlobalTaeEditorFontOffset + new Vector2(0, -1);
+
+            var fontToUse = (IsNewGraphVisiMode || !(MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= TinyTextBoxWidth)) ? smallFont : font;
+
+            var namePos = new Vector2((float)MathHelper.Max((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round(pos.X - (IsNewGraphVisiMode ? 0 : 1))), 
+                (float)Math.Round(pos.Y + (RowHeight / 2.0) - (fontToUse.LineSpacing / 2.0) - (IsNewGraphVisiMode ? 1 : 1.5))) + fontOffsetToUse;
+
+            string fullTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}{box.EventText.Text}";
+
+            var nameSize = fontToUse.MeasureString(fullTextWithPrefix);
+
+            void DrawActualBox()
+            {
+
+
+                sb.Draw(texture: boxTex,
+                       position: outlinePos,
+                       sourceRectangle: null,
+                       color: ((isHover || box.PlaybackHighlight) ? textFG : boxOutlineColor) * opacity,
+                       rotation: 0,
+                       origin: Vector2.Zero,
+                       scale: outlineSize,
+                       effects: SpriteEffects.None,
+                       layerDepth: 0
+                       );
+
+
+
+
+                sb.Draw(texture: boxTex,
+                    position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
+                    sourceRectangle: null,
+                    color: ((box.PlaybackHighlight) ? thisBoxBgColorSelected : thisBoxBgColor) * opacity,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+            }
+
+            void DrawOverlayOutline()
+            {
+                //// Top
+                //sb.Draw(texture: boxTex,
+                //    position: new Vector2(outlinePos.X, outlinePos.Y),
+                //    sourceRectangle: null,
+                //    color: Color.Yellow * opacity,
+                //    rotation: 0,
+                //    origin: Vector2.Zero,
+                //    scale: new Vector2(outlineSize.X, boxOutlineThickness),
+                //    effects: SpriteEffects.None,
+                //    layerDepth: 0
+                //    );
+
+                //// Left
+                //sb.Draw(texture: boxTex,
+                //   position: new Vector2(outlinePos.X, outlinePos.Y),
+                //   sourceRectangle: null,
+                //   color: Color.Yellow * opacity,
+                //   rotation: 0,
+                //   origin: Vector2.Zero,
+                //   scale: new Vector2(boxOutlineThickness, outlineSize.Y),
+                //   effects: SpriteEffects.None,
+                //   layerDepth: 0
+                //   );
+
+                //// Bottom
+                //sb.Draw(texture: boxTex,
+                //    position: new Vector2(outlinePos.X, outlinePos.Y + outlineSize.Y - boxOutlineThickness),
+                //    sourceRectangle: null,
+                //    color: Color.Yellow * opacity,
+                //    rotation: 0,
+                //    origin: Vector2.Zero,
+                //    scale: new Vector2(outlineSize.X, boxOutlineThickness),
+                //    effects: SpriteEffects.None,
+                //    layerDepth: 0
+                //    );
+
+                //// Right
+                //sb.Draw(texture: boxTex,
+                //   position: new Vector2(outlinePos.X + outlineSize.X - boxOutlineThickness, outlinePos.Y),
+                //   sourceRectangle: null,
+                //   color: Color.Yellow * opacity,
+                //   rotation: 0,
+                //   origin: Vector2.Zero,
+                //   scale: new Vector2(boxOutlineThickness, outlineSize.Y),
+                //   effects: SpriteEffects.None,
+                //   layerDepth: 0
+                //   );
+            }
+
+            //DrawOverlayOutline();
+
+            if (!boxHighlightedAndVisiActive && !isHover && MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= TinyTextBoxWidth)
+            {
+                DrawActualBox();
+
+                //var fontToUse = IsSmallEventsMode ? smallFont : font;
+
+                // The weird offset of 1 here is so there's an extra pixel space for the shadow to render
+                var fancyTextRect = new Rectangle(boxRect.X - 1, boxRect.Y - 1, boxRect.Width + 1, boxRect.Height + 1);
+
+                // This fixes the text not being lined up right with the above offset.
+                fontOffsetToUse.X += 1; // I'm so sorry.
+
+                // Wasn't lined up for some reason. Works with this here.
+                fontOffsetToUse.Y += 1;
+
+                //if (IsNewGraphVisiMode)
+                //{
+                    
+                //}
+
+                if (eventStartsBeforeScreen)
+                {
+                    var fixedPrefixSize = (fontToUse.MeasureString(fixedPrefix)).ToPoint();
+
+                    int amountOutOfScreen = (int)Math.Round(ScrollViewer.Scroll.X) - fancyTextRect.X;
+
+                    fancyTextRect = new Rectangle(
+                        fancyTextRect.X + fixedPrefixSize.X + amountOutOfScreen,
+                        fancyTextRect.Y,
+                        fancyTextRect.Width - fixedPrefixSize.X - amountOutOfScreen,
+                        fancyTextRect.Height);
+
+                    var prefixPos = namePos;// new Vector2((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round((float)boxRect.Y));
+
+                    if (!IsNewGraphVisiMode)
+                    {
+                        prefixPos.Y += 3;
+                    }
+
+                    //if (IsSmallEventsMode)
+                    //{
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, 1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, -1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(-1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    //}
+                    //else
+                    //{
+                    //    sb.DrawString(fontToUse, fixedPrefix,
+                    //    prefixPos + Vector2.One + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //}
+
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, 1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, -1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(-1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+
+                    //sb.DrawString(fontToUse, fixedPrefix,
+                    //    prefixPos + (Vector2.One * 2), textBG);
+                    sb.DrawString(fontToUse, fixedPrefix,
+                        prefixPos + fontOffsetToUse, textFG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                }
+
+                box.EventText.TextColor = textFG * opacity;
+                box.EventText.TextShadowColor = textBG * opacity;
+                box.EventText.ScrollPixelsPerSecond = MainScreen.Config.FancyScrollingStringsScrollSpeed;
+                box.EventText.ScrollingSnapsToPixels = MainScreen.Config.FancyTextScrollSnapsToPixels;
+
+                if (MainScreen.HoveringOverEventBox == box)
+                {
+                    box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, fontToUse, elapsedSeconds, fontOffsetToUse);
+
+                    if (isHover)
+                        DrawOverlayOutline();
+
+                    if (MainScreen.PrevHoveringOverEventBox != box)
+                    {
+                        //HoverInfoBox.Title = box.GetPopupTitle();
+                        //HoverInfoBox.Text = box.GetPopupText();
+                        HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
+                    }
+                }
+                else
+                {
+                    box.EventText.ResetScroll(startImmediatelyNextTime: true);
+                    box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, fontToUse, 0, fontOffsetToUse);
+
+                    if (isHover)
+                        DrawOverlayOutline();
+                }
+            }
+            else
+            {
+                
+
+                box.EventText.ResetScroll(startImmediatelyNextTime: true);
+
+                var thicknessOffset = new Vector2(2/*boxOutlineThickness*/ * 2, 0);
+
+                if (boxHighlightedAndVisiActive || isHover)
+                {
+                    sb.Draw(texture: boxTex,
+                       position: namePos,
+                       sourceRectangle: null,
+                       color: Color.Black * 0.5f * opacity,
+                       rotation: 0,
+                       origin: Vector2.Zero,
+                       scale: nameSize,
+                       effects: SpriteEffects.None,
+                       layerDepth: 0
+                       );
+                }
+
+                DrawActualBox();
+
+                string shortTextNoPrefix = /* $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" + */
+                       ((isHover || boxHighlightedAndVisiActive) ? box.EventText.Text : box.MyEvent.TypeName);
+
+                if (eventStartsBeforeScreen)
+                {
+                    var prefixPos = namePos + new Vector2(1, 1);// new Vector2((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round((float)boxRect.Y));
+
+                    if (!IsNewGraphVisiMode)
+                    {
+                        prefixPos.Y += 3;
+                    }
+
+                    var fixedPrefixSize = (fontToUse.MeasureString(fixedPrefix)).ToPoint();
+
+                    float amountOutOfScreen = ScrollViewer.Scroll.X - namePos.X;
+
+                    namePos += new Vector2(fixedPrefixSize.X + amountOutOfScreen - 3, 0);
+
+                    namePos = namePos.Round();
+
+                    //if (IsSmallEventsMode)
+                    //{
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, 1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, -1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(-1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    //}
+                    //else
+                    //{
+                    //    sb.DrawString(fontToUse, fixedPrefix,
+                    //    prefixPos + Vector2.One + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    //}
+
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, 1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(0, -1) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(-1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, fixedPrefix, prefixPos + new Vector2(1, 0) + fontOffsetToUse, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+
+                    //sb.DrawString(fontToUse, fixedPrefix,
+                    //    prefixPos + (Vector2.One * 2), textBG);
+                    sb.DrawString(fontToUse, fixedPrefix,
+                        prefixPos + fontOffsetToUse, textFG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                }
+
+
+                if (isHover)
+                {
+                    var hoverTextOutlineColor = Color.Black;
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 0) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 1) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(1, 2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(0, 2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-1, 2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-2, 2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-2, 1) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-2, 0) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-2, -1) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-2, -2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-1, -2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(0, -2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(1, -2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, -2) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, -1) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                }
+                else
+                {
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(0, 1) + thicknessOffset,
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(0, -1) + thicknessOffset,
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(-1, 0) + thicknessOffset,
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(1, 0) + thicknessOffset,
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(1, 1) + thicknessOffset,
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+
+                    //sb.DrawString(fontToUse, shortTextWithPrefix, namePos + new Vector2(1, 1) + thicknessOffset,
+                    //textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    //sb.DrawString(fontToUse, shortTextWithPrefix, namePos + new Vector2(-1, -1) + thicknessOffset,
+                    //textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 2) + thicknessOffset,
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 1) + thicknessOffset,
+                   textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                    sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(1, 2) + thicknessOffset,
+                   textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                }
+
+                if (isHover)
+                    DrawOverlayOutline();
+
+                //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                sb.DrawString(fontToUse, shortTextNoPrefix, namePos + thicknessOffset,
+                    textFG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+                //if ((namePos.X + nameSize.X) <= box.RightFr)
+                //{
+                //    sb.DrawString(font, fullTextWithPrefix,
+                //        namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
+                //    //sb.DrawString(font, fullTextWithPrefix,
+                //    //    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
+                //    sb.DrawString(font, fullTextWithPrefix,
+                //        namePos + new Vector2(1, 0) + thicknessOffset, textFG);
+                //}
+                //else
+                //{
+                //    string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
+                //        $"{(box.MyEvent.TypeName)}";
+                //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
+                //        textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                //    //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
+                //    //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
+                //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
+                //        textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                //}
+            }
+        }
+
+        private void DrawSelectedEventBoxThickOutline(SpriteBatch sb, Texture2D boxTex, TaeEditAnimEventBox box, float opacity)
+        {
+            return;
+
+            Vector2 pos = new Vector2((box.Left + 1) - 2, ((box.Top + 1) - 1) - 2);
+            Vector2 size = new Vector2((box.Width - 1) + 4, ((box.HeightFr - 1) + 2) + 4);
+
+            void DoCornerThing(Vector2 cornerPos, Vector2 cornerSize)
+            {
+                sb.Draw(texture: boxTex,
+                   position: cornerPos + new Vector2(-1, -1),
+                   sourceRectangle: null,
+                   color: (box.PlaybackHighlight ? Color.Yellow : Color.Black) * opacity,
+                   rotation: 0,
+                   origin: Vector2.Zero,
+                   scale: cornerSize + new Vector2(2, 2),
+                   effects: SpriteEffects.None,
+                   layerDepth: 0
+                   );
+
+                sb.Draw(texture: boxTex,
+                   position: cornerPos,
+                   sourceRectangle: null,
+                   color: (box.PlaybackHighlight ? box.ColorBGHighlighted_Selected : box.ColorBG_Selected) * opacity,
+                   rotation: 0,
+                   origin: Vector2.Zero,
+                   scale: cornerSize,
+                   effects: SpriteEffects.None,
+                   layerDepth: 0
+                   );
+            }
+
+            int off = 1;
+
+            //if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.25f))
+            //    off = 0;
+            //else if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.5f))
+            //    off = 1;
+            //else if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.75f))
+            //    off = 0;
+            //else
+            //    off = 1;
+
+            DoCornerThing(pos + new Vector2(off, off), new Vector2(4, 4));
+            DoCornerThing(pos + new Vector2(size.X - 4, 0) + new Vector2(-off, off), new Vector2(4, 4));
+            DoCornerThing(pos + new Vector2(size.X - 4, size.Y - 4) + new Vector2(-off, -off), new Vector2(4, 4));
+            DoCornerThing(pos + new Vector2(0, size.Y - 4) + new Vector2(off, -off), new Vector2(4, 4));
+        }
+
+        private float selectionBoxCornerPulseTimer = 0;
+        private float selectionBoxCornerPulseTimerCycleLength = 1;
+
+        private void DrawAllEventBoxes(float opacity, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
+            SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Matrix scrollMatrix)
+        {
+            selectionBoxCornerPulseTimer += elapsedSeconds;
+            selectionBoxCornerPulseTimer = selectionBoxCornerPulseTimer % selectionBoxCornerPulseTimerCycleLength;
+
+            bool isHoverBoxAlsoSelected = false;
+
+            List<TaeEditAnimEventBox> selectedBoxes = new List<TaeEditAnimEventBox>();
+
             foreach (var kvp in sortedByRow)
             {
                 var boxesOrderedByTime = kvp.Value.OrderBy(x => x.MyEvent.StartTime);
+
+                
+
+                List<TaeEditAnimEventBox> highlightedBoxes = new List<TaeEditAnimEventBox>();
+                
+
                 foreach (var box in boxesOrderedByTime)
                 {
                     var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
 
-                    if (isBoxSelected)
-                        box.UpdateEventText();
-
-                    if (box.LeftFr > ScrollViewer.RelativeViewport.Right
-                        || box.RightFr < ScrollViewer.RelativeViewport.Left)
-                        continue;
-
-                    bool eventStartsBeforeScreen = box.LeftFr < ScrollViewer.Scroll.X;
-
-                    Vector2 pos = new Vector2((float)Math.Round(box.LeftFr), box.Top + 1);
-                    Vector2 size = new Vector2((float)Math.Round(box.WidthFr), box.HeightFr - 1);
-
-                    int boxOutlineThickness = 1;// isBoxSelected ? 2 : 1;
-
-                    Color textFG = Color.White;
-                    Color textBG = Color.Black;
-
-                    Color boxOutlineColor = box.ColorOutline;
-
-                    Color thisBoxBgColor = new Color(box.ColorBG.ToVector3());
-                    Color thisBoxBgColorSelected = new Color(box.ColorBGSelected.ToVector3());
-                    Color boxOutlineColorSelected = Color.White;
-
-                    // outline
-                    sb.Draw(texture: boxTex,
-                        position: pos + new Vector2(0, -1),
-                        sourceRectangle: null,
-                        color: (isBoxSelected ? boxOutlineColorSelected : boxOutlineColor) * opacity,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: size + new Vector2(0, 2),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-
-
-
-                    sb.Draw(texture: boxTex,
-                        position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
-                        sourceRectangle: null,
-                        color: ((box.PlaybackHighlight) ? thisBoxBgColorSelected : thisBoxBgColor) * opacity,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-
-                    var namePos = new Vector2((int)MathHelper.Max(ScrollViewer.Scroll.X, pos.X), (int)pos.Y);
-
-                    const string fixedPrefix = "<-";
-
-                    var boxRect = box.GetTextRect(boxOutlineThickness);
-
-                    if (MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= TinyTextBoxWidth)
+                    if (MainScreen.HoveringOverEventBox == box)
                     {
-                        var fancyTextRect = boxRect;
-                        if (eventStartsBeforeScreen)
-                        {
-                            var fixedPrefixSize = (font.MeasureString(fixedPrefix)).ToPoint();
+                        isHoverBoxAlsoSelected = isBoxSelected;
+                        continue;
+                    }
 
-                            int amountOutOfScreen = (int)ScrollViewer.Scroll.X - fancyTextRect.X;
-
-                            fancyTextRect = new Rectangle(
-                                fancyTextRect.X + fixedPrefixSize.X + amountOutOfScreen,
-                                fancyTextRect.Y,
-                                fancyTextRect.Width - fixedPrefixSize.X - amountOutOfScreen,
-                                fancyTextRect.Height);
-
-                            var prefixPos = namePos;// new Vector2((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round((float)boxRect.Y));
-
-                            sb.DrawString(font, fixedPrefix,
-                                prefixPos + Vector2.One + Main.GlobalTaeEditorFontOffset, textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                            //sb.DrawString(font, fixedPrefix,
-                            //    prefixPos + (Vector2.One * 2), textBG);
-                            sb.DrawString(font, fixedPrefix,
-                                prefixPos + Main.GlobalTaeEditorFontOffset, textFG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                        }
-
-                        box.EventText.TextColor = textFG * opacity;
-                        box.EventText.TextShadowColor = textBG * opacity;
-                        box.EventText.ScrollPixelsPerSecond = MainScreen.Config.FancyScrollingStringsScrollSpeed;
-                        box.EventText.ScrollingSnapsToPixels = MainScreen.Config.FancyTextScrollSnapsToPixels;
-
-                        if (MainScreen.HoveringOverEventBox == box)
-                        {
-                            box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, elapsedSeconds);
-
-                            if (MainScreen.PrevHoveringOverEventBox != box)
-                            {
-                                //HoverInfoBox.Title = box.GetPopupTitle();
-                                //HoverInfoBox.Text = box.GetPopupText();
-                                HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
-                            }
-                        }
-                        else
-                        {
-                            box.EventText.ResetScroll(startImmediatelyNextTime: true);
-                            box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, font, 0);
-                        }
+                    if (isBoxSelected)
+                    {
+                        selectedBoxes.Add(box);
+                    }
+                    else if (box.PlaybackHighlight && IsNewGraphVisiMode && (PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying))
+                    {
+                        highlightedBoxes.Add(box);
                     }
                     else
                     {
-                        box.EventText.ResetScroll(startImmediatelyNextTime: true);
-
-                        var thicknessOffset = new Vector2(2/*boxOutlineThickness*/ * 2, 0);
-
-                        string fullTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}{box.EventText.Text}";
-
-                        var nameSize = font.MeasureString(fullTextWithPrefix);
-
-                        string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
-                               $"{(box.MyEvent.TypeName)}";
-                        sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
-                            textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                        //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
-                        //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                        sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
-                            textFG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-
-                        //if ((namePos.X + nameSize.X) <= box.RightFr)
-                        //{
-                        //    sb.DrawString(font, fullTextWithPrefix,
-                        //        namePos + new Vector2(1, 0) + Vector2.One + thicknessOffset, textBG);
-                        //    //sb.DrawString(font, fullTextWithPrefix,
-                        //    //    namePos + new Vector2(1, 0) + (Vector2.One * 2) + thicknessOffset, textBG);
-                        //    sb.DrawString(font, fullTextWithPrefix,
-                        //        namePos + new Vector2(1, 0) + thicknessOffset, textFG);
-                        //}
-                        //else
-                        //{
-                        //    string shortTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" +
-                        //        $"{(box.MyEvent.TypeName)}";
-                        //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + (Vector2.One) + thicknessOffset,
-                        //        textBG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                        //    //sb.DrawString(font, shortTextWithPrefix, namePos + (Vector2.One * 2) + thicknessOffset,
-                        //    //    textBG, 0, Vector2.Zero, 0.75f, SpriteEffects.None, 0);
-                        //    sb.DrawString(smallFont, shortTextWithPrefix, namePos + thicknessOffset,
-                        //        textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-                        //}
+                        DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity, true);
                     }
+
+                    //if (!IsNewGraphVisiMode || !(box.PlaybackHighlight || isBoxSelected) || !(PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying))
+                    //{
+                    //    DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity);
+                    //}
+                    //else
+                    //{
+                    //    if (isBoxSelected)
+                    //        selectedBoxes.Add(box);
+                    //    else
+                    //        highlightedBoxes.Add(box);
+                    //}
                 }
+
+                foreach (var box in highlightedBoxes)
+                {
+                    DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity, true);
+                }
+
+                
+
+
+            }
+
+            if (MainScreen.HoveringOverEventBox != null && !isHoverBoxAlsoSelected)
+            {
+                DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, MainScreen.HoveringOverEventBox, isHover: true, opacity, true);
+            }
+
+            if (selectedBoxes.Count > 0 || isHoverBoxAlsoSelected)
+            {
+                // full bg
+                sb.Draw(texture: boxTex,
+                    position: ScrollViewer.Scroll - (Vector2.One * 2),
+                    sourceRectangle: null,
+                    color: Color.Black * 0.5f,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+
+                selectedBoxes = selectedBoxes.OrderBy(b => b.PlaybackHighlight).ToList();
+
+                // Draw the extra outer outline on the selected event(s)
+                foreach (var box in selectedBoxes)
+                {
+                    box.UpdateSelectionColorPulse(elapsedSeconds, true);
+                    DrawSelectedEventBoxThickOutline(sb, boxTex, box, opacity);
+                }
+
+                foreach (var box in selectedBoxes)
+                {
+                    DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity, false);
+                }
+
+            }
+
+            if (MainScreen.HoveringOverEventBox != null && isHoverBoxAlsoSelected)
+            {
+                MainScreen.HoveringOverEventBox.UpdateSelectionColorPulse(elapsedSeconds, true);
+                DrawSelectedEventBoxThickOutline(sb, boxTex, MainScreen.HoveringOverEventBox, opacity);
+                DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, MainScreen.HoveringOverEventBox, isHover: true, opacity, false);
+            }
+        }
+
+        public void ScrollToPlaybackCursor(float lerpAmount)
+        {
+            const float margin = 200;
+
+            var playbackCursorPixelCheckX = SecondsPixelSize * (float)PlaybackCursor.CurrentTime;
+            var endOfAnimCheckX = SecondsPixelSize * (float)PlaybackCursor.MaxTime;
+            float centerOfScreenCheckX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
+            float rightOfScreenCheckX = centerOfScreenCheckX;// (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width) - margin);
+            float leftOfScreenCheckX = centerOfScreenCheckX;// (ScrollViewer.Scroll.X + margin);
+
+            if (playbackCursorPixelCheckX > rightOfScreenCheckX)
+            {
+                ScrollViewer.Scroll.X += (playbackCursorPixelCheckX - rightOfScreenCheckX) * lerpAmount;
+
+                var maxScrollX = (endOfAnimCheckX + AfterAutoScrollHorizontalMargin - ScrollViewer.Viewport.Width);
+                if (ScrollViewer.Scroll.X > maxScrollX)
+                    ScrollViewer.Scroll.X = maxScrollX;
+
+                ScrollViewer.ClampScroll();
+            }
+            else if (playbackCursorPixelCheckX < leftOfScreenCheckX)
+            {
+                ScrollViewer.Scroll.X += (playbackCursorPixelCheckX - leftOfScreenCheckX) * lerpAmount;
+                ScrollViewer.ClampScroll();
             }
         }
 
@@ -2157,8 +2615,89 @@ namespace DSAnimStudio.TaeEditor
                 //    layerDepth: 0
                 //    );
 
+                DrawFrameSnapLines(boxTex, sb, Color.LightGray * 0.5f);
 
-                
+                bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForFrameNumberText);
+
+                Dictionary<int, float> secondVerticalLineXPositions = new Dictionary<int, float>();
+
+                if (SecondsPixelSize >= 4f)
+                {
+                    secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
+
+                    foreach (var kvp in secondVerticalLineXPositions)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: Color.LightGray * 0.75f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+                }
+
+                if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
+                {
+                    foreach (var kvp in secondVerticalLineXPositions)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: Color.LightGray * 0.75f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+                }
+
+                float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
+                float rightOfScreenX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
+
+
+                // This would draw a little +/- by the mouse cursor to signify that
+                // you're adding/subtracting selection
+                // HOWEVER it was super delayed because of the vsync 
+                // and didn't follow the cursor well and looked weird
+
+                //if (MainScreen.CtrlHeld && !MainScreen.ShiftHeld && !MainScreen.AltHeld)
+                //{
+                //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
+                //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
+                //}
+                //else if (!MainScreen.CtrlHeld && MainScreen.ShiftHeld && !MainScreen.AltHeld)
+                //{
+                //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
+                //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
+                //}
+
+                float animStopPixelX = (float)PlaybackCursor.MaxTime * SecondsPixelSize;
+
+                float darkenedPortionWidth = rightOfScreenX - animStopPixelX;
+
+                if (darkenedPortionWidth > 0)
+                {
+                    // full bg - anim duration
+
+                    float cooldownRatio = 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
+
+                    sb.Draw(texture: boxTex,
+                          position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
+                          sourceRectangle: null,
+                          color: Color.White * cooldownRatio,
+                          rotation: 0,
+                          origin: Vector2.Zero,
+                          scale: new Vector2(2, ScrollViewer.Viewport.Height),
+                          effects: SpriteEffects.None,
+                          layerDepth: 0
+                          );
+                }
 
                 if (GhostEventGraph != null)
                 {
@@ -2167,7 +2706,7 @@ namespace DSAnimStudio.TaeEditor
                     GhostEventGraph.ScrollViewer.Scroll = ScrollViewer.Scroll;
                     try
                     {
-                        GhostEventGraph.DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+                        GhostEventGraph.DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
                     }
                     catch
                     {
@@ -2190,7 +2729,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     try
                     {
-                        DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex, scrollMatrix);
+                        DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
                     }
                     catch
                     {
@@ -2255,17 +2794,35 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
 
-                bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForFrameNumberText);
+
+                if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
+                {
+                    foreach (var kvp in secondVerticalLineXPositions)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: Color.LightGray * 0.75f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, TimeLineHeight),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+
+                    DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
+                }
 
                 if (SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForHelperLines))
                 {
-                    int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / FramePixelSize);
-                    int endFrame = (int)Math.Floor((ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) / FramePixelSize);
+                    int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / FramePixelSize_HKX);
+                    int endFrame = (int)Math.Ceiling((ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) / FramePixelSize_HKX);
 
                     for (int i = startFrame; i <= endFrame; i++)
                     {
                         sb.Draw(texture: boxTex,
-                        position: new Vector2(i * FramePixelSize, ScrollViewer.Scroll.Y),
+                        position: new Vector2(i * FramePixelSize_HKX, ScrollViewer.Scroll.Y),
                         sourceRectangle: null,
                         color: Color.Black * 0.125f,
                         rotation: 0,
@@ -2282,7 +2839,7 @@ namespace DSAnimStudio.TaeEditor
                                 if (((i % PlaybackCursor.SnapInterval) != 0) && zoomedEnoughForFrameNumbers)
                                 {
                                     sb.DrawString(smallFont, i.ToString(), 
-                                        new Vector2((float)Math.Round(i * FramePixelSize + 2), 
+                                        new Vector2(i * FramePixelSize_HKX + 2, 
                                         (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Color.White);
                                 }
                             }
@@ -2295,30 +2852,15 @@ namespace DSAnimStudio.TaeEditor
                         
                     }
                 }
+
+                //if (IsBoxDragging)
+                //{
+                //    DrawFrameSnapLines(boxTex, sb, Color.Cyan * 0.65f);
+                //}
+
+
+
                 
-                if (SecondsPixelSize >= 4f)
-                {
-                    var secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
-
-                    if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
-                    {
-                        DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
-                    }
-
-                    foreach (var kvp in secondVerticalLineXPositions)
-                    {
-                        sb.Draw(texture: boxTex,
-                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
-                        sourceRectangle: null,
-                        color: Color.Black * 0.25f,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-                    }
-                }
 
                 
 
@@ -2393,7 +2935,7 @@ namespace DSAnimStudio.TaeEditor
 
                 // Draw PlaybackCursor StartTime vertical line
                 sb.Draw(texture: boxTex,
-                    position: new Vector2((int)((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2)), 0),
+                    position: new Vector2((float)Math.Round(((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2))), 0),
                     sourceRectangle: null,
                     color: Color.Blue,
                     rotation: 0,
@@ -2403,8 +2945,50 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
 
-                var playbackCursorPixelX = (int)(SecondsPixelSize * (float)(PlaybackCursor.IsPlaying 
-                    ? PlaybackCursor.CurrentTime : PlaybackCursor.GUICurrentTime));
+
+
+                //var hitWindowStartX = (float)(SecondsPixelSize * PlaybackCursor.HitWindowStart);
+                //var hitWindowEndX = (float)(SecondsPixelSize * PlaybackCursor.HitWindowEnd);
+
+                //// Draw Hit Window Rect Under Cursor
+                //sb.Draw(texture: boxTex,
+                //    position: new Vector2((float)Math.Round(hitWindowStartX), ScrollViewer.Scroll.Y),
+                //    sourceRectangle: null,
+                //    color: PlaybackCursorHitWindowColor,
+                //    rotation: 0,
+                //    origin: Vector2.Zero,
+                //    scale: new Vector2(Math.Max(hitWindowEndX - hitWindowStartX, 0), Rect.Height),
+                //    effects: SpriteEffects.None,
+                //    layerDepth: 0
+                //    );
+
+                //// Draw Hit Window Line
+                //sb.Draw(texture: boxTex,
+                //    position: new Vector2((hitWindowStartX + hitWindowEndX) / 2, ScrollViewer.Scroll.Y),
+                //    sourceRectangle: null,
+                //    color: PlaybackCursorHitWindowStartColor,
+                //    rotation: 0,
+                //    origin: Vector2.Zero,
+                //    scale: new Vector2(1, Rect.Height),
+                //    effects: SpriteEffects.None,
+                //    layerDepth: 0
+                //    );
+
+
+                // Draw Hit Register Playback Cursor
+                sb.Draw(texture: boxTex,
+                    position: new Vector2((float)Math.Round(SecondsPixelSize * PlaybackCursor.CurrentTime), ScrollViewer.Scroll.Y),
+                    sourceRectangle: null,
+                    color: PlaybackCursorHitWindowColor,
+                    rotation: 0,
+                    origin: Vector2.Zero,
+                    scale: new Vector2(1, Rect.Height),
+                    effects: SpriteEffects.None,
+                    layerDepth: 0
+                    );
+
+
+                var playbackCursorPixelX = (float)Math.Round(SecondsPixelSize * PlaybackCursor.GUICurrentTime);
 
                 // Draw PlaybackCursor CurrentTime vertical line
                 sb.Draw(texture: boxTex,
@@ -2418,8 +3002,10 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
 
-                var playbackCursorPixelXMod = (int)(SecondsPixelSize * (float)(PlaybackCursor.IsPlaying
-                    ? PlaybackCursor.CurrentTimeMod : PlaybackCursor.GUICurrentTimeMod));
+                
+
+                var playbackCursorPixelXMod = (float)Math.Round((SecondsPixelSize * (float)(PlaybackCursor.IsPlaying
+                    ? PlaybackCursor.CurrentTimeMod : PlaybackCursor.GUICurrentTimeMod)));
 
                 // Draw PlaybackCursor CurrentTimeMod vertical line
                 sb.Draw(texture: boxTex,
@@ -2433,98 +3019,84 @@ namespace DSAnimStudio.TaeEditor
                     layerDepth: 0
                     );
 
-                float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
-                float rightOfScreenX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
 
 
-                // This would draw a little +/- by the mouse cursor to signify that
-                // you're adding/subtracting selection
-                // HOWEVER it was super delayed because of the vsync 
-                // and didn't follow the cursor well and looked weird
+                //var playbackCursorSmoothPixelX = (PlaybackCursor.IsPlaying || PlaybackCursor.Scrubbing) ?
+                //    (float)(SecondsPixelSize * PlaybackCursor.CurrentTime) : playbackCursorPixelX;
 
-                //if (MainScreen.CtrlHeld && !MainScreen.ShiftHeld && !MainScreen.AltHeld)
-                //{
-                //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
-                //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
-                //}
-                //else if (!MainScreen.CtrlHeld && MainScreen.ShiftHeld && !MainScreen.AltHeld)
-                //{
-                //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
-                //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
-                //}
+                //Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
 
-                float animStopPixelX = (float)PlaybackCursor.MaxTime * SecondsPixelSize;
+                //playbackCursorTextSize = new Vector2(playbackCursorTextSize.X, TimeLineHeight - 1);
 
-                float darkenedPortionWidth = rightOfScreenX - animStopPixelX;
+                // Draw PlaybackCursor CurrentTime BG Rect
+
+                //sb.Draw(texture: boxTex,
+                //   position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
+                //   (float)Math.Round(ScrollViewer.Scroll.Y + 2)),
+                //   sourceRectangle: null,
+                //   color: Color.Black,
+                //   rotation: 0,
+                //   origin: Vector2.Zero,
+                //   scale: playbackCursorTextSize + new Vector2(10, -4),
+                //   effects: SpriteEffects.None,
+                //   layerDepth: 0
+                //   );
+
+                //sb.Draw(texture: boxTex,
+                //    position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
+                //    (float)Math.Round(ScrollViewer.Scroll.Y + 2)) + Vector2.One,
+                //    sourceRectangle: null,
+                //    color: new Color(64, 64, 64, 255),
+                //    rotation: 0,
+                //    origin: Vector2.Zero,
+                //    scale: playbackCursorTextSize + new Vector2(10,-4) - (Vector2.One * 2),
+                //    effects: SpriteEffects.None,
+                //    layerDepth: 0
+                //    );
+
+                //Vector2 playbackCursorTextPos = new Vector2(
+                //    playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 6, 
+                //    (float)Math.Round(ScrollViewer.Scroll.Y + 2));
+
+                //// Draw PlaybackCursor CurrentTime string
+                //sb.DrawString(font, playbackCursorText,
+                //    position: playbackCursorTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset,
+                //    color: Color.Black
+                //    );
+
+                //sb.DrawString(font, playbackCursorText,
+                //    position: playbackCursorTextPos + Main.GlobalTaeEditorFontOffset,
+                //    color: Color.Cyan
+                //    );
 
                 if (darkenedPortionWidth > 0)
                 {
                     // full bg - anim duration
+
+                    float cooldownRatio = 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
+
                     sb.Draw(texture: boxTex,
-                          position: new Vector2(animStopPixelX, (int)ScrollViewer.Scroll.Y),
+                          position: new Vector2(animStopPixelX, (float)Math.Round(ScrollViewer.Scroll.Y)),
                           sourceRectangle: null,
-                          color: Color.Black * 0.25f,
+                          color: Color.Black * 0.25f * cooldownRatio,
                           rotation: 0,
                           origin: Vector2.Zero,
                           scale: new Vector2(darkenedPortionWidth, ScrollViewer.Viewport.Height),
                           effects: SpriteEffects.None,
                           layerDepth: 0
                           );
+
+                    sb.Draw(texture: boxTex,
+                          position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
+                          sourceRectangle: null,
+                          color: Color.White * cooldownRatio,
+                          rotation: 0,
+                          origin: Vector2.Zero,
+                          scale: new Vector2(2, TimeLineHeight),
+                          effects: SpriteEffects.None,
+                          layerDepth: 0
+                          );
                 }
-
-                var playbackCursorSmoothPixelX = (PlaybackCursor.IsPlaying || PlaybackCursor.Scrubbing) ?
-                    (int)(SecondsPixelSize * PlaybackCursor.CurrentTime) : playbackCursorPixelX;
-
-                string playbackCursorText = 
-                    (MainScreen.Config.LockFramerateToOriginalAnimFramerate ?
-                    $"{(int)(PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame)}" :
-                    $"{(PlaybackCursor.MaxFrame <= 0 ? 0 : (PlaybackCursor.GUICurrentFrame % PlaybackCursor.MaxFrame)):F02}") +
-                    $"/{(int)((Math.Max(Math.Round(PlaybackCursor.MaxFrame), 0)))}";
-
-                Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
-
-                playbackCursorTextSize = new Vector2(playbackCursorTextSize.X, TimeLineHeight - 1);
-
-                // Draw PlaybackCursor CurrentTime BG Rect
-
-                sb.Draw(texture: boxTex,
-                   position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
-                   (int)(ScrollViewer.Scroll.Y + 2)),
-                   sourceRectangle: null,
-                   color: Color.Black,
-                   rotation: 0,
-                   origin: Vector2.Zero,
-                   scale: playbackCursorTextSize + new Vector2(10, -4),
-                   effects: SpriteEffects.None,
-                   layerDepth: 0
-                   );
-
-                sb.Draw(texture: boxTex,
-                    position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
-                    (int)(ScrollViewer.Scroll.Y + 2)) + Vector2.One,
-                    sourceRectangle: null,
-                    color: new Color(64, 64, 64, 255),
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: playbackCursorTextSize + new Vector2(10,-4) - (Vector2.One * 2),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-                Vector2 playbackCursorTextPos = new Vector2(
-                    playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 6, 
-                    (int)(ScrollViewer.Scroll.Y + 2));
-
-                // Draw PlaybackCursor CurrentTime string
-                sb.DrawString(font, playbackCursorText,
-                    position: playbackCursorTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset,
-                    color: Color.Black
-                    );
-
-                sb.DrawString(font, playbackCursorText,
-                    position: playbackCursorTextPos + Main.GlobalTaeEditorFontOffset,
-                    color: Color.Cyan
-                    );
 
                 sb.End();
             }

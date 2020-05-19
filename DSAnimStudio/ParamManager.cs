@@ -31,6 +31,9 @@ namespace DSAnimStudio
         public static Dictionary<long, ParamData.NpcParam> NpcParam 
             = new Dictionary<long, ParamData.NpcParam>();
 
+        public static Dictionary<long, ParamData.SpEffectParam> SpEffectParam
+            = new Dictionary<long, ParamData.SpEffectParam>();
+
         public static Dictionary<long, ParamData.EquipParamWeapon> EquipParamWeapon 
             = new Dictionary<long, ParamData.EquipParamWeapon>();
 
@@ -145,6 +148,7 @@ namespace DSAnimStudio
             AddParam(EquipParamProtector, "EquipParamProtector");
             if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                 AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
+            AddParam(SpEffectParam, "SpEffectParam");
 
             GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameType;
         }
@@ -165,62 +169,72 @@ namespace DSAnimStudio
             return AtkParam_Pc[behaviorParamEntry.RefID];
         }
 
-        public static ParamData.AtkParam GetPlayerBasicAtkParam(ParamData.EquipParamWeapon wpn, int behaviorSubID, bool isLeftHand)
+        public static ParamData.AtkParam GetPlayerBasicAtkParam(ParamData.EquipParamWeapon wpn, int behaviorJudgeID, bool isLeftHand)
         {
             if (wpn == null)
                 return null;
 
-            long behaviorParamID = 10_0000_000 + (wpn.BehaviorVariationID * 1_000) + behaviorSubID;
+            // Format: 10VVVVJJJ
+            // V = BehaviorVariationID
+            // J = BehaviorJudgeID
+            long behaviorParamID = 10_0000_000 + (wpn.BehaviorVariationID * 1_000) + behaviorJudgeID;
 
+            // If behavior 10VVVVJJJ doesn't exist, check for fallback behavior 10VV00JJJ.
             if (!BehaviorParam_PC.ContainsKey(behaviorParamID))
             {
-                if (wpn != null)
-                {
-                    long baseBehaviorParamID = 10_0000_000 + ((((wpn.BehaviorVariationID / 100) * 100) * 100) * 1_000) + behaviorSubID;
+                long baseBehaviorVariationID = (wpn.BehaviorVariationID / 100) * 100;
 
-                    if (BehaviorParam_PC.ContainsKey(baseBehaviorParamID))
-                    {
-                        behaviorParamID = baseBehaviorParamID;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-                else
-
+                if (baseBehaviorVariationID == wpn.BehaviorVariationID)
                 {
+                    // Fallback is just the same thing, which we already know doesn't exist.
                     return null;
                 }
 
-                
+                long baseBehaviorParamID = 10_0000_000 + (baseBehaviorVariationID * 1_000) + behaviorJudgeID;
+
+                if (BehaviorParam_PC.ContainsKey(baseBehaviorParamID))
+                {
+                    behaviorParamID = baseBehaviorParamID;
+                }
+                else
+                {
+                    return null;
+                }
             }
 
             ParamData.BehaviorParam behaviorParamEntry = BehaviorParam_PC[behaviorParamID];
+
+            // Make sure behavior is an attack behavior.
             if (behaviorParamEntry.RefType != 0)
                 return null;
 
+            // Make sure referenced attack exists.
             if (!AtkParam_Pc.ContainsKey(behaviorParamEntry.RefID))
                 return null;
 
             return AtkParam_Pc[behaviorParamEntry.RefID];
         }
 
-        public static ParamData.AtkParam GetNpcBasicAtkParam(ParamData.NpcParam npcParam, int behaviorSubID)
+        public static ParamData.AtkParam GetNpcBasicAtkParam(ParamData.NpcParam npcParam, int behaviorJudgeID)
         {
             if (npcParam == null)
                 return null;
 
-            long behaviorParamID = 2_00000_000 + (npcParam.BehaviorVariationID * 1_000) + behaviorSubID;
+            // Format: 2VVVVVJJJ
+            // V = BehaviorVariationID
+            // J = BehaviorJudgeID
+            long behaviorParamID = 2_00000_000 + (npcParam.BehaviorVariationID * 1_000) + behaviorJudgeID;
 
             if (!BehaviorParam.ContainsKey(behaviorParamID))
                 return null;
 
             ParamData.BehaviorParam behaviorParamEntry = BehaviorParam[behaviorParamID];
 
+            // Make sure behavior is an attack behavior.
             if (behaviorParamEntry.RefType != 0)
                 return null;
 
+            // Make sure referenced attack exists.
             if (!AtkParam_Npc.ContainsKey(behaviorParamEntry.RefID))
                 return null;
 

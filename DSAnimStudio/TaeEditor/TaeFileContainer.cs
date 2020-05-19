@@ -313,7 +313,8 @@ namespace DSAnimStudio.TaeEditor
 
         public void SaveToPath(string file, IProgress<double> progress)
         {
-            file = file.ToUpper();
+            //What the hell was this for?
+            //file = file.ToUpper();
 
             if (ContainerType == TaeFileContainerType.ANIBND)
             {

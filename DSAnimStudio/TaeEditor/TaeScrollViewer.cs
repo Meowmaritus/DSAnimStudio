@@ -233,7 +233,7 @@ namespace DSAnimStudio.TaeEditor
 
         public Matrix GetScrollMatrix()
         {
-            return Matrix.CreateTranslation(-(int)Scroll.X, -(int)Scroll.Y, 0);
+            return Matrix.CreateTranslation(-(float)Math.Round(Scroll.X), -(float)Math.Round(Scroll.Y), 0);
         }
 
         public void UpdateInput(TaeInputHandler input, float elapsedSeconds, bool allowScrollWheel)
