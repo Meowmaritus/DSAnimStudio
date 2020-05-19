@@ -3,4 +3,7 @@
 	url = https://github.com/Meowmaritus/MeowDSIO
 [submodule "SoulsFormats"]
 	path = SoulsFormats
-	url = https://github.com/Meowmaritus/SoulsFormats
+	url = https://github.com/JKAnderson/SoulsFormats.git
+[submodule "SFAnimExtensions"]
+	path = SFAnimExtensions
+	url = https://github.com/koriandrei/SFAnimExtensions.git

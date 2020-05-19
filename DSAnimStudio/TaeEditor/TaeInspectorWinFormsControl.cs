@@ -1,4 +1,5 @@
 ﻿using SoulsFormats;
+using SFAnimExtensions;
 using System;
 using System.Linq;
 using System.Windows.Forms;

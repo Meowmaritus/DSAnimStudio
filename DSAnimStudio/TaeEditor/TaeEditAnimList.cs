@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using SoulsFormats;
+using SFAnimExtensions;
 using System;
 using System.Collections.Generic;
 

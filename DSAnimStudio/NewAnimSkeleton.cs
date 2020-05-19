@@ -1,6 +1,7 @@
 ﻿using DSAnimStudio.DebugPrimitives;
 using Microsoft.Xna.Framework;
 using SoulsFormats;
+using SFAnimExtensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,7 +41,7 @@ namespace DSAnimStudio
 
         public readonly Model MODEL;
 
-        public NewAnimSkeleton(Model mdl, List<FLVER2.Bone> flverBones)
+        public NewAnimSkeleton(Model mdl, List<FLVER.Bone> flverBones)
         {
             MODEL = mdl;
 
@@ -250,11 +251,11 @@ namespace DSAnimStudio
             public IDbgPrim BonePrim;
             public DbgPrimWireBox BoundingBoxPrim;
 
-            public FlverBoneInfo(FLVER2.Bone bone, List<FLVER2.Bone> boneList)
+            public FlverBoneInfo(FLVER.Bone bone, List<FLVER.Bone> boneList)
             {
-                Matrix GetBoneMatrix(SoulsFormats.FLVER2.Bone b)
+                Matrix GetBoneMatrix(SoulsFormats.FLVER.Bone b)
                 {
-                    SoulsFormats.FLVER2.Bone parentBone = b;
+                    SoulsFormats.FLVER.Bone parentBone = b;
 
                     var result = Matrix.Identity;
 
