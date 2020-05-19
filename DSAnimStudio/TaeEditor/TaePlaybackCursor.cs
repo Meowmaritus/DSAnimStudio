@@ -14,11 +14,22 @@ namespace DSAnimStudio.TaeEditor
     {
         public double CurrentTime;
 
+        public string GetFrameCounterText(bool roundToNearestFrame)
+        {
+            return "Frame: " + (roundToNearestFrame ?
+                    $"{((int)(GUICurrentFrameMod)),4:####}.000" :
+                    $"{(MaxFrame <= 0 ? 0 : (Math.Truncate((GUICurrentFrameMod) * 1000) / 1000)),8:###0.000}") +
+                    $" / {((int)((Math.Max(Math.Round(LastMaxFrameGreaterThanZero), 0))))}" + 
+                    $"\n Time: {(MaxFrame <= 0 ? 0 : (Math.Truncate((CurrentTimeMod) * 1000) / 1000)),8:###0.000} / {LastMaxTimeGreaterThanZero:0.000}";
+        }
+
         public int CurrentLoopCount { get; private set; } = 0;
         public int OldLoopCount { get; private set; } = 0;
         public int CurrentLoopCountDelta { get; private set; } = 0;
 
-        public double CurrentTimeMod => CurrentTime % MaxTime;
+        public static double LastMaxTimeGreaterThanZero = 0;
+
+        public double CurrentTimeMod => MaxTime > 0 ? CurrentTime % MaxTime : 0;
 
         public event EventHandler<TaeEditAnimEventBox> EventBoxEnter;
         private void OnEventBoxEnter(TaeEditAnimEventBox evBox) { EventBoxEnter?.Invoke(this, evBox); }
@@ -48,6 +59,12 @@ namespace DSAnimStudio.TaeEditor
             ? (Math.Round(CurrentTime / (SnapInterval ?? SnapInterval_Default)) 
             * (SnapInterval ?? SnapInterval_Default)) : CurrentTime;
 
+        //public double HitWindowStart => CurrentTime - 0.001;
+        //public double HitWindowEnd => CurrentTime + 0.001;
+
+        //public double OldHitWindowStart => OldCurrentTime;
+        //public double OldHitWindowEnd => OldCurrentTime + (CurrentSnapInterval / 2.0);
+
         public double GUICurrentTimeMod => GUICurrentTime % MaxTime;
 
         public double GUIStartTime => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
@@ -55,6 +72,9 @@ namespace DSAnimStudio.TaeEditor
             * (SnapInterval ?? SnapInterval_Default)) : StartTime;
 
         public double OldGUICurrentTime { get; private set; } = 0;
+
+        public double OldCurrentTime { get; private set; } = 0;
+        public double OldCurrentTimeMod => MaxTime > 0 ? OldCurrentTime % MaxTime : 0;
 
         public double OldGUICurrentTimeMod => OldGUICurrentTime % MaxTime;
 
@@ -70,7 +90,7 @@ namespace DSAnimStudio.TaeEditor
 
         public double? SnapInterval = null;
 
-        public const double SnapInterval_Default = 0.0333333;
+        public const double SnapInterval_Default = 1.0 / 30.0;
 
         public double CurrentSnapInterval => SnapInterval ?? SnapInterval_Default;
 
@@ -80,17 +100,21 @@ namespace DSAnimStudio.TaeEditor
 
         public double GUICurrentFrameMod => MaxFrame > 0 ? (GUICurrentFrame % MaxFrame) : 0;
 
-        public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
-            ? (Math.Round(MaxTime / CurrentSnapInterval)) 
+        public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate
+            ? (Math.Round(MaxTime / CurrentSnapInterval))
             : (MaxTime / CurrentSnapInterval);
+
+        public static double LastMaxFrameGreaterThanZero;
 
         public bool IsRepeat = true;
         public bool IsPlaying = false;
+        private bool prevIsPlaying = false;
 
         public bool Scrubbing = false;
         public bool prevScrubbing = false;
 
-        public float PlaybackSpeed = 1.0f;
+        public float BasePlaybackSpeed = 1.0f;
+        public float ModPlaybackSpeed = 1.0f;
 
         public bool IsStepping = false;
 
@@ -116,9 +140,23 @@ namespace DSAnimStudio.TaeEditor
             //PlaybackSpeed = 1.0f;
         }
 
-        public void Update(bool playPauseBtnDown, bool shiftDown, IEnumerable<TaeEditAnimEventBox> eventBoxes)
+        public void Transport_PlayPause()
         {
-            bool prevPlayState = IsPlaying;
+            IsStepping = false;
+
+            IsPlaying = !IsPlaying;
+
+            //StartTime = CurrentTime;
+
+            if (!IsPlaying)
+            {
+                OnPlaybackEnded();
+            }
+        }
+
+        public void Update(IEnumerable<TaeEditAnimEventBox> eventBoxes)
+        {
+            //bool prevPlayState = IsPlaying;
 
             //if (GUICurrentTime != oldGUICurrentTime)
             //{
@@ -133,29 +171,7 @@ namespace DSAnimStudio.TaeEditor
                 IsStepping = false;
             }
 
-            if (playPauseBtnDown)
-            {
-                IsStepping = false;
-
-                IsPlaying = !IsPlaying;
-
-                StartTime = CurrentTime;
-
-                if (IsPlaying) // Just started playing
-                {
-                    if (shiftDown)
-                    {
-                        StartTime = 0;
-                        CurrentTime = 0;
-                    }
-                }
-                else // Just stoppped playing
-                {
-                    OnPlaybackEnded();
-                }
-            }
-
-            JustStartedPlaying = !prevPlayState && IsPlaying;
+            JustStartedPlaying = !prevIsPlaying && IsPlaying;
 
             if (Scrubbing || JustStartedPlaying)
             {
@@ -174,7 +190,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (IsPlaying)
                 {
-                    CurrentTime += (Main.DELTA_UPDATE * PlaybackSpeed);
+                    CurrentTime += (Main.DELTA_UPDATE * BasePlaybackSpeed * ModPlaybackSpeed);
                 }
 
                 if (GUICurrentTime != OldGUICurrentTime)
@@ -304,7 +320,18 @@ namespace DSAnimStudio.TaeEditor
 
             }
 
+            if (MaxTime > 0)
+            {
+                LastMaxTimeGreaterThanZero = MaxTime;
+            }
+
+            if (MaxFrame > 0)
+            {
+                LastMaxFrameGreaterThanZero = MaxFrame;
+            }
+
             OldGUICurrentTime = GUICurrentTime;
+            OldCurrentTime = CurrentTime;
             OldGUICurrentFrame = GUICurrentFrame;
             prevScrubbing = Scrubbing;
 
@@ -315,6 +342,7 @@ namespace DSAnimStudio.TaeEditor
 
             OldLoopCount = CurrentLoopCount;
 
+            prevIsPlaying = IsPlaying;
         }
     }
 }

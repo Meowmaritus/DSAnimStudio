@@ -95,7 +95,7 @@ namespace DSAnimStudio
 
                             if (animHKXsToLoad.ContainsKey(name))
                             {
-                                LoadAnimHKX(animHKXsToLoad[name], name);
+                                //LoadAnimHKX(animHKXsToLoad[name], name);
 
                                 try
                                 {

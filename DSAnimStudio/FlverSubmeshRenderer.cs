@@ -214,12 +214,19 @@ namespace DSAnimStudio
             {
                 ShadingMode = FlverShadingMode.CLASSIC_DIFFUSE_PTDE;
             }
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            {
+                //TEMP
+                ShadingMode = FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY;
+                //GFX.ForcedFlverShadingModeIndex = 
+                //    GFX.FlverShadingModeList.IndexOf(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
+            }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
             {
                 //TEMP
-                ShadingMode = FlverShadingMode.PBR_GLOSS_DS3;
-
-
+                ShadingMode = FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY;
+                //GFX.ForcedFlverShadingModeIndex =
+                //    GFX.FlverShadingModeList.IndexOf(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
             }
             else
             {

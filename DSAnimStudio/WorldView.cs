@@ -237,7 +237,7 @@ namespace DSAnimStudio
 
         public Transform GetSpawnPointFromMouseCursor(float distance, bool faceBackwards, bool lockPitch, bool alignToFloor)
         {
-            var mouse = Mouse.GetState();
+            var mouse = GlobalInputState.Mouse;
             return GetSpawnPointFromScreenPos(mouse.Position.ToVector2() - GFX.Device.Viewport.Bounds.Location.ToVector2(),
                 distance, faceBackwards, lockPitch, alignToFloor);
         }
@@ -423,8 +423,8 @@ namespace DSAnimStudio
                 return;
             //if (DisableAllInput)
             //{
-            //    oldWheel = Mouse.GetState(game.Window).ScrollWheelValue;
-                
+            //    oldWheel = GlobalInputState.Mouse.ScrollWheelValue;
+
             //    return;
             //}
 
@@ -437,9 +437,9 @@ namespace DSAnimStudio
             //    LightRotation.X += MathHelper.PiOver4 * (float)gameTime.ElapsedGameTime.TotalSeconds;
             //}
 
-            var gamepad = DBG.EnableGamePadInput ? GamePad.GetState(PlayerIndex.One) : DBG.DisabledGamePadState;
+            var gamepad = DBG.EnableGamePadInput ? GlobalInputState.GamePad1 : DBG.DisabledGamePadState;
 
-            MouseState mouse = DBG.EnableMouseInput ? Mouse.GetState(game.Window) : DBG.DisabledMouseState;
+            MouseState mouse = DBG.EnableMouseInput ? GlobalInputState.Mouse : DBG.DisabledMouseState;
 
             //TODO: Figure out what I was thinking here??
             float clampedLerpF = 1;// MathHelper.Clamp(30 * elapsed, 0, 1);
@@ -449,7 +449,7 @@ namespace DSAnimStudio
 
             
 
-            KeyboardState keyboard = DBG.EnableKeyboardInput ? Keyboard.GetState() : DBG.DisabledKeyboardState;
+            KeyboardState keyboard = DBG.EnableKeyboardInput ? GlobalInputState.Keyboard : DBG.DisabledKeyboardState;
             int currentWheel = mouse.ScrollWheelValue;
 
             if (DisableAllInput || OSD.Focused)
