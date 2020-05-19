@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using DSAnimStudio.DbgMenus;
+using Microsoft.Xna.Framework;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -112,7 +113,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (shortFileName.StartsWith("c"))
             {
-                GameDataManager.LoadCharacter(shortFileName);
+                GameDataManager.LoadCharacter(shortFileName.Substring(0, 5));
 
                 if (CurrentModel.IS_PLAYER)
                 {
@@ -713,6 +714,13 @@ namespace DSAnimStudio.TaeEditor
         {
             var printer = new StatusPrinter(Vector2.One * 4, Color.Yellow);
 
+            //printer.AppendLine("[DbgMenuPadRepeater Debug Info]");
+            //foreach (var repeater in DbgMenuPadRepeater.ALL_INSTANCES)
+            //{
+            //    printer.AppendLine(repeater.ToString());
+            //}
+            //printer.AppendLine(" ");
+
             if (CurrentModel != null && CurrentModel.AnimContainer != null)
             {
                 if (CurrentModel.Skeleton.BoneLimitExceeded)
@@ -778,6 +786,20 @@ namespace DSAnimStudio.TaeEditor
             //        printer.AppendLine("  " + a);
             //    }
             //}
+
+        
+
+            if (EventSim != null &&
+                Graph.MainScreen.Config.EventSimulationsEnabled["EventSimSpEffects"] && 
+                EventSim.SimulatedActiveSpEffects.Count > 0)
+            {
+                printer.AppendLine("[Active SpEffects:]");
+
+                foreach (var spe in EventSim.SimulatedActiveSpEffects)
+                {
+                    printer.AppendLine("    " + spe);
+                }
+            }
 
             GFX.SpriteBatchBeginForText();
             printer.Draw();

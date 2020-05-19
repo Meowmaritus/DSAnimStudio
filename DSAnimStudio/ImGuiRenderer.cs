@@ -246,8 +246,8 @@ namespace DSAnimStudio
         {
             var io = ImGui.GetIO();
 
-            var mouse = Mouse.GetState();
-            var keyboard = Keyboard.GetState();
+            var mouse = GlobalInputState.Mouse;
+            var keyboard = GlobalInputState.Keyboard;
 
             for (int i = 0; i < _keys.Count; i++)
             {

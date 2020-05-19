@@ -10,7 +10,13 @@ namespace DSAnimStudio.TaeEditor
         public ParamData.AtkParam.DummyPolySource HitViewDummyPolySource { get; set; } = ParamData.AtkParam.DummyPolySource.Body;
 
         public bool DbgPrimXRay { get; set; } = false;
-        public bool EnableSnapTo30FPSIncrements { get; set; } = true;
+        public enum EventSnapTypes
+        {
+            None,
+            FPS30,
+            FPS60,
+        }
+        public EventSnapTypes EventSnapType { get; set; } = EventSnapTypes.FPS30;
         public bool LockFramerateToOriginalAnimFramerate { get; set; } = false;
         public bool EnableFancyScrollingStrings { get; set; } = true;
         public float FancyScrollingStringsScrollSpeed { get; set; } = 64;
@@ -25,6 +31,8 @@ namespace DSAnimStudio.TaeEditor
         public bool AccumulateRootMotion { get; set; } = true;
         public bool EnableAnimRootMotion { get; set; } = true;
         //public bool SimulateReferencedEvents { get; set; } = true;
+
+        public bool IsNewGraphVisiMode { get; set; } = false;
 
         public int MSAA = 2;
         public int SSAA = 1;

@@ -16,6 +16,8 @@ namespace DSAnimStudio.DbgMenus
 
     public class DbgMenuPadRepeater
     {
+        public static List<DbgMenuPadRepeater> ALL_INSTANCES = new List<DbgMenuPadRepeater>();
+
         public readonly Buttons Button;
         public readonly float InitialRepeatDelay;
         public readonly float RepeatInterval;
@@ -29,17 +31,29 @@ namespace DSAnimStudio.DbgMenus
         private DbgMenuPadRepeatState RepeatState = DbgMenuPadRepeatState.ButtonNotHeld;
         private float timer = 0;
 
+        private bool alternateKeyboardInput = false;
+        private bool curHeldState = false;
+
+        private long DEBUG_UPDATE_COUNT = 0;
 
         public DbgMenuPadRepeater(Buttons b, float initialRepeatDelay, float repeatInterval)
         {
             Button = b;
             InitialRepeatDelay = initialRepeatDelay;
             RepeatInterval = repeatInterval;
+            if (!ALL_INSTANCES.Contains(this))
+                ALL_INSTANCES.Add(this);
+        }
+
+        public override string ToString()
+        {
+            return $"DbgMenuPadRepeater[{DEBUG_UPDATE_COUNT:D10} | State:{(State ? 1 : 0)} KB:{(alternateKeyboardInput ? 1 : 0)} CurHeld:{(curHeldState ? 1 : 0)} IsInit:{(IsInitalButtonTap ? 1 : 0)} Timer:{timer:0.0000} RepeatState:{RepeatState}]";
         }
 
         public bool Update(GamePadState gamepad, float elapsedSeconds, bool alternateKeyboardInput)
         {
-            bool curHeldState = gamepad.IsButtonDown(Button) || (Main.Active && alternateKeyboardInput);
+            this.alternateKeyboardInput = alternateKeyboardInput;
+            curHeldState = gamepad.IsButtonDown(Button) || (Main.Active && alternateKeyboardInput);
             
             if (!curHeldState)
             {
@@ -89,6 +103,7 @@ namespace DSAnimStudio.DbgMenus
 
             prevHeldState = curHeldState;
 
+            DEBUG_UPDATE_COUNT++;
 
             return State;
         }

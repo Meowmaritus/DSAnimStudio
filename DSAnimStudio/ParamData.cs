@@ -579,6 +579,20 @@ namespace DSAnimStudio
             }
         }
 
+        public class SpEffectParam : ParamData
+        {
+            public float GrabityRate = 1.0f;
+
+            public override void Read(BinaryReaderEx br)
+            {
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                {
+                    br.Position += 0x104;
+                    GrabityRate = br.ReadSingle();
+                }
+            }
+        }
+
         public enum EquipModelGenders : byte
         {
             Unisex = 0,
@@ -591,6 +605,7 @@ namespace DSAnimStudio
         public class EquipParamWeapon : ParamData
         {
             public int BehaviorVariationID;
+            public int FallbackBehaviorVariationID => (BehaviorVariationID / 100) * 100;
             public short EquipModelID;
             public byte WepMotionCategory;
             public short SpAtkCategory;

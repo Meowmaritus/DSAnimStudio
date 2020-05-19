@@ -84,7 +84,7 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
-        public void Draw(GraphicsDevice gd, SpriteBatch sb, Matrix spriteBatchMatrix, Rectangle rect, SpriteFont font, float elapsedSeconds)
+        public void Draw(GraphicsDevice gd, SpriteBatch sb, Matrix spriteBatchMatrix, Rectangle rect, SpriteFont font, float elapsedSeconds, Vector2 fontOffset)
         {
             if (Text == null)
                 return;
@@ -115,7 +115,7 @@ namespace DSAnimStudio.TaeEditor
 
 
             Vector2 textPos = new Vector2(ScrollingSnapsToPixels ? (float)Math.Round(-Scroll) : -Scroll,
-                    (float)Math.Round((rect.Height / 2f) - font.LineSpacing / 2f) + 1);
+                    (float)Math.Round((rect.Height / 2f) - font.LineSpacing / 2f + 1));
 
             sb.End();
 
@@ -144,9 +144,21 @@ namespace DSAnimStudio.TaeEditor
             sb.Begin(transformMatrix: Matrix.Identity);
 
             {
-                sb.DrawString(font, Text, textPos + Vector2.One + Main.GlobalTaeEditorFontOffset, TextShadowColor);
+                //sb.DrawString(font, Text, textPos + Vector2.One + fontOffset, TextShadowColor);
+
+                sb.DrawString(font, Text, (textPos + new Vector2(0, 1) + fontOffset).Round(), TextShadowColor);
+                sb.DrawString(font, Text, (textPos + new Vector2(0, -1) + fontOffset).Round(), TextShadowColor);
+                sb.DrawString(font, Text, (textPos + new Vector2(1, 0) + fontOffset).Round(), TextShadowColor);
+                sb.DrawString(font, Text, (textPos + new Vector2(-1, 0) + fontOffset).Round(), TextShadowColor);
+
+                sb.DrawString(font, Text, (textPos + new Vector2(1, 1) + fontOffset).Round(), TextShadowColor);
+
+                sb.DrawString(font, Text, (textPos + new Vector2(2, 2) + fontOffset).Round(), TextShadowColor);
+                sb.DrawString(font, Text, (textPos + new Vector2(2, 1) + fontOffset).Round(), TextShadowColor);
+                sb.DrawString(font, Text, (textPos + new Vector2(1, 2) + fontOffset).Round(), TextShadowColor);
+
                 //sb.DrawString(font, Text, textPos + (Vector2.One * 2), TextShadowColor);
-                sb.DrawString(font, Text, textPos + Main.GlobalTaeEditorFontOffset, TextColor);
+                sb.DrawString(font, Text, textPos + fontOffset, TextColor);
             }
 
             sb.End();
