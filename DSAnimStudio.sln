@@ -4,7 +4,7 @@ VisualStudioVersion = 16.0.29102.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DSAnimStudio", "DSAnimStudio\DSAnimStudio.csproj", "{D523836E-9BD1-4663-9A49-9F86EB480F2E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoulsFormats", "SoulsFormats\SoulsFormats\SoulsFormats.csproj", "{22C664BD-877B-44DF-8ECF-2808522469A8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoulsFormats", "SFAnimExtensions\SoulsFormats\SoulsFormats\SoulsFormats.csproj", "{22C664BD-877B-44DF-8ECF-2808522469A8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dark Souls IO", "Dark Souls IO", "{D1BDEB2B-399D-497D-9D47-7F0C5967661B}"
 EndProject
