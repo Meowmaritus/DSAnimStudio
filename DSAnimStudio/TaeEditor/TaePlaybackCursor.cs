@@ -16,17 +16,20 @@ namespace DSAnimStudio.TaeEditor
 
         public string GetFrameCounterText(bool roundToNearestFrame)
         {
-            return (roundToNearestFrame ?
-                    $"{(int)(GUICurrentFrame % MaxFrame)}" :
-                    $"{(MaxFrame <= 0 ? 0 : (GUICurrentFrame % MaxFrame)):F02}") +
-                    $"/{(int)((Math.Max(Math.Round(MaxFrame), 0)))}";
+            return "Frame: " + (roundToNearestFrame ?
+                    $"{((int)(GUICurrentFrameMod)),4:####}.000" :
+                    $"{(MaxFrame <= 0 ? 0 : (Math.Truncate((GUICurrentFrameMod) * 1000) / 1000)),8:###0.000}") +
+                    $" / {((int)((Math.Max(Math.Round(LastMaxFrameGreaterThanZero), 0))))}" + 
+                    $"\n Time: {(MaxFrame <= 0 ? 0 : (Math.Truncate((CurrentTimeMod) * 1000) / 1000)),8:###0.000} / {LastMaxTimeGreaterThanZero:0.000}";
         }
 
         public int CurrentLoopCount { get; private set; } = 0;
         public int OldLoopCount { get; private set; } = 0;
         public int CurrentLoopCountDelta { get; private set; } = 0;
 
-        public double CurrentTimeMod => CurrentTime % MaxTime;
+        public static double LastMaxTimeGreaterThanZero = 0;
+
+        public double CurrentTimeMod => MaxTime > 0 ? CurrentTime % MaxTime : 0;
 
         public event EventHandler<TaeEditAnimEventBox> EventBoxEnter;
         private void OnEventBoxEnter(TaeEditAnimEventBox evBox) { EventBoxEnter?.Invoke(this, evBox); }
@@ -71,7 +74,7 @@ namespace DSAnimStudio.TaeEditor
         public double OldGUICurrentTime { get; private set; } = 0;
 
         public double OldCurrentTime { get; private set; } = 0;
-        public double OldCurrentTimeMod => OldCurrentTime % MaxTime;
+        public double OldCurrentTimeMod => MaxTime > 0 ? OldCurrentTime % MaxTime : 0;
 
         public double OldGUICurrentTimeMod => OldGUICurrentTime % MaxTime;
 
@@ -87,9 +90,9 @@ namespace DSAnimStudio.TaeEditor
 
         public double? SnapInterval = null;
 
-        public const double SnapInterval_Default = 0.0333333;
+        public const double SnapInterval_Default = 1.0 / 30.0;
 
-        public double CurrentSnapInterval => 0.0166666666666666;// SnapInterval ?? SnapInterval_Default;
+        public double CurrentSnapInterval => SnapInterval ?? SnapInterval_Default;
 
         public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Round(CurrentTime / CurrentSnapInterval)) 
@@ -97,9 +100,11 @@ namespace DSAnimStudio.TaeEditor
 
         public double GUICurrentFrameMod => MaxFrame > 0 ? (GUICurrentFrame % MaxFrame) : 0;
 
-        public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
-            ? (Math.Round(MaxTime / CurrentSnapInterval)) 
+        public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate
+            ? (Math.Round(MaxTime / CurrentSnapInterval))
             : (MaxTime / CurrentSnapInterval);
+
+        public static double LastMaxFrameGreaterThanZero;
 
         public bool IsRepeat = true;
         public bool IsPlaying = false;
@@ -313,6 +318,16 @@ namespace DSAnimStudio.TaeEditor
 
                
 
+            }
+
+            if (MaxTime > 0)
+            {
+                LastMaxTimeGreaterThanZero = MaxTime;
+            }
+
+            if (MaxFrame > 0)
+            {
+                LastMaxFrameGreaterThanZero = MaxFrame;
             }
 
             OldGUICurrentTime = GUICurrentTime;

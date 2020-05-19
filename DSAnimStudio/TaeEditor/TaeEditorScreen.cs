@@ -499,7 +499,7 @@ namespace DSAnimStudio.TaeEditor
 
         private int TopOfGraphAnimInfoMargin = 20;
 
-        private int TransportHeight = 24;
+        private int TransportHeight = 28;
 
         public TaeTransport Transport;
 
@@ -745,8 +745,8 @@ namespace DSAnimStudio.TaeEditor
         private const float TopRightPaneHeightMinNew = 128;
         private const float BottomRightPaneHeightMinNew = 256;
 
-        private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight + TopMenuBarMargin;
-        private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad + TopMenuBarMargin;
+        private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight + TopMenuBarMargin + TransportHeight;
+        private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad + TopMenuBarMargin + TransportHeight;
         private float DividerRightPaneHorizontalCenterY => DividerRightPaneHorizontalVisibleStartY + ((DividerRightPaneHorizontalVisibleEndY - DividerRightPaneHorizontalVisibleStartY) / 2);
 
         private float DividerRightPaneHorizontalGrabStartY => DividerRightPaneHorizontalCenterY - (DividerHitboxPad / 2);
@@ -1172,6 +1172,8 @@ namespace DSAnimStudio.TaeEditor
             //editScreenGraphInspector = new TaeEditAnimEventGraphInspector(this);
 
             inspectorWinFormsControl = new TaeInspectorWinFormsControl();
+
+            inspectorWinFormsControl.Visible = false;
 
             //// This might change in the future if I actually add text description attributes to some things.
             //inspectorWinFormsControl.propertyGrid.HelpVisible = false;

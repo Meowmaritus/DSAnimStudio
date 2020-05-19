@@ -131,14 +131,14 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeScrollViewer ScrollViewer { get; private set; } = new TaeScrollViewer();
 
-        const float SecondsPixelSizeDefault = 128 * 4;
+        const float SecondsPixelSizeDefault = 128 * 2;
         public float SecondsPixelSize = SecondsPixelSizeDefault;
         public float FramePixelSize_HKX => SecondsPixelSize / (1 / (float)PlaybackCursor.CurrentSnapInterval);
         public float MinPixelsBetweenFramesForHelperLines = 4;
         public float MinPixelsBetweenFramesForFrameNumberText = 20;
 
         public float SecondsPixelSizeFarAwayModeUpperBound = SecondsPixelSizeDefault;
-        public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 2048);
+        public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 256);
         public float SecondsPixelSizeScrollNotch = 128;
 
         public const float TimeLineHeight = 24;
@@ -2677,7 +2677,7 @@ namespace DSAnimStudio.TaeEditor
                 //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
                 //}
 
-                float animStopPixelX = (float)PlaybackCursor.MaxTime * SecondsPixelSize;
+                float animStopPixelX = (float)TaePlaybackCursor.LastMaxTimeGreaterThanZero * SecondsPixelSize;
 
                 float darkenedPortionWidth = rightOfScreenX - animStopPixelX;
 
@@ -2685,7 +2685,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     // full bg - anim duration
 
-                    float cooldownRatio = 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
+                    float cooldownRatio = 1;// 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
 
                     sb.Draw(texture: boxTex,
                           position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
@@ -3073,7 +3073,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     // full bg - anim duration
 
-                    float cooldownRatio = 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
+                    float cooldownRatio = 1;// 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
 
                     sb.Draw(texture: boxTex,
                           position: new Vector2(animStopPixelX, (float)Math.Round(ScrollViewer.Scroll.Y)),

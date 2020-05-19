@@ -114,12 +114,13 @@ namespace DSAnimStudio.TaeEditor
 
         private bool CheckHighlight(double playbackCursorPos, TaeEditAnimEventBox mouseHoverBox)
         {
+            playbackCursorPos = Math.Round(playbackCursorPos, 4);
 
             if (!OwnerPane.MainScreen.Config.SoloHighlightEventOnHover ||
                 mouseHoverBox == null || OwnerPane.PlaybackCursor.IsPlaying ||
                 OwnerPane.PlaybackCursor.Scrubbing)
             {
-                return playbackCursorPos >= MyEvent.StartTime && playbackCursorPos < MyEvent.EndTime;
+                return playbackCursorPos >= Math.Round(MyEvent.StartTime, 4) && playbackCursorPos < Math.Round(MyEvent.EndTime, 4);
             }
             else
             {
