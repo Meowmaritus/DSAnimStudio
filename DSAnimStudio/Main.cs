@@ -63,6 +63,8 @@ namespace DSAnimStudio
 
         public static bool Minimized { get; private set; }
 
+        public static int JustStartedLayoutForceUpdateFrameAmountLeft { get; private set; } = 10;
+
         public static bool DISABLE_DRAW_ERROR_HANDLE = false;
 
         private static float MemoryUsageCheckTimer = 0;
@@ -502,7 +504,7 @@ namespace DSAnimStudio
 
             Active = !Minimized && IsActive && ApplicationIsActivated();
 
-            TargetElapsedTime = Active ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
+            TargetElapsedTime = (Active || LoadingTaskMan.AnyTasksRunning()) ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
 
             if (!prevActive && Active)
             {
@@ -540,8 +542,18 @@ namespace DSAnimStudio
         {
             UpdateActiveState();
 
-            if (Active)
+            if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
             {
+                if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
+                {
+                    if (JustStartedLayoutForceUpdateFrameAmountLeft == 1)
+                    {
+                        TAE_EDITOR.SetInspectorVisibility(true);
+                    }
+
+                    JustStartedLayoutForceUpdateFrameAmountLeft--;
+                }
+
                 GlobalInputState.Update();
 
                 DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
@@ -666,8 +678,14 @@ namespace DSAnimStudio
 
         protected override void Draw(GameTime gameTime)
         {
-            if (Active)
+            if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0)
             {
+                // Still initializing just blank out screen while layout freaks out lol
+                if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
+                {
+                    GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
+                    return;
+                }
 
                 DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
 
@@ -676,7 +694,7 @@ namespace DSAnimStudio
                 if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
                 {
                     // Only update input if debug menu isnt fully open.
-                    GFX.World.UpdateInput(this, 0.0166667f);
+                    GFX.World.UpdateInput(this, DELTA_UPDATE);
                 }
 
                 if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
@@ -697,7 +715,7 @@ namespace DSAnimStudio
 
                     GFX.Device.SetRenderTarget(SceneRenderTarget);
 
-                    GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
+                    GFX.Device.Clear(Color.DimGray);
 
                     GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
 

@@ -20,8 +20,9 @@ namespace DSAnimStudio.TaeEditor
 
         TaePlaybackCursor PlaybackCursor => MainScreen.Graph.PlaybackCursor;
 
-        int ButtonCageThickness = 2;
-        int ButtonSize = 20;
+        int ButtonCageThickness = 4;
+        int ButtonSeparatorThickness = 2;
+        int ButtonSize = 24;
 
         public TaeTransport(TaeEditorScreen mainScreen)
         {
@@ -41,21 +42,6 @@ namespace DSAnimStudio.TaeEditor
                     MainScreen.Graph.ScrollToPlaybackCursor(1);
                 },
                 GetHotkey = b => MainScreen.Input.KeyHeld(Keys.Home),
-            });
-
-            Buttons.Add(new TransportButton()
-            {
-                GetDebugText = () => "<|",
-                GetIsEnabled = () => true,
-                OnClick = () => MainScreen.TransportPreviousFrame(),
-                GetHotkey = b =>
-                {
-                    if (MainScreen.Input.KeyUp(Keys.Left))
-                    {
-                        b.prevState = b.state = TransportButton.TransportButtonState.Normal;
-                    }
-                    return MainScreen.Input.KeyHeld(Keys.Left);
-                },
             });
 
             Buttons.Add(new TransportButton()
@@ -82,20 +68,6 @@ namespace DSAnimStudio.TaeEditor
                 GetHotkey = b => !MainScreen.ShiftHeld && MainScreen.Input.KeyHeld(Keys.Space),
             });
 
-            Buttons.Add(new TransportButton()
-            {
-                GetDebugText = () => "|>",
-                GetIsEnabled = () => true,
-                OnClick = () => MainScreen.TransportNextFrame(),
-                GetHotkey = b =>
-                {
-                    if (MainScreen.Input.KeyUp(Keys.Right))
-                    {
-                        b.prevState = b.state = TransportButton.TransportButtonState.Normal;
-                    }
-                    return MainScreen.Input.KeyHeld(Keys.Right);
-                },
-            });
 
             Buttons.Add(new TransportButton()
             {
@@ -113,9 +85,39 @@ namespace DSAnimStudio.TaeEditor
                 GetHotkey = b => MainScreen.Input.KeyHeld(Keys.End),
             });
 
-            
 
-            
+            Buttons.Add(new TransportButtonSeparator());
+
+            Buttons.Add(new TransportButton()
+            {
+                GetDebugText = () => "<|",
+                GetIsEnabled = () => true,
+                OnClick = () => MainScreen.TransportPreviousFrame(),
+                GetHotkey = b =>
+                {
+                    if (MainScreen.Input.KeyUp(Keys.Left))
+                    {
+                        b.prevState = b.state = TransportButton.TransportButtonState.Normal;
+                    }
+                    return MainScreen.Input.KeyHeld(Keys.Left);
+                },
+            });
+
+            Buttons.Add(new TransportButton()
+            {
+                GetDebugText = () => "|>",
+                GetIsEnabled = () => true,
+                OnClick = () => MainScreen.TransportNextFrame(),
+                GetHotkey = b =>
+                {
+                    if (MainScreen.Input.KeyUp(Keys.Right))
+                    {
+                        b.prevState = b.state = TransportButton.TransportButtonState.Normal;
+                    }
+                    return MainScreen.Input.KeyHeld(Keys.Right);
+                },
+            });
+
         }
 
         public void LoadContent(ContentManager c)
@@ -128,19 +130,60 @@ namespace DSAnimStudio.TaeEditor
             if (MainScreen.Graph == null)
                 return;
 
-            // Count + 1 because for example 4 buttons would have these cages: |B|B|B|B|
-            // Notice 5 |'s but only 4 B's
-            int buttonCageWidth = ((Buttons.Count + 1) * ButtonCageThickness) + (ButtonSize * Buttons.Count);
+            //// Count + 1 because for example 4 buttons would have these cages: |B|B|B|B|
+            //// Notice 5 |'s but only 4 B's
+            //int buttonCageWidth = ((Buttons.Count + 1) * ButtonCageThickness) + (ButtonSize * Buttons.Count);
+
+            int buttonCageWidth = ButtonCageThickness;
+
+            foreach (var thing in Buttons)
+            {
+                if (thing.IsSeparator)
+                {
+                    buttonCageWidth += ButtonSeparatorThickness;
+                    buttonCageWidth += ButtonCageThickness;
+                }
+                else
+                {
+                    buttonCageWidth += ButtonSize;
+                    buttonCageWidth += ButtonCageThickness;
+                }
+            }
+
             int buttonCageHeight = ButtonSize + (ButtonCageThickness * 2);
-            int buttonCageStartX = (int)Math.Round((Rect.Width / 2.0) - (buttonCageWidth / 2.0));
+            int buttonCageStartX = Rect.Width - buttonCageWidth - 8;
             int buttonCageStartY = (int)Math.Round((Rect.Height / 2.0) - (buttonCageHeight / 2.0));
+
+            int horizontalOffset = buttonCageStartX;
 
             for (int i = 0; i < Buttons.Count; i++)
             {
-                Buttons[i].Rect = new Rectangle(buttonCageStartX + ButtonCageThickness + ((ButtonCageThickness + ButtonSize) * i),
-                    buttonCageStartY + ButtonCageThickness, 
-                    ButtonSize, 
+                if (Buttons[i].IsSeparator)
+                {
+                    horizontalOffset += ButtonCageThickness;
+
+                    Buttons[i].Rect = new Rectangle(horizontalOffset,
+                    buttonCageStartY + ButtonCageThickness,
+                    ButtonSeparatorThickness,
                     ButtonSize);
+
+                    horizontalOffset += ButtonSeparatorThickness;
+                }
+                else
+                {
+                    horizontalOffset += ButtonCageThickness;
+
+                    Buttons[i].Rect = new Rectangle(horizontalOffset,
+                    buttonCageStartY + ButtonCageThickness,
+                    ButtonSize,
+                    ButtonSize);
+
+                    horizontalOffset += ButtonSize;
+
+                    
+                }
+
+                
 
                 Buttons[i].Update(MainScreen.Input, this);
             }
@@ -156,8 +199,11 @@ namespace DSAnimStudio.TaeEditor
             {
                 sb.Begin();
                 {
+                    var str = MainScreen.Graph.PlaybackCursor.GetFrameCounterText(MainScreen.Config.LockFramerateToOriginalAnimFramerate);
                     //sb.Draw(boxTex, new Rectangle(0, 0, Rect.Width, Rect.Height), Color.DarkGray);
-                    sb.DrawString(smallFont, MainScreen.Graph.PlaybackCursor.GetFrameCounterText(MainScreen.Config.LockFramerateToOriginalAnimFramerate), new Vector2(0, 0), Color.Yellow);
+                    var strSize = smallFont.MeasureString(str);
+
+                    sb.DrawString(smallFont, str, new Vector2(8, (float)Math.Round((Rect.Height / 2.0) - (strSize.Y / 2))), Color.Yellow);
 
                     for (int i = 0; i < Buttons.Count; i++)
                     {
@@ -169,6 +215,11 @@ namespace DSAnimStudio.TaeEditor
             gd.Viewport = oldViewport;
         }
 
+        public class TransportButtonSeparator : TransportButton
+        {
+            public override bool IsSeparator => true;
+        }
+
         public class TransportButton
         {
             public enum TransportButtonState
@@ -177,6 +228,8 @@ namespace DSAnimStudio.TaeEditor
                 Hover,
                 HoldingClick
             }
+
+            public virtual bool IsSeparator => false;
 
             public Rectangle Rect;
 
@@ -197,6 +250,9 @@ namespace DSAnimStudio.TaeEditor
 
             public void Update(TaeInputHandler input, TaeTransport parentTransport)
             {
+                if (IsSeparator)
+                    return;
+
                 if (!(GetIsEnabled?.Invoke() ?? true) || Rect.IsEmpty)
                 {
                     state = prevState = TransportButtonState.Normal;
@@ -256,6 +312,13 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (Rect.IsEmpty)
                     return;
+
+                if (IsSeparator)
+                {
+                    sb.Draw(boxTex, Rect, Color.DarkGray * 0.35f);
+
+                    return;
+                }
 
                 Color bgColor = Color.DarkGray;
                 Color fgColor = Color.White;

@@ -111,7 +111,7 @@ namespace DSAnimStudio
                         (RightWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (RightWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * absoluteWeaponTransform
-                        * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
+                        * ((MODEL.AnimContainer?.EnableRootMotion == true) ? MODEL.AnimContainer.CurrentAnimRootMotionMatrix : Matrix.Identity));
 
                 RightWeaponModel.AfterAnimUpdate();
             }
@@ -149,7 +149,7 @@ namespace DSAnimStudio
                         (LeftWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (LeftWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * absoluteWeaponTransform
-                        * MODEL.AnimContainer.CurrentAnimRootMotionMatrix);
+                        * ((MODEL.AnimContainer?.EnableRootMotion == true) ? MODEL.AnimContainer.CurrentAnimRootMotionMatrix : Matrix.Identity));
 
                 LeftWeaponModel.AfterAnimUpdate();
             }
