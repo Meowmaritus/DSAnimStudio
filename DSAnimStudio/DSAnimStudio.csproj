@@ -563,7 +563,7 @@
       <Project>{75032c68-5003-434a-919a-ec7e298c0300}</Project>
       <Name>SFAnimExtensions</Name>
     </ProjectReference>
-    <ProjectReference Include="..\SoulsFormats\SoulsFormats\SoulsFormats.csproj">
+    <ProjectReference Include="..\SFAnimExtensions\SoulsFormats\SoulsFormats\SoulsFormats.csproj">
       <Project>{22c664bd-877b-44df-8ecf-2808522469a8}</Project>
       <Name>SoulsFormats</Name>
     </ProjectReference>
