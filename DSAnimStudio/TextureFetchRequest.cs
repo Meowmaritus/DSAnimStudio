@@ -333,6 +333,8 @@ namespace DSAnimStudio
             
         }
 
+        private const uint FourCCDX10 = 0x30315844;
+
         public Texture FetchNew()
         {
             if (CachedTexture != null)
@@ -346,7 +348,7 @@ namespace DSAnimStudio
             int width = texInfo.Texture?.Header?.Width ?? 0;
             int dxgiFormat = texInfo.Texture?.Header?.DXGIFormat ?? 0;
             int mipmapCount = texInfo.Texture?.Mipmaps ?? 0;
-            uint fourCC = DDS.PIXELFORMAT.FourCCDX10;
+            uint fourCC = FourCCDX10;
             int arraySize = texInfo.Texture?.Header?.TextureCount ?? 1;
 
             DDS ppDdsHeader_ForDebug = null;
@@ -367,7 +369,7 @@ namespace DSAnimStudio
                 height = header.dwHeight;
                 width = header.dwWidth;
                 mipmapCount = header.dwMipMapCount;
-                fourCC = header.ddspf.dwFourCC;
+                fourCC = BitConverter.ToUInt32(Encoding.ASCII.GetBytes(header.ddspf.dwFourCC), 0);
 
                 if ((header.dwCaps2 & FullCubeDDSCaps2) == FullCubeDDSCaps2)
                 {
@@ -386,6 +388,7 @@ namespace DSAnimStudio
             }
             else
             {
+
                 if (texInfo.Platform == TPF.TPFPlatform.PS4)
                 {
                     switch (texInfo.Texture.Format)
@@ -396,7 +399,7 @@ namespace DSAnimStudio
                         case 103:
                         case 108:
                         case 109:
-                            fourCC = DDS.PIXELFORMAT.FourCCDX10; //DX10
+                            fourCC = FourCCDX10; //DX10
                             break;
                         case 5:
                         case 100:
@@ -404,7 +407,7 @@ namespace DSAnimStudio
                         case 106:
                         case 107:
                         case 110:
-                            fourCC = DDS.PIXELFORMAT.FourCCDX10; //DX10
+                            fourCC = FourCCDX10; //DX10
                             break;
                         case 22:
                             fourCC = 0x71;
@@ -442,7 +445,7 @@ namespace DSAnimStudio
             }
 
             SurfaceFormat surfaceFormat;
-            if (fourCC == DDS.PIXELFORMAT.FourCCDX10)
+            if (fourCC == FourCCDX10)
             {
                 // See if there are DX9 textures
                 int fmt = dxgiFormat;
