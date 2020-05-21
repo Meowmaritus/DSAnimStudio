@@ -93,7 +93,6 @@
     </Compile>
     <Compile Include="NewDummyPolyManager.cs" />
     <Compile Include="NewHavokAnimation_InterleavedUncompressed.cs" />
-    <Compile Include="NewRootMotionHandler.cs" />
     <Compile Include="OSD.cs" />
     <Compile Include="PARAMHack\PARAM.cs" />
     <Compile Include="PARAMHack\PARAM.Row.cs" />

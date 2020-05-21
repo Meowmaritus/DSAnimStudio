@@ -2190,7 +2190,7 @@ namespace DSAnimStudio.TaeEditor
                 DrawActualBox();
 
                 string shortTextNoPrefix = /* $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" + */
-                       ((isHover || boxHighlightedAndVisiActive) ? box.EventText.Text : box.MyEvent.TypeName);
+                       ((isHover || boxHighlightedAndVisiActive) ? box.EventText.Text : (box.MyEvent.TypeName ?? $"[{box.MyEvent.Type}]"));
 
                 if (eventStartsBeforeScreen)
                 {

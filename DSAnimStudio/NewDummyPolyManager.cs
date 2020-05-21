@@ -321,7 +321,10 @@ namespace DSAnimStudio
                         for (int i = 0; i < Math.Min(HitPrims[hit].Count, DummyPolyByRefID[dmyPoly1].Count); i++)
                         {
                             Matrix m = DummyPolyByRefID[dmyPoly1][i].CurrentMatrix;
-                            HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius) * m);
+                            Quaternion q = Quaternion.CreateFromRotationMatrix(m);
+                            Matrix rm = Matrix.CreateFromQuaternion(q);
+                            Matrix tm = Matrix.CreateTranslation(Vector3.Transform(Vector3.Zero, m));
+                            HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius) * rm * tm);
                         }
                     }
                     else

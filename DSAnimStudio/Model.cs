@@ -40,7 +40,11 @@ namespace DSAnimStudio
 
         public Transform StartTransform = Transform.Default;
 
-        public Transform CurrentRootMotionTransform = Transform.Default;
+        public Matrix CurrentRootMotionTranslation = Matrix.Identity;
+
+        public Matrix CurrentRootMotionRotation => Matrix.CreateRotationY(CurrentDirection);
+
+        public float CurrentDirection;
 
         public Transform CurrentTransform = Transform.Default;
 
@@ -279,19 +283,39 @@ namespace DSAnimStudio
             LoadFLVER2(flver, useSecondUV);
         }
 
-        public void AfterAnimUpdate()
+        public void AfterAnimUpdate(float timeDelta, bool ignorePosWrap = false)
         {
-            if (AnimContainer?.EnableRootMotion == true)
-                CurrentRootMotionTransform = new Transform(AnimContainer?.CurrentAnimRootMotionMatrix ?? Matrix.Identity);
-            else
-                CurrentRootMotionTransform = new Transform(Matrix.Identity);
+            if (AnimContainer?.EnableRootMotion == false)
+            {
+                CurrentDirection = 0;
+                CurrentRootMotionTranslation = Matrix.Identity;
+            }
 
-            CurrentTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionTransform.WorldMatrix);
+            var newTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionRotation * CurrentRootMotionTranslation);
+
+
+
+            // TEST: modulo world pos
+            Vector3 locationWithNewTransform = Vector3.Transform(Vector3.Zero, newTransform.WorldMatrix);
+
+            if (!ignorePosWrap && AnimContainer?.EnableRootMotionWrap == true && (locationWithNewTransform.LengthSquared() > 100))
+            {
+                Vector3 locationWithNewTransform_Mod = new Vector3(locationWithNewTransform.X % 1, locationWithNewTransform.Y, locationWithNewTransform.Z % 1);
+                Vector3 translationDeltaToGetToMod = locationWithNewTransform_Mod - locationWithNewTransform;
+                CurrentRootMotionTranslation *= Matrix.CreateTranslation(translationDeltaToGetToMod);
+            }
+
+            
+            //newTransform = new Transform(newTransform.WorldMatrix * );
+            ////////
+
+
+            CurrentTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionRotation * CurrentRootMotionTranslation);
 
             if (ChrAsm != null)
             {
-                ChrAsm.UpdateWeaponTransforms();
-                ChrAsm.UpdateWeaponAnimation();
+                ChrAsm.UpdateWeaponTransforms(timeDelta);
+                ChrAsm.UpdateWeaponAnimation(timeDelta);
             }
 
             DummyPolyMan.UpdateAllHitPrims();
@@ -314,8 +338,9 @@ namespace DSAnimStudio
         {
             AnimContainer.Update();
 
-            if (AnimContainer.IsPlaying)
-                AfterAnimUpdate();
+            //V2.0
+            //if (AnimContainer.IsPlaying)
+            //    AfterAnimUpdate();
         }
 
         public void TryToLoadTextures()

@@ -15,6 +15,14 @@ namespace DSAnimStudio
     {
         public bool DisableAllInput = false;
 
+        public float RequestDirectionChange = 0;
+
+        public void RotateFromRootMotion(float rotDeltaY)
+        {
+            ///CameraTransform.CameraViewMatrixModification *= Matrix.CreateRotationY(rotDeltaY);
+            RequestDirectionChange += rotDeltaY;
+        }
+
         public Transform CameraTransform = Transform.Default;
         public Transform CameraOrigin = Transform.Default;
         public Transform CameraPositionDefault = Transform.Default;
@@ -153,7 +161,7 @@ namespace DSAnimStudio
             //if (TaeInterop.CameraFollowsRootMotion)
             //    m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
-            shader.ApplyWorldView(m * WorldMatrixMOD, CameraTransform.RotationMatrixNeg * Matrix.CreateScale(-1), MatrixProjection);
+            shader.ApplyWorldView(m, CameraTransform.RotationMatrixNeg * Matrix.CreateScale(-1), MatrixProjection);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Matrix modelMatrix)
@@ -421,6 +429,22 @@ namespace DSAnimStudio
         {
             if (game == null)
                 return;
+
+            var requestCameraDirChange = RequestDirectionChange;
+            if (requestCameraDirChange != 0)
+            {
+                RotateCameraOrbit(-requestCameraDirChange, 0, 1);
+
+                CameraTransform.EulerRotation.X = MathHelper.Clamp(CameraTransform.EulerRotation.X, -MathHelper.PiOver2 * SHITTY_CAM_PITCH_LIMIT_FATCAT_CLAMP, MathHelper.PiOver2 * SHITTY_CAM_PITCH_LIMIT_FATCAT_CLAMP);
+
+                OrbitCamDistance = Math.Max(OrbitCamDistance, SHITTY_CAM_ZOOM_MIN_DIST);
+
+                var distanceVectorAfterMove = -Vector3.Transform(Vector3.Forward, CameraTransform.RotationMatrixXYZ * Matrix.CreateRotationY(MathHelper.Pi)) * new Vector3(-1, 1, 1);
+                CameraTransform.Position = (OrbitCamCenter + (distanceVectorAfterMove * (OrbitCamDistance * OrbitCamDistance)));
+
+                RequestDirectionChange -= requestCameraDirChange;
+            }
+
             //if (DisableAllInput)
             //{
             //    oldWheel = GlobalInputState.Mouse.ScrollWheelValue;
@@ -825,6 +849,13 @@ namespace DSAnimStudio
             }
             else
             {
+                //var requestDirChange = RequestDirectionChange;
+                //if (requestDirChange != 0)
+                //{
+                //    CameraTransform.EulerRotation.Y += requestDirChange;
+                //    RequestDirectionChange -= requestDirChange;
+                //}
+
                 if (IsOrbitCam)
                 {
                     RotateCameraOrbit(0, 0, MathHelper.PiOver2);

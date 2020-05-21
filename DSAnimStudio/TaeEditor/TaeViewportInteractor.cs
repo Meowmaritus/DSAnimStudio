@@ -51,7 +51,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        Model CurrentModel => Scene.Models.Count > 0 ? Scene.Models[0] : null;
+        public Model CurrentModel => Scene.Models.Count > 0 ? Scene.Models[0] : null;
 
         private void SetEntityType(TaeEntityType entityType)
         {
@@ -102,7 +102,8 @@ namespace DSAnimStudio.TaeEditor
             Graph.PlaybackCursor.EventBoxExit += PlaybackCursor_EventBoxExit;
             Graph.PlaybackCursor.PlaybackLooped += PlaybackCursor_PlaybackLooped;
 
-            NewAnimationContainer.AutoPlayAnimContainersUponLoading = false;
+            //V2.0
+            //NewAnimationContainer.AutoPlayAnimContainersUponLoading = false;
 
             Scene.ClearScene();
             TexturePool.Flush();
@@ -273,7 +274,7 @@ namespace DSAnimStudio.TaeEditor
                     //throw new NotImplementedException("Implement NPC param change you lazy fuck :tremblecat:");
                 }
 
-                CurrentModel.AfterAnimUpdate();
+                CurrentModel.AfterAnimUpdate(timeDelta: 0);
 
                 GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
                 GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
@@ -362,7 +363,20 @@ namespace DSAnimStudio.TaeEditor
                 }
             }));
 
-            CurrentModel.AfterAnimUpdate();
+            //V2.0: Scrub weapon anims to the current frame.
+
+            if (CurrentModel.ChrAsm.RightWeaponModel != null)
+            {
+                CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            }
+
+            if (CurrentModel.ChrAsm.LeftWeaponModel != null)
+            {
+                CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            }
+
+            //V2.0: Update stuff probably
+            CurrentModel.AfterAnimUpdate(0);
         }
 
         //private void EquipForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
@@ -429,13 +443,16 @@ namespace DSAnimStudio.TaeEditor
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
-            CurrentModel.AnimContainer.IsPlaying = false;
-            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.CurrentTime, 
-                false, false, Graph.PlaybackCursor.CurrentLoopCount);
+            var timeDelta = (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
-            CurrentModel.AfterAnimUpdate();
+            //V2.0
+            //CurrentModel.AnimContainer.IsPlaying = false;
+            CurrentModel.AnimContainer.ScrubRelative(timeDelta);
 
-            CurrentModel.ChrAsm?.UpdateWeaponTransforms();
+            CurrentModel.AfterAnimUpdate(timeDelta);
+
+            //V2.0
+            //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTime);
@@ -477,18 +494,21 @@ namespace DSAnimStudio.TaeEditor
             EventSim.OnSimulationEnd(Graph.EventBoxesToSimulate);
         }
 
-        public void OnScrubFrameChange()
+        public void OnScrubFrameChange(float? forceCustomTimeDelta = null)
         {
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
-            CurrentModel.AnimContainer.IsPlaying = false;
-            CurrentModel.AnimContainer.ScrubCurrentAnimation((float)Graph.PlaybackCursor.GUICurrentTime, 
-                false, false, Graph.PlaybackCursor.CurrentLoopCount);
+            var timeDelta = forceCustomTimeDelta ?? (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
-            CurrentModel.AfterAnimUpdate();
+            //V2.0
+            //CurrentModel.AnimContainer.IsPlaying = false;
+            CurrentModel.AnimContainer.ScrubRelative(timeDelta);
 
-            CurrentModel.ChrAsm?.UpdateWeaponTransforms();
+            CurrentModel.AfterAnimUpdate(timeDelta);
+
+            //V2.0
+            //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTime);
@@ -618,22 +638,63 @@ namespace DSAnimStudio.TaeEditor
         //    }
         //}
 
-        public void ResetRootMotion(float frame)
+        public void ResetRootMotion()
         {
             if (CurrentModel != null)
             {
-                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(frame);
+                CurrentModel.AnimContainer.ResetRootMotion();
             }
+        }
+
+        public void RemoveTransition()
+        {
+            if (CurrentModel?.AnimContainer != null && CurrentModel.AnimContainer.AnimationLayers.Count == 2)
+            {
+                var curAnim = CurrentModel.AnimContainer.AnimationLayers[1];
+                CurrentModel.AnimContainer.AnimationLayers.Clear();
+                curAnim.Weight = 1;
+                CurrentModel.AnimContainer.AnimationLayers.Add(curAnim);
+            }
+        }
+
+        public float GetAnimWeight(string animName)
+        {
+            if ((CurrentModel?.AnimContainer?.AnimationLayers.Count ?? -1) < 2)
+            {
+                return -1;
+            }
+            var check = CurrentModel?.AnimContainer?.GetAnimLayerIndexByName(animName) ?? -1;
+            if (check >= 0)
+            {
+                return CurrentModel.AnimContainer.AnimationLayers[check].Weight;
+            }
+            else return -1;
+        }
+
+        public string GetCurrentTransition()
+        {
+            if (CurrentModel?.AnimContainer != null && CurrentModel.AnimContainer.AnimationLayers.Count == 2)
+            {
+                return CurrentModel.AnimContainer.AnimationLayers[0].Name;
+            }
+
+            return null;
         }
 
         public void RootMotionSendHome()
         {
             if (CurrentModel != null)
             {
-                CurrentModel.AnimContainer.CurrentAnimation?.RootMotion?.Reset(0);
-                CurrentModel.AnimContainer.CurrentRootMotionVector = Vector4.Zero;
+                //CurrentModel.AnimContainer.ResetRootMotion();
+                CurrentModel.CurrentRootMotionTranslation = Matrix.Identity;
                 //CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
             }
+        }
+
+        public string GetFinalAnimFileName(TAE tae, TAE.Animation anim)
+        {
+            var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
+            return mainChrSolver.GetHKXName(tae, anim);
         }
 
         public void OnNewAnimSelected()
@@ -643,7 +704,8 @@ namespace DSAnimStudio.TaeEditor
                 var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
                 var mainChrAnimName = mainChrSolver.GetHKXName(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
 
-                CurrentModel.AnimContainer.StoreRootMotionRotation();
+                //V2.0: See if this needs something similar in the new system.
+                //CurrentModel.AnimContainer.StoreRootMotionRotation();
 
                 CurrentModel.AnimContainer.CurrentAnimationName = mainChrAnimName;
 
@@ -666,19 +728,24 @@ namespace DSAnimStudio.TaeEditor
 
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)
                 {
-                    CurrentModel.AnimContainer.ScrubCurrentAnimation(0, forceUpdate: true, 
-                        stopPlaying: false, 0, forceAbsoluteRootMotion: true);
+                    //V2.0: Check
+                    CurrentModel.AnimContainer.CurrentAnimation.Reset();
+                    CurrentModel.AnimContainer.ScrubRelative(0);
                 }
                 else
                 {
                     CurrentModel.Skeleton.RevertToReferencePose();
                 }
-
-                CurrentModel.AfterAnimUpdate();
             }
             
         }
 
+        public bool IsAnimLoaded(string name)
+        {
+            return CurrentModel?.AnimContainer?.IsAnimLoaded(name) ?? false;
+        }
+
+        float modelDirectionLastFrame = 0;
         public void GeneralUpdate()
         {
             DBG.DbgPrimXRay = Graph.MainScreen.Config.DbgPrimXRay;
@@ -688,20 +755,47 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {
-                    GFX.World.WorldMatrixMOD = Matrix.CreateTranslation(
+                    //GFX.World.WorldMatrixMOD = //Matrix.CreateFromQuaternion(Quaternion.CreateFromRotationMatrix(CurrentModel.CurrentRootMotionTransform.WorldMatrix)) * 
+                    //    Matrix.CreateTranslation(
+                    //    -Vector3.Transform(Vector3.Zero,
+                    //    CurrentModel.CurrentRootMotionTranslation));
+
+                    GFX.World.WorldMatrixMOD = //Matrix.CreateRotationY(CurrentModel.CurrentDirection) *
+                        Matrix.CreateTranslation(
                         -Vector3.Transform(Vector3.Zero,
-                        CurrentModel.CurrentRootMotionTransform.WorldMatrix));
+                        CurrentModel.CurrentRootMotionTranslation));
                 }
                 else
                 {
                     GFX.World.WorldMatrixMOD = Matrix.Identity;
                 }
 
+                if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
+                {
+                    float turnAmount = CurrentModel.CurrentDirection - modelDirectionLastFrame;
+
+                    //GFX.World.CameraTransform.EulerRotationExtraY += turnAmount;
+
+                    GFX.World.RotateFromRootMotion(-turnAmount);
+
+                    modelDirectionLastFrame = CurrentModel.CurrentDirection;
+                }
+                //else
+                //{
+                //    if (GFX.World.CameraTransform.EulerRotationExtraY != 0)
+                //    {
+                //        GFX.World.RotateCameraOrbit(GFX.World.CameraTransform.EulerRotationExtraY, 0, 1);
+                //        GFX.World.CameraTransform.EulerRotationExtraY = 0;
+                //    }
+                //}
+
                 if (CurrentModel.AnimContainer != null)
                 {
                     CurrentModel.AnimContainer.EnableRootMotion = Graph.MainScreen.Config.EnableAnimRootMotion;
-                    if (CurrentModel.AnimContainer.CurrentAnimation != null && CurrentModel.AnimContainer.CurrentAnimation.RootMotion != null)
-                        CurrentModel.AnimContainer.CurrentAnimation.RootMotion.Accumulate = Graph.MainScreen.Config.AccumulateRootMotion;
+                    CurrentModel.AnimContainer.EnableRootMotionWrap = Graph.MainScreen.Config.WrapRootMotion;
+                    //V2.0
+                    //if (CurrentModel.AnimContainer.CurrentAnimation != null && CurrentModel.AnimContainer.CurrentAnimation.data.RootMotion != null)
+                    //    CurrentModel.AnimContainer.CurrentAnimation.RootMotion.Accumulate = Graph.MainScreen.Config.AccumulateRootMotion;
                 }
             }
             else
@@ -735,7 +829,23 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else if (CurrentModel.AnimContainer.CurrentAnimationName != null)
                 {
-                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Doesn't Exist)", Color.Red);
+                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Invalid)", Color.Red);
+                }
+
+                if (CurrentModel.AnimContainer.AnimationLayers.Count > 0)
+                {
+                    //printer.AppendLine($"Active Anims:");
+
+                    //for (int i = 0; i < CurrentModel.AnimContainer.AnimationLayers.Count; i++)
+                    //{
+                    //    var layer = CurrentModel.AnimContainer.AnimationLayers[i];
+                    //    printer.AppendLine($"[{i:D2}] [{layer.Weight:0.000}x] {layer.Name} [{layer.CurrentTime:0.000}/{layer.Duration:0.000}]");
+                    //}
+                    var tr = GetCurrentTransition();
+                    if (tr != null)
+                    {
+                        printer.AppendLine($"<Showing Transition from {tr}>");
+                    }
                 }
             }
 

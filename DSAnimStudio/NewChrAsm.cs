@@ -76,7 +76,7 @@ namespace DSAnimStudio
             MODEL = mdl;
         }
 
-        public void UpdateWeaponTransforms()
+        public void UpdateWeaponTransforms(float timeDelta)
         {
             if (RightWeaponModel != null)
             {
@@ -111,9 +111,11 @@ namespace DSAnimStudio
                         (RightWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (RightWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * absoluteWeaponTransform
-                        * ((MODEL.AnimContainer?.EnableRootMotion == true) ? MODEL.AnimContainer.CurrentAnimRootMotionMatrix : Matrix.Identity));
+                        * ((MODEL.AnimContainer?.EnableRootMotion == true) ? (MODEL.CurrentRootMotionRotation * MODEL.CurrentRootMotionTranslation) : Matrix.Identity));
 
-                RightWeaponModel.AfterAnimUpdate();
+                RightWeaponModel.CurrentRootMotionTranslation = Matrix.Identity;
+
+                RightWeaponModel.AfterAnimUpdate(timeDelta, ignorePosWrap: true);
             }
 
             if (LeftWeaponModel != null)
@@ -149,24 +151,28 @@ namespace DSAnimStudio
                         (LeftWeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                         * (LeftWeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                         * absoluteWeaponTransform
-                        * ((MODEL.AnimContainer?.EnableRootMotion == true) ? MODEL.AnimContainer.CurrentAnimRootMotionMatrix : Matrix.Identity));
+                        * ((MODEL.AnimContainer?.EnableRootMotion == true) ? (MODEL.CurrentRootMotionRotation * MODEL.CurrentRootMotionTranslation) : Matrix.Identity));
 
-                LeftWeaponModel.AfterAnimUpdate();
+                LeftWeaponModel.CurrentRootMotionTranslation = Matrix.Identity;
+
+                LeftWeaponModel.AfterAnimUpdate(timeDelta, ignorePosWrap: true);
             }
         }
 
-        public void UpdateWeaponAnimation()
+        public void UpdateWeaponAnimation(float timeDelta)
         {
             if (RightWeaponModel != null && RightWeaponModel.AnimContainer != null)
             {
-                RightWeaponModel.AnimContainer.IsLoop = false;
-                RightWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime, false, false, 0);
+                //V2.0
+                //RightWeaponModel.AnimContainer.IsLoop = false;
+                RightWeaponModel.AnimContainer.ScrubRelative(timeDelta);
             }
 
             if (LeftWeaponModel != null && LeftWeaponModel.AnimContainer != null)
             {
-                LeftWeaponModel.AnimContainer.IsLoop = false;
-                LeftWeaponModel.AnimContainer.ScrubCurrentAnimation(MODEL.AnimContainer.CurrentAnimTime, false, false, 0);
+                //V2.0
+                //LeftWeaponModel.AnimContainer.IsLoop = false;
+                LeftWeaponModel.AnimContainer.ScrubRelative(timeDelta);
             }
         }
 
