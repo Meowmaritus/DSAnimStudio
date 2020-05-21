@@ -32,5 +32,11 @@ namespace DSAnimStudio
             : base(new HavokAnimationData_SplineCompressed(name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), skeleton, container)
         {
         }
+
+        public NewHavokAnimation_SplineCompressed(NewHavokAnimation_SplineCompressed toClone)
+            : base (toClone.data, toClone.Skeleton, toClone.ParentContainer)
+        {
+
+        }
     }
 }

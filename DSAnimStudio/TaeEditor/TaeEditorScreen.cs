@@ -1662,13 +1662,21 @@ namespace DSAnimStudio.TaeEditor
                 () => Config.EnableAnimRootMotion,
                 b => Config.EnableAnimRootMotion = b);
 
-            MenuBar.AddItem("Animation", "Camera Follows Root Motion",
+            MenuBar.AddItem("Animation", "Camera Follows Root Motion Translation",
                 () => Config.CameraFollowsRootMotion,
                 b => Config.CameraFollowsRootMotion = b);
 
-            MenuBar.AddItem("Animation", "Accumulate Root Motion",
-                () => Config.AccumulateRootMotion,
-                b => Config.AccumulateRootMotion = b);
+            MenuBar.AddItem("Animation", "Camera Follows Root Motion Rotation",
+                () => Config.CameraFollowsRootMotionRotation,
+                b => Config.CameraFollowsRootMotionRotation = b);
+
+            MenuBar.AddItem("Animation", "Prevent Root Motion From Reaching End Of Grid",
+                () => Config.WrapRootMotion,
+                b => Config.WrapRootMotion = b);
+
+            //MenuBar.AddItem("Animation", "Accumulate Root Motion",
+            //    () => Config.AccumulateRootMotion,
+            //    b => Config.AccumulateRootMotion = b);
 
             MenuBar["Animation"].DropDownOpening += (o, e) =>
             {
@@ -3128,10 +3136,10 @@ namespace DSAnimStudio.TaeEditor
                 //    Graph.ScrollToPlaybackCursor(1);
                 //}
 
-                if (Graph != null && Input.KeyDown(Keys.R) && Config.AccumulateRootMotion)
+                if (Graph != null && Input.KeyDown(Keys.R))
                 {
                     Graph.ViewportInteractor.RootMotionSendHome();
-                    Graph.ViewportInteractor.OnScrubFrameChange();
+                    //Graph.ViewportInteractor.OnScrubFrameChange();
                 }
 
                 //if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
@@ -3176,7 +3184,25 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                
+                if (Input.KeyDown(Keys.Enter) && !CtrlHeld && !AltHeld)
+                {
+                    if (SelectedTae != null)
+                    {
+                        if (SelectedTaeAnim != null)
+                        {
+                            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+                            if (Input.ShiftHeld)
+                            {
+                                Graph?.ViewportInteractor?.RemoveTransition();
+                            }
+                        }
+                    }
+                }
+
+                if (Input.KeyDown(Keys.Back))
+                {
+                    Graph?.ViewportInteractor?.RemoveTransition();
+                }
 
                 if (UndoButton.Update(Main.DELTA_UPDATE, (CtrlHeld && !ShiftHeld && !AltHeld) && (zHeld && !yHeld)))
                 {

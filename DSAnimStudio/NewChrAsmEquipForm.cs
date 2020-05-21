@@ -184,25 +184,25 @@ namespace DSAnimStudio
         private void CheckBoxRWeaponFlipBackwards_CheckedChanged(object sender, EventArgs e)
         {
             ChrAsm.RightWeaponFlipBackwards = checkBoxRWeaponFlipBackwards.Checked;
-            ChrAsm.MODEL.AfterAnimUpdate();
+            ChrAsm.MODEL.AfterAnimUpdate(0);
         }
 
         private void CheckBoxRWeaponFlipSideways_CheckedChanged(object sender, EventArgs e)
         {
             ChrAsm.RightWeaponFlipSideways = checkBoxRWeaponFlipSideways.Checked;
-            ChrAsm.MODEL.AfterAnimUpdate();
+            ChrAsm.MODEL.AfterAnimUpdate(0);
         }
 
         private void CheckBoxLWeaponFlipBackwards_CheckedChanged(object sender, EventArgs e)
         {
             ChrAsm.LeftWeaponFlipBackwards = checkBoxLWeaponFlipBackwards.Checked;
-            ChrAsm.MODEL.AfterAnimUpdate();
+            ChrAsm.MODEL.AfterAnimUpdate(0);
         }
 
         private void CheckBoxLWeaponFlipSideways_CheckedChanged(object sender, EventArgs e)
         {
             ChrAsm.LeftWeaponFlipSideways = checkBoxLWeaponFlipSideways.Checked;
-            ChrAsm.MODEL.AfterAnimUpdate();
+            ChrAsm.MODEL.AfterAnimUpdate(0);
         }
 
         private void SetEverythingDisabled(bool isDisabled)

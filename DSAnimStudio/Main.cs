@@ -38,7 +38,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 1.9-RC7-WIP";
+        public const string VERSION = "Version 2.0-Prerelease-01";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -65,7 +65,7 @@ namespace DSAnimStudio
 
         public static int JustStartedLayoutForceUpdateFrameAmountLeft { get; private set; } = 10;
 
-        public static bool DISABLE_DRAW_ERROR_HANDLE = false;
+        public static bool DISABLE_DRAW_ERROR_HANDLE = true;
 
         private static float MemoryUsageCheckTimer = 0;
         private static long MemoryUsage_Unmanaged = 0;

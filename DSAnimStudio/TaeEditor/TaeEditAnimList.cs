@@ -342,7 +342,11 @@ namespace DSAnimStudio.TaeEditor
 
                     foreach (var anim in taeSection.InfoMap)
                     {
-                        string animIDText = (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
+                        var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Value.Ref);
+                        string animIDText = (MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName) ? "■" : "□") + 
+                            (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
+
+                        float animBlendWeight = MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName);
 
                         string animNameText = (anim.Value.Ref.AnimFileName ?? "<null>");
 
@@ -371,6 +375,13 @@ namespace DSAnimStudio.TaeEditor
                                 Color.DodgerBlue);
                         }
 
+                        Color animNameColor = Color.White;
+
+                        if (animBlendWeight >= 0)
+                        {
+                            animNameColor = Color.Lerp(Color.Gray, Color.Yellow, MathHelper.Clamp(animBlendWeight, 0, 1));
+                        }
+
                         sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
                                 (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
@@ -378,7 +389,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.DrawString(font, animIDText, new Vector2(
                             GroupBraceMarginLeft + 4,
                             (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
-                             + Main.GlobalTaeEditorFontOffset, Color.White);
+                             + Main.GlobalTaeEditorFontOffset, animNameColor);
 
                         var animNameTextSize = font.MeasureString(animNameText);
 

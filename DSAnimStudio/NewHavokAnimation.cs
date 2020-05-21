@@ -17,7 +17,26 @@ namespace DSAnimStudio
 
         public readonly NewAnimationContainer ParentContainer;
 
+        public static NewHavokAnimation Clone(NewHavokAnimation anim)
+        {
+            if (anim is NewHavokAnimation_SplineCompressed spline)
+            {
+                return new NewHavokAnimation_SplineCompressed(spline);
+            }
+            else if (anim is NewHavokAnimation_InterleavedUncompressed interleaved)
+            {
+                return new NewHavokAnimation_InterleavedUncompressed(interleaved);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+            
+        }
+
         public HKX.AnimationBlendHint BlendHint => data.BlendHint;
+
+        public float Weight = 1.0f;
 
         public string Name => data.Name;
 
@@ -28,11 +47,9 @@ namespace DSAnimStudio
 
         public readonly NewAnimSkeleton Skeleton;
 
-        public NewRootMotionHandler RootMotion = null;
-
         private object _lock_boneMatrixStuff = new object();
 
-        private List<NewBlendableTransform> blendableTransforms = new List<NewBlendableTransform>();
+        public List<NewBlendableTransform> blendableTransforms = new List<NewBlendableTransform>();
         private List<int> bonesAlreadyCalculated = new List<int>();
 
         public bool IsAdditiveBlend => data.IsAdditiveBlend;
@@ -41,144 +58,147 @@ namespace DSAnimStudio
         public float FrameDuration => data.FrameDuration;
         public int FrameCount => data.FrameCount;
 
-        public bool HasEnded => CurrentTime >= Duration;
+        //public bool HasEnded => CurrentTime >= Duration;
 
-        public float CurrentTime;
+        public float CurrentTime { get; private set; } = 0;
+        private float oldTime = 0;
 
-        private int loopCountThisFrame = 0;
-        private int prevLoopCount = 0;
-        private bool forceAbsoluteRootMotionThisFrame = false;
+        public Matrix RotMatrixAtStartOfAnim { get; private set; } = Matrix.Identity;
+
+        public void Reset()
+        {
+            CurrentTime = 0;
+            oldTime = 0;
+            currentRootMotionVector = Vector4.Zero;
+            oldRootMotionVector = Vector4.Zero;
+            RootMotionDeltaOfLastScrub = Vector4.Zero;
+
+            RotMatrixAtStartOfAnim = ParentContainer.MODEL.CurrentRootMotionRotation;
+
+            StartingRootMotionsPerLoop.Clear();
+            StartingRootMotionsPerLoop.Add(0, RotMatrixAtStartOfAnim);
+        }
 
         public float CurrentFrame => CurrentTime / FrameDuration;
+
+        private Vector4 currentRootMotionVector = Vector4.Zero;
+        private Vector4 oldRootMotionVector = Vector4.Zero;
+
+        public Vector4 RootMotionDeltaOfLastScrub = Vector4.Zero;
 
         public NewBlendableTransform GetBlendableTransformOnCurrentFrame(int hkxBoneIndex)
         {
             return data.GetBlendableTransformOnFrame(hkxBoneIndex, CurrentFrame);
         }
 
-        public void ApplyMotionToSkeleton()
+        //public void ApplyWeightedMotionToSkeleton(bool finalizeHkxMatrices, float unusedWeight)
+        //{
+        //    ApplyCurrentFrameToSkeletonWeighted(finalizeHkxMatrices, unusedWeight);
+        //}
+
+        //public List<float> GetLoopTimesInWindow(double start, double end)
+        //{
+
+        //}
+
+        private Dictionary<int, Matrix> StartingRootMotionsPerLoop = new Dictionary<int, Matrix>();
+
+        public void ScrubRelative(float timeDelta, bool doNotCheckRootMotionRotation)
         {
-            WriteCurrentFrameToSkeleton();
-            UpdateCurrentRootMotion();
+            CurrentTime += timeDelta;
+
+            while (CurrentTime < 0)
+            {
+                CurrentTime += Duration;
+                oldTime += Duration;
+
+                if (data.RootMotion != null)
+                    oldRootMotionVector += data.RootMotion.Frames[data.RootMotion.Frames.Length - 1].ToXna();
+            }
+
+            OnScrubAccumulateRootMotion();
+
+            int oldLoopCount = (int)Math.Floor(oldTime / Duration);
+            int loopCount = (int)Math.Floor(CurrentTime / Duration);
+
+            if (loopCount != oldLoopCount)
+            {
+                if (StartingRootMotionsPerLoop.ContainsKey(loopCount))
+                {
+                    RotMatrixAtStartOfAnim = StartingRootMotionsPerLoop[loopCount];
+                }
+                else if (!doNotCheckRootMotionRotation)
+                {
+                    // Go to start of this loop
+                    var deltaTimeToGoToStartOfThisLoop = (loopCount * Duration) - CurrentTime;
+                    ParentContainer.ScrubRelative(deltaTimeToGoToStartOfThisLoop, doNotCheckRootMotionRotation: true);
+                    // Grab the rotation there at start of this loop
+                    var newRotMatrix = ParentContainer.MODEL.CurrentRootMotionRotation;
+                    // Go back to current time
+                    ParentContainer.ScrubRelative(-deltaTimeToGoToStartOfThisLoop, doNotCheckRootMotionRotation: true);
+                    // Set the grabbed rotation
+                    RotMatrixAtStartOfAnim = newRotMatrix;
+
+                    StartingRootMotionsPerLoop.Add(loopCount, RotMatrixAtStartOfAnim);
+                }
+
+                
+            }
+
+            oldTime = CurrentTime;
+            oldRootMotionVector = currentRootMotionVector;
         }
 
-        public void Scrub(float newTime, bool loop, bool forceUpdate, int loopCount, bool forceAbsoluteRootMotion)
+        //public void Play(float deltaTime, bool loop, bool forceUpdate, bool forceAbsoluteRootMotion)
+        //{
+        //    //loopCountDeltaThisFrame = 0;
+
+        //    if (!forceAbsoluteRootMotionThisFrame && forceAbsoluteRootMotion)
+        //        forceAbsoluteRootMotionThisFrame = forceAbsoluteRootMotion;
+
+        //    float oldTime = CurrentTime;
+
+        //    if (loop)
+        //    {
+        //        CurrentTime += deltaTime;
+
+        //        if (deltaTime > 0)
+        //        {
+        //            while (CurrentTime >= Duration)
+        //            {
+        //                CurrentTime -= Duration;
+        //                loopCountThisFrame++;
+        //            }
+        //        }
+        //        else if (deltaTime < 0)
+        //        {
+        //            while (CurrentTime < 0)
+        //            {
+        //                CurrentTime += Duration;
+        //                loopCountThisFrame--;
+        //            }
+        //        }
+        //    }
+        //    else
+        //    {
+        //        CurrentTime += deltaTime;
+        //        if (CurrentTime > (Duration - FrameDuration))
+        //            CurrentTime = (Duration - FrameDuration);
+        //    }
+
+        //    if (forceUpdate || (oldTime != CurrentTime))
+        //    {
+        //        ApplyMotionToSkeleton();
+        //    }
+        //}
+
+        private void OnScrubAccumulateRootMotion()
         {
-            if (!forceAbsoluteRootMotionThisFrame && forceAbsoluteRootMotion)
-                forceAbsoluteRootMotionThisFrame = forceAbsoluteRootMotion;
-
-            loopCountThisFrame = loopCount;
-
-            if (newTime != CurrentTime)
+            if (data.RootMotion != null)
             {
-                float deltaTime = newTime - CurrentTime;
-                CurrentTime = newTime;
-
-                if (loop)
-                {
-                    if (deltaTime > 0)
-                    {
-                        while (CurrentTime >= Duration)
-                        {
-                            CurrentTime -= Duration;
-                            //loopCountDeltaThisFrame++;
-                            //loopCountThisFrame++;
-                        }
-                    }
-                    else if (deltaTime < 0)
-                    {
-                        while (CurrentTime < 0)
-                        {
-                            CurrentTime += Duration;
-                            //loopCountDeltaThisFrame--;
-                            //loopCountThisFrame--;
-                        }
-                    }
-                }
-                //else
-                //{
-                //    if (CurrentTime > (Duration - FrameDuration))
-                //    {
-                //        CurrentTime = (Duration - FrameDuration);
-                //    }
-                //}  
-
-                ApplyMotionToSkeleton();
+                currentRootMotionVector = data.RootMotion.GetSampleOnFrame(CurrentFrame).ToXna();
+                RootMotionDeltaOfLastScrub = currentRootMotionVector - oldRootMotionVector;
             }
-            else if (forceUpdate)
-            {
-                ApplyMotionToSkeleton();
-            }
-        }
-
-        public void Play(float deltaTime, bool loop, bool forceUpdate, bool forceAbsoluteRootMotion)
-        {
-            //loopCountDeltaThisFrame = 0;
-
-            if (!forceAbsoluteRootMotionThisFrame && forceAbsoluteRootMotion)
-                forceAbsoluteRootMotionThisFrame = forceAbsoluteRootMotion;
-
-            float oldTime = CurrentTime;
-
-            if (loop)
-            {
-                CurrentTime += deltaTime;
-
-                if (deltaTime > 0)
-                {
-                    while (CurrentTime >= Duration)
-                    {
-                        CurrentTime -= Duration;
-                        loopCountThisFrame++;
-                    }
-                }
-                else if (deltaTime < 0)
-                {
-                    while (CurrentTime < 0)
-                    {
-                        CurrentTime += Duration;
-                        loopCountThisFrame--;
-                    }
-                }
-            }
-            else
-            {
-                CurrentTime += deltaTime;
-                if (CurrentTime > (Duration - FrameDuration))
-                    CurrentTime = (Duration - FrameDuration);
-            }
-
-            if (forceUpdate || (oldTime != CurrentTime))
-            {
-                ApplyMotionToSkeleton();
-            }
-        }
-
-        private void UpdateCurrentRootMotion()
-        {
-            int loopCountDelta = loopCountThisFrame - prevLoopCount;
-
-            if (RootMotion != null)
-            {
-                (Vector4 motion, float direction) rootMotionState = RootMotion.UpdateRootMotion(ParentContainer.CurrentRootMotionVector,
-                    ParentContainer.CurrentRootMotionDirection, CurrentFrame, /*FrameCount + ((this is NewHavokAnimation_InterleavedUncompressed) ? 1 : 0),*/ loopCountDelta,
-                    forceAbsoluteRootMotionThisFrame);
-
-                ParentContainer.CurrentRootMotionVector = rootMotionState.motion;
-                ParentContainer.CurrentRootMotionDirection = rootMotionState.direction;
-
-                forceAbsoluteRootMotionThisFrame = false;
-                prevLoopCount = loopCountThisFrame;
-            }
-            else
-            {
-                ParentContainer.CurrentRootMotionDirection = 0;
-                ParentContainer.CurrentRootMotionVector = Vector4.Zero;
-            }
-
-
-           
-
             
         }
 
@@ -189,11 +209,6 @@ namespace DSAnimStudio
             ParentContainer = container;
             Skeleton = skeleton;
 
-            if (data.RootMotion != null)
-            {
-                RootMotion = new NewRootMotionHandler(data.RootMotion);
-            }
-
             lock (_lock_boneMatrixStuff)
             {
                 blendableTransforms = new List<NewBlendableTransform>();
@@ -202,9 +217,11 @@ namespace DSAnimStudio
                     blendableTransforms.Add(NewBlendableTransform.Identity);
                 }
             }
+
+            RotMatrixAtStartOfAnim = ParentContainer.MODEL.CurrentRootMotionRotation;
         }
 
-        public void WriteCurrentFrameToSkeleton()
+        public void CalculateCurrentFrame()
         {
             bonesAlreadyCalculated.Clear();
 
@@ -217,7 +234,7 @@ namespace DSAnimStudio
                         blendableTransforms[i] = GetBlendableTransformOnCurrentFrame(i);
                         currentMatrix = blendableTransforms[i].GetMatrix().ToXna() * currentMatrix;
                         currentScale *= blendableTransforms[i].Scale.ToXna();
-                        Skeleton.SetHkxBoneMatrix(i, Matrix.CreateScale(currentScale) * currentMatrix);
+                        //Skeleton.ModHkxBoneMatrix(i, Matrix.CreateScale(currentScale) * currentMatrix, Weight, finalizeHkxMatrices, unusedWeight);
                         bonesAlreadyCalculated.Add(i);
                     }
 
@@ -228,7 +245,12 @@ namespace DSAnimStudio
                 foreach (var root in Skeleton.RootBoneIndices)
                     WalkTree(root, Matrix.Identity, Vector3.One);
             }
-
         }
+
+        //public void ApplyCurrentFrameToSkeletonWeighted()
+        //{
+            
+
+        //}
     }
 }

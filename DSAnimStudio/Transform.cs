@@ -18,6 +18,7 @@ namespace DSAnimStudio
             EulerRotation = rot;
             Scale = Vector3.One;
             OverrideMatrixWorld = Matrix.Identity;
+            CameraViewMatrixModification = Matrix.Identity;
         }
 
         public Transform(Vector3 pos, Vector3 rot, Vector3 scale)
@@ -26,6 +27,7 @@ namespace DSAnimStudio
             EulerRotation = rot;
             Scale = scale;
             OverrideMatrixWorld = Matrix.Identity;
+            CameraViewMatrixModification = Matrix.Identity;
         }
 
         public Transform(Matrix overrideMatrixWorld)
@@ -34,6 +36,7 @@ namespace DSAnimStudio
             EulerRotation = Vector3.Zero;
             Scale = Vector3.One;
             OverrideMatrixWorld = overrideMatrixWorld;
+            CameraViewMatrixModification = Matrix.Identity;
         }
 
         public Transform(float x, float y, float z, float rx, float ry, float rz)
@@ -70,10 +73,12 @@ namespace DSAnimStudio
         
         public Matrix WorldMatrix => OverrideMatrixWorld != Matrix.Identity ? OverrideMatrixWorld : ScaleMatrix * RotationMatrix * TranslationMatrix;
 
+        public Matrix CameraViewMatrixModification;
+
         public Matrix CameraViewMatrix => Matrix.CreateTranslation(-Position.X, -Position.Y, -Position.Z)
             * Matrix.CreateRotationY(EulerRotation.Y)
             * Matrix.CreateRotationZ(EulerRotation.Z)
-            * Matrix.CreateRotationX(EulerRotation.X);
+            * Matrix.CreateRotationX(EulerRotation.X) * CameraViewMatrixModification;
 
         private static Random rand = new Random();
         public static Transform RandomUnit(bool randomRot = false)

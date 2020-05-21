@@ -163,6 +163,17 @@ namespace DSAnimStudio
             }
         }
 
+        public void ClearHkxBoneMatrices()
+        {
+            foreach (var h in HkxSkeleton)
+            {
+                if (h.FlverBoneIndex >= 0)
+                {
+                    this[h.FlverBoneIndex] = Matrix.Identity;
+                }
+            }
+        }
+
         public void SetHkxBoneMatrix(int hkxBoneIndex, Matrix m)
         {
             int flverBoneIndex = HkxSkeleton[hkxBoneIndex].FlverBoneIndex;

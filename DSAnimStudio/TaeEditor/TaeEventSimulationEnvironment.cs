@@ -152,6 +152,41 @@ namespace DSAnimStudio.TaeEditor
             {
 
                 {
+                    "EventSimBasicBlending",
+                    new EventSimEntry("Simulate Basic Blending", true)
+                    {
+                        SimulationFrameChangeAction =  (entry, evBoxes, time) =>
+                        {
+                            if (MODEL.AnimContainer.AnimationLayers.Count > 1)
+                            {
+                                while (MODEL.AnimContainer.AnimationLayers.Count > 2)
+                                {
+                                    MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
+                                }
+
+                                var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
+                                if (blend != null)
+                                {
+                                    float blendRatio = MathHelper.Clamp(((time - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
+                                    MODEL.AnimContainer.AnimationLayers[0].Weight = 1 - blendRatio;
+                                    MODEL.AnimContainer.AnimationLayers[1].Weight = blendRatio;
+                                }
+                                else
+                                {
+                                    while (MODEL.AnimContainer.AnimationLayers.Count > 1)
+                                        MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
+                                }
+                            }
+                            else if (MODEL.AnimContainer.AnimationLayers.Count == 1)
+                            {
+                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
+                            }
+                            
+                        }
+                    }
+                },
+
+                {
                     "EventSimAttackBehaviors",
                     new EventSimEntry("Simulate Hitbox Events", isEnabledByDefault: true,
                         "InvokeAttackBehavior", "InvokePCBehavior", "InvokeCommonBehavior", "InvokeThrowDamageBehavior")

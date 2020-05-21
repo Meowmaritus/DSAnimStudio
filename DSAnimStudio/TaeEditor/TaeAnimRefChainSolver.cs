@@ -311,8 +311,16 @@ namespace DSAnimStudio.TaeEditor
 
         public string GetHKXName(TAE tae, TAE.Animation anim, bool ignoreMultiTAE = false)
         {
-            var id = GetReferencedAnimCompositeID(tae, anim, ignoreMultiTAE);
-            return HKXNameFromCompositeID(id);
+            try
+            {
+                var id = GetReferencedAnimCompositeID(tae, anim, ignoreMultiTAE);
+                return HKXNameFromCompositeID(id);
+            }
+            catch
+            {
+                return "?AnimName?";
+            }
+            
         }
 
         public string GetHKXNameIgnoreReferences(TAE tae, TAE.Animation anim)

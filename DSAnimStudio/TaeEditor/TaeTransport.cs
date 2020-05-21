@@ -36,10 +36,12 @@ namespace DSAnimStudio.TaeEditor
                 {
                     PlaybackCursor.IsPlaying = false;
                     PlaybackCursor.CurrentTime = 0;
+                    MainScreen.Graph?.ViewportInteractor?.CurrentModel?.AnimContainer?.ResetAll();
                     PlaybackCursor.StartTime = 0;
-                    MainScreen.Graph.ViewportInteractor.OnScrubFrameChange();
-                    MainScreen.Graph.ViewportInteractor.ResetRootMotion(0);
+                    MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
+                    MainScreen.Graph.ViewportInteractor.ResetRootMotion();
                     MainScreen.Graph.ScrollToPlaybackCursor(1);
+                    PlaybackCursor.IgnoreCurrentRelativeScrub();
                 },
                 GetHotkey = b => MainScreen.Input.KeyHeld(Keys.Home),
             });
@@ -53,8 +55,9 @@ namespace DSAnimStudio.TaeEditor
                     var start = PlaybackCursor.StartTime;
                     PlaybackCursor.IsPlaying = false;
                     PlaybackCursor.CurrentTime = PlaybackCursor.StartTime;
-                    MainScreen.Graph.ViewportInteractor.OnScrubFrameChange();
-                    MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.StartTime);
+                    //MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
+                    MainScreen.Graph.PlaybackCursor.UpdateScrubbing();
+                    //MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.StartTime);
                     MainScreen.Graph.ScrollToPlaybackCursor(1);
                 },
                 GetHotkey = b => MainScreen.ShiftHeld && MainScreen.Input.KeyHeld(Keys.Space),
@@ -78,8 +81,8 @@ namespace DSAnimStudio.TaeEditor
                     PlaybackCursor.IsPlaying = false;
                     PlaybackCursor.CurrentTime = PlaybackCursor.MaxTime;
                     PlaybackCursor.StartTime = PlaybackCursor.MaxTime;
-                    MainScreen.Graph.ViewportInteractor.OnScrubFrameChange();
-                    MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.MaxTime);
+                    MainScreen.Graph.PlaybackCursor.UpdateScrubbing();
+                    //MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.MaxTime);
                     MainScreen.Graph.ScrollToPlaybackCursor(1);
                 },
                 GetHotkey = b => MainScreen.Input.KeyHeld(Keys.End),

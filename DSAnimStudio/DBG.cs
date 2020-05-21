@@ -148,7 +148,7 @@ namespace DSAnimStudio
         public static void CreateDebugPrimitives()
         {
             // This is the green grid, which is just hardcoded lel
-            DbgPrim_Grid = new DbgPrimWireGrid(Color.Lime, new Color(32, 112, 39), 100, 1);
+            DbgPrim_Grid = new DbgPrimWireGrid(new Color(32, 112, 39), new Color(32, 112, 39), 100, 1);
             //DbgPrim_Grid.OverrideColor = new Color(32, 112, 39);
             //DbgPrim_Grid.OverrideColor = Color.Green;
             DbgPrim_Skybox = new DbgPrimSkybox();

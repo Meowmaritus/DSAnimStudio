@@ -28,5 +28,11 @@ namespace DSAnimStudio
             : base(new HavokAnimationData_InterleavedUncompressed(name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), skeleton, container)
         {
         }
+
+        public NewHavokAnimation_InterleavedUncompressed(NewHavokAnimation_InterleavedUncompressed toClone)
+            : base(toClone.data, toClone.Skeleton, toClone.ParentContainer)
+        {
+
+        }
     }
 }
