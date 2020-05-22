@@ -1,5 +1,5 @@
 ## About DS Anim Studio:
-* Edits the TimeAct Editor files of Dark Souls, Bloodborne, Dark Souls 3, and Sekiro (model viewer does not work for Sekiro due to massively different animation containers). These files control **everything** that happens on a specific frame of an animation, such as:
+* Edits the TimeAct Editor files of Dark Souls, Bloodborne, Dark Souls 3, and Sekiro. These files control **everything** that happens on a specific frame of an animation, such as:
   * Activating invulnerability frames.
   * Parry windows
   * Applying an "SpEffect" (special temporary statuses such as ring effects, poisoning, buffs, AI triggers, etc)
@@ -27,7 +27,7 @@
   * **Ctrl+C**: Copy
   * **Ctrl+V**: Paste at Mouse Cursor
   * **Ctrl+Shift+V**: Paste In-Place (keeps original start/end times, useful for copying between animations)
-* Edits the .anibnd or .anibnd.dcx files of the games directly. **No need to use BND rebuilders.**
+* Edits the .anibnd or .anibnd.dcx files of the games directly. No need to use BND rebuilders.
 
 ## User Instructions:
   1. Run application.
@@ -35,20 +35,21 @@
   1. Load a .anibnd or .anibnd.dcx.
   1. Select an animation ID on the left pane
   1. Drag some events around or otherwise mess with things (try the bottom-right pane for editing the highlighted event)
-  1. (Optional) Play with the model viewer pane on the top-right.
+  1. (Optional) Play with the model/animation viewer pane on the top-right.
   1. (Optional) Play with the options in the menu bar.
   1. Hit Ctrl+S to save.
 
 ## Breakdown of Game Support:
 | Game                                        | Edit Support | Events Mapped / Identified | Anim Viewer Support  |
 | ---                                         | ---          | ---                        | ---                  |
-| **Dark Souls: Prepare to Die Edition**      | **Yes**      | No (Coming Soon)           | **Yes**              |
-| **Dark Souls Remastered**                   | **Yes**      | No (Coming Soon)           | No (Not Soon)        |
+| **Dark Souls: Prepare to Die Edition**      | **Yes**      | Lots of them               | **Yes**              |
+| **Dark Souls Remastered**                   | **Yes**      | Lots of them               | Sort of\*...         |
 | **Dark Souls II**                           | No           | No                         | No (Never)           |
-| **Dark Souls II: Scholar of the First Sin** | **Yes**      | No                         | No (Never)           |
-| **Dark Souls III**                          | **Yes**      | **Yes**                    | **Yes**              |
+| **Dark Souls II: Scholar of the First Sin** | No (may change in the future) | No        | No (Never)           |
+| **Dark Souls III**                          | **Yes**      | Lots of them               | **Yes**              |
 | **Bloodborne**                              | **Yes**      | No                         | **Yes**              |
-| **Sekiro: Shadows Die Twice**               | **Yes**      | **Yes**                    | No (Not Soon)        |
+| **Sekiro: Shadows Die Twice**               | **Yes**      | Lots of them               | Sort of\*...         |
+\* For DS1R and Sekiro, you must do a slow and annoying downgrade process. See Version 2.0 changelog for more info.
 
 ## System Requirements:
 * Windows 7/8/8.1/10 (64-bit only)
