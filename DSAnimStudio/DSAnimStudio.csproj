@@ -98,7 +98,6 @@
     <Compile Include="PARAMHack\PARAM.cs" />
     <Compile Include="PARAMHack\PARAM.Row.cs" />
     <Compile Include="ParamUtil.cs" />
-    <Compile Include="SoulsFormatsExtensions.cs" />
     <Compile Include="TaeEditor\TaeAnimRefChainSolver.cs" />
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxDepthStencilStateAdjust.cs" />

@@ -733,6 +733,9 @@ namespace DSAnimStudio.TaeEditor
 
         private void PlaceNewEventAtMouse()
         {
+            if (MouseRow < 0)
+                return;
+
             float mouseTime = ((MainScreen.Input.MousePosition.X - Rect.X + ScrollViewer.Scroll.X) / SecondsPixelSize);
 
             TAE.Event newEvent = null;

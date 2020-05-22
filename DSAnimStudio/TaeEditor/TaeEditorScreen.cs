@@ -1988,6 +1988,19 @@ namespace DSAnimStudio.TaeEditor
             PauseUpdate = false;
         }
 
+        public bool DoesAnimIDExist(int id)
+        {
+            foreach (var s in AnimationListScreen.AnimTaeSections)
+            {
+                var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
+                if (matchedAnims.Any())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool GotoAnimID(int id, bool scrollOnCenter)
         {
             foreach (var s in AnimationListScreen.AnimTaeSections)
@@ -2971,6 +2984,18 @@ namespace DSAnimStudio.TaeEditor
             Graph.ScrollToPlaybackCursor(1);
         }
 
+        public void HardReset()
+        {
+            if (Graph == null)
+                return;
+            Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
+            Graph.ViewportInteractor.RootMotionSendHome();
+            Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
+            Graph.ViewportInteractor.ResetRootMotion();
+            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+            Graph.ViewportInteractor?.RemoveTransition();
+        }
+
         public void Update()
         {
             if (!Input.LeftClickHeld)
@@ -3115,12 +3140,7 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else if (Graph != null && Input.KeyDown(Keys.R))
                     {
-                        Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
-                        Graph.ViewportInteractor.RootMotionSendHome();
-                        Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
-                        Graph.ViewportInteractor.ResetRootMotion();
-                        SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
-                        Graph.ViewportInteractor?.RemoveTransition();
+                        HardReset();
                     }
                 }
 
