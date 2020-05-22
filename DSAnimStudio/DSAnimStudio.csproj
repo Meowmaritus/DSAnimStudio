@@ -81,6 +81,10 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
     <Compile Include="FlverShadingMode.cs" />
+    <Compile Include="FMOD\fmod.cs" />
+    <Compile Include="FMOD\fmod_dsp.cs" />
+    <Compile Include="FMOD\fmod_errors.cs" />
+    <Compile Include="FMOD\fmod_memoryinfo.cs" />
     <Compile Include="GlobalInputState.cs" />
     <Compile Include="HavokDowngrade.cs" />
     <Compile Include="Havok\HKAnimRetarget.cs" />
