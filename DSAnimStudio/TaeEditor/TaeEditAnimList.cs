@@ -262,6 +262,9 @@ namespace DSAnimStudio.TaeEditor
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, Texture2D scrollbarArrowTex)
         {
+            if (MainScreen.Graph == null)
+                return;
+
             UpdateScrollViewerRect();
 
             ScrollViewer.Draw(gd, sb, boxTex, scrollbarArrowTex);
