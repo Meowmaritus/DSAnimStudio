@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ImGuiNET;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -455,7 +456,9 @@ namespace DSAnimStudio.TaeEditor
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
             CheckSimEnvironment();
-            EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTime);
+            EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTimeMod);
+
+            UpdateCombo();
         }
 
         private void CheckSimEnvironment()
@@ -511,7 +514,108 @@ namespace DSAnimStudio.TaeEditor
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
             CheckSimEnvironment();
-            EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTime);
+            EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTimeMod);
+
+            
+        }
+
+        public void StartCombo(bool isLoop, TaeComboEntry[] entries)
+        {
+            CurrentComboLoop = isLoop;
+            CurrentCombo = entries;
+            CurrentComboIndex = 0;
+            StartCurrentComboEntry();
+            RemoveTransition();
+        }
+
+        private void StartCurrentComboEntry()
+        {
+            if (Graph.MainScreen.GotoAnimID(int.Parse(CurrentCombo[CurrentComboIndex].AnimID.Replace("_", "").Replace("a", "")), false))
+            {
+                if (!Graph.PlaybackCursor.IsPlaying)
+                {
+                    Graph.PlaybackCursor.Transport_PlayPause();
+                }
+            }
+            else
+            {
+                CurrentComboIndex = -1;
+            }
+        }
+
+        public TaeComboEntry[] CurrentCombo = new TaeComboEntry[0];
+        public int CurrentComboIndex = -1;
+        public bool CurrentComboLoop = false;
+
+        private void GoToNextItemInCombo()
+        {
+            CurrentComboIndex++;
+            if (CurrentComboIndex < CurrentCombo.Length)
+            {
+                StartCurrentComboEntry();
+            }
+            else
+            {
+                if (CurrentComboLoop)
+                {
+                    CurrentComboIndex = 0;
+                    StartCurrentComboEntry();
+                }
+                else
+                {
+                    if (Graph.PlaybackCursor.IsPlaying)
+                        Graph.PlaybackCursor.Transport_PlayPause();
+                    CurrentComboIndex = -1;
+                }
+
+                
+            }
+        }
+
+        private void UpdateCombo()
+        {
+            if (!Graph.PlaybackCursor.IsPlaying || Graph.PlaybackCursor.Scrubbing)
+                return;
+
+            if (CurrentComboIndex >= 0)
+            {
+                if (CurrentComboIndex < CurrentCombo.Length)
+                {
+
+                    if (Graph.PlaybackCursor.CurrentTime >= (Graph.PlaybackCursor.MaxTime - Graph.PlaybackCursor.CurrentSnapInterval))
+                    {
+                        GoToNextItemInCombo();
+                        return;
+                    }
+                    else if (CurrentComboIndex < CurrentCombo.Length - 1 || CurrentComboLoop)
+                    {
+                        foreach (var eventBox in Graph.EventBoxesToSimulate)
+                        {
+                            if (eventBox.PlaybackHighlight && eventBox.MyEvent.Type == 0)
+                            {
+                                var cancelTypeAsStr = eventBox.MyEvent.Template["JumpTableID"].ValueToString(eventBox.MyEvent.Parameters["JumpTableID"]);
+                                if (cancelTypeAsStr == CurrentCombo[CurrentComboIndex].Event0CancelType)
+                                {
+                                    GoToNextItemInCombo();
+                                    return;
+                                }
+                            }
+                        }
+
+                    }
+
+
+
+
+                }
+                else
+                {
+                    CurrentComboIndex = -1;
+                }
+
+
+                
+            }
         }
 
         private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
@@ -830,6 +934,15 @@ namespace DSAnimStudio.TaeEditor
                 else if (CurrentModel.AnimContainer.CurrentAnimationName != null)
                 {
                     printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Invalid)", Color.Red);
+                }
+
+                if (CurrentComboIndex >= 0)
+                {
+                    printer.AppendLine($"Playing Combo ({(CurrentComboLoop ? "Looping" : "Once")}):", Color.Cyan);
+                    for (int c = 0; c < CurrentCombo.Length; c++)
+                    {
+                        printer.AppendLine($"    {(CurrentComboIndex == c ? "■" : "□")} {CurrentCombo[c]}", Color.Cyan);
+                    }
                 }
 
                 if (CurrentModel.AnimContainer.AnimationLayers.Count > 0)

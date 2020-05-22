@@ -75,6 +75,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AutoCompleteExt.cs" />
     <Compile Include="DebugPrimitives\DbgPrimGeometryData.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidBox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
@@ -131,6 +132,13 @@
     <Compile Include="NewChrAsm.cs" />
     <Compile Include="NewHavokAnimation_SplineCompressed.cs" />
     <Compile Include="NewMesh.cs" />
+    <Compile Include="TaeEditor\TaeComboEntry.cs" />
+    <Compile Include="TaeEditor\TaeComboMenu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TaeEditor\TaeComboMenu.Designer.cs">
+      <DependentUpon>TaeComboMenu.cs</DependentUpon>
+    </Compile>
     <Compile Include="TaeEditor\TaeTransport.cs" />
     <Compile Include="TaeEditor\WinformsTooltipHelper.cs" />
     <Compile Include="TaeEditor\TaeHoverInfoBox.cs" />
@@ -570,6 +578,9 @@
   <ItemGroup>
     <EmbeddedResource Include="NewChrAsmEquipForm.resx">
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TaeEditor\TaeComboMenu.resx">
+      <DependentUpon>TaeComboMenu.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="TaeEditor\TaeEditAnimPropertiesForm.resx">
       <DependentUpon>TaeEditAnimPropertiesForm.cs</DependentUpon>

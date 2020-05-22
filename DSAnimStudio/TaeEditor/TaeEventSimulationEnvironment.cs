@@ -167,7 +167,7 @@ namespace DSAnimStudio.TaeEditor
                                 var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
                                 if (blend != null)
                                 {
-                                    float blendRatio = MathHelper.Clamp(((time - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
+                                    float blendRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.CurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
                                     MODEL.AnimContainer.AnimationLayers[0].Weight = 1 - blendRatio;
                                     MODEL.AnimContainer.AnimationLayers[1].Weight = blendRatio;
                                 }
@@ -455,7 +455,7 @@ namespace DSAnimStudio.TaeEditor
                                 b.PlaybackHighlight && entry.DoesEventMatch(b)))
                             {
                                 float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
-                                float timeSinceFadeStart = (float)Main.TAE_EDITOR.PlaybackCursor.CurrentTime - evBox.MyEvent.StartTime;
+                                float timeSinceFadeStart = time - evBox.MyEvent.StartTime;
                                 float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
                                 float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
 

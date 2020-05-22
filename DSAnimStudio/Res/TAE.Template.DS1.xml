@@ -7,7 +7,7 @@
 				<entry value="0" name="0: ?"/>
 				<entry value="1" name="1: ?"/>
 				<entry value="3" name="3: Set Guard Type [ArgB]"/>
-				<entry value="4" name="4: End If R1 Queued"/>
+				<entry value="4" name="4: End If RH Attack Queued"/>
 				<entry value="5" name="5: Get-Parried Window [ArgC]"/>
 				<entry value="6" name="6: Disable Movement?"/>
 				<entry value="7" name="7: Disable Turning"/>
@@ -19,7 +19,7 @@
 				<entry value="13" name="13: ?"/>
 				<entry value="14" name="14: Set Some Bool?"/>
 				<entry value="15" name="15: Set Something?"/>
-				<entry value="16" name="16: End If L1 Attack Queued"/>
+				<entry value="16" name="16: End If LH Attack Queued"/>
 				<entry value="18" name="18: ?"/>
 				<entry value="19" name="19: Disable Map Hit"/>
 				<entry value="20" name="20: ?"/>
@@ -34,7 +34,7 @@
 				<entry value="29" name="29: ?"/>
 				<entry value="30" name="30: End If Estus Queued?"/>
 				<entry value="31" name="31: End If Goods Queued"/>
-				<entry value="32" name="32: End If Two-Handing Queued"/>
+				<entry value="32" name="32: End If Weapon Switch Queued"/>
 				<entry value="37" name="37: ?"/>
 				<entry value="38" name="38: ?"/>
 				<entry value="39" name="39: ?"/>
@@ -71,15 +71,15 @@
 				<entry value="74" name="74: Disable Hit"/>
 				<entry value="75" name="75: Flag As Picking Up Item?"/>
 				<entry value="76" name="76: ?"/>
-				<entry value="78" name="78: End If LS Move Queued -Alternate-"/>
-				<entry value="79" name="79: End If AI Dodge Queued?"/>
+				<entry value="78" name="78: End If AI Move Queued"/>
+				<entry value="79" name="79: End If AI Step Queued"/>
 				<entry value="80" name="80: Flag As Something?"/>
 				<entry value="81" name="81: Flag As Something?"/>
 				<entry value="82" name="82: Flag As Something?"/>
 				<entry value="83" name="83: Flag As Starting Guard?"/>
 				<entry value="84" name="84: Flag As Impending Jump Attack?"/>
 				<entry value="85" name="85: Flag As Holding Guard?"/>
-				<entry value="86" name="86: End If AI Attack Queued?"/>
+				<entry value="86" name="86: End If AI Attack Queued"/>
 				<entry value="87" name="87: Flag As AttackAnimEnd?"/>
 				<entry value="88" name="88: Flag As On A Ladder?"/>
 				<entry value="89" name="89: Disable All Movement"/>

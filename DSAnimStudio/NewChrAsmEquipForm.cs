@@ -69,6 +69,8 @@ namespace DSAnimStudio
             DoParamList(comboBoxWPL, ParamID_WPL, FmgManager.WeaponNames);
 
             GameTypesParamsAndFmgsWereLoadedFrom = GameDataManager.GameType;
+
+            //comboBoxHD.ed
         }
 
         public void WriteChrAsmToGUI()
@@ -235,6 +237,7 @@ namespace DSAnimStudio
                 Invoke(new Action(() =>
                 {
                     SetEverythingDisabled(false);
+                    Main.WinForm.Activate();
                 }));
             });
         }
