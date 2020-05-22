@@ -39,6 +39,7 @@ namespace DSAnimStudio.TaeEditor
                     MainScreen.Graph?.ViewportInteractor?.CurrentModel?.AnimContainer?.ResetAll();
                     PlaybackCursor.StartTime = 0;
                     MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
                     MainScreen.Graph.ViewportInteractor.ResetRootMotion();
                     MainScreen.Graph.ScrollToPlaybackCursor(1);
                     PlaybackCursor.IgnoreCurrentRelativeScrub();
@@ -60,7 +61,7 @@ namespace DSAnimStudio.TaeEditor
                     //MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.StartTime);
                     MainScreen.Graph.ScrollToPlaybackCursor(1);
                 },
-                GetHotkey = b => MainScreen.ShiftHeld && MainScreen.Input.KeyHeld(Keys.Space),
+                GetHotkey = b => (MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && !MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyHeld(Keys.Space),
             });
 
             Buttons.Add(new TransportButton()
@@ -68,7 +69,7 @@ namespace DSAnimStudio.TaeEditor
                 GetDebugText = () => PlaybackCursor.IsPlaying ? "||" : ">",
                 GetIsEnabled = () => true,
                 OnClick = () => PlaybackCursor.Transport_PlayPause(),
-                GetHotkey = b => !MainScreen.ShiftHeld && MainScreen.Input.KeyHeld(Keys.Space),
+                GetHotkey = b => (!MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && !MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyHeld(Keys.Space),
             });
 
 

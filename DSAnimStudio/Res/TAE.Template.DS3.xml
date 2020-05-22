@@ -7,36 +7,36 @@
         <entry value="1"   name="1: InvokeAnimCancelStart_R1_R2_LightKick_HeavyKick"/>
 		<!-- ArgB - BehaviorSubID -->
         <entry value="3"   name="3: InvokeShieldBlock(ArgB)"/>
-        <entry value="4"   name="4: InvokeAnimCancelEnd_R1_R2_LightKick_HeavyKick"/>
+        <entry value="4"   name="4: End If RH Attack Queued"/>
 		<!-- ArgC = 6 = 1011,7 = 1012, 8 = 1013 -->
         <entry value="5"   name="5: InvokeParriedState(ArgC)"/>
         <entry value="6"   name="6: InvokeAnimCancelEndWithKeyboardKey"/>
         <entry value="7"   name="7: InvokeLockChrRotation"/>
-        <entry value="8"   name="8: InvokeInvincibilityFrames"/>
+        <entry value="8"   name="8: Flag As Dodging"/>
         <entry value="9"   name="9: InvokeAnimCancelStart_L1_L2"/>
         <entry value="10"  name="10: InvokeAnimCancelStart_MagicR_MagicL"/>
-        <entry value="11"  name="11: InvokeAnimCancelEnd_Unknown"/>
+        <entry value="11"  name="11: End If LS Move Queued"/>
 		<entry value="12"  name="12: InvokeDeath"/>
         <entry value="14"  name="14: SetUnkBool"/>
         <entry value="15"  name="15: SetUnkFlags"/>
-        <entry value="16"  name="16: InvokeAnimCancelEnd_L1_L2"/>
+        <entry value="16"  name="16: End If LH Attack Queued"/>
 		<!-- 0x141B95B40 -->
         <entry value="17"  name="17: SetIsStartbit8"/>
         <entry value="18"  name="18: SetIsStartbit3"/>
         <entry value="19"  name="19: DisableMapHit"/>
         <entry value="20"  name="20: Set_0x78_10"/>
         <entry value="21"  name="21: InvokeAnimCancelStart_Guard"/>
-        <entry value="22"  name="22: InvokeAnimCancelEnd_Guard"/>
-        <entry value="23"  name="23: InvokeAiContinousActionType_Default_hks107"/>
+        <entry value="22"  name="22: End If Guard Queued"/>
+        <entry value="23"  name="23: End If AI ComboAttack Queued"/>
         <entry value="24"  name="24: Set_0x78_16"/>
         <entry value="25"  name="25: InvokeAnimCancelStart_SpMove_Backstep_Rolling_Jump"/>
-        <entry value="26"  name="26: InvokeAnimCancelEnd_SpMove_Backstep_Rolling_Jump"/>
+        <entry value="26"  name="26: End If Dodge Queued"/>
         <entry value="27"  name="27: SetNoGravity"/>
         <entry value="28"  name="28: InvokeIsLadder"/>
         <entry value="29"  name="29: InvokeAction_AndTAEDebuggingClass"/>
         <entry value="30"  name="30: InvokeAnimCancelStart_UseItem"/>
         <entry value="31"  name="31: InvokeAnimCancelEnd_UseItem"/>
-        <entry value="32"  name="32: InvokeAnimCancelEnd_ChangeStyle_ChangeWeaponR_ChangeWeaponL_ChangeStyleLeft_Gesture"/>
+        <entry value="32"  name="32: End If Weapon Switch Queued"/>
         <entry value="34"  name="34: InvokeAnimCancelEnd_General"/>
         <entry value="35"  name="35: Set0x1EB_Bool"/>
         <entry value="36"  name="36: Set0xEF_Bool"/>
@@ -88,8 +88,8 @@
         <entry value="74"  name="74: SetBool32_0x7C_11"/>
         <entry value="75"  name="75: SetBool32_0x7C_13_ItemPickUp_RememberInput"/>
 		<entry value="76"  name="76: InvokeCultPromtCheck2"/>
-        <entry value="78"  name="78: InvokeDisableCancel_hks2000"/>
-        <entry value="79"  name="79: InvokeAiContinousStepType_Default_hks118"/>
+        <entry value="78"  name="78: End If AI Move Queued"/>
+        <entry value="79"  name="79: End If AI Step Queued"/>
         <entry value="80"  name="80: SetBool32_0x7C_14_ItemPickUp_Default"/>
 		<!-- 0x140702154 -->
         <entry value="81"  name="81: SetBool32_0x7C_15_ActionButton4400"/>
@@ -97,14 +97,14 @@
         <entry value="83"  name="83: SetBool32_0x7C_5"/>
         <entry value="84"  name="84: SetBool32_0x7C_8_hks298"/>
         <entry value="85"  name="85: SetBool32_0x7C_18_StateInfo147_LanternWeapon"/>
-        <entry value="86"  name="86: InvokeAiAtkCancelType_Default_hks120"/>
+        <entry value="86"  name="86: End If AI Attack Queued"/>
         <entry value="87"  name="87: InvokeAttackAction_Complex"/>
 		<!-- 0x14088793A -->
         <entry value="88"  name="88: SetBool32_0x7C_19"/>
 		<!-- 0x14099EA03 -->
-        <entry value="89"  name="89: SekiroCode1"/>
-        <entry value="90"  name="90: SekiroCode2"/>
-        <entry value="91"  name="91: SekiroCode3"/>
+        <entry value="89"  name="89: Disable All Movement"/>
+        <entry value="90"  name="90: Limit Move Speed To Walk"/>
+        <entry value="91"  name="91: Limit Move Speed To Dash"/>
 		<!-- 0x14098D5ED -->
         <entry value="92"  name="92: SetBool32_0x7C_20_hksJumptableFunc"/>
 		<!-- 0x140884499 -->

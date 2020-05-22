@@ -23,6 +23,23 @@ namespace DSAnimStudio.TaeEditor
         {
 
             MenuBar.AddTopItem("Tools");
+
+            MenuBar.AddItem("Tools", "Combo Viewer", () =>
+            {
+                if (ComboMenu == null || ComboMenu.IsDisposed)
+                {
+                    ComboMenu = new TaeComboMenu();
+                    ComboMenu.Owner = GameWindowAsForm;
+                    ComboMenu.MainScreen = this;
+                    ComboMenu.SetupTaeComboBoxes();
+                }
+
+                ComboMenu.Show();
+                ComboMenu.Activate();
+            }, startDisabled: true);
+
+            MenuBar.AddSeparator("Tools");
+
             MenuBar.AddItem("Tools", "Downgrade Sekiro/DS1R ANIBND(s)...", () =>
             {
 
@@ -209,7 +226,7 @@ namespace DSAnimStudio.TaeEditor
             //            }
             //        }
             //    }
-                
+
             //});
 
             //MenuBar.AddTopItem("[TEST: SCAN HKXPWV]", () =>
@@ -431,6 +448,8 @@ namespace DSAnimStudio.TaeEditor
             //});
         }
 
+        public TaeComboMenu ComboMenu = null;
+
         public float AnimSwitchRenderCooldown = 0;
         public float AnimSwitchRenderCooldownMax = 0.3f;
         public float AnimSwitchRenderCooldownFadeLength = 0.1f;
@@ -533,9 +552,9 @@ namespace DSAnimStudio.TaeEditor
         private int EditTaeHeaderButtonHeight = 20;
         private System.Windows.Forms.Button ButtonEditCurrentTaeHeader;
 
-        public bool CtrlHeld;
-        public bool ShiftHeld;
-        public bool AltHeld;
+        //public bool CtrlHeld;
+        //public bool ShiftHeld;
+        //public bool AltHeld;
 
         const string HELP_TEXT =
             "Left Click + Drag on Timeline:\n" +
@@ -857,7 +876,7 @@ namespace DSAnimStudio.TaeEditor
 
         public List<TaeEditAnimEventBox> MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>();
 
-        private TaeEditAnimList editScreenAnimList;
+        public TaeEditAnimList AnimationListScreen;
         public TaeEditAnimEventGraph Graph { get; private set; }
         //private TaeEditAnimEventGraphInspector editScreenGraphInspector;
 
@@ -1061,9 +1080,11 @@ namespace DSAnimStudio.TaeEditor
                 // Since form close event is hooked this should
                 // take care of nulling it out for us.
                 FindValueDialog?.Close();
+                ComboMenu?.Close();
+                ComboMenu = null;
             }));
             SelectedTaeAnim = SelectedTae.Animations[0];
-            editScreenAnimList = new TaeEditAnimList(this);
+            AnimationListScreen = new TaeEditAnimList(this);
             Graph = new TaeEditAnimEventGraph(this, false, SelectedTaeAnim);
             //if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
             //{
@@ -1085,26 +1106,27 @@ namespace DSAnimStudio.TaeEditor
                 MenuBar["Edit\\Go To Animation ID..."].Enabled = true;
                 MenuBar["Edit\\Set Animation Name..."].Enabled = true;
                 MenuBar["Animation\\Set Playback Speed..."].Enabled = true;
+                MenuBar["Tools\\Combo Viewer"].Enabled = true;
                 LastFindInfo = null;
             }));
         }
 
         public void RecreateAnimList()
         {
-            Vector2 oldScroll = editScreenAnimList.ScrollViewer.Scroll;
-            var sectionsCollapsed = editScreenAnimList
+            Vector2 oldScroll = AnimationListScreen.ScrollViewer.Scroll;
+            var sectionsCollapsed = AnimationListScreen
                 .AnimTaeSections
                 .ToDictionary(x => x.SectionName, x => x.Collapsed);
 
-            editScreenAnimList = new TaeEditAnimList(this);
+            AnimationListScreen = new TaeEditAnimList(this);
 
-            foreach (var section in editScreenAnimList.AnimTaeSections)
+            foreach (var section in AnimationListScreen.AnimTaeSections)
             {
                 if (sectionsCollapsed.ContainsKey(section.SectionName))
                     section.Collapsed = sectionsCollapsed[section.SectionName];
             }
             
-            editScreenAnimList.ScrollViewer.Scroll = oldScroll;
+            AnimationListScreen.ScrollViewer.Scroll = oldScroll;
             
         }
 
@@ -1408,14 +1430,14 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("Edit");
             MenuBar.AddItem("Edit", "Collapse All TAE Sections", () =>
             {
-                foreach (var kvp in editScreenAnimList.AnimTaeSections)
+                foreach (var kvp in AnimationListScreen.AnimTaeSections)
                 {
                     kvp.Collapsed = true;
                 }
             }, startDisabled: true);
             MenuBar.AddItem("Edit", "Expand All TAE Sections", () =>
             {
-                foreach (var kvp in editScreenAnimList.AnimTaeSections)
+                foreach (var kvp in AnimationListScreen.AnimTaeSections)
                 {
                     kvp.Collapsed = false;
                 }
@@ -1968,7 +1990,7 @@ namespace DSAnimStudio.TaeEditor
 
         public bool GotoAnimID(int id, bool scrollOnCenter)
         {
-            foreach (var s in editScreenAnimList.AnimTaeSections)
+            foreach (var s in AnimationListScreen.AnimTaeSections)
             {
                 var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
                 if (matchedAnims.Any())
@@ -2630,7 +2652,7 @@ namespace DSAnimStudio.TaeEditor
 
                 UpdateLayout(); // Fixes scroll when you first open anibnd (hopefully)
 
-                editScreenAnimList.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
+                AnimationListScreen.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
 
                 Graph.ViewportInteractor.OnNewAnimSelected();
                 Graph.PlaybackCursor.CurrentTime = 0;
@@ -2819,7 +2841,7 @@ namespace DSAnimStudio.TaeEditor
 
                         try
                         {
-                            SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: ShiftHeld || CtrlHeld);
+                            SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: Input.ShiftHeld || Input.CtrlHeld);
                         }
                         catch// (Exception innerEx)
                         {
@@ -2907,7 +2929,7 @@ namespace DSAnimStudio.TaeEditor
                             DoStep();
                         }
 
-                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: ShiftHeld || CtrlHeld);
+                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: Input.ShiftHeld || Input.CtrlHeld);
                     }
                 }
             }
@@ -3031,14 +3053,10 @@ namespace DSAnimStudio.TaeEditor
                 if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F4))
                     GoToEventSource();
 
-                CtrlHeld = Input.KeyHeld(Keys.LeftControl) || Input.KeyHeld(Keys.RightControl);
-                ShiftHeld = Input.KeyHeld(Keys.LeftShift) || Input.KeyHeld(Keys.RightShift);
-                AltHeld = Input.KeyHeld(Keys.LeftAlt) || Input.KeyHeld(Keys.RightAlt);
-
                 var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
                 var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
 
-                if (CtrlHeld && !ShiftHeld && !AltHeld)
+                if (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld)
                 {
                     if (Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add))
                     {
@@ -3095,9 +3113,18 @@ namespace DSAnimStudio.TaeEditor
                     {
                         SaveCurrentFile();
                     }
+                    else if (Graph != null && Input.KeyDown(Keys.R))
+                    {
+                        Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
+                        Graph.ViewportInteractor.RootMotionSendHome();
+                        Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
+                        Graph.ViewportInteractor.ResetRootMotion();
+                        SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+                        Graph.ViewportInteractor?.RemoveTransition();
+                    }
                 }
 
-                if (CtrlHeld && ShiftHeld && !AltHeld)
+                if (Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
                 {
                     if (Input.KeyDown(Keys.V))
                     {
@@ -3109,7 +3136,7 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                if (!CtrlHeld && ShiftHeld && !AltHeld)
+                if (!Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
                 {
                     if (Input.KeyDown(Keys.D))
                     {
@@ -3136,11 +3163,7 @@ namespace DSAnimStudio.TaeEditor
                 //    Graph.ScrollToPlaybackCursor(1);
                 //}
 
-                if (Graph != null && Input.KeyDown(Keys.R))
-                {
-                    Graph.ViewportInteractor.RootMotionSendHome();
-                    //Graph.ViewportInteractor.OnScrubFrameChange();
-                }
+                
 
                 //if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
                 //{
@@ -3157,14 +3180,14 @@ namespace DSAnimStudio.TaeEditor
 
                 if (NextAnimRepeaterButton.State)
                 {
-                    NextAnim(ShiftHeld, CtrlHeld);
+                    NextAnim(Input.ShiftHeld, Input.CtrlHeld);
                 }
 
                 PrevAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Up) && !Input.KeyHeld(Keys.Down));
 
                 if (PrevAnimRepeaterButton.State)
                 {
-                    PrevAnim(ShiftHeld, CtrlHeld);
+                    PrevAnim(Input.ShiftHeld, Input.CtrlHeld);
                 }
 
                 if (PlaybackCursor != null)
@@ -3184,7 +3207,7 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                if (Input.KeyDown(Keys.Enter) && !CtrlHeld && !AltHeld)
+                if (Input.KeyDown(Keys.Space) && Input.CtrlHeld && !Input.AltHeld)
                 {
                     if (SelectedTae != null)
                     {
@@ -3204,12 +3227,12 @@ namespace DSAnimStudio.TaeEditor
                     Graph?.ViewportInteractor?.RemoveTransition();
                 }
 
-                if (UndoButton.Update(Main.DELTA_UPDATE, (CtrlHeld && !ShiftHeld && !AltHeld) && (zHeld && !yHeld)))
+                if (UndoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (zHeld && !yHeld)))
                 {
                     UndoMan.Undo();
                 }
 
-                if (RedoButton.Update(Main.DELTA_UPDATE, (CtrlHeld && !ShiftHeld && !AltHeld) && (!zHeld && yHeld)))
+                if (RedoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (!zHeld && yHeld)))
                 {
                     UndoMan.Redo();
                 }
@@ -3339,7 +3362,7 @@ namespace DSAnimStudio.TaeEditor
             // it won't have the resize cursor randomly. This box spans all the way
             // from left of screen to the hitbox of the right vertical divider and
             // just immediately clears the resize cursor in that entire huge region.
-            if (editScreenAnimList == null && Graph == null
+            if (AnimationListScreen == null && Graph == null
                     && new Rectangle(Rect.Left, Rect.Top, (int)(DividerRightGrabStartX - Rect.Left), Rect.Height).Contains(Input.MousePositionPoint))
             {
                 MouseHoverKind = ScreenMouseHoverKind.None;
@@ -3369,7 +3392,7 @@ namespace DSAnimStudio.TaeEditor
                 || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
                 || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal))
             {
-                if (editScreenAnimList != null && editScreenAnimList.Rect.Contains(Input.MousePositionPoint))
+                if (AnimationListScreen != null && AnimationListScreen.Rect.Contains(Input.MousePositionPoint))
                     MouseHoverKind = ScreenMouseHoverKind.AnimList;
                 else if (Graph != null && Graph.Rect.Contains(Input.MousePositionPoint))
                     MouseHoverKind = ScreenMouseHoverKind.EventGraph;
@@ -3397,19 +3420,19 @@ namespace DSAnimStudio.TaeEditor
                     WhereCurrentMouseClickStarted = MouseHoverKind;
                 }
 
-                if (editScreenAnimList != null)
+                if (AnimationListScreen != null)
                 {
 
                     if (MouseHoverKind == ScreenMouseHoverKind.AnimList || 
                         WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
                     {
                         Input.CursorType = MouseCursorType.Arrow;
-                        editScreenAnimList.Update(Main.DELTA_UPDATE, 
+                        AnimationListScreen.Update(Main.DELTA_UPDATE, 
                             allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                     }
                     else
                     {
-                        editScreenAnimList.UpdateMouseOutsideRect(Main.DELTA_UPDATE, 
+                        AnimationListScreen.UpdateMouseOutsideRect(Main.DELTA_UPDATE, 
                             allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                     }
                 }
@@ -3495,7 +3518,7 @@ namespace DSAnimStudio.TaeEditor
                     Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                 }
 
-                if (editScreenAnimList != null && Graph != null)
+                if (AnimationListScreen != null && Graph != null)
                 {
                     if (LeftSectionWidth < LeftSectionWidthMin)
                     {
@@ -3513,7 +3536,7 @@ namespace DSAnimStudio.TaeEditor
                         Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                     }
 
-                    editScreenAnimList.Rect = new Rectangle(
+                    AnimationListScreen.Rect = new Rectangle(
                         (int)LeftSectionStartX,
                         Rect.Top + TopMenuBarMargin,
                         (int)LeftSectionWidth,
@@ -3625,9 +3648,9 @@ namespace DSAnimStudio.TaeEditor
 
             UpdateLayout();
 
-            if (editScreenAnimList != null)
+            if (AnimationListScreen != null)
             {
-                editScreenAnimList.Draw(gd, sb, boxTex, font, scrollbarArrowTex);
+                AnimationListScreen.Draw(gd, sb, boxTex, font, scrollbarArrowTex);
 
                 Rectangle curAnimInfoTextRect = new Rectangle(
                     (int)(MiddleSectionStartX),

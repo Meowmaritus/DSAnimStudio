@@ -985,9 +985,9 @@ namespace DSAnimStudio.TaeEditor
                 MouseReleaseStuff();
             }
 
-            ScrollViewer.UpdateInput(MainScreen.Input, Main.DELTA_UPDATE, allowScrollWheel: !MainScreen.CtrlHeld);
+            ScrollViewer.UpdateInput(MainScreen.Input, Main.DELTA_UPDATE, allowScrollWheel: !MainScreen.Input.CtrlHeld);
 
-            if (MainScreen.CtrlHeld)
+            if (MainScreen.Input.CtrlHeld)
             {
                 Zoom(MainScreen.Input.ScrollDelta, MainScreen.Input.MousePosition.X - Rect.X);
             }
@@ -1096,7 +1096,7 @@ namespace DSAnimStudio.TaeEditor
                     MainScreen.MultiSelectedEventBoxes.Clear();
                 }
 
-                if (MainScreen.Input.LeftClickDown && !MainScreen.ShiftHeld && !MainScreen.CtrlHeld)
+                if (MainScreen.Input.LeftClickDown && !MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld)
                 {
                     MainScreen.SelectedEventBox = null;
                 }
@@ -1246,7 +1246,7 @@ namespace DSAnimStudio.TaeEditor
                                 }
                                 else
                                 {
-                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box) && !MainScreen.CtrlHeld)
+                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box) && !MainScreen.Input.CtrlHeld)
                                     {
                                         currentDrag.DragType = BoxDragType.MultiDragMiddleOfEventBox;
                                         currentMultiDrag.Clear();
@@ -1269,7 +1269,7 @@ namespace DSAnimStudio.TaeEditor
                                     }
                                     else
                                     {
-                                        if (MainScreen.ShiftHeld && !MainScreen.CtrlHeld && !MainScreen.AltHeld)
+                                        if (MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
                                         {
                                             if (MainScreen.SelectedEventBox == null 
                                                 && MainScreen.MultiSelectedEventBoxes.Count == 0)
@@ -1288,7 +1288,7 @@ namespace DSAnimStudio.TaeEditor
                                                 && !MainScreen.MultiSelectedEventBoxes.Contains(box))
                                                 MainScreen.MultiSelectedEventBoxes.Add(box);
                                         }
-                                        else if (!MainScreen.ShiftHeld && MainScreen.CtrlHeld && !MainScreen.AltHeld)
+                                        else if (!MainScreen.Input.ShiftHeld && MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
                                         {
                                             if (MainScreen.MultiSelectedEventBoxes.Contains(box))
                                                 MainScreen.MultiSelectedEventBoxes.Remove(box);
@@ -1318,7 +1318,7 @@ namespace DSAnimStudio.TaeEditor
                         {
                             currentMultiDrag.Clear();
 
-                            if (MainScreen.ShiftHeld && !MainScreen.CtrlHeld && !MainScreen.AltHeld)
+                            if (MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
                             {
                                 if (MainScreen.SelectedEventBox == null
                                     && MainScreen.MultiSelectedEventBoxes.Count == 0)
@@ -1337,7 +1337,7 @@ namespace DSAnimStudio.TaeEditor
                                     && !MainScreen.MultiSelectedEventBoxes.Contains(box))
                                     MainScreen.MultiSelectedEventBoxes.Add(box);
                             }
-                            else if (!MainScreen.ShiftHeld && MainScreen.CtrlHeld && !MainScreen.AltHeld)
+                            else if (!MainScreen.Input.ShiftHeld && MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
                             {
                                 if (MainScreen.MultiSelectedEventBoxes.Contains(box))
                                     MainScreen.MultiSelectedEventBoxes.Remove(box);
@@ -1370,9 +1370,9 @@ namespace DSAnimStudio.TaeEditor
                         MainScreen.SelectedEventBox = null;
                     }
 
-                    if (MainScreen.ShiftHeld && !MainScreen.CtrlHeld && !MainScreen.AltHeld)
+                    if (MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
                         currentDrag.DragType = BoxDragType.MultiSelectionRectangleADD;
-                    else if (!MainScreen.ShiftHeld && MainScreen.CtrlHeld && !MainScreen.AltHeld)
+                    else if (!MainScreen.Input.ShiftHeld && MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
                         currentDrag.DragType = BoxDragType.MultiSelectionRectangleSUBTRACT;
                     else
                         currentDrag.DragType = BoxDragType.MultiSelectionRectangle;
@@ -2514,7 +2514,7 @@ namespace DSAnimStudio.TaeEditor
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, 
             SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex)
         {
-            var playbackCursorPixelCheckX = SecondsPixelSize * (float)PlaybackCursor.CurrentTime;
+            var playbackCursorPixelCheckX = SecondsPixelSize * (float)(PlaybackCursor.Scrubbing ? PlaybackCursor.CurrentTime : PlaybackCursor.CurrentTimeMod);
             float centerOfScreenCheckX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
             //float rightOfScreenCheckX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
 
@@ -2667,12 +2667,12 @@ namespace DSAnimStudio.TaeEditor
                 // HOWEVER it was super delayed because of the vsync 
                 // and didn't follow the cursor well and looked weird
 
-                //if (MainScreen.CtrlHeld && !MainScreen.ShiftHeld && !MainScreen.AltHeld)
+                //if (MainScreen.Input.CtrlHeld && !MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld)
                 //{
                 //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
                 //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
                 //}
-                //else if (!MainScreen.CtrlHeld && MainScreen.ShiftHeld && !MainScreen.AltHeld)
+                //else if (!MainScreen.Input.CtrlHeld && MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld)
                 //{
                 //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
                 //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);

@@ -58,7 +58,7 @@ namespace DSAnimStudio
 
         public int GetAnimLayerIndexByName(string name)
         {
-            for (int i = 0; i < AnimationLayers.Count; i++)
+            for (int i = AnimationLayers.Count - 1; i >= 0; i--)
             {
                 if (AnimationLayers[i].Name == name)
                     return i;
@@ -133,7 +133,10 @@ namespace DSAnimStudio
 
                             if (AnimationLayers.Count < 2)
                             {
-                                anim.Weight = 1;
+                                if (AnimationLayers.Count == 0)
+                                    anim.Weight = 1;
+                                else
+                                    anim.Weight = 0;
                                 AnimationLayers.Add(anim);
                             }
                             else

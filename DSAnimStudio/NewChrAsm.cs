@@ -598,8 +598,9 @@ namespace DSAnimStudio
 
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                lastRightWeaponLoaded = -1;
                                 RightWeaponModel?.Dispose();
                                 RightWeaponModel = null;
                             }
@@ -650,8 +651,9 @@ namespace DSAnimStudio
 
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                lastLeftWeaponLoaded = -1;
                                 LeftWeaponModel?.Dispose();
                                 LeftWeaponModel = null;
                             }
@@ -661,6 +663,7 @@ namespace DSAnimStudio
                     }
                     else
                     {
+                        lastLeftWeaponLoaded = -1;
                         LeftWeaponModel?.Dispose();
                         LeftWeaponModel = null;
                     }
