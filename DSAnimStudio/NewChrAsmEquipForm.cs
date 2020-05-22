@@ -238,6 +238,9 @@ namespace DSAnimStudio
                 {
                     SetEverythingDisabled(false);
                     Main.WinForm.Activate();
+
+                    // I'm sorry
+                    Main.TAE_EDITOR.HardReset();
                 }));
             });
         }

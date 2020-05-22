@@ -81,9 +81,15 @@ namespace DSAnimStudio
                         if (MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.Count > 0)
                         {
                             if (value == null || MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.ContainsKey(value))
+                            {
                                 MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = value;
+                            }
                             else
-                                MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = null;
+                            {
+                                MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName =
+                                    MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.Keys.FirstOrDefault() ??
+                                    (GameDataManager.GameTypeHasLongAnimIDs ? "a000_000000" : "a00_0000");
+                            }
                         }
                     }
 
@@ -92,9 +98,15 @@ namespace DSAnimStudio
                         if (MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.Count > 0)
                         {
                             if (value == null || MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.ContainsKey(value))
+                            {
                                 MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName = value;
+                            }
                             else
-                                MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName = null;
+                            {
+                                MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName =
+                                    MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.Keys.FirstOrDefault() ??
+                                    (GameDataManager.GameTypeHasLongAnimIDs ? "a000_000000" : "a00_0000");
+                            }
                         }
                     }
                 }

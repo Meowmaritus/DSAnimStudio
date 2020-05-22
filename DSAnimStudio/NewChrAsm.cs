@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -165,6 +166,16 @@ namespace DSAnimStudio
             {
                 //V2.0
                 //RightWeaponModel.AnimContainer.IsLoop = false;
+                if (RightWeaponModel.AnimContainer.AnimationLayers.Count == 2)
+                {
+                    RightWeaponModel.AnimContainer.AnimationLayers[0].Weight = 0;
+                    RightWeaponModel.AnimContainer.AnimationLayers[1].Weight = 1;
+                }
+                else if (RightWeaponModel.AnimContainer.AnimationLayers.Count == 1)
+                {
+                    RightWeaponModel.AnimContainer.AnimationLayers[0].Weight = 1;
+                }
+
                 RightWeaponModel.AnimContainer.ScrubRelative(timeDelta);
             }
 
@@ -172,6 +183,16 @@ namespace DSAnimStudio
             {
                 //V2.0
                 //LeftWeaponModel.AnimContainer.IsLoop = false;
+                if (LeftWeaponModel.AnimContainer.AnimationLayers.Count == 2)
+                {
+                    LeftWeaponModel.AnimContainer.AnimationLayers[0].Weight = 0;
+                    LeftWeaponModel.AnimContainer.AnimationLayers[1].Weight = 1;
+                }
+                else if (LeftWeaponModel.AnimContainer.AnimationLayers.Count == 1)
+                {
+                    LeftWeaponModel.AnimContainer.AnimationLayers[0].Weight = 1;
+                }
+
                 LeftWeaponModel.AnimContainer.ScrubRelative(timeDelta);
             }
         }
@@ -603,6 +624,11 @@ namespace DSAnimStudio
                                 lastRightWeaponLoaded = -1;
                                 RightWeaponModel?.Dispose();
                                 RightWeaponModel = null;
+                                System.Windows.Forms.MessageBox.Show(
+                                    $"Failed to load right-hand weapon model:\n\n{ex}",
+                                    "Failed To Load RH Weapon Model", 
+                                    System.Windows.Forms.MessageBoxButtons.OK, 
+                                    System.Windows.Forms.MessageBoxIcon.Error);
                             }
                         });
                     }
@@ -656,6 +682,11 @@ namespace DSAnimStudio
                                 lastLeftWeaponLoaded = -1;
                                 LeftWeaponModel?.Dispose();
                                 LeftWeaponModel = null;
+                                System.Windows.Forms.MessageBox.Show(
+                                    $"Failed to load left-hand weapon model:\n\n{ex}",
+                                    "Failed To Load LH Weapon Model",
+                                    System.Windows.Forms.MessageBoxButtons.OK,
+                                    System.Windows.Forms.MessageBoxIcon.Error);
                             }
 
                             

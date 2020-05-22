@@ -24,6 +24,13 @@ namespace DSAnimStudio.TaeEditor
 
         private void buttonPlayCombo_Click(object sender, EventArgs e)
         {
+            if (dataGridViewComboEntries.RowCount <= 1)
+            {
+                MessageBox.Show("Combo has nothing in it.",
+                        "Empty Combo", MessageBoxButtons.OK, MessageBoxIcon.None);
+                return;
+            }
+
             TaeComboEntry[] combo = new TaeComboEntry[dataGridViewComboEntries.RowCount - 1];
             for (int r = 0; r < dataGridViewComboEntries.RowCount - 1; r++)
             {
@@ -32,13 +39,33 @@ namespace DSAnimStudio.TaeEditor
 
                 if (animIDCellValue != null && event0CancelTypeCellValue != null)
                 {
+                    if (!int.TryParse(animIDCellValue.ToString().Replace("_", "").Replace("a", ""), out int animID))
+                    {
+                        MessageBox.Show($"\"{animIDCellValue.ToString()}\" is not a valid animation ID. Expected XXYYYY, aXX_YYYY, XXXYYYYYY, or aXXX_YYYYYY format.",
+                            "Invalid Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    if (!MainScreen.DoesAnimIDExist(animID))
+                    {
+                        MessageBox.Show($"Animation {animIDCellValue.ToString()} does not exist.",
+                            "Non-existant Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    if (!MainScreen.SelectedTae.BankTemplate[0]["JumpTableID"].EnumEntries.ContainsKey(event0CancelTypeCellValue.ToString()))
+                    {
+                        MessageBox.Show($"\"{event0CancelTypeCellValue.ToString()}\" is not a valid JumpTableID value. Go click a JumpTable event to see all of the possible values in the inspector.",
+                          "Invalid JumpTableID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
                     combo[r] = new TaeComboEntry(animIDCellValue.ToString(), event0CancelTypeCellValue.ToString());
                 }
                 else
                 {
-                    MessageBox.Show("[Placeholder Error Box - Replace Me Later] Invalid Combo");
-                    MessageBox.Show("Invalid combo. Check that every row (other than the blank row at the end) has both an animation ID and cancel type selected.", 
-                        "Invalid Combo", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Invalid combo. Check that every row (other than the blank row at the end) has both a valid animation ID and a valid JumpTableID.", 
+                        "Invalid Combo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
             }

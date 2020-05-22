@@ -202,6 +202,26 @@ namespace DSAnimStudio
             bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
+            bool bufferUsesBoneIndices = false;
+            //bool bufferUsesBoneWeights = false;
+
+            foreach (var buffer in mesh.VertexBuffers)
+            {
+                var layout = flvr.BufferLayouts[buffer.LayoutIndex];
+                foreach (var thing in layout)
+                {
+                    if (thing.Semantic == FLVER.LayoutSemantic.BoneIndices)
+                    {
+                        bufferUsesBoneIndices = true;
+                        break;
+                    }
+                    //else if (thing.Semantic == FLVER.LayoutSemantic.BoneWeights)
+                    //{
+                    //    bufferUsesBoneWeights = true;
+                    //}
+                }
+            }
+
             if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
                 ShadingMode = FlverShadingMode.PBR_GLOSS_DS3;
@@ -425,9 +445,9 @@ namespace DSAnimStudio
                 }
 
                 // Apply normal W channel bone index (for some weapons etc)
-                if (!vert.UsesBoneIndices())
+                if (!bufferUsesBoneIndices)
                 {
-                    int boneIndex = vert.NormalW;
+                    int boneIndex = vert.NormalW; 
 
                     //if (boneIndex == 0 && mesh.DefaultBoneIndex != 0)
                     //    boneIndex = mesh.DefaultBoneIndex;
