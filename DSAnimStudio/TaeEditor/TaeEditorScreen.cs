@@ -1705,7 +1705,7 @@ namespace DSAnimStudio.TaeEditor
                 if (PlaybackCursor != null)
                     MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.BasePlaybackSpeed:0.00})";
             };
-            
+
 
             //////////////
             // Viewport //
@@ -1770,7 +1770,7 @@ namespace DSAnimStudio.TaeEditor
             //    {
             //        return GFX.FlverShadingModeNames[GFX.ForcedFlverShadingMode.Value];
             //    }
-                
+
             //});
 
             //MenuBar.AddItem("3D Viewport", $@"Reload FLVER Shader (./Content/Shaders/FlverShader.xnb)", () =>
@@ -1828,6 +1828,7 @@ namespace DSAnimStudio.TaeEditor
             //    //{ "32x", () => GFX.SSAA = 32 },
             //}, () => $"{GFX.SSAA}x");
 
+            MenuBar.AddTopItem("Sound");
 
             MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "DS Anim Studio Help - Basic Controls",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
@@ -2143,7 +2144,10 @@ namespace DSAnimStudio.TaeEditor
                 e.Cancel = false;
             }
 
-            
+            if (!e.Cancel)
+            {
+                FmodManager.Shutdown();
+            }
         }
 
         private void WinFormsMenuStrip_MenuDeactivate(object sender, EventArgs e)
@@ -2632,6 +2636,8 @@ namespace DSAnimStudio.TaeEditor
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
+            bool isBlend = PlaybackCursor.IsPlaying;
+
             AnimSwitchRenderCooldown = AnimSwitchRenderCooldownMax;
 
             PlaybackCursor.IsStepping = false;
@@ -2663,12 +2669,23 @@ namespace DSAnimStudio.TaeEditor
 
                 Graph.ChangeToNewAnimRef(SelectedTaeAnim);
 
+           
+
                 UpdateLayout(); // Fixes scroll when you first open anibnd (hopefully)
 
                 AnimationListScreen.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
 
                 Graph.ViewportInteractor.OnNewAnimSelected();
                 Graph.PlaybackCursor.CurrentTime = 0;
+
+                if (!isBlend)
+                {
+                    Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
+                    Graph.ViewportInteractor.RootMotionSendHome();
+                    Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
+                    Graph.ViewportInteractor.ResetRootMotion();
+                    Graph.ViewportInteractor?.RemoveTransition();
+                }
 
                 //TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
 
@@ -3005,6 +3022,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (!Main.Active)
             {
+                FmodManager.StopAllSounds();
                 MenuBar.CloseAll();
             }
 
@@ -3066,6 +3084,9 @@ namespace DSAnimStudio.TaeEditor
 
             if (Main.Active)
             {
+                if (Input.KeyDown(Keys.Escape))
+                    FmodManager.StopAllSounds();
+
                 if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
                     ChangeTypeOfSelectedEvent();
 

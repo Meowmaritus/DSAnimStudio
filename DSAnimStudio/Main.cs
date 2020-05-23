@@ -38,7 +38,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.0";
+        public const string VERSION = "Version 2.1";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -171,6 +171,7 @@ namespace DSAnimStudio
 
         public Main()
         {
+
             WinForm = (Form)Form.FromHandle(Window.Handle);
 
             Directory = new FileInfo(typeof(Main).Assembly.Location).DirectoryName;
@@ -221,9 +222,18 @@ namespace DSAnimStudio
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
 
+        //protected override void Dispose(bool disposing)
+        //{
+        //    if (disposing)
+        //        FmodManager.Shutdown();
+
+        //    base.Dispose(disposing);
+        //}
+
         private void Main_Deactivated(object sender, EventArgs e)
         {
             UpdateActiveState();
+            FmodManager.StopAllSounds();
         }
 
         private void Main_Activated(object sender, EventArgs e)
@@ -264,8 +274,6 @@ namespace DSAnimStudio
             CFG.Save();
 
             TAE_EDITOR.SaveConfig();
-
-            TaeEditor.TaeSoundManager.DisposeAll();
 
             base.OnExiting(sender, args);
         }
@@ -421,6 +429,8 @@ namespace DSAnimStudio
             ImGuiDraw.RebuildFontAtlas();
 
             TAE_EDITOR.LoadContent(Content);
+
+            FmodManager.InitTest();
         }
 
         private static void DrawImGui(GameTime gameTime, int x, int y, int w, int h)
@@ -662,6 +672,8 @@ namespace DSAnimStudio
                 prevFrameWasLoadingTaskRunning = IsLoadingTaskRunning;
 
                 IsFirstFrameActive = false;
+
+                FmodManager.Update();
 
                 base.Update(gameTime);
             }

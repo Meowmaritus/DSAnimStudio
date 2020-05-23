@@ -9,6 +9,7 @@
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
+using Microsoft.Xna.Framework;
 
 namespace FMOD
 {
@@ -65,6 +66,13 @@ namespace FMOD
         public float x;        /* X co-ordinate in 3D space. */
         public float y;        /* Y co-ordinate in 3D space. */
         public float z;        /* Z co-ordinate in 3D space. */
+
+        public VECTOR(Vector3 v)
+        {
+            x = v.X;
+            y = v.Y;
+            z = v.Z;
+        }
     }
 
 

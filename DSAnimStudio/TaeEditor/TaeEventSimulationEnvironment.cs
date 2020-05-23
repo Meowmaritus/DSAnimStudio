@@ -152,6 +152,51 @@ namespace DSAnimStudio.TaeEditor
             {
 
                 {
+                    "EventSimSE",
+                    new EventSimEntry("Simulate Sound Effects", true)
+                    {
+                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        {
+                            foreach (var evBox in evBoxes)
+                            {
+                                if (evBox.WasJustEnteredDuringPlayback && 
+                                    evBox.MyEvent.TypeName != null &&
+                                    evBox.MyEvent.TypeName.StartsWith("PlaySound"))
+                                {
+                                    int soundType = Convert.ToInt32(evBox.MyEvent.Parameters["SoundType"]);
+                                    int soundID = Convert.ToInt32(evBox.MyEvent.Parameters["SoundID"]);
+
+                                    Func<Vector3> getPosFunc = () => Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix);
+
+                                    if (evBox.MyEvent.Template.ContainsKey("DummyPolyID"))
+                                    {
+                                        int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
+
+                                        getPosFunc = () =>
+                                        {
+                                            if (dummyPolyID == -1)
+                                            {
+                                                return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+                                            }
+
+                                            if (MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
+                                            {
+                                                return Vector3.Transform(Vector3.Zero, MODEL.DummyPolyMan.DummyPolyByRefID[dummyPolyID][0].CurrentMatrix);
+                                            }
+
+                                            return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+                                        };
+                                        
+                                    }
+
+                                    FmodManager.PlaySE(soundType, soundID, getPosFunc);
+                                }
+                            }
+                        },
+                    }
+                },
+
+                {
                     "EventSimBasicBlending",
                     new EventSimEntry("Simulate Basic Blending", true)
                     {

@@ -281,6 +281,10 @@ namespace DSAnimStudio.TaeEditor
                 GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
                 GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
                 GFX.World.OrbitCamReset();
+
+                FmodManager.Purge();
+                FmodManager.LoadMainFEVs();
+                FmodManager.LoadInterrootFEV(CurrentModel.Name);
             }
             else if (shortFileName.StartsWith("o"))
             {
@@ -857,6 +861,8 @@ namespace DSAnimStudio.TaeEditor
             
             if (CurrentModel != null)
             {
+                GFX.World.ModelDirection_ForOrbitCam = CurrentModel.CurrentDirection;
+
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {
                     //GFX.World.WorldMatrixMOD = //Matrix.CreateFromQuaternion(Quaternion.CreateFromRotationMatrix(CurrentModel.CurrentRootMotionTransform.WorldMatrix)) * 
@@ -912,6 +918,15 @@ namespace DSAnimStudio.TaeEditor
         public void DrawDebug()
         {
             var printer = new StatusPrinter(Vector2.One * 4, Color.Yellow);
+
+            //if (FmodManager.LoadedFEVs.Count > 0)
+            //{
+            //    printer.AppendLine($"FEVs Loaded:", Color.Lime);
+            //    foreach (var fevName in FmodManager.LoadedFEVs)
+            //    {
+            //        printer.AppendLine($"    {fevName}", Color.Lime);
+            //    }
+            //}
 
             //printer.AppendLine("[DbgMenuPadRepeater Debug Info]");
             //foreach (var repeater in DbgMenuPadRepeater.ALL_INSTANCES)

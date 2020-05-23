@@ -168,9 +168,11 @@ namespace DSAnimStudio.TaeEditor
                           ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}"),
                         Ref = anim,
                         VerticalOffset = taeSection.HeightOfAllAnims,
-                        TaePrefix = animID_Upper,
+                        TaePrefix = MainScreen.FileContainer.AllTAEDict.Count == 1 ? 0 : animID_Upper,
                         IsLargeID = GameDataManager.GameTypeHasLongAnimIDs
                     };
+
+
 
                     taeSection.InfoMap.Add(anim, info);
                     taeSection.HeightOfAllAnims += AnimHeight;
@@ -342,19 +344,21 @@ namespace DSAnimStudio.TaeEditor
 
                     foreach (var anim in taeSection.InfoMap)
                     {
-                        var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Value.Ref);
-                        string animIDText = (MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName) ? "■" : "□") + 
-                            (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
-
-                        float animBlendWeight = MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName);
-
-                        string animNameText = (anim.Value.Ref.AnimFileName ?? "<null>");
+                      
 
                         if (offset + AnimHeight < ScrollViewer.Scroll.Y || offset > ScrollViewer.Scroll.Y + Rect.Height)
                         {
                             offset += AnimHeight;
                             continue;
                         }
+
+                        var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Value.Ref);
+                        string animIDText = (MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName) ? "■" : "□") +
+                            (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
+
+                        float animBlendWeight = MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName);
+
+                        string animNameText = (anim.Value.Ref.AnimFileName ?? "<null>");
 
                         if (anim.Value.Ref == MainScreen.SelectedTaeAnim)
                         {

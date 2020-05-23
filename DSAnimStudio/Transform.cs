@@ -59,12 +59,12 @@ namespace DSAnimStudio
 
         public Matrix TranslationMatrix => Matrix.CreateTranslation(Position.X, Position.Y, Position.Z);
         public Matrix RotationMatrix => Matrix.CreateRotationY(EulerRotation.Y)
-            * Matrix.CreateRotationZ(EulerRotation.Z)
-            * Matrix.CreateRotationX(EulerRotation.X);
+            * Matrix.CreateRotationZ(EulerRotation.X)
+            * Matrix.CreateRotationX(EulerRotation.Z);
 
         public Matrix RotationMatrixNeg => Matrix.CreateRotationY(-EulerRotation.Y)
-           * Matrix.CreateRotationZ(-EulerRotation.Z)
-           * Matrix.CreateRotationX(-EulerRotation.X);
+           * Matrix.CreateRotationZ(-EulerRotation.X)
+           * Matrix.CreateRotationX(-EulerRotation.Z);
 
         public Matrix RotationMatrixXYZ => Matrix.CreateRotationX(EulerRotation.X)
             * Matrix.CreateRotationY(EulerRotation.Y)
