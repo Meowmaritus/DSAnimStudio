@@ -347,8 +347,6 @@ namespace DSAnimStudio.TaeEditor
 
                     foreach (var anim in taeSection.InfoMap)
                     {
-                      
-
                         if (offset + AnimHeight < ScrollViewer.Scroll.Y || offset > ScrollViewer.Scroll.Y + Rect.Height)
                         {
                             offset += AnimHeight;
@@ -356,10 +354,10 @@ namespace DSAnimStudio.TaeEditor
                         }
 
                         var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Value.Ref);
-                        string animIDText = (MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName) ? "■" : "□") +
+                        string animIDText = ((animFileName != null && MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName)) ? "■" : "□") +
                             (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
 
-                        float animBlendWeight = MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName);
+                        float animBlendWeight = animFileName != null ? MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName) : -1;
 
                         string animNameText = (anim.Value.Ref.AnimFileName ?? "<null>");
 
