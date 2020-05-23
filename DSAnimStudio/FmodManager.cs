@@ -452,16 +452,21 @@ namespace DSAnimStudio
             Main.WinForm.Invoke(new Action(() =>
             {
                 int channelsPlaying = 0;
-                ERRCHECK(result = _system.getChannelsPlaying(ref channelsPlaying));
+                result = _system.getChannelsPlaying(ref channelsPlaying);
+
+                if (result == RESULT.ERR_INVALID_PARAM || result == RESULT.ERR_INVALID_HANDLE)
+                    return;
+
                 for (int i = 0; i < MAX_CHANNELS; i++)
                 {
                     FMOD.Channel channel = null;
-                    ERRCHECK(result = _system.getChannel(i, ref channel));
-                    var channelResult = channel.stop();
-                    if (channelResult != RESULT.ERR_INVALID_HANDLE)
-                    {
-                        ERRCHECK(channelResult);
-                    }
+
+                    result = _system.getChannel(i, ref channel);
+
+                    if (result == RESULT.ERR_INVALID_PARAM || result == RESULT.ERR_INVALID_HANDLE)
+                        continue;
+
+                    result = channel.stop();
                 }
             }));
             
