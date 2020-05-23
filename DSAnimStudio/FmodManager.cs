@@ -165,7 +165,7 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    var position = GetPosFunc?.Invoke() ?? Vector3.Zero;
+                    var position = (GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(-1, 1, 1);
                     var velocity = Vector3.Zero;// (position - oldPos) / deltaTime;
 
                     FMOD.VECTOR posVec = new VECTOR(position);
