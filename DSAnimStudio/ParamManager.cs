@@ -43,6 +43,8 @@ namespace DSAnimStudio
         public static Dictionary<long, ParamData.WepAbsorpPosParam> WepAbsorpPosParam
            = new Dictionary<long, ParamData.WepAbsorpPosParam>();
 
+        public static List<long> HitMtrlParamEntries = new List<long>();
+
         private static GameDataManager.GameTypes GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameTypes.None;
 
         public static PARAM_Hack GetParam(string paramName)
@@ -149,6 +151,15 @@ namespace DSAnimStudio
             if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
                 AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
             AddParam(SpEffectParam, "SpEffectParam");
+
+            var hitMtrlParam = GetParam("HitMtrlParam");
+            foreach (var row in hitMtrlParam.Rows)
+            {
+                if (!HitMtrlParamEntries.Contains(row.ID))
+                    HitMtrlParamEntries.Add(row.ID);
+            }
+
+            HitMtrlParamEntries = HitMtrlParamEntries.OrderBy(x => x).ToList();
 
             GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameType;
         }

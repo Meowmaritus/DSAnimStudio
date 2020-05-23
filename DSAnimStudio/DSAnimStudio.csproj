@@ -81,9 +81,12 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
     <Compile Include="FlverShadingMode.cs" />
+    <Compile Include="FmodManager.cs" />
     <Compile Include="FMOD\fmod.cs" />
     <Compile Include="FMOD\fmod_dsp.cs" />
     <Compile Include="FMOD\fmod_errors.cs" />
+    <Compile Include="FMOD\fmod_event.cs" />
+    <Compile Include="FMOD\fmod_event_net.cs" />
     <Compile Include="FMOD\fmod_memoryinfo.cs" />
     <Compile Include="GlobalInputState.cs" />
     <Compile Include="HavokDowngrade.cs" />
@@ -208,7 +211,6 @@
     <Compile Include="TaeEditor\TaeScrollingString.cs" />
     <Compile Include="TaeEditor\TaeScrollViewer.cs" />
     <Compile Include="TaeEditor\TaeUndoMan.cs" />
-    <Compile Include="TaeEditor\TaeSoundManager.cs" />
     <Compile Include="Tests.cs" />
     <Compile Include="TextureFetchRequest.cs" />
     <Compile Include="CFG.cs" />
@@ -373,10 +375,25 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="fmodex64.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="fmod_event64.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="fmod_event_net64.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\HitMtrlParamNames.DS1.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Res\TagTools\AssetCc2.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TagTools\CollisionConverter.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\HitMtrlParamNames.DS3.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TagTools\TagTools.exe">
@@ -609,7 +626,12 @@ for %25%25f in ($(TargetDir)*.dll) do (
   move "%25%25f" "$(TargetDir)lib"
   if exist "%25%25~dpnf.xml" (move "%25%25~dpnf.xml" "$(TargetDir)lib")
   if exist "%25%25~dpnf.pdb" (move "%25%25~dpnf.pdb" "$(TargetDir)lib")
-)</PostBuildEvent>
+)
+
+if exist "$(TargetDir)lib\fmodex64.dll" (move "$(TargetDir)lib\fmodex64.dll" "$(TargetDir)fmodex64.dll")
+if exist "$(TargetDir)lib\fmod_event64.dll" (move "$(TargetDir)lib\fmod_event64.dll" "$(TargetDir)fmod_event64.dll")
+if exist "$(TargetDir)lib\fmod_event_net64.dll" (move "$(TargetDir)lib\fmod_event_net64.dll" "$(TargetDir)fmod_event_net64.dll")
+</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>rmdir /S /Q "$(TargetDir)lib"</PreBuildEvent>

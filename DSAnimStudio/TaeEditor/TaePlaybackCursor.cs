@@ -135,7 +135,7 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsRepeat = true;
         public bool IsPlaying = false;
-        private bool prevIsPlaying = false;
+        public bool OldIsPlaying { get; private set; } = false;
 
         public bool Scrubbing = false;
         public bool prevScrubbing = false;
@@ -207,7 +207,7 @@ namespace DSAnimStudio.TaeEditor
                 IsStepping = false;
             }
 
-            JustStartedPlaying = !prevIsPlaying && IsPlaying;
+            JustStartedPlaying = !OldIsPlaying && IsPlaying;
 
             if (Scrubbing || JustStartedPlaying)
             {
@@ -372,7 +372,7 @@ namespace DSAnimStudio.TaeEditor
 
             OldLoopCount = CurrentLoopCount;
 
-            prevIsPlaying = IsPlaying;
+            OldIsPlaying = IsPlaying;
         }
     }
 }

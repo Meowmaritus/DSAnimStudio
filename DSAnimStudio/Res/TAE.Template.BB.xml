@@ -2,6 +2,158 @@
 <event_template game="BB">
   <!-- Bank 4: Characters -->
   <bank id="4" name="Characters">
+	  <event id="0" name="JumpTable">
+		  <s32 name="JumpTableID">
+			  <entry value="1"   name="1: InvokeAnimCancelStart_R1_R2_LightKick_HeavyKick"/>
+			  <!-- ArgB - BehaviorSubID -->
+			  <entry value="3"   name="3: InvokeShieldBlock(ArgB)"/>
+			  <entry value="4"   name="4: End If RH Attack Queued"/>
+			  <!-- ArgC = 6 = 1011,7 = 1012, 8 = 1013 -->
+			  <entry value="5"   name="5: InvokeParriedState(ArgC)"/>
+			  <entry value="6"   name="6: InvokeAnimCancelEndWithKeyboardKey"/>
+			  <entry value="7"   name="7: InvokeLockChrRotation"/>
+			  <entry value="8"   name="8: Flag As Dodging"/>
+			  <entry value="9"   name="9: InvokeAnimCancelStart_L1_L2"/>
+			  <entry value="10"  name="10: InvokeAnimCancelStart_MagicR_MagicL"/>
+			  <entry value="11"  name="11: End If LS Move Queued"/>
+			  <entry value="12"  name="12: InvokeDeath"/>
+			  <entry value="14"  name="14: SetUnkBool"/>
+			  <entry value="15"  name="15: SetUnkFlags"/>
+			  <entry value="16"  name="16: End If LH Attack Queued"/>
+			  <!-- 0x141B95B40 -->
+			  <entry value="17"  name="17: SetIsStartbit8"/>
+			  <entry value="18"  name="18: SetIsStartbit3"/>
+			  <entry value="19"  name="19: DisableMapHit"/>
+			  <entry value="20"  name="20: Set_0x78_10"/>
+			  <entry value="21"  name="21: InvokeAnimCancelStart_Guard"/>
+			  <entry value="22"  name="22: End If Guard Queued"/>
+			  <entry value="23"  name="23: End If AI ComboAttack Queued"/>
+			  <entry value="24"  name="24: Set_0x78_16"/>
+			  <entry value="25"  name="25: InvokeAnimCancelStart_SpMove_Backstep_Rolling_Jump"/>
+			  <entry value="26"  name="26: End If Dodge Queued"/>
+			  <entry value="27"  name="27: SetNoGravity"/>
+			  <entry value="28"  name="28: InvokeIsLadder"/>
+			  <entry value="29"  name="29: InvokeAction_AndTAEDebuggingClass"/>
+			  <entry value="30"  name="30: InvokeAnimCancelStart_UseItem"/>
+			  <entry value="31"  name="31: InvokeAnimCancelEnd_UseItem"/>
+			  <entry value="32"  name="32: End If Weapon Switch Queued"/>
+			  <entry value="34"  name="34: InvokeAnimCancelEnd_General"/>
+			  <entry value="35"  name="35: Set0x1EB_Bool"/>
+			  <entry value="36"  name="36: Set0xEF_Bool"/>
+			  <entry value="37"  name="37: Set_0x78_18"/>
+			  <entry value="38"  name="38: Set_0x78_19"/>
+			  <entry value="39"  name="39: Set_0x78_7"/>
+			  <entry value="40"  name="40: Set_0x78_20"/>
+			  <entry value="41"  name="41: InvokeHasSpace_Hks305"/>
+			  <entry value="42"  name="42: InvokeIsSweetSpot"/>
+			  <entry value="44"  name="44: Set_0x78_4"/>
+			  <entry value="46"  name="46: ExtraJumptable_IFAlive?"/>
+			  <entry value="46"  name="47: ExtraJumptable1_InvokeDeath2"/>
+			  <entry value="46"  name="48: ExtraJumptable2_InvokeCultPromtCheck1"/>
+			  <!-- 0x1408841C0 -->
+			  <entry value="49"  name="49: Set_0x78_11"/>
+			  <entry value="50"  name="50: Set_0x78_8"/>
+			  <entry value="51"  name="51: Set_0x78_6"/>
+			  <entry value="52"  name="52: Set_0x78_13"/>
+			  <entry value="53"  name="53: Set_0x78_14"/>
+			  <entry value="54"  name="54: InvokeTalk_DisableInput"/>
+			  <entry value="55"  name="55: Set_0x78_12"/>
+			  <!-- 0x1409BAB46 -->
+			  <entry value="56"  name="56: SetStartbit13_DamageModule"/>
+			  <!-- 0x1409BAB5F -->
+			  <entry value="57"  name="57: SetStartbit14_DamageModule"/>
+			  <entry value="58"  name="58: SetStartbit6"/>
+			  <entry value="59"  name="59: InvokeWeakSpot"/>
+			  <entry value="60"  name="60: SetBool32_0x7C_0"/>
+			  <entry value="61"  name="61: SetBool32_0x7C_2"/>
+			  <entry value="62"  name="62: SetYAxisAutoRot_AndUnk"/>
+			  <entry value="63"  name="63: SetBool32_0x7C_3_RequestAiState"/>
+			  <!-- 0x1408BA3A8 -->
+			  <entry value="64"  name="64: SetBool32_0x7C_4"/>
+			  <entry value="65"  name="65: SetBool32_0x7C_6_FloorHitMaterial"/>
+			  <!-- 0x1405D4593 -->
+			  <entry value="66"  name="66: SetBool32_0x7C_7_hks271"/>
+			  <!-- (Engine Flag Startbit 5 & 4 0x1409E205A) -->
+			  <entry value="67"  name="67: InvokeThrowStart2"/>
+			  <entry value="68"  name="68: InvokeHitSwing_ThrowStart1"/>
+			  <!-- SetBool32_0x9C8 (0x1405D5470) & (0x1405D54E5) ThrowType 5 and 6 (Death) -->
+			  <entry value="69"  name="69: InvokeThrowType5"/>
+			  <!-- SetBool32_0x9C8 (0x1405D556B) & (0x1405D562F) Throw Type 4 and 3? -->
+			  <entry value="70"  name="70: InvokeThrowType4"/>
+			  <!-- 0x1409DE2BC -->
+			  <entry value="71"  name="71: SetBool32_0x7C_9"/>
+			  <!-- Invoke Knockback Distance -->
+			  <entry value="72"  name="72: InvokeKnockbackValue"/>
+			  <entry value="73"  name="73: SetBool32_0x7C_10"/>
+			  <entry value="74"  name="74: SetBool32_0x7C_11"/>
+			  <entry value="75"  name="75: SetBool32_0x7C_13_ItemPickUp_RememberInput"/>
+			  <entry value="76"  name="76: InvokeCultPromtCheck2"/>
+			  <entry value="78"  name="78: End If AI Move Queued"/>
+			  <entry value="79"  name="79: End If AI Step Queued"/>
+			  <entry value="80"  name="80: SetBool32_0x7C_14_ItemPickUp_Default"/>
+			  <!-- 0x140702154 -->
+			  <entry value="81"  name="81: SetBool32_0x7C_15_ActionButton4400"/>
+			  <entry value="82"  name="82: SetBool32_0x7C_17_SetAiFlag"/>
+			  <entry value="83"  name="83: SetBool32_0x7C_5"/>
+			  <entry value="84"  name="84: SetBool32_0x7C_8_hks298"/>
+			  <entry value="85"  name="85: SetBool32_0x7C_18_StateInfo147_LanternWeapon"/>
+			  <entry value="86"  name="86: End If AI Attack Queued"/>
+			  <entry value="87"  name="87: InvokeAttackAction_Complex"/>
+			  <!-- 0x14088793A -->
+			  <entry value="88"  name="88: SetBool32_0x7C_19"/>
+			  <!-- 0x14099EA03 -->
+			  <entry value="89"  name="89: Disable All Movement"/>
+			  <entry value="90"  name="90: Limit Move Speed To Walk"/>
+			  <entry value="91"  name="91: Limit Move Speed To Dash"/>
+			  <!-- 0x14098D5ED -->
+			  <entry value="92"  name="92: SetBool32_0x7C_20_hksJumptableFunc"/>
+			  <!-- 0x140884499 -->
+			  <entry value="94"  name="94: SetStartbit0"/>
+			  <!-- 0x00000001409A40EA GXSgLayerDynamicTree -->
+			  <entry value="95"  name="95: InvokePlayerDeathLight"/>
+			  <entry value="96"  name="96: SetBool32_0x80_Startbit1"/>
+			  <entry value="97"  name="97: InvokeMagicCastingUselessChecks"/>
+			  <entry value="98"  name="98: SetBool32_0x7C_21_hks313"/>
+			  <entry value="99"  name="99: InvokeIsCultRitualProgressing"/>
+			  <entry value="100"  name="100: SetStartbit17"/>
+			  <entry value="101"  name="101: SetStartbit18"/>
+			  <entry value="102"  name="102: SetStartbit21"/>
+			  <entry value="103"  name="103: InvokeAnimCancelEnd_L2"/>
+			  <entry value="104"  name="104: InvokeAnimCancelEnd_L2_WeaponCancelType_HksSet2011"/>
+			  <entry value="105"  name="105: InvokeAnimCancelStart_L2"/>
+			  <entry value="106"  name="106: GetWeaponCancelType_HksSet2011_SameAs104"/>
+			  <!-- 0x00000001409A3BB1 -->
+			  <entry value="107"  name="107: InvokeAnimCancelEnd_UseItem_ByGoodsParam"/>
+			  <!-- 0x00000001409A3ACF -->
+			  <entry value="108"  name="108: InvokeAnimCancelStart_UseItem_ByGoodsParam"/>
+			  <entry value="109"  name="109: InvokeCanDoubleCast_hks331"/>
+			  <!-- 0x1405E0165 -->
+			  <entry value="110"  name="110: InvokeDisableDirectionChange"/>
+			  <entry value="111"  name="111: InvokeAnimCancelStart_EmergencyStep"/>
+			  <entry value="112"  name="112: InvokeAnimCancelEnd_EmergencyStep"/>
+			  <!-- 0x1405C80DF -->
+			  <entry value="113"  name="113: InvokeHeightCorrection"/>
+			  <!-- 0x14085A75B -->
+			  <entry value="114"  name="114: InvokeChangeLockOnMarkerPos"/>
+			  <entry value="115"  name="115: InvokeAnimCancelEnd_R1_LightKick"/>
+			  <entry value="116"  name="116: InvokeAnimCancelEnd_R2_HeavyKick"/>
+			  <entry value="117"  name="117: InvokeAnimCancelEnd_L1"/>
+			  <entry value="118"  name="118: InvokeAnimCancelEnd_L2"/>
+			  <entry value="119"  name="119: TryToInvokeForceParryMode"/>
+			  <!-- 0x1409A35E7 -->
+			  <entry value="120"  name="120: InvokeAnimCancelStart_L1_L2_ByWeaponParam"/>
+			  <entry value="121"  name="121: InvokeAnimCancelEndExtra_L1_l2_ByWeaponParam"/>
+			  <entry value="122"  name="122: SetBool32_0x1E0"/>
+			  <entry value="123"  name="123: SetBool32_0x1E0"/>
+			  <!-- 0x14085A763 -->
+			  <entry value="124"  name="124: InvokeLockOnAutoSearch"/>
+		  </s32>
+		  <f32 name="KnockbackValue_Jump72"/>
+		  <s32 name="ShieldBlockId_Jump4"/>
+		  <u8 name="ArgC"/>
+		  <u8 name="ArgD"/>
+		  <s16 name="StateInfo"/>
+	  </event>
     <event id="1" name="InvokeAttackBehavior">
       <s32 name="AttackType">
         <entry value="0" name="Standard"/>

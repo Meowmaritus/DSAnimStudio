@@ -138,8 +138,29 @@ namespace DSAnimStudio.TaeEditor
         //    CheckHighlight(OwnerPane.PlaybackCursor.OldHitWindowStart, OwnerPane.PlaybackCursor.OldHitWindowEnd,
         //        OwnerPane.MainScreen.PrevHoveringOverEventBox);
 
-        public bool PlaybackHighlight => OwnerPane?.PlaybackCursor == null ? false : 
+        public bool PlaybackHighlight => OwnerPane?.PlaybackCursor == null ? false :
             CheckHighlight(OwnerPane.PlaybackCursor.CurrentTimeMod, OwnerPane.MainScreen.HoveringOverEventBox);
+
+        public bool WasJustEnteredDuringPlayback
+        {
+            get
+            {
+                if (OwnerPane == null || OwnerPane.PlaybackCursor == null)
+                    return false;
+
+                if (PlaybackHighlight && !PrevCyclePlaybackHighlight && (OwnerPane.PlaybackCursor.Scrubbing || OwnerPane.PlaybackCursor.IsPlaying))
+                {
+                    return true;
+                }
+
+                if (PlaybackHighlight && !OwnerPane.PlaybackCursor.OldIsPlaying && OwnerPane.PlaybackCursor.IsPlaying)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
 
         public bool PrevCyclePlaybackHighlight => !OwnerPane.PlaybackCursor.JustStartedPlaying &&
             CheckHighlight(OwnerPane.PlaybackCursor.OldCurrentTimeMod, OwnerPane.MainScreen.PrevHoveringOverEventBox);

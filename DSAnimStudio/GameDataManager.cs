@@ -110,6 +110,9 @@ namespace DSAnimStudio
                 FmgManager.LoadAllFMG(forceReload);
                 LoadSystex();
                 LoadMTDBND();
+                FmodManager.Purge();
+                FmodManager.UpdateInterroot();
+                FmodManager.LoadFloorMaterialNamesFromInterroot();
             }
             lastGameType = GameType;
         }

@@ -29,6 +29,7 @@ namespace DSAnimStudio
         public float OrbitCamDistance = 2;
         public float ModelHeight_ForOrbitCam = 1;
         public float ModelDepth_ForOrbitCam = 1;
+        public float ModelDirection_ForOrbitCam = 0;
         public Vector3 ModelCenter_ForOrbitCam = Vector3.Zero;
         public Vector3 OrbitCamCenter = new Vector3(0, 0.5f, 0);
         public bool IsOrbitCam = true;
@@ -47,7 +48,7 @@ namespace DSAnimStudio
 
             OrbitCamCenter = new Vector3(0, ModelCenter_ForOrbitCam.Y, 0);
 
-            CameraTransform.EulerRotation = CameraDefaultRot;
+            CameraTransform.EulerRotation = CameraDefaultRot + new Vector3(0, -ModelDirection_ForOrbitCam, 0);
         }
 
 

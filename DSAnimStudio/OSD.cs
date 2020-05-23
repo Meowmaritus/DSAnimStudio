@@ -65,6 +65,8 @@ namespace DSAnimStudio
                 //if (!Focused)
                 //    ImGui.SetWindowCollapsed(true);
 
+                ImGui.SliderFloat("Volume", ref FmodManager.AdjustSoundVolume, 0, 1.25f);
+
                 if (RequestCollapse)
                 {
                     RequestCollapse = false;
