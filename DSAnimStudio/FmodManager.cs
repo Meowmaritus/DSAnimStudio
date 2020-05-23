@@ -49,8 +49,15 @@ namespace DSAnimStudio
 
         public static void LoadFloorMaterialNamesFromInterroot()
         {
-
             FloorMaterialNames.Clear();
+
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
 
             foreach (var id in ParamManager.HitMtrlParamEntries)
             {
@@ -92,6 +99,14 @@ namespace DSAnimStudio
                 //Main.TAE_EDITOR.MenuBar.AddTopItem("Sound");
 
                 Main.TAE_EDITOR.MenuBar.ClearItem("Sound");
+
+                if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+                {
+                    return;
+                }
 
                 Main.TAE_EDITOR.MenuBar.AddItem("Sound", "[STOP ALL]", () =>
                 {
@@ -150,6 +165,14 @@ namespace DSAnimStudio
             }
             public void Update(float deltaTime)
             {
+                if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+                {
+                    return;
+                }
+
                 FMOD.EVENT_STATE state = EVENT_STATE.PLAYING;
                 evtRes = Event.getState(ref state);
 
@@ -184,6 +207,14 @@ namespace DSAnimStudio
 
         private static bool LoadFEV(string fullFevPath)
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return false;
+            }
+
             string fevKey = Utils.GetShortIngameFileName(fullFevPath);
 
             if (_loadedFEVs.Contains(fevKey))
@@ -205,6 +236,14 @@ namespace DSAnimStudio
 
         public static bool PlayEventInFEV(string fevFilePath, string eventPath)
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return false;
+            }
+
             var foundFev = LoadFEV(fevFilePath);
             if (!foundFev)
                 return false;
@@ -240,11 +279,19 @@ namespace DSAnimStudio
                 return Utils.Frankenpath(GameDataManager.InterrootPath, $@"sound\fdp_{name}.fev");
             else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 return Utils.Frankenpath(GameDataManager.InterrootPath, $@"sound\{name}.fev");
-            else throw new NotImplementedException();
+            else return null;
         }
 
         public static void LoadInterrootFEV(string name)
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
+
             string path = GetFevPathFromInterroot(name);
             if (!File.Exists(path) && 
                 (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
@@ -282,7 +329,6 @@ namespace DSAnimStudio
             {
                 LoadInterrootFEV("main");
             }
-            else throw new NotImplementedException();
         }
 
         public static bool PlaySE(int category, int id, Func<Vector3> getPosFunc = null)
@@ -350,6 +396,14 @@ namespace DSAnimStudio
 
         public static void UpdateInterroot()
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
+
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = _eventSystem.setMediaPath(GetDirWithBackslash(
@@ -359,6 +413,14 @@ namespace DSAnimStudio
 
         public static void Update()
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
+
             Main.WinForm.Invoke(new Action(() =>
             {
                 
@@ -396,6 +458,14 @@ namespace DSAnimStudio
 
         public static void Purge()
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
+
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = _eventSystem.unload());
@@ -405,6 +475,14 @@ namespace DSAnimStudio
 
         private static bool PlayEvent(string eventPath, Func<Vector3> getPosFunc = null)
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return false;
+            }
+
             bool result = false;
             Main.WinForm.Invoke(new Action(() =>
             {
@@ -441,6 +519,14 @@ namespace DSAnimStudio
 
         public static void Shutdown()
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
+
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = _eventSystem.release());
@@ -449,6 +535,14 @@ namespace DSAnimStudio
 
         public static void StopAllSounds()
         {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
+
             Main.WinForm.Invoke(new Action(() =>
             {
                 int channelsPlaying = 0;

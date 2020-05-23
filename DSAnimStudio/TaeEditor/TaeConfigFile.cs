@@ -42,7 +42,7 @@ namespace DSAnimStudio.TaeEditor
         public Dictionary<string, bool> EventSimulationsEnabled { get; set; }
             = new Dictionary<string, bool>();
 
-        public string LastCubemapUsed { get; set; } = "m32_00_GILM0131";
+        public string LastCubemapUsed { get; set; } = "DefaultCubemap";
 
         public Dictionary<string, bool> CategoryEnableDraw = new Dictionary<string, bool>();
         public Dictionary<string, bool> CategoryEnableDbgLabelDraw = new Dictionary<string, bool>();

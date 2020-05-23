@@ -801,6 +801,9 @@ namespace DSAnimStudio.TaeEditor
 
         public string GetFinalAnimFileName(TAE tae, TAE.Animation anim)
         {
+            if (CurrentModel == null)
+                return null;
+
             var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
             return mainChrSolver.GetHKXName(tae, anim);
         }
@@ -861,7 +864,7 @@ namespace DSAnimStudio.TaeEditor
             
             if (CurrentModel != null)
             {
-                GFX.World.ModelDirection_ForOrbitCam = CurrentModel.CurrentDirection;
+                GFX.World.ModelDirection_ForOrbitCam = Graph.MainScreen.Config.CameraFollowsRootMotionRotation ? CurrentModel.CurrentDirection : 0;
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {

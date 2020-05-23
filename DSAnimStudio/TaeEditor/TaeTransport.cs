@@ -69,7 +69,7 @@ namespace DSAnimStudio.TaeEditor
                 GetDebugText = () => PlaybackCursor.IsPlaying ? "||" : ">",
                 GetIsEnabled = () => true,
                 OnClick = () => PlaybackCursor.Transport_PlayPause(),
-                GetHotkey = b => (!MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && !MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyHeld(Keys.Space),
+                GetHotkey = b => (!MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && !MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyDown(Keys.Space),
             });
 
 

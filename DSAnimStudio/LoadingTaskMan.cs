@@ -12,6 +12,7 @@ namespace DSAnimStudio
     {
         public class LoadingTask
         {
+            public readonly string TaskKey;
             public string DisplayString;
             public double ProgressRatio { get; private set; }
             public bool IsComplete { get; private set; }
@@ -20,9 +21,10 @@ namespace DSAnimStudio
             //public double ElapsedSeconds => Timer.Elapsed.TotalSeconds;
             Thread taskThread;
 
-            public LoadingTask(string displayString, Action<IProgress<double>> doLoad, 
+            public LoadingTask(string taskKey, string displayString, Action<IProgress<double>> doLoad, 
                 double startingProgressRatio = 0)
             {
+                TaskKey = taskKey;
                 //Timer = System.Diagnostics.Stopwatch.StartNew();
 
                 DisplayString = displayString;
@@ -40,7 +42,15 @@ namespace DSAnimStudio
 
                 taskThread = new Thread(() =>
                 {
-                    doLoad.Invoke(prog);
+                    try
+                    {
+                        doLoad.Invoke(prog);
+                    }
+                    catch (Exception ex)
+                    {
+                        ErrorHandler.Handle(ex, $"Fatal error encountered during background task '{TaskKey}'");
+                    }
+                    
                     // We don't check ProgressRatio to see if it's done, since
                     // the thread is INSTANTLY KILLED when complete, which would
                     // cause slight progress rounding errors to destroy the
@@ -124,7 +134,7 @@ namespace DSAnimStudio
                 if (TaskDict.ContainsKey(taskKey))
                     return false;
                 // As soon as the LoadingTask is created it starts.
-                TaskDict.Add(taskKey, new LoadingTask(displayString, progress =>
+                TaskDict.Add(taskKey, new LoadingTask(taskKey, displayString, progress =>
                 {
                     taskDelegate.Invoke(progress);
                     if (addFluffMilliseconds > 0)
