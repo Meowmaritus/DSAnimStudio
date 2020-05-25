@@ -230,5 +230,10 @@ namespace DSAnimStudio.TaeEditor
             e.Cancel = true;
             Hide();
         }
+
+        private void dataGridViewComboEntries_NewRowNeeded(object sender, DataGridViewRowEventArgs e)
+        {
+            //e.Row.Cells[1].Value = 
+        }
     }
 }

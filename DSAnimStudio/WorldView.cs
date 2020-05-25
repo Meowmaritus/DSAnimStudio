@@ -367,10 +367,10 @@ namespace DSAnimStudio
             CameraTransform.EulerRotation.X += v * speed;
             CameraTransform.EulerRotation.Z = 0;
 
-            var moveXZ = GetScreenSpaceRightVector() * (float)Math.Tan(h * speed);
-            var moveY = GetScreenSpaceUpVector() * (float)Math.Tan(v * speed);
+            //var moveXZ = GetScreenSpaceRightVector() * (float)Math.Tan(h * speed);
+            //var moveY = GetScreenSpaceUpVector() * (float)Math.Tan(v * speed);
 
-            CameraTransform.Position += ((moveXZ + moveY) * OrbitCamDistance);
+            //CameraTransform.Position += ((moveXZ + moveY) * OrbitCamDistance);
         }
 
         
