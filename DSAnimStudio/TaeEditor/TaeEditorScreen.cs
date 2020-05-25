@@ -3015,6 +3015,8 @@ namespace DSAnimStudio.TaeEditor
             Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
             Graph.ViewportInteractor.ResetRootMotion();
             Graph.ViewportInteractor.RemoveTransition();
+            Graph.PlaybackCursor.CurrentTime = 0;
+            Graph.PlaybackCursor.IgnoreCurrentRelativeScrub();
             Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
         }
 
