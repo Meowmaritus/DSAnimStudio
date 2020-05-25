@@ -28,17 +28,17 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.dataGridViewComboEntries = new System.Windows.Forms.DataGridView();
+            this.columnAnimationID = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.columnEvent0CancelType = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.buttonPlayCombo = new System.Windows.Forms.Button();
             this.buttonCancelCombo = new System.Windows.Forms.Button();
             this.buttonCopyToClipboard = new System.Windows.Forms.Button();
             this.buttonPasteFromClipboard = new System.Windows.Forms.Button();
             this.checkBoxLoop = new System.Windows.Forms.CheckBox();
-            this.columnAnimationID = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.columnEvent0CancelType = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewComboEntries)).BeginInit();
             this.SuspendLayout();
             // 
@@ -50,14 +50,14 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.dataGridViewComboEntries.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.dataGridViewComboEntries.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.Single;
-            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
-            dataGridViewCellStyle4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle4.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle4.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle4.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle4.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dataGridViewComboEntries.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dataGridViewComboEntries.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
             this.dataGridViewComboEntries.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridViewComboEntries.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.columnAnimationID,
@@ -67,23 +67,40 @@
             this.dataGridViewComboEntries.Location = new System.Drawing.Point(13, 13);
             this.dataGridViewComboEntries.Name = "dataGridViewComboEntries";
             this.dataGridViewComboEntries.RowHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.Single;
-            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
-            dataGridViewCellStyle5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle5.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dataGridViewComboEntries.RowHeadersDefaultCellStyle = dataGridViewCellStyle5;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dataGridViewComboEntries.RowHeadersDefaultCellStyle = dataGridViewCellStyle2;
             this.dataGridViewComboEntries.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
-            dataGridViewCellStyle6.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
-            dataGridViewCellStyle6.ForeColor = System.Drawing.Color.White;
-            this.dataGridViewComboEntries.RowsDefaultCellStyle = dataGridViewCellStyle6;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
+            dataGridViewCellStyle3.ForeColor = System.Drawing.Color.White;
+            this.dataGridViewComboEntries.RowsDefaultCellStyle = dataGridViewCellStyle3;
             this.dataGridViewComboEntries.Size = new System.Drawing.Size(559, 302);
             this.dataGridViewComboEntries.TabIndex = 0;
             this.dataGridViewComboEntries.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridViewComboEntries_CellEndEdit);
             this.dataGridViewComboEntries.EditingControlShowing += new System.Windows.Forms.DataGridViewEditingControlShowingEventHandler(this.dataGridViewComboEntries_EditingControlShowing);
+            this.dataGridViewComboEntries.NewRowNeeded += new System.Windows.Forms.DataGridViewRowEventHandler(this.dataGridViewComboEntries_NewRowNeeded);
             this.dataGridViewComboEntries.MouseUp += new System.Windows.Forms.MouseEventHandler(this.dataGridViewComboEntries_MouseUp);
+            // 
+            // columnAnimationID
+            // 
+            this.columnAnimationID.HeaderText = "Animation ID";
+            this.columnAnimationID.Name = "columnAnimationID";
+            this.columnAnimationID.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.columnAnimationID.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            // 
+            // columnEvent0CancelType
+            // 
+            this.columnEvent0CancelType.HeaderText = "JumpTable To Transition To Next";
+            this.columnEvent0CancelType.Name = "columnEvent0CancelType";
+            this.columnEvent0CancelType.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.columnEvent0CancelType.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.columnEvent0CancelType.ToolTipText = "The JumpTable it must reach in order to go to the next animation in the combo.";
+            this.columnEvent0CancelType.Width = 400;
             // 
             // buttonPlayCombo
             // 
@@ -149,22 +166,6 @@
             this.checkBoxLoop.TabIndex = 5;
             this.checkBoxLoop.Text = "Loop";
             this.checkBoxLoop.UseVisualStyleBackColor = true;
-            // 
-            // columnAnimationID
-            // 
-            this.columnAnimationID.HeaderText = "Animation ID";
-            this.columnAnimationID.Name = "columnAnimationID";
-            this.columnAnimationID.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.columnAnimationID.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            // 
-            // columnEvent0CancelType
-            // 
-            this.columnEvent0CancelType.HeaderText = "JumpTable To Transition To Next";
-            this.columnEvent0CancelType.Name = "columnEvent0CancelType";
-            this.columnEvent0CancelType.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.columnEvent0CancelType.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this.columnEvent0CancelType.ToolTipText = "The JumpTable it must reach in order to go to the next animation in the combo.";
-            this.columnEvent0CancelType.Width = 400;
             // 
             // TaeComboMenu
             // 

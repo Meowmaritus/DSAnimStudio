@@ -26,7 +26,7 @@ namespace DSAnimStudio.TaeEditor
         public bool SoloHighlightEventOnHover { get; set; } = true;
         public bool ShowEventHoverInfo { get; set; } = true;
         public List<string> RecentFilesList { get; set; } = new List<string>();
-        public bool LiveRefreshOnSave { get; set; } = true;
+        public bool LiveRefreshOnSave { get; set; } = false;
         public bool CameraFollowsRootMotion { get; set; } = true;
         public bool CameraFollowsRootMotionRotation { get; set; } = true;
         public bool WrapRootMotion { get; set; } = true;

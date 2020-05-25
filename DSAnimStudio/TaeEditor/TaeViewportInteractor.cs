@@ -870,6 +870,10 @@ namespace DSAnimStudio.TaeEditor
             {
                 GFX.World.ModelDirection_ForOrbitCam = Graph.MainScreen.Config.CameraFollowsRootMotionRotation ? CurrentModel.CurrentDirection : 0;
 
+                GFX.World.WorldMatrixMOD = Matrix.Identity;
+
+               
+
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {
                     //GFX.World.WorldMatrixMOD = //Matrix.CreateFromQuaternion(Quaternion.CreateFromRotationMatrix(CurrentModel.CurrentRootMotionTransform.WorldMatrix)) * 
@@ -877,28 +881,33 @@ namespace DSAnimStudio.TaeEditor
                     //    -Vector3.Transform(Vector3.Zero,
                     //    CurrentModel.CurrentRootMotionTranslation));
 
-                    GFX.World.WorldMatrixMOD = //Matrix.CreateRotationY(CurrentModel.CurrentDirection) *
+                    GFX.World.WorldMatrixMOD *= //Matrix.CreateRotationY(CurrentModel.CurrentDirection) *
                         Matrix.CreateTranslation(
                         -Vector3.Transform(Vector3.Zero,
                         CurrentModel.CurrentRootMotionTranslation));
                 }
-                else
-                {
-                    GFX.World.WorldMatrixMOD = Matrix.Identity;
-                }
+                //else
+                //{
+                //    GFX.World.WorldMatrixMOD = Matrix.Identity;
+                //}
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
                 {
-                    float turnAmount = CurrentModel.CurrentDirection - modelDirectionLastFrame;
-
-                    //GFX.World.CameraTransform.EulerRotationExtraY += turnAmount;
-
-                    GFX.World.ModelCenter_ForOrbitCam = Vector3.Transform(
-                        CurrentModel.MainMesh.Bounds.GetCenter(), CurrentModel.CurrentTransform.WorldMatrix);
-                    GFX.World.RotateFromRootMotion(-turnAmount);
-
-                    modelDirectionLastFrame = CurrentModel.CurrentDirection;
+                    GFX.World.WorldMatrixMOD *= Matrix.CreateRotationY(-CurrentModel.CurrentDirection);
                 }
+
+                //if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
+                //{
+                //    float turnAmount = CurrentModel.CurrentDirection - modelDirectionLastFrame;
+
+                //    //GFX.World.CameraTransform.EulerRotationExtraY += turnAmount;
+
+                //    GFX.World.ModelCenter_ForOrbitCam = Vector3.Transform(
+                //        CurrentModel.MainMesh.Bounds.GetCenter(), CurrentModel.CurrentTransform.WorldMatrix);
+                //    GFX.World.RotateFromRootMotion(-turnAmount);
+
+                //    modelDirectionLastFrame = CurrentModel.CurrentDirection;
+                //}
                 //else
                 //{
                 //    if (GFX.World.CameraTransform.EulerRotationExtraY != 0)
