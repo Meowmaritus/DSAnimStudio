@@ -41,11 +41,23 @@ namespace DSAnimStudio
 
         private static List<FmodEventUpdater> _eventsToUpdate = new List<FmodEventUpdater>();
 
+        public static object _lock_eventsToUpdate = new object();
+        public static IReadOnlyList<FmodEventUpdater> EventsToUpdate => _eventsToUpdate;
+
         private static Vector3 listenerPosOnPreviousFrame;
 
         public static int FloorMaterial = 1;
 
         public static Dictionary<int, string> FloorMaterialNames = new Dictionary<int, string>();
+
+        public static FMOD.EventProject GetEventProject(string name)
+        {
+            FMOD.EventProject proj = null;
+            var numProjects = 0;
+            result = _eventSystem.getNumProjects(ref numProjects);
+            ERRCHECK(result = _eventSystem.getProjectByIndex(0, ref proj));
+            return proj;
+        }
 
         public static void LoadFloorMaterialNamesFromInterroot()
         {
@@ -153,13 +165,15 @@ namespace DSAnimStudio
 
         public class FmodEventUpdater
         {
+            public string EventName;
             FMOD.Event Event;
-            Func<Vector3> GetPosFunc;
+            public Func<Vector3> GetPosFunc { get; private set; } = null;
             public bool EventIsOver = false;
             RESULT evtRes;
             Vector3 oldPos;
-            public FmodEventUpdater(FMOD.Event evt, Func<Vector3> getPosFunc)
+            public FmodEventUpdater(FMOD.Event evt, Func<Vector3> getPosFunc, string name)
             {
+                EventName = name;
                 Event = evt;
                 GetPosFunc = getPosFunc;
             }
@@ -190,6 +204,9 @@ namespace DSAnimStudio
                 {
                     var position = (GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(-1, 1, 1);
                     var velocity = Vector3.Zero;// (position - oldPos) / deltaTime;
+
+                    // Flatten position to be on a flat plane
+                    //position.Y = 0;
 
                     FMOD.VECTOR posVec = new VECTOR(position);
                     FMOD.VECTOR velVec = new VECTOR(velocity);
@@ -234,7 +251,7 @@ namespace DSAnimStudio
             return true;
         }
 
-        public static bool PlayEventInFEV(string fevFilePath, string eventPath)
+        public static bool PlayEventInFEV(string fevFilePath, string eventName)
         {
             if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
                GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
@@ -248,21 +265,7 @@ namespace DSAnimStudio
             if (!foundFev)
                 return false;
             else
-                return PlayEvent(eventPath);
-        }
-
-        private static string GetEventPath(string fevName, string eventName)
-        {
-            if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
-            {
-                return $"{fevName}/{fevName}/{eventName}";
-            }
-            else
-            {
-                var secondPartOfName = fevName.Split('_')[1];
-                return $"{fevName}/{secondPartOfName}/{eventName}";
-            }
-  
+                return PlayEvent(eventName);
         }
 
         /// <summary>
@@ -375,7 +378,7 @@ namespace DSAnimStudio
 
             foreach (var fevName in LoadedFEVs)
             {
-                if (PlayEvent(GetEventPath(fevName, soundName), getPosFunc))
+                if (PlayEvent(soundName, getPosFunc))
                 {
                     return true;
                 }
@@ -428,27 +431,55 @@ namespace DSAnimStudio
 
                 Vector3 pos = (GFX.World.CameraTransform.Position - Vector3.Transform(Vector3.Zero, GFX.World.WorldMatrixMOD)) * new Vector3(-1, 1, 1);
                 Vector3 vel = Vector3.Zero;// (pos - listenerPosOnPreviousFrame) / Main.DELTA_UPDATE;
-                Vector3 up = Vector3.TransformNormal(Vector3.Up, GFX.World.CameraTransform.RotationMatrix);
-                Vector3 forward = Vector3.TransformNormal(Vector3.Forward, GFX.World.CameraTransform.RotationMatrix);
+                Vector3 up = GFX.World.GetScreenSpaceUpVector();// Vector3.TransformNormal(Vector3.Up, GFX.World.CameraTransform.RotationMatrix);
+                Vector3 forward = -GFX.World.GetScreenSpaceFowardVector();
+                
+                //if (GFX.World.CameraTransform.EulerRotation.X > MathHelper.PiOver4)
+                //{
+                //    // If camera is pointing upward, get forward XZ from the down vector (for preventing gimbal issues)
+                //    forward = -GFX.World.GetScreenSpaceUpVector();
+                //}
+                //else if (GFX.World.CameraTransform.EulerRotation.X < -MathHelper.PiOver4)
+                //{
+                //    // If camera is pointing downward, get forward XZ from the up vector (for preventing gimbal issues)
+                //    forward = GFX.World.GetScreenSpaceUpVector();
+                //}
+
+                //// Flatten forward to be pointing directly forward.
+                //forward.Y = 0;
+                //forward = Vector3.Normalize(forward);
+
+                //// Flatten position to be on a flat plane
+                //pos.Y = 0;
 
                 VECTOR posVec = new VECTOR(pos);
                 VECTOR velVec = new VECTOR(vel);
                 VECTOR upVec = new VECTOR(up);
                 VECTOR forwardVec = new VECTOR(forward);
 
+                
+
                 ERRCHECK(result = _eventSystem.set3DListenerAttributes(0, ref posVec, ref velVec, ref forwardVec, ref upVec));
 
-                List<FmodEventUpdater> finishedEvents = new List<FmodEventUpdater>();
-                foreach (var evt in _eventsToUpdate)
+                
+
+                lock (_lock_eventsToUpdate)
                 {
-                    evt.Update(Main.DELTA_UPDATE);
-                    if (evt.EventIsOver)
-                        finishedEvents.Add(evt);
+                    List<FmodEventUpdater> finishedEvents = new List<FmodEventUpdater>();
+
+                    foreach (var evt in _eventsToUpdate)
+                    {
+                        evt.Update(Main.DELTA_UPDATE);
+                        if (evt.EventIsOver)
+                            finishedEvents.Add(evt);
+                    }
+                    foreach (var evt in finishedEvents)
+                    {
+                        _eventsToUpdate.Remove(evt);
+                    }
                 }
-                foreach (var evt in finishedEvents)
-                {
-                    _eventsToUpdate.Remove(evt);
-                }
+
+                
 
                 ERRCHECK(result = _eventSystem.update());
 
@@ -473,7 +504,7 @@ namespace DSAnimStudio
             }));
         }
 
-        private static bool PlayEvent(string eventPath, Func<Vector3> getPosFunc = null)
+        private static bool PlayEvent(string eventName, Func<Vector3> getPosFunc = null)
         {
             if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
                GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
@@ -486,32 +517,57 @@ namespace DSAnimStudio
             bool result = false;
             Main.WinForm.Invoke(new Action(() =>
             {
+                FMOD.EventProject evProject = null;
+
+                bool foundEvent = false;
+
                 FMOD.Event newEvent = null;
-                var evtResult = _eventSystem.getEvent(eventPath, FMOD.EVENT_MODE.DEFAULT, ref newEvent);
-                if (evtResult == RESULT.ERR_EVENT_NOTFOUND)
-                {
-                    result = false;
-                }
-                else if (evtResult == RESULT.ERR_EVENT_FAILED)
-                {
-                    result = false;
-                }
-                else
-                {
-                    //if (newEvent != null)
-                    //    eventList.Add(new FEVEvent(eventPath, newEvent));
 
-                    ERRCHECK(evtResult);
-                    ERRCHECK(evtResult = newEvent.setVolume(BaseSoundVolume * AdjustSoundVolume));
-
-                    if (getPosFunc != null)
+                foreach (var fevName in LoadedFEVs)
+                {
+                    var fres = _eventSystem.getProject(fevName, ref evProject);
+                    if (fres == RESULT.OK)
                     {
-                        _eventsToUpdate.Add(new FmodEventUpdater(newEvent, getPosFunc));
+                        int groupCount = 0;
+                        fres = evProject.getNumGroups(ref groupCount);
+                        if (fres == RESULT.OK)
+                        {
+                            for (int i = 0; i < groupCount; i++)
+                            {
+                                FMOD.EventGroup innerGroup = null;
+                                fres = evProject.getGroupByIndex(i, cacheevents: false, ref innerGroup);
+                                if (fres == RESULT.OK)
+                                {
+                                    fres = innerGroup.getEvent(eventName, EVENT_MODE.DEFAULT, ref newEvent);
+                                    if (fres == RESULT.OK)
+                                    {
+                                        foundEvent = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
-                    ERRCHECK(evtResult = newEvent.start());
-                    result = true;
                 }
+
+                if (!foundEvent)
+                {
+                    result = false;
+                    return;
+                }
+
+                ERRCHECK(newEvent.setVolume(BaseSoundVolume * AdjustSoundVolume));
+
+                if (getPosFunc != null)
+                {
+                    lock (_lock_eventsToUpdate)
+                    {
+                        _eventsToUpdate.Add(new FmodEventUpdater(newEvent, getPosFunc, eventName));
+                    }
+                }
+
+                ERRCHECK(newEvent.start());
+                result = true;
             }));
 
             return result;
@@ -530,6 +586,10 @@ namespace DSAnimStudio
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = _eventSystem.release());
+                //foreach (var kvp in _eventProjects)
+                //{
+                //    ERRCHECK(result = kvp.Value.release());
+                //}
             }));
         }
 

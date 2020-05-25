@@ -15,6 +15,7 @@ namespace DSAnimStudio.DebugPrimitives
         FlverBone,
         FlverBoneBoundingBox,
         DummyPoly,
+        SoundEvent,
         WeaponDummyPoly,
         DummyPolyHelper,
         Skybox,

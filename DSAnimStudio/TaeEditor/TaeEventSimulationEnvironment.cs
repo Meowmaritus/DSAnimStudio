@@ -146,6 +146,46 @@ namespace DSAnimStudio.TaeEditor
             return null;
         }
 
+        public void PlaySoundEffectOfBox(TaeEditAnimEventBox evBox)
+        {
+            if (evBox.MyEvent.TypeName == null || !evBox.MyEvent.TypeName.StartsWith("PlaySound"))
+                return;
+
+            int soundType = Convert.ToInt32(evBox.MyEvent.Parameters["SoundType"]);
+            int soundID = Convert.ToInt32(evBox.MyEvent.Parameters["SoundID"]);
+
+            Func<Vector3> getPosFunc = null;
+
+            if (evBox.MyEvent.Template.ContainsKey("DummyPolyID"))
+            {
+                int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
+
+                getPosFunc = () =>
+                {
+                    if (dummyPolyID == -1)
+                    {
+                        return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+                    }
+
+                    if (MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
+                    {
+                        return Vector3.Transform(Vector3.Zero, 
+                            MODEL.DummyPolyMan.DummyPolyByRefID[dummyPolyID][0].CurrentMatrix 
+                            * MODEL.CurrentTransform.WorldMatrix);
+                    }
+
+                    return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+                };
+
+            }
+            else
+            {
+                getPosFunc = () => Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+            }
+
+            FmodManager.PlaySE(soundType, soundID, getPosFunc);
+        }
+
         private void InitAllEntries()
         {
             entries = new Dictionary<string, EventSimEntry>
@@ -155,53 +195,36 @@ namespace DSAnimStudio.TaeEditor
                     "EventSimSE",
                     new EventSimEntry("Simulate Sound Effects", true)
                     {
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
                         {
-                            foreach (var evBox in evBoxes)
+                            if (evBox.WasJustEnteredDuringPlayback)
                             {
-                                if (evBox.WasJustEnteredDuringPlayback && 
-                                    evBox.MyEvent.TypeName != null &&
-                                    evBox.MyEvent.TypeName.StartsWith("PlaySound"))
-                                {
-                                    int soundType = Convert.ToInt32(evBox.MyEvent.Parameters["SoundType"]);
-                                    int soundID = Convert.ToInt32(evBox.MyEvent.Parameters["SoundID"]);
-
-                                    Func<Vector3> getPosFunc = () => Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix);
-
-                                    if (evBox.MyEvent.Template.ContainsKey("DummyPolyID"))
-                                    {
-                                        int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
-
-                                        getPosFunc = () =>
-                                        {
-                                            if (dummyPolyID == -1)
-                                            {
-                                                return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
-                                            }
-
-                                            if (MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
-                                            {
-                                                return Vector3.Transform(Vector3.Zero, MODEL.DummyPolyMan.DummyPolyByRefID[dummyPolyID][0].CurrentMatrix);
-                                            }
-
-                                            return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
-                                        };
-                                        
-                                    }
-
-                                    FmodManager.PlaySE(soundType, soundID, getPosFunc);
-                                }
+                                PlaySoundEffectOfBox(evBox);
                             }
                         },
                     }
                 },
-
                 {
                     "EventSimBasicBlending",
-                    new EventSimEntry("Simulate Basic Blending", true)
+                    new EventSimEntry("Simulate Animation Blending", true)
                     {
-                        SimulationFrameChangeAction =  (entry, evBoxes, time) =>
+                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
                         {
+                            if (Graph.ViewportInteractor.CurrentComboIndex >= 0)
+                                return;
+
+                            while (MODEL.AnimContainer.AnimationLayers.Count > 1)
+                            {
+                                MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
+                            }
+                            if (MODEL.AnimContainer.AnimationLayers.Count > 0)
+                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
+                        },
+                        SimulationFrameChangePreBoxesAction =  (entry, evBoxes, time) =>
+                        {
+                            if (Graph.ViewportInteractor.CurrentComboIndex >= 0)
+                                return;
+
                             if (MODEL.AnimContainer.AnimationLayers.Count > 1)
                             {
                                 while (MODEL.AnimContainer.AnimationLayers.Count > 2)
@@ -227,7 +250,57 @@ namespace DSAnimStudio.TaeEditor
                                 MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
                             }
                             
-                        }
+                        },
+                    }
+                },
+
+                 {
+                    "EventSimBasicBlending_Combos",
+                    new EventSimEntry("Simulate Animation Blending (Combo Viewer)", true)
+                    {
+                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
+                        {
+                            if (Graph.ViewportInteractor.CurrentComboIndex < 0)
+                                return;
+
+                            while (MODEL.AnimContainer.AnimationLayers.Count > 1)
+                            {
+                                MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
+                            }
+                            if (MODEL.AnimContainer.AnimationLayers.Count > 0)
+                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
+                        },
+                        SimulationFrameChangePreBoxesAction =  (entry, evBoxes, time) =>
+                        {
+                            if (Graph.ViewportInteractor.CurrentComboIndex < 0)
+                                return;
+
+                            if (MODEL.AnimContainer.AnimationLayers.Count > 1)
+                            {
+                                while (MODEL.AnimContainer.AnimationLayers.Count > 2)
+                                {
+                                    MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
+                                }
+
+                                var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
+                                if (blend != null)
+                                {
+                                    float blendRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.CurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
+                                    MODEL.AnimContainer.AnimationLayers[0].Weight = 1 - blendRatio;
+                                    MODEL.AnimContainer.AnimationLayers[1].Weight = blendRatio;
+                                }
+                                else
+                                {
+                                    while (MODEL.AnimContainer.AnimationLayers.Count > 1)
+                                        MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
+                                }
+                            }
+                            else if (MODEL.AnimContainer.AnimationLayers.Count == 1)
+                            {
+                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
+                            }
+
+                        },
                     }
                 },
 
@@ -246,7 +319,7 @@ namespace DSAnimStudio.TaeEditor
                             if (MODEL.ChrAsm?.LeftWeaponModel != null)
                                 MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.HideAllHitboxes();
                         },
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.HideAllHitboxes();
 
@@ -255,55 +328,54 @@ namespace DSAnimStudio.TaeEditor
 
                             if (MODEL.ChrAsm?.LeftWeaponModel != null)
                                 MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.HideAllHitboxes();
+                        },
+                        SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            if (!evBox.PlaybackHighlight)
+                                return;
 
-                            foreach (var evBox in evBoxes.Where(b => entry.DoesEventMatch(b)))
+                            var atkParam = GetAtkParamFromEventBox(evBox);
+
+                            if (atkParam != null)
                             {
-                                var atkParam = GetAtkParamFromEventBox(evBox);
+                                var dmyPolySource = HitViewDummyPolySource;
 
-                                if (atkParam != null)
+                                if (atkParam.SuggestedDummyPolySource != ParamData.AtkParam.DummyPolySource.None)
                                 {
-                                    if (evBox.PlaybackHighlight)
-                                    {
-                                        var dmyPolySource = HitViewDummyPolySource;
+                                    dmyPolySource = atkParam.SuggestedDummyPolySource;
+                                }
 
-                                        if (atkParam.SuggestedDummyPolySource != ParamData.AtkParam.DummyPolySource.None)
-                                        {
-                                            dmyPolySource = atkParam.SuggestedDummyPolySource;
-                                        }
+                                if (dmyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+                                {
+                                    MODEL.DummyPolyMan.SetAttackVisibility(
+                                        atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
+                                }
+                                else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
+                                    MODEL.ChrAsm?.RightWeaponModel != null)
+                                {
+                                    MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                        atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
+                                }
+                                else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
+                                    MODEL.ChrAsm?.LeftWeaponModel != null)
+                                {
+                                    MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                        atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
+                                }
 
-                                        if (dmyPolySource == ParamData.AtkParam.DummyPolySource.Body)
-                                        {
-                                            MODEL.DummyPolyMan.SetAttackVisibility(
-                                                atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
-                                        }
-                                        else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
-                                            MODEL.ChrAsm?.RightWeaponModel != null)
-                                        {
-                                            MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(
-                                                atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
-                                        }
-                                        else if (dmyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
-                                            MODEL.ChrAsm?.LeftWeaponModel != null)
-                                        {
-                                            MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(
-                                                atkParam, true, ParamData.AtkParam.DummyPolySource.Body);
-                                        }
+                                if (MODEL.ChrAsm?.RightWeaponModel != null)
+                                {
+                                    MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                        atkParam, true, ParamData.AtkParam.DummyPolySource.RightWeapon);
+                                }
 
-                                        if (MODEL.ChrAsm?.RightWeaponModel != null)
-                                        {
-                                            MODEL.ChrAsm.RightWeaponModel.DummyPolyMan.SetAttackVisibility(
-                                                atkParam, true, ParamData.AtkParam.DummyPolySource.RightWeapon);
-                                        }
-
-                                         if (MODEL.ChrAsm?.LeftWeaponModel != null)
-                                        {
-                                            MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(
-                                                atkParam, true, ParamData.AtkParam.DummyPolySource.LeftWeapon);
-                                        }
-                                    }
+                                    if (MODEL.ChrAsm?.LeftWeaponModel != null)
+                                {
+                                    MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan.SetAttackVisibility(
+                                        atkParam, true, ParamData.AtkParam.DummyPolySource.LeftWeapon);
                                 }
                             }
-                        }
+                        },
                     }
                 },
 
@@ -316,47 +388,41 @@ namespace DSAnimStudio.TaeEditor
                         "InvokeSpEffect_Multiplayer")
                     {
 
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             SimulatedActiveSpEffects.Clear();
 
                             Graph.PlaybackCursor.ModPlaybackSpeed = 1;
+                        },
+                        SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            if (!evBox.PlaybackHighlight)
+                                return;
 
-
-                            foreach (var evBox in evBoxes
-                            .Where(evb => evb.MyEvent.Template != null &&
-                                    evb.PlaybackHighlight && entry.DoesEventMatch(evb))
-                            .OrderBy(evb => evb.MyEvent.StartTime))
+                            if (evBox.MyEvent.Parameters.Template.ContainsKey("SpEffectID"))
                             {
-                                if (evBox.MyEvent.Parameters.Template.ContainsKey("SpEffectID"))
+                                int spEffectID = Convert.ToInt32(evBox.MyEvent.Parameters["SpEffectID"]);
+
+                                if (ParamManager.SpEffectParam.ContainsKey(spEffectID))
                                 {
-                                    int spEffectID = Convert.ToInt32(evBox.MyEvent.Parameters["SpEffectID"]);
+                                    var spEffect = ParamManager.SpEffectParam[spEffectID];
 
-                                    if (ParamManager.SpEffectParam.ContainsKey(spEffectID))
+                                    if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
                                     {
-                                        var spEffect = ParamManager.SpEffectParam[spEffectID];
-
-                                        if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
-                                        {
-                                            if (spEffect.GrabityRate > 0)
-                                                Graph.PlaybackCursor.ModPlaybackSpeed *= spEffect.GrabityRate;
-                                        }
-
-                                        SimulatedActiveSpEffects.Add($"{spEffect.GetDisplayName()}");
-                                    }
-                                    else
-                                    {
-                                        SimulatedActiveSpEffects.Add($"[Doesn't Exist] {spEffectID}");
+                                        if (spEffect.GrabityRate > 0)
+                                            Graph.PlaybackCursor.ModPlaybackSpeed *= spEffect.GrabityRate;
                                     }
 
-                                        
+                                    SimulatedActiveSpEffects.Add($"{spEffect.GetDisplayName()}");
                                 }
-
-                                
+                                else
+                                {
+                                    SimulatedActiveSpEffects.Add($"[Doesn't Exist] {spEffectID}");
+                                }
 
 
                             }
-                        }
+                        },
                     }
                 },
 
@@ -369,26 +435,28 @@ namespace DSAnimStudio.TaeEditor
                         {
                             MODEL.DummyPolyMan.ClearAllBulletSpawns();
                         },
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.ClearAllBulletSpawns();
-                            foreach (var evBox in evBoxes
-                                .Where(evb => evb.MyEvent.Template != null && 
-                                     evb.PlaybackHighlight && entry.DoesEventMatch(evb))
-                                .OrderBy(evb => evb.MyEvent.StartTime))
+                        },
+                        SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            if (!evBox.PlaybackHighlight)
+                                return;
+
+                            if (evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
                             {
-                                if (evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
+
+                                var bulletParamID = GetBulletParamIDFromEvBox(evBox);
+                                int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
+
+                                if (bulletParamID >= 0)
                                 {
-                                    var bulletParamID = GetBulletParamIDFromEvBox(evBox);
-                                    int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
-                                    if (bulletParamID >= 0)
-                                    {
-                                        MODEL.DummyPolyMan.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID);
-                                    }
+                                    MODEL.DummyPolyMan.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID);
                                 }
 
                             }
-                        }
+                        },
                     }
                 },
 
@@ -401,34 +469,39 @@ namespace DSAnimStudio.TaeEditor
                         {
                             MODEL.DummyPolyMan.ClearAllSFXSpawns();
                         },
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.ClearAllSFXSpawns();
+                        },
+                        SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            if (!evBox.PlaybackHighlight)
+                                return;
 
-                            foreach (var evBox in evBoxes
-                                .Where(evb => evb.MyEvent.Template != null && evb.PlaybackHighlight)
-                                .OrderBy(evb => evb.MyEvent.StartTime))
+                            if (evBox.MyEvent.Template == null)
+                                return;
+
+                            if (evBox.MyEvent.Parameters.Template.ContainsKey("FFXID") &&
+                                evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
                             {
+                                // Using convert here since they might be various numeric
+                                // value types.
+                                int ffxid = Convert.ToInt32(evBox.MyEvent.Parameters["FFXID"]);
+                                int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
 
-                                if (evBox.MyEvent.Parameters.Template.ContainsKey("FFXID") &&
-                                    evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
-                                {
-                                    // Using convert here since they might be various numeric
-                                    // value types.
-                                    int ffxid = Convert.ToInt32(evBox.MyEvent.Parameters["FFXID"]);
-                                    int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
-
-                                    MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
-                                }
+                                MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
                             }
-                        }
+                        },
                     }
                 },
 
+                //{
+                //    "EventSimSoundDummyPolySpawns", new EventSimEntry("Display")
+                //},
+
                 {
                     "EventSimMiscDummyPolySpawns",
-                    new EventSimEntry("Simulate Misc. DummyPoly Spawn Events", isEnabledByDefault: true,
-                        "N/A")
+                    new EventSimEntry("Simulate Misc. DummyPoly Spawn Events", isEnabledByDefault: true)
                     {
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
@@ -440,7 +513,7 @@ namespace DSAnimStudio.TaeEditor
                             if (MODEL.ChrAsm?.LeftWeaponModel != null)
                                 MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.ClearAllMiscSpawns();
                         },
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.ClearAllMiscSpawns();
 
@@ -449,33 +522,31 @@ namespace DSAnimStudio.TaeEditor
 
                             if (MODEL.ChrAsm?.LeftWeaponModel != null)
                                 MODEL.ChrAsm?.LeftWeaponModel.DummyPolyMan.ClearAllMiscSpawns();
+                        },
+                        SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            if (!evBox.PlaybackHighlight)
+                                return;
 
-                            foreach (var evBox in evBoxes
-                                .Where(evb => evb.MyEvent.Template != null && evb.PlaybackHighlight)
-                                .OrderBy(evb => evb.MyEvent.StartTime))
+                            if (evBox.MyEvent.TypeName == "InvokeBulletBehavior" || evBox.MyEvent.TypeName.Contains("PlaySound"))
+                                return;
+
+                            if (!evBox.MyEvent.Parameters.Template.ContainsKey("FFXID") &&
+                                evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
                             {
-                                if (evBox.MyEvent.TypeName == "InvokeBulletBehavior")
-                                    continue;
+                                int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
 
-                                if (!evBox.MyEvent.Parameters.Template.ContainsKey("FFXID") &&
-                                    evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
+                                if (evBox.MyEvent.TypeName == "SpawnFFX_ChrType")
                                 {
-                                    // Using convert here since they might be various numeric
-                                    // value types.
-                                    int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
-
-
-                                    if (evBox.MyEvent.TypeName == "SpawnFFX_ChrType")
-                                    {
-                                        GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.MyEvent.TypeName, dummyPolyID);
-                                    }
-                                    else
-                                    {
-                                        GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.EventText.Text, dummyPolyID);
-                                    }
+                                    // This is way too long to show TypeName(Args) so just do TypeName
+                                    GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.MyEvent.TypeName, dummyPolyID);
+                                }
+                                else
+                                {
+                                    GetCurrentDummyPolyMan()?.SpawnMiscOnDummyPoly(evBox.EventText.Text, dummyPolyID);
                                 }
                             }
-                        }
+                        },
                     }
                 },
 
@@ -492,23 +563,21 @@ namespace DSAnimStudio.TaeEditor
                         //{
                         //    GFX.FlverOpacity = 1.0f;
                         //},
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
-                            bool anyOpacityHappeningThisFrame = false;
+                            GFX.FlverOpacity = 1;
+                        },
+                        SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            if (!evBox.PlaybackHighlight)
+                                return;
 
-                            foreach (var evBox in evBoxes.Where(b => b.MyEvent.Template != null && 
-                                b.PlaybackHighlight && entry.DoesEventMatch(b)))
-                            {
-                                float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
-                                float timeSinceFadeStart = time - evBox.MyEvent.StartTime;
-                                float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
-                                float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
+                            float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
+                            float timeSinceFadeStart = time - evBox.MyEvent.StartTime;
+                            float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
+                            float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
 
-                                GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
-                                anyOpacityHappeningThisFrame = true;
-                            }
-                            if (!anyOpacityHappeningThisFrame)
-                                GFX.FlverOpacity = 1.0f;
+                            GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
                         },
                         //DuringAction = (entry, evBox) =>
                         //{
@@ -538,15 +607,8 @@ namespace DSAnimStudio.TaeEditor
                         {
                             //MODEL.DefaultAllMaskValues();
                         },
-                        SimulationFrameChangeAction = (entry, evBoxes, time) =>
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
-                            // Start from beginning of simulation and simulate to current time.
-
-                            int maskLength = 32;
-
-                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
-                                maskLength = 8;
-
                             MODEL.ResetDrawMaskToDefault();
 
                             if (MODEL.ChrAsm != null)
@@ -557,64 +619,72 @@ namespace DSAnimStudio.TaeEditor
                                 if (MODEL.ChrAsm.LeftWeaponModel != null)
                                     MODEL.ChrAsm.LeftWeaponModel.IsVisible = true;
                             }
-                            
+                        },
+                        SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            // Not checking if the box is active because the effects
+                            // "accumulate" along the timeline.
 
-                            foreach (var evBox in evBoxes.Where(evb => evb.MyEvent.Template != null)
-                                .OrderBy(evb => evb.MyEvent.StartTime))
+                            // Only simulate until the current time.
+                            if (evBox.MyEvent.StartTime > time)
+                                return;
+
+                            int maskLength = 32;
+
+                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+                                maskLength = 8;
+
+                            if (evBox.MyEvent.Template == null)
+                                return;
+
+                            if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
                             {
-                                if (evBox.MyEvent.StartTime > time)
-                                    break;
-
-                                if (evBox.MyEvent.TypeName == "ChangeChrDrawMask")
+                                for (int i = 0; i < maskLength; i++)
                                 {
-                                   
+                                    var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
+                                    
+                                    // Before you get out the torch, be aware that the game 
+                                    // uses some value other than 0 to SKIP
+                                    if (maskByte == 0)
+                                        MODEL.DrawMask[i] = false;
+                                    else if (maskByte == 1)
+                                        MODEL.DrawMask[i] = true;
+                                }
+                            }
+                            else if (MODEL.ChrAsm != null && evBox.MyEvent.TypeName == "HideEquippedWeapon")
+                            {
+                                if (evBox.PlaybackHighlight)
+                                {
+                                    if ((bool)evBox.MyEvent.Parameters["RightHand"])
+                                    {
+                                        if (MODEL.ChrAsm.RightWeaponModel != null)
+                                            MODEL.ChrAsm.RightWeaponModel.IsVisible = false;
+                                    }
+
+                                    if ((bool)evBox.MyEvent.Parameters["LeftHand"])
+                                    {
+                                        if (MODEL.ChrAsm.LeftWeaponModel != null)
+                                            MODEL.ChrAsm.LeftWeaponModel.IsVisible = false;
+                                    }
+                                }
+
+                            }
+                            else if (evBox.PlaybackHighlight)
+                            {
+                                if (evBox.MyEvent.TypeName == "ShowModelMask")
+                                {
                                     for (int i = 0; i < maskLength; i++)
                                     {
-                                        var maskByte = (byte)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"];
-                                    
-                                        // Before you get out the torch, be aware that the game 
-                                        // uses some value other than 0 to SKIP
-                                        if (maskByte == 0)
-                                            MODEL.DrawMask[i] = false;
-                                        else if (maskByte == 1)
-                                            MODEL.DrawMask[i] = true;
+                                        if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                                                MODEL.DrawMask[i] = true;
                                     }
                                 }
-                                else if (MODEL.ChrAsm != null && evBox.MyEvent.TypeName == "HideEquippedWeapon")
+                                else if (evBox.MyEvent.TypeName == "HideModelMask")
                                 {
-                                    if (evBox.PlaybackHighlight)
+                                    for (int i = 0; i < maskLength; i++)
                                     {
-                                        if ((bool)evBox.MyEvent.Parameters["RightHand"])
-                                        {
-                                            if (MODEL.ChrAsm.RightWeaponModel != null)
-                                                MODEL.ChrAsm.RightWeaponModel.IsVisible = false;
-                                        }
-
-                                        if ((bool)evBox.MyEvent.Parameters["LeftHand"])
-                                        {
-                                            if (MODEL.ChrAsm.LeftWeaponModel != null)
-                                                MODEL.ChrAsm.LeftWeaponModel.IsVisible = false;
-                                        }
-                                    }
-                                    
-                                }
-                                else if (evBox.PlaybackHighlight)
-                                {
-                                    if (evBox.MyEvent.TypeName == "ShowModelMask")
-                                    {
-                                        for (int i = 0; i < maskLength; i++)
-                                        {
-                                            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
-                                                    MODEL.DrawMask[i] = true;
-                                        }
-                                    }
-                                    else if (evBox.MyEvent.TypeName == "HideModelMask")
-                                    {
-                                        for (int i = 0; i < maskLength; i++)
-                                        {
-                                            if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
-                                                    MODEL.DrawMask[i] = false;
-                                        }
+                                        if ((bool)evBox.MyEvent.Parameters[$"Mask{(i + 1)}"])
+                                                MODEL.DrawMask[i] = false;
                                     }
                                 }
                             }
@@ -753,7 +823,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private bool GetSimEnabled(string simName)
+        public bool GetSimEnabled(string simName)
         {
             if (simName == null)
                 return false;
@@ -812,12 +882,35 @@ namespace DSAnimStudio.TaeEditor
 
         public void OnSimulationFrameChange(List<TaeEditAnimEventBox> evBoxes, float time)
         {
+            var enabledEntries = entries.Keys.ToList();
+
             foreach (var kvp in entries)
             {
-                if (!GetSimEnabled(kvp.Key))
+                if (GetSimEnabled(kvp.Key))
+                {
+                    kvp.Value.SimulationFrameChangePreBoxesAction?.Invoke(kvp.Value, evBoxes, time);
+                }
+                else
+                {
+                    kvp.Value.SimulationFrameChangeDisabledAction?.Invoke(kvp.Value, evBoxes, time);
+                    enabledEntries.Remove(kvp.Key);
                     continue;
+                }
+            }
 
-                kvp.Value.SimulationFrameChangeAction?.Invoke(kvp.Value, evBoxes, time);
+            var orderedBoxes = evBoxes.OrderBy(evb => evb.MyEvent.StartTime).ToList();
+
+            foreach (var evBox in orderedBoxes)
+            {
+                foreach (var entryName in enabledEntries)
+                {
+                    entries[entryName].SimulationFrameChangePerBoxAction?.Invoke(entries[entryName], evBoxes, evBox, time);
+
+                    if (evBox.PlaybackHighlight && entries[entryName].DoesEventMatch(evBox))
+                    {
+                        entries[entryName].SimulationFrameChangePerMatchingBoxAction?.Invoke(entries[entryName], evBoxes, evBox, time);
+                    }
+                }
             }
         }
 
@@ -889,10 +982,23 @@ namespace DSAnimStudio.TaeEditor
             public Action<EventSimEntry, List<TaeEditAnimEventBox>> NewAnimSelectedAction;
             public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationStartAction;
             public Action<EventSimEntry, List<TaeEditAnimEventBox>> SimulationEndAction;
-            public Action<EventSimEntry, List<TaeEditAnimEventBox>, float> SimulationFrameChangeAction;
+
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>, float>
+                SimulationFrameChangePreBoxesAction;
+
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>, float>
+                SimulationFrameChangeDisabledAction;
+
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>, TaeEditAnimEventBox, float> 
+                SimulationFrameChangePerBoxAction;
+
+            public Action<EventSimEntry, List<TaeEditAnimEventBox>, TaeEditAnimEventBox, float> 
+                SimulationFrameChangePerMatchingBoxAction;
+
             public Action<EventSimEntry, TaeEditAnimEventBox> EnterAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> DuringAction;
             public Action<EventSimEntry, TaeEditAnimEventBox> ExitAction;
+
             public EventSimEntryVariableContainer Vars = new EventSimEntryVariableContainer();
 
             public readonly string MenuOptionName;
@@ -900,6 +1006,9 @@ namespace DSAnimStudio.TaeEditor
 
             public bool DoesEventMatch(TaeEditAnimEventBox evBox)
             {
+                if (evBox.MyEvent.TypeName == null)
+                    return false;
+
                 return EventTypes.Contains(evBox.MyEvent.TypeName);
             }
 

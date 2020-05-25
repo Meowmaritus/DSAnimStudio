@@ -34,7 +34,7 @@ namespace DSAnimStudio.TaeEditor
         public bool EnableAnimRootMotion { get; set; } = true;
         //public bool SimulateReferencedEvents { get; set; } = true;
 
-        public bool IsNewGraphVisiMode { get; set; } = false;
+        public bool IsNewGraphVisiMode { get; set; } = true;
 
         public int MSAA = 2;
         public int SSAA = 1;

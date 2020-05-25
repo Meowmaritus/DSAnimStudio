@@ -1104,11 +1104,21 @@ namespace DSAnimStudio.TaeEditor
                     MainScreen.SelectedEventBox = null;
                 }
 
-                if (GhostEventGraph == null && MainScreen.Input.RightClickDown &&
-                    currentDrag.DragType == BoxDragType.None)
+                if (MainScreen.Input.RightClickDown && currentDrag.DragType == BoxDragType.None)
                 {
-                    PlaceNewEventAtMouse();
+                    if (MainScreen.HoveringOverEventBox != null && !MainScreen.Input.ShiftHeld)
+                    {
+                        ViewportInteractor.EventSim.PlaySoundEffectOfBox(MainScreen.HoveringOverEventBox);
+                    }
+                    else if (GhostEventGraph == null && MainScreen.MultiSelectedEventBoxes.Count <= 1 && MainScreen.Input.ShiftHeld)
+                    {
+                        PlaceNewEventAtMouse();
+                    }
+
+
                 }
+
+                
 
                 IEnumerable<TaeEditAnimEventBox> masterRowBoxList = GetRow(MouseRow);
                 var rowOrderedByTime = masterRowBoxList.OrderByDescending(x => x.MyEvent.StartTime);
@@ -1227,8 +1237,7 @@ namespace DSAnimStudio.TaeEditor
                         {
                             MainScreen.Input.CursorType = MouseCursorType.Arrow;
 
-                            if (!(MainScreen.Input.LeftClickHeld || MainScreen.Input.MiddleClickHeld ||
-                                MainScreen.Input.RightClickHeld || !Rect.Contains(MainScreen.Input.MousePositionPoint)))
+                            if (Rect.Contains(MainScreen.Input.MousePositionPoint))
                             {
                                 MainScreen.HoveringOverEventBox = box;
                             }
@@ -2939,7 +2948,7 @@ namespace DSAnimStudio.TaeEditor
 
                 // Draw PlaybackCursor StartTime vertical line
                 sb.Draw(texture: boxTex,
-                    position: new Vector2((float)Math.Round(((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2))), 0),
+                    position: new Vector2((float)Math.Round(((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2))), ScrollViewer.Scroll.Y),
                     sourceRectangle: null,
                     color: Color.Blue,
                     rotation: 0,

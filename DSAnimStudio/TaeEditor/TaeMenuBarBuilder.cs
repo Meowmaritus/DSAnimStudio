@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -422,7 +423,8 @@ namespace DSAnimStudio.TaeEditor
             baseItem.DropDownItems.Add(newItem);
         }
 
-        public void AddItem(string path, string itemName, Func<bool> checkState, Action<bool> onCheckChange, Func<bool> getEnabled = null)
+        public void AddItem(string path, string itemName, Func<bool> checkState, 
+            Action<bool> onCheckChange, Func<bool> getEnabled = null, Func<object> getMemeTag = null)
         {
             string[] pathStops = path.Split('\\');
 
@@ -457,8 +459,8 @@ namespace DSAnimStudio.TaeEditor
             baseItem.MouseEnter += (o, e) =>
             {
                 newItem.Checked = checkState.Invoke();
-                if (getEnabled != null)
-                    newItem.Enabled = getEnabled.Invoke();
+                newItem.Enabled = getEnabled?.Invoke() ?? true;
+                newItem.Tag = getMemeTag?.Invoke();
             };
 
             newItem.Click += (o, e) =>
@@ -735,27 +737,35 @@ namespace DSAnimStudio.TaeEditor
                     return;
                 }
 
-                if (!e.Item.Enabled)
+                
+
+                if (e.Item.Tag is bool asBool && asBool)
                 {
-                    //using (var brush = new System.Drawing.SolidBrush(System.Drawing.Color.Gray))
-                    //    e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, e.Item.Padding.Size.Width, e.Item.Padding.Top);
-
-                    if (e.Item.Selected)
-                    {
-                        e.Item.ForeColor = System.Drawing.Color.Black;
-                    }
-                    else
-                    {
-                        e.Item.ForeColor = System.Drawing.Color.Gray;
-                    }
-
+                    e.Item.ForeColor = System.Drawing.Color.Gray;
                 }
                 else
                 {
-                    e.Item.ForeColor = ForeColor;
+                    if (!e.Item.Enabled)
+                    {
+                        //using (var brush = new System.Drawing.SolidBrush(System.Drawing.Color.Gray))
+                        //    e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, e.Item.Padding.Size.Width, e.Item.Padding.Top);
 
-                    //using (var brush = new System.Drawing.SolidBrush(ForeColor))
-                    //    e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, e.Item.Padding.Size.Width, e.Item.Padding.Top);
+                        if (e.Item.Selected)
+                        {
+                            e.Item.ForeColor = System.Drawing.Color.Black;
+                        }
+                        else
+                        {
+                            e.Item.ForeColor = System.Drawing.Color.Gray;
+                        }
+                    }
+                    else
+                    {
+                        e.Item.ForeColor = ForeColor;
+
+                        //using (var brush = new System.Drawing.SolidBrush(ForeColor))
+                        //    e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, e.Item.Padding.Size.Width, e.Item.Padding.Top);
+                    }
                 }
 
                 base.OnRenderItemText(e);
