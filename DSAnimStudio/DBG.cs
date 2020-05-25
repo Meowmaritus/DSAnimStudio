@@ -13,6 +13,7 @@ using System.Windows.Forms;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
 using System.IO;
+using DSAnimStudio.TaeEditor;
 
 namespace DSAnimStudio
 {
@@ -24,6 +25,8 @@ namespace DSAnimStudio
 
         public static DbgPrimWireGrid DbgPrim_Grid;
         public static DbgPrimSkybox DbgPrim_Skybox;
+
+        public static DbgPrimWireSphere DbgPrim_SoundEvent;
 
         public static bool ShowModelNames = true;
         public static bool ShowModelBoundingBoxes = false;
@@ -94,6 +97,9 @@ namespace DSAnimStudio
 
             CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
 
+            CategoryEnableDraw[DbgPrimCategory.SoundEvent] = true;
+            //CategoryEnableNameDraw[DbgPrimCategory.SoundEvent] = true;
+
             CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
             CategoryEnableDraw[DbgPrimCategory.Other] = true;
         }
@@ -111,6 +117,9 @@ namespace DSAnimStudio
 
         public static Color COLOR_DUMMY_POLY = Color.MonoGameOrange;
         public static string COLOR_DUMMY_POLY_NAME = "Orange";
+
+        public static Color COLOR_SOUND_EVENT = Color.Lime;
+        public static string COLOR_SOUND_EVENT_NAME = "Lime";
 
         private static object _lock_primitives = new object();
 
@@ -152,6 +161,9 @@ namespace DSAnimStudio
             //DbgPrim_Grid.OverrideColor = new Color(32, 112, 39);
             //DbgPrim_Grid.OverrideColor = Color.Green;
             DbgPrim_Skybox = new DbgPrimSkybox();
+
+            DbgPrim_SoundEvent = new DbgPrimWireSphere(Transform.Default, COLOR_SOUND_EVENT);
+            DbgPrim_SoundEvent.NameColor = COLOR_SOUND_EVENT;
 
             DbgPrim_Grid.Transform = Transform.Default;
             DbgPrim_Skybox.Transform = new Transform(0,0,0,0,0,0,100,100,100);
@@ -196,6 +208,63 @@ namespace DSAnimStudio
                 {
                     mdl.DrawAllPrimitiveShapes();
                 }
+            }
+
+            if (CategoryEnableDraw[DbgPrimCategory.SoundEvent])
+            {
+                Dictionary<Vector3, List<string>> textsOnLocations = new Dictionary<Vector3, List<string>>();
+
+                var sb = new StringBuilder();
+
+                lock (FmodManager._lock_eventsToUpdate)
+                {
+                    foreach (var se in FmodManager.EventsToUpdate)
+                    {
+                        var eventPos = se.GetPosFunc?.Invoke() ?? Vector3.Zero;
+
+                        Vector3? foundKey = null;
+
+                        foreach (var loc in textsOnLocations.Keys)
+                        {
+                            if ((loc - eventPos).LengthSquared() <= (0.001f * 0.001f))
+                            {
+                                foundKey = loc;
+                                break;
+                            }
+                        }
+
+                        if (foundKey == null)
+                            textsOnLocations.Add(eventPos, new List<string> { se.EventName });
+                        else
+                            textsOnLocations[foundKey.Value].Add(se.EventName);
+                    }
+                }
+
+                foreach (var kvp in textsOnLocations)
+                {
+                    DbgPrim_SoundEvent.Transform = new Transform(Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(kvp.Key));
+                    DbgPrim_SoundEvent.Draw(null, Matrix.Identity);
+                }
+
+                GFX.SpriteBatchBeginForText();
+                foreach (var kvp in textsOnLocations)
+                {
+                    sb.Clear();
+
+                    var sorted = kvp.Value.OrderBy(x => x);
+
+                    foreach (var thing in sorted)
+                        sb.AppendLine(thing);
+
+                    DrawTextOn3DLocation_FixedPixelSize(
+                        Matrix.CreateTranslation(kvp.Key),
+                        Vector3.Zero,
+                        sb.ToString(), COLOR_SOUND_EVENT, 2,
+                        startAndEndSpriteBatchForMe: false, 
+                        screenPixelOffset: Vector2.One * 16, 
+                        fontOverride: DEBUG_FONT_SMALL);
+                }
+                GFX.SpriteBatchEnd();
             }
         }
 
@@ -362,7 +431,8 @@ namespace DSAnimStudio
         }
 
         public static void DrawTextOn3DLocation_FixedPixelSize(Matrix m, Vector3 location, string text, 
-            Color color, float simpleFontScale, bool startAndEndSpriteBatchForMe = false, Vector2 screenPixelOffset = default)
+            Color color, float simpleFontScale, bool startAndEndSpriteBatchForMe = false, Vector2 screenPixelOffset = default, 
+            SpriteFont fontOverride = null)
         {
             if (startAndEndSpriteBatchForMe)
                 GFX.SpriteBatchBeginForText();
@@ -396,52 +466,52 @@ namespace DSAnimStudio
 
             int shadowOffset = GFX.EffectiveSSAA;
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y + shadowOffset),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y + shadowOffset).Round(),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y - shadowOffset),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2(screenPos3D.X, screenPos3D.Y - shadowOffset).Round(),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X - shadowOffset, (int)screenPos3D.Y),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2((int)screenPos3D.X - shadowOffset, (int)screenPos3D.Y).Round(),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X + shadowOffset, (int)screenPos3D.Y),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2((int)screenPos3D.X + shadowOffset, (int)screenPos3D.Y).Round(),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
 
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-               new Vector2((int)screenPos3D.X + shadowOffset, (int)screenPos3D.Y + shadowOffset),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+               new Vector2(screenPos3D.X + shadowOffset, screenPos3D.Y + shadowOffset).Round(),
                Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                0.0001f);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X - shadowOffset, (int)screenPos3D.Y - shadowOffset),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2(screenPos3D.X - shadowOffset, screenPos3D.Y - shadowOffset).Round(),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X - shadowOffset, (int)screenPos3D.Y + shadowOffset),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2(screenPos3D.X - shadowOffset, screenPos3D.Y + shadowOffset).Round(),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X + shadowOffset, (int)screenPos3D.Y - shadowOffset),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2(screenPos3D.X + shadowOffset, screenPos3D.Y - shadowOffset).Round(),
                 Color.Black, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0.0001f);
 
 
 
-            GFX.SpriteBatch.DrawString(DEBUG_FONT, text,
-                new Vector2((int)screenPos3D.X, (int)screenPos3D.Y),
+            GFX.SpriteBatch.DrawString((fontOverride ?? DEBUG_FONT), text,
+                new Vector2(screenPos3D.X, screenPos3D.Y).Round(),
                 color, 0, Vector2.Zero, simpleFontScale, SpriteEffects.None,
                 0);
 

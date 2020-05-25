@@ -38,7 +38,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.1.2";
+        public const string VERSION = "Version 2.1.3";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -695,7 +695,7 @@ namespace DSAnimStudio
         {
             try
             {
-                if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0)
+                if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
                 {
                     // Still initializing just blank out screen while layout freaks out lol
                     if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
@@ -856,6 +856,11 @@ namespace DSAnimStudio
 
                     GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
                 }
+                //else
+                //{
+                //    // TESTING
+                //    GFX.Device.Clear(Color.Fuchsia);
+                //}
             }
             catch (Exception ex)
             {

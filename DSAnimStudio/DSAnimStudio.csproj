@@ -430,7 +430,7 @@
     <Content Include="Content\Cubemaps\m32_00_GILM0001.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Content\Cubemaps\m32_00_GILM0130.dds">
+    <Content Include="Content\Cubemaps\m32_00_GILM0131.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Content\Cubemaps\m33_00_GILM0100.dds">

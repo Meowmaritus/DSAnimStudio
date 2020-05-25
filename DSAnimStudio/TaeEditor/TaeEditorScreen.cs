@@ -1541,22 +1541,27 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     if (m.MainMesh.Submeshes[j].ModelMaskIndex >= 0)
                                     {
-                                        var mi2 = MenuBar[$"Scene\\Models\\{m.Name}\\Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
+                                        var mi2 = MenuBar[$"Scene\\Models\\{m.Name}\\Mesh {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
                                         if (mi2 is System.Windows.Forms.ToolStripMenuItem tsmi2)
                                         {
-                                            mi2.Enabled = m.DefaultDrawMask[m.MainMesh.Submeshes[j].ModelMaskIndex];
+                                            // Note: Tag is used as like a flag for the render code I'm sorry.
+                                            //       See CoolDarkToolStripRenderer.OnRenderItemText
+                                            //       
+                                            //       Makes text grayed out like it's disabled, but it's not.
+                                            mi2.Tag = !m.DefaultDrawMask[m.MainMesh.Submeshes[j].ModelMaskIndex];
+                                            mi2.Invalidate();
                                         }
                                     }
                                 }
 
-                                var miName = $"Scene\\Models\\{m.Name}\\Mask {(kvp.Key)}";
+                                //var miName = $"Scene\\Models\\{m.Name}\\Mask {(kvp.Key)}";
 
-                                var mi = MenuBar[miName];
-                                if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
-                                {
-                                    WinFormsMenuStrip.Focus();
-                                    tsmi.Owner?.Focus();
-                                }
+                                //var mi = MenuBar[miName];
+                                //if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
+                                //{
+                                //    WinFormsMenuStrip.Focus();
+                                //    tsmi.Owner?.Focus();
+                                //}
                             });
                         }
                     }
@@ -1569,7 +1574,7 @@ namespace DSAnimStudio.TaeEditor
                         {
                             m.MainMesh.Submeshes[j].IsVisible = false;
 
-                            var miName = $"Scene\\Models\\{m.Name}\\Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}";
+                            var miName = $"Scene\\Models\\{m.Name}\\Mesh {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}";
 
                             var mi = MenuBar[miName];
                             if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
@@ -1577,11 +1582,11 @@ namespace DSAnimStudio.TaeEditor
                                 tsmi.Checked = false;
 
                                 // On last one, proc weird update
-                                if (j >= m.MainMesh.Submeshes.Count - 1)
-                                {
-                                    WinFormsMenuStrip.Focus();
-                                    tsmi.Owner.Focus();
-                                }
+                                //if (j >= m.MainMesh.Submeshes.Count - 1)
+                                //{
+                                //    WinFormsMenuStrip.Focus();
+                                //    tsmi.Owner.Focus();
+                                //}
                             }
                         }
                     }, closeOnClick: false);
@@ -1591,17 +1596,17 @@ namespace DSAnimStudio.TaeEditor
                         {
                             m.MainMesh.Submeshes[j].IsVisible = true;
 
-                            var mi = MenuBar[$"Scene\\Models\\{m.Name}\\Model {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
+                            var mi = MenuBar[$"Scene\\Models\\{m.Name}\\Mesh {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
                             if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
                             {
                                 tsmi.Checked = true;
 
                                 // On last one, proc weird update
-                                if (j >= m.MainMesh.Submeshes.Count - 1)
-                                {
-                                    WinFormsMenuStrip.Focus();
-                                    tsmi.Owner.Focus();
-                                }
+                                //if (j >= m.MainMesh.Submeshes.Count - 1)
+                                //{
+                                //    WinFormsMenuStrip.Focus();
+                                //    tsmi.Owner.Focus();
+                                //}
                             }
                         }
                     }, closeOnClick: false);
@@ -1610,11 +1615,12 @@ namespace DSAnimStudio.TaeEditor
                     int i = 1;
                     foreach (var sm in m.MainMesh.Submeshes)
                     {
-                        menu.AddItem($"Scene\\Models\\{m.Name}", $"Model {(i++)}: {sm.FullMaterialName}" +
+                        menu.AddItem($"Scene\\Models\\{m.Name}", $"Mesh {(i++)}: {sm.FullMaterialName}" +
                             (sm.ModelMaskIndex >= 0 && maskDict.ContainsKey(sm.ModelMaskIndex) 
                             ? $"|[Mask {sm.ModelMaskIndex}]" : ""), 
-                            () => sm.IsVisible, b => sm.IsVisible = b, 
-                            () => (sm.ModelMaskIndex < 0 || m.MainMesh.DrawMask[sm.ModelMaskIndex]));
+                            checkState: () => sm.IsVisible, b => sm.IsVisible = b, 
+                            getEnabled: () => true,
+                            getMemeTag: () => !(sm.ModelMaskIndex < 0 || m.MainMesh.DrawMask[sm.ModelMaskIndex]));
                     }
                 }
             });
@@ -1637,9 +1643,13 @@ namespace DSAnimStudio.TaeEditor
                 () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-            MenuBar.AddItem("Scene", $"Helper: DummyPoly IDs ({DBG.COLOR_DUMMY_POLY_NAME}, tinted by spawn simulations)", 
+            MenuBar.AddItem("Scene", $"Helper: DummyPoly IDs ({DBG.COLOR_DUMMY_POLY_NAME}, tinted by spawn simulations)",
                 () => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                    b => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
+
+            MenuBar.AddItem("Scene", $"Helper: Sound Event Locations ({DBG.COLOR_SOUND_EVENT_NAME})",
+                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent],
+                   b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent] = b);
 
             MenuBar.AddSeparator("Scene");
 
@@ -2636,7 +2646,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
-            bool isBlend = PlaybackCursor.IsPlaying;
+            bool isBlend = PlaybackCursor.IsPlaying && Graph.ViewportInteractor.IsBlendingActive;
 
             AnimSwitchRenderCooldown = AnimSwitchRenderCooldownMax;
 
@@ -2669,8 +2679,6 @@ namespace DSAnimStudio.TaeEditor
 
                 Graph.ChangeToNewAnimRef(SelectedTaeAnim);
 
-           
-
                 UpdateLayout(); // Fixes scroll when you first open anibnd (hopefully)
 
                 AnimationListScreen.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
@@ -2684,12 +2692,9 @@ namespace DSAnimStudio.TaeEditor
                     Graph.ViewportInteractor.RootMotionSendHome();
                     Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
                     Graph.ViewportInteractor.ResetRootMotion();
-                    Graph.ViewportInteractor?.RemoveTransition();
+                    Graph.ViewportInteractor.RemoveTransition();
+                    Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
                 }
-
-                //TaeInterop.OnAnimationSelected(FileContainer.AllTAEDict, SelectedTae, SelectedTaeAnim);
-
-
             }
             else
             {
@@ -3009,8 +3014,8 @@ namespace DSAnimStudio.TaeEditor
             Graph.ViewportInteractor.RootMotionSendHome();
             Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
             Graph.ViewportInteractor.ResetRootMotion();
-            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
-            Graph.ViewportInteractor?.RemoveTransition();
+            Graph.ViewportInteractor.RemoveTransition();
+            Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
         }
 
         public void Update()
@@ -3603,7 +3608,7 @@ namespace DSAnimStudio.TaeEditor
 
                     ButtonGotoEventSource.Bounds = new System.Drawing.Rectangle(
                         plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
-                        Rect.Top + TopMenuBarMargin - 4,
+                        Rect.Top + TopMenuBarMargin,
                         ButtonGotoEventSourceWidth,
                         TopOfGraphAnimInfoMargin);
 

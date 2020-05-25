@@ -25,6 +25,10 @@ namespace DSAnimStudio.TaeEditor
             REMO
         }
 
+        public bool IsBlendingActive => 
+            (CurrentComboIndex >= 0 && EventSim.GetSimEnabled("EventSimBasicBlending_Combos")) ||
+            (CurrentComboIndex < 0 && EventSim.GetSimEnabled("EventSimBasicBlending"));
+
         public TaeEntityType EntityType { get; private set; } = TaeEntityType.NONE;
 
         public NewChrAsmEquipForm EquipForm = null;
@@ -801,7 +805,7 @@ namespace DSAnimStudio.TaeEditor
 
         public string GetFinalAnimFileName(TAE tae, TAE.Animation anim)
         {
-            if (CurrentModel == null)
+            if (CurrentModel == null || CurrentModel?.AnimContainer == null || Graph == null || Graph?.MainScreen?.FileContainer?.AllTAEDict == null)
                 return null;
 
             var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
@@ -889,6 +893,8 @@ namespace DSAnimStudio.TaeEditor
 
                     //GFX.World.CameraTransform.EulerRotationExtraY += turnAmount;
 
+                    GFX.World.ModelCenter_ForOrbitCam = Vector3.Transform(
+                        CurrentModel.MainMesh.Bounds.GetCenter(), CurrentModel.CurrentTransform.WorldMatrix);
                     GFX.World.RotateFromRootMotion(-turnAmount);
 
                     modelDirectionLastFrame = CurrentModel.CurrentDirection;

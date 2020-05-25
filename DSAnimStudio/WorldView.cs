@@ -238,6 +238,45 @@ namespace DSAnimStudio
             return result;
         }
 
+        public Vector3 GetScreenSpaceRightVector()
+        {
+            var centerScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f), 0),
+                MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
+
+            var toTheRightOfCenterScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2((GFX.Device.Viewport.Width * 0.5f) + 100, GFX.Device.Viewport.Height * 0.5f), 0),
+                MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
+
+            return Vector3.Normalize(toTheRightOfCenterScreen - centerScreen);
+        }
+
+        public Vector3 GetScreenSpaceUpVector()
+        {
+            var centerScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f), 0),
+                MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
+
+            var aboveCenterScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, (GFX.Device.Viewport.Height * 0.5f) - 100), 0),
+                MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
+
+            return Vector3.Normalize(aboveCenterScreen - centerScreen);
+        }
+
+        public Vector3 GetScreenSpaceFowardVector()
+        {
+            var centerScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f), 0),
+                MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
+
+            var stickingOutOfScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f), 0.1f),
+                MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
+
+            return Vector3.Normalize(stickingOutOfScreen - centerScreen);
+        }
+
         public Transform GetSpawnPointInFrontOfCamera(float distance, bool faceBackwards, bool lockPitch, bool alignToFloor)
         {
             return GetSpawnPointFromScreenPos(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f),
@@ -327,6 +366,11 @@ namespace DSAnimStudio
             CameraTransform.EulerRotation.Y -= h * speed;
             CameraTransform.EulerRotation.X += v * speed;
             CameraTransform.EulerRotation.Z = 0;
+
+            var moveXZ = GetScreenSpaceRightVector() * (float)Math.Tan(h * speed);
+            var moveY = GetScreenSpaceUpVector() * (float)Math.Tan(v * speed);
+
+            CameraTransform.Position += ((moveXZ + moveY) * OrbitCamDistance);
         }
 
         
@@ -434,7 +478,17 @@ namespace DSAnimStudio
             var requestCameraDirChange = RequestDirectionChange;
             if (requestCameraDirChange != 0)
             {
+                
+
+                
+
                 RotateCameraOrbit(-requestCameraDirChange, 0, 1);
+
+                Vector3 orbitOriginOffsetFromModel = (OrbitCamCenter - ModelCenter_ForOrbitCam);
+
+                orbitOriginOffsetFromModel = Vector3.Transform(orbitOriginOffsetFromModel, Matrix.CreateRotationY(-requestCameraDirChange));
+
+                OrbitCamCenter = (ModelCenter_ForOrbitCam + orbitOriginOffsetFromModel);
 
                 CameraTransform.EulerRotation.X = MathHelper.Clamp(CameraTransform.EulerRotation.X, -MathHelper.PiOver2 * SHITTY_CAM_PITCH_LIMIT_FATCAT_CLAMP, MathHelper.PiOver2 * SHITTY_CAM_PITCH_LIMIT_FATCAT_CLAMP);
 

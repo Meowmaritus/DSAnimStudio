@@ -62,6 +62,8 @@ namespace DSAnimStudio
             * Matrix.CreateRotationZ(EulerRotation.X)
             * Matrix.CreateRotationX(EulerRotation.Z);
 
+        public Matrix RotationMatrixY => Matrix.CreateRotationY(EulerRotation.Y);
+
         public Matrix RotationMatrixNeg => Matrix.CreateRotationY(-EulerRotation.Y)
            * Matrix.CreateRotationZ(-EulerRotation.Z)
            * Matrix.CreateRotationX(-EulerRotation.X);
