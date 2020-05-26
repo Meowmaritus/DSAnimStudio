@@ -3088,11 +3088,11 @@ namespace DSAnimStudio.TaeEditor
                     Graph?.MouseReleaseStuff();
             }
 
-            if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
-            {
-                if (Config.UseGamesMenuSounds)
-                    FmodManager.PlaySE("f000000000");
-            }
+            //if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
+            //{
+            //    if (Config.UseGamesMenuSounds)
+            //        FmodManager.PlaySE("f000000000");
+            //}
 
             multiSelectedEventBoxesCountLastFrame = MultiSelectedEventBoxes.Count;
 
