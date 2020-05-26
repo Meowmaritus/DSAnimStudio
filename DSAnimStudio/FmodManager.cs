@@ -50,6 +50,153 @@ namespace DSAnimStudio
 
         public static Dictionary<int, string> FloorMaterialNames = new Dictionary<int, string>();
 
+        public static DebugPrimitives.DbgPrimWireArrow DbgPrimCamPos;
+
+
+
+        public static void Update()
+        {
+            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            {
+                return;
+            }
+
+            Main.WinForm.Invoke(new Action(() =>
+            {
+
+                //_eventSystem.set3DListenerAttributes(listener: 0, ref pos, ref vel, ref forward, ref up);Vector3.Transform(
+
+                Vector3 pos = (GFX.World.CameraTransform.Position /* - Vector3.Transform(Vector3.Zero, GFX.World.WorldMatrixMOD)*/ ) * new Vector3(1, 1, 1);
+                Vector3 vel = Vector3.Zero;// (pos - listenerPosOnPreviousFrame) / Main.DELTA_UPDATE;
+                Vector3 up = GFX.World.GetScreenSpaceUpVector();// Vector3.TransformNormal(Vector3.Up, GFX.World.CameraTransform.RotationMatrix);
+                Vector3 forward = -GFX.World.GetScreenSpaceFowardVector();
+
+                pos = Vector3.Transform(pos, Matrix.Invert(GFX.World.WorldMatrixMOD));
+
+                forward = Vector3.TransformNormal(forward, GFX.World.WorldMatrixMOD) * new Vector3(1, 1, -1);
+
+                up = Vector3.TransformNormal(up, GFX.World.WorldMatrixMOD) * new Vector3(1, 1, -1);
+
+
+
+                DbgPrimCamPos.Transform = new Transform(Matrix.CreateWorld(Vector3.Zero, forward, up));
+
+
+                //if (GFX.World.CameraTransform.EulerRotation.X > MathHelper.PiOver4)
+                //{
+                //    // If camera is pointing upward, get forward XZ from the down vector (for preventing gimbal issues)
+                //    forward = -GFX.World.GetScreenSpaceUpVector();
+                //}
+                //else if (GFX.World.CameraTransform.EulerRotation.X < -MathHelper.PiOver4)
+                //{
+                //    // If camera is pointing downward, get forward XZ from the up vector (for preventing gimbal issues)
+                //    forward = GFX.World.GetScreenSpaceUpVector();
+                //}
+
+                //// Flatten forward to be pointing directly forward.
+                //forward.Y = 0;
+                //forward = Vector3.Normalize(forward);
+
+                //// Flatten position to be on a flat plane
+                //pos.Y = 0;
+
+                VECTOR posVec = new VECTOR(pos);
+                VECTOR velVec = new VECTOR(vel);
+                VECTOR upVec = new VECTOR(up);
+                VECTOR forwardVec = new VECTOR(forward);
+
+
+
+                ERRCHECK(result = _eventSystem.set3DListenerAttributes(0, ref posVec, ref velVec, ref forwardVec, ref upVec));
+
+
+
+                lock (_lock_eventsToUpdate)
+                {
+                    List<FmodEventUpdater> finishedEvents = new List<FmodEventUpdater>();
+
+                    foreach (var evt in _eventsToUpdate)
+                    {
+                        evt.Update(Main.DELTA_UPDATE, Matrix.Identity);
+                        if (evt.EventIsOver)
+                            finishedEvents.Add(evt);
+                    }
+                    foreach (var evt in finishedEvents)
+                    {
+                        _eventsToUpdate.Remove(evt);
+                    }
+                }
+
+
+
+                ERRCHECK(result = _eventSystem.update());
+
+                listenerPosOnPreviousFrame = pos;
+            }));
+        }
+
+
+        public class FmodEventUpdater
+        {
+            public string EventName;
+            FMOD.Event Event;
+            public Func<Vector3> GetPosFunc { get; private set; } = null;
+            public bool EventIsOver = false;
+            RESULT evtRes;
+            Vector3 oldPos;
+            public FmodEventUpdater(FMOD.Event evt, Func<Vector3> getPosFunc, string name)
+            {
+                EventName = name;
+                Event = evt;
+                GetPosFunc = getPosFunc;
+            }
+            public void Update(float deltaTime, Matrix world)
+            {
+                if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+                   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+                {
+                    return;
+                }
+
+                FMOD.EVENT_STATE state = EVENT_STATE.PLAYING;
+                evtRes = Event.getState(ref state);
+
+                if (evtRes == RESULT.ERR_INVALID_HANDLE)
+                {
+                    EventIsOver = true;
+                    return;
+                }
+
+                if (state == EVENT_STATE.READY)
+                {
+                    EventIsOver = true;
+                }
+                else
+                {
+                    var position = Vector3.Transform(((GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(1, 1, 1)), world);
+                    var velocity = Vector3.Zero;// (position - oldPos) / deltaTime;
+
+                    // Flatten position to be on a flat plane
+                    //position.Y = 0;
+
+                    FMOD.VECTOR posVec = new VECTOR(position);
+                    FMOD.VECTOR velVec = new VECTOR(velocity);
+
+                    // If it fails due to the event being released, it's fine. No weirdness should happen.
+                    evtRes = Event.set3DAttributes(ref posVec, ref velVec);
+                    evtRes = Event.setVolume(BaseSoundVolume * AdjustSoundVolume);
+
+                    oldPos = position;
+                }
+            }
+        }
+
+
         public static FMOD.EventProject GetEventProject(string name)
         {
             FMOD.EventProject proj = null;
@@ -163,63 +310,8 @@ namespace DSAnimStudio
             None = 59,
         }
 
-        public class FmodEventUpdater
-        {
-            public string EventName;
-            FMOD.Event Event;
-            public Func<Vector3> GetPosFunc { get; private set; } = null;
-            public bool EventIsOver = false;
-            RESULT evtRes;
-            Vector3 oldPos;
-            public FmodEventUpdater(FMOD.Event evt, Func<Vector3> getPosFunc, string name)
-            {
-                EventName = name;
-                Event = evt;
-                GetPosFunc = getPosFunc;
-            }
-            public void Update(float deltaTime)
-            {
-                if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-                   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-                   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-                {
-                    return;
-                }
 
-                FMOD.EVENT_STATE state = EVENT_STATE.PLAYING;
-                evtRes = Event.getState(ref state);
-
-                if (evtRes == RESULT.ERR_INVALID_HANDLE)
-                {
-                    EventIsOver = true;
-                    return;
-                }
-
-                if (state == EVENT_STATE.READY)
-                {
-                    EventIsOver = true;
-                }
-                else
-                {
-                    var position = (GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(-1, 1, 1);
-                    var velocity = Vector3.Zero;// (position - oldPos) / deltaTime;
-
-                    // Flatten position to be on a flat plane
-                    //position.Y = 0;
-
-                    FMOD.VECTOR posVec = new VECTOR(position);
-                    FMOD.VECTOR velVec = new VECTOR(velocity);
-
-                    // If it fails due to the event being released, it's fine. No weirdness should happen.
-                    evtRes = Event.set3DAttributes(ref posVec, ref velVec);
-                    evtRes = Event.setVolume(BaseSoundVolume * AdjustSoundVolume);
-
-                    oldPos = position;
-                }
-            }
-        }
-
+        
         public static IReadOnlyList<string> LoadedFEVs => _loadedFEVs;
 
         private static bool LoadFEV(string fullFevPath)
@@ -376,9 +468,16 @@ namespace DSAnimStudio
             if (soundName == null)
                 return false;
 
+            return PlaySE(soundName, getPosFunc);
+        }
+
+
+
+        public static bool PlaySE(string seEventName, Func<Vector3> getPosFunc = null)
+        {
             foreach (var fevName in LoadedFEVs)
             {
-                if (PlayEvent(soundName, getPosFunc))
+                if (PlayEvent(seEventName, getPosFunc))
                 {
                     return true;
                 }
@@ -394,6 +493,9 @@ namespace DSAnimStudio
                 ERRCHECK(result = FMOD.Event_Factory.EventSystem_Create(ref _eventSystem));
                 ERRCHECK(result = _eventSystem.init(MAX_CHANNELS, FMOD.INITFLAGS.NORMAL, (IntPtr)null, FMOD.EVENT_INITFLAGS.NORMAL));
                 ERRCHECK(result = _eventSystem.getSystemObject(ref _system));
+
+                DbgPrimCamPos = new DebugPrimitives.DbgPrimWireArrow("FMOD Camera", Transform.Default, Color.Lime);
+                DbgPrimCamPos.Category = DebugPrimitives.DbgPrimCategory.SoundEvent;
             }));
         }
 
@@ -411,79 +513,6 @@ namespace DSAnimStudio
             {
                 ERRCHECK(result = _eventSystem.setMediaPath(GetDirWithBackslash(
                 Utils.Frankenpath(GameDataManager.InterrootPath, "sound"))));
-            }));
-        }
-
-        public static void Update()
-        {
-            if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-               GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-               GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-               GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-            {
-                return;
-            }
-
-            Main.WinForm.Invoke(new Action(() =>
-            {
-                
-                //_eventSystem.set3DListenerAttributes(listener: 0, ref pos, ref vel, ref forward, ref up);Vector3.Transform(
-
-                Vector3 pos = (GFX.World.CameraTransform.Position - Vector3.Transform(Vector3.Zero, GFX.World.WorldMatrixMOD)) * new Vector3(-1, 1, 1);
-                Vector3 vel = Vector3.Zero;// (pos - listenerPosOnPreviousFrame) / Main.DELTA_UPDATE;
-                Vector3 up = GFX.World.GetScreenSpaceUpVector();// Vector3.TransformNormal(Vector3.Up, GFX.World.CameraTransform.RotationMatrix);
-                Vector3 forward = -GFX.World.GetScreenSpaceFowardVector();
-                
-                //if (GFX.World.CameraTransform.EulerRotation.X > MathHelper.PiOver4)
-                //{
-                //    // If camera is pointing upward, get forward XZ from the down vector (for preventing gimbal issues)
-                //    forward = -GFX.World.GetScreenSpaceUpVector();
-                //}
-                //else if (GFX.World.CameraTransform.EulerRotation.X < -MathHelper.PiOver4)
-                //{
-                //    // If camera is pointing downward, get forward XZ from the up vector (for preventing gimbal issues)
-                //    forward = GFX.World.GetScreenSpaceUpVector();
-                //}
-
-                //// Flatten forward to be pointing directly forward.
-                //forward.Y = 0;
-                //forward = Vector3.Normalize(forward);
-
-                //// Flatten position to be on a flat plane
-                //pos.Y = 0;
-
-                VECTOR posVec = new VECTOR(pos);
-                VECTOR velVec = new VECTOR(vel);
-                VECTOR upVec = new VECTOR(up);
-                VECTOR forwardVec = new VECTOR(forward);
-
-                
-
-                ERRCHECK(result = _eventSystem.set3DListenerAttributes(0, ref posVec, ref velVec, ref forwardVec, ref upVec));
-
-                
-
-                lock (_lock_eventsToUpdate)
-                {
-                    List<FmodEventUpdater> finishedEvents = new List<FmodEventUpdater>();
-
-                    foreach (var evt in _eventsToUpdate)
-                    {
-                        evt.Update(Main.DELTA_UPDATE);
-                        if (evt.EventIsOver)
-                            finishedEvents.Add(evt);
-                    }
-                    foreach (var evt in finishedEvents)
-                    {
-                        _eventsToUpdate.Remove(evt);
-                    }
-                }
-
-                
-
-                ERRCHECK(result = _eventSystem.update());
-
-                listenerPosOnPreviousFrame = pos;
             }));
         }
 

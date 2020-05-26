@@ -10,6 +10,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using static DSAnimStudio.TaeEditor.TaeEditAnimEventGraph;
+using System.Diagnostics;
+using SharpDX.DirectWrite;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -852,6 +854,12 @@ namespace DSAnimStudio.TaeEditor
             {
                 //inspectorWinFormsControl.DumpDataGridValuesToEvent();
 
+                if (value != null && value != _selectedEventBox)
+                {
+                    if (Config.UseGamesMenuSounds)
+                        FmodManager.PlaySE("f000000000");
+                }
+
                 _selectedEventBox = value;
 
                 if (_selectedEventBox == null)
@@ -875,6 +883,7 @@ namespace DSAnimStudio.TaeEditor
         }
 
         public List<TaeEditAnimEventBox> MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>();
+        private int multiSelectedEventBoxesCountLastFrame = 0;
 
         public TaeEditAnimList AnimationListScreen;
         public TaeEditAnimEventGraph Graph { get; private set; }
@@ -1000,7 +1009,7 @@ namespace DSAnimStudio.TaeEditor
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
                     MenuBar["File\\Save As..."].Enabled = !IsReadOnlyFileMode;
-                    MenuBar["File\\Force Ingame Character Reload Now (DS3/DS1R Only)"].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File\\Force Ingame Character Reload Now (DS3/DS1R Only)|F5"].Enabled = !IsReadOnlyFileMode;
                     MenuBar["File\\Reload GameParam"].Enabled = true;
                 }));
 
@@ -1271,7 +1280,7 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
             MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
             MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Force Ingame Character Reload Now (DS3/DS1R Only)", () => LiveRefresh(), startDisabled: true);
+            MenuBar.AddItem("File", "Force Ingame Character Reload Now (DS3/DS1R Only)|F5", () => LiveRefresh(), startDisabled: true);
             MenuBar.AddItem("File", "Force Ingame Character Reload When Saving (DS3/DS1R Only)", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
             MenuBar.AddSeparator("File");
             MenuBar.AddItem("File", "Manually Save Config", () =>
@@ -1844,6 +1853,17 @@ namespace DSAnimStudio.TaeEditor
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
 
             BuildDebugMenuBar();
+
+            MenuBar.AddTopItem("By Meowmaritus");
+
+            MenuBar["By Meowmaritus"].Tag = System.Drawing.Color.Lime;
+
+            MenuBar.AddItem("By Meowmaritus", "Click To Donate", () =>
+            {
+                Process.Start("https://paypal.me/Meowmaritus");
+            });
+
+            MenuBar["By Meowmaritus\\Click To Donate"].Tag = System.Drawing.Color.Lime;
 
             WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
@@ -3068,7 +3088,13 @@ namespace DSAnimStudio.TaeEditor
                     Graph?.MouseReleaseStuff();
             }
 
-            
+            if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
+            {
+                if (Config.UseGamesMenuSounds)
+                    FmodManager.PlaySE("f000000000");
+            }
+
+            multiSelectedEventBoxesCountLastFrame = MultiSelectedEventBoxes.Count;
 
             // Always update playback regardless of GUI memes.
             // Still only allow hitting spacebar to play/pause
@@ -3105,6 +3131,9 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F4))
                     GoToEventSource();
+
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F5))
+                    LiveRefresh();
 
                 var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
                 var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);

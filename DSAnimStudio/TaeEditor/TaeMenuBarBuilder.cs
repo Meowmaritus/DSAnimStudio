@@ -743,6 +743,10 @@ namespace DSAnimStudio.TaeEditor
                 {
                     e.Item.ForeColor = System.Drawing.Color.Gray;
                 }
+                else if (e.Item.Tag is System.Drawing.Color asColor)
+                {
+                    e.Item.ForeColor = asColor;
+                }
                 else
                 {
                     if (!e.Item.Enabled)

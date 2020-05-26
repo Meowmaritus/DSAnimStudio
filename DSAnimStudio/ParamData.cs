@@ -611,6 +611,8 @@ namespace DSAnimStudio
             public short SpAtkCategory;
             public int WepAbsorpPosID = -1;
 
+            public byte FDPSoundType = 0;
+
             public bool IsPairedWeaponDS3 => GameDataManager.GameType == GameDataManager.GameTypes.DS3 
                 && (DS3PairedSpAtkCategories.Contains(SpAtkCategory) || (WepMotionCategory == 42)) // DS3 Fist weapons
                 ;
@@ -670,9 +672,13 @@ namespace DSAnimStudio
                 if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
                     GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
+
+
                     br.Position = start + 0x170;
                     WepAbsorpPosID = br.ReadInt32();
                 }
+
+
             }
         }
         
