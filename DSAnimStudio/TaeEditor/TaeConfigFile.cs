@@ -9,6 +9,8 @@ namespace DSAnimStudio.TaeEditor
     {
         public ParamData.AtkParam.DummyPolySource HitViewDummyPolySource { get; set; } = ParamData.AtkParam.DummyPolySource.Body;
 
+        public bool UseGamesMenuSounds { get; set; } = true;
+
         public bool DbgPrimXRay { get; set; } = false;
         public enum EventSnapTypes
         {

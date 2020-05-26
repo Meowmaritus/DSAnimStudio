@@ -164,6 +164,7 @@ namespace DSAnimStudio
 
             DbgPrim_SoundEvent = new DbgPrimWireSphere(Transform.Default, COLOR_SOUND_EVENT);
             DbgPrim_SoundEvent.NameColor = COLOR_SOUND_EVENT;
+            DbgPrim_SoundEvent.Category = DbgPrimCategory.SoundEvent;
 
             DbgPrim_Grid.Transform = Transform.Default;
             DbgPrim_Skybox.Transform = new Transform(0,0,0,0,0,0,100,100,100);
@@ -265,6 +266,8 @@ namespace DSAnimStudio
                         fontOverride: DEBUG_FONT_SMALL);
                 }
                 GFX.SpriteBatchEnd();
+
+                //FmodManager.DbgPrimCamPos.Draw(null, Matrix.Identity);
             }
         }
 
