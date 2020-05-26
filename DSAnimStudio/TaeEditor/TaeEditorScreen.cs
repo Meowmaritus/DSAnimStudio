@@ -854,11 +854,11 @@ namespace DSAnimStudio.TaeEditor
             {
                 //inspectorWinFormsControl.DumpDataGridValuesToEvent();
 
-                if (value != null && value != _selectedEventBox)
-                {
-                    if (Config.UseGamesMenuSounds)
-                        FmodManager.PlaySE("f000000000");
-                }
+                //if (value != null && value != _selectedEventBox)
+                //{
+                //    if (Config.UseGamesMenuSounds)
+                //        FmodManager.PlaySE("f000000000");
+                //}
 
                 _selectedEventBox = value;
 
