@@ -24,6 +24,8 @@ namespace DSAnimStudio
         public bool EnableRootMotion = true;
         public bool EnableRootMotionWrap = true;
 
+        public object _lock_AnimationLayers = new object();
+
         public bool IsAnimLoaded(string name)
         {
             return AnimationCache.ContainsKey(name);
@@ -58,12 +60,16 @@ namespace DSAnimStudio
 
         public int GetAnimLayerIndexByName(string name)
         {
-            for (int i = AnimationLayers.Count - 1; i >= 0; i--)
+            lock (_lock_AnimationLayers)
             {
-                if (AnimationLayers[i].Name == name)
-                    return i;
+                for (int i = AnimationLayers.Count - 1; i >= 0; i--)
+                {
+                    if (AnimationLayers[i].Name == name)
+                        return i;
+                }
+                return -1;
             }
-            return -1;
+            
         }
 
         private string _currentAnimationName = null;
@@ -117,7 +123,10 @@ namespace DSAnimStudio
                     // reset all cached animations to time of 0, and stop playback.
                     foreach (var cachedAnimName in AnimationCache.Keys)
                         AnimationCache[cachedAnimName].Reset();
-                    AnimationLayers.Clear();
+                    lock (_lock_AnimationLayers)
+                    {
+                        AnimationLayers.Clear();
+                    }
                 }
                 else
                 {
@@ -142,24 +151,28 @@ namespace DSAnimStudio
                                     AnimationCache.Add(value, anim);
                             }
 
-
-                            if (AnimationLayers.Count < 2)
+                            lock (_lock_AnimationLayers)
                             {
-                                if (AnimationLayers.Count == 0)
-                                    anim.Weight = 1;
+                                if (AnimationLayers.Count < 2)
+                                {
+                                    if (AnimationLayers.Count == 0)
+                                        anim.Weight = 1;
+                                    else
+                                        anim.Weight = 0;
+                                    AnimationLayers.Add(anim);
+                                }
                                 else
+                                {
                                     anim.Weight = 0;
-                                AnimationLayers.Add(anim);
-                            }
-                            else
-                            {
-                                anim.Weight = 0;
 
-                                AnimationLayers[1].Weight = 1;
-                                AnimationLayers[0] = AnimationLayers[1];
+                                    AnimationLayers[1].Weight = 1;
+                                    AnimationLayers[0] = AnimationLayers[1];
 
-                                AnimationLayers[1] = anim;
+                                    AnimationLayers[1] = anim;
+                                }
                             }
+
+                            
 
 
                             //V2.0: Testing - Even out anim layer weights
@@ -177,7 +190,12 @@ namespace DSAnimStudio
                     {
                         foreach (var cachedAnimName in AnimationCache.Keys)
                             AnimationCache[cachedAnimName].Reset();
-                        AnimationLayers.Clear();
+
+                        lock (_lock_AnimationLayers)
+                        {
+                            AnimationLayers.Clear();
+                        }
+                        
                     }
                 }
                 //else
@@ -215,10 +233,14 @@ namespace DSAnimStudio
 
         public void ResetAll()
         {
-            foreach (var anim in AnimationLayers)
+            lock (_lock_AnimationLayers)
             {
-                anim.Reset();
+                foreach (var anim in AnimationLayers)
+                {
+                    anim.Reset();
+                }
             }
+            
         }
 
         private void OnScrubUpdateAnimLayersRootMotion()
@@ -331,63 +353,84 @@ namespace DSAnimStudio
             var transB = new List<NewBlendableTransform>();
 
             float totalWeight = 0;
-            for (int i = 0; i < AnimationLayers.Count; i++)
+
+            lock (_lock_AnimationLayers)
             {
-                AnimationLayers[i].ScrubRelative(timeDelta, doNotCheckRootMotionRotation);
-                totalWeight += AnimationLayers[i].Weight;
-                //AnimationLayers[i].ApplyWeightedMotionToSkeleton(finalizeHkxMatrices: i == AnimationLayers.Count - 1, 1 - totalWeight);
-                //AnimationLayers[i].CalculateCurrentFrame();
-
-                for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
+                for (int i = 0; i < AnimationLayers.Count; i++)
                 {
-                    if (i == 0)
-                        transA.Add(AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t));
-                    else if (i == 1)
-                        transB.Add(AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t));
-                }
-            }
+                    AnimationLayers[i].ScrubRelative(timeDelta, doNotCheckRootMotionRotation);
+                    totalWeight += AnimationLayers[i].Weight;
+                    //AnimationLayers[i].ApplyWeightedMotionToSkeleton(finalizeHkxMatrices: i == AnimationLayers.Count - 1, 1 - totalWeight);
+                    //AnimationLayers[i].CalculateCurrentFrame();
 
-            //if (AnimationLayers.Count == 2)
-            //{
-            //    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
-            //    {
-
-            //    }
-            //        MODEL.Skeleton.SetHkxBoneMatrix(t, (NewBlendableTransform.Lerp(transA[t], transB[t], AnimationLayers[1].Weight)).GetMatrix().ToXna());
-            //}
-            //else if (AnimationLayers.Count == 1)
-            //{
-            //    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
-            //        MODEL.Skeleton.SetHkxBoneMatrix(t, transA[t].GetMatrix().ToXna());
-            //}
-
-            void WalkTree(int i, Matrix currentMatrix, Vector3 currentScale)
-            {
-                if (AnimationLayers.Count == 2)
-                {
-                    currentMatrix = NewBlendableTransform.Lerp(transA[i], transB[i], AnimationLayers[1].Weight).GetMatrix().ToXna() * currentMatrix;
-                }
-                else if (AnimationLayers.Count == 1)
-                {
-                    currentMatrix = transA[i].GetMatrix().ToXna() * currentMatrix;
+                    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
+                    {
+                        if (i == 0)
+                            transA.Add(AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t));
+                        else if (i == 1)
+                            transB.Add(AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t));
+                    }
                 }
 
-                MODEL.Skeleton.SetHkxBoneMatrix(i, currentMatrix);
+                //if (AnimationLayers.Count == 2)
+                //{
+                //    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
+                //    {
 
-                foreach (var c in MODEL.Skeleton.HkxSkeleton[i].ChildIndices)
-                    WalkTree(c, currentMatrix, currentScale);
-            }
+                //    }
+                //        MODEL.Skeleton.SetHkxBoneMatrix(t, (NewBlendableTransform.Lerp(transA[t], transB[t], AnimationLayers[1].Weight)).GetMatrix().ToXna());
+                //}
+                //else if (AnimationLayers.Count == 1)
+                //{
+                //    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
+                //        MODEL.Skeleton.SetHkxBoneMatrix(t, transA[t].GetMatrix().ToXna());
+                //}
 
-            if (AnimationLayers.Count > 0)
-            {
-                foreach (var root in MODEL.Skeleton.RootBoneIndices)
-                    WalkTree(root, Matrix.Identity, Vector3.One);
+                void WalkTree(int i, Matrix currentMatrix, Vector3 currentScale)
+                {
+                    if (AnimationLayers.Count == 2)
+                    {
+                        var parentTransformation = currentMatrix;
+
+                        currentMatrix = AnimationLayers[1].IsAdditiveBlend ? transB[i].GetMatrix().ToXna() :
+                            NewBlendableTransform.Lerp(transA[i], transB[i], AnimationLayers[1].Weight).GetMatrix().ToXna();
+
+                        if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
+                            currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
+
+                        currentMatrix *= parentTransformation;
+                    }
+                    else if (AnimationLayers.Count == 1)
+                    {
+                        var parentTransformation = currentMatrix;
+
+                        currentMatrix = transA[i].GetMatrix().ToXna();
+
+                        if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
+                            currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
+
+                        currentMatrix *= parentTransformation;
+                    }
+
+                    MODEL.Skeleton.SetHkxBoneMatrix(i, currentMatrix);
+
+                    foreach (var c in MODEL.Skeleton.HkxSkeleton[i].ChildIndices)
+                        WalkTree(c, currentMatrix, currentScale);
+                }
+
+                if (AnimationLayers.Count > 0)
+                {
+                    foreach (var root in MODEL.Skeleton.RootBoneIndices)
+                        WalkTree(root, Matrix.Identity, Vector3.One);
+                }
+
+
+
+                if (timeDelta != 0)
+                    OnScrubUpdateAnimLayersRootMotion();
             }
 
                 
-
-            if (timeDelta != 0)
-                OnScrubUpdateAnimLayersRootMotion();
         }
 
         public void Update()

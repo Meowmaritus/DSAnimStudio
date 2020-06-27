@@ -186,6 +186,46 @@ namespace DSAnimStudio.TaeEditor
                 }
             });
 
+            MenuBar.AddItem("Tools", "Export Current TAE...", () =>
+            {
+
+                Main.WinForm.Invoke(new Action(() =>
+                {
+                    var browseDlg = new System.Windows.Forms.SaveFileDialog()
+                    {
+                        Filter = "TAE Files (*.tae)|*.tae",
+                        ValidateNames = true,
+                        CheckPathExists = true,
+                        //ShowReadOnly = true,
+                        Title = "Choose where to save loose TAE file.",
+                        
+                    };
+
+                    var decision = browseDlg.ShowDialog();
+
+                    if (decision == System.Windows.Forms.DialogResult.OK)
+                    {
+                        try
+                        {
+                            SelectedTae.Write(browseDlg.FileName);
+                            System.Windows.Forms.MessageBox.Show("TAE saved successfully.", "Saved");
+                        }
+                        catch (Exception exc)
+                        {
+                            System.Windows.Forms.MessageBox.Show($"Error saving TAE file:\n\n{exc}", "Failed to Save", 
+                                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                        }
+                    }
+
+                }));
+
+
+
+
+
+
+            }, startDisabled: true, closeOnClick: true, getEnabled: () => SelectedTae != null);
+
             //MenuBar.AddItem("Tools", "TEST: Convert SplineCompressed to InterleavedUncompressed", () =>
             //{
             //    Havok.HKAnimRetarget.ConvertSplineXMLtoUncompressedXML(
@@ -644,7 +684,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (!UndoManDictionary.ContainsKey(SelectedTaeAnim))
                 {
-                    var newUndoMan = new TaeUndoMan();
+                    var newUndoMan = new TaeUndoMan(this);
                     newUndoMan.CanUndoMaybeChanged += UndoMan_CanUndoMaybeChanged;
                     newUndoMan.CanRedoMaybeChanged += UndoMan_CanRedoMaybeChanged;
                     UndoManDictionary.Add(SelectedTaeAnim, newUndoMan);
@@ -829,7 +869,7 @@ namespace DSAnimStudio.TaeEditor
                 else
                 {
                     inspectorWinFormsControl.labelEventType.Text =
-                        (SelectedEventBox.MyEvent.TypeName != null ? SelectedEventBox.MyEvent.TypeName : $"Event Type {SelectedEventBox.MyEvent.Type}")
+                        (SelectedEventBox.MyEvent.TypeName != null ? ($"{SelectedEventBox.MyEvent.TypeName}[{SelectedEventBox.MyEvent.Type}]") : $"Event Type {SelectedEventBox.MyEvent.Type}")
                         + $"\n{SelectedEventBox.MyEvent.StartTime:0.00} -> {SelectedEventBox.MyEvent.EndTime:0.00} (Duration: {(SelectedEventBox.MyEvent.EndTime - SelectedEventBox.MyEvent.StartTime):0.00})";
                         inspectorWinFormsControl.buttonChangeType.Enabled = true;
                         inspectorWinFormsControl.buttonChangeType.Visible = true;
@@ -887,6 +927,8 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeEditAnimList AnimationListScreen;
         public TaeEditAnimEventGraph Graph { get; private set; }
+        public bool IsCurrentlyLoadingGraph { get; private set; } = false;
+        //private Dictionary<TAE.Animation, TaeEditAnimEventGraph> GraphLookup = new Dictionary<TAE.Animation, TaeEditAnimEventGraph>();
         //private TaeEditAnimEventGraphInspector editScreenGraphInspector;
 
         private Color ColorInspectorBG = Color.DarkGray;
@@ -1009,7 +1051,7 @@ namespace DSAnimStudio.TaeEditor
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
                     MenuBar["File\\Save As..."].Enabled = !IsReadOnlyFileMode;
-                    MenuBar["File\\Force Ingame Character Reload Now (DS3/DS1R Only)|F5"].Enabled = !IsReadOnlyFileMode;
+                    MenuBar["File\\Force Ingame Character Reload Now (DS3/DS1R Only)"].Enabled = !IsReadOnlyFileMode;
                     MenuBar["File\\Reload GameParam"].Enabled = true;
                 }));
 
@@ -1030,9 +1072,13 @@ namespace DSAnimStudio.TaeEditor
         {
             var objCheck = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower().StartsWith("o");
 
+            //var xmlPath = System.IO.Path.Combine(
+            //    new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
+            //    $@"Res\TAE.Template.{(FileContainer.IsBloodborne ? "BB" : SelectedTae.Format.ToString())}{(objCheck ? ".OBJ" : "")}.xml");
+
             var xmlPath = System.IO.Path.Combine(
                 new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
-                $@"Res\TAE.Template.{(FileContainer.IsBloodborne ? "BB" : SelectedTae.Format.ToString())}{(objCheck ? ".OBJ" : "")}.xml");
+                $@"Res\TAE.Template.{SelectedTae.Format}{(objCheck ? ".OBJ" : "")}.xml");
 
             if (System.IO.File.Exists(xmlPath))
                 LoadTAETemplate(xmlPath);
@@ -1078,6 +1124,23 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
+        private void LoadAnimIntoGraph(TAE.Animation anim)
+        {
+            //if (!GraphLookup.ContainsKey(anim))
+            //{
+            //    var graph = new TaeEditAnimEventGraph(this, false, anim);
+            //    GraphLookup.Add(anim, graph);
+
+            //}
+
+            //Graph = GraphLookup[anim];
+
+            if (Graph == null)
+                Graph = new TaeEditAnimEventGraph(this, false, anim);
+            else
+                Graph.ChangeToNewAnimRef(anim);
+        }
+
         private void LoadTaeFileContainer(TaeFileContainer fileContainer)
         {
             TaeExtensionMethods.ClearMemes();
@@ -1094,7 +1157,12 @@ namespace DSAnimStudio.TaeEditor
             }));
             SelectedTaeAnim = SelectedTae.Animations[0];
             AnimationListScreen = new TaeEditAnimList(this);
-            Graph = new TaeEditAnimEventGraph(this, false, SelectedTaeAnim);
+
+            IsCurrentlyLoadingGraph = true;
+            Graph = null;
+            LoadAnimIntoGraph(SelectedTaeAnim);
+            IsCurrentlyLoadingGraph = false;
+
             //if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
             //{
             //    TaeInterop.OnLoadANIBND(MenuBar, progress);
@@ -1322,7 +1390,15 @@ namespace DSAnimStudio.TaeEditor
                             var shortName = Utils.GetShortIngameFileName(tfn);
                             if (!bxfDupeCheck.Contains(shortName))
                             {
-                                TexturePool.AddSpecificTexturesFromBinder(tfn, texturesToLoad);
+                                if (TPF.Is(tfn))
+                                {
+                                    TexturePool.AddTpfFromPath(tfn);
+                                }
+                                else
+                                {
+                                    TexturePool.AddSpecificTexturesFromBinder(tfn, texturesToLoad);
+                                }
+                                
                                 bxfDupeCheck.Add(shortName);
                             }
                             progress.Report(++i / texFileNames.Length);
@@ -2493,7 +2569,7 @@ namespace DSAnimStudio.TaeEditor
                             referenceToEventBox.ChangeEvent(
                                 new TAE.Event(referenceToPreviousEvent.StartTime, referenceToPreviousEvent.EndTime,
                                 changeTypeDlg.NewEventType, referenceToPreviousEvent.Unk04, SelectedTae.BigEndian,
-                                SelectedTae.BankTemplate[changeTypeDlg.NewEventType]));
+                                SelectedTae.BankTemplate[changeTypeDlg.NewEventType]), SelectedTaeAnim);
 
                             SelectedTaeAnim.Events.Insert(index, referenceToEventBox.MyEvent);
 
@@ -2510,7 +2586,7 @@ namespace DSAnimStudio.TaeEditor
                         undoAction: () =>
                         {
                             SelectedTaeAnim.Events.RemoveAt(index);
-                            referenceToEventBox.ChangeEvent(referenceToPreviousEvent);
+                            referenceToEventBox.ChangeEvent(referenceToPreviousEvent, SelectedTaeAnim);
                             SelectedTaeAnim.Events.Insert(index, referenceToPreviousEvent);
 
                             SelectedEventBox = null;
@@ -2691,20 +2767,29 @@ namespace DSAnimStudio.TaeEditor
                     MenuBar["Edit\\Undo"].Enabled = UndoMan.CanUndo;
                     MenuBar["Edit\\Redo"].Enabled = UndoMan.CanRedo;
                 }));
-                
+
                 SelectedEventBox = null;
 
-                if (Graph == null)
-                    Graph = new TaeEditAnimEventGraph(this, false, SelectedTaeAnim);
+                //bool wasFirstAnimSelected = false;
 
-                Graph.ChangeToNewAnimRef(SelectedTaeAnim);
+                //if (Graph == null)
+                //{
+                //    wasFirstAnimSelected = true;
+                //    Graph = new TaeEditAnimEventGraph(this, false, SelectedTaeAnim);
+                //}
 
-                UpdateLayout(); // Fixes scroll when you first open anibnd (hopefully)
+                
+
+                LoadAnimIntoGraph(SelectedTaeAnim);
+
+                //if (wasFirstAnimSelected)
+                //    UpdateLayout(); // Fixes scroll when you first open anibnd (hopefully)
 
                 AnimationListScreen.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
 
                 Graph.ViewportInteractor.OnNewAnimSelected();
-                Graph.PlaybackCursor.CurrentTime = 0;
+                Graph.PlaybackCursor.ResetAll();
+                Graph.PlaybackCursor.RestartFromBeginning();
 
                 if (!isBlend)
                 {
@@ -3035,8 +3120,7 @@ namespace DSAnimStudio.TaeEditor
             Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
             Graph.ViewportInteractor.ResetRootMotion();
             Graph.ViewportInteractor.RemoveTransition();
-            Graph.PlaybackCursor.CurrentTime = 0;
-            Graph.PlaybackCursor.IgnoreCurrentRelativeScrub();
+            Graph.PlaybackCursor.RestartFromBeginning();
             Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
         }
 

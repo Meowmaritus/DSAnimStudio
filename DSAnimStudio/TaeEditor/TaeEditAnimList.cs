@@ -39,6 +39,21 @@ namespace DSAnimStudio.TaeEditor
 
         public List<TaeEditAnimListTaeSection> AnimTaeSections = new List<TaeEditAnimListTaeSection>();
 
+        int StartDrawSection = -1;
+        int StartDrawAnim = -1;
+        float StartDrawSectionOffset = -1;
+        float StartDrawAnimOffsetInSection = -1;
+        float StartDrawScroll = -1;
+
+        public void ClearStartDrawSkip()
+        {
+            StartDrawSection = -1;
+            StartDrawAnim = -1;
+            StartDrawSectionOffset = -1;
+            StartDrawAnimOffsetInSection = -1;
+            StartDrawScroll = -1;
+        }
+
         int GroupBraceMarginLeft = 16;
         //int GroupBraceThickness = 2;
 
@@ -269,6 +284,13 @@ namespace DSAnimStudio.TaeEditor
 
             UpdateScrollViewerRect();
 
+            if (ScrollViewer.Scroll.Y != StartDrawScroll)
+            {
+                //UpdateScrollViewerRect();
+                ClearStartDrawSkip();
+            }
+                
+
             ScrollViewer.Draw(gd, sb, boxTex, scrollbarArrowTex);
 
             var oldViewport = gd.Viewport;
@@ -287,10 +309,29 @@ namespace DSAnimStudio.TaeEditor
                 //    layerDepth: 0
                 //    );
 
+                bool isUsingSavedStart = false;
+                bool hasFoundStart = false;
                 float offset = 0;
 
-                foreach (var taeSection in AnimTaeSections)
+                if (StartDrawSectionOffset >= 0 && 
+                    StartDrawSection >= 0 && StartDrawSection < AnimTaeSections.Count && 
+                    StartDrawAnim >= 0 && StartDrawAnim < AnimTaeSections[StartDrawSection].InfoMap.Count &&
+                    StartDrawScroll >= 0)
                 {
+                    // Commented out because it was buggy and I realized the performance wasn't 
+                    // too bad without this skip drawing system in place
+                    //isUsingSavedStart = true;
+                    //offset = StartDrawSectionOffset;
+                }
+                else
+                {
+                    ClearStartDrawSkip();
+                }
+
+                for (int taeSectionIndex = (isUsingSavedStart ? StartDrawSection : 0); taeSectionIndex < AnimTaeSections.Count; taeSectionIndex++)
+                {
+                    var sectionOffset = offset;
+                    var taeSection = AnimTaeSections[taeSectionIndex];
                     var thisGroupRect = new Rectangle(1, (int)offset + 1, ScrollViewer.Viewport.Width - 2, AnimHeight - 2);
                     int border = BorderThickness;
                     sb.Draw(boxTex, thisGroupRect, Color.White);
@@ -343,29 +384,57 @@ namespace DSAnimStudio.TaeEditor
                     if (taeSection.Collapsed)
                         continue;
 
-                    float sectionStartOffset = offset;
+                    float animsInSectionStartOffset = offset;
 
-                    foreach (var anim in taeSection.InfoMap)
+                    //if (isUsingSavedStart && taeSectionIndex == StartDrawSection)
+                    //    offset += animsInSectionStartOffset;
+
+                    for (int animIndex = 0; animIndex < taeSection.Tae.Animations.Count; animIndex++)
                     {
+                        var anim = taeSection.InfoMap[taeSection.Tae.Animations[animIndex]];
+
                         if (offset + AnimHeight < ScrollViewer.Scroll.Y || offset > ScrollViewer.Scroll.Y + Rect.Height)
                         {
                             offset += AnimHeight;
-                            continue;
+                            if (offset > ScrollViewer.Scroll.Y + Rect.Height)
+                                break;
+                            else
+                                continue;
                         }
 
-                        var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Value.Ref);
-                        string animIDText = ((animFileName != null && MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName)) ? "■" : "□") +
-                            (anim.Value.Ref.GetIsModified() ? $"{anim.Value.GetName()}*" : anim.Value.GetName());
+                        if (!hasFoundStart)
+                        {
+                            StartDrawSection = taeSectionIndex;
+                            StartDrawAnim = animIndex;
+                            StartDrawSectionOffset = sectionOffset;
+                            StartDrawAnimOffsetInSection = offset - animsInSectionStartOffset;
+                            StartDrawScroll = ScrollViewer.Scroll.Y;
+                            hasFoundStart = true;
+                        }
 
-                        float animBlendWeight = animFileName != null ? MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName) : -1;
+                        string animIDText = "";
 
-                        string animNameText = (anim.Value.Ref.AnimFileName ?? "<null>");
+                        float animBlendWeight = 1;
 
-                        if (anim.Value.Ref == MainScreen.SelectedTaeAnim)
+                        if (MainScreen.IsCurrentlyLoadingGraph)
+                        {
+                            animIDText = "□" + (anim.Ref.GetIsModified() ? $"{anim.GetName()}*" : anim.GetName());
+                        }
+                        else
+                        {
+                            var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Ref);
+                            animIDText = ((animFileName != null && MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName)) ? "■" : "□") +
+                                (anim.Ref.GetIsModified() ? $"{anim.GetName()}*" : anim.GetName());
+                            animBlendWeight = animFileName != null ? MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName) : -1;
+                        }
+
+                        string animNameText = (anim.Ref.AnimFileName ?? "<null>");
+
+                        if (anim.Ref == MainScreen.SelectedTaeAnim)
                         {
                             var thisAnimRect = new Rectangle(
                                 GroupBraceMarginLeft / 2, 
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset) - 1, 
+                                (int)(animsInSectionStartOffset + anim.VerticalOffset) - 1, 
                                 ScrollViewer.Viewport.Width - (GroupBraceMarginLeft), 
                                 AnimHeight + 1);
 
@@ -389,22 +458,22 @@ namespace DSAnimStudio.TaeEditor
 
                         sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
+                                (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
                                  + Main.GlobalTaeEditorFontOffset, Color.Black);
                         sb.DrawString(font, animIDText, new Vector2(
                             GroupBraceMarginLeft + 4,
-                            (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
+                            (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
                              + Main.GlobalTaeEditorFontOffset, animNameColor);
 
                         var animNameTextSize = font.MeasureString(animNameText);
 
                         sb.DrawString(font, animNameText, new Vector2(
                                 ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                                (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
+                                (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
                                  + Main.GlobalTaeEditorFontOffset, Color.Black);
                         sb.DrawString(font, animNameText, new Vector2(
                             ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                            (int)(sectionStartOffset + anim.Value.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
+                            (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
                              + Main.GlobalTaeEditorFontOffset, Color.PaleGoldenrod);
 
                         offset += AnimHeight;

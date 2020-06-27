@@ -12,6 +12,10 @@ namespace DSAnimStudio.TaeEditor
         [Newtonsoft.Json.JsonIgnore]
         public readonly TaeEditAnimEventGraph OwnerPane;
         public TAE.Event MyEvent;
+        public TAE.Animation AnimMyEventIsFor;
+
+        public bool IsActive => OwnerPane != null && OwnerPane.AnimRef == AnimMyEventIsFor;
+
 
         public event EventHandler<int> RowChanged;
         private void RaiseRowChanged(int oldRow)
@@ -115,6 +119,9 @@ namespace DSAnimStudio.TaeEditor
 
         private bool CheckHighlight(double playbackCursorPos, TaeEditAnimEventBox mouseHoverBox)
         {
+            if (!IsActive)
+                return false;
+
             playbackCursorPos = Math.Round(playbackCursorPos, 4);
 
             if (!OwnerPane.MainScreen.Config.SoloHighlightEventOnHover ||
@@ -138,22 +145,83 @@ namespace DSAnimStudio.TaeEditor
         //    CheckHighlight(OwnerPane.PlaybackCursor.OldHitWindowStart, OwnerPane.PlaybackCursor.OldHitWindowEnd,
         //        OwnerPane.MainScreen.PrevHoveringOverEventBox);
 
-        public bool PlaybackHighlight => OwnerPane?.PlaybackCursor == null ? false :
-            CheckHighlight(OwnerPane.PlaybackCursor.CurrentTimeMod, OwnerPane.MainScreen.HoveringOverEventBox);
+        public bool PlaybackHighlight => IsActive && ((OwnerPane?.PlaybackCursor == null ? false :
+            CheckHighlight(OwnerPane.PlaybackCursor.CurrentTimeMod, OwnerPane.MainScreen.HoveringOverEventBox)) || WasJustEnteredDuringPlayback);
+
+        public bool PlaybackHighlightMidst => IsActive && ((OwnerPane?.PlaybackCursor == null ? false :
+            CheckHighlight(OwnerPane.PlaybackCursor.CurrentTimeMod, OwnerPane.MainScreen.HoveringOverEventBox)));
+
+        public bool PrevFrameEnteredState_ForSoundEffectPlayback = false;
 
         public bool WasJustEnteredDuringPlayback
         {
             get
             {
-                if (OwnerPane == null || OwnerPane.PlaybackCursor == null)
+                if (OwnerPane == null || OwnerPane.PlaybackCursor == null || !IsActive)
                     return false;
 
-                if (PlaybackHighlight && !PrevCyclePlaybackHighlight && (OwnerPane.PlaybackCursor.Scrubbing || OwnerPane.PlaybackCursor.IsPlaying))
+                // Can't get .PlaybackHighlight because it gets .WasJustEnteredDuringPlayback; stack overflow
+                var curHighlight = OwnerPane?.PlaybackCursor == null ? false :
+                    CheckHighlight(OwnerPane.PlaybackCursor.CurrentTimeMod, OwnerPane.MainScreen.HoveringOverEventBox);
+                var prevHighlight = !OwnerPane.PlaybackCursor.JustStartedPlaying &&
+                    CheckHighlight(OwnerPane.PlaybackCursor.OldCurrentTimeMod, OwnerPane.MainScreen.PrevHoveringOverEventBox);
+
+                if (OwnerPane.PlaybackCursor.OldCurrentTime == 0)
                 {
-                    return true;
+                    // Prevent an occasional double register?
+                    prevHighlight = true;
                 }
 
-                if (PlaybackHighlight && !OwnerPane.PlaybackCursor.OldIsPlaying && OwnerPane.PlaybackCursor.IsPlaying)
+                if (OwnerPane.PlaybackCursor.Scrubbing || OwnerPane.PlaybackCursor.IsPlaying)
+                {
+                    if (curHighlight && (!prevHighlight || OwnerPane.PlaybackCursor.JustStartedPlaying))
+                        return true;
+
+                    if (OwnerPane.PlaybackCursor.IsPlaying)
+                    {
+                        float timeDirection = (float)(OwnerPane.PlaybackCursor.BasePlaybackSpeed * OwnerPane.PlaybackCursor.ModPlaybackSpeed);
+
+                        if (timeDirection > 0)
+                        {
+                            if (OwnerPane.PlaybackCursor.CurrentTimeMod >= MyEvent.StartTime)
+                            {
+                                if (OwnerPane.PlaybackCursor.OldCurrentTimeModWrapped < MyEvent.StartTime || 
+                                    OwnerPane.PlaybackCursor.JustLooped || OwnerPane.PlaybackCursor.JustStartedPlaying || 
+                                    OwnerPane.PlaybackCursor.OldCurrentTime == 0)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        else if (timeDirection < 0)
+                        {
+                            if (OwnerPane.PlaybackCursor.CurrentTimeMod < MyEvent.EndTime)
+                            {
+                                if (OwnerPane.PlaybackCursor.OldCurrentTimeModWrapped >= MyEvent.EndTime ||
+                                    OwnerPane.PlaybackCursor.JustLooped || OwnerPane.PlaybackCursor.JustStartedPlaying || 
+                                    OwnerPane.PlaybackCursor.CurrentTime == OwnerPane.PlaybackCursor.MaxTime)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        else
+                        {
+
+                            Console.WriteLine(DateTime.Now.Millisecond +  " - Fatcat");
+                        }
+
+                        //if ((timeDirection > 0 && (OwnerPane.PlaybackCursor.OldCurrentTimeModWrapped < MyEvent.StartTime && OwnerPane.PlaybackCursor.CurrentTimeMod >= MyEvent.StartTime)) ||
+                        //    (timeDirection < 0 && (OwnerPane.PlaybackCursor.OldCurrentTimeModWrapped >= MyEvent.EndTime && OwnerPane.PlaybackCursor.CurrentTimeMod < MyEvent.EndTime)))
+                        //{
+                        //    return true;
+                        //}
+                    }
+
+                    
+                }
+
+                if (curHighlight && !OwnerPane.PlaybackCursor.OldIsPlaying && OwnerPane.PlaybackCursor.IsPlaying)
                 {
                     return true;
                 }
@@ -162,8 +230,8 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public bool PrevCyclePlaybackHighlight => !OwnerPane.PlaybackCursor.JustStartedPlaying &&
-            CheckHighlight(OwnerPane.PlaybackCursor.OldCurrentTimeMod, OwnerPane.MainScreen.PrevHoveringOverEventBox);
+        public bool PrevCyclePlaybackHighlight => IsActive && (!OwnerPane.PlaybackCursor.JustStartedPlaying &&
+            CheckHighlight(OwnerPane.PlaybackCursor.OldCurrentTimeMod, OwnerPane.MainScreen.PrevHoveringOverEventBox));
 
         public bool DragWholeBoxToVirtualUnitX(float x)
         {
@@ -203,18 +271,20 @@ namespace DSAnimStudio.TaeEditor
             return (MyEvent.GetEndTimeFr() != originalEndFrame);
         }
 
-        public TaeEditAnimEventBox(TaeEditAnimEventGraph owner, TAE.Event myEvent)
+        public TaeEditAnimEventBox(TaeEditAnimEventGraph owner, TAE.Event myEvent, TAE.Animation animEventIsFor)
         {
             //BGColor = TaeMiscUtils.GetRandomPastelColor();
 
             OwnerPane = owner;
             MyEvent = myEvent;
+            AnimMyEventIsFor = animEventIsFor;
             UpdateEventText();
         }
 
-        public void ChangeEvent(TAE.Event newEvent)
+        public void ChangeEvent(TAE.Event newEvent, TAE.Animation animNewEventIsFor)
         {
             MyEvent = newEvent;
+            AnimMyEventIsFor = animNewEventIsFor;
             UpdateEventText();
         }
 
@@ -223,12 +293,11 @@ namespace DSAnimStudio.TaeEditor
             RaiseRowChanged(e);
         }
 
+        public string DispEventName => $"{(MyEvent.TypeName ?? "")}[{MyEvent.Type}]";
+
         public string GetPopupTitle()
         {
-            if (MyEvent.Template == null)
-                return $"Event Type {MyEvent.Type} [Unmapped]";
-            else
-                return MyEvent.TypeName;
+            return DispEventName;
         }
 
         public string GetPopupText()
@@ -296,7 +365,7 @@ namespace DSAnimStudio.TaeEditor
         {
             if (MyEvent.Template != null)
             {
-                var sb = new StringBuilder($"{MyEvent.Template.Name}(");
+                var sb = new StringBuilder($"{DispEventName}(");
                 bool first = true;
                 foreach (var kvp in MyEvent.Parameters.Template)
                 {
@@ -315,7 +384,7 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                EventText.SetText($"[{MyEvent.Type}]({string.Join(" ", MyEvent.GetParameterBytes(false).Select(b => b.ToString("X2")))})");
+                EventText.SetText($"{DispEventName}({string.Join(" ", MyEvent.GetParameterBytes(false).Select(b => b.ToString("X2")))})");
             }
         }
 

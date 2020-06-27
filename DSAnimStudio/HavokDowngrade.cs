@@ -40,8 +40,12 @@ namespace DSAnimStudio
             File.WriteAllBytes(pathCompendium, compendium);
         }
 
-        private static void StartDowngradingHKX(byte[] hkx, bool useCompendium, int i, Action<byte[], int> whatToDoWithResult)
+        private static void StartDowngradingHKX(string debug_hkxName, byte[] hkx, bool useCompendium, int i, Action<byte[], int> whatToDoWithResult)
         {
+            // Change from 20150100 to 20160000 fatcat
+            //hkx[0x13] = 0x36;
+            //hkx[0x15] = 0x30;
+
             string workingDirectory = $@"{TEMPDIR}\{i}";
 
             if (!Directory.Exists(workingDirectory))
@@ -79,9 +83,13 @@ namespace DSAnimStudio
                 Console.WriteLine("ErrorDataReceived => " + e.Data);
             };
 
+            string copyOfHkxName = debug_hkxName;
             int j = i;
             proc.Exited += (o, e) =>
             {
+                var hkxName = copyOfHkxName;
+                var standardOutput = proc.StandardOutput.ReadToEnd();
+                var standardError = proc.StandardError.ReadToEnd();
                 byte[] result = File.ReadAllBytes(pathOut);
                 //Patch "hk_2012.2.0-r1" to "hk_2010.2.0-r1"
                 result[0x2E] = 0x30;
@@ -155,7 +163,7 @@ namespace DSAnimStudio
 
                     if (skeleton != null)
                     {
-                        StartDowngradingHKX(skeleton.Bytes, compendium != null, -1, (result, i) =>
+                        StartDowngradingHKX(skeleton.Name, skeleton.Bytes, compendium != null, -1, (result, i) =>
                         {
                             skeleton.Bytes = result;
                             converted_skeleton = true;
@@ -202,7 +210,7 @@ namespace DSAnimStudio
                     {
                         processCount++;
 
-                        StartDowngradingHKX(animations[i].Bytes, compendium != null, i, (result, j) =>
+                        StartDowngradingHKX(animations[i].Name, animations[i].Bytes, compendium != null, i, (result, j) =>
                         {
                             lock (_lock_animFinished)
                             {

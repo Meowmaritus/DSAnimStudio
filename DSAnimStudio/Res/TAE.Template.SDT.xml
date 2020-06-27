@@ -5,7 +5,7 @@
 	<event id="0" name="JumpTable">
 		  <s32 name="JumpTableID">
 			  <entry value="1"   name="1: InvokeAnimCancelStart_R1_R2_LightKick_HeavyKick"/>
-			  <!-- ArgB - BehaviorSubID -->
+			  <!-- ArgB - BehaviorJudgeID -->
 			  <entry value="3"   name="3: InvokeShieldBlock(ArgB)"/>
 			  <entry value="4"   name="4: End If RH Attack Queued"/>
 			  <!-- ArgC = 6 = 1011,7 = 1012, 8 = 1013 -->
@@ -163,7 +163,7 @@
         <entry value="64" name="Parry"/>
       </s32>
       <s32/>
-      <s32 name="BehaviorSubID"/>
+      <s32 name="BehaviorJudgeID"/>
       <u8 name="DirectionType"/>
       <u8 name="Unk0D"/>
       <s16 name="StateInfo"/>
@@ -171,7 +171,7 @@
     <event id="2" name="InvokeBulletBehavior">
       <s32 name="DummyPolyID"/>
       <s32/>
-      <s32 name="BehaviorSubID"/>
+      <s32 name="BehaviorJudgeID"/>
       <u8 name="AttachmentType"/>
       <b name="Enable"/>
       <s16 name="StateInfo"/>
@@ -196,11 +196,11 @@
     </event>
     <event id="5" name="InvokeCommonBehavior">
       <s32 name="AttackIndex (0-8)"/>
-      <s32 name="BehaviorSubID"/>
+      <s32 name="BehaviorJudgeID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="9" name="Unk_N9">
+    <event id="9">
       <u8/>
       <u8 assert="0"/>
       <u8 assert="0"/>
@@ -209,7 +209,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-	<event id="16" name="Blend"/>
+	  <event id="16" name="Blend"/>
     <event id="17">
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -223,10 +223,12 @@
       <s32/>
     </event>
     <!-- For c0000 -->
-    <event id="32" name="SetSheathMode">
-      <s32 name="SheathID">
-        <entry value="2" name="2: WeaponSheath"/>
-        <entry value="3" name="3: HandMode"/>
+    <event id="32" name="SetWeaponStyle">
+      <s32 name="WeaponStyle">
+        <entry value="0" name="0: None"/>
+        <entry value="1" name="1: Right Weapon One-Handed"/>
+        <entry value="2" name="2: Left Weapon Two-Handed"/>
+        <entry value="3" name="3: Right Weapon Two-Handed"/>
       </s32>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -240,7 +242,7 @@
       <s32 assert="0"/>
     </event>
     <!-- For c0000 -->
-    <event id="34" name="Unequip Crossbow Bolt">
+    <event id="34" name="UnequipCrossbowBolt">
       <s32 name="HandType">
         <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>
@@ -250,7 +252,7 @@
       <s32 assert="0"/>
     </event>
     <!-- For c0000 -->
-    <event id="35" name="Equip Crossbow Bolt">
+    <event id="35" name="EquipCrossbowBolt">
       <s32 name="HandType">
         <entry value="0" name="0: LeftHand"/>
         <entry value="1" name="1: RightHand"/>
@@ -291,14 +293,14 @@
       <s32 assert="0"/>
     </event>
     <!-- Effect Doesnt get applied if its Replay Ghost, if its replay ghost it only works in range 100000 - 101000 -->
-    <event id="66" name="InvokeSpEffectBehavior_Multiplayer">
+    <event id="66" name="AddSpEffect_Multiplayer">
       <s32 name="SpEffectID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
     <!-- Effect Doesnt get applied if its Replay Ghost, if its replay ghost it only works in range 100000 - 101000 -->
-    <event id="67" name="InvokeSpEffectBehavior">
+    <event id="67" name="AddSpEffect">
       <s32 name="SpEffectID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -328,7 +330,7 @@
       <s32 name="TimerNumber"/>
       <s32 assert="0"/>
     </event>
-    <event id="100" name="FFX_100">
+    <event id="100" name="SpawnFFX_100">
       <s32 name="FFXID"/>
       <s32 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
@@ -337,13 +339,13 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
     </event>
-    <event id="101" name="FFX_101">
+    <event id="101" name="SpawnFFX_101">
       <s32 name="FFXID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="108" name="FFX_108">
+    <event id="108" name="SpawnFFX_108">
       <s32 name="FFXID"/>
       <s32 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
@@ -352,7 +354,7 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
     </event>
-    <event id="109" name="FFX_109">
+    <event id="109" name="SpawnFFX_109">
       <s32 name="FFXID"/>
       <s32 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
@@ -361,25 +363,26 @@
       <u8 assert="0"/>
       <u8 assert="0"/>
     </event>
-    <event id="110" name="FFX_110">
+    <event id="110" name="SpawnFFX_110">
       <s32 name="FFXID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="112" name="SpawnFFX_Foot">
+    <event id="112" name="SpawnFFX_ByFloor">
       <s32 name="FFXID"/>
-      <s32 name="Size"/>
+      <s16 name="DummyPolyID"/>
+      <s16/>
       <s32/>
       <s32 assert="0"/>
     </event>
     <!-- Like 115 but this one can be spawned multiple times during anim -->
     <event id="114" name="SpawnFFX_GoodsAndMagic">
       <s32 name="FFXID_Deprecated"/>
-      <s16 name="CStyleType">
-        <entry value="0" name="0: Type0"/>
-        <entry value="1" name="1: Type1"/>
-        <entry value="2" name="2: Type2"/>
+      <s16 name="DummyPolySource">
+        <entry value="0" name="0: Body"/>
+        <entry value="1" name="1: Left Weapon"/>
+        <entry value="2" name="2: Right Weapon"/>
       </s16>
       <s16 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
@@ -395,7 +398,7 @@
       </u8>
       <b name="IsFollowDummyPoly"/>
       <b name="IsRestrictToDummyPoly"/>
-      <u8 name="TimerID">
+      <u8 name="TimerType">
         <entry value="0" name="0: Default"/>
         <entry value="1" name="1: UseTimer With Default Time"/>
         <entry value="2" name="2: UseTimer Without Default Time"/>
@@ -404,12 +407,12 @@
       <s32 assert="0"/>
     </event>
     <!-- Like 114, but this one can only be spawned once? -->
-    <event id="115" name="SpawnFFX_GoodsAndMagic_Extra">
+    <event id="115" name="SpawnFFX_GoodsAndMagicEX">
       <s32 name="FFXID_Deprecated"/>
-      <s16 name="CStyleType">
-        <entry value="0" name="0: Type0"/>
-        <entry value="1" name="1: Type1"/>
-        <entry value="2" name="2: Type2"/>
+      <s16 name="DummyPolySource">
+        <entry value="0" name="0: Body"/>
+        <entry value="1" name="1: Left Weapon"/>
+        <entry value="2" name="2: Right Weapon"/>
       </s16>
       <s16 name="DummyPolyID"/>
       <s32 name="TimerNumber"/>
@@ -425,7 +428,7 @@
       </u8>
       <b name="IsFollowDummyPoly"/>
       <b name="IsRestrictToDummyPoly"/>
-      <u8 name="TimerID">
+      <u8 name="TimerType">
         <entry value="0" name="0: Default"/>
         <entry value="1" name="1: UseTimer With Default Time"/>
         <entry value="2" name="2: UseTimer Without Default Time"/>
@@ -456,19 +459,20 @@
     </event>
     <event id="118" name="SpawnFFX_Blade">
       <s32 name="FFXID"/>
-      <s16 name="CStyleType">
-        <entry value="0" name="0: Type0"/>
-        <entry value="1" name="1: Type1"/>
-        <entry value="2" name="2: Type2"/>
+      <s16 name="DummyPolySource">
+        <entry value="0" name="0: Body"/>
+        <entry value="1" name="1: Left Weapon"/>
+        <entry value="2" name="2: Right Weapon"/>
       </s16>
       <s16 name="DummyPolyBladeBaseID"/>
       <s16 name="DummyPolyBladeTipID"/>
-      <s16 name="TimerID (probably)"/>
+      <s16 name="SlotNumber"/>
       <s32 assert="0"/>
     </event>
-    <event id="119" name="SpawnFFX_ReinforcedWeapon">
+    <event id="119" name="SpawnFFX_Body_ForEventDuration">
       <s32 name="FFXID"/>
-      <s32 name="DummyPolyID"/>
+      <s16 name="DummyPolyID"/>
+      <s16/>
       <s32 name="RepeatType">
         <entry value="0" name="0: PlayOnce"/>
         <entry value="1" name="1: PlayTwice"/>
@@ -492,7 +496,7 @@
       <s32 name="FFXID_BlackGhost_FarronWolf"/>
       <s32 name="FFXID_BlackGhost_Aldrich"/>
       <s32 name="DummyPolyID"/>
-      <s32 name="TimerID"/>
+      <s32 name="SlotNumber"/>
       <b name="IsRepeat"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
@@ -568,14 +572,14 @@
       </s32>
       <s32 name="SoundID"/>
       <s32 name="DummyPolyID"/>
-      <s32 name="TimerID (probably)"/>
+      <s32 name="SlotNumber"/>
       <s16 name="StateInfo"/>
       <s16/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="130" name="PlaySound_ByDummyPolyExtra">
+    <event id="130" name="PlaySound_ByDummyPolyEX">
       <s32 name="SoundType">
         <entry value="0" name="0: (a) Environment"/>
         <entry value="1" name="1: (c) Character"/>
@@ -591,7 +595,7 @@
       </s32>
       <s32 name="SoundID"/>
       <s32 name="DummyPolyID"/>
-      <f32 name="TimerID (probably)"/>
+      <s32 name="SlotNumber"/>
       <s32/>
       <s32 assert="0"/>
     </event>
@@ -663,7 +667,7 @@
       <s16 name="RumbleCamID"/>
       <u16 name="Condition">
         <entry value="0" name="0: Unconditional"/>
-        <entry value="1" name="1: Invoke if player on ground"/>
+        <entry value="1" name="1: OnGround"/>
       </u16>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -673,7 +677,7 @@
       <s16 name="RumbleCamID"/>
       <u16 name="Condition">
         <entry value="0" name="0: Unconditional"/>
-        <entry value="1" name="1: Invoke if player on ground"/>
+        <entry value="1" name="1: OnGround"/>
       </u16>
       <b/>
       <u8 assert="0"/>
@@ -748,7 +752,7 @@
       <u8/>
       <s16 assert="0"/>
     </event>
-    <event id="170" name="Tae170">
+    <event id="170">
       <s32/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -761,8 +765,8 @@
       <s32 assert="0"/>
     </event>
     <event id="193" name="SetOpacityKeyframe">
-      <f32 name="GhostVal1"/>
-      <f32 name="GhostVal2"/>
+      <f32 name="OpacityAtEventStart"/>
+      <f32 name="OpacityAtEventEnd"/>
     </event>
     <event id="195" name="EnableBlurFeedback">
       <s32 assert="0"/>
@@ -815,8 +819,8 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="227" name="InvokeEventEzStateFlag_hks301">
-      <x32 name="Mask"/>
+    <event id="227" name="InvokeEventEzStateFlag&lt;HKS_env301&gt;">
+      <s32 name="EzStateFlagID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -848,11 +852,11 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="232" name="InvokeBowFlags">
-      <u8 name="Vertical turning upper limit angle [deg]"/>
-      <u8 name="Vertical turning lower limit angle [deg]"/>
-      <u8 name="Up / down turning Upper threshold [deg]"/>
-      <u8 name="Vertical turning Lower threshold [deg]"/>
+    <event id="232" name="AllowVerticalTorsoAim">
+      <u8 name="UpwardAngleLimit"/>
+      <u8 name="DownwardAngleLimit"/>
+      <u8 name="UpwardAngleThreshold"/>
+      <u8 name="DownwardAngleThreshold"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -891,8 +895,8 @@
       <u8 name="Mask31"/>
       <u8 name="Mask32"/>
     </event>
-    <event id="234">
-      <s32/>
+    <event id="234" name="AddOffsetToNextAnimID">
+      <s32 name="Offset"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -931,10 +935,10 @@
       <b name="Mask31"/>
       <b name="Mask32"/>
     </event>
-    <event id="236" name="RollDistanceReduction">
-      <f32/>
-      <f32/>
-      <u8 name="RollType"/>
+    <event id="236" name="RootMotionReduction">
+      <f32 name="ReductionAtEventStart"/>
+      <f32 name="ReductionAtEventEnd"/>
+      <u8 name="ReductionType"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
@@ -952,20 +956,28 @@
       <f32/>
       <f32/>
     </event>
-    <event id="300">
-      <s16 name="JumpTableID_ActionRequest"/>
-      <s16 name="JumpTableID_GetFloat"/>
+    <event id="300" name="ActivateJumpTableEarly">
+      <s16 name="JumpTableID_ToActivateEarly"/>
+      <s16 name="JumpTable2ID_ToJudgeHowEarly">
+        <entry value="0"   name="0: Default"/>
+        <entry value="1"   name="1: Equip Load"/>
+        <entry value="2"   name="2: Weapon Weight Rate"/>
+        <entry value="3"   name="3: Compressed Damage Rate?"/>
+        <entry value="4"   name="4: Always As Early As Possible"/>
+        <entry value="5"   name="5: Dexterity Casting Speed"/>
+        <entry value="6"   name="6: Debug TAE Value"/>
+      </s16>
       <f32/>
       <f32/>
       <s32/>
     </event>
-    <event id="301" name="Padding">
-      <s32 name="pad"/>
+    <event id="301">
+      <s32 />
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="302" name="AddSpEffectDragonForm">
+    <event id="302" name="AddSpEffect_DragonForm">
       <s32 name="SpEffectID"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1043,28 +1055,28 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="330" name="WeaponArtMpConsume">
+    <event id="330" name="WeaponArtFPConsumption">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="331" name="CreateSpEffect">
+    <event id="331" name="AddSpEffect_WeaponArts">
       <s32 name="SpEffectID"/>
-      <s32 name="SpEffectID_ForWeaponArt"/>
+      <s32 name="SpEffectID_LowFP"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="332" name="EngineFlagForSwordArts">
+    <event id="332" name="InvokeWeaponArtWeaponStyleCheck">
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="401" name="CreateSpEffect">
+    <event id="401" name="AddSpEffect_Multiplayer_401">
       <s32 name="SpEffectID"/>
       <s32 assert="0"/>
-      <s32 name="pad1"/>
+      <s32/>
       <s32 assert="0"/>
     </event>
     <event id="500">
@@ -1109,7 +1121,7 @@
       <s32 name="Mask"/>
       <s32 assert="0"/>
     </event>
-    <event id="601" name="TAE Action [ [Behavior] Independant Additive Animation Playback]">
+    <event id="601" name="AdditiveAnimationPlayback">
       <s32 name="StayAnimType"/>
       <f32/>
       <f32/>
@@ -1135,14 +1147,14 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="605" name="InvokeFeminineMovement">
-      <b name="IsFemale"/>
+    <event id="605" name="BlendToIdleOrMovementAnim">
+      <b name="IsFemaleAnim"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
       <u8 assert="0"/>
-      <s32 name="TimeActEditorID"/>
-      <f32 name="MovementCorrection1"/>
-      <f32 name="MovementCorrection2"/>
+      <s32 name="AnimID"/>
+      <f32 name="AnimWeightAtEventStart"/>
+      <f32 name="AnimWeightAtEventEnd"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1510,7 +1522,7 @@
       <s32 assert="0"/>
     </event>
     <!-- Has Extra Code which shuffle float inside matrix -->
-    <event id="772" name="ChangeBonePosExtra">
+    <event id="772" name="ChangeBonePosEX">
       <s32/>
       <f32/>
       <u8/>
@@ -1584,7 +1596,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="795" name="InvokeToughness">
+    <event id="795" name="InvokeDS3Poise">
       <u8 name="ToughnessParamID"/>
       <u8 name="ToughnessType"/>
       <u16 assert="0"/>
@@ -1604,7 +1616,7 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="797" name="InvokeCultCompletionSpEffectId">
+    <event id="797" name="AddSpEffect_CultRitualCompletion">
       <s32 name="SpEffectId"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1882,7 +1894,7 @@
       <f32/>
       <s32 assert="0"/>
     </event>
-    <event id="10130" name="InvokeSeWanderGhost">
+    <event id="10130" name="PlaySound_WanderGhost">
       <s32/>
       <s32/>
       <s32/>

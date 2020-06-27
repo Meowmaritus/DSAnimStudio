@@ -17,6 +17,7 @@ namespace DSAnimStudio.DebugPrimitives
 
             public DbgPrimWireCapsule_End()
             {
+                KeepBuffersAlive = true;
                 //if (!(Segments >= 4))
                 //    throw new ArgumentException($"Number of segments must be >= 4", nameof(Segments));
 
@@ -107,6 +108,8 @@ namespace DSAnimStudio.DebugPrimitives
 
             public DbgPrimWireCapsule_Middle()
             {
+                KeepBuffersAlive = true;
+
                 if (GeometryData != null)
                 {
                     SetBuffers(GeometryData.VertBuffer, GeometryData.IndexBuffer);
@@ -179,6 +182,8 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimWireCapsule(Color color)
         {
+            KeepBuffersAlive = true;
+
             HemisphereA = new DbgPrimWireCapsule_End()
             {
                 Category = DbgPrimCategory.DummyPolyHelper,

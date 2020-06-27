@@ -20,6 +20,7 @@ namespace DSAnimStudio
         AlphaEdge = 3,
         DbgPrimOverlay,
         GUI = 5,
+        DbgPrimAlwaysRespectDepth = 6,
     }
 
     public enum LODMode : int
@@ -360,6 +361,8 @@ namespace DSAnimStudio
 
         public static void SpriteBatchBeginForText()
         {
+            if (SpriteBatchHasBegun)
+                SpriteBatchEnd();
             GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
             SpriteBatchHasBegun = true;
         }
@@ -369,12 +372,16 @@ namespace DSAnimStudio
             DepthStencilState depthStencilState = null, RasterizerState rasterizerState = null, 
             Effect effect = null, Matrix? transformMatrix = null)
         {
+            if (SpriteBatchHasBegun)
+                SpriteBatchEnd();
             SpriteBatch.Begin(sortMode, blendState, samplerState, depthStencilState, 
                 rasterizerState, effect, transformMatrix);
+            SpriteBatchHasBegun = true;
         }
 
         public static void SpriteBatchEnd()
         {
+            if (SpriteBatchHasBegun)
             GFX.SpriteBatch.End();
             SpriteBatchHasBegun = false;
         }
@@ -446,7 +453,6 @@ namespace DSAnimStudio
 
             Main.MainFlverTonemapShader.Effect.Parameters["SceneContrast"].SetValue(Environment.FlverSceneContrast);
 
-            DbgPrimSolidShader.Effect.DirectionalLight0.Enabled = true;
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;
             DbgPrimSolidShader.Effect.DirectionalLight0.SpecularColor = Vector3.One * 0.35f;
             DbgPrimSolidShader.Effect.DirectionalLight0.Direction = FlverShader.Effect.LightDirection;
@@ -473,6 +479,9 @@ namespace DSAnimStudio
                     break;
                 case GFXDrawStep.DbgPrimPrepass:
                     DBG.DrawBehindPrims();
+                    break;
+                case GFXDrawStep.DbgPrimAlwaysRespectDepth:
+                    DBG.DrawDepthRespectPrims();
                     break;
                 case GFXDrawStep.GUI:
                     DBG.DrawPrimitiveTexts();
@@ -524,6 +533,13 @@ namespace DSAnimStudio
             DoDraw();
 
             CurrentStep = GFXDrawStep.AlphaEdge;
+            BeginDraw();
+            DoDraw();
+        }
+
+        public static void DrawPrimRespectDepth()
+        {
+            CurrentStep = GFXDrawStep.DbgPrimAlwaysRespectDepth;
             BeginDraw();
             DoDraw();
         }

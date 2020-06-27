@@ -15,12 +15,20 @@ namespace DSAnimStudio.DebugPrimitives
 
         protected override PrimitiveType PrimType => PrimitiveType.TriangleList;
 
+        protected bool KeepBuffersAlive;
+
         public int TriCount => Indices.Length / 3;
 
         public void AddQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color color)
         {
             AddTri(a, b, c, color);
             AddTri(a, c, d, color);
+        }
+
+        public void AddQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color colorA, Color colorB, Color colorC, Color colorD)
+        {
+            AddTri(a, b, c, colorA, colorB, colorC);
+            AddTri(c, d, a, colorC, colorD, colorA);
         }
 
         public void AddTri(Vector3 a, Vector3 b, Vector3 c, Color color)
@@ -84,7 +92,11 @@ namespace DSAnimStudio.DebugPrimitives
 
         protected override void DisposeBuffers()
         {
-            VertBuffer?.Dispose();
+            if (!KeepBuffersAlive)
+            {
+                VertBuffer?.Dispose();
+                IndexBuffer?.Dispose();
+            }
         }
 
         public override DbgPrim<DbgPrimSolidShader> Instantiate(string newName, Transform newLocation, Color? newNameColor = null)

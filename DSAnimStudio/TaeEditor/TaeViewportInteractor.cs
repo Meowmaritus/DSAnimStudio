@@ -315,6 +315,11 @@ namespace DSAnimStudio.TaeEditor
 
                 throw new NotImplementedException("REMO NOT SUPPORTED YET");
             }
+
+            CurrentModel.OnRootMotionWrap = (wrap) =>
+            {
+                EventSim?.RootMotionWrapForBlades(wrap);
+            };
         }
 
         private void ChrAsm_EquipmentModelsUpdated(object sender, EventArgs e)
@@ -538,8 +543,11 @@ namespace DSAnimStudio.TaeEditor
 
         private void StartCurrentComboEntry()
         {
-            if (Graph.MainScreen.GotoAnimID(int.Parse(CurrentCombo[CurrentComboIndex].AnimID.Replace("_", "").Replace("a", "")), false))
+            if (Graph.MainScreen.GotoAnimID(CurrentCombo[CurrentComboIndex].AnimID, false))
             {
+                // lol idk why 
+                Graph.PlaybackCursor.RestartFromBeginning();
+
                 if (!Graph.PlaybackCursor.IsPlaying)
                 {
                     Graph.PlaybackCursor.Transport_PlayPause();
@@ -599,10 +607,16 @@ namespace DSAnimStudio.TaeEditor
                     {
                         foreach (var eventBox in Graph.EventBoxesToSimulate)
                         {
-                            if (eventBox.PlaybackHighlight && eventBox.MyEvent.Type == 0)
+                            if (eventBox.PlaybackHighlight && eventBox.MyEvent.Type == 0 && eventBox.MyEvent.Template != null)
                             {
-                                var cancelTypeAsStr = eventBox.MyEvent.Template["JumpTableID"].ValueToString(eventBox.MyEvent.Parameters["JumpTableID"]);
-                                if (cancelTypeAsStr == CurrentCombo[CurrentComboIndex].Event0CancelType)
+                                //var cancelTypeAsStr = eventBox.MyEvent.Template["JumpTableID"].ValueToString(eventBox.MyEvent.Parameters["JumpTableID"]);
+                                //if (cancelTypeAsStr == CurrentCombo[CurrentComboIndex].Event0CancelType)
+                                //{
+                                //    GoToNextItemInCombo();
+                                //    return;
+                                //}
+                                var cancelTypeAsInt = Convert.ToInt32(eventBox.MyEvent.Parameters["JumpTableID"]);
+                                if (cancelTypeAsInt == CurrentCombo[CurrentComboIndex].Event0CancelType)
                                 {
                                     GoToNextItemInCombo();
                                     return;
@@ -808,6 +822,9 @@ namespace DSAnimStudio.TaeEditor
             if (CurrentModel == null || CurrentModel?.AnimContainer == null || Graph == null || Graph?.MainScreen?.FileContainer?.AllTAEDict == null)
                 return null;
 
+            if (Graph.MainScreen.FileContainer.IsCurrentlyLoading)
+                return null;
+
             var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
             return mainChrSolver.GetHKXName(tae, anim);
         }
@@ -823,6 +840,17 @@ namespace DSAnimStudio.TaeEditor
                 //CurrentModel.AnimContainer.StoreRootMotionRotation();
 
                 CurrentModel.AnimContainer.CurrentAnimationName = mainChrAnimName;
+
+                lock (CurrentModel.AnimContainer._lock_AnimationLayers)
+                {
+                    if ((CurrentModel.AnimContainer.AnimationLayers.Count == 1 && CurrentModel.AnimContainer.AnimationLayers[0].IsAdditiveBlend) ||
+                      (CurrentModel.AnimContainer.AnimationLayers.Count == 2 && (CurrentModel.AnimContainer.AnimationLayers[0].IsAdditiveBlend || CurrentModel.AnimContainer.AnimationLayers[1].IsAdditiveBlend)))
+                    {
+                        RemoveTransition();
+                    }
+                }
+
+               
 
                 Graph.PlaybackCursor.ResetAll();
 
@@ -861,6 +889,9 @@ namespace DSAnimStudio.TaeEditor
         }
 
         float modelDirectionLastFrame = 0;
+
+        private int lastFrameForTrails = -1;
+
         public void GeneralUpdate()
         {
             DBG.DbgPrimXRay = Graph.MainScreen.Config.DbgPrimXRay;
@@ -921,10 +952,28 @@ namespace DSAnimStudio.TaeEditor
                 {
                     CurrentModel.AnimContainer.EnableRootMotion = Graph.MainScreen.Config.EnableAnimRootMotion;
                     CurrentModel.AnimContainer.EnableRootMotionWrap = Graph.MainScreen.Config.WrapRootMotion;
+
+                    
                     //V2.0
                     //if (CurrentModel.AnimContainer.CurrentAnimation != null && CurrentModel.AnimContainer.CurrentAnimation.data.RootMotion != null)
                     //    CurrentModel.AnimContainer.CurrentAnimation.RootMotion.Accumulate = Graph.MainScreen.Config.AccumulateRootMotion;
                 }
+
+                int frame = (int)Math.Round(Graph.PlaybackCursor.CurrentTime / (1.0 / 60.0));
+
+                if (Graph.PlaybackCursor.ContinuousTimeDelta != 0)
+                {
+                    //EventSim?.UpdateAllBladeSFXsLive();
+
+                    if (frame != lastFrameForTrails)
+                        EventSim?.UpdateAllBladeSFXsLowHz();
+
+
+                    EventSim?.UpdateAllBladeSFXsLive();
+
+                }
+
+                lastFrameForTrails = frame;
             }
             else
             {
@@ -935,6 +984,16 @@ namespace DSAnimStudio.TaeEditor
 
         public void DrawDebug()
         {
+            if (CurrentModel != null)
+            {
+                EventSim?.DrawAllBladeSFXs(CurrentModel.CurrentTransform.WorldMatrix);
+            }
+        }
+
+        public void DrawDebugOverlay()
+        {
+            
+
             var printer = new StatusPrinter(Vector2.One * 4, Color.Yellow);
 
             //if (FmodManager.LoadedFEVs.Count > 0)

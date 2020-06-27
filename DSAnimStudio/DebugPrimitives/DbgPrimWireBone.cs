@@ -15,6 +15,8 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimWireBone(string name, Transform location, Color color)
         {
+            KeepBuffersAlive = true;
+
             Transform = location;
             NameColor = color;
             OverrideColor = color;

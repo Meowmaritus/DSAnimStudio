@@ -17,6 +17,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         public int LineCount => Indices.Length / 2;
 
+        protected bool KeepBuffersAlive = false;
 
         public void AddLine(Vector3 start, Vector3 end)
         {
@@ -70,6 +71,11 @@ namespace DSAnimStudio.DebugPrimitives
 
         protected override void DisposeBuffers()
         {
+            if (!KeepBuffersAlive)
+            {
+                VertBuffer?.Dispose();
+                IndexBuffer?.Dispose();
+            }
             //VertBuffer?.Dispose();
         }
 

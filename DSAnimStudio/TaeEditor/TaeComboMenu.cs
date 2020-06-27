@@ -20,57 +20,135 @@ namespace DSAnimStudio.TaeEditor
         public TaeComboMenu()
         {
             InitializeComponent();
+
+            if (entriesTaeComboAnimType == null)
+            {
+                entriesTaeComboAnimType = (TaeComboAnimType[])Enum.GetValues(typeof(TaeComboAnimType));
+            }
         }
+
+        public enum TaeComboAnimType : int
+        {
+            PlayerRH = 4,
+            PlayerMove = 11,
+            PlayerLH = 16,
+            PlayerGuard = 22,
+            EnemyComboAtk = 23,
+            PlayerDodge = 26,
+            PlayerEstus = 30,
+            PlayerItem = 31,
+            PlayerWeaponSwitch = 32,
+            ThrowEscape = 68,
+            EnemyMove = 78,
+            EnemyDodge = 79,
+            EnemyAtk = 86
+        }
+
+        TaeComboAnimType[] entriesTaeComboAnimType = null;
+        Dictionary<string, TaeComboAnimType> lowercaseMapping = null;
+
 
         private void buttonPlayCombo_Click(object sender, EventArgs e)
         {
-            if (dataGridViewComboEntries.RowCount <= 1)
+            var combo = new List<TaeComboEntry>();
+
+
+
+            
+
+            if (lowercaseMapping == null)
             {
-                MessageBox.Show("Combo has nothing in it.",
-                        "Empty Combo", MessageBoxButtons.OK, MessageBoxIcon.None);
-                return;
-            }
-
-            TaeComboEntry[] combo = new TaeComboEntry[dataGridViewComboEntries.RowCount - 1];
-            for (int r = 0; r < dataGridViewComboEntries.RowCount - 1; r++)
-            {
-                var animIDCellValue = dataGridViewComboEntries[0, r]?.Value;
-                var event0CancelTypeCellValue = dataGridViewComboEntries[1, r]?.Value;
-
-                if (animIDCellValue != null && event0CancelTypeCellValue != null)
+                lowercaseMapping = new Dictionary<string, TaeComboAnimType>();
+                foreach (var entry in entriesTaeComboAnimType)
                 {
-                    if (!int.TryParse(animIDCellValue.ToString().Replace("_", "").Replace("a", ""), out int animID))
-                    {
-                        MessageBox.Show($"\"{animIDCellValue.ToString()}\" is not a valid animation ID. Expected XXYYYY, aXX_YYYY, XXXYYYYYY, or aXXX_YYYYYY format.",
-                            "Invalid Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    if (!MainScreen.DoesAnimIDExist(animID))
-                    {
-                        MessageBox.Show($"Animation {animIDCellValue.ToString()} does not exist.",
-                            "Non-existant Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    if (!MainScreen.SelectedTae.BankTemplate[0]["JumpTableID"].EnumEntries.ContainsKey(event0CancelTypeCellValue.ToString()))
-                    {
-                        MessageBox.Show($"\"{event0CancelTypeCellValue.ToString()}\" is not a valid JumpTableID value. Go click a JumpTable event to see all of the possible values in the inspector.",
-                          "Invalid JumpTableID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    combo[r] = new TaeComboEntry(animIDCellValue.ToString(), event0CancelTypeCellValue.ToString());
-                }
-                else
-                {
-                    MessageBox.Show("Invalid combo. Check that every row (other than the blank row at the end) has both a valid animation ID and a valid JumpTableID.", 
-                        "Invalid Combo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
+                    lowercaseMapping.Add(entry.ToString().ToLower(), entry);
                 }
             }
 
-            MainScreen.Graph.ViewportInteractor.StartCombo(checkBoxLoop.Checked, combo);
+            foreach (var fullLineText in textBoxComboSeq.Lines)
+            {
+                var line = fullLineText.Trim().ToLower();
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                var split = line
+                    .Split(' ')
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x
+                        .Replace("\n", "")
+                        .Replace("\r", "")
+                        .Trim())
+                    .ToList();
+
+                if (split.Count >= 2)
+                {
+                    var cancelTypeKey = split[0].ToLower();
+                    if (lowercaseMapping.ContainsKey(cancelTypeKey))
+                    {
+                        var cancelBeforeNext = lowercaseMapping[cancelTypeKey];
+
+                        if (combo.Count > 0)
+                            combo[combo.Count - 1].Event0CancelType = (int)cancelBeforeNext;
+
+                        if (!int.TryParse(split[1].Replace("_", "").Replace("a", ""), out int animID))
+                        {
+                            MessageBox.Show($"\"{split[1]}\" is not a valid animation ID. Expected XXYYYY, aXX_YYYY, XXXYYYYYY, or aXXX_YYYYYY format.",
+                                "Invalid Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        combo.Add(new TaeComboEntry(cancelBeforeNext, animID, 23));
+                    }
+                }
+            }
+
+            //if (dataGridViewComboEntries.RowCount <= 1)
+            //{
+            //    MessageBox.Show("Combo has nothing in it.",
+            //            "Empty Combo", MessageBoxButtons.OK, MessageBoxIcon.None);
+            //    return;
+            //}
+
+            //TaeComboEntry[] combo = new TaeComboEntry[dataGridViewComboEntries.RowCount - 1];
+            //for (int r = 0; r < dataGridViewComboEntries.RowCount - 1; r++)
+            //{
+            //    var animIDCellValue = dataGridViewComboEntries[0, r]?.Value;
+            //    var event0CancelTypeCellValue = dataGridViewComboEntries[1, r]?.Value;
+
+            //    if (animIDCellValue != null && event0CancelTypeCellValue != null)
+            //    {
+            //        if (!int.TryParse(animIDCellValue.ToString().Replace("_", "").Replace("a", ""), out int animID))
+            //        {
+            //            MessageBox.Show($"\"{animIDCellValue.ToString()}\" is not a valid animation ID. Expected XXYYYY, aXX_YYYY, XXXYYYYYY, or aXXX_YYYYYY format.",
+            //                "Invalid Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //            return;
+            //        }
+
+            //        if (!MainScreen.DoesAnimIDExist(animID))
+            //        {
+            //            MessageBox.Show($"Animation {animIDCellValue.ToString()} does not exist.",
+            //                "Non-existant Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //            return;
+            //        }
+
+            //        if (!MainScreen.SelectedTae.BankTemplate[0]["JumpTableID"].EnumEntries.ContainsKey(event0CancelTypeCellValue.ToString()))
+            //        {
+            //            MessageBox.Show($"\"{event0CancelTypeCellValue.ToString()}\" is not a valid JumpTableID value. Go click a JumpTable event to see all of the possible values in the inspector.",
+            //              "Invalid JumpTableID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //            return;
+            //        }
+
+            //        combo[r] = new TaeComboEntry(animIDCellValue.ToString(), event0CancelTypeCellValue.ToString());
+            //    }
+            //    else
+            //    {
+            //        MessageBox.Show("Invalid combo. Check that every row (other than the blank row at the end) has both a valid animation ID and a valid JumpTableID.", 
+            //            "Invalid Combo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            //        return;
+            //    }
+            //}
+
+            MainScreen.Graph.ViewportInteractor.StartCombo(checkBoxLoop.Checked, combo.ToArray());
             MainScreen.GameWindowAsForm.Activate();
         }
 
@@ -123,107 +201,107 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void buttonCopyToClipboard_Click(object sender, EventArgs e)
-        {
-            var sb = new StringBuilder();
-            for (int r = 0; r < dataGridViewComboEntries.RowCount - 1; r++)
-            {
-                var animIDCellValue = dataGridViewComboEntries[0, r]?.Value;
-                var event0CancelTypeCellValue = dataGridViewComboEntries[1, r]?.Value;
+        //private void buttonCopyToClipboard_Click(object sender, EventArgs e)
+        //{
+        //    var sb = new StringBuilder();
+        //    for (int r = 0; r < dataGridViewComboEntries.RowCount - 1; r++)
+        //    {
+        //        var animIDCellValue = dataGridViewComboEntries[0, r]?.Value;
+        //        var event0CancelTypeCellValue = dataGridViewComboEntries[1, r]?.Value;
 
-                if (animIDCellValue != null)
-                    sb.Append(animIDCellValue.ToString());
-                else
-                    sb.Append("None");
+        //        if (animIDCellValue != null)
+        //            sb.Append(animIDCellValue.ToString());
+        //        else
+        //            sb.Append("None");
 
-                sb.Append("|");
+        //        sb.Append("|");
 
-                if (event0CancelTypeCellValue != null)
-                    sb.Append(event0CancelTypeCellValue.ToString());
-                else
-                    sb.Append("None");
+        //        if (event0CancelTypeCellValue != null)
+        //            sb.Append(event0CancelTypeCellValue.ToString());
+        //        else
+        //            sb.Append("None");
 
-                sb.AppendLine();
-            }
-            Clipboard.SetText(sb.ToString());
-        }
+        //        sb.AppendLine();
+        //    }
+        //    Clipboard.SetText(sb.ToString());
+        //}
 
-        private static void ErrorInvalidClipboard()
-        {
-            MessageBox.Show("Invalid combo in clipboard contents.", "Invalid Combo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        }
+        //private static void ErrorInvalidClipboard()
+        //{
+        //    MessageBox.Show("Invalid combo in clipboard contents.", "Invalid Combo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        //}
 
-        private void buttonPasteFromClipboard_Click(object sender, EventArgs e)
-        {
-            var clipboardText = Clipboard.GetText();
+        //private void buttonPasteFromClipboard_Click(object sender, EventArgs e)
+        //{
+        //    var clipboardText = Clipboard.GetText();
 
-            dataGridViewComboEntries.Rows.Clear();
+        //    dataGridViewComboEntries.Rows.Clear();
 
-            var allLines = clipboardText.Replace("\r", "").Split('\n');
-            foreach (var line in allLines)
-            {
-                var lineTrimmed = line.Trim();
+        //    var allLines = clipboardText.Replace("\r", "").Split('\n');
+        //    foreach (var line in allLines)
+        //    {
+        //        var lineTrimmed = line.Trim();
 
-                if (string.IsNullOrWhiteSpace(lineTrimmed))
-                    continue;
+        //        if (string.IsNullOrWhiteSpace(lineTrimmed))
+        //            continue;
 
-                var parts = lineTrimmed.Split('|').Select(x => x.Trim()).ToArray();
-                if (parts.Length != 2)
-                {
-                    ErrorInvalidClipboard();
-                    return;
-                }
+        //        var parts = lineTrimmed.Split('|').Select(x => x.Trim()).ToArray();
+        //        if (parts.Length != 2)
+        //        {
+        //            ErrorInvalidClipboard();
+        //            return;
+        //        }
                 
-                try
-                {
-                    dataGridViewComboEntries.Rows.Add();
-                    dataGridViewComboEntries.Rows[dataGridViewComboEntries.RowCount - 2].Cells[0].Value = parts[0];
-                    dataGridViewComboEntries.Rows[dataGridViewComboEntries.RowCount - 2].Cells[1].Value = parts[1];
-                }
-                catch
-                {
-                    ErrorInvalidClipboard();
-                    return;
-                }
+        //        try
+        //        {
+        //            dataGridViewComboEntries.Rows.Add();
+        //            dataGridViewComboEntries.Rows[dataGridViewComboEntries.RowCount - 2].Cells[0].Value = parts[0];
+        //            dataGridViewComboEntries.Rows[dataGridViewComboEntries.RowCount - 2].Cells[1].Value = parts[1];
+        //        }
+        //        catch
+        //        {
+        //            ErrorInvalidClipboard();
+        //            return;
+        //        }
 
-            }
-        }
+        //    }
+        //}
 
-        private void dataGridViewComboEntries_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
-        {
-            int column = dataGridViewComboEntries.CurrentCell.ColumnIndex;
-            if (e.Control is TextBox ctrlAsTextbox)
-            {
+        //private void dataGridViewComboEntries_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
+        //{
+        //    int column = dataGridViewComboEntries.CurrentCell.ColumnIndex;
+        //    if (e.Control is TextBox ctrlAsTextbox)
+        //    {
 
 
-                //ctrlAsTextbox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
-                //ctrlAsTextbox.AutoCompleteSource = AutoCompleteSource.CustomSource;
-                //AutoCompleteStringCollection DataCollection = new AutoCompleteStringCollection();
+        //        //ctrlAsTextbox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+        //        //ctrlAsTextbox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+        //        //AutoCompleteStringCollection DataCollection = new AutoCompleteStringCollection();
 
-                //DataCollection.AddRange(column == 1 ? autocompleteListCancelTypes : autocompleteListAnimIDs);
+        //        //DataCollection.AddRange(column == 1 ? autocompleteListCancelTypes : autocompleteListAnimIDs);
 
-                //ctrlAsTextbox.AutoCompleteCustomSource = DataCollection;
-                AutoCompleteExt.EnableAutoSuggest(ctrlAsTextbox, column == 1 ? autocompleteListCancelTypes : autocompleteListAnimIDs);
-            }
+        //        //ctrlAsTextbox.AutoCompleteCustomSource = DataCollection;
+        //        AutoCompleteExt.EnableAutoSuggest(ctrlAsTextbox, column == 1 ? autocompleteListCancelTypes : autocompleteListAnimIDs);
+        //    }
 
-        }
+        //}
 
-        private void dataGridViewComboEntries_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                var hitTestInfo = dataGridViewComboEntries.HitTest(e.X, e.Y);
-                if (hitTestInfo.Type == DataGridViewHitTestType.Cell)
-                    dataGridViewComboEntries.BeginEdit(true);
-                else
-                    dataGridViewComboEntries.EndEdit();
-            }
-        }
+        //private void dataGridViewComboEntries_MouseUp(object sender, MouseEventArgs e)
+        //{
+        //    if (e.Button == MouseButtons.Left)
+        //    {
+        //        var hitTestInfo = dataGridViewComboEntries.HitTest(e.X, e.Y);
+        //        if (hitTestInfo.Type == DataGridViewHitTestType.Cell)
+        //            dataGridViewComboEntries.BeginEdit(true);
+        //        else
+        //            dataGridViewComboEntries.EndEdit();
+        //    }
+        //}
 
-        private void dataGridViewComboEntries_CellEndEdit(object sender, DataGridViewCellEventArgs e)
-        {
+        //private void dataGridViewComboEntries_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        //{
             
-        }
+        //}
 
         private void TaeComboMenu_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -231,9 +309,9 @@ namespace DSAnimStudio.TaeEditor
             Hide();
         }
 
-        private void dataGridViewComboEntries_NewRowNeeded(object sender, DataGridViewRowEventArgs e)
-        {
-            //e.Row.Cells[1].Value = 
-        }
+        //private void dataGridViewComboEntries_NewRowNeeded(object sender, DataGridViewRowEventArgs e)
+        //{
+        //    //e.Row.Cells[1].Value = 
+        //}
     }
 }

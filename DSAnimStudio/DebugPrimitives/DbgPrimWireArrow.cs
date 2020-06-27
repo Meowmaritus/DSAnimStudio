@@ -21,6 +21,8 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimWireArrow(string name, Transform location, Color color)
         {
+            KeepBuffersAlive = true;
+
             Category = DbgPrimCategory.HkxBone;
 
             Transform = location;

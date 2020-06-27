@@ -26,7 +26,14 @@ namespace DSAnimStudio.TaeEditor
             {
                 Invoke(new Action(() =>
                 {
-                    DumpDataGridValuesToEvent();
+                    try
+                    {
+                        DumpDataGridValuesToEvent();
+                    }
+                    catch
+                    {
+
+                    }
 
                     dataGridView1.CellValueChanged -= DataGridView1_CellValueChanged;
                     _selectedEventBox = value;
@@ -479,6 +486,18 @@ namespace DSAnimStudio.TaeEditor
                     cmb.DataSource = SelectedEventBox.MyEvent.Template[paramName].EnumEntries.Keys.ToList();
                     cmb.Value = genericKey;
                 }
+            }
+        }
+
+        private void dataGridView1_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                var hitTestInfo = dataGridView1.HitTest(e.X, e.Y);
+                if (hitTestInfo.Type == DataGridViewHitTestType.Cell)
+                    dataGridView1.BeginEdit(true);
+                else
+                    dataGridView1.EndEdit();
             }
         }
     }

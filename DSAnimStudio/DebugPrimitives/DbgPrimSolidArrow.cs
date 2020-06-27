@@ -18,6 +18,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimSolidArrow(string name, Transform location, Color color)
         {
+            KeepBuffersAlive = true;
             //BackfaceCulling = false;
 
             Category = DbgPrimCategory.HkxBone;
