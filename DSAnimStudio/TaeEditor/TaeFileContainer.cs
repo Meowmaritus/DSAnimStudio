@@ -32,6 +32,8 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsModified = false;
 
+        public bool IsCurrentlyLoading { get; private set; } = false;
+
         public static readonly string DefaultSaveFilter = 
             "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
             "Object Container (*.OBJBND[.DCX]) |*.OBJBND*|" +
@@ -49,9 +51,33 @@ namespace DSAnimStudio.TaeEditor
 
         public IEnumerable<TAE> AllTAE => taeInBND.Values;
 
-        public IReadOnlyDictionary<string, byte[]> AllHKXDict => hkxInBND;
+        private object _lock_loading = new object();
 
-        public IReadOnlyDictionary<string, TAE> AllTAEDict => taeInBND;
+        public IReadOnlyDictionary<string, byte[]> AllHKXDict
+        {
+            get
+            {
+                Dictionary<string, byte[]> result = null; 
+                lock (_lock_loading)
+                {
+                    result = hkxInBND;
+                }
+                return result;
+            }
+        }
+
+        public IReadOnlyDictionary<string, TAE> AllTAEDict
+        {
+            get
+            {
+                Dictionary<string, TAE> result = null;
+                lock (_lock_loading)
+                {
+                    result = taeInBND;
+                }
+                return result;
+            }
+        }
 
         private string GetInterrootFromPath()
         {
@@ -177,6 +203,8 @@ namespace DSAnimStudio.TaeEditor
 
         public void LoadFromPath(string file)
         {
+            IsCurrentlyLoading = true;
+
             filePath = file;
 
             containerANIBND = null;
@@ -184,7 +212,7 @@ namespace DSAnimStudio.TaeEditor
             taeInBND.Clear();
             hkxInBND.Clear();
 
-            
+
 
             if (BND3.Is(file))
             {
@@ -206,7 +234,7 @@ namespace DSAnimStudio.TaeEditor
 
             //void DoBnd(IBinder bnd)
             //{
-               
+
             //}
 
             if (ContainerType == TaeFileContainerType.ANIBND)
@@ -215,7 +243,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (System.IO.File.Exists(filePath + ".2010"))
                 {
-                    isSekiroMeme = true; 
+                    isSekiroMeme = true;
 
                     IBinder anibnd2010 = null;
                     if (BND3.Is(file + ".2010"))
@@ -310,6 +338,8 @@ namespace DSAnimStudio.TaeEditor
                     }
                 });
             }
+
+            IsCurrentlyLoading = false;
         }
 
         public void SaveToPath(string file, IProgress<double> progress)

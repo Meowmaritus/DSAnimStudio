@@ -21,6 +21,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimSkybox()
         {
+
             BackfaceCulling = false;
 
             Category = DbgPrimCategory.Skybox;

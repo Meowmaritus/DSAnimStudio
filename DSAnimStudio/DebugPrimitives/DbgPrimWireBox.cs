@@ -26,6 +26,8 @@ namespace DSAnimStudio.DebugPrimitives
 
         public DbgPrimWireBox(Transform location, Vector3 localMin, Vector3 localMax, Color color)
         {
+            KeepBuffersAlive = true;
+
             Transform = location;
             NameColor = color;
             OverrideColor = color;

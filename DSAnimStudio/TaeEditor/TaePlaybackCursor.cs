@@ -58,7 +58,8 @@ namespace DSAnimStudio.TaeEditor
         public void UpdateScrubbing()
         {
 
-            DeltaTime = GUICurrentTime - OldGUICurrentTime;
+            HKXDeltaTime = GUICurrentTime - OldGUICurrentTime;
+            ContinuousTimeDelta = CurrentTime - OldCurrentTime;
 
             //if (GUICurrentTime != OldGUICurrentTime)
             //{
@@ -98,10 +99,27 @@ namespace DSAnimStudio.TaeEditor
 
         public double OldGUICurrentTime { get; private set; } = 0;
 
-        public double DeltaTime = 0;
+        public double HKXDeltaTime = 0;
 
         public double OldCurrentTime { get; private set; } = 0;
         public double OldCurrentTimeMod => MaxTime > 0 ? OldCurrentTime % MaxTime : 0;
+
+        public double OldCurrentTimeModWrapped
+        {
+            get
+            {
+                var result = OldCurrentTimeMod;
+
+                // Hit end and wrapped back to start
+                if (CurrentTime > OldCurrentTime && CurrentTimeMod < OldCurrentTimeMod)
+                    result -= MaxTime;
+                // Hit start and wrapped back to end
+                else if (CurrentTime < OldCurrentTime && CurrentTimeMod > OldCurrentTimeMod)
+                    result += MaxTime;
+
+                return result;
+            }
+        }
 
         public double OldGUICurrentTimeMod => OldGUICurrentTime % MaxTime;
 
@@ -121,9 +139,12 @@ namespace DSAnimStudio.TaeEditor
 
         public double CurrentSnapInterval => SnapInterval ?? SnapInterval_Default;
 
-        public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
-            ? (Math.Round(CurrentTime / CurrentSnapInterval)) 
-            :  (CurrentTime / CurrentSnapInterval);
+        public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate
+            ? (Math.Round(CurrentTime / CurrentSnapInterval))
+            : (CurrentTime / CurrentSnapInterval);
+
+        public double CurrentFrame => (CurrentTime / CurrentSnapInterval);
+        public double OldCurrentFrame => (OldCurrentTime / CurrentSnapInterval);
 
         public double GUICurrentFrameMod => MaxFrame > 0 ? (GUICurrentFrame % MaxFrame) : 0;
 
@@ -147,6 +168,22 @@ namespace DSAnimStudio.TaeEditor
 
         public bool JustStartedPlaying = false;
 
+        public double ContinuousTimeDelta;
+
+        public bool JustLooped => CurrentLoopCountDelta != 0;
+
+        public void RestartFromBeginning()
+        {
+            CurrentTime = 0;
+            OldIsPlaying = false;
+            if (IsPlaying)
+            {
+                JustStartedPlaying = true;
+            }
+            //JustStartedPlaying = true;
+            IgnoreCurrentRelativeScrub();
+        }
+
         public void IgnoreCurrentRelativeScrub()
         {
             OldGUICurrentTime = GUICurrentTime;
@@ -163,6 +200,7 @@ namespace DSAnimStudio.TaeEditor
             //IsRepeat = true;
             //IsStepping = false;
             JustStartedPlaying = false;
+            OldIsPlaying = false;
             MaxTime = 0;
             OldGUICurrentFrame = 0;
             OldGUICurrentTime = 0;
@@ -206,8 +244,6 @@ namespace DSAnimStudio.TaeEditor
             {
                 IsStepping = false;
             }
-
-            JustStartedPlaying = !OldIsPlaying && IsPlaying;
 
             if (Scrubbing || JustStartedPlaying)
             {
@@ -276,12 +312,10 @@ namespace DSAnimStudio.TaeEditor
                     //    prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
                     //}
 
-                    if (box.PlaybackHighlight)
+                    if (box.WasJustEnteredDuringPlayback)
                     {
-                        if (!box.PrevCyclePlaybackHighlight)
-                        {
-                            OnEventBoxEnter(box);
-                        }
+                        OnEventBoxEnter(box);
+                        
 
                         ////Also check if we looped playback
                         //if (!prevFrameInEvent || isFirstFrameAfterLooping)
@@ -289,14 +323,15 @@ namespace DSAnimStudio.TaeEditor
 
                         //}
 
+                        
+                    }
+                    else if (box.PlaybackHighlight)
+                    {
                         OnEventBoxMidst(box);
                     }
-                    else
+                    else if (box.PrevCyclePlaybackHighlight)
                     {
-                        if (box.PrevCyclePlaybackHighlight)
-                        {
-                            OnEventBoxExit(box);
-                        }
+                        OnEventBoxExit(box);
                     }
 
                     
@@ -371,6 +406,8 @@ namespace DSAnimStudio.TaeEditor
             UpdateScrubbing();
 
             OldLoopCount = CurrentLoopCount;
+
+            JustStartedPlaying = false;
 
             OldIsPlaying = IsPlaying;
         }

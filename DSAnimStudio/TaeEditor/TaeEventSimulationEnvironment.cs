@@ -25,6 +25,98 @@ namespace DSAnimStudio.TaeEditor
             InitAllEntries();
         }
 
+        public void ClearBoxStuff()
+        {
+            lock (_lock_bladeFFX)
+            {
+                SpawnFfxBladeEventMap.Clear();
+            }
+        }
+
+        private Dictionary<TaeEditAnimEventBox, NewDummyPolyManager.DummyPolyBladeSFX> SpawnFfxBladeEventMap = 
+            new Dictionary<TaeEditAnimEventBox, NewDummyPolyManager.DummyPolyBladeSFX>();
+
+        private object _lock_bladeFFX = new object();
+
+        private static ParamData.AtkParam.DummyPolySource GetDmySrcFromCStyleType(short cStyleType)
+        {
+            switch (cStyleType)
+            {
+                case 0: return ParamData.AtkParam.DummyPolySource.Body;
+                case 1: return ParamData.AtkParam.DummyPolySource.LeftWeapon;
+                case 2: return ParamData.AtkParam.DummyPolySource.RightWeapon;
+                default:
+                    throw new NotImplementedException($"Unknown SpawnFFX_Blade CStyleType Value: {cStyleType}");
+            }
+        }
+
+        private void ActivateBladeFfx(TaeEditAnimEventBox evBox)
+        {
+            if (evBox.MyEvent.Template == null)
+                return;
+
+            lock (_lock_bladeFFX)
+            {
+                if (!SpawnFfxBladeEventMap.ContainsKey(evBox))
+                {
+                    var ffxid = Convert.ToInt32(evBox.MyEvent.Parameters["FFXID"]);
+                    var styleType = Convert.ToInt16(evBox.MyEvent.Parameters["CStyleType"]);
+                    var dmy1 = Convert.ToInt16(evBox.MyEvent.Parameters["DummyPolyBladeBaseID"]);
+                    var dmy2 = Convert.ToInt16(evBox.MyEvent.Parameters["DummyPolyBladeTipID"]);
+
+                    var newBlade = new NewDummyPolyManager.DummyPolyBladeSFX(ffxid, dmy1, dmy2, 
+                        GetDmySrcFromCStyleType(styleType), () => evBox.PlaybackHighlight);
+
+                    newBlade.UpdateLive(MODEL.DummyPolyMan);
+                    newBlade.UpdateLowHz(MODEL.DummyPolyMan);
+
+                    SpawnFfxBladeEventMap.Add(evBox, newBlade);
+                }
+            }
+        }
+
+        public void UpdateAllBladeSFXsLowHz()
+        {
+            lock (_lock_bladeFFX)
+            {
+                foreach (var kvp in SpawnFfxBladeEventMap)
+                {
+                    kvp.Value.UpdateLowHz(MODEL.DummyPolyMan);
+                }
+            }
+        }
+
+        public void UpdateAllBladeSFXsLive()
+        {
+            lock (_lock_bladeFFX)
+            {
+                var deadBlades = new List<TaeEditAnimEventBox>();
+                foreach (var kvp in SpawnFfxBladeEventMap)
+                {
+                    kvp.Value.UpdateLive(MODEL.DummyPolyMan);
+
+                    if (!kvp.Value.IsAlive)
+                        deadBlades.Add(kvp.Key);
+                }
+
+                foreach (var k in deadBlades)
+                {
+                    SpawnFfxBladeEventMap.Remove(k);
+                }
+            }
+        }
+
+        public void DrawAllBladeSFXs(Matrix m)
+        {
+            lock (_lock_bladeFFX)
+            {
+                foreach (var kvp in SpawnFfxBladeEventMap)
+                {
+                    kvp.Value.DoDebugDraw(m);
+                }
+            }
+        }
+
         private Dictionary<string, EventSimEntry> entries;
         public IReadOnlyDictionary<string, EventSimEntry> Entries => entries;
 
@@ -39,7 +131,7 @@ namespace DSAnimStudio.TaeEditor
                 evBox.MyEvent.TypeName == "InvokePCBehavior" ||
                 evBox.MyEvent.TypeName == "InvokeGunBehavior")
             {
-                int behaviorSubID = (int)evBox.MyEvent.Parameters["BehaviorSubID"];
+                int behaviorSubID = (int)evBox.MyEvent.Parameters["BehaviorJudgeID"];
                 if (MODEL.IS_PLAYER)
                 {
                     var id = -1;
@@ -186,6 +278,27 @@ namespace DSAnimStudio.TaeEditor
             FmodManager.PlaySE(soundType, soundID, getPosFunc);
         }
 
+        public void RootMotionWrapForBlades(Vector3 wrap)
+        {
+            foreach (var kvp in SpawnFfxBladeEventMap)
+            {
+                var blade = kvp.Value;
+                blade.CurrentPos.Start += wrap;
+                blade.CurrentPos.End += wrap;
+
+                var asList = blade.Keyframes.ToList();
+                for (int i = 0; i < blade.Keyframes.Count; i++)
+                {
+                    var b = asList[i];
+                    b.Start += wrap;
+                    b.End += wrap;
+                    asList[i] = b;
+                }
+
+                blade.Keyframes = new Queue<NewDummyPolyManager.DummyPolyBladePos>(asList);
+            }
+        }
+
         private void InitAllEntries()
         {
             entries = new Dictionary<string, EventSimEntry>
@@ -197,13 +310,31 @@ namespace DSAnimStudio.TaeEditor
                     {
                         SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
                         {
-                            if (evBox.WasJustEnteredDuringPlayback)
+                            var thisBoxEntered = evBox.WasJustEnteredDuringPlayback;
+                            if (!evBox.PrevFrameEnteredState_ForSoundEffectPlayback && thisBoxEntered)
                             {
                                 PlaySoundEffectOfBox(evBox);
                             }
+                            evBox.PrevFrameEnteredState_ForSoundEffectPlayback = thisBoxEntered;
                         },
                     }
                 },
+                ///////////////////////////////////////
+                // NOT READY YET - EXTREMELY UNSTABLE
+                ///////////////////////////////////////
+                //{
+                //    "EventSimWeaponTrails",
+                //    new EventSimEntry("Simulate Weapon Trails", true, "SpawnFFX_Blade")
+                //    {
+                //        SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
+                //        {
+                //            if (evBox.PlaybackHighlight)
+                //            {
+                //                ActivateBladeFfx(evBox);
+                //            }
+                //        },
+                //    }
+                //},
                 {
                     "EventSimBasicBlending",
                     new EventSimEntry("Simulate Animation Blending", true)
@@ -382,10 +513,12 @@ namespace DSAnimStudio.TaeEditor
                 { 
                     "EventSimSpEffects", 
                     new EventSimEntry("Simulate SpEffects", true,
-                        "InvokeSpEffectBehavior_Multiplayer",
-                        "InvokeSpEffectBehavior", 
-                        "InvokeSpEffect", 
-                        "InvokeSpEffect_Multiplayer")
+                        "AddSpEffect",
+                        "AddSpEffect_Multiplayer",
+                        "AddSpEffect_Multiplayer_401",
+                        "AddSpEffect_DragonForm",
+                        "AddSpEffect_WeaponArts",
+                        "AddSpEffect_CultRitualCompletion")
                     {
 
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
@@ -396,7 +529,7 @@ namespace DSAnimStudio.TaeEditor
                         },
                         SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
                         {
-                            if (!evBox.PlaybackHighlight)
+                            if (!evBox.PlaybackHighlightMidst)
                                 return;
 
                             if (evBox.MyEvent.Parameters.Template.ContainsKey("SpEffectID"))
@@ -421,6 +554,25 @@ namespace DSAnimStudio.TaeEditor
                                 }
 
 
+                            }
+                        },
+                    }
+                },
+
+                {
+                    "EventSimDS3DebugAnimSpeed",
+                    new EventSimEntry("Simulate DS3 DebugAnimSpeed", isEnabledByDefault: false, "DebugAnimSpeed")
+                    {
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
+                        {
+                            Graph.PlaybackCursor.ModPlaybackSpeed = 1;
+                        },
+                        SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 && evBox.PlaybackHighlight)
+                            {
+                                var eventFrames = Convert.ToUInt32(evBox.MyEvent.Parameters["AnimSpeed"]);
+                                Graph.PlaybackCursor.ModPlaybackSpeed = (((evBox.MyEvent.EndTime - evBox.MyEvent.StartTime) * 30.0f) / (float)eventFrames);
                             }
                         },
                     }
@@ -574,8 +726,8 @@ namespace DSAnimStudio.TaeEditor
 
                             float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
                             float timeSinceFadeStart = time - evBox.MyEvent.StartTime;
-                            float fadeStartOpacity = (float)evBox.MyEvent.Parameters["GhostVal1"];
-                            float fadeEndOpacity = (float)evBox.MyEvent.Parameters["GhostVal2"];
+                            float fadeStartOpacity = (float)evBox.MyEvent.Parameters["OpacityAtEventStart"];
+                            float fadeEndOpacity = (float)evBox.MyEvent.Parameters["OpacityAtEventEnd"];
 
                             GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
                         },
@@ -631,7 +783,8 @@ namespace DSAnimStudio.TaeEditor
 
                             int maskLength = 32;
 
-                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
+                                GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
                                 maskLength = 8;
 
                             if (evBox.MyEvent.Template == null)

@@ -78,6 +78,8 @@ namespace DSAnimStudio.TaeEditor
             VerticalScroll,
         }
 
+        public bool IsActive => MainScreen.Graph == this || MainScreen.Graph?.GhostEventGraph == this;
+
         public bool IsGhostEventGraph { get; private set; } = false;
 
         public TaeHoverInfoBox HoverInfoBox = new TaeHoverInfoBox();
@@ -274,6 +276,7 @@ namespace DSAnimStudio.TaeEditor
 
             EventBoxes.Clear();
             GhostEventGraph = null;
+            
             sortedByRow.Clear();
             AnimRef = newAnimRef;
 
@@ -297,7 +300,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 int groupIndex = legacyRowMode ? -1 : AnimRef.EventGroups.IndexOf(AnimRef.EventGroups.FirstOrDefault(eg => eg.Indices.Contains(eventIndex)));
 
-                var newBox = new TaeEditAnimEventBox(this, ev);
+                var newBox = new TaeEditAnimEventBox(this, ev, AnimRef);
 
                 if (newBox.Row >= 0)
                 {
@@ -350,6 +353,8 @@ namespace DSAnimStudio.TaeEditor
 
             //}
             //Console.WriteLine("EventGroups End");
+
+            //GC.Collect();
         }
 
         public void InitGhostEventBoxes()
@@ -400,6 +405,8 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeEditAnimEventGraph(TaeEditorScreen mainScreen, bool isGhostGraph, TAE.Animation startingAnimRef)
         {
+            TaeClipboardContents.ParentGraph = this;
+
             MainScreen = mainScreen;
 
             IsGhostEventGraph = isGhostGraph;
@@ -678,7 +685,7 @@ namespace DSAnimStudio.TaeEditor
                 ev.ApplyTemplate(MainScreen.SelectedTae.BigEndian, MainScreen.SelectedTae.BankTemplate[ev.Type]);
             }
 
-            var newBox = new TaeEditAnimEventBox(this, ev);
+            var newBox = new TaeEditAnimEventBox(this, ev, AnimRef);
 
             newBox.Row = row;
 
@@ -2202,7 +2209,7 @@ namespace DSAnimStudio.TaeEditor
                 DrawActualBox();
 
                 string shortTextNoPrefix = /* $"{(eventStartsBeforeScreen ? fixedPrefix : "")}" + */
-                       ((isHover || boxHighlightedAndVisiActive) ? box.EventText.Text : (box.MyEvent.TypeName ?? $"[{box.MyEvent.Type}]"));
+                       ((isHover || boxHighlightedAndVisiActive) ? box.EventText.Text : box.DispEventName);
 
                 if (eventStartsBeforeScreen)
                 {

@@ -183,6 +183,10 @@ namespace DSAnimStudio
 
         }
 
+        public static void DrawDepthRespectPrims()
+        {
+            Main.TAE_EDITOR.Graph?.ViewportInteractor?.DrawDebug();
+        }
 
         public static void DrawBehindPrims()
         {

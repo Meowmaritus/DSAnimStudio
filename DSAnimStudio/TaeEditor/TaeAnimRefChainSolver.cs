@@ -137,10 +137,18 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                var tae = TaeDict.First().Value;
-                var anim = GetAnimInTAE(tae, GetCompositeAnimID(id));
-                if (anim != null)
-                    return (id.Upper, anim);
+                if (TaeDict.Count > 0)
+                {
+                    var tae = TaeDict.FirstOrDefault().Value;
+                    if (tae != null)
+                    {
+                        var anim = GetAnimInTAE(tae, GetCompositeAnimID(id));
+                        if (anim != null)
+                            return (id.Upper, anim);
+                    }
+                 
+                }
+                
             }
             return (0, null);
         }
@@ -203,7 +211,7 @@ namespace DSAnimStudio.TaeEditor
         {
             RefChain.Add((tae, anim));
 
-            if (RefChain.Count >= 16)
+            if (RefChain.Count >= 2 /*turns out it doesnt even chain and too lazy to remove this system lol*/)
             {
                 StackLimitHit = true;
                 if (TaeDict.Count > 1)

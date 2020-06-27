@@ -11,6 +11,7 @@ namespace DSAnimStudio.DebugPrimitives
 {
     public enum DbgPrimCategory
     {
+        AlwaysDraw,
         HkxBone,
         FlverBone,
         FlverBoneBoundingBox,
@@ -200,7 +201,7 @@ namespace DSAnimStudio.DebugPrimitives
             if (!EnableDraw)
                 return;
 
-            if (!DBG.CategoryEnableDraw[Category])
+            if (Category != DbgPrimCategory.AlwaysDraw && !DBG.CategoryEnableDraw[Category])
                 return;
 
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)

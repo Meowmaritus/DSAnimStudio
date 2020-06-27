@@ -162,6 +162,8 @@ namespace DSAnimStudio
                     return SurfaceFormat.ATI1; // Monogame workaround :fatcat:
                 case "ATI2":
                     return SurfaceFormat.ATI2;
+                case "BC5U":
+                    return SurfaceFormat.Dxt5;
                 default:
                     throw new Exception($"Unknown DDS Type: {str}");
             }
@@ -520,7 +522,7 @@ namespace DSAnimStudio
             else
             {
                 tex = new Texture2D(GFX.Device, width, height,
-                    mipmapCount > 0,
+                    mipmapCount > 1,
                     surfaceFormat,
                     arraySize);
             }

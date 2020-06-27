@@ -531,7 +531,7 @@ namespace DSAnimStudio.TaeEditor
             baseItem.DropDownItems.Add(newItem);
         }
 
-        public void AddItem(string path, string itemName, Action click = null, bool startDisabled = false, bool closeOnClick = true)
+        public void AddItem(string path, string itemName, Action click = null, bool startDisabled = false, bool closeOnClick = true, Func<bool> getEnabled = null)
         {
             string[] pathStops = path.Split('\\');
 
@@ -571,6 +571,14 @@ namespace DSAnimStudio.TaeEditor
 
             if (startDisabled)
                 newItem.Enabled = false;
+
+            baseItem.MouseEnter += (o, e) =>
+            {
+                if (getEnabled != null)
+                {
+                    newItem.Enabled = getEnabled.Invoke();
+                }
+            };
 
             currentPath += "\\" + itemName;
 

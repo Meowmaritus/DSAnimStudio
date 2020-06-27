@@ -52,7 +52,7 @@ namespace DSAnimStudio
                 const int SDTSomething1 = 10000;
                 const int SDTSomething2 = 21000;
 
-                private static int GetFilteredDmyPolyID(ParamData.AtkParam.DummyPolySource dmyFilter, int id)
+                public static int GetFilteredDmyPolyID(ParamData.AtkParam.DummyPolySource dmyFilter, int id)
                 {
                     if (id < 0)
                         return -1;

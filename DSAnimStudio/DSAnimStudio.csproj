@@ -80,6 +80,8 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidBox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
+    <Compile Include="DebugPrimitives\DbgPrimSolidBladeTrail.cs" />
+    <Compile Include="DebugPrimitives\DbgPrimWireBladeTrail.cs" />
     <Compile Include="ErrorHandler.cs" />
     <Compile Include="FlverShadingMode.cs" />
     <Compile Include="FmodManager.cs" />
@@ -525,9 +527,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TAE.Template.DS1.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Res\TAE.Template.BB.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TAE.Template.DS3.OBJ.xml">

@@ -38,7 +38,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.1.6";
+        public const string VERSION = "Version 2.2";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -258,7 +258,7 @@ namespace DSAnimStudio
                 GC.Collect();
                 SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * ssaa,
                        TAE_EDITOR.ModelViewerBounds.Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24, 
-                       ssaa > 1 ? 1 : msaa, RenderTargetUsage.PlatformContents);
+                       ssaa > 1 ? 1 : msaa, RenderTargetUsage.DiscardContents);
 
                 TimeBeforeNextRenderTargetUpdate = TimeBeforeNextRenderTargetUpdate_Max;
 
@@ -738,11 +738,15 @@ namespace DSAnimStudio
 
                         GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
 
+                        
+
                         //TaeInterop.TaeViewportDrawPre(gameTime);
                         GFX.DrawScene3D();
 
                         //if (!DBG.DbgPrimXRay)
                         //    GFX.DrawSceneOver3D();
+
+                        GFX.DrawPrimRespectDepth();
 
                         if (DBG.DbgPrimXRay)
                             GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
@@ -830,7 +834,7 @@ namespace DSAnimStudio
 
 
 
-                    TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebug();
+                    TAE_EDITOR?.Graph?.ViewportInteractor?.DrawDebugOverlay();
 
                     DrawMemoryUsage();
 
@@ -865,6 +869,7 @@ namespace DSAnimStudio
             catch (Exception ex)
             {
                 ErrorHandler.Handle(ex, "Fatal error ocurred during rendering");
+                GFX.Device.SetRenderTarget(null);
             }
 
             

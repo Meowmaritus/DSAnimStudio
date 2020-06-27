@@ -49,7 +49,7 @@ namespace DSAnimStudio
 
         private object _lock_boneMatrixStuff = new object();
 
-        public List<NewBlendableTransform> blendableTransforms = new List<NewBlendableTransform>();
+        public NewBlendableTransform[] blendableTransforms = new NewBlendableTransform[0];
         private List<int> bonesAlreadyCalculated = new List<int>();
 
         public bool IsAdditiveBlend => data.IsAdditiveBlend;
@@ -107,10 +107,11 @@ namespace DSAnimStudio
         {
             CurrentTime += timeDelta;
 
-            while (CurrentTime < 0)
+            if (CurrentTime < 0)
             {
-                CurrentTime += Duration;
-                oldTime += Duration;
+                var timeBeforeJump = CurrentTime;
+                CurrentTime  = 0;
+                oldTime += (CurrentTime - timeBeforeJump);
 
                 if (data.RootMotion != null)
                     oldRootMotionVector += data.RootMotion.Frames[data.RootMotion.Frames.Length - 1].ToXna();
@@ -211,11 +212,7 @@ namespace DSAnimStudio
 
             lock (_lock_boneMatrixStuff)
             {
-                blendableTransforms = new List<NewBlendableTransform>();
-                for (int i = 0; i < skeleton.HkxSkeleton.Count; i++)
-                {
-                    blendableTransforms.Add(NewBlendableTransform.Identity);
-                }
+                blendableTransforms = new NewBlendableTransform[skeleton.HkxSkeleton.Count];
             }
 
             RotMatrixAtStartOfAnim = ParentContainer.MODEL.CurrentRootMotionRotation;

@@ -59,7 +59,7 @@ namespace DSAnimStudio.TaeEditor
         public static TaeEditAnimEventBox ClipToEvent(TaeEditAnimEventGraph graph, Clip c, bool isBigEndian)
         {
             var newEvent = new TAE.Event(c.EventStartTime, c.EventEndTime, c.EventType, c.EventUnk04, c.EventParamBytes, isBigEndian);
-            var newEventBox = new TaeEditAnimEventBox(graph, newEvent);
+            var newEventBox = new TaeEditAnimEventBox(graph, newEvent, graph.AnimRef);
             newEventBox.Row = c.EventRow;
             return newEventBox;
         }

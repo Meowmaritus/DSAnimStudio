@@ -4,6 +4,7 @@ using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,6 +13,375 @@ namespace DSAnimStudio
     public class NewDummyPolyManager
     {
         public readonly Model MODEL;
+
+        public class DummyPolyBladeKeyframeMod
+        {
+            // Lerp from this frame to current frame.
+            public float DistanceLerp = 1;
+            public float Constrict = 1;
+            public float Opacity = 1;
+            public DummyPolyBladeKeyframeMod(float distLerp, float constrict, float opacity)
+            {
+                DistanceLerp = distLerp;
+                Constrict = constrict;
+                Opacity = opacity;
+            }
+        }
+
+        public struct DummyPolyBladePos
+        {
+            public Vector3 Start;
+            public Vector3 End;
+            public float Opacity;
+            public Vector3 GetCenter() => (Start + End) / 2;
+        }
+
+        public class DummyPolyBladeSFX
+        {
+            public int FFXID;
+
+            public int StartDummyPolyID;
+            public int EndDummyPolyID;
+
+            public float Opacity = 1;
+
+            private Func<bool> CheckIfAliveFunc = null;
+
+            public bool IsAlive { get; private set; }
+
+            public DummyPolyBladeSFX(int ffxid, int startDummyPolyID, int endDummyPolyID,
+                ParamData.AtkParam.DummyPolySource dmySource, Func<bool> checkIfAliveFunc)
+            {
+                FFXID = ffxid;
+                StartDummyPolyID = startDummyPolyID;
+                EndDummyPolyID = endDummyPolyID;
+                DmyPolySource = dmySource;
+                CheckIfAliveFunc = checkIfAliveFunc;
+            }
+
+            ParamData.AtkParam.DummyPolySource DmyPolySource = ParamData.AtkParam.DummyPolySource.Body;
+
+            private static List<DummyPolyBladeKeyframeMod> KeyframeMods = new List<DummyPolyBladeKeyframeMod>
+            {
+                new DummyPolyBladeKeyframeMod(distLerp: 0.25f, constrict: 0.600f, opacity: 0.5f + (0.0f / 2.0f)),
+                new DummyPolyBladeKeyframeMod(distLerp: 0.5f, constrict: 0.725f, opacity: 0.5f + (0.2f / 2.0f)),
+                new DummyPolyBladeKeyframeMod(distLerp: 0.625f, constrict: 0.825f, opacity: 0.5f + (0.4f / 2.0f)),
+                new DummyPolyBladeKeyframeMod(distLerp: 0.8f, constrict: 0.875f, opacity: 0.5f + (0.6f / 2.0f)),
+                new DummyPolyBladeKeyframeMod(distLerp: 0.9f, constrict: 0.900f, opacity: 0.5f + (0.8f / 2.0f)),
+            };
+
+            public DummyPolyBladePos CurrentPos;
+            public DummyPolyBladePos CurrentPosLive;
+            //public Matrix MatrixToGetToLivePos = Matrix.Identity;
+
+            public Queue<DummyPolyBladePos> Keyframes = new Queue<DummyPolyBladePos>();
+            private void PushCurrentFrame()
+            {
+                if (Keyframes.Count >= KeyframeMods.Count)
+                {
+                    Keyframes.Dequeue();
+                }
+
+                Keyframes.Enqueue(CurrentPos);
+            }
+
+            public static (Vector3 Start, Vector3 End) Constrict(Vector3 start, Vector3 end, float ratio)
+            {
+                Vector3 center = (start + end) / 2;
+
+                return (Vector3.Lerp(center, start, ratio), Vector3.Lerp(center, end, ratio));
+            }
+
+            public static (Vector3 Start, Vector3 End) UndoConstrict(Vector3 start, Vector3 end, float ratio)
+            {
+                Vector3 center = (start + end) / 2;
+
+                return (XnaExtensions.GetLerpValARequiredForResult(center, start, 1 - ratio), 
+                    XnaExtensions.GetLerpValARequiredForResult(center, end, 1 - ratio));
+            }
+
+            public List<DummyPolyBladePos> GetPosFrames(/*Matrix rotLowHzToLive, Vector3 posLowHzToLive, bool addTheShit*/)
+            {
+                var result = new List<DummyPolyBladePos>();
+                var asList = Keyframes.ToList();
+
+                for (int i = 0; i < asList.Count; i++)
+                {
+                    var mod = KeyframeMods[i];
+
+
+
+
+
+                    //var constricted = Constrict(Vector3.Lerp(asList[i].Start, CurrentPos.Start, mod.DistanceLerp),
+                    //    Vector3.Lerp(asList[i].End, CurrentPos.End, mod.DistanceLerp),
+                    //    mod.Constrict);
+
+
+
+                    //Vector3 finalStart = constricted.Start;
+                    //Vector3 finalEnd = constricted.End;
+
+
+
+
+                    var constricted = Constrict(asList[i].Start, asList[i].End, mod.Constrict);
+
+
+
+                    Vector3 finalStart = Vector3.Lerp(constricted.Start, CurrentPos.Start, mod.DistanceLerp);
+                    Vector3 finalEnd = Vector3.Lerp(constricted.End, CurrentPos.End, mod.DistanceLerp);
+                    finalStart = Vector3.Lerp(finalStart, CurrentPosLive.Start, 0.5f);
+                    finalEnd = Vector3.Lerp(finalEnd, CurrentPosLive.End, 0.5f);
+
+
+                    //if (i == (asList.Count - 1))
+                    //{
+                    //    var dir = Vector3.Transform(constricted.Start - constricted.End, rotLowHzToLive);
+                    //    finalEnd = constricted.End + posLowHzToLive;
+                    //    finalStart = finalEnd + (dir);
+
+                    //    //finalStart = Vector3.Lerp(finalStart, finalStart_Blend, (1.0f * i / asList.Count - 1));
+                    //    //finalEnd = Vector3.Lerp(finalEnd, finalEnd_Blend, (1.0f * i / asList.Count - 1));
+
+
+                    //    //var dir_Start = Vector3.Transform(constricted.Start - CurrentPos.Start, rotLowHzToLive);
+                    //    //var dir_End = Vector3.Transform(constricted.End - CurrentPos.End, rotLowHzToLive);
+
+                    //    //finalStart = CurrentPos.Start + dir_Start;// constricted.Start;
+                    //    //finalEnd = CurrentPos.End + dir_End;// constricted.End;
+
+
+
+
+                    //    //var dir_Start = Vector3.Transform(constricted.Start - CurrentPos.End, rotLowHzToLive);
+                    //    //var dir_End = Vector3.Transform(constricted.End - CurrentPos.End, rotLowHzToLive);
+
+                    //    //var finalStart = CurrentPos.End + dir_Start;// constricted.Start;
+                    //    //var finalEnd = CurrentPos.End + dir_End;// constricted.End;
+                    //}
+
+
+
+
+
+
+                    //var finalStart = constricted.Start;
+                    //var finalEnd = constricted.End;
+
+                    result.Add(new DummyPolyBladePos()
+                    {
+                        Start = finalStart,
+                        End = finalEnd,
+                        Opacity = Opacity * KeyframeMods[i].Opacity,
+                    });
+                }
+                return result;
+            }
+
+            public DummyPolyBladePos GetCurrentBladePos(NewDummyPolyManager manager)
+            {
+                var dmyPoly1 = StartDummyPolyID;
+                var dmyPoly2 = EndDummyPolyID;
+
+                DummyPolyBladePos GetPosFatcat(NewDummyPolyManager dpm, Matrix modelMatrix)
+                {
+                    var pos1 = Vector3.Transform(Vector3.Zero, dpm.DummyPolyByRefID[dmyPoly1][0].CurrentMatrix * modelMatrix);
+                    var pos2 = Vector3.Transform(Vector3.Zero, dpm.DummyPolyByRefID[dmyPoly2][0].CurrentMatrix * modelMatrix);
+
+                    // Get REAL pos1
+                    var bladeLength = (pos1 - pos2).Length();
+                    var pos2ExtendedOutward = Vector3.Transform(Vector3.Forward, dpm.DummyPolyByRefID[dmyPoly2][0].CurrentMatrix * modelMatrix);
+                    var actualDirection = Vector3.Normalize(pos2ExtendedOutward - pos2);
+                    pos1 = pos2 + (actualDirection * bladeLength);
+
+                    return new DummyPolyBladePos()
+                    {
+                        Start = pos1,
+                        End = pos2,
+                        Opacity = Opacity,
+                    };
+                }
+
+               
+
+                if (DmyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+                {
+                    return GetPosFatcat(manager, manager.MODEL.CurrentTransform.WorldMatrix);
+                }
+                else if (DmyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
+                    manager.MODEL.ChrAsm != null &&
+                    manager.MODEL.ChrAsm.RightWeaponModel != null)
+                {
+                    return GetPosFatcat(manager.MODEL.ChrAsm.RightWeaponModel.DummyPolyMan, manager.MODEL.ChrAsm.RightWeaponModel.CurrentTransform.WorldMatrix);
+                }
+                else if (DmyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
+                    manager.MODEL.ChrAsm != null &&
+                    manager.MODEL.ChrAsm.LeftWeaponModel != null)
+                {
+                    return GetPosFatcat(manager.MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan, manager.MODEL.ChrAsm.LeftWeaponModel.CurrentTransform.WorldMatrix);
+                }
+                else
+                {
+                    return new DummyPolyBladePos();
+                }
+            }
+
+            public void UpdateLive(NewDummyPolyManager manager)
+            {
+                IsAlive = CheckIfAliveFunc?.Invoke() ?? true;
+
+                var curBladePos = GetCurrentBladePos(manager);
+
+                curBladePos.Opacity = Opacity;
+
+                CurrentPosLive = curBladePos;
+            }
+
+            private void BakeKeyframesToLiveMod(List<DummyPolyBladePos> positions)
+            {
+                var posLowHzToLive = (CurrentPosLive.End - CurrentPos.End);
+                var rotLowHzToLive = Matrix.CreateFromQuaternion(XnaExtensions.GetQuatOfBladePosDelta(CurrentPos, CurrentPosLive));
+
+                var asList = Keyframes.ToList();
+
+                for (int i = 0; i < asList.Count - 1; i++)
+                {
+
+
+                    DummyPolyBladePos bakedPos = new DummyPolyBladePos();
+
+                    if (positions.Count < asList.Count)
+                    {
+                        bakedPos = positions[i];
+                    }
+                    else
+                    {
+                        if (i < positions.Count - 1)
+                            bakedPos = positions[i + 1];
+                        else
+                            bakedPos = CurrentPos;
+                    }
+
+                    var mod = KeyframeMods[i + 1];
+                    var finalEnd = bakedPos.End;
+                    var finalStart = bakedPos.Start;
+
+
+                    //var dir = Vector3.Transform(asList[i].Start - asList[i].End, rotLowHzToLive);
+                    //var finalEnd = asList[i].End + posLowHzToLive;
+                    //var finalStart = finalEnd + (dir);
+
+                    //UN - constrict
+                    (finalStart, finalEnd) = UndoConstrict(finalStart, finalEnd, mod.Constrict);
+
+                    //UN - Lerp
+                    finalStart = XnaExtensions.GetLerpValARequiredForResult(CurrentPos.Start, finalStart, mod.DistanceLerp);
+                    finalEnd = XnaExtensions.GetLerpValARequiredForResult(CurrentPos.End, finalEnd, mod.DistanceLerp);
+
+                    
+
+           
+
+
+
+                    asList[i] = new DummyPolyBladePos()
+                    {
+                        Start = finalStart,
+                        End = finalEnd,
+                        Opacity = Opacity * asList[i].Opacity,
+                    };
+                }
+                Keyframes = new Queue<DummyPolyBladePos>(asList);
+            }
+
+            public void UpdateLowHz(NewDummyPolyManager manager)
+            {
+                var curBladePos = GetCurrentBladePos(manager);
+
+                curBladePos.Opacity = Opacity;
+
+                
+
+                if (Keyframes.Count > 0)
+                {
+                    
+
+                    //var posLowHzToLive = (CurrentPosLive.End - CurrentPos.End);
+                    //var rotLowHzToLive = Matrix.CreateFromQuaternion(XnaExtensions.GetQuatOfBladePosDelta(CurrentPos, CurrentPosLive));
+                    //var sampledFrames = GetPosFrames(rotLowHzToLive, posLowHzToLive, addTheShit: false);
+
+                    
+
+                    PushCurrentFrame();
+
+                    //BakeKeyframesToLiveMod(sampledFrames);
+
+                    CurrentPos = curBladePos;
+
+                   
+
+                    
+
+                    
+
+                    
+
+                    
+                }
+                else
+                {
+                    CurrentPos = curBladePos;
+
+                    PushCurrentFrame();
+                }
+            }
+
+            DbgPrimWireCapsule debugDrawCapsule = new DbgPrimWireCapsule(Color.Yellow);
+            public void DoDebugDraw(Matrix m)
+            {
+                //var posLowHzToLive = (CurrentPosLive.End - CurrentPos.End);
+                //var rotLowHzToLive = Matrix.CreateFromQuaternion(XnaExtensions.GetQuatOfBladePosDelta(CurrentPos, CurrentPosLive));
+                //var dir = Vector3.Transform(CurrentPos.Start - CurrentPos.End, rotLowHzToLive);
+                //var finalEnd = CurrentPos.End + posLowHzToLive;
+                //var finalStart = finalEnd + (dir);
+                var frames = GetPosFrames(/*rotLowHzToLive, posLowHzToLive, addTheShit: true*/);
+
+                //var adjustedCurrentPos = new DummyPolyBladePos()
+                //{
+                //    Start = finalStart,
+                //    End = finalEnd,
+                //    Opacity = CurrentPos.Opacity,
+                //};
+
+                var adjustedCurrentPos = CurrentPosLive;
+
+                if (frames.Count > 0)
+                {
+                    using (var prim = new DbgPrimSolidBladeTrail($"Blade SFX {FFXID}", Color.White * 0.66666f, adjustedCurrentPos, frames))
+                    {
+                        prim.Category = DbgPrimCategory.AlwaysDraw;
+                        prim.DisableLighting = true;
+                        prim.Draw(null, Matrix.Identity);
+                    }
+
+                    debugDrawCapsule.UpdateCapsuleEndPoints(CurrentPosLive.Start, CurrentPosLive.End, 0.1f);
+                    debugDrawCapsule.Draw(null, Matrix.Identity);
+                }
+               
+
+                //debugDrawCapsule.OverrideColor = Color.Yellow * Opacity;
+                //debugDrawCapsule.UpdateCapsuleEndPoints(CurrentPos.Start, CurrentPos.End, 0.1f);
+                //debugDrawCapsule.Draw(null, m);
+                
+                //foreach (var f in frames)
+                //{
+                //    debugDrawCapsule.OverrideColor = Color.Yellow * f.Opacity;
+                //    debugDrawCapsule.UpdateCapsuleEndPoints(f.Start, f.End, 0.1f);
+                //    debugDrawCapsule.Draw(null, m);
+                //}
+            }
+        }
 
         public class DummyPolyInfo
         {
@@ -271,6 +641,9 @@ namespace DSAnimStudio
 
         private Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource> HitFilters
             = new Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource>();
+
+        private Dictionary<DummyPolyBladeSFX, ParamData.AtkParam.DummyPolySource> BladeSfxHitFilters
+            = new Dictionary<DummyPolyBladeSFX, ParamData.AtkParam.DummyPolySource>();
 
         private void UpdateHitPrim(ParamData.AtkParam.Hit hit)
         {

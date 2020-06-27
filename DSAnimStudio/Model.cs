@@ -49,6 +49,8 @@ namespace DSAnimStudio
 
         public Transform CurrentTransform = Transform.Default;
 
+        public Action<Vector3> OnRootMotionWrap = null;
+
         /// <summary>
         /// This is needed to make weapon hitboxes work.
         /// </summary>
@@ -284,6 +286,8 @@ namespace DSAnimStudio
             LoadFLVER2(flver, useSecondUV);
         }
 
+
+
         public void AfterAnimUpdate(float timeDelta, bool ignorePosWrap = false)
         {
             if (AnimContainer?.EnableRootMotion == false)
@@ -304,6 +308,8 @@ namespace DSAnimStudio
                 Vector3 locationWithNewTransform_Mod = new Vector3(locationWithNewTransform.X % 1, locationWithNewTransform.Y, locationWithNewTransform.Z % 1);
                 Vector3 translationDeltaToGetToMod = locationWithNewTransform_Mod - locationWithNewTransform;
                 CurrentRootMotionTranslation *= Matrix.CreateTranslation(translationDeltaToGetToMod);
+
+                OnRootMotionWrap?.Invoke(translationDeltaToGetToMod);
             }
 
             

@@ -442,7 +442,7 @@ namespace DSAnimStudio
             else if (category == 1)
                 soundName = $"c{id:D9}";
             else if (category == 2)
-                soundName = $"s{id:D9}";
+                soundName = $"f{id:D9}";
             else if (category == 3)
                 soundName = $"o{id:D9}";
             else if (category == 4)
@@ -561,14 +561,41 @@ namespace DSAnimStudio
                         fres = evProject.getNumGroups(ref groupCount);
                         if (fres == RESULT.OK)
                         {
+                            bool searchGroup(FMOD.EventGroup grp)
+                            {
+                                fres = grp.getEvent(eventName, EVENT_MODE.DEFAULT, ref newEvent);
+                                if (fres == RESULT.OK)
+                                {
+                                    //foundEvent = true;
+                                    return true;
+                                }
+                                int numInnerGroups = 0;
+                                fres = grp.getNumGroups(ref numInnerGroups);
+
+                                if (fres == RESULT.OK)
+                                {
+                                    for (int j = 0; j < numInnerGroups; j++)
+                                    {
+                                        FMOD.EventGroup innerInnerGroup = null;
+                                        fres = grp.getGroupByIndex(j, false, ref innerInnerGroup);
+                                        if (fres == RESULT.OK)
+                                        {
+                                            if (searchGroup(innerInnerGroup))
+                                                return true;
+                                        }
+                                    }
+                                }
+
+                                return false;
+                            }
+
                             for (int i = 0; i < groupCount; i++)
                             {
                                 FMOD.EventGroup innerGroup = null;
                                 fres = evProject.getGroupByIndex(i, cacheevents: false, ref innerGroup);
                                 if (fres == RESULT.OK)
                                 {
-                                    fres = innerGroup.getEvent(eventName, EVENT_MODE.DEFAULT, ref newEvent);
-                                    if (fres == RESULT.OK)
+                                    if (searchGroup(innerGroup))
                                     {
                                         foundEvent = true;
                                         break;

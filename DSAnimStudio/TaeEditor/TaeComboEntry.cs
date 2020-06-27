@@ -8,18 +8,20 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeComboEntry
     {
-        public string AnimID;
-        public string Event0CancelType;
+        public TaeComboMenu.TaeComboAnimType ComboType;
+        public int AnimID;
+        public int Event0CancelType;
 
-        public TaeComboEntry(string animID, string event0CancelType)
+        public TaeComboEntry(TaeComboMenu.TaeComboAnimType comboType, int animID, int event0CancelType)
         {
+            ComboType = comboType;
             AnimID = animID;
             Event0CancelType = event0CancelType;
         }
 
         public override string ToString()
         {
-            return $"{AnimID} [{Event0CancelType}]";
+            return $"{ComboType} {AnimID} [Event0CancelType: {Event0CancelType}]";
         }
     }
 }
