@@ -17,6 +17,8 @@ namespace DSAnimStudio
 
         private object _lock_animDict = new object();
 
+        private object _lock_animCache = new object();
+
         private object _lock_timeactDict = new object();
 
         private Dictionary<string, byte[]> timeactFiles = new Dictionary<string, byte[]>();
@@ -55,7 +57,10 @@ namespace DSAnimStudio
 
         public void ClearAnimationCache()
         {
-            AnimationCache.Clear();
+            lock (_lock_animCache)
+            {
+                AnimationCache.Clear();
+            }
         }
 
         public int GetAnimLayerIndexByName(string name)
@@ -80,49 +85,82 @@ namespace DSAnimStudio
             {
                 _currentAnimationName = value;
 
+                string GetMatchingAnim(IEnumerable<string> animNames, string desiredName)
+                {
+                    if (desiredName == null)
+                        return null;
+
+                    desiredName = desiredName.Replace(".hkx", "");
+                    foreach (var a in animNames)
+                    {
+                        if (a.StartsWith(desiredName))
+                            return a;
+                    }
+                    return null;
+                }
+
                 if (MODEL.ChrAsm != null)
                 {
-                    if (MODEL.ChrAsm.RightWeaponModel != null)
+                    void DoWPNAnims(Model wpnMdl)
                     {
-                        if (MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.Count > 0)
+                        if (wpnMdl != null)
                         {
-                            if (value == null || MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.ContainsKey(value))
+                            if (wpnMdl.AnimContainer.Animations.Count > 0)
                             {
-                                MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = value;
-                            }
-                            else
-                            {
-                                MODEL.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName =
-                                    MODEL.ChrAsm.RightWeaponModel.AnimContainer.Animations.Keys.FirstOrDefault() ??
-                                    (GameDataManager.GameTypeHasLongAnimIDs ? "a000_000000" : "a00_0000");
+                                var matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, value);
+                                if (value == null || matching != null)
+                                {
+                                    wpnMdl.AnimContainer.CurrentAnimationName = matching;
+                                }
+                                else
+                                {
+                                    matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, GameDataManager.GameTypeHasLongAnimIDs ? "a999_000000.hkx" : "a99_0000.hkx");
+                                    if (matching != null)
+                                    {
+                                        wpnMdl.AnimContainer.CurrentAnimationName = matching;
+                                    }
+                                    else
+                                    {
+                                        matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, GameDataManager.GameTypeHasLongAnimIDs ? "a000_000000.hkx" : "a00_0000.hkx");
+                                        if (matching != null)
+                                        {
+                                            wpnMdl.AnimContainer.CurrentAnimationName = matching;
+                                        }
+                                        else
+                                        {
+                                            wpnMdl.AnimContainer.CurrentAnimationName =
+                                                wpnMdl.AnimContainer.Animations.Keys.First();
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
 
-                    if (MODEL.ChrAsm.LeftWeaponModel != null)
-                    {
-                        if (MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.Count > 0)
-                        {
-                            if (value == null || MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.ContainsKey(value))
-                            {
-                                MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName = value;
-                            }
-                            else
-                            {
-                                MODEL.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName =
-                                    MODEL.ChrAsm.LeftWeaponModel.AnimContainer.Animations.Keys.FirstOrDefault() ??
-                                    (GameDataManager.GameTypeHasLongAnimIDs ? "a000_000000" : "a00_0000");
-                            }
-                        }
-                    }
+                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel0);
+                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel1);
+                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel2);
+                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel3);
+
+                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel0);
+                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel1);
+                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel2);
+                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel3);
+
+
+                   
                 }
 
                 if (value == null)
                 {
                     // If current anim name set to null, remove all active animation layers, 
                     // reset all cached animations to time of 0, and stop playback.
-                    foreach (var cachedAnimName in AnimationCache.Keys)
-                        AnimationCache[cachedAnimName].Reset();
+                    lock (_lock_animCache)
+                    {
+                        foreach (var cachedAnimName in AnimationCache.Keys)
+                            AnimationCache[cachedAnimName].Reset();
+                    }
+                    
                     lock (_lock_AnimationLayers)
                     {
                         AnimationLayers.Clear();
@@ -139,16 +177,28 @@ namespace DSAnimStudio
                         try
                         {
                             NewHavokAnimation anim = null;
+                            NewHavokAnimation cachedAnim = null;
 
-                            if (AnimationCache.ContainsKey(value))
+                            lock (_lock_animCache)
                             {
-                                anim = NewHavokAnimation.Clone(AnimationCache[value]);
+                                if (AnimationCache.ContainsKey(value))
+                                {
+                                    cachedAnim = AnimationCache[value];
+                                }
+                            }
+
+                            if (cachedAnim != null)
+                            {
+                                anim = NewHavokAnimation.Clone(cachedAnim);
                             }
                             else
                             {
                                 anim = LoadAnimHKX(animHKXsToLoad[value], value);
-                                if (anim != null)
-                                    AnimationCache.Add(value, anim);
+                                lock (_lock_animCache)
+                                {
+                                    if (anim != null)
+                                        AnimationCache.Add(value, anim);
+                                }
                             }
 
                             lock (_lock_AnimationLayers)
@@ -183,13 +233,19 @@ namespace DSAnimStudio
                         }
                         catch
                         {
-                            animHKXsToLoad.Remove(value);
+                            lock (_lock_animDict)
+                            {
+                                animHKXsToLoad.Remove(value);
+                            }
                         }
                     }
                     else
                     {
-                        foreach (var cachedAnimName in AnimationCache.Keys)
-                            AnimationCache[cachedAnimName].Reset();
+                        lock (_lock_animCache)
+                        {
+                            foreach (var cachedAnimName in AnimationCache.Keys)
+                                AnimationCache[cachedAnimName].Reset();
+                        }
 
                         lock (_lock_AnimationLayers)
                         {
@@ -209,7 +265,12 @@ namespace DSAnimStudio
         {
             get
             {
-                return AnimationLayers.LastOrDefault();
+                NewHavokAnimation result = null;
+                lock (_lock_AnimationLayers)
+                {
+                    result = AnimationLayers.LastOrDefault();
+                }
+                return result;
             }
         }
 
@@ -229,6 +290,14 @@ namespace DSAnimStudio
         public void ResetRootMotion()
         {
             currentRootMotionVec = Vector4.Zero;
+            MODEL.ChrAsm?.RightWeaponModel0?.AnimContainer?.ResetRootMotion();
+            MODEL.ChrAsm?.RightWeaponModel1?.AnimContainer?.ResetRootMotion();
+            MODEL.ChrAsm?.RightWeaponModel2?.AnimContainer?.ResetRootMotion();
+            MODEL.ChrAsm?.RightWeaponModel3?.AnimContainer?.ResetRootMotion();
+            MODEL.ChrAsm?.LeftWeaponModel0?.AnimContainer?.ResetRootMotion();
+            MODEL.ChrAsm?.LeftWeaponModel1?.AnimContainer?.ResetRootMotion();
+            MODEL.ChrAsm?.LeftWeaponModel2?.AnimContainer?.ResetRootMotion();
+            MODEL.ChrAsm?.LeftWeaponModel3?.AnimContainer?.ResetRootMotion();
         }
 
         public void ResetAll()
@@ -240,7 +309,15 @@ namespace DSAnimStudio
                     anim.Reset();
                 }
             }
-            
+
+            MODEL.ChrAsm?.RightWeaponModel0?.AnimContainer?.ResetAll();
+            MODEL.ChrAsm?.RightWeaponModel1?.AnimContainer?.ResetAll();
+            MODEL.ChrAsm?.RightWeaponModel2?.AnimContainer?.ResetAll();
+            MODEL.ChrAsm?.RightWeaponModel3?.AnimContainer?.ResetAll();
+            MODEL.ChrAsm?.LeftWeaponModel0?.AnimContainer?.ResetAll();
+            MODEL.ChrAsm?.LeftWeaponModel1?.AnimContainer?.ResetAll();
+            MODEL.ChrAsm?.LeftWeaponModel2?.AnimContainer?.ResetAll();
+            MODEL.ChrAsm?.LeftWeaponModel3?.AnimContainer?.ResetAll();
         }
 
         private void OnScrubUpdateAnimLayersRootMotion()
@@ -281,25 +358,30 @@ namespace DSAnimStudio
                     return new Vector4(rotated.X, rotated.Y, rotated.Z, v.W);
                 }
 
-                if (AnimationLayers.Count == 1)
+                lock (_lock_AnimationLayers)
                 {
-                    var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
+                    if (AnimationLayers.Count == 1)
+                    {
+                        var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
 
-                    var deltaMatrix = Matrix.CreateTranslation(new Vector3(a.X, a.Y, a.Z));
-                    MODEL.CurrentRootMotionTranslation *= deltaMatrix;
-                    MODEL.CurrentDirection += a.W;
+                        var deltaMatrix = Matrix.CreateTranslation(new Vector3(a.X, a.Y, a.Z));
+                        MODEL.CurrentRootMotionTranslation *= deltaMatrix;
+                        MODEL.CurrentDirection += a.W;
+                    }
+                    else if (AnimationLayers.Count == 2)
+                    {
+                        var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
+                        var b = RotateDeltaToCurrentDirectionMat(AnimationLayers[1].RootMotionDeltaOfLastScrub, AnimationLayers[1].RotMatrixAtStartOfAnim);
+
+                        var blended = Vector4.Lerp(a, b, AnimationLayers[1].Weight);
+
+                        var deltaMatrix = Matrix.CreateTranslation(new Vector3(blended.X, blended.Y, blended.Z));
+                        MODEL.CurrentRootMotionTranslation *= deltaMatrix;
+                        MODEL.CurrentDirection += blended.W;
+                    }
                 }
-                else if (AnimationLayers.Count == 2)
-                {
-                    var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
-                    var b = RotateDeltaToCurrentDirectionMat(AnimationLayers[1].RootMotionDeltaOfLastScrub, AnimationLayers[1].RotMatrixAtStartOfAnim);
 
-                    var blended = Vector4.Lerp(a, b, AnimationLayers[1].Weight);
-
-                    var deltaMatrix = Matrix.CreateTranslation(new Vector3(blended.X, blended.Y, blended.Z));
-                    MODEL.CurrentRootMotionTranslation *= deltaMatrix;
-                    MODEL.CurrentDirection += blended.W;
-                }
+                
 
                 //// If our animations don't even add up to a total weight of 1, weigh them
                 //// alongside the default value for the remaining weight
@@ -386,42 +468,51 @@ namespace DSAnimStudio
                 //        MODEL.Skeleton.SetHkxBoneMatrix(t, transA[t].GetMatrix().ToXna());
                 //}
 
-                void WalkTree(int i, Matrix currentMatrix, Vector3 currentScale)
+                void WalkTree(int i, Matrix currentMatrix, Matrix scaleMatrix)
                 {
                     if (AnimationLayers.Count == 2)
                     {
                         var parentTransformation = currentMatrix;
+                        var parentScaleMatrix = scaleMatrix;
 
                         currentMatrix = AnimationLayers[1].IsAdditiveBlend ? transB[i].GetMatrix().ToXna() :
                             NewBlendableTransform.Lerp(transA[i], transB[i], AnimationLayers[1].Weight).GetMatrix().ToXna();
 
+                        scaleMatrix = AnimationLayers[1].IsAdditiveBlend ? transB[i].GetMatrixScale().ToXna() :
+                            NewBlendableTransform.Lerp(transA[i], transB[i], AnimationLayers[1].Weight).GetMatrixScale().ToXna();
+
                         if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
                             currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
 
                         currentMatrix *= parentTransformation;
+                        scaleMatrix *= parentScaleMatrix;
                     }
                     else if (AnimationLayers.Count == 1)
                     {
                         var parentTransformation = currentMatrix;
+                        var parentScaleMatrix = scaleMatrix;
 
                         currentMatrix = transA[i].GetMatrix().ToXna();
+
+                        scaleMatrix = transA[i].GetMatrixScale().ToXna();
 
                         if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
                             currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
 
                         currentMatrix *= parentTransformation;
+                        scaleMatrix *= parentScaleMatrix;
                     }
 
-                    MODEL.Skeleton.SetHkxBoneMatrix(i, currentMatrix);
+                    MODEL.Skeleton.SetHkxBoneMatrix(i, scaleMatrix * currentMatrix);
 
                     foreach (var c in MODEL.Skeleton.HkxSkeleton[i].ChildIndices)
-                        WalkTree(c, currentMatrix, currentScale);
+                        WalkTree(c, currentMatrix, scaleMatrix);
                 }
 
                 if (AnimationLayers.Count > 0)
                 {
                     foreach (var root in MODEL.Skeleton.RootBoneIndices)
-                        WalkTree(root, Matrix.Identity, Vector3.One);
+                        WalkTree(root, Matrix.Identity, Matrix.Identity);
                 }
 
 
@@ -429,8 +520,6 @@ namespace DSAnimStudio
                 if (timeDelta != 0)
                     OnScrubUpdateAnimLayersRootMotion();
             }
-
-                
         }
 
         public void Update()
@@ -446,16 +535,19 @@ namespace DSAnimStudio
         private NewHavokAnimation LoadAnimHKX(byte[] hkxBytes, string name)
         {
             var hkxVariation = GameDataManager.GetCurrentLegacyHKXType();
-            var hkx = HKX.Read(hkxBytes, hkxVariation);
+            var hkx = HKX.Read(hkxBytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == GameDataManager.GameTypes.DS1R || GameDataManager.GameType == GameDataManager.GameTypes.SDT));
             return LoadAnimHKX(hkx, name);
         }
 
         private void AddAnimHKXFetch(string name, byte[] hkx)
         {
-            if (!animHKXsToLoad.ContainsKey(name))
-                animHKXsToLoad.Add(name, hkx);
-            else
-                animHKXsToLoad[name] = hkx;
+            lock (_lock_animDict)
+            {
+                if (!animHKXsToLoad.ContainsKey(name))
+                    animHKXsToLoad.Add(name, hkx);
+                else
+                    animHKXsToLoad[name] = hkx;
+            }
         }
 
         private NewHavokAnimation LoadAnimHKX(HKX hkx, string name)
@@ -557,10 +649,12 @@ namespace DSAnimStudio
 
                 if (CurrentAnimationName == null && animHKXsToLoad.Count > 0)
                 {
+                    string firstAnim = null;
                     lock (_lock_animDict)
                     {
-                        CurrentAnimationName = animHKXsToLoad.Keys.First();
+                        firstAnim = animHKXsToLoad.Keys.First();
                     }
+                    CurrentAnimationName = firstAnim;
 
                     ScrubRelative(0);
                 }
@@ -595,7 +689,7 @@ namespace DSAnimStudio
                         || shortName == "skeleton_2.hkx"
                         || shortName == "skeleton_3.hkx")
                     {
-                        skeletonHKX = HKX.Read(f.Bytes, hkxVariation);
+                        skeletonHKX = HKX.Read(f.Bytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == GameDataManager.GameTypes.DS1R));
                     }
                     else if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
                     {

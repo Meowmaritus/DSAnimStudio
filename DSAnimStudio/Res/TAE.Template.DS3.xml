@@ -217,6 +217,9 @@
         <entry value="1" name="1: Right Weapon One-Handed"/>
         <entry value="2" name="2: Left Weapon Two-Handed"/>
         <entry value="3" name="3: Right Weapon Two-Handed"/>
+        <entry value="4" name="4: One-Hand (Left Weapon Transformed)"/>
+        <entry value="5" name="5: One-Hand (Right Weapon Transformed)"/>
+        <entry value="6" name="6: Unknown"/>
       </s32>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -925,7 +928,7 @@
     <event id="307" name="InvokePCBehavior">
       <u16 name="Condition0x64_GetWeaponData"/>
       <u16 name="Offset"/>
-      <s32 name="Condition"/>
+      <s32 name="PCBehaviorType"/>
       <s32 name="BehaviorJudgeID"/>
       <s32 assert="0"/>
     </event>
@@ -1239,98 +1242,98 @@
       <b name="Mask32"/>
     </event>
     <!-- Function At 0x1409A78B0 : 0x140E349E0 -->
-    <event id="712" name="InvokeWeaponSheathFlags">
-      <u8 name="WepAbsorpPosCondition1"/>
-      <s8 name="SheathIndex1" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+    <event id="712" name="OverrideWeaponModelLocations">
+      <u8 name="RHModel0AbsorpPosParamCondition"/>
+      <s8 name="RHModel0ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H R WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="WepAbsorpPosCondition2"/>
-      <s8 name="SheathIndex2" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+      <u8 name="RHModel1AbsorpPosParamCondition"/>
+      <s8 name="RHModel1ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H R WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="WepAbsorpPosCondition3"/>
-      <s8 name="SheathIndex3" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+      <u8 name="RHModel2AbsorpPosParamCondition"/>
+      <s8 name="RHModel2ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H R WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="WepAbsorpPosCondition4"/>
-      <s8 name="SheathIndex4" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+      <u8 name="RHModel3AbsorpPosParamCondition"/>
+      <s8 name="RHModel3ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H R WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="WepAbsorpPosCondition_NULL1" default="0"/>
-      <s8 name="SheathIndex5" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+      <u8 name="LHModel0AbsorpPosParamCondition" default="0"/>
+      <s8 name="LHModel0ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H L WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="WepAbsorpPosCondition_NULL2" default="0"/>
-      <s8 name="SheathIndex6" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+      <u8 name="LHModel1AbsorpPosParamCondition" default="0"/>
+      <s8 name="LHModel1ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H L WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="WepAbsorpPosCondition_NULL3" default="0"/>
-      <s8 name="SheathIndex7" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+      <u8 name="LHModel2AbsorpPosParamCondition" default="0"/>
+      <s8 name="LHModel2ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H L WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="WepAbsorpPosCondition_NULL4" default="0"/>
-      <s8 name="SheathIndex8" default="-1">
-        <entry value="0"   name="0: OneHand_Left"/>
-        <entry value="1"   name="1: OneHand_Right"/>
-        <entry value="2"   name="2: BothHand"/>
-        <entry value="3"   name="3: Shealth"/>
-        <entry value="4"   name="4: DontUpdate"/>
-        <entry value="5"   name="5: Friede Scythe"/>
-        <entry value="6"   name="6: Other"/>
-        <entry value="-1"   name="-1: Default"/>
+      <u8 name="LHModel3AbsorpPosParamCondition" default="0"/>
+      <s8 name="LHModel3ChangeType" default="-1">
+        <entry value="-1" name="-1: Move to Default Location"/>
+        <entry value="0" name="0: Move to 1H R WPN Location"/>
+        <entry value="1" name="1: Move to 1H L WPN Location"/>
+        <entry value="2" name="2: Move to 2H L WPN Location"/>
+        <entry value="3" name="3: Move to Sheathed Location"/>
+        <entry value="4" name="4: Maintain Previous Change"/>
+        <entry value="5" name="5: Friede's Scythe Override (hardcoded via weapon ID)"/>
+        <entry value="6" name="6: Unknown"/>
       </s8>
-      <u8 name="IsValid1?"/>
-      <u8 name="IsValid2?"/>
-      <u8 name="IsValid3?"/>
+      <u8 name="IsEnabledWhile1Handing"/>
+      <u8 name="IsEnabledWhile2HandingRightWeapon"/>
+      <u8 name="IsEnabledWhile2HandingLeftWeapon"/>
       <u8 assert="0"/>
       <s32 assert="0"/>
       <s32 assert="0"/>
@@ -1674,9 +1677,59 @@
       <f32/>
       <f32/>
     </event>
+
+     <event id="312">
+      <s32 />
+      <s32 />
+      <s32 />
+      <s32 />
+    </event>
+    
+    <event id="237">
+      <s32 />
+      <s32 />
+      <s32 />
+      <s32 />
+    </event>
   </bank>
   <bank id="2" name="Characters_BB_Unk" basedon="21">
     
+  </bank>
+  
+  <!-- Bank 18: DS3 Objects -->
+  <bank id="18" name="DS3_Objects" basedon="21">
+    <event id="3" name="NULL">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="108" name="InvokeOneShotFFX2_0x140670F90">
+      <s32 name="FFXID"/>
+      <s32 name="DummyPolyID"/>
+      <s32 name="TimerNumber"/>
+      <b name="IsIgnoreDummyPolyAngle"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+      <u8 assert="0"/>
+    </event>
+    <event id="310" name="InvokeObjClothState">
+      <u8 name="MaskStartbit"/>
+      <u8 name="Always0"/>
+      <u16 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+    <event id="400" name="InvokeIsValid">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
+  </bank>
+
+  <bank id="19" name="Objects_SomethingElseIdk" basedon="18">
   </bank>
 </event_template>
 

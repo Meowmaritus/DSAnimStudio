@@ -1,6 +1,8 @@
-﻿using SoulsFormats;
+﻿using Microsoft.Xna.Framework.Input;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,58 +26,88 @@ namespace DSAnimStudio
             if (!forceReload && GameTypeCurrentFmgsAreLoadedFrom == GameDataManager.GameType)
                 return;
 
-            FMG weaponNamesFmg = null;
-            FMG protectorNamesFmg = null;
+            List<FMG> weaponNameFMGs = new List<FMG>();
+            List<FMG> armorNameFMGs = new List<FMG>();
 
-            FMG weaponNamesFmg_dlc1 = null;
-            FMG protectorNamesFmg_dlc1 = null;
+            /*
+                [ptde]
+                weapon 1
+                armor 2
 
-            FMG weaponNamesFmg_dlc2 = null;
-            FMG protectorNamesFmg_dlc2 = null;
+                [ds1r]
+                weapon 1, 30
+                armor 2, 32
+
+                [ds3]
+                weapon 1
+                armor 2
+                weapon_dlc1 18
+                armor_dlc1 19
+                weapon_dlc2 33
+                armor_dlc2 34
+
+                [bb]
+                weapon 1
+                armor 2
+
+                [sdt]
+                weapon 1
+                armor 2
+            */
+
+            void TryToLoadFromMSGBND(string language, string msgbndName, int weaponNamesIdx, int armorNamesIdx)
+            {
+                var msgbndRelativePath = $@"msg\{language}\{msgbndName}";
+                var fullMsgbndPath = GameDataManager.GetInterrootPath(msgbndRelativePath);
+                IBinder msgbnd = null;
+                if (File.Exists(fullMsgbndPath))
+                {
+                    if (BND3.Is(fullMsgbndPath))
+                        msgbnd = BND3.Read(fullMsgbndPath);
+                    else if (BND4.Is(fullMsgbndPath))
+                        msgbnd = BND4.Read(fullMsgbndPath);
+
+                    weaponNameFMGs.Add(FMG.Read(msgbnd.Files.First(x => x.ID == weaponNamesIdx).Bytes));
+                    armorNameFMGs.Add(FMG.Read(msgbnd.Files.First(x => x.ID == armorNamesIdx).Bytes));
+                }
+
+                if (msgbnd == null)
+                {
+                    System.Windows.Forms.MessageBox.Show(
+                        $"Unable to find text file '{msgbndRelativePath}'. Some player equipment may not show names.", 
+                        "Unable to find asset", System.Windows.Forms.MessageBoxButtons.OK, 
+                        System.Windows.Forms.MessageBoxIcon.Warning);
+
+                    return;
+                }
+            }
 
             if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
             {
-                var msgbnd = BND3.Read($@"{GameDataManager.InterrootPath}\msg\ENGLISH\item.msgbnd");
-
-                weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("武器名.fmg")).Bytes);
-                protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("防具名.fmg")).Bytes);
+                TryToLoadFromMSGBND("ENGLISH", "item.msgbnd", 11, 12);
+                TryToLoadFromMSGBND("ENGLISH", "menu.msgbnd", 115, 117); //Patch
             }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
             {
-                var msgbnd = BND3.Read($@"{GameDataManager.InterrootPath}\msg\ENGLISH\item.msgbnd.dcx");
-
-                weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("Weapon_name_.fmg")).Bytes);
-                protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("Armor_name_.fmg")).Bytes);
+                TryToLoadFromMSGBND("ENGLISH", "item.msgbnd.dcx", 11, 12);
+                TryToLoadFromMSGBND("ENGLISH", "item.msgbnd.dcx", 115, 117); //Patch
             }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
-                var msgbnd = BND4.Read($@"{GameDataManager.InterrootPath}\msg\engus\item_dlc2.msgbnd.dcx");
+                TryToLoadFromMSGBND("engus", "item_dlc1.msgbnd.dcx", 11, 12);
+                TryToLoadFromMSGBND("engus", "item_dlc1.msgbnd.dcx", 211, 212); //DLC1
 
-                weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("武器名.fmg")).Bytes);
-                protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("防具名.fmg")).Bytes);
-
-                var weaponNamesFmg_dlc1_entry = msgbnd.Files.LastOrDefault(f => f.Name.EndsWith("武器名_dlc1.fmg"));
-                if (weaponNamesFmg_dlc1_entry != null)
-                    weaponNamesFmg_dlc1 = FMG.Read(weaponNamesFmg_dlc1_entry.Bytes);
-
-                var weaponNamesFmg_dlc2_entry = msgbnd.Files.LastOrDefault(f => f.Name.EndsWith("武器名_dlc2.fmg"));
-                if (weaponNamesFmg_dlc2_entry != null)
-                    weaponNamesFmg_dlc2 = FMG.Read(weaponNamesFmg_dlc2_entry.Bytes);
-
-                var protectorNamesFmg_dlc1_entry = msgbnd.Files.LastOrDefault(f => f.Name.EndsWith("防具名_dlc1.fmg"));
-                if (protectorNamesFmg_dlc1_entry != null)
-                    protectorNamesFmg_dlc1 = FMG.Read(protectorNamesFmg_dlc1_entry.Bytes);
-
-                var protectorNamesFmg_dlc2_entry = msgbnd.Files.LastOrDefault(f => f.Name.EndsWith("防具名_dlc2.fmg"));
-                if (protectorNamesFmg_dlc2_entry != null)
-                    protectorNamesFmg_dlc2 = FMG.Read(protectorNamesFmg_dlc2_entry.Bytes);
+                TryToLoadFromMSGBND("engus", "item_dlc2.msgbnd.dcx", 11, 12);
+                TryToLoadFromMSGBND("engus", "item_dlc2.msgbnd.dcx", 211, 212); //DLC1
+                TryToLoadFromMSGBND("engus", "item_dlc2.msgbnd.dcx", 251, 252); //DLC2
+            }
+            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            {
+                TryToLoadFromMSGBND("engus", "item.msgbnd.dcx", 11, 12);
             }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
             {
-                var msgbnd = BND4.Read($@"{GameDataManager.InterrootPath}\msg\engus\item.msgbnd.dcx");
-
-                weaponNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("武器名.fmg")).Bytes);
-                protectorNamesFmg = FMG.Read(msgbnd.Files.Last(f => f.Name.EndsWith("防具名.fmg")).Bytes);
+                TryToLoadFromMSGBND("engus", "item.msgbnd.dcx", 11, 12);
             }
 
             WeaponNames.Clear();
@@ -86,24 +118,19 @@ namespace DSAnimStudio
                     !ParamManager.EquipParamWeapon.ContainsKey(entry.ID))
                     return;
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 && (entry.ID % 10000) != 0)
-                    return;
-                else if ((entry.ID % 1000) != 0)
-                    return;
-
-                WeaponNames.Add(entry.ID, entry.Text);
+                //if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 && (entry.ID % 10000) != 0)
+                //    return;
+                //else if ((entry.ID % 1000) != 0)
+                //    return;
+                string val = entry.Text + $" <{entry.ID}>";
+                if (WeaponNames.ContainsKey(entry.ID))
+                    WeaponNames[entry.ID] = val;
+                else
+                    WeaponNames.Add(entry.ID, val);
             }
 
-            if (weaponNamesFmg != null)
-                foreach (var entry in weaponNamesFmg.Entries)
-                    DoWeaponEntry(entry);
-
-            if (weaponNamesFmg_dlc1 != null)
-                foreach (var entry in weaponNamesFmg_dlc1.Entries)
-                    DoWeaponEntry(entry);
-
-            if (weaponNamesFmg_dlc2 != null)
-                foreach (var entry in weaponNamesFmg_dlc2.Entries)
+            foreach (var wpnNameFmg in weaponNameFMGs)
+                foreach (var entry in wpnNameFmg.Entries)
                     DoWeaponEntry(entry);
 
             ProtectorNames_HD.Clear();
@@ -115,45 +142,46 @@ namespace DSAnimStudio
             {
                 if (string.IsNullOrWhiteSpace(entry.Text))
                     return;
-                if (entry.ID < 1000000 && GameDataManager.GameType == GameDataManager.GameTypes.DS3)
-                    return;
+                //if (entry.ID < 1000000 && GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                //    return;
                 if (ParamManager.EquipParamProtector.ContainsKey(entry.ID))
                 {
+                    string val = entry.Text + $" <{entry.ID}>";
                     var protectorParam = ParamManager.EquipParamProtector[entry.ID];
                     if (protectorParam.HeadEquip)
-                        ProtectorNames_HD.Add(entry.ID, entry.Text);
+                    {
+                        if (ProtectorNames_HD.ContainsKey(entry.ID))
+                            ProtectorNames_HD[entry.ID] = val;
+                        else
+                            ProtectorNames_HD.Add(entry.ID, val);
+                    }
                     else if (protectorParam.BodyEquip)
-                        ProtectorNames_BD.Add(entry.ID, entry.Text);
+                    {
+                        if (ProtectorNames_BD.ContainsKey(entry.ID))
+                            ProtectorNames_BD[entry.ID] = val;
+                        else
+                            ProtectorNames_BD.Add(entry.ID, entry.Text + $" <{entry.ID}>");
+                    }
                     else if (protectorParam.ArmEquip)
-                        ProtectorNames_AM.Add(entry.ID, entry.Text);
+                    {
+                        if (ProtectorNames_AM.ContainsKey(entry.ID))
+                            ProtectorNames_AM[entry.ID] = val;
+                        else
+                            ProtectorNames_AM.Add(entry.ID, entry.Text + $" <{entry.ID}>");
+                    }
                     else if (protectorParam.LegEquip)
-                        ProtectorNames_LG.Add(entry.ID, entry.Text);
+                    {
+                        if (ProtectorNames_LG.ContainsKey(entry.ID))
+                            ProtectorNames_LG[entry.ID] = val;
+                        else
+                            ProtectorNames_LG.Add(entry.ID, entry.Text + $" <{entry.ID}>");
+                    }
                 }
             }
 
-            if (protectorNamesFmg != null)
-            {
-                foreach (var entry in protectorNamesFmg.Entries)
-                {
+            foreach (var armorNameFmg in armorNameFMGs)
+                foreach (var entry in armorNameFmg.Entries)
                     DoProtectorParamEntry(entry);
-                }
-            }
-
-            if (protectorNamesFmg_dlc1 != null)
-            {
-                foreach (var entry in protectorNamesFmg_dlc1.Entries)
-                {
-                    DoProtectorParamEntry(entry);
-                }
-            }
-
-            if (protectorNamesFmg_dlc2 != null)
-            {
-                foreach (var entry in protectorNamesFmg_dlc2.Entries)
-                {
-                    DoProtectorParamEntry(entry);
-                }
-            }
 
             WeaponNames = WeaponNames.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             ProtectorNames_HD = ProtectorNames_HD.OrderBy(x => x.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -165,19 +193,19 @@ namespace DSAnimStudio
             {
                 if (protector.Value.HeadEquip && !ProtectorNames_HD.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_HD.Add((int)protector.Key, $"<Head {protector.Key}>");
+                    ProtectorNames_HD.Add((int)protector.Key, $"<{protector.Key}>");
                 }
                 else if (protector.Value.BodyEquip && !ProtectorNames_BD.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_BD.Add((int)protector.Key, $"<Body {protector.Key}>");
+                    ProtectorNames_BD.Add((int)protector.Key, $"<{protector.Key}>");
                 }
                 else if (protector.Value.ArmEquip && !ProtectorNames_AM.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_AM.Add((int)protector.Key, $"<Arms {protector.Key}>");
+                    ProtectorNames_AM.Add((int)protector.Key, $"<{protector.Key}>");
                 }
                 else if (protector.Value.LegEquip && !ProtectorNames_LG.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_LG.Add((int)protector.Key, $"<Legs {protector.Key}>");
+                    ProtectorNames_LG.Add((int)protector.Key, $"<{protector.Key}>");
                 }
             }
 
@@ -185,9 +213,15 @@ namespace DSAnimStudio
             {
                 if (!WeaponNames.ContainsKey((int)weapon.Key))
                 {
-                    WeaponNames.Add((int)weapon.Key, $"<Weapon {weapon.Key}>");
+                    WeaponNames.Add((int)weapon.Key, $"<{weapon.Key}>");
                 }
             }
+
+            ProtectorNames_HD = ProtectorNames_HD.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            ProtectorNames_BD = ProtectorNames_BD.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            ProtectorNames_AM = ProtectorNames_AM.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            ProtectorNames_LG = ProtectorNames_LG.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            WeaponNames = WeaponNames.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
             GameTypeCurrentFmgsAreLoadedFrom = GameDataManager.GameType;
         }

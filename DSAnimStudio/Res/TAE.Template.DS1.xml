@@ -47,11 +47,11 @@
         <entry value="46" name="46: Disable Character"/>
         <entry value="49" name="49: Disable Locking Onto Character"/>
         <entry value="50" name="50: Disable Chr Hit"/>
-        <entry value="51" name="51: Some Flag? -Set Upon Character Dying-"/>
+        <entry value="51" name="51: Prevent Fall Animation"/>
         <entry value="53" name="53: ?"/>
         <entry value="54" name="54: Some Flag? -Only Used On Throws And ObjActs?-"/>
         <entry value="55" name="55: Break Lockon"/>
-        <entry value="56" name="56: Set Some Hitbox Flag A?"/>
+        <entry value="56" name="56: Ignore Hitbox Wall Clang"/>
         <entry value="57" name="57: Set Some Hitbox Flag B?"/>
         <entry value="59" name="59: ?"/>
         <entry value="60" name="60: Flag As Throw?"/>
@@ -127,6 +127,9 @@
         <entry value="1" name="1: Right Weapon One-Handed"/>
         <entry value="2" name="2: Left Weapon Two-Handed"/>
         <entry value="3" name="3: Right Weapon Two-Handed"/>
+        <entry value="4" name="4: One-Hand (Left Weapon Transformed)"/>
+        <entry value="5" name="5: One-Hand (Right Weapon Transformed)"/>
+        <entry value="6" name="6: Unknown"/>
       </s32>
     </event>
     <!-- For c0000 -->
@@ -465,7 +468,7 @@
     <event id="307" name="InvokePCBehavior">
       <u16/>
       <u16/>
-      <s32 name="Condition"/>
+      <s32 name="PCBehaviorType"/>
       <s32 name="BehaviorJudgeID"/>
     </event>
     <!-- RTTI : ArrowTurnAnim-->

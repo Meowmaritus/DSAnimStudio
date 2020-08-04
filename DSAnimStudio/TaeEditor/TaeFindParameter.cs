@@ -32,6 +32,32 @@ namespace DSAnimStudio.TaeEditor
                                 : ((GameDataManager.GameTypeHasLongAnimIDs
                                 ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
 
+                            var sb = new StringBuilder();
+
+                            if (ev.Template != null)
+                            {
+                                sb.Append($"{ev.Template.Name}[{ev.Type}](");
+
+                                bool first = true;
+                                foreach (var kvp in ev.Parameters.Template)
+                                {
+                                    if (kvp.Value.ValueToAssert == null)
+                                    {
+                                        if (first)
+                                            first = false;
+                                        else
+                                            sb.Append(", ");
+
+                                        sb.Append(ev.Parameters[kvp.Key].ToString());
+                                    }
+                                }
+                                sb.Append(")");
+                            }
+                            else
+                            {
+                                sb.Append($"[{ev.Type}]({string.Join(" ", ev.GetParameterBytes(false).Select(b => b.ToString("X2")))})");
+                            }
+
                             
 
                             result.Add(new TaeFindResult()
@@ -44,7 +70,7 @@ namespace DSAnimStudio.TaeEditor
                                 EventTypeString = ev.TypeName,
                                 EventRef = ev,
                                 ParameterName = "Event Type Num",
-                                MatchedValue = $"[{ev.Type}]({string.Join(" ", ev.GetParameterBytes(false).Select(b => b.ToString("X2")))})",
+                                MatchedValue = sb.ToString(),
                             });
                         }
                     }
@@ -74,7 +100,7 @@ namespace DSAnimStudio.TaeEditor
                                 : ((GameDataManager.GameTypeHasLongAnimIDs
                                 ? (anim.ID / 1_000000) : (anim.ID / 1_0000)));
 
-                            var sb = new StringBuilder($"{ev.Template.Name}(");
+                            var sb = new StringBuilder($"{ev.Template.Name}[{ev.Type}](");
                             bool first = true;
                             foreach (var kvp in ev.Parameters.Template)
                             {

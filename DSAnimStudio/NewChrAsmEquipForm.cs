@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -26,9 +27,7 @@ namespace DSAnimStudio
         public NewChrAsmEquipForm()
         {
             InitializeComponent();
-
-            comboBoxWPLIndex.SelectedIndex = 0;
-            comboBoxWPRIndex.SelectedIndex = 0;
+            comboBoxWPRIndex.SelectedIndex = 1;
             ApplyCurrentParamsAndFmgs();
 
             menuStrip1.Renderer = new DarkToolStripRenderer();
@@ -81,12 +80,13 @@ namespace DSAnimStudio
             comboBoxLG.SelectedIndex = ParamID_LG.IndexOf(ChrAsm.LegsID);
             comboBoxWPR.SelectedIndex = ParamID_WPR.IndexOf(ChrAsm.RightWeaponID);
             comboBoxWPL.SelectedIndex = ParamID_WPL.IndexOf(ChrAsm.LeftWeaponID);
-            comboBoxWPRIndex.SelectedIndex = ChrAsm.RightWeaponModelIndex;
-            comboBoxWPLIndex.SelectedIndex = ChrAsm.LeftWeaponModelIndex;
+            comboBoxWPRIndex.SelectedIndex = (int)ChrAsm.StartWeaponStyle;
             checkBoxRWeaponFlipBackwards.Checked = ChrAsm.RightWeaponFlipBackwards;
             checkBoxRWeaponFlipSideways.Checked = ChrAsm.RightWeaponFlipSideways;
             checkBoxLWeaponFlipBackwards.Checked = ChrAsm.LeftWeaponFlipBackwards;
             checkBoxLWeaponFlipSideways.Checked = ChrAsm.LeftWeaponFlipSideways;
+
+            checkBoxDbgRHMdlPos.Checked = ChrAsm.DebugRightWeaponModelPositions;
         }
 
         public void WriteGUIToChrAsm()
@@ -97,8 +97,9 @@ namespace DSAnimStudio
             ChrAsm.LegsID = comboBoxLG.SelectedIndex >= 0 ? ParamID_LG[comboBoxLG.SelectedIndex] : -1;
             ChrAsm.RightWeaponID = comboBoxWPR.SelectedIndex >= 0 ? ParamID_WPR[comboBoxWPR.SelectedIndex] : -1;
             ChrAsm.LeftWeaponID = comboBoxWPL.SelectedIndex >= 0 ? ParamID_WPL[comboBoxWPL.SelectedIndex] : -1;
-            ChrAsm.RightWeaponModelIndex = comboBoxWPRIndex.SelectedIndex;
-            ChrAsm.LeftWeaponModelIndex = comboBoxWPLIndex.SelectedIndex;
+            ChrAsm.StartWeaponStyle = (NewChrAsm.WeaponStyleType)comboBoxWPRIndex.SelectedIndex;
+
+            ChrAsm.DebugRightWeaponModelPositions = checkBoxDbgRHMdlPos.Checked;
         }
 
         private void ExportToolStripMenuItem_Click(object sender, EventArgs e)
@@ -215,7 +216,7 @@ namespace DSAnimStudio
             comboBoxLG.Enabled = !isDisabled;
 
             comboBoxWPL.Enabled = !isDisabled;
-            comboBoxWPLIndex.Enabled = !isDisabled;
+            //comboBoxWPLIndex.Enabled = !isDisabled;
             checkBoxLWeaponFlipBackwards.Enabled = !isDisabled;
             checkBoxLWeaponFlipSideways.Enabled = !isDisabled;
 
@@ -230,17 +231,25 @@ namespace DSAnimStudio
 
         private void ButtonApplyChanges_Click(object sender, EventArgs e)
         {
-            WriteGUIToChrAsm();
             SetEverythingDisabled(true);
+
+            Scene.DisableModelDrawing();
+            Scene.DisableModelDrawing2();
+            WriteGUIToChrAsm();
             ChrAsm.UpdateModels(isAsync: true, onCompleteAction: () =>
             {
+                
+                Thread.Sleep(100);
+
+                Scene.EnableModelDrawing();
+                Scene.EnableModelDrawing2();
+
+                // I'm sorry
+                Main.TAE_EDITOR.HardReset();
                 Invoke(new Action(() =>
                 {
                     SetEverythingDisabled(false);
                     Main.WinForm.Activate();
-
-                    // I'm sorry
-                    Main.TAE_EDITOR.HardReset();
                 }));
             });
         }

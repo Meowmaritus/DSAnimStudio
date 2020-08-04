@@ -4,6 +4,7 @@ using SoulsFormats;
 using SFAnimExtensions;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -35,9 +36,10 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeScrollViewer ScrollViewer;
 
-        private int AnimHeight = 25;
+        private int AnimSectionHeaderHeight = 25;
+        private int AnimHeight = 20;
 
-        public List<TaeEditAnimListTaeSection> AnimTaeSections = new List<TaeEditAnimListTaeSection>();
+        public Dictionary<int, TaeEditAnimListTaeSection> AnimTaeSections = new Dictionary<int, TaeEditAnimListTaeSection>();
 
         int StartDrawSection = -1;
         int StartDrawAnim = -1;
@@ -63,9 +65,9 @@ namespace DSAnimStudio.TaeEditor
                 return;
             float verticalOffset = 0;
             float subOffset = 0;
-            foreach (var section in AnimTaeSections)
+            foreach (var section in AnimTaeSections.Values)
             {
-                verticalOffset += AnimHeight; //section header
+                verticalOffset += AnimSectionHeaderHeight; //section header
                 if (section.InfoMap.ContainsKey(anim))
                 {
                     // Un-collapse section where anim is.
@@ -192,7 +194,9 @@ namespace DSAnimStudio.TaeEditor
                     taeSection.InfoMap.Add(anim, info);
                     taeSection.HeightOfAllAnims += AnimHeight;
                 }
-                AnimTaeSections.Add(taeSection);
+                int taeKey = taeSection.SectionName.StartsWith("a") ?
+                        int.Parse(Utils.GetFileNameWithoutAnyExtensions(taeSection.SectionName).Substring(1)) : 0;
+                AnimTaeSections.Add(taeKey, taeSection);
             }
 
             ScrollViewer = new TaeScrollViewer();
@@ -218,14 +222,14 @@ namespace DSAnimStudio.TaeEditor
                         (int)(MainScreen.Input.MousePosition.Y - Rect.Y + ScrollViewer.Scroll.Y));
 
                     float offset = 0;
-                    foreach (var taeSection in AnimTaeSections)
+                    foreach (var taeSection in AnimTaeSections.Values)
                     {
-                        var thisGroupRect = new Rectangle(0, (int)offset, ScrollViewer.Viewport.Width, AnimHeight);
+                        var thisGroupRect = new Rectangle(0, (int)offset, ScrollViewer.Viewport.Width, AnimSectionHeaderHeight);
 
                         if (thisGroupRect.Contains(mouseCheckPoint))
                             taeSection.Collapsed = !taeSection.Collapsed;
 
-                        offset += AnimHeight; //Section Header
+                        offset += AnimSectionHeaderHeight; //Section Header
 
                         if (taeSection.Collapsed)
                             continue;
@@ -265,9 +269,9 @@ namespace DSAnimStudio.TaeEditor
         public void UpdateScrollViewerRect()
         {
             float EntireListHeight = 0;
-            foreach (var section in AnimTaeSections)
+            foreach (var section in AnimTaeSections.Values)
             {
-                EntireListHeight += AnimHeight;
+                EntireListHeight += AnimSectionHeaderHeight;
                 if (!section.Collapsed)
                     EntireListHeight += section.HeightOfAllAnims;
             }
@@ -297,259 +301,262 @@ namespace DSAnimStudio.TaeEditor
             gd.Viewport = new Viewport(ScrollViewer.Viewport);
             {
                 sb.Begin(transformMatrix: ScrollViewer.GetScrollMatrix());
-
-                //sb.Draw(texture: boxTex,
-                //    position: Vector2.Zero,
-                //    sourceRectangle: null,
-                //    color: Color.DarkGray,
-                //    rotation: 0,
-                //    origin: Vector2.Zero,
-                //    scale: new Vector2(Rect.Width, Rect.Height),
-                //    effects: SpriteEffects.None,
-                //    layerDepth: 0
-                //    );
-
-                bool isUsingSavedStart = false;
-                bool hasFoundStart = false;
-                float offset = 0;
-
-                if (StartDrawSectionOffset >= 0 && 
-                    StartDrawSection >= 0 && StartDrawSection < AnimTaeSections.Count && 
-                    StartDrawAnim >= 0 && StartDrawAnim < AnimTaeSections[StartDrawSection].InfoMap.Count &&
-                    StartDrawScroll >= 0)
+                try
                 {
-                    // Commented out because it was buggy and I realized the performance wasn't 
-                    // too bad without this skip drawing system in place
-                    //isUsingSavedStart = true;
-                    //offset = StartDrawSectionOffset;
-                }
-                else
-                {
-                    ClearStartDrawSkip();
-                }
+                    //sb.Draw(texture: boxTex,
+                    //    position: Vector2.Zero,
+                    //    sourceRectangle: null,
+                    //    color: Color.DarkGray,
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: new Vector2(Rect.Width, Rect.Height),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
 
-                for (int taeSectionIndex = (isUsingSavedStart ? StartDrawSection : 0); taeSectionIndex < AnimTaeSections.Count; taeSectionIndex++)
-                {
-                    var sectionOffset = offset;
-                    var taeSection = AnimTaeSections[taeSectionIndex];
-                    var thisGroupRect = new Rectangle(1, (int)offset + 1, ScrollViewer.Viewport.Width - 2, AnimHeight - 2);
-                    int border = BorderThickness;
-                    sb.Draw(boxTex, thisGroupRect, Color.White);
-                    sb.Draw(boxTex, 
-                        new Rectangle(
-                            thisGroupRect.X + border, 
-                            thisGroupRect.Y + border, 
-                            thisGroupRect.Width - border * 2, 
-                            thisGroupRect.Height - border * 2), 
-                        Color.Gray);
-                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset) + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))) + Vector2.One
-                         + Main.GlobalTaeEditorFontOffset, Color.Black);
-                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset) + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))) + (Vector2.One * 2)
-                         + Main.GlobalTaeEditorFontOffset, Color.Black);
-                    sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimHeight, (int)(offset) + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))
-                         + Main.GlobalTaeEditorFontOffset, Color.White);
+                    bool isUsingSavedStart = false;
+                    bool hasFoundStart = false;
+                    float offset = 0;
 
+                    //if (StartDrawSectionOffset >= 0 && 
+                    //    StartDrawSection >= 0 && StartDrawSection < AnimTaeSections.Count && 
+                    //    StartDrawAnim >= 0 && StartDrawAnim < AnimTaeSections[StartDrawSection].InfoMap.Count &&
+                    //    StartDrawScroll >= 0)
+                    //{
+                    //    // Commented out because it was buggy and I realized the performance wasn't 
+                    //    // too bad without this skip drawing system in place
+                    //    //isUsingSavedStart = true;
+                    //    //offset = StartDrawSectionOffset;
+                    //}
+                    //else
+                    //{
+                    //    ClearStartDrawSkip();
+                    //}
 
-                    Rectangle sectionCollapseButton = new Rectangle(
-                            (int)(AnimHeight / 4f),
-                            (int)(offset + AnimHeight / 4f),
-                            (int)(AnimHeight / 2f),
-                            (int)(AnimHeight / 2f));
+                    var taeSectionValueList = AnimTaeSections.Values.ToList();
 
-                    sb.Draw(texture: boxTex,
-                            position: new Vector2(sectionCollapseButton.X, sectionCollapseButton.Y),
-                            sourceRectangle: null,
-                            color: Color.White,
-                            rotation: 0,
-                            origin: Vector2.Zero,
-                            scale: new Vector2(sectionCollapseButton.Width, sectionCollapseButton.Height),
-                            effects: SpriteEffects.None,
-                            layerDepth: 0.01f
-                            );
-
-                    var collapseStr = taeSection.Collapsed ? "＋" : "－";
-
-                    var collapseStrScale = font.MeasureString(collapseStr);
-
-                    Vector2 collapseStrPoint =
-                        new Vector2(AnimHeight / 2, offset + AnimHeight / 2 + 1)
-                        - (collapseStrScale / 2);
-
-                    collapseStrPoint = new Vector2((int)collapseStrPoint.X, (int)collapseStrPoint.Y);
-
-                    sb.DrawString(font, collapseStr, collapseStrPoint + Main.GlobalTaeEditorFontOffset, Color.Black);
-
-                    offset += AnimHeight; //Section Header
-
-                    if (taeSection.Collapsed)
-                        continue;
-
-                    float animsInSectionStartOffset = offset;
-
-                    //if (isUsingSavedStart && taeSectionIndex == StartDrawSection)
-                    //    offset += animsInSectionStartOffset;
-
-                    for (int animIndex = 0; animIndex < taeSection.Tae.Animations.Count; animIndex++)
+                    for (int taeSectionIndex = (isUsingSavedStart ? StartDrawSection : 0); taeSectionIndex < AnimTaeSections.Count; taeSectionIndex++)
                     {
-                        var anim = taeSection.InfoMap[taeSection.Tae.Animations[animIndex]];
+                        var sectionOffset = offset;
+                        var taeSection = taeSectionValueList[taeSectionIndex];
+                        var thisGroupRect = new Rectangle(1, (int)offset + 1, ScrollViewer.Viewport.Width - 2, AnimSectionHeaderHeight - 2);
+                        int border = BorderThickness;
+                        sb.Draw(boxTex, thisGroupRect, Color.White);
+                        sb.Draw(boxTex,
+                            new Rectangle(
+                                thisGroupRect.X + border,
+                                thisGroupRect.Y + border,
+                                thisGroupRect.Width - border * 2,
+                                thisGroupRect.Height - border * 2),
+                            Color.Gray);
+                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimSectionHeaderHeight, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f))) + Vector2.One
+                             + Main.GlobalTaeEditorFontOffset, Color.Black);
+                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimSectionHeaderHeight, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f))) + (Vector2.One * 2)
+                             + Main.GlobalTaeEditorFontOffset, Color.Black);
+                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimSectionHeaderHeight, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f)))
+                             + Main.GlobalTaeEditorFontOffset, Color.White);
 
-                        if (offset + AnimHeight < ScrollViewer.Scroll.Y || offset > ScrollViewer.Scroll.Y + Rect.Height)
+
+                        Rectangle sectionCollapseButton = new Rectangle(
+                                (int)(AnimSectionHeaderHeight / 4f),
+                                (int)(offset + AnimSectionHeaderHeight / 4f),
+                                (int)(AnimSectionHeaderHeight / 2f),
+                                (int)(AnimSectionHeaderHeight / 2f));
+
+                        sb.Draw(texture: boxTex,
+                                position: new Vector2(sectionCollapseButton.X, sectionCollapseButton.Y),
+                                sourceRectangle: null,
+                                color: Color.White,
+                                rotation: 0,
+                                origin: Vector2.Zero,
+                                scale: new Vector2(sectionCollapseButton.Width, sectionCollapseButton.Height),
+                                effects: SpriteEffects.None,
+                                layerDepth: 0.01f
+                                );
+
+                        var collapseStr = taeSection.Collapsed ? "＋" : "－";
+
+                        var collapseStrScale = font.MeasureString(collapseStr);
+
+                        Vector2 collapseStrPoint =
+                            new Vector2(AnimSectionHeaderHeight / 2, offset + AnimSectionHeaderHeight / 2 + 1)
+                            - (collapseStrScale / 2);
+
+                        collapseStrPoint = new Vector2((int)collapseStrPoint.X, (int)collapseStrPoint.Y);
+
+                        sb.DrawString(font, collapseStr, collapseStrPoint + Main.GlobalTaeEditorFontOffset, Color.Black);
+
+                        offset += AnimSectionHeaderHeight; //Section Header
+
+                        if (taeSection.Collapsed)
+                            continue;
+
+                        float animsInSectionStartOffset = offset;
+
+                        //if (isUsingSavedStart && taeSectionIndex == StartDrawSection)
+                        //    offset += animsInSectionStartOffset;
+
+                        for (int animIndex = 0; animIndex < taeSection.Tae.Animations.Count; animIndex++)
                         {
-                            offset += AnimHeight;
-                            if (offset > ScrollViewer.Scroll.Y + Rect.Height)
-                                break;
+                            var anim = taeSection.InfoMap[taeSection.Tae.Animations[animIndex]];
+
+                            if (offset + AnimHeight < ScrollViewer.Scroll.Y || offset > ScrollViewer.Scroll.Y + Rect.Height)
+                            {
+                                offset += AnimHeight;
+                                if (offset > ScrollViewer.Scroll.Y + Rect.Height)
+                                    break;
+                                else
+                                    continue;
+                            }
+
+                            if (!hasFoundStart)
+                            {
+                                StartDrawSection = taeSectionIndex;
+                                StartDrawAnim = animIndex;
+                                StartDrawSectionOffset = sectionOffset;
+                                StartDrawAnimOffsetInSection = offset - animsInSectionStartOffset;
+                                StartDrawScroll = ScrollViewer.Scroll.Y;
+                                hasFoundStart = true;
+                            }
+
+                            string animIDText = "";
+
+                            float animBlendWeight = 1;
+
+                            if (MainScreen.IsCurrentlyLoadingGraph)
+                            {
+                                animIDText = "□" + (anim.Ref.GetIsModified() ? $"{anim.GetName()}*" : anim.GetName());
+                            }
                             else
-                                continue;
-                        }
+                            {
+                                var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Ref);
+                                animIDText = ((animFileName != null && MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName)) ? "■" : "□") +
+                                    (anim.Ref.GetIsModified() ? $"{anim.GetName()}*" : anim.GetName());
+                                animBlendWeight = animFileName != null ? MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName) : -1;
+                            }
 
-                        if (!hasFoundStart)
-                        {
-                            StartDrawSection = taeSectionIndex;
-                            StartDrawAnim = animIndex;
-                            StartDrawSectionOffset = sectionOffset;
-                            StartDrawAnimOffsetInSection = offset - animsInSectionStartOffset;
-                            StartDrawScroll = ScrollViewer.Scroll.Y;
-                            hasFoundStart = true;
-                        }
+                            string animNameText = (anim.Ref.AnimFileName ?? "<null>");
 
-                        string animIDText = "";
+                            if (anim.Ref == MainScreen.SelectedTaeAnim)
+                            {
+                                var thisAnimRect = new Rectangle(
+                                    GroupBraceMarginLeft / 2,
+                                    (int)(animsInSectionStartOffset + anim.VerticalOffset) - 1,
+                                    ScrollViewer.Viewport.Width - (GroupBraceMarginLeft),
+                                    AnimHeight + 1);
 
-                        float animBlendWeight = 1;
+                                sb.Draw(boxTex, thisAnimRect, new Color(200, 200, 200));
 
-                        if (MainScreen.IsCurrentlyLoadingGraph)
-                        {
-                            animIDText = "□" + (anim.Ref.GetIsModified() ? $"{anim.GetName()}*" : anim.GetName());
-                        }
-                        else
-                        {
-                            var animFileName = MainScreen.Graph.ViewportInteractor.GetFinalAnimFileName(taeSection.Tae, anim.Ref);
-                            animIDText = ((animFileName != null && MainScreen.Graph.ViewportInteractor.IsAnimLoaded(animFileName)) ? "■" : "□") +
-                                (anim.Ref.GetIsModified() ? $"{anim.GetName()}*" : anim.GetName());
-                            animBlendWeight = animFileName != null ? MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName) : -1;
-                        }
+                                sb.Draw(boxTex,
+                                    new Rectangle(
+                                        thisAnimRect.X + border,
+                                        thisAnimRect.Y + border,
+                                        thisAnimRect.Width - border * 2,
+                                        thisAnimRect.Height - border * 2),
+                                    Color.DodgerBlue);
+                            }
 
-                        string animNameText = (anim.Ref.AnimFileName ?? "<null>");
+                            Color animNameColor = Color.White;
 
-                        if (anim.Ref == MainScreen.SelectedTaeAnim)
-                        {
-                            var thisAnimRect = new Rectangle(
-                                GroupBraceMarginLeft / 2, 
-                                (int)(animsInSectionStartOffset + anim.VerticalOffset) - 1, 
-                                ScrollViewer.Viewport.Width - (GroupBraceMarginLeft), 
-                                AnimHeight + 1);
+                            if (animBlendWeight >= 0)
+                            {
+                                animNameColor = Color.Lerp(Color.Gray, Color.Yellow, MathHelper.Clamp(animBlendWeight, 0, 1));
+                            }
 
-                            sb.Draw(boxTex, thisAnimRect, new Color(200, 200, 200));
-
-                            sb.Draw(boxTex,
-                                new Rectangle(
-                                    thisAnimRect.X + border,
-                                    thisAnimRect.Y + border,
-                                    thisAnimRect.Width - border * 2,
-                                    thisAnimRect.Height - border * 2),
-                                Color.DodgerBlue);
-                        }
-
-                        Color animNameColor = Color.White;
-
-                        if (animBlendWeight >= 0)
-                        {
-                            animNameColor = Color.Lerp(Color.Gray, Color.Yellow, MathHelper.Clamp(animBlendWeight, 0, 1));
-                        }
-
-                        sb.DrawString(font, animIDText, new Vector2(
+                            sb.DrawString(font, animIDText, new Vector2(
+                                    GroupBraceMarginLeft + 4,
+                                    (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
+                                     + Main.GlobalTaeEditorFontOffset, Color.Black);
+                            sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
-                                (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
-                                 + Main.GlobalTaeEditorFontOffset, Color.Black);
-                        sb.DrawString(font, animIDText, new Vector2(
-                            GroupBraceMarginLeft + 4,
-                            (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
-                             + Main.GlobalTaeEditorFontOffset, animNameColor);
+                                (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
+                                 + Main.GlobalTaeEditorFontOffset, animNameColor);
 
-                        var animNameTextSize = font.MeasureString(animNameText);
+                            var animNameTextSize = font.MeasureString(animNameText);
 
-                        sb.DrawString(font, animNameText, new Vector2(
+                            sb.DrawString(font, animNameText, new Vector2(
+                                    ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
+                                    (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
+                                     + Main.GlobalTaeEditorFontOffset, Color.Black);
+                            sb.DrawString(font, animNameText, new Vector2(
                                 ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                                (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
-                                 + Main.GlobalTaeEditorFontOffset, Color.Black);
-                        sb.DrawString(font, animNameText, new Vector2(
-                            ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                            (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
-                             + Main.GlobalTaeEditorFontOffset, Color.PaleGoldenrod);
+                                (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
+                                 + Main.GlobalTaeEditorFontOffset, Color.PaleGoldenrod);
 
-                        offset += AnimHeight;
+                            offset += AnimHeight;
+                        }
+
+                        //foreach (var group in taeSection.Tae.AnimationGroups)
+                        //{
+                        //    float startHeight = taeSection.InfoMap[group.FirstID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
+                        //    if (startHeight > (ScrollViewer.Scroll.Y + Rect.Height))
+                        //        continue;
+                        //    float endHeight = taeSection.InfoMap[group.LastID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
+                        //    if (endHeight < ScrollViewer.Scroll.Y)
+                        //        continue;
+
+                        //    float startX = GroupBraceMarginLeft / 2f;
+                        //    float endX = GroupBraceMarginLeft;
+
+                        //    if (startHeight == endHeight)
+                        //    {
+                        //        sb.Draw(texture: boxTex,
+                        //        position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
+                        //          + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
+                        //        sourceRectangle: null,
+                        //        color: Color.White,
+                        //        rotation: 0,
+                        //        origin: Vector2.Zero,
+                        //        scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
+                        //        effects: SpriteEffects.None,
+                        //        layerDepth: 0
+                        //        );
+                        //    }
+                        //    else
+                        //    {
+                        //        sb.Draw(texture: boxTex,
+                        //        position: new Vector2((GroupBraceMarginLeft / 2f), startHeight)
+                        //          + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
+                        //        sourceRectangle: null,
+                        //        color: Color.White,
+                        //        rotation: 0,
+                        //        origin: Vector2.Zero,
+                        //        scale: new Vector2(GroupBraceThickness, endHeight - startHeight + GroupBraceThickness),
+                        //        effects: SpriteEffects.None,
+                        //        layerDepth: 0
+                        //        );
+
+                        //        sb.Draw(texture: boxTex,
+                        //            position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
+                        //              + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
+                        //            sourceRectangle: null,
+                        //            color: Color.White,
+                        //            rotation: 0,
+                        //            origin: Vector2.Zero,
+                        //            scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
+                        //            effects: SpriteEffects.None,
+                        //            layerDepth: 0
+                        //            );
+
+                        //        sb.Draw(texture: boxTex,
+                        //            position: new Vector2(GroupBraceMarginLeft / 2f, endHeight)
+                        //              + new Vector2(-GroupBraceThickness / 2f, GroupBraceThickness / 2f),
+                        //            sourceRectangle: null,
+                        //            color: Color.White,
+                        //            rotation: 0,
+                        //            origin: Vector2.Zero,
+                        //            scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
+                        //            effects: SpriteEffects.None,
+                        //            layerDepth: 0
+                        //            );
+                        //    }
+
+
+                        //}
                     }
 
-                    //foreach (var group in taeSection.Tae.AnimationGroups)
-                    //{
-                    //    float startHeight = taeSection.InfoMap[group.FirstID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
-                    //    if (startHeight > (ScrollViewer.Scroll.Y + Rect.Height))
-                    //        continue;
-                    //    float endHeight = taeSection.InfoMap[group.LastID].VerticalOffset + (AnimHeight / 2f) + sectionStartOffset;
-                    //    if (endHeight < ScrollViewer.Scroll.Y)
-                    //        continue;
-
-                    //    float startX = GroupBraceMarginLeft / 2f;
-                    //    float endX = GroupBraceMarginLeft;
-
-                    //    if (startHeight == endHeight)
-                    //    {
-                    //        sb.Draw(texture: boxTex,
-                    //        position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
-                    //          + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
-                    //        sourceRectangle: null,
-                    //        color: Color.White,
-                    //        rotation: 0,
-                    //        origin: Vector2.Zero,
-                    //        scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
-                    //        effects: SpriteEffects.None,
-                    //        layerDepth: 0
-                    //        );
-                    //    }
-                    //    else
-                    //    {
-                    //        sb.Draw(texture: boxTex,
-                    //        position: new Vector2((GroupBraceMarginLeft / 2f), startHeight)
-                    //          + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
-                    //        sourceRectangle: null,
-                    //        color: Color.White,
-                    //        rotation: 0,
-                    //        origin: Vector2.Zero,
-                    //        scale: new Vector2(GroupBraceThickness, endHeight - startHeight + GroupBraceThickness),
-                    //        effects: SpriteEffects.None,
-                    //        layerDepth: 0
-                    //        );
-
-                    //        sb.Draw(texture: boxTex,
-                    //            position: new Vector2(GroupBraceMarginLeft / 2f, startHeight)
-                    //              + new Vector2(-GroupBraceThickness / 2f, -GroupBraceThickness / 2f),
-                    //            sourceRectangle: null,
-                    //            color: Color.White,
-                    //            rotation: 0,
-                    //            origin: Vector2.Zero,
-                    //            scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
-                    //            effects: SpriteEffects.None,
-                    //            layerDepth: 0
-                    //            );
-
-                    //        sb.Draw(texture: boxTex,
-                    //            position: new Vector2(GroupBraceMarginLeft / 2f, endHeight)
-                    //              + new Vector2(-GroupBraceThickness / 2f, GroupBraceThickness / 2f),
-                    //            sourceRectangle: null,
-                    //            color: Color.White,
-                    //            rotation: 0,
-                    //            origin: Vector2.Zero,
-                    //            scale: new Vector2((GroupBraceMarginLeft / 2f) + (GroupBraceThickness / 2f), GroupBraceThickness),
-                    //            effects: SpriteEffects.None,
-                    //            layerDepth: 0
-                    //            );
-                    //    }
-
-
-                    //}
                 }
-                
-
-                sb.End();
+                finally { sb.End(); }
             }
             gd.Viewport = oldViewport;
         }

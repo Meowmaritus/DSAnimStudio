@@ -687,6 +687,31 @@ namespace DSAnimStudio.TaeEditor
                 
         }
 
+        public void CompletelyDestroyItem(string dirPath, string itemName)
+        {
+
+            if (this[dirPath + "\\" + itemName] != null)
+            {
+                ClearItem(dirPath + "\\" + itemName);
+                if (this[dirPath] != null)
+                {
+                    List<ToolStripMenuItem> itemsToDestroy = new List<ToolStripMenuItem>();
+                    foreach (var item in this[dirPath].DropDownItems)
+                    {
+                        if (item is ToolStripMenuItem asToolStripMenuItem)
+                        {
+                            if (asToolStripMenuItem.Text == itemName)
+                                itemsToDestroy.Add(asToolStripMenuItem);
+                        }
+                    }
+                    foreach (var item in itemsToDestroy)
+                    {
+                        this[dirPath].DropDownItems.Remove(item);
+                    }
+                }
+            }
+        }
+
         public void CloseAll()
         {
             foreach (var thing in Menustrip.Items.OfType<ToolStripMenuItem>())

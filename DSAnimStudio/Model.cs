@@ -15,6 +15,10 @@ namespace DSAnimStudio
         public string Name { get; set; } = "Model";
 
         public bool IsVisible { get; set; } = true;
+        public void SetIsVisible(bool isVisible)
+        {
+            IsVisible = isVisible;
+        }
 
         public NewMesh MainMesh;
 
@@ -43,9 +47,19 @@ namespace DSAnimStudio
 
         public Matrix CurrentRootMotionTranslation = Matrix.Identity;
 
+        public void ResetRootMotionTranslation()
+        {
+            CurrentRootMotionTranslation = Matrix.Identity;
+        }
+
         public Matrix CurrentRootMotionRotation => Matrix.CreateRotationY(CurrentDirection);
 
         public float CurrentDirection;
+
+        public void ResetCurrentDirection()
+        {
+            CurrentDirection = 0;
+        }
 
         public Transform CurrentTransform = Transform.Default;
 
@@ -132,37 +146,39 @@ namespace DSAnimStudio
             FLVER2 flver = null;
             foreach (var f in chrbnd.Files)
             {
-                var nameCheck = f.Name.ToLower();
-                if (flver == null && (nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
-                {
-                    if (nameCheck.EndsWith($"_{modelIndex}.flver") || modelIndex == 0)
-                    {
-                        flver = FLVER2.Read(f.Bytes);
-                    }
-                }
-                else if (nameCheck.EndsWith(".tpf") || TPF.Is(f.Bytes))
+                if (TPF.Is(f.Bytes))
                 {
                     tpfsUsed.Add(TPF.Read(f.Bytes));
                 }
+
+                if ((f.ID % 10) != modelIndex)
+                    continue;
+
+                var nameCheck = f.Name.ToLower();
+                if (flver == null && (nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
+                {
+                    //if (nameCheck.EndsWith($"_{modelIndex}.flver") || modelIndex == 0)
+                    flver = FLVER2.Read(f.Bytes);
+                }
                 else if (anibnd == null && nameCheck.EndsWith(".anibnd"))
                 {
-                    if (nameCheck.EndsWith($"_{modelIndex}.anibnd") || modelIndex == 0)
+                    //if (nameCheck.EndsWith($"_{modelIndex}.anibnd") || modelIndex == 0)
+                    if (BND3.Is(f.Bytes))
                     {
-                        if (BND3.Is(f.Bytes))
-                        {
-                            anibnd = BND3.Read(f.Bytes);
-                        }
-                        else
-                        {
-                            anibnd = BND4.Read(f.Bytes);
-                        }
+                        anibnd = BND3.Read(f.Bytes);
+                    }
+                    else
+                    {
+                        anibnd = BND4.Read(f.Bytes);
                     }
                 }
             }
 
             if (flver == null)
             {
-                throw new ArgumentException("No FLVERs found within CHRBND.");
+                //throw new ArgumentException("No FLVERs found within CHRBND.");
+                AnimContainer = null;
+                return;
             }
 
             LoadFLVER2(flver, useSecondUV: false, baseDmyPolyID, ignoreStaticTransforms);
@@ -236,9 +252,9 @@ namespace DSAnimStudio
             }
 
             loadingProgress.Report(3.9 / 4.0);
-            if (possibleLooseTpfFolder != null && Directory.Exists(possibleLooseTpfFolder))
+            if (possibleLooseTpfFolder != null)
             {
-                TexturePool.AddTPFFolder(possibleLooseTpfFolder);
+                TexturePool.AddInterrootTPFFolder(possibleLooseTpfFolder);
                 MainMesh.TextureReloadQueued = true;
             }
 
@@ -329,15 +345,14 @@ namespace DSAnimStudio
 
             if (ChrAsm != null)
             {
-                if (ChrAsm.RightWeaponModel != null)
-                {
-                    ChrAsm.RightWeaponModel.DummyPolyMan.UpdateAllHitPrims();
-                }
-
-                if (ChrAsm.LeftWeaponModel != null)
-                {
-                    ChrAsm.LeftWeaponModel.DummyPolyMan.UpdateAllHitPrims();
-                }
+                ChrAsm.RightWeaponModel0?.DummyPolyMan.UpdateAllHitPrims();
+                ChrAsm.RightWeaponModel1?.DummyPolyMan.UpdateAllHitPrims();
+                ChrAsm.RightWeaponModel2?.DummyPolyMan.UpdateAllHitPrims();
+                ChrAsm.RightWeaponModel3?.DummyPolyMan.UpdateAllHitPrims();
+                ChrAsm.LeftWeaponModel0?.DummyPolyMan.UpdateAllHitPrims();
+                ChrAsm.LeftWeaponModel1?.DummyPolyMan.UpdateAllHitPrims();
+                ChrAsm.LeftWeaponModel2?.DummyPolyMan.UpdateAllHitPrims();
+                ChrAsm.LeftWeaponModel3?.DummyPolyMan.UpdateAllHitPrims();
             }
         }
 
@@ -370,19 +385,23 @@ namespace DSAnimStudio
 
             if (ChrAsm != null)
             {
-                if (ChrAsm.RightWeaponModel != null)
-                {
-                    //ChrAsm.RightWeaponModel.DummyPolyMan.UpdateAllHitPrims();
-                    ChrAsm.RightWeaponModel.DummyPolyMan.DrawAllHitPrims();
-                    ChrAsm.RightWeaponModel.DbgPrimDrawer.DrawPrimitives();
-                }
+                ChrAsm.RightWeaponModel0?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.RightWeaponModel0?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.RightWeaponModel1?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.RightWeaponModel1?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.RightWeaponModel2?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.RightWeaponModel2?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.RightWeaponModel3?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.RightWeaponModel3?.DbgPrimDrawer.DrawPrimitives();
 
-                if (ChrAsm.LeftWeaponModel != null)
-                {
-                    //ChrAsm.LeftWeaponModel.DummyPolyMan.UpdateAllHitPrims();
-                    ChrAsm.LeftWeaponModel.DummyPolyMan.DrawAllHitPrims();
-                    ChrAsm.LeftWeaponModel.DbgPrimDrawer.DrawPrimitives();
-                }
+                ChrAsm.LeftWeaponModel0?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.LeftWeaponModel0?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.LeftWeaponModel1?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.LeftWeaponModel1?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.LeftWeaponModel2?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.LeftWeaponModel2?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.LeftWeaponModel3?.DummyPolyMan.DrawAllHitPrims();
+                ChrAsm.LeftWeaponModel3?.DbgPrimDrawer.DrawPrimitives();
             }
 
             Skeleton.DrawPrimitives();
@@ -396,15 +415,15 @@ namespace DSAnimStudio
 
             if (ChrAsm != null)
             {
-                if (ChrAsm.RightWeaponModel != null)
-                {
-                    ChrAsm.RightWeaponModel.DummyPolyMan.DrawAllHitPrimTexts();
-                }
+                ChrAsm.RightWeaponModel0?.DummyPolyMan.DrawAllHitPrimTexts();
+                ChrAsm.RightWeaponModel1?.DummyPolyMan.DrawAllHitPrimTexts();
+                ChrAsm.RightWeaponModel2?.DummyPolyMan.DrawAllHitPrimTexts();
+                ChrAsm.RightWeaponModel3?.DummyPolyMan.DrawAllHitPrimTexts();
 
-                if (ChrAsm.LeftWeaponModel != null)
-                {
-                    ChrAsm.LeftWeaponModel.DummyPolyMan.DrawAllHitPrimTexts();
-                }
+                ChrAsm.LeftWeaponModel0?.DummyPolyMan.DrawAllHitPrimTexts();
+                ChrAsm.LeftWeaponModel1?.DummyPolyMan.DrawAllHitPrimTexts();
+                ChrAsm.LeftWeaponModel2?.DummyPolyMan.DrawAllHitPrimTexts();
+                ChrAsm.LeftWeaponModel3?.DummyPolyMan.DrawAllHitPrimTexts();
             }
         }
 

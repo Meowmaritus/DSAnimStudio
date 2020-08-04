@@ -84,9 +84,9 @@
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(120, 190);
             this.label1.TabIndex = 7;
-            this.label1.Text = "EnemyAtk\r\nEnemyComboAtk\r\nEnemyMove\r\nEnemyDodge\r\nPlayerRH\r\nPlayerMove\r\nPlayerLH\r\nP" +
-    "layerGuard\r\nPlayerDodge\r\nPlayerEstus\r\nPlayerItem\r\nPlayerWeaponSwitch\r\nThrowEscap" +
-    "e";
+            this.label1.Text = "NoCancel\r\nEnemyAtk\r\nEnemyComboAtk\r\nEnemyMove\r\nEnemyDodge\r\nPlayerRH\r\nPlayerMove\r\nP" +
+    "layerLH\r\nPlayerGuard\r\nPlayerDodge\r\nPlayerEstus\r\nPlayerItem\r\nPlayerWeaponSwitch\r\n" +
+    "ThrowEscape";
             // 
             // label2
             // 

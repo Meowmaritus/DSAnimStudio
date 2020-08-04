@@ -14,6 +14,11 @@ namespace DSAnimStudio.TaeEditor
     {
         public double CurrentTime;
 
+        public void GotoFrame(float frame)
+        {
+            CurrentTime = frame * CurrentSnapInterval;
+        }
+
         public string GetFrameCounterText(bool roundToNearestFrame)
         {
             return "Frame: " + (roundToNearestFrame ?

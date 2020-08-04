@@ -82,7 +82,7 @@
     <Compile Include="DebugPrimitives\DbgPrimWireArrow.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidBladeTrail.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireBladeTrail.cs" />
-    <Compile Include="ErrorHandler.cs" />
+    <Compile Include="ErrorLog.cs" />
     <Compile Include="FlverShadingMode.cs" />
     <Compile Include="FmodManager.cs" />
     <Compile Include="FMOD\fmod.cs" />
@@ -529,13 +529,7 @@
     <Content Include="Res\TAE.Template.DS1.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Res\TAE.Template.DS3.OBJ.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Res\TAE.Template.DS3.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Res\TAE.Template.SDT.OBJ.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TAE.Template.SDT.xml">
