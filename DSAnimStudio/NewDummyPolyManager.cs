@@ -205,26 +205,28 @@ namespace DSAnimStudio
 
                
 
-                if (DmyPolySource == ParamData.AtkParam.DummyPolySource.Body)
-                {
-                    return GetPosFatcat(manager, manager.MODEL.CurrentTransform.WorldMatrix);
-                }
-                else if (DmyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
-                    manager.MODEL.ChrAsm != null &&
-                    manager.MODEL.ChrAsm.RightWeaponModel != null)
-                {
-                    return GetPosFatcat(manager.MODEL.ChrAsm.RightWeaponModel.DummyPolyMan, manager.MODEL.ChrAsm.RightWeaponModel.CurrentTransform.WorldMatrix);
-                }
-                else if (DmyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
-                    manager.MODEL.ChrAsm != null &&
-                    manager.MODEL.ChrAsm.LeftWeaponModel != null)
-                {
-                    return GetPosFatcat(manager.MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan, manager.MODEL.ChrAsm.LeftWeaponModel.CurrentTransform.WorldMatrix);
-                }
-                else
-                {
-                    return new DummyPolyBladePos();
-                }
+                //if (DmyPolySource == ParamData.AtkParam.DummyPolySource.Body)
+                //{
+                //    return GetPosFatcat(manager, manager.MODEL.CurrentTransform.WorldMatrix);
+                //}
+                //else if (DmyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon &&
+                //    manager.MODEL.ChrAsm != null &&
+                //    manager.MODEL.ChrAsm.RightWeaponModel != null)
+                //{
+                //    return GetPosFatcat(manager.MODEL.ChrAsm.RightWeaponModel.DummyPolyMan, manager.MODEL.ChrAsm.RightWeaponModel.CurrentTransform.WorldMatrix);
+                //}
+                //else if (DmyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon &&
+                //    manager.MODEL.ChrAsm != null &&
+                //    manager.MODEL.ChrAsm.LeftWeaponModel != null)
+                //{
+                //    return GetPosFatcat(manager.MODEL.ChrAsm.LeftWeaponModel.DummyPolyMan, manager.MODEL.ChrAsm.LeftWeaponModel.CurrentTransform.WorldMatrix);
+                //}
+                //else
+                //{
+                //    return new DummyPolyBladePos();
+                //}
+
+                return new DummyPolyBladePos();
             }
 
             public void UpdateLive(NewDummyPolyManager manager)
@@ -385,10 +387,17 @@ namespace DSAnimStudio
 
         public class DummyPolyInfo
         {
+            private FLVER.Dummy dummy;
+
+            public bool DummyFollowFlag => dummy.Flag1;
+
             public int ReferenceID = -1;
-            public Matrix ReferenceMatrix = Matrix.Identity;
-            public int FollowBoneIndex = -1;
-            public Matrix CurrentMatrix = Matrix.Identity;
+            private Matrix ReferenceMatrix = Matrix.Identity;
+
+            public int FollowBoneIndex => dummy.AttachBoneIndex;
+
+            public Matrix AttachMatrix = Matrix.Identity;
+            public Matrix CurrentMatrix => ReferenceMatrix * AttachMatrix;
 
             public ParamData.AtkParam ShowAttack = null;
 
@@ -402,17 +411,36 @@ namespace DSAnimStudio
 
             public bool DisableTextDraw = false;
 
+            public void NullRefBoneMatrix()
+            {
+                ReferenceMatrix = Matrix.CreateWorld(
+                    Vector3.Zero,
+                    Vector3.Normalize(new Vector3(dummy.Forward.X, dummy.Forward.Y, dummy.Forward.Z)),
+                    dummy.UseUpwardVector ? Vector3.Normalize(new Vector3(dummy.Upward.X, dummy.Upward.Y, dummy.Upward.Z)) : Vector3.Up)
+                    * Matrix.CreateTranslation(new Vector3(dummy.Position.X, dummy.Position.Y, dummy.Position.Z));
+            }
+
+            public void UpdateRefBoneMatrix(Matrix refBoneMatrix)
+            {
+                ReferenceMatrix = Matrix.CreateWorld(
+                    Vector3.Zero,
+                    Vector3.Normalize(new Vector3(dummy.Forward.X, dummy.Forward.Y, dummy.Forward.Z)),
+                    dummy.UseUpwardVector ? Vector3.Normalize(new Vector3(dummy.Upward.X, dummy.Upward.Y, dummy.Upward.Z)) : Vector3.Up)
+                    * Matrix.CreateTranslation(new Vector3(dummy.Position.X, dummy.Position.Y, dummy.Position.Z))
+                    * refBoneMatrix;
+            }
+
             public DummyPolyInfo(FLVER.Dummy dmy, NewAnimSkeleton skeleton)
             {
+                dummy = dmy;
                 ReferenceID = dmy.ReferenceID;
-                FollowBoneIndex = dmy.AttachBoneIndex;
                 ReferenceMatrix = Matrix.CreateWorld(
                     Vector3.Zero,
                     Vector3.Normalize(new Vector3(dmy.Forward.X, dmy.Forward.Y, dmy.Forward.Z)),
                     dmy.UseUpwardVector ? Vector3.Normalize(new Vector3(dmy.Upward.X, dmy.Upward.Y, dmy.Upward.Z)) : Vector3.Up)
                     * Matrix.CreateTranslation(new Vector3(dmy.Position.X, dmy.Position.Y, dmy.Position.Z))
                     * (dmy.ParentBoneIndex >= 0 ? skeleton.FlverSkeleton[dmy.ParentBoneIndex].ReferenceMatrix : Matrix.Identity);
-                CurrentMatrix = ReferenceMatrix;
+                AttachMatrix = ReferenceMatrix;
 
                 ArrowPrimitive = new DbgPrimWireArrow("DummyPoly Spawns", Transform.Default, Color.White)
                 {
@@ -534,11 +562,14 @@ namespace DSAnimStudio
 
         private Dictionary<int, List<DummyPolyInfo>> _dummyPolyByRefID = new Dictionary<int, List<DummyPolyInfo>>();
         private Dictionary<int, List<DummyPolyInfo>> _dummyPolyByBoneID = new Dictionary<int, List<DummyPolyInfo>>();
+        private Dictionary<int, List<DummyPolyInfo>> _dummyPolyByBoneID_Ref = new Dictionary<int, List<DummyPolyInfo>>();
 
         private Queue<DummyPolyInfo> CurrentSFXSpawnQueueForClearAll = new Queue<DummyPolyInfo>();
         private Queue<DummyPolyInfo> CurrentBulletSpawnQueueForClearAll = new Queue<DummyPolyInfo>();
         private Queue<DummyPolyInfo> CurrentMiscSpawnQueueForClearAll = new Queue<DummyPolyInfo>();
         private Queue<DummyPolyInfo> CurrentShowAttackQueueForClearAll = new Queue<DummyPolyInfo>();
+
+        //public ParamData.AtkParam.DummyPolySource defaultDummyPolySource = ParamData.AtkParam.DummyPolySource.Body;
 
         public void SpawnSFXOnDummyPoly(int sfxID, int dummyPolyID)
         {
@@ -639,73 +670,35 @@ namespace DSAnimStudio
         private Dictionary<ParamData.AtkParam.Hit, List<IDbgPrim>> HitPrims
             = new Dictionary<ParamData.AtkParam.Hit, List<IDbgPrim>>();
 
-        private Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource> HitFilters
-            = new Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource>();
+        //private Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource> HitFilters
+        //    = new Dictionary<ParamData.AtkParam.Hit, ParamData.AtkParam.DummyPolySource>();
 
-        private Dictionary<DummyPolyBladeSFX, ParamData.AtkParam.DummyPolySource> BladeSfxHitFilters
-            = new Dictionary<DummyPolyBladeSFX, ParamData.AtkParam.DummyPolySource>();
+        //private Dictionary<DummyPolyBladeSFX, ParamData.AtkParam.DummyPolySource> BladeSfxHitFilters
+        //    = new Dictionary<DummyPolyBladeSFX, ParamData.AtkParam.DummyPolySource>();
 
         private void UpdateHitPrim(ParamData.AtkParam.Hit hit)
         {
             lock (_lock_everything_monkaS)
             {
-                int dmyPoly1 = hit.DmyPoly1;
-                int dmyPoly2 = hit.DmyPoly2;
-
-                var filter = ParamData.AtkParam.DummyPolySource.Body;
-
-                if (HitFilters.ContainsKey(hit))
-                {
-                    dmyPoly1 = hit.GetFilteredDmyPoly1(HitFilters[hit]);
-                    dmyPoly2 = hit.GetFilteredDmyPoly2(HitFilters[hit]);
-                    filter = HitFilters[hit];
-                }
+                var dmyA = hit.GetDmyPoly1Locations(MODEL, hit.DummyPolySourceSpawnedOn);
+                var dmyB = hit.GetDmyPoly2Locations(MODEL, hit.DummyPolySourceSpawnedOn);
 
                 if (hit.IsCapsule)
                 {
-                    if (DummyPolyByRefID.ContainsKey(dmyPoly1) && DummyPolyByRefID.ContainsKey(dmyPoly2))
-                    {
-                        Vector3 pointA = Vector3.Transform(Vector3.Zero, DummyPolyByRefID[dmyPoly1][0].CurrentMatrix);
-                        Vector3 pointB = Vector3.Transform(Vector3.Zero, DummyPolyByRefID[dmyPoly2][0].CurrentMatrix);
-
-                        ((DbgPrimWireCapsule)HitPrims[hit][0]).UpdateCapsuleEndPoints(pointA, pointB, hit.Radius);
-
-                        
-                    } 
-                    else
-                    {
-                        ((DbgPrimWireCapsule)HitPrims[hit][0]).UpdateCapsuleEndPoints(Vector3.Zero, Vector3.Zero, hit.Radius);
-                    }
+                    ((DbgPrimWireCapsule)HitPrims[hit][0]).UpdateCapsuleEndPoints(Vector3.Transform(Vector3.Zero, dmyA[0]), Vector3.Transform(Vector3.Zero, dmyB[0]), hit.Radius);
                 }
                 else
                 {
-                    if (dmyPoly1 == -1 || hit.Radius == 0)
-                    {
-                        for (int i = 0; i < HitPrims[hit].Count; i++)
-                        {
-                            HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius));
-                        }
-                    }
-                    else if (DummyPolyByRefID.ContainsKey(dmyPoly1))
-                    {
-                        if (DummyPolyByRefID[dmyPoly1].Count != HitPrims[hit].Count)
-                            AddNewHitPrim(hit, filter, false, dontUpdate: true);
+                    if (dmyA.Count > HitPrims[hit].Count)
+                        AddNewHitPrim(hit, dontUpdate: true);
 
-                        for (int i = 0; i < Math.Min(HitPrims[hit].Count, DummyPolyByRefID[dmyPoly1].Count); i++)
-                        {
-                            Matrix m = DummyPolyByRefID[dmyPoly1][i].CurrentMatrix;
-                            Quaternion q = Quaternion.CreateFromRotationMatrix(m);
-                            Matrix rm = Matrix.CreateFromQuaternion(q);
-                            Matrix tm = Matrix.CreateTranslation(Vector3.Transform(Vector3.Zero, m));
-                            HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius) * rm * tm);
-                        }
-                    }
-                    else
+                    for (int i = 0; i < Math.Min(HitPrims[hit].Count, dmyA.Count); i++)
                     {
-                        for (int i = 0; i < HitPrims[hit].Count; i++)
-                        {
-                            HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius));
-                        }
+                        Matrix m = dmyA[i];
+                        Quaternion q = Quaternion.CreateFromRotationMatrix(m);
+                        Matrix rm = Matrix.CreateFromQuaternion(Quaternion.Normalize(q));
+                        Matrix tm = Matrix.CreateTranslation(Vector3.Transform(Vector3.Zero, m));
+                        HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius) * rm * tm);
                     }
                    
                 }
@@ -717,11 +710,19 @@ namespace DSAnimStudio
         {
             lock (_lock_everything_monkaS)
             {
-                if (DummyPolyByBoneID.ContainsKey(-1))
+                if (DummyPolyByBoneID_AttachBone.ContainsKey(-1))
                 {
-                    foreach (var dmy in DummyPolyByBoneID[-1])
+                    foreach (var dmy in DummyPolyByBoneID_AttachBone[-1])
                     {
-                        dmy.CurrentMatrix = dmy.ReferenceMatrix;// * MODEL.CurrentTransform.WorldMatrix;
+                        dmy.AttachMatrix = Matrix.Identity;
+                    }
+                }
+
+                if (DummyPolyByBoneID_ReferenceBone.ContainsKey(-1))
+                {
+                    foreach (var dmy in DummyPolyByBoneID_ReferenceBone[-1])
+                    {
+                        dmy.NullRefBoneMatrix();
                     }
                 }
 
@@ -762,15 +763,10 @@ namespace DSAnimStudio
 
         }
 
-        private void AddNewHitPrim(ParamData.AtkParam.Hit hit, ParamData.AtkParam.DummyPolySource dmyFilter, bool visible = false, bool dontUpdate = false)
+        private void AddNewHitPrim(ParamData.AtkParam.Hit hit, bool visible = false, bool dontUpdate = false)
         {
             if (!HitPrims.ContainsKey(hit))
                 HitPrims.Add(hit, new List<IDbgPrim>());
-
-            if (!HitFilters.ContainsKey(hit))
-                HitFilters.Add(hit, dmyFilter);
-            else
-                HitFilters[hit] = dmyFilter;
 
             if (hit.IsCapsule)
             {
@@ -783,20 +779,26 @@ namespace DSAnimStudio
             }
             else
             {
-                if (DummyPolyByRefID.ContainsKey(hit.DmyPoly1))
+                HitPrims[hit].Add(new DbgPrimWireSphere(new Transform(Matrix.CreateScale(hit.Radius)), Color.White)
                 {
-                    foreach (var dmy in DummyPolyByRefID[hit.DmyPoly1])
-                    {
-                        HitPrims[hit].Add(new DbgPrimWireSphere(new Transform(Matrix.CreateScale(hit.Radius) * 
-                            dmy.ReferenceMatrix), Color.White) 
-                        { 
-                            EnableDraw = visible,
-                            Category = DbgPrimCategory.DummyPolyHelper,
-                            OverrideColor = hit.GetColor(),
-                        });
+                    EnableDraw = visible,
+                    Category = DbgPrimCategory.DummyPolyHelper,
+                    OverrideColor = hit.GetColor(),
+                });
+                //if (DummyPolyByRefID.ContainsKey(hit.DmyPoly1))
+                //{
+                //    foreach (var dmy in DummyPolyByRefID[hit.DmyPoly1])
+                //    {
+                //        HitPrims[hit].Add(new DbgPrimWireSphere(new Transform(Matrix.CreateScale(hit.Radius) * 
+                //            dmy.ReferenceMatrix), Color.White) 
+                //        { 
+                //            EnableDraw = visible,
+                //            Category = DbgPrimCategory.DummyPolyHelper,
+                //            OverrideColor = hit.GetColor(),
+                //        });
 
-                    }
-                }
+                //    }
+                //}
             }
 
             lock (_lock_everything_monkaS)
@@ -809,7 +811,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void SetHitVisibility(ParamData.AtkParam.Hit hit, bool visible, ParamData.AtkParam.DummyPolySource dmyFilter)
+        public void SetHitVisibility(ParamData.AtkParam.Hit hit, bool visible)
         {
             lock (_lock_everything_monkaS)
             {
@@ -820,7 +822,7 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    AddNewHitPrim(hit, dmyFilter, visible);
+                    AddNewHitPrim(hit, visible);
                 }
                 if (visible && !VisibleHitsToHideForHideAll.Contains(hit))
                     VisibleHitsToHideForHideAll.Enqueue(hit);
@@ -832,7 +834,6 @@ namespace DSAnimStudio
             lock (_lock_everything_monkaS)
             {
                 HitPrims.Clear();
-                HitFilters.Clear();
                 VisibleHitsToHideForHideAll.Clear();
             }
 
@@ -845,48 +846,127 @@ namespace DSAnimStudio
             while (VisibleHitsToHideForHideAll.Count > 0)
             {
                 var nextHitToHide = VisibleHitsToHideForHideAll.Dequeue();
-                SetHitVisibility(nextHitToHide, false, ParamData.AtkParam.DummyPolySource.Body);
+                SetHitVisibility(nextHitToHide, false);
             }
         }
 
-        public void SetAttackVisibility(ParamData.AtkParam atk, bool visible, ParamData.AtkParam.DummyPolySource dmyFilter)
+        public void SetAttackVisibility(ParamData.AtkParam atk, bool visible, NewChrAsm asm, int dummyPolyOverride, 
+            ParamData.AtkParam.DummyPolySource defaultDummyPolySource)
         {
-            bool isFirstValidDmyPoly = true;
-            for (int i = 0; i < atk.Hits.Length; i++)
+            if (dummyPolyOverride >= 0)
             {
-                int dmyPoly1 = atk.Hits[i].GetFilteredDmyPoly1(dmyFilter);
-
-                if (dmyPoly1 == -1)
+                var fakeHitRadius = atk.Hits[0].Radius;
+                var fakeHitType = atk.Hits[0].HitType;
+                var fakeHit = new ParamData.AtkParam.Hit()
                 {
-                    continue;
-                }
-
-                if (visible && isFirstValidDmyPoly && dmyPoly1 != -1 && DummyPolyByRefID.ContainsKey(dmyPoly1))
-                {
-                    ShowAttackOnDummyPoly(atk, dmyPoly1);
-                    isFirstValidDmyPoly = false;
-                }
-
-                SetHitVisibility(atk.Hits[i], visible, dmyFilter);
+                    DmyPoly1 = (short)dummyPolyOverride,
+                    DmyPoly2 = -1,
+                    Radius = fakeHitRadius,
+                    HitType = fakeHitType,
+                };
+                ShowAttackOnDummyPoly(atk, dummyPolyOverride);
+                SetHitVisibility(fakeHit, visible);
             }
+            else
+            {
+                bool isFirstValidDmyPoly = true;
+                for (int i = 0; i < atk.Hits.Length; i++)
+                {
+                    int dmyPoly1 = atk.Hits[i].DmyPoly1;
+
+                    if (dmyPoly1 == -1)
+                    {
+                        continue;
+                    }
+
+                    var dmyPolySrcToUse = defaultDummyPolySource;
+
+                    if (atk.HitSourceType == 1)
+                    {
+                        dmyPolySrcToUse = ParamData.AtkParam.DummyPolySource.Body;
+                    }
+
+                    if (visible && isFirstValidDmyPoly && dmyPoly1 != -1)
+                    {
+                        if (asm != null)
+                        {
+                            var dummyPolySrcOfAtk = atk.Hits[i].GetDmyPoly1SpawnPlace(asm, dmyPolySrcToUse);
+                            dummyPolySrcOfAtk.ShowAttackOnDummyPoly(atk, dmyPoly1 % 1000);
+                        }
+                        else
+                        {
+                            ShowAttackOnDummyPoly(atk, dmyPoly1);
+                        }
+
+                        isFirstValidDmyPoly = false;
+                    }
+
+                    var actualHit = atk.Hits[i];
+
+                    actualHit.DummyPolySourceSpawnedOn = dmyPolySrcToUse;
+
+                    SetHitVisibility(actualHit, visible);
+                }
+            }
+
+            
         }
 
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByRefID => _dummyPolyByRefID;
-        public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID => _dummyPolyByBoneID;
+        public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_AttachBone => _dummyPolyByBoneID;
+        public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_ReferenceBone => _dummyPolyByBoneID_Ref;
+
+        public List<Matrix> GetDummyMatricesByID(int id, Matrix modMatrix)
+        {
+            var result = new List<Matrix>();
+
+            if (!_dummyPolyByRefID.ContainsKey(id))
+            {
+                result.Add(modMatrix);
+            }
+            else
+            {
+                foreach (var d in DummyPolyByRefID[id])
+                {
+                    result.Add(d.CurrentMatrix * MODEL.CurrentTransform.WorldMatrix * modMatrix);
+                }
+            }
+
+            return result;
+        }
+
+        public List<Vector3> GetDummyPosByID(int id, Matrix modMatrix)
+        {
+            return GetDummyMatricesByID(id, modMatrix).Select(x => Vector3.Transform(Vector3.Zero, x)).ToList();
+        }
 
         public void UpdateFlverBone(int index, Matrix relativeMatrix)
         {
             lock (_lock_everything_monkaS)
             {
-                if (DummyPolyByBoneID.ContainsKey(index))
+                if (DummyPolyByBoneID_AttachBone.ContainsKey(index))
                 {
-                    foreach (var d in DummyPolyByBoneID[index])
+                    foreach (var d in DummyPolyByBoneID_AttachBone[index])
                     {
-                        d.CurrentMatrix = d.ReferenceMatrix * relativeMatrix;
+                        if (d.DummyFollowFlag)
+                            d.AttachMatrix = relativeMatrix;
+                        else
+                            d.AttachMatrix = Matrix.Identity;
                     }
                 }
-               
-               
+
+                if (DummyPolyByBoneID_ReferenceBone.ContainsKey(index))
+                {
+                    foreach (var d in DummyPolyByBoneID_ReferenceBone[index])
+                    {
+                        if (d.DummyFollowFlag)
+                            d.UpdateRefBoneMatrix(relativeMatrix);
+                        else
+                            d.NullRefBoneMatrix();
+                    }
+                }
+
+
             }
         }
 
@@ -908,6 +988,12 @@ namespace DSAnimStudio
 
                 if (!_dummyPolyByBoneID[dmy.AttachBoneIndex].Contains(di))
                     _dummyPolyByBoneID[dmy.AttachBoneIndex].Add(di);
+
+                if (!_dummyPolyByBoneID_Ref.ContainsKey(dmy.ParentBoneIndex))
+                    _dummyPolyByBoneID_Ref.Add(dmy.ParentBoneIndex, new List<DummyPolyInfo>());
+
+                if (!_dummyPolyByBoneID_Ref[dmy.ParentBoneIndex].Contains(di))
+                    _dummyPolyByBoneID_Ref[dmy.ParentBoneIndex].Add(di);
             }    
         }
 

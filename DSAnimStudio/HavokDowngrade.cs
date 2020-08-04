@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DSAnimStudio
@@ -13,6 +14,9 @@ namespace DSAnimStudio
     {
         private static object _lock_DoingTask = new object();
         private static object _lock_animFinished = new object();
+        private static object _lock_processQueue = new object();
+        private static object _lock_messageBoxSpamPrevent = new object();
+        private static bool _messageBoxSpamCancel = false;
 
         static string TAGTOOLS_DIR => $@"{Main.Directory}\Res\TagTools";
         static string TAGTOOLS_EXE => $@"{TAGTOOLS_DIR}\TagTools.exe";
@@ -22,6 +26,8 @@ namespace DSAnimStudio
         static string pathCompendium => $@"{TEMPDIR}\in.compendium";
 
         const int PARALLEL_CONVERSIONS = 10;
+
+
 
         static void CreateTempIfNeeded()
         {
@@ -40,7 +46,7 @@ namespace DSAnimStudio
             File.WriteAllBytes(pathCompendium, compendium);
         }
 
-        private static void StartDowngradingHKX(string debug_hkxName, byte[] hkx, bool useCompendium, int i, Action<byte[], int> whatToDoWithResult)
+        private static Process GetDowngradeHkxProcess(string debug_hkxName, byte[] hkx, bool useCompendium, int i, Action<Process, byte[], int> whatToDoWithResult)
         {
             // Change from 20150100 to 20160000 fatcat
             //hkx[0x13] = 0x36;
@@ -87,17 +93,46 @@ namespace DSAnimStudio
             int j = i;
             proc.Exited += (o, e) =>
             {
-                var hkxName = copyOfHkxName;
-                var standardOutput = proc.StandardOutput.ReadToEnd();
-                var standardError = proc.StandardError.ReadToEnd();
-                byte[] result = File.ReadAllBytes(pathOut);
-                //Patch "hk_2012.2.0-r1" to "hk_2010.2.0-r1"
-                result[0x2E] = 0x30;
-                whatToDoWithResult.Invoke(result, j);
+                try
+                {
+                    var hkxName = copyOfHkxName;
+                    var standardOutput = proc.StandardOutput.ReadToEnd();
+                    var standardError = proc.StandardError.ReadToEnd();
+                    byte[] result = File.ReadAllBytes(pathOut);
+                    //Patch "hk_2012.2.0-r1" to "hk_2010.2.0-r1"
+                    result[0x2E] = 0x30;
+                    whatToDoWithResult.Invoke(proc, result, j);
+                }
+                catch (FileNotFoundException)
+                {
+                    bool wasSpamCancelled = false;
+                    lock (_lock_messageBoxSpamPrevent)
+                    {
+                        if (_messageBoxSpamCancel)
+                        {
+                            wasSpamCancelled = true;
+                        }
+                        else
+                        {
+                            _messageBoxSpamCancel = true;
+
+                            System.Windows.Forms.MessageBox.Show($"TagTools failed to downgrade '{debug_hkxName}'.\n" +
+                                "If this is DS1R, try copying the file from PTDE and saving it as '<filename>.2010'.\n" +
+                                "If this is an SDT file, I guess you're just out of luck.", "Failed to Downgrade",
+                                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                        }
+                    }
+
+                    if (!wasSpamCancelled)
+                    {
+                        whatToDoWithResult.Invoke(proc, null, j);
+                    }
+                }
             };
             
-            proc.Start();
-            
+            //proc.Start();
+
+            return proc;
         }
 
         //private static byte[] WaitForDowngradeHKXFinishAndRead(Process proc, int i)
@@ -113,6 +148,9 @@ namespace DSAnimStudio
         {
             lock (_lock_DoingTask)
             {
+                lock (_lock_messageBoxSpamPrevent)
+                    _messageBoxSpamCancel = false;
+
                 IBinder anibnd = null;
 
                 if (BND3.Is(anibndPath))
@@ -161,13 +199,36 @@ namespace DSAnimStudio
                         SaveCompendiumToTemp(compendium.Bytes);
                     }
 
+                    bool wasCanceled = false;
+                    List<Process> processQueue = new List<Process>();
+                    List<Process> processDeleteQueue = new List<Process>();
+
                     if (skeleton != null)
                     {
-                        StartDowngradingHKX(skeleton.Name, skeleton.Bytes, compendium != null, -1, (result, i) =>
+                        var skellingtonProc = GetDowngradeHkxProcess(skeleton.Name, skeleton.Bytes, compendium != null, -1, (convertProc, result, i) =>
                         {
-                            skeleton.Bytes = result;
-                            converted_skeleton = true;
+                            lock (_lock_animFinished)
+                            {
+                                if (result == null)
+                                {
+
+                                    wasCanceled = true;
+                                    return;
+                                }
+                                else
+                                {
+                                    skeleton.Bytes = result;
+                                    converted_skeleton = true;
+                                }
+                            }
                         });
+
+                        lock (_lock_processQueue)
+                        {
+                            processQueue.Add(skellingtonProc);
+                        }
+
+                        skellingtonProc.Start();
                     }
 
                     prog.Report(1 / progTotalFileCount);
@@ -202,29 +263,131 @@ namespace DSAnimStudio
 
                     int numAnimsConverted = 0;
 
-                    int processCount = 0;
-
                     int meme = animations.Count;
 
                     for (int i = 0; i < meme; i++)
                     {
-                        processCount++;
+                        bool checkCancelled = false;
+                        lock (_lock_processQueue)
+                            checkCancelled = wasCanceled;
+                        if (checkCancelled)
+                            return;
 
-                        StartDowngradingHKX(animations[i].Name, animations[i].Bytes, compendium != null, i, (result, j) =>
+                        var nextProc = GetDowngradeHkxProcess(animations[i].Name, animations[i].Bytes, compendium != null, i, (convertProc, result, j) =>
                         {
                             lock (_lock_animFinished)
                             {
-                                animations[j].Bytes = result;
-                                converted_anim[j] = true;
-                                numAnimsConverted++;
-                                prog.Report(((numAnimsConverted) + 2) / progTotalFileCount);
-                                processCount--;
+                                if (result == null)
+                                {
+                                    lock (_lock_processQueue)
+                                    {
+                                        wasCanceled = true;
+
+                                        foreach (var proc in processDeleteQueue)
+                                        {
+                                            if (!proc.HasExited)
+                                                proc.Kill();
+
+                                            if (processQueue.Contains(proc))
+                                                processQueue.Remove(proc);
+
+                                            proc.Dispose();
+                                        }
+                                        processDeleteQueue.Clear();
+
+                                        foreach (var proc in processQueue)
+                                        {
+                                            if (!proc.HasExited)
+                                                proc.Kill();
+
+                                            proc.Dispose();
+                                        }
+
+                                        
+
+                                        processQueue.Clear();
+
+                                        for (int k = 0; k < meme; k++)
+                                        {
+                                            animations[k].Bytes = null;
+                                            converted_anim[k] = false;
+                                        }
+                                        numAnimsConverted = meme;
+                                    }
+                                }
+                                else
+                                {
+                                    animations[j].Bytes = result;
+                                    converted_anim[j] = true;
+                                    numAnimsConverted++;
+                                    prog.Report(((numAnimsConverted) + 2) / progTotalFileCount);
+
+                                    lock (_lock_processQueue)
+                                    {
+                                        processDeleteQueue.Add(convertProc);
+                                    }
+                                }
+
+                                
                             }
-                            
+
+
+
                         });
 
-                        while (processCount > PARALLEL_CONVERSIONS)
-                            System.Threading.Thread.Sleep(1000);
+                        lock(_lock_processQueue)
+                        {
+                            processQueue.Add(nextProc);
+                        }
+
+                        nextProc.Start();
+
+                        int processCount = PARALLEL_CONVERSIONS + 1;
+
+                        do
+                        {
+                            Thread.Sleep(100);
+                            lock (_lock_processQueue)
+                            {
+                                foreach (var proc in processDeleteQueue)
+                                {
+                                    try
+                                    {
+                                        if (!proc.HasExited)
+                                            proc.Kill();
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+
+                                    }
+
+                                    if (processQueue.Contains(proc))
+                                        processQueue.Remove(proc);
+
+                                    proc.Dispose();
+                                }
+                                processDeleteQueue.Clear();
+
+                                foreach (var proc in processQueue)
+                                {
+                                    try
+                                    {
+                                        if (proc.HasExited)
+                                            processDeleteQueue.Add(proc);
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+                                        processDeleteQueue.Add(proc);
+                                    }
+
+                                    
+                                }
+
+                                processCount = processQueue.Count;
+                            }
+                        }
+                        while (processCount > PARALLEL_CONVERSIONS);
+
                     }
 
                     bool everythingFinished = false;
@@ -247,9 +410,9 @@ namespace DSAnimStudio
                         //    }
                         //}
 
-                        System.Threading.Thread.Sleep(1000);
+                        System.Threading.Thread.Sleep(20);
                     }
-                    while (!everythingFinished);
+                    while (!(everythingFinished || wasCanceled));
 
                     if (File.Exists(anibndPath + ".2010"))
                         File.Delete(anibndPath + ".2010");

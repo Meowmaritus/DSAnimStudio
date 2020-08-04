@@ -10,6 +10,52 @@ namespace DSAnimStudio
 {
     public static class Scene
     {
+        private static bool DO_NOT_DRAW = false;
+        private static bool DO_NOT_DRAW2 = false;
+        private static object _lock_DO_NOT_DRAW = new object();
+
+        public static bool CheckIfDrawing()
+        {
+            var doNotDraw = false;
+            lock (_lock_DO_NOT_DRAW)
+            {
+                doNotDraw = DO_NOT_DRAW || DO_NOT_DRAW2;
+            }
+            return !doNotDraw;
+        }
+
+        public static void DisableModelDrawing()
+        {
+            lock (_lock_DO_NOT_DRAW)
+            {
+                DO_NOT_DRAW = true;
+            }
+        }
+
+        public static void EnableModelDrawing()
+        {
+            lock (_lock_DO_NOT_DRAW)
+            {
+                DO_NOT_DRAW = false;
+            }
+        }
+
+        public static void DisableModelDrawing2()
+        {
+            lock (_lock_DO_NOT_DRAW)
+            {
+                DO_NOT_DRAW2 = true;
+            }
+        }
+
+        public static void EnableModelDrawing2()
+        {
+            lock (_lock_DO_NOT_DRAW)
+            {
+                DO_NOT_DRAW2 = false;
+            }
+        }
+
         private const float LINEUP_PADDING = 0.5f;
 
         private static bool IsTextureLoadRequested = false;
@@ -62,6 +108,9 @@ namespace DSAnimStudio
 
         public static void UpdateAnimation()
         {
+            if (!CheckIfDrawing())
+                return;
+
             lock (_lock_ModelLoad_Draw)
             {
                 foreach (var mdl in Models)
@@ -74,6 +123,9 @@ namespace DSAnimStudio
         public static void Draw()
         {
             if (DbgMenus.DbgMenuItem.MenuOpenState == DbgMenus.DbgMenuOpenState.Open && DbgMenus.DbgMenuItem.IsPauseRendering)
+                return;
+
+            if (!CheckIfDrawing())
                 return;
 
             lock (_lock_ModelLoad_Draw)

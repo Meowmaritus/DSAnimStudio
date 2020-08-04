@@ -158,7 +158,7 @@ namespace DSAnimStudio.Havok
 
         private static Dictionary<string, HavokBoneMeme> LoadBonesFromHKX2010(string hkxName)
         {
-            var hkx = HKX.Read(hkxName, HKX.HKXVariation.HKXDS1);
+            var hkx = HKX.Read(hkxName, HKX.HKXVariation.HKXDS1, isDS1RAnimHotfix: false);
 
             var result = new Dictionary<string, HavokBoneMeme>();
 

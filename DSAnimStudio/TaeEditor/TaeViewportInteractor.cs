@@ -301,6 +301,9 @@ namespace DSAnimStudio.TaeEditor
                 GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
                 GFX.World.OrbitCamReset();
 
+                FmodManager.Purge();
+                FmodManager.LoadMainFEVs();
+
                 //throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
             }
             else if (fileName.EndsWith(".partsbnd") || fileName.EndsWith(".partsbnd.dcx"))
@@ -320,74 +323,67 @@ namespace DSAnimStudio.TaeEditor
             {
                 EventSim?.RootMotionWrapForBlades(wrap);
             };
+
+            Scene.EnableModelDrawing();
+            if (!CurrentModel.IS_PLAYER)
+                Scene.EnableModelDrawing2();
         }
 
         private void ChrAsm_EquipmentModelsUpdated(object sender, EventArgs e)
         {
             Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
             {
-                //var thingToKeep = Graph.MainScreen.MenuBar["Player Settings/Show Equip Change Menu"];
-                Graph.MainScreen.MenuBar.ClearItem("Player Settings\\Select Right Weapon Anim");
-                Graph.MainScreen.MenuBar.ClearItem("Player Settings\\Select Left Weapon Anim");
-                //Graph.MainScreen.MenuBar.AddItem("Player Settings", thingToKeep);
-                //Graph.MainScreen.MenuBar.AddSeparator("Player Settings");
-
-                // Right weapon
-                //Graph.MainScreen.MenuBar.ClearItem("Player Settings/Select Right Weapon Anim");
-                var rightAnims = CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.Animations;
-                if (rightAnims != null && rightAnims.Count > 0)
+                void DoWPNAnims(string menuChoiceName, Model wpnMdl)
                 {
-                    var choicesDict = new Dictionary<string, Action>();
-                    foreach (var a in rightAnims.Keys)
+                    Graph.MainScreen.MenuBar.CompletelyDestroyItem("Player Settings", menuChoiceName);
+
+                    if (wpnMdl == null)
+                        return;
+
+                    var anims = wpnMdl.AnimContainer?.Animations;
+                    if (anims != null && anims.Count > 0)
                     {
-                        choicesDict.Add(a, () => CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName = a);
+                        var choicesDict = new Dictionary<string, Action>();
+                        foreach (var a in anims.Keys)
+                        {
+                            choicesDict.Add(a, () => wpnMdl.AnimContainer.CurrentAnimationName = a);
+                        }
+
+                        Graph.MainScreen.MenuBar.AddItem(
+                               "Player Settings",
+                               menuChoiceName,
+                               choicesDict,
+                               () => wpnMdl.AnimContainer.CurrentAnimationName);
                     }
-
-                    Graph.MainScreen.MenuBar.AddItem(
-                           "Player Settings",
-                           "Select Right Weapon Anim",
-                           choicesDict,
-                           () => CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.CurrentAnimationName);
-                }
-                else
-                {
-                    Graph.MainScreen.MenuBar.AddItem("Player Settings\\Select Right Weapon Anim", "Weapon is not animated.");
-                }
-
-                //Left Weapon
-                //Graph.MainScreen.MenuBar.ClearItem("Player Settings/Select Left Weapon Anim");
-                var leftAnims = CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.Animations;
-                if (leftAnims != null && leftAnims.Count > 0)
-                {
-                    var choicesDict = new Dictionary<string, Action>();
-                    foreach (var a in leftAnims.Keys)
+                    else
                     {
-                        choicesDict.Add(a, () => CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName = a);
+                        Graph.MainScreen.MenuBar.AddItem($"Player Settings\\{menuChoiceName}", "Weapon model is not animated.");
                     }
+                }
 
-                    Graph.MainScreen.MenuBar.AddItem(
-                           "Player Settings",
-                           "Select Left Weapon Anim",
-                           choicesDict,
-                           () => CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.CurrentAnimationName);
-                }
-                else
-                {
-                    Graph.MainScreen.MenuBar.AddItem("Player Settings\\Select Left Weapon Anim", "Weapon is not animated.");
-                }
+                DoWPNAnims("Right WPN Model 0 Anim", CurrentModel?.ChrAsm?.RightWeaponModel0);
+                DoWPNAnims("Right WPN Model 1 Anim", CurrentModel?.ChrAsm?.RightWeaponModel1);
+                DoWPNAnims("Right WPN Model 2 Anim", CurrentModel?.ChrAsm?.RightWeaponModel2);
+                DoWPNAnims("Right WPN Model 3 Anim", CurrentModel?.ChrAsm?.RightWeaponModel3);
+
+                DoWPNAnims("Left WPN Model 0 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel0);
+                DoWPNAnims("Left WPN Model 1 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel1);
+                DoWPNAnims("Left WPN Model 2 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel2);
+                DoWPNAnims("Left WPN Model 3 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel3);
+
+                Graph.MainScreen.SelectNewAnimRef(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
             }));
 
             //V2.0: Scrub weapon anims to the current frame.
 
-            if (CurrentModel.ChrAsm.RightWeaponModel != null)
-            {
-                CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            }
-
-            if (CurrentModel.ChrAsm.LeftWeaponModel != null)
-            {
-                CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            }
+            CurrentModel.ChrAsm.RightWeaponModel0?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm.RightWeaponModel1?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm.RightWeaponModel2?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm.RightWeaponModel3?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm.LeftWeaponModel0?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm.LeftWeaponModel1?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm.LeftWeaponModel2?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm.LeftWeaponModel3?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
 
             //V2.0: Update stuff probably
             CurrentModel.AfterAnimUpdate(0);
@@ -397,6 +393,15 @@ namespace DSAnimStudio.TaeEditor
         //{
         //    throw new NotImplementedException();
         //}
+
+        public void CloseEquipForm()
+        {
+            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
+            {
+                EquipForm?.Close();
+                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = false;
+            }));
+        }
 
         public void BringUpEquipForm()
         {
@@ -534,28 +539,70 @@ namespace DSAnimStudio.TaeEditor
 
         public void StartCombo(bool isLoop, TaeComboEntry[] entries)
         {
+            // Do this before setting current combo since inside here, it will check if there's a combo and not reset stuff if there's currently a combo happening.
+            CurrentComboIndex = -1;
+            EventSim.OnNewAnimSelected(Graph.EventBoxes);
+
             CurrentComboLoop = isLoop;
             CurrentCombo = entries;
             CurrentComboIndex = 0;
-            StartCurrentComboEntry();
+            if (CurrentModel.ChrAsm != null)
+            {
+                CurrentModel.ChrAsm.WeaponStyle = CurrentModel.ChrAsm.StartWeaponStyle;
+            }
+
+            StartCurrentComboEntry(true);
             RemoveTransition();
         }
 
-        private void StartCurrentComboEntry()
+        private void StartCurrentComboEntry(bool isFirstTime)
         {
-            if (Graph.MainScreen.GotoAnimID(CurrentCombo[CurrentComboIndex].AnimID, false))
+            if (CurrentCombo[CurrentComboIndex].ComboType == TaeComboMenu.TaeComboAnimType.PlayerRH)
             {
-                // lol idk why 
-                Graph.PlaybackCursor.RestartFromBeginning();
+                EventSim.OverrideHitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.RightWeapon0;
+            }
+            else if (CurrentCombo[CurrentComboIndex].ComboType == TaeComboMenu.TaeComboAnimType.PlayerLH)
+            {
+                EventSim.OverrideHitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.LeftWeapon0;
+            }
+            else
+            {
+                EventSim.OverrideHitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.Body;
+            }
 
-                if (!Graph.PlaybackCursor.IsPlaying)
+            if (CurrentCombo.Length > 1 || CurrentCombo[CurrentComboIndex].StartFrame < 0 || isFirstTime)
+            {
+                if (!Graph.MainScreen.GotoAnimID(CurrentCombo[CurrentComboIndex].AnimID, false))
                 {
-                    Graph.PlaybackCursor.Transport_PlayPause();
+                    CurrentComboIndex = -1;
+                    return;
+                }
+                else
+                {
+                    // lol idk why 
+                    Graph.PlaybackCursor.RestartFromBeginning();
+
+                    if (CurrentCombo[CurrentComboIndex].StartFrame > 0)
+                    {
+                        Graph.PlaybackCursor.GotoFrame(CurrentCombo[CurrentComboIndex].StartFrame);
+                    }
                 }
             }
             else
             {
-                CurrentComboIndex = -1;
+                if (CurrentCombo[CurrentComboIndex].StartFrame >= 0)
+                {
+                    Graph.MainScreen.HardReset();
+                    Graph.PlaybackCursor.GotoFrame(CurrentCombo[CurrentComboIndex].StartFrame);
+                    Graph.PlaybackCursor.UpdateScrubbing();
+                }
+            }
+
+            
+
+            if (!Graph.PlaybackCursor.IsPlaying)
+            {
+                Graph.PlaybackCursor.Transport_PlayPause();
             }
         }
 
@@ -563,19 +610,25 @@ namespace DSAnimStudio.TaeEditor
         public int CurrentComboIndex = -1;
         public bool CurrentComboLoop = false;
 
+        public void CancelCombo()
+        {
+            CurrentComboIndex = -1;
+            EventSim.OverrideHitViewDummyPolySource = null;
+        }
+
         private void GoToNextItemInCombo()
         {
             CurrentComboIndex++;
             if (CurrentComboIndex < CurrentCombo.Length)
             {
-                StartCurrentComboEntry();
+                StartCurrentComboEntry(false);
             }
             else
             {
                 if (CurrentComboLoop)
                 {
                     CurrentComboIndex = 0;
-                    StartCurrentComboEntry();
+                    StartCurrentComboEntry(false);
                 }
                 else
                 {
@@ -598,7 +651,8 @@ namespace DSAnimStudio.TaeEditor
                 if (CurrentComboIndex < CurrentCombo.Length)
                 {
 
-                    if (Graph.PlaybackCursor.CurrentTime >= (Graph.PlaybackCursor.MaxTime - Graph.PlaybackCursor.CurrentSnapInterval))
+                    if (Graph.PlaybackCursor.CurrentTime >= (Graph.PlaybackCursor.MaxTime - Graph.PlaybackCursor.CurrentSnapInterval) ||
+                        (CurrentCombo[CurrentComboIndex].EndFrame >= 0 && Graph.PlaybackCursor.CurrentFrame >= CurrentCombo[CurrentComboIndex].EndFrame))
                     {
                         GoToNextItemInCombo();
                         return;
@@ -657,62 +711,62 @@ namespace DSAnimStudio.TaeEditor
             EventSim.OnSimulationStart(Graph.EventBoxesToSimulate);
         }
 
-        Model lastRightWeaponModelTAEWasReadFrom = null;
-        TAE lastRightWeaponTAE = null;
+        //Model lastRightWeaponModelTAEWasReadFrom = null;
+        //TAE lastRightWeaponTAE = null;
 
-        Model lastLeftWeaponModelTAEWasReadFrom = null;
-        TAE lastLeftWeaponTAE = null;
+        //Model lastLeftWeaponModelTAEWasReadFrom = null;
+        //TAE lastLeftWeaponTAE = null;
 
 
 
         private void CheckChrAsmWeapons()
         {
-            if (CurrentModel.ChrAsm != null)
-            {
-                if (CurrentModel.ChrAsm.RightWeaponModel != null)
-                {
-                    if (CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.TimeActFiles.Count > 0)
-                    {
-                        if (CurrentModel.ChrAsm.RightWeaponModel != lastRightWeaponModelTAEWasReadFrom)
-                        {
-                            lastRightWeaponTAE = TAE.Read(CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.TimeActFiles.First().Value);
-                            lastRightWeaponModelTAEWasReadFrom = CurrentModel.ChrAsm.RightWeaponModel;
-                        }
-                    }
-                    else
-                    {
-                        lastRightWeaponModelTAEWasReadFrom = null;
-                        lastRightWeaponTAE = null;
-                    }
-                }
+            //if (CurrentModel.ChrAsm != null)
+            //{
+            //    if (CurrentModel.ChrAsm.RightWeaponModel != null)
+            //    {
+            //        if (CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.TimeActFiles.Count > 0)
+            //        {
+            //            if (CurrentModel.ChrAsm.RightWeaponModel != lastRightWeaponModelTAEWasReadFrom)
+            //            {
+            //                lastRightWeaponTAE = TAE.Read(CurrentModel.ChrAsm.RightWeaponModel.AnimContainer.TimeActFiles.First().Value);
+            //                lastRightWeaponModelTAEWasReadFrom = CurrentModel.ChrAsm.RightWeaponModel;
+            //            }
+            //        }
+            //        else
+            //        {
+            //            lastRightWeaponModelTAEWasReadFrom = null;
+            //            lastRightWeaponTAE = null;
+            //        }
+            //    }
 
-                if (CurrentModel.ChrAsm.LeftWeaponModel != null)
-                {
-                    if (CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.TimeActFiles.Count > 0)
-                    {
-                        if (CurrentModel.ChrAsm.LeftWeaponModel != lastLeftWeaponModelTAEWasReadFrom)
-                        {
-                            lastLeftWeaponTAE = TAE.Read(CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.TimeActFiles.First().Value);
-                            lastLeftWeaponModelTAEWasReadFrom = CurrentModel.ChrAsm.LeftWeaponModel;
-                        }
-                    }
-                    else
-                    {
-                        lastLeftWeaponModelTAEWasReadFrom = null;
-                        lastLeftWeaponTAE = null;
-                    }
-                }
+            //    if (CurrentModel.ChrAsm.LeftWeaponModel != null)
+            //    {
+            //        if (CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.TimeActFiles.Count > 0)
+            //        {
+            //            if (CurrentModel.ChrAsm.LeftWeaponModel != lastLeftWeaponModelTAEWasReadFrom)
+            //            {
+            //                lastLeftWeaponTAE = TAE.Read(CurrentModel.ChrAsm.LeftWeaponModel.AnimContainer.TimeActFiles.First().Value);
+            //                lastLeftWeaponModelTAEWasReadFrom = CurrentModel.ChrAsm.LeftWeaponModel;
+            //            }
+            //        }
+            //        else
+            //        {
+            //            lastLeftWeaponModelTAEWasReadFrom = null;
+            //            lastLeftWeaponTAE = null;
+            //        }
+            //    }
                     
 
                
-            }
-            else
-            {
-                lastRightWeaponModelTAEWasReadFrom = null;
-                lastLeftWeaponModelTAEWasReadFrom = null;
-                lastRightWeaponTAE = null;
-                lastLeftWeaponTAE = null;
-            }
+            //}
+            //else
+            //{
+            //    lastRightWeaponModelTAEWasReadFrom = null;
+            //    lastLeftWeaponModelTAEWasReadFrom = null;
+            //    lastRightWeaponTAE = null;
+            //    lastLeftWeaponTAE = null;
+            //}
         }
 
         //private void FindWeaponAnim(TaeAnimRefChainSolver solver, Model weaponModel, TAE weaponTae)
@@ -814,6 +868,16 @@ namespace DSAnimStudio.TaeEditor
                 //CurrentModel.AnimContainer.ResetRootMotion();
                 CurrentModel.CurrentRootMotionTranslation = Matrix.Identity;
                 //CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
+
+                CurrentModel.ChrAsm?.RightWeaponModel0?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel1?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel2?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel3?.ResetRootMotionTranslation();
+
+                CurrentModel.ChrAsm?.LeftWeaponModel0?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel1?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel2?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel3?.ResetRootMotionTranslation();
             }
         }
 
@@ -1058,30 +1122,50 @@ namespace DSAnimStudio.TaeEditor
             {
                 printer.AppendLine();
                 
-                
+                void DoWpnAnim(string wpnKind, Model wpnMdl)
+                {
+                    printer.AppendLine($"{wpnKind} Animation: {(wpnMdl?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
+                }
+
+                DoWpnAnim("R WPN MDL 0", CurrentModel?.ChrAsm?.RightWeaponModel0);
+                DoWpnAnim("R WPN MDL 1", CurrentModel?.ChrAsm?.RightWeaponModel1);
+                DoWpnAnim("R WPN MDL 2", CurrentModel?.ChrAsm?.RightWeaponModel2);
+                DoWpnAnim("R WPN MDL 3", CurrentModel?.ChrAsm?.RightWeaponModel3);
+
+                DoWpnAnim("L WPN MDL 0", CurrentModel?.ChrAsm?.LeftWeaponModel0);
+                DoWpnAnim("L WPN MDL 1", CurrentModel?.ChrAsm?.LeftWeaponModel1);
+                DoWpnAnim("L WPN MDL 2", CurrentModel?.ChrAsm?.LeftWeaponModel2);
+                DoWpnAnim("L WPN MDL 3", CurrentModel?.ChrAsm?.LeftWeaponModel3);
+
+                printer.AppendLine();
 
                 if (CurrentModel?.ChrAsm?.RightWeapon != null)
                 {
-                    printer.AppendLine($"R Weapon Animation: {(CurrentModel?.ChrAsm?.RightWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
-
                     var atk = CurrentModel.ChrAsm.RightWeapon.WepMotionCategory;
                     var spAtk = CurrentModel.ChrAsm.RightWeapon.SpAtkCategory;
 
-                    printer.AppendLine($"R Weapon Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+                    printer.AppendLine($"R WPN Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
                 }
-
-                printer.AppendLine();
-                
+                else
+                {
+                    printer.AppendLine($"R WPN Moveset(s): NONE");
+                }
 
                 if (CurrentModel?.ChrAsm?.LeftWeapon != null)
                 {
-                    printer.AppendLine($"L Weapon Animation: {(CurrentModel?.ChrAsm?.LeftWeaponModel?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
-
                     var atk = CurrentModel.ChrAsm.LeftWeapon.WepMotionCategory;
                     var spAtk = CurrentModel.ChrAsm.LeftWeapon.SpAtkCategory;
 
-                    printer.AppendLine($"L Weapon Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+                    printer.AppendLine($"L WPN Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
                 }
+                else
+                {
+                    printer.AppendLine($"L WPN Moveset(s): NONE");
+                }
+
+                
+
+                
             }
 
             //printer.AppendLine($"RWPN ANIM LIST:");

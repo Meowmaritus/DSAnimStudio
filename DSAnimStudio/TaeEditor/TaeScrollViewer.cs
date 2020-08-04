@@ -326,50 +326,52 @@ namespace DSAnimStudio.TaeEditor
             //gd.Viewport = new Viewport(FullDisplayRect);
             //{
             sb.Begin();
-
-            //var scrollArrowOrigin = font.MeasureString(ScrollArrowStr) / 2;
-
-            if (!DisableHorizontalScroll)
+            try
             {
-                sb.Draw(boxTex, HorizontalBoxValidArea, ColorScrollBackground);
-                sb.Draw(boxTex, HorizontalBox, CurrentScroll == ScrollbarType.Horizontal ?
-                    ColorScrollForegroundActive : ColorScrollForegroundInactive);
 
-                sb.Draw(boxTex, ScrollLeftArrowBox,
-                    ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundActive
-                    : ColorScrollArrowButtonForegroundInactive);
-                sb.Draw(boxTex, ScrollRightArrowBox,
-                    ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundActive
-                    : ColorScrollArrowButtonForegroundInactive);
+                //var scrollArrowOrigin = font.MeasureString(ScrollArrowStr) / 2;
 
-                sb.Draw(arrowTex, new Vector2(ScrollLeftArrowBox.X, ScrollLeftArrowBox.Y) + Vector2.One * 8, null, ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundInactive
-                : ColorScrollArrowButtonForegroundActive, MathHelper.PiOver2 * 3, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                if (!DisableHorizontalScroll)
+                {
+                    sb.Draw(boxTex, HorizontalBoxValidArea, ColorScrollBackground);
+                    sb.Draw(boxTex, HorizontalBox, CurrentScroll == ScrollbarType.Horizontal ?
+                        ColorScrollForegroundActive : ColorScrollForegroundInactive);
 
-                sb.Draw(arrowTex, new Vector2(ScrollRightArrowBox.X, ScrollRightArrowBox.Y) + Vector2.One * 8, null, ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundInactive
-               : ColorScrollArrowButtonForegroundActive, MathHelper.PiOver2 * 1, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                    sb.Draw(boxTex, ScrollLeftArrowBox,
+                        ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundActive
+                        : ColorScrollArrowButtonForegroundInactive);
+                    sb.Draw(boxTex, ScrollRightArrowBox,
+                        ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundActive
+                        : ColorScrollArrowButtonForegroundInactive);
+
+                    sb.Draw(arrowTex, new Vector2(ScrollLeftArrowBox.X, ScrollLeftArrowBox.Y) + Vector2.One * 8, null, ScrollLeftButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                    : ColorScrollArrowButtonForegroundActive, MathHelper.PiOver2 * 3, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+
+                    sb.Draw(arrowTex, new Vector2(ScrollRightArrowBox.X, ScrollRightArrowBox.Y) + Vector2.One * 8, null, ScrollRightButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                   : ColorScrollArrowButtonForegroundActive, MathHelper.PiOver2 * 1, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                }
+
+                if (!DisableVerticalScroll)
+                {
+                    sb.Draw(boxTex, VerticalBoxValidArea, ColorScrollBackground);
+                    sb.Draw(boxTex, VerticalBox, CurrentScroll == ScrollbarType.Vertical ?
+                        ColorScrollForegroundActive : ColorScrollForegroundInactive);
+
+                    sb.Draw(boxTex, ScrollUpArrowBox,
+                        ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundActive
+                        : ColorScrollArrowButtonForegroundInactive);
+                    sb.Draw(boxTex, ScrollDownArrowBox,
+                        ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundActive
+                        : ColorScrollArrowButtonForegroundInactive);
+
+                    sb.Draw(arrowTex, new Vector2(ScrollUpArrowBox.X, ScrollUpArrowBox.Y) + Vector2.One * 8, null, ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                    : ColorScrollArrowButtonForegroundActive, 0, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+
+                    sb.Draw(arrowTex, new Vector2(ScrollDownArrowBox.X, ScrollDownArrowBox.Y) + Vector2.One * 8, null, ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundInactive
+                   : ColorScrollArrowButtonForegroundActive, MathHelper.Pi, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                }
             }
-
-            if (!DisableVerticalScroll)
-            {
-                sb.Draw(boxTex, VerticalBoxValidArea, ColorScrollBackground);
-                sb.Draw(boxTex, VerticalBox, CurrentScroll == ScrollbarType.Vertical ?
-                    ColorScrollForegroundActive : ColorScrollForegroundInactive);
-                
-                sb.Draw(boxTex, ScrollUpArrowBox,
-                    ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundActive
-                    : ColorScrollArrowButtonForegroundInactive);
-                sb.Draw(boxTex, ScrollDownArrowBox,
-                    ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundActive
-                    : ColorScrollArrowButtonForegroundInactive);
-
-                sb.Draw(arrowTex, new Vector2(ScrollUpArrowBox.X, ScrollUpArrowBox.Y) + Vector2.One * 8, null, ScrollUpButtonHeld ? ColorScrollArrowButtonForegroundInactive
-                : ColorScrollArrowButtonForegroundActive, 0, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
-
-                sb.Draw(arrowTex, new Vector2(ScrollDownArrowBox.X, ScrollDownArrowBox.Y) + Vector2.One * 8, null, ScrollDownButtonHeld ? ColorScrollArrowButtonForegroundInactive
-               : ColorScrollArrowButtonForegroundActive, MathHelper.Pi, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
-            }
-
-            sb.End();
+            finally { sb.End(); }
             //}
             //gd.Viewport = oldViewport;
         }

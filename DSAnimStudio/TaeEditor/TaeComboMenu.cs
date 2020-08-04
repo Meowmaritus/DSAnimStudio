@@ -29,6 +29,7 @@ namespace DSAnimStudio.TaeEditor
 
         public enum TaeComboAnimType : int
         {
+            NoCancel = -1,
             PlayerRH = 4,
             PlayerMove = 11,
             PlayerLH = 16,
@@ -65,13 +66,13 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            foreach (var fullLineText in textBoxComboSeq.Lines)
-            {
-                var line = fullLineText.Trim().ToLower();
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
+            var validLineList = textBoxComboSeq.Lines.Select(x => x.Trim().ToLower()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
 
-                var split = line
+            int firstEvent0CancelType = -1;
+
+            for (int i = 0; i < validLineList.Count; i++)
+            {
+                var split = validLineList[i]
                     .Split(' ')
                     .Where(x => !string.IsNullOrWhiteSpace(x))
                     .Select(x => x
@@ -89,6 +90,11 @@ namespace DSAnimStudio.TaeEditor
 
                         if (combo.Count > 0)
                             combo[combo.Count - 1].Event0CancelType = (int)cancelBeforeNext;
+                        else
+                            firstEvent0CancelType = (int)cancelBeforeNext;
+
+                        float startFrame = -1;
+                        float endFrame = -1;
 
                         if (!int.TryParse(split[1].Replace("_", "").Replace("a", ""), out int animID))
                         {
@@ -97,9 +103,45 @@ namespace DSAnimStudio.TaeEditor
                             return;
                         }
 
-                        combo.Add(new TaeComboEntry(cancelBeforeNext, animID, 23));
+                        if (split.Count >= 3)
+                        {
+                            if (!float.TryParse(split[2], out float enteredStartFrame))
+                            {
+                                MessageBox.Show($"\"{split[2]}\" is not a valid starting frame number.",
+                                    "Invalid Start Frame", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                return;
+                            }
+                            else
+                            {
+                                startFrame = enteredStartFrame;
+
+                                if (split.Count >= 4)
+                                {
+                                    if (!float.TryParse(split[3], out float enteredEndFrame))
+                                    {
+                                        MessageBox.Show($"\"{split[3]}\" is not a valid ending frame number.",
+                                            "Invalid End Frame", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        endFrame = enteredEndFrame;
+                                    }
+                                }
+                            }
+
+                        }
+
+                        combo.Add(new TaeComboEntry(cancelBeforeNext, animID, i == validLineList.Count - 1 ? firstEvent0CancelType : -1, startFrame, endFrame));
                     }
                 }
+
+                
+            }
+
+            if (combo.Count > 1)
+            {
+                combo[combo.Count - 1].Event0CancelType = firstEvent0CancelType;
             }
 
             //if (dataGridViewComboEntries.RowCount <= 1)
@@ -170,7 +212,7 @@ namespace DSAnimStudio.TaeEditor
 
             var anims = new List<string>();
 
-            foreach (var taeSection in MainScreen.AnimationListScreen.AnimTaeSections)
+            foreach (var taeSection in MainScreen.AnimationListScreen.AnimTaeSections.Values)
             {
                 foreach (var kvp in taeSection.InfoMap)
                 {
@@ -195,7 +237,7 @@ namespace DSAnimStudio.TaeEditor
         {
             if (MainScreen.Graph.ViewportInteractor.CurrentComboIndex >= 0)
             {
-                MainScreen.Graph.ViewportInteractor.CurrentComboIndex = -1;
+                MainScreen.Graph.ViewportInteractor.CancelCombo();
 
                 MainScreen.GameWindowAsForm.Activate();
             }

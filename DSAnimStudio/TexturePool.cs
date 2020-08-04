@@ -144,9 +144,9 @@ namespace DSAnimStudio
             }
         }
 
-        public static void AddTPFFolder(string folderPath, bool dcx = false, bool directDdsFetches = false)
+        public static void AddInterrootTPFFolder(string folderPath, bool dcx = false, bool directDdsFetches = false)
         {
-            var tpfs = Directory.GetFiles(folderPath, dcx ? "*.tpf.dcx" : "*.tpf");
+            var tpfs = GameDataManager.GetInterrootFiles(folderPath, dcx ? "*.tpf.dcx" : "*.tpf");
             foreach (var t in tpfs)
             {
                 string shortName = Utils.GetShortIngameFileName(t);

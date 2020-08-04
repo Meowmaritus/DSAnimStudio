@@ -97,7 +97,7 @@ namespace DSAnimStudio
 
             CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
 
-            CategoryEnableDraw[DbgPrimCategory.SoundEvent] = true;
+            CategoryEnableDraw[DbgPrimCategory.SoundEvent] = false;
             //CategoryEnableNameDraw[DbgPrimCategory.SoundEvent] = true;
 
             CategoryEnableDraw[DbgPrimCategory.Skybox] = true;

@@ -365,7 +365,7 @@ namespace DSAnimStudio.TaeEditor
                 MainScreen.ButtonGotoEventSource.Visible = false;
                 if (!IsGhostEventGraph)
                 {
-                    if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+                    if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim && asImportOtherAnim.ImportFromAnimID != -1)
                     {
                         var animRef = MainScreen.FileContainer.GetAnimRef(asImportOtherAnim.ImportFromAnimID);
 
@@ -377,7 +377,7 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
                     {
-                        if (asStandard.ImportsEvents)
+                        if (asStandard.ImportsEvents && asStandard.ImportFromAnimID != -1)
                         {
                             var animRef = MainScreen.FileContainer.GetAnimRef(asStandard.ImportFromAnimID);
 
@@ -2599,526 +2599,528 @@ namespace DSAnimStudio.TaeEditor
             gd.Viewport = new Viewport(ScrollViewer.Viewport);
             {
                 sb.Begin(transformMatrix: scrollMatrix);
-
-                // full bg
-                sb.Draw(texture: boxTex,
-                    position: ScrollViewer.Scroll - (Vector2.One * 2),
-                    sourceRectangle: null,
-                    color: new Color(120, 120, 120, 255),
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-                sb.Draw(texture: boxTex,
-                    position: ScrollViewer.Scroll - (Vector2.One * 4),
-                    sourceRectangle: null,
-                    color: new Color(64, 64, 64, 255),
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-                //// timeline - anim duration
-                //sb.Draw(texture: boxTex,
-                //    position: ScrollViewer.Scroll - (Vector2.One * 2),
-                //    sourceRectangle: null,
-                //    color: MainScreen.Config.EnableColorBlindMode ? Color.Aqua : (Color.LightSeaGreen),
-                //    rotation: 0,
-                //    origin: Vector2.Zero,
-                //    scale: new Vector2((float)PlaybackCursor.MaxTime * SecondsPixelSize, TimeLineHeight),
-                //    effects: SpriteEffects.None,
-                //    layerDepth: 0
-                //    );
-
-                DrawFrameSnapLines(boxTex, sb, Color.LightGray * 0.5f);
-
-                bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForFrameNumberText);
-
-                Dictionary<int, float> secondVerticalLineXPositions = new Dictionary<int, float>();
-
-                if (SecondsPixelSize >= 4f)
+                try
                 {
-                    secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
 
-                    foreach (var kvp in secondVerticalLineXPositions)
-                    {
-                        sb.Draw(texture: boxTex,
-                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                    // full bg
+                    sb.Draw(texture: boxTex,
+                        position: ScrollViewer.Scroll - (Vector2.One * 2),
                         sourceRectangle: null,
-                        color: Color.LightGray * 0.75f,
+                        color: new Color(120, 120, 120, 255),
                         rotation: 0,
                         origin: Vector2.Zero,
-                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                        scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
                         effects: SpriteEffects.None,
                         layerDepth: 0
                         );
-                    }
-                }
-
-                if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
-                {
-                    foreach (var kvp in secondVerticalLineXPositions)
-                    {
-                        sb.Draw(texture: boxTex,
-                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
-                        sourceRectangle: null,
-                        color: Color.LightGray * 0.75f,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(1, ScrollViewer.Viewport.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-                    }
-                }
-
-                float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
-                float rightOfScreenX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
-
-
-                // This would draw a little +/- by the mouse cursor to signify that
-                // you're adding/subtracting selection
-                // HOWEVER it was super delayed because of the vsync 
-                // and didn't follow the cursor well and looked weird
-
-                //if (MainScreen.Input.CtrlHeld && !MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld)
-                //{
-                //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
-                //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
-                //}
-                //else if (!MainScreen.Input.CtrlHeld && MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld)
-                //{
-                //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
-                //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
-                //}
-
-                float animStopPixelX = (float)TaePlaybackCursor.LastMaxTimeGreaterThanZero * SecondsPixelSize;
-
-                float darkenedPortionWidth = rightOfScreenX - animStopPixelX;
-
-                if (darkenedPortionWidth > 0)
-                {
-                    // full bg - anim duration
-
-                    float cooldownRatio = 1;// 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
 
                     sb.Draw(texture: boxTex,
-                          position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
-                          sourceRectangle: null,
-                          color: Color.White * cooldownRatio,
-                          rotation: 0,
-                          origin: Vector2.Zero,
-                          scale: new Vector2(2, ScrollViewer.Viewport.Height),
-                          effects: SpriteEffects.None,
-                          layerDepth: 0
-                          );
-                }
-
-                if (GhostEventGraph != null)
-                {
-                    GhostEventGraph.SecondsPixelSize = SecondsPixelSize;
-                    GhostEventGraph.ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
-                    GhostEventGraph.ScrollViewer.Scroll = ScrollViewer.Scroll;
-                    try
-                    {
-                        GhostEventGraph.DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
-                    }
-                    catch
-                    {
-
-                    }
-
-                    // Draw semitransparent overlay.
-                    sb.Draw(texture: boxTex,
-                    position: ScrollViewer.Scroll - (Vector2.One * 2),
-                    sourceRectangle: null,
-                    color: new Color(120, 120, 120, 255) * 0.5f,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-                }
-                else
-                {
-                    try
-                    {
-                        DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
-                    }
-                    catch
-                    {
-
-                    }
-                    
-                }
-
-                var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
-
-                foreach (var kvp in rowHorizontalLineYPositions)
-                {
-                    sb.Draw(texture: boxTex,
-                    position: new Vector2(ScrollViewer.Scroll.X, kvp.Value),
-                    sourceRectangle: null,
-                    color: Color.Black * 0.25f,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, 1),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-                }
-
-                // When you change which box (if any) is hovered, update the simulation and stuff.
-                if (MainScreen.PrevHoveringOverEventBox != MainScreen.HoveringOverEventBox)
-                {
-                    ViewportInteractor.OnScrubFrameChange();
-                    HoverInfoBox.Update(false, 0);
-                }
-
-                HoverInfoBox.Box = MainScreen.HoveringOverEventBox;
-
-                HoverInfoBox.Update(mouseInside: MainScreen.HoveringOverEventBox != null, elapsedSeconds);
-
-                MainScreen.PrevHoveringOverEventBox = MainScreen.HoveringOverEventBox;
-
-
-                //if (MouseRow >= 0)
-                //{
-                //    sb.Draw(texture: boxTex,
-                //            position: new Vector2(ScrollViewer.Scroll.X, TimeLineHeight + MouseRow * RowHeight),
-                //            sourceRectangle: null,
-                //            color: Color.LightGray * 0.25f,
-                //            rotation: 0,
-                //            origin: Vector2.Zero,
-                //            scale: new Vector2(ScrollViewer.Viewport.Width, RowHeight),
-                //            effects: SpriteEffects.None,
-                //            layerDepth: 0.01f
-                //            );
-                //}
-
-                // full timeline
-                sb.Draw(texture: boxTex,
-                    position: ScrollViewer.Scroll - (Vector2.One * 4),
-                    sourceRectangle: null,
-                    color: new Color(75, 75, 75, 255),
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-
-                if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
-                {
-                    foreach (var kvp in secondVerticalLineXPositions)
-                    {
-                        sb.Draw(texture: boxTex,
-                        position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                        position: ScrollViewer.Scroll - (Vector2.One * 4),
                         sourceRectangle: null,
-                        color: Color.LightGray * 0.75f,
+                        color: new Color(64, 64, 64, 255),
                         rotation: 0,
                         origin: Vector2.Zero,
-                        scale: new Vector2(1, TimeLineHeight),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-                    }
-
-                    DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
-                }
-
-                if (SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForHelperLines))
-                {
-                    int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / FramePixelSize_HKX);
-                    int endFrame = (int)Math.Ceiling((ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) / FramePixelSize_HKX);
-
-                    for (int i = startFrame; i <= endFrame; i++)
-                    {
-                        sb.Draw(texture: boxTex,
-                        position: new Vector2(i * FramePixelSize_HKX, ScrollViewer.Scroll.Y),
-                        sourceRectangle: null,
-                        color: Color.Black * 0.125f,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(1, TimeLineHeight),
+                        scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
                         effects: SpriteEffects.None,
                         layerDepth: 0
                         );
 
+                    //// timeline - anim duration
+                    //sb.Draw(texture: boxTex,
+                    //    position: ScrollViewer.Scroll - (Vector2.One * 2),
+                    //    sourceRectangle: null,
+                    //    color: MainScreen.Config.EnableColorBlindMode ? Color.Aqua : (Color.LightSeaGreen),
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: new Vector2((float)PlaybackCursor.MaxTime * SecondsPixelSize, TimeLineHeight),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
+
+                    DrawFrameSnapLines(boxTex, sb, Color.LightGray * 0.5f);
+
+                    bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForFrameNumberText);
+
+                    Dictionary<int, float> secondVerticalLineXPositions = new Dictionary<int, float>();
+
+                    if (SecondsPixelSize >= 4f)
+                    {
+                        secondVerticalLineXPositions = GetSecondVerticalLineXPositions();
+
+                        foreach (var kvp in secondVerticalLineXPositions)
+                        {
+                            sb.Draw(texture: boxTex,
+                            position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                            sourceRectangle: null,
+                            color: Color.LightGray * 0.75f,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+                        }
+                    }
+
+                    if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
+                    {
+                        foreach (var kvp in secondVerticalLineXPositions)
+                        {
+                            sb.Draw(texture: boxTex,
+                            position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                            sourceRectangle: null,
+                            color: Color.LightGray * 0.75f,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(1, ScrollViewer.Viewport.Height),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+                        }
+                    }
+
+                    float centerOfScreenX = (ScrollViewer.Scroll.X + (ScrollViewer.Viewport.Width / 2));
+                    float rightOfScreenX = ScrollViewer.Viewport.Width + ScrollViewer.Scroll.X;
+
+
+                    // This would draw a little +/- by the mouse cursor to signify that
+                    // you're adding/subtracting selection
+                    // HOWEVER it was super delayed because of the vsync 
+                    // and didn't follow the cursor well and looked weird
+
+                    //if (MainScreen.Input.CtrlHeld && !MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld)
+                    //{
+                    //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
+                    //    sb.DrawString(font, "－", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
+                    //}
+                    //else if (!MainScreen.Input.CtrlHeld && MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld)
+                    //{
+                    //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight) + Vector2.One, Color.Black);
+                    //    sb.DrawString(font, "＋", relMouse + new Vector2(12, 12 + TimeLineHeight), Color.White);
+                    //}
+
+                    float animStopPixelX = (float)TaePlaybackCursor.LastMaxTimeGreaterThanZero * SecondsPixelSize;
+
+                    float darkenedPortionWidth = rightOfScreenX - animStopPixelX;
+
+                    if (darkenedPortionWidth > 0)
+                    {
+                        // full bg - anim duration
+
+                        float cooldownRatio = 1;// 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
+
+                        sb.Draw(texture: boxTex,
+                              position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
+                              sourceRectangle: null,
+                              color: Color.White * cooldownRatio,
+                              rotation: 0,
+                              origin: Vector2.Zero,
+                              scale: new Vector2(2, ScrollViewer.Viewport.Height),
+                              effects: SpriteEffects.None,
+                              layerDepth: 0
+                              );
+                    }
+
+                    if (GhostEventGraph != null)
+                    {
+                        GhostEventGraph.SecondsPixelSize = SecondsPixelSize;
+                        GhostEventGraph.ScrollViewer.SetDisplayRect(Rect, GetVirtualAreaSize());
+                        GhostEventGraph.ScrollViewer.Scroll = ScrollViewer.Scroll;
                         try
                         {
-                            if (PlaybackCursor.SnapInterval > 0)
-                            {
-                                if (((i % PlaybackCursor.SnapInterval) != 0) && zoomedEnoughForFrameNumbers)
-                                {
-                                    sb.DrawString(smallFont, i.ToString(), 
-                                        new Vector2(i * FramePixelSize_HKX + 2, 
-                                        (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Color.White);
-                                }
-                            }
-                            
+                            GhostEventGraph.DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
                         }
                         catch
                         {
-                            // todo: see why this was needed lol?
+
                         }
-                        
+
+                        // Draw semitransparent overlay.
+                        sb.Draw(texture: boxTex,
+                        position: ScrollViewer.Scroll - (Vector2.One * 2),
+                        sourceRectangle: null,
+                        color: new Color(120, 120, 120, 255) * 0.5f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+                    else
+                    {
+                        try
+                        {
+                            DrawAllEventBoxes(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
+                        }
+                        catch
+                        {
+
+                        }
+
+                    }
+
+                    var rowHorizontalLineYPositions = GetRowHorizontalLineYPositions();
+
+                    foreach (var kvp in rowHorizontalLineYPositions)
+                    {
+                        sb.Draw(texture: boxTex,
+                        position: new Vector2(ScrollViewer.Scroll.X, kvp.Value),
+                        sourceRectangle: null,
+                        color: Color.Black * 0.25f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(ScrollViewer.Viewport.Width, 1),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+                    }
+
+                    // When you change which box (if any) is hovered, update the simulation and stuff.
+                    if (MainScreen.PrevHoveringOverEventBox != MainScreen.HoveringOverEventBox)
+                    {
+                        ViewportInteractor.OnScrubFrameChange();
+                        HoverInfoBox.Update(false, 0);
+                    }
+
+                    HoverInfoBox.Box = MainScreen.HoveringOverEventBox;
+
+                    HoverInfoBox.Update(mouseInside: MainScreen.HoveringOverEventBox != null, elapsedSeconds);
+
+                    MainScreen.PrevHoveringOverEventBox = MainScreen.HoveringOverEventBox;
+
+
+                    //if (MouseRow >= 0)
+                    //{
+                    //    sb.Draw(texture: boxTex,
+                    //            position: new Vector2(ScrollViewer.Scroll.X, TimeLineHeight + MouseRow * RowHeight),
+                    //            sourceRectangle: null,
+                    //            color: Color.LightGray * 0.25f,
+                    //            rotation: 0,
+                    //            origin: Vector2.Zero,
+                    //            scale: new Vector2(ScrollViewer.Viewport.Width, RowHeight),
+                    //            effects: SpriteEffects.None,
+                    //            layerDepth: 0.01f
+                    //            );
+                    //}
+
+                    // full timeline
+                    sb.Draw(texture: boxTex,
+                        position: ScrollViewer.Scroll - (Vector2.One * 4),
+                        sourceRectangle: null,
+                        color: new Color(75, 75, 75, 255),
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+
+                    if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
+                    {
+                        foreach (var kvp in secondVerticalLineXPositions)
+                        {
+                            sb.Draw(texture: boxTex,
+                            position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
+                            sourceRectangle: null,
+                            color: Color.LightGray * 0.75f,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(1, TimeLineHeight),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+                        }
+
+                        DrawTimeLine(gd, sb, boxTex, font, secondVerticalLineXPositions);
+                    }
+
+                    if (SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForHelperLines))
+                    {
+                        int startFrame = (int)Math.Floor(ScrollViewer.Scroll.X / FramePixelSize_HKX);
+                        int endFrame = (int)Math.Ceiling((ScrollViewer.Scroll.X + ScrollViewer.Viewport.Width) / FramePixelSize_HKX);
+
+                        for (int i = startFrame; i <= endFrame; i++)
+                        {
+                            sb.Draw(texture: boxTex,
+                            position: new Vector2(i * FramePixelSize_HKX, ScrollViewer.Scroll.Y),
+                            sourceRectangle: null,
+                            color: Color.Black * 0.125f,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(1, TimeLineHeight),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+
+                            try
+                            {
+                                if (PlaybackCursor.SnapInterval > 0)
+                                {
+                                    if (((i % PlaybackCursor.SnapInterval) != 0) && zoomedEnoughForFrameNumbers)
+                                    {
+                                        sb.DrawString(smallFont, i.ToString(),
+                                            new Vector2(i * FramePixelSize_HKX + 2,
+                                            (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Color.White);
+                                    }
+                                }
+
+                            }
+                            catch
+                            {
+                                // todo: see why this was needed lol?
+                            }
+
+                        }
+                    }
+
+                    //if (IsBoxDragging)
+                    //{
+                    //    DrawFrameSnapLines(boxTex, sb, Color.Cyan * 0.65f);
+                    //}
+
+
+
+
+
+
+
+                    if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
+                        || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
+                        || currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
+                    {
+                        var multiSelectRect = currentDrag.GetVirtualDragRect();
+
+                        // FILL RECT:
+                        sb.Draw(texture: boxTex,
+                            position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
+                            sourceRectangle: null,
+                            color: MultiSelectRectFillColor,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(multiSelectRect.Width, multiSelectRect.Height),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0.01f
+                            );
+
+                        // THICK OUTLINE:
+
+                        //-- LEFT Side
+                        sb.Draw(texture: boxTex,
+                            position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
+                            sourceRectangle: null,
+                            color: MultiSelectRectOutlineColor,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(MultiSelectRectOutlineThickness, multiSelectRect.Height),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+
+                        //-- TOP Side
+                        sb.Draw(texture: boxTex,
+                            position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
+                            sourceRectangle: null,
+                            color: MultiSelectRectOutlineColor,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(multiSelectRect.Width, MultiSelectRectOutlineThickness),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+
+                        //-- RIGHT Side
+                        sb.Draw(texture: boxTex,
+                            position: new Vector2(multiSelectRect.Right - MultiSelectRectOutlineThickness, multiSelectRect.Top + TimeLineHeight),
+                            sourceRectangle: null,
+                            color: MultiSelectRectOutlineColor,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(MultiSelectRectOutlineThickness, multiSelectRect.Height),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+
+                        //-- BOTTOM Side
+                        sb.Draw(texture: boxTex,
+                            position: new Vector2(multiSelectRect.Left, multiSelectRect.Bottom + TimeLineHeight - MultiSelectRectOutlineThickness),
+                            sourceRectangle: null,
+                            color: MultiSelectRectOutlineColor,
+                            rotation: 0,
+                            origin: Vector2.Zero,
+                            scale: new Vector2(multiSelectRect.Width, MultiSelectRectOutlineThickness),
+                            effects: SpriteEffects.None,
+                            layerDepth: 0
+                            );
+                    }
+
+                    // Draw PlaybackCursor StartTime vertical line
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2((float)Math.Round(((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2))), ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: Color.Blue,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(PlaybackCursorThickness, Rect.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+
+
+                    //var hitWindowStartX = (float)(SecondsPixelSize * PlaybackCursor.HitWindowStart);
+                    //var hitWindowEndX = (float)(SecondsPixelSize * PlaybackCursor.HitWindowEnd);
+
+                    //// Draw Hit Window Rect Under Cursor
+                    //sb.Draw(texture: boxTex,
+                    //    position: new Vector2((float)Math.Round(hitWindowStartX), ScrollViewer.Scroll.Y),
+                    //    sourceRectangle: null,
+                    //    color: PlaybackCursorHitWindowColor,
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: new Vector2(Math.Max(hitWindowEndX - hitWindowStartX, 0), Rect.Height),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
+
+                    //// Draw Hit Window Line
+                    //sb.Draw(texture: boxTex,
+                    //    position: new Vector2((hitWindowStartX + hitWindowEndX) / 2, ScrollViewer.Scroll.Y),
+                    //    sourceRectangle: null,
+                    //    color: PlaybackCursorHitWindowStartColor,
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: new Vector2(1, Rect.Height),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
+
+
+                    // Draw Hit Register Playback Cursor
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2((float)Math.Round(SecondsPixelSize * PlaybackCursor.CurrentTime), ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: PlaybackCursorHitWindowColor,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(1, Rect.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+
+                    var playbackCursorPixelX = (float)Math.Round(SecondsPixelSize * PlaybackCursor.GUICurrentTime);
+
+                    // Draw PlaybackCursor CurrentTime vertical line
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2(playbackCursorPixelX - (PlaybackCursorThickness / 2), ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: PlaybackCursorColor,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(PlaybackCursorThickness, Rect.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+
+
+                    var playbackCursorPixelXMod = (float)Math.Round((SecondsPixelSize * (float)(PlaybackCursor.IsPlaying
+                        ? PlaybackCursor.CurrentTimeMod : PlaybackCursor.GUICurrentTimeMod)));
+
+                    // Draw PlaybackCursor CurrentTimeMod vertical line
+                    sb.Draw(texture: boxTex,
+                        position: new Vector2(playbackCursorPixelXMod - (PlaybackCursorThickness / 2), ScrollViewer.Scroll.Y),
+                        sourceRectangle: null,
+                        color: PlaybackCursorColor * 0.25f,
+                        rotation: 0,
+                        origin: Vector2.Zero,
+                        scale: new Vector2(PlaybackCursorThickness, Rect.Height),
+                        effects: SpriteEffects.None,
+                        layerDepth: 0
+                        );
+
+
+
+                    //var playbackCursorSmoothPixelX = (PlaybackCursor.IsPlaying || PlaybackCursor.Scrubbing) ?
+                    //    (float)(SecondsPixelSize * PlaybackCursor.CurrentTime) : playbackCursorPixelX;
+
+                    //Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
+
+                    //playbackCursorTextSize = new Vector2(playbackCursorTextSize.X, TimeLineHeight - 1);
+
+                    // Draw PlaybackCursor CurrentTime BG Rect
+
+                    //sb.Draw(texture: boxTex,
+                    //   position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
+                    //   (float)Math.Round(ScrollViewer.Scroll.Y + 2)),
+                    //   sourceRectangle: null,
+                    //   color: Color.Black,
+                    //   rotation: 0,
+                    //   origin: Vector2.Zero,
+                    //   scale: playbackCursorTextSize + new Vector2(10, -4),
+                    //   effects: SpriteEffects.None,
+                    //   layerDepth: 0
+                    //   );
+
+                    //sb.Draw(texture: boxTex,
+                    //    position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
+                    //    (float)Math.Round(ScrollViewer.Scroll.Y + 2)) + Vector2.One,
+                    //    sourceRectangle: null,
+                    //    color: new Color(64, 64, 64, 255),
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: playbackCursorTextSize + new Vector2(10,-4) - (Vector2.One * 2),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
+
+                    //Vector2 playbackCursorTextPos = new Vector2(
+                    //    playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 6, 
+                    //    (float)Math.Round(ScrollViewer.Scroll.Y + 2));
+
+                    //// Draw PlaybackCursor CurrentTime string
+                    //sb.DrawString(font, playbackCursorText,
+                    //    position: playbackCursorTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset,
+                    //    color: Color.Black
+                    //    );
+
+                    //sb.DrawString(font, playbackCursorText,
+                    //    position: playbackCursorTextPos + Main.GlobalTaeEditorFontOffset,
+                    //    color: Color.Cyan
+                    //    );
+
+                    if (darkenedPortionWidth > 0)
+                    {
+                        // full bg - anim duration
+
+                        float cooldownRatio = 1;// 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
+
+                        sb.Draw(texture: boxTex,
+                              position: new Vector2(animStopPixelX, (float)Math.Round(ScrollViewer.Scroll.Y)),
+                              sourceRectangle: null,
+                              color: Color.Black * 0.25f * cooldownRatio,
+                              rotation: 0,
+                              origin: Vector2.Zero,
+                              scale: new Vector2(darkenedPortionWidth, ScrollViewer.Viewport.Height),
+                              effects: SpriteEffects.None,
+                              layerDepth: 0
+                              );
+
+                        sb.Draw(texture: boxTex,
+                              position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
+                              sourceRectangle: null,
+                              color: Color.White * cooldownRatio,
+                              rotation: 0,
+                              origin: Vector2.Zero,
+                              scale: new Vector2(2, TimeLineHeight),
+                              effects: SpriteEffects.None,
+                              layerDepth: 0
+                              );
                     }
                 }
-
-                //if (IsBoxDragging)
-                //{
-                //    DrawFrameSnapLines(boxTex, sb, Color.Cyan * 0.65f);
-                //}
-
-
-
-                
-
-                
-
-                if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
-                    || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
-                    || currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
-                {
-                    var multiSelectRect = currentDrag.GetVirtualDragRect();
-
-                    // FILL RECT:
-                    sb.Draw(texture: boxTex,
-                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
-                        sourceRectangle: null,
-                        color: MultiSelectRectFillColor,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(multiSelectRect.Width, multiSelectRect.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0.01f
-                        );
-
-                    // THICK OUTLINE:
-
-                    //-- LEFT Side
-                    sb.Draw(texture: boxTex,
-                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
-                        sourceRectangle: null,
-                        color: MultiSelectRectOutlineColor,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(MultiSelectRectOutlineThickness, multiSelectRect.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-
-                    //-- TOP Side
-                    sb.Draw(texture: boxTex,
-                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Top + TimeLineHeight),
-                        sourceRectangle: null,
-                        color: MultiSelectRectOutlineColor,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(multiSelectRect.Width, MultiSelectRectOutlineThickness),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-
-                    //-- RIGHT Side
-                    sb.Draw(texture: boxTex,
-                        position: new Vector2(multiSelectRect.Right - MultiSelectRectOutlineThickness, multiSelectRect.Top + TimeLineHeight),
-                        sourceRectangle: null,
-                        color: MultiSelectRectOutlineColor,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(MultiSelectRectOutlineThickness, multiSelectRect.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-
-                    //-- BOTTOM Side
-                    sb.Draw(texture: boxTex,
-                        position: new Vector2(multiSelectRect.Left, multiSelectRect.Bottom + TimeLineHeight - MultiSelectRectOutlineThickness),
-                        sourceRectangle: null,
-                        color: MultiSelectRectOutlineColor,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(multiSelectRect.Width, MultiSelectRectOutlineThickness),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
-                }
-
-                // Draw PlaybackCursor StartTime vertical line
-                sb.Draw(texture: boxTex,
-                    position: new Vector2((float)Math.Round(((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2))), ScrollViewer.Scroll.Y),
-                    sourceRectangle: null,
-                    color: Color.Blue,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(PlaybackCursorThickness, Rect.Height),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-
-
-                //var hitWindowStartX = (float)(SecondsPixelSize * PlaybackCursor.HitWindowStart);
-                //var hitWindowEndX = (float)(SecondsPixelSize * PlaybackCursor.HitWindowEnd);
-
-                //// Draw Hit Window Rect Under Cursor
-                //sb.Draw(texture: boxTex,
-                //    position: new Vector2((float)Math.Round(hitWindowStartX), ScrollViewer.Scroll.Y),
-                //    sourceRectangle: null,
-                //    color: PlaybackCursorHitWindowColor,
-                //    rotation: 0,
-                //    origin: Vector2.Zero,
-                //    scale: new Vector2(Math.Max(hitWindowEndX - hitWindowStartX, 0), Rect.Height),
-                //    effects: SpriteEffects.None,
-                //    layerDepth: 0
-                //    );
-
-                //// Draw Hit Window Line
-                //sb.Draw(texture: boxTex,
-                //    position: new Vector2((hitWindowStartX + hitWindowEndX) / 2, ScrollViewer.Scroll.Y),
-                //    sourceRectangle: null,
-                //    color: PlaybackCursorHitWindowStartColor,
-                //    rotation: 0,
-                //    origin: Vector2.Zero,
-                //    scale: new Vector2(1, Rect.Height),
-                //    effects: SpriteEffects.None,
-                //    layerDepth: 0
-                //    );
-
-
-                // Draw Hit Register Playback Cursor
-                sb.Draw(texture: boxTex,
-                    position: new Vector2((float)Math.Round(SecondsPixelSize * PlaybackCursor.CurrentTime), ScrollViewer.Scroll.Y),
-                    sourceRectangle: null,
-                    color: PlaybackCursorHitWindowColor,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(1, Rect.Height),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-
-                var playbackCursorPixelX = (float)Math.Round(SecondsPixelSize * PlaybackCursor.GUICurrentTime);
-
-                // Draw PlaybackCursor CurrentTime vertical line
-                sb.Draw(texture: boxTex,
-                    position: new Vector2(playbackCursorPixelX - (PlaybackCursorThickness / 2), ScrollViewer.Scroll.Y),
-                    sourceRectangle: null,
-                    color: PlaybackCursorColor,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(PlaybackCursorThickness, Rect.Height),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-                
-
-                var playbackCursorPixelXMod = (float)Math.Round((SecondsPixelSize * (float)(PlaybackCursor.IsPlaying
-                    ? PlaybackCursor.CurrentTimeMod : PlaybackCursor.GUICurrentTimeMod)));
-
-                // Draw PlaybackCursor CurrentTimeMod vertical line
-                sb.Draw(texture: boxTex,
-                    position: new Vector2(playbackCursorPixelXMod - (PlaybackCursorThickness / 2), ScrollViewer.Scroll.Y),
-                    sourceRectangle: null,
-                    color: PlaybackCursorColor * 0.25f,
-                    rotation: 0,
-                    origin: Vector2.Zero,
-                    scale: new Vector2(PlaybackCursorThickness, Rect.Height),
-                    effects: SpriteEffects.None,
-                    layerDepth: 0
-                    );
-
-
-
-                //var playbackCursorSmoothPixelX = (PlaybackCursor.IsPlaying || PlaybackCursor.Scrubbing) ?
-                //    (float)(SecondsPixelSize * PlaybackCursor.CurrentTime) : playbackCursorPixelX;
-
-                //Vector2 playbackCursorTextSize = font.MeasureString(playbackCursorText);
-
-                //playbackCursorTextSize = new Vector2(playbackCursorTextSize.X, TimeLineHeight - 1);
-
-                // Draw PlaybackCursor CurrentTime BG Rect
-
-                //sb.Draw(texture: boxTex,
-                //   position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
-                //   (float)Math.Round(ScrollViewer.Scroll.Y + 2)),
-                //   sourceRectangle: null,
-                //   color: Color.Black,
-                //   rotation: 0,
-                //   origin: Vector2.Zero,
-                //   scale: playbackCursorTextSize + new Vector2(10, -4),
-                //   effects: SpriteEffects.None,
-                //   layerDepth: 0
-                //   );
-
-                //sb.Draw(texture: boxTex,
-                //    position: new Vector2(playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 1, 
-                //    (float)Math.Round(ScrollViewer.Scroll.Y + 2)) + Vector2.One,
-                //    sourceRectangle: null,
-                //    color: new Color(64, 64, 64, 255),
-                //    rotation: 0,
-                //    origin: Vector2.Zero,
-                //    scale: playbackCursorTextSize + new Vector2(10,-4) - (Vector2.One * 2),
-                //    effects: SpriteEffects.None,
-                //    layerDepth: 0
-                //    );
-
-                //Vector2 playbackCursorTextPos = new Vector2(
-                //    playbackCursorSmoothPixelX + (PlaybackCursorThickness / 2) + 6, 
-                //    (float)Math.Round(ScrollViewer.Scroll.Y + 2));
-
-                //// Draw PlaybackCursor CurrentTime string
-                //sb.DrawString(font, playbackCursorText,
-                //    position: playbackCursorTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset,
-                //    color: Color.Black
-                //    );
-
-                //sb.DrawString(font, playbackCursorText,
-                //    position: playbackCursorTextPos + Main.GlobalTaeEditorFontOffset,
-                //    color: Color.Cyan
-                //    );
-
-                if (darkenedPortionWidth > 0)
-                {
-                    // full bg - anim duration
-
-                    float cooldownRatio = 1;// 1 - Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, MainScreen.AnimSwitchRenderCooldown / MainScreen.AnimSwitchRenderCooldownFadeLength)));
-
-                    sb.Draw(texture: boxTex,
-                          position: new Vector2(animStopPixelX, (float)Math.Round(ScrollViewer.Scroll.Y)),
-                          sourceRectangle: null,
-                          color: Color.Black * 0.25f * cooldownRatio,
-                          rotation: 0,
-                          origin: Vector2.Zero,
-                          scale: new Vector2(darkenedPortionWidth, ScrollViewer.Viewport.Height),
-                          effects: SpriteEffects.None,
-                          layerDepth: 0
-                          );
-
-                    sb.Draw(texture: boxTex,
-                          position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
-                          sourceRectangle: null,
-                          color: Color.White * cooldownRatio,
-                          rotation: 0,
-                          origin: Vector2.Zero,
-                          scale: new Vector2(2, TimeLineHeight),
-                          effects: SpriteEffects.None,
-                          layerDepth: 0
-                          );
-                }
-
-                sb.End();
+                finally { sb.End(); }
             }
 
             
@@ -3128,37 +3130,38 @@ namespace DSAnimStudio.TaeEditor
                 gd.Viewport = new Viewport(MainScreen.Rect);
 
                 sb.Begin(transformMatrix: scrollMatrix);
-
-                if (!Rect.Contains(MainScreen.Input.MousePositionPoint))
-                    HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
-
-                if (!HoverInfoBox.IsVisible)
+                try
                 {
-                    //HoverInfoBox.DrawPosition = relMouse +
-                    //    new Vector2(Rect.X + HoverInfoBoxOffsetFromMouse.X,
-                    //    Rect.Y + HoverInfoBoxOffsetFromMouse.Y + TimeLineHeight);
+                    if (!Rect.Contains(MainScreen.Input.MousePositionPoint))
+                        HoverInfoBox.Update(mouseInside: false, elapsedSeconds);
 
-                    HoverInfoBox.DrawPosition = MainScreen.Input.MousePosition + new Vector2(32, 48);
+                    if (!HoverInfoBox.IsVisible)
+                    {
+                        //HoverInfoBox.DrawPosition = relMouse +
+                        //    new Vector2(Rect.X + HoverInfoBoxOffsetFromMouse.X,
+                        //    Rect.Y + HoverInfoBoxOffsetFromMouse.Y + TimeLineHeight);
 
-                    //MainScreen.SetInspectorVisibility(true);
+                        HoverInfoBox.DrawPosition = MainScreen.Input.MousePosition + new Vector2(32, 48);
+
+                        //MainScreen.SetInspectorVisibility(true);
+                    }
+                    else
+                    {
+                        //MainScreen.SetInspectorVisibility(false);
+                    }
+
+                    bool cancelTooltipCompletely = (MainScreen.Input.LeftClickHeld || MainScreen.Input.MiddleClickHeld ||
+                        MainScreen.Input.RightClickHeld || !Rect.Contains(MainScreen.Input.MousePositionPoint)) || MainScreen.MenuBar.BlockInput;
+
+                    if (cancelTooltipCompletely)
+                    {
+                        HoverInfoBox.Update(false, 0);
+                    }
+
+                    //HoverInfoBox.Draw(sb, boxTex);
+                    HoverInfoBox.UpdateTooltip(MainScreen.GameWindowAsForm);
                 }
-                else
-                {
-                    //MainScreen.SetInspectorVisibility(false);
-                }
-
-                bool cancelTooltipCompletely = (MainScreen.Input.LeftClickHeld || MainScreen.Input.MiddleClickHeld || 
-                    MainScreen.Input.RightClickHeld || !Rect.Contains(MainScreen.Input.MousePositionPoint)) || MainScreen.MenuBar.BlockInput;
-
-                if (cancelTooltipCompletely)
-                {
-                    HoverInfoBox.Update(false, 0);
-                }
-
-                //HoverInfoBox.Draw(sb, boxTex);
-                HoverInfoBox.UpdateTooltip(MainScreen.GameWindowAsForm);
-
-                sb.End();
+                finally { sb.End(); }
             }
 
             gd.Viewport = oldViewport;

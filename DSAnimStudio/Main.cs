@@ -38,7 +38,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.2";
+        public const string VERSION = "Version 2.3";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -645,6 +645,12 @@ namespace DSAnimStudio
 
 
                         }));
+
+                        // Undo an infinite loading cursor on an aborted file load.
+                        if (!IsLoadingTaskRunning)
+                        {
+                            Mouse.SetCursor(MouseCursor.Arrow);
+                        }
                     }
 
                     if (!IsLoadingTaskRunning)
@@ -657,10 +663,20 @@ namespace DSAnimStudio
                         if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
                             TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
 
+                        
+                        
                         if (Active)
-                            TAE_EDITOR.Update();
+                        {
+                            if (Scene.CheckIfDrawing())
+                                TAE_EDITOR.Update();
+                        }
                         else
+                        {
                             TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+                        }
+                        
+
+                       
 
                         if (!string.IsNullOrWhiteSpace(TAE_EDITOR.FileContainerName))
                             Window.Title = $"{System.IO.Path.GetFileName(TAE_EDITOR.FileContainerName)}" +
@@ -682,7 +698,7 @@ namespace DSAnimStudio
             }
             catch (Exception ex)
             {
-                ErrorHandler.Handle(ex, "Fatal error encountered during update loop");
+                ErrorLog.HandleException(ex, "Fatal error encountered during update loop");
             }
         }
 
@@ -868,7 +884,7 @@ namespace DSAnimStudio
             }
             catch (Exception ex)
             {
-                ErrorHandler.Handle(ex, "Fatal error ocurred during rendering");
+                ErrorLog.HandleException(ex, "Fatal error ocurred during rendering");
                 GFX.Device.SetRenderTarget(null);
             }
 

@@ -40,6 +40,17 @@ namespace DSAnimStudio.TaeEditor
                     PlaybackCursor.StartTime = 0;
                     MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
                     MainScreen.Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
+
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.ResetCurrentDirection();
+
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.ResetCurrentDirection();
+
                     MainScreen.Graph.ViewportInteractor.ResetRootMotion();
                     MainScreen.Graph.ScrollToPlaybackCursor(1);
                     PlaybackCursor.IgnoreCurrentRelativeScrub();
@@ -202,6 +213,7 @@ namespace DSAnimStudio.TaeEditor
             gd.Viewport = new Viewport(Rect.X, Rect.Y, Rect.Width, Rect.Height);
             {
                 sb.Begin();
+                try
                 {
                     var str = MainScreen.Graph.PlaybackCursor.GetFrameCounterText(MainScreen.Config.LockFramerateToOriginalAnimFramerate);
                     //sb.Draw(boxTex, new Rectangle(0, 0, Rect.Width, Rect.Height), Color.DarkGray);
@@ -214,7 +226,7 @@ namespace DSAnimStudio.TaeEditor
                         Buttons[i].Draw(sb, boxTex, smallFont);
                     }
                 }
-                sb.End();
+                finally { sb.End(); }
             }
             gd.Viewport = oldViewport;
         }

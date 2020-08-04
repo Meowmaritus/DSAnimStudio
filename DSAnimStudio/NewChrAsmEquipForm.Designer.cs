@@ -51,9 +51,8 @@
             this.comboBoxWPL = new System.Windows.Forms.ComboBox();
             this.buttonApplyChanges = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
-            this.label8 = new System.Windows.Forms.Label();
             this.comboBoxWPRIndex = new System.Windows.Forms.ComboBox();
-            this.comboBoxWPLIndex = new System.Windows.Forms.ComboBox();
+            this.checkBoxDbgRHMdlPos = new System.Windows.Forms.CheckBox();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -69,7 +68,7 @@
             this.comboBoxHD.FormattingEnabled = true;
             this.comboBoxHD.Location = new System.Drawing.Point(47, 27);
             this.comboBoxHD.Name = "comboBoxHD";
-            this.comboBoxHD.Size = new System.Drawing.Size(433, 21);
+            this.comboBoxHD.Size = new System.Drawing.Size(557, 21);
             this.comboBoxHD.TabIndex = 1;
             this.comboBoxHD.TabStop = false;
             // 
@@ -131,7 +130,7 @@
             // 
             this.checkBoxRWeaponFlipBackwards.AutoSize = true;
             this.checkBoxRWeaponFlipBackwards.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.checkBoxRWeaponFlipBackwards.Location = new System.Drawing.Point(173, 165);
+            this.checkBoxRWeaponFlipBackwards.Location = new System.Drawing.Point(90, 165);
             this.checkBoxRWeaponFlipBackwards.Name = "checkBoxRWeaponFlipBackwards";
             this.checkBoxRWeaponFlipBackwards.Size = new System.Drawing.Size(150, 17);
             this.checkBoxRWeaponFlipBackwards.TabIndex = 6;
@@ -144,7 +143,7 @@
             // 
             this.checkBoxRWeaponFlipSideways.AutoSize = true;
             this.checkBoxRWeaponFlipSideways.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.checkBoxRWeaponFlipSideways.Location = new System.Drawing.Point(332, 165);
+            this.checkBoxRWeaponFlipSideways.Location = new System.Drawing.Point(249, 165);
             this.checkBoxRWeaponFlipSideways.Name = "checkBoxRWeaponFlipSideways";
             this.checkBoxRWeaponFlipSideways.Size = new System.Drawing.Size(142, 17);
             this.checkBoxRWeaponFlipSideways.TabIndex = 7;
@@ -157,7 +156,7 @@
             // 
             this.checkBoxLWeaponFlipSideways.AutoSize = true;
             this.checkBoxLWeaponFlipSideways.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.checkBoxLWeaponFlipSideways.Location = new System.Drawing.Point(332, 220);
+            this.checkBoxLWeaponFlipSideways.Location = new System.Drawing.Point(249, 220);
             this.checkBoxLWeaponFlipSideways.Name = "checkBoxLWeaponFlipSideways";
             this.checkBoxLWeaponFlipSideways.Size = new System.Drawing.Size(140, 17);
             this.checkBoxLWeaponFlipSideways.TabIndex = 10;
@@ -170,7 +169,7 @@
             // 
             this.checkBoxLWeaponFlipBackwards.AutoSize = true;
             this.checkBoxLWeaponFlipBackwards.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.checkBoxLWeaponFlipBackwards.Location = new System.Drawing.Point(173, 220);
+            this.checkBoxLWeaponFlipBackwards.Location = new System.Drawing.Point(90, 220);
             this.checkBoxLWeaponFlipBackwards.Name = "checkBoxLWeaponFlipBackwards";
             this.checkBoxLWeaponFlipBackwards.Size = new System.Drawing.Size(148, 17);
             this.checkBoxLWeaponFlipBackwards.TabIndex = 9;
@@ -185,7 +184,7 @@
             this.fileToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(492, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(616, 24);
             this.menuStrip1.TabIndex = 11;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -225,7 +224,7 @@
             this.comboBoxBD.FormattingEnabled = true;
             this.comboBoxBD.Location = new System.Drawing.Point(47, 54);
             this.comboBoxBD.Name = "comboBoxBD";
-            this.comboBoxBD.Size = new System.Drawing.Size(433, 21);
+            this.comboBoxBD.Size = new System.Drawing.Size(557, 21);
             this.comboBoxBD.TabIndex = 2;
             this.comboBoxBD.TabStop = false;
             // 
@@ -241,7 +240,7 @@
             this.comboBoxAM.FormattingEnabled = true;
             this.comboBoxAM.Location = new System.Drawing.Point(47, 81);
             this.comboBoxAM.Name = "comboBoxAM";
-            this.comboBoxAM.Size = new System.Drawing.Size(433, 21);
+            this.comboBoxAM.Size = new System.Drawing.Size(557, 21);
             this.comboBoxAM.TabIndex = 3;
             this.comboBoxAM.TabStop = false;
             // 
@@ -257,7 +256,7 @@
             this.comboBoxLG.FormattingEnabled = true;
             this.comboBoxLG.Location = new System.Drawing.Point(47, 108);
             this.comboBoxLG.Name = "comboBoxLG";
-            this.comboBoxLG.Size = new System.Drawing.Size(433, 21);
+            this.comboBoxLG.Size = new System.Drawing.Size(557, 21);
             this.comboBoxLG.TabIndex = 4;
             this.comboBoxLG.TabStop = false;
             // 
@@ -273,7 +272,7 @@
             this.comboBoxWPR.FormattingEnabled = true;
             this.comboBoxWPR.Location = new System.Drawing.Point(76, 135);
             this.comboBoxWPR.Name = "comboBoxWPR";
-            this.comboBoxWPR.Size = new System.Drawing.Size(404, 21);
+            this.comboBoxWPR.Size = new System.Drawing.Size(528, 21);
             this.comboBoxWPR.TabIndex = 5;
             this.comboBoxWPR.TabStop = false;
             // 
@@ -289,7 +288,7 @@
             this.comboBoxWPL.FormattingEnabled = true;
             this.comboBoxWPL.Location = new System.Drawing.Point(76, 190);
             this.comboBoxWPL.Name = "comboBoxWPL";
-            this.comboBoxWPL.Size = new System.Drawing.Size(404, 21);
+            this.comboBoxWPL.Size = new System.Drawing.Size(528, 21);
             this.comboBoxWPL.TabIndex = 8;
             this.comboBoxWPL.TabStop = false;
             // 
@@ -298,9 +297,9 @@
             this.buttonApplyChanges.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonApplyChanges.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonApplyChanges.Location = new System.Drawing.Point(11, 243);
+            this.buttonApplyChanges.Location = new System.Drawing.Point(11, 297);
             this.buttonApplyChanges.Name = "buttonApplyChanges";
-            this.buttonApplyChanges.Size = new System.Drawing.Size(467, 23);
+            this.buttonApplyChanges.Size = new System.Drawing.Size(591, 23);
             this.buttonApplyChanges.TabIndex = 11;
             this.buttonApplyChanges.TabStop = false;
             this.buttonApplyChanges.Text = "Apply Changes And Reload Models";
@@ -309,67 +308,55 @@
             // 
             // label7
             // 
+            this.label7.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(25, 168);
+            this.label7.Location = new System.Drawing.Point(293, 265);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(68, 13);
+            this.label7.Size = new System.Drawing.Size(44, 13);
             this.label7.TabIndex = 12;
-            this.label7.Text = "Model Index:";
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(25, 221);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(68, 13);
-            this.label8.TabIndex = 13;
-            this.label8.Text = "Model Index:";
+            this.label7.Text = "STYLE:";
             // 
             // comboBoxWPRIndex
             // 
+            this.comboBoxWPRIndex.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.comboBoxWPRIndex.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.comboBoxWPRIndex.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxWPRIndex.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.comboBoxWPRIndex.ForeColor = System.Drawing.Color.White;
             this.comboBoxWPRIndex.FormattingEnabled = true;
             this.comboBoxWPRIndex.Items.AddRange(new object[] {
-            "0",
-            "1",
-            "2",
-            "3"});
-            this.comboBoxWPRIndex.Location = new System.Drawing.Point(100, 163);
+            "None",
+            "One-Handed",
+            "Left Weapon Two-Handed",
+            "Right Weapon Two-Handed",
+            "One-Handed (Left Weapon Transformed)",
+            "One-Handed (Right Weapon Transformed)"});
+            this.comboBoxWPRIndex.Location = new System.Drawing.Point(343, 260);
             this.comboBoxWPRIndex.Name = "comboBoxWPRIndex";
-            this.comboBoxWPRIndex.Size = new System.Drawing.Size(55, 21);
+            this.comboBoxWPRIndex.Size = new System.Drawing.Size(231, 21);
             this.comboBoxWPRIndex.TabIndex = 14;
             this.comboBoxWPRIndex.TabStop = false;
             // 
-            // comboBoxWPLIndex
+            // checkBoxDbgRHMdlPos
             // 
-            this.comboBoxWPLIndex.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.comboBoxWPLIndex.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboBoxWPLIndex.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.comboBoxWPLIndex.ForeColor = System.Drawing.Color.White;
-            this.comboBoxWPLIndex.FormattingEnabled = true;
-            this.comboBoxWPLIndex.Items.AddRange(new object[] {
-            "0",
-            "1",
-            "2",
-            "3"});
-            this.comboBoxWPLIndex.Location = new System.Drawing.Point(100, 217);
-            this.comboBoxWPLIndex.Name = "comboBoxWPLIndex";
-            this.comboBoxWPLIndex.Size = new System.Drawing.Size(55, 21);
-            this.comboBoxWPLIndex.TabIndex = 15;
-            this.comboBoxWPLIndex.TabStop = false;
+            this.checkBoxDbgRHMdlPos.AutoSize = true;
+            this.checkBoxDbgRHMdlPos.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.checkBoxDbgRHMdlPos.Location = new System.Drawing.Point(11, 265);
+            this.checkBoxDbgRHMdlPos.Name = "checkBoxDbgRHMdlPos";
+            this.checkBoxDbgRHMdlPos.Size = new System.Drawing.Size(125, 17);
+            this.checkBoxDbgRHMdlPos.TabIndex = 15;
+            this.checkBoxDbgRHMdlPos.TabStop = false;
+            this.checkBoxDbgRHMdlPos.Text = "Debug RH MDL POS";
+            this.checkBoxDbgRHMdlPos.UseVisualStyleBackColor = true;
             // 
             // NewChrAsmEquipForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.ClientSize = new System.Drawing.Size(492, 272);
-            this.Controls.Add(this.comboBoxWPLIndex);
+            this.ClientSize = new System.Drawing.Size(616, 326);
+            this.Controls.Add(this.checkBoxDbgRHMdlPos);
             this.Controls.Add(this.comboBoxWPRIndex);
-            this.Controls.Add(this.label8);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.buttonApplyChanges);
             this.Controls.Add(this.comboBoxWPL);
@@ -395,7 +382,7 @@
             this.MainMenuStrip = this.menuStrip1;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(508, 311);
+            this.MinimumSize = new System.Drawing.Size(508, 365);
             this.Name = "NewChrAsmEquipForm";
             this.Text = "c0000 Equipment Customizer";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.NewChrAsmEquipForm_FormClosing);
@@ -432,8 +419,7 @@
         private System.Windows.Forms.ComboBox comboBoxWPL;
         private System.Windows.Forms.Button buttonApplyChanges;
         private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.Label label8;
         private System.Windows.Forms.ComboBox comboBoxWPRIndex;
-        private System.Windows.Forms.ComboBox comboBoxWPLIndex;
+        private System.Windows.Forms.CheckBox checkBoxDbgRHMdlPos;
     }
 }

@@ -12,6 +12,7 @@ using System.Text;
 using static DSAnimStudio.TaeEditor.TaeEditAnimEventGraph;
 using System.Diagnostics;
 using SharpDX.DirectWrite;
+using System.IO;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -26,18 +27,9 @@ namespace DSAnimStudio.TaeEditor
 
             MenuBar.AddTopItem("Tools");
 
-            MenuBar.AddItem("Tools", "Combo Viewer", () =>
+            MenuBar.AddItem("Tools", "Combo Viewer|F8", () =>
             {
-                if (ComboMenu == null || ComboMenu.IsDisposed)
-                {
-                    ComboMenu = new TaeComboMenu();
-                    ComboMenu.Owner = GameWindowAsForm;
-                    ComboMenu.MainScreen = this;
-                    ComboMenu.SetupTaeComboBoxes();
-                }
-
-                ComboMenu.Show();
-                ComboMenu.Activate();
+                ShowComboMenu();
             }, startDisabled: true);
 
             MenuBar.AddSeparator("Tools");
@@ -80,42 +72,61 @@ namespace DSAnimStudio.TaeEditor
                                 LoadingTaskMan.DoLoadingTaskSynchronous($"PreprocessSekiroAnimations_{curName}", $"Downgrading {Utils.GetShortIngameFileName(curName)}...", prog2 =>
                                 {
 
-                                    string debug_testConvert_filename = curName;
-
-                                    if (string.IsNullOrWhiteSpace(debug_testConvert_filename))
-                                        throw new Exception("WHAT THE FUCKING FUCK GOD FUCKING DAMMIT");
-
-                                    string folder = new System.IO.FileInfo(debug_testConvert_filename).DirectoryName;
-
-                                    int lastSlashInFolder = folder.LastIndexOf("\\");
-
-                                    string interroot = folder.Substring(0, lastSlashInFolder);
-
-                                    string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
-
-                                    string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
-
-                                    if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
+                                    try
                                     {
-                                        System.IO.File.Copy(oodleSource, oodleTarget, true);
 
-                                        System.Windows.Forms.MessageBox.Show("Oodle compression library was automatically copied from game directory " +
-                                            "to editor's '/lib' directory and Sekiro files will load.\n\n", "Required Library Copied",
+                                        string debug_testConvert_filename = curName;
+
+                                        if (string.IsNullOrWhiteSpace(debug_testConvert_filename))
+                                            throw new Exception("WHAT THE FUCKING FUCK GOD FUCKING DAMMIT");
+
+                                        string folder = new System.IO.FileInfo(debug_testConvert_filename).DirectoryName;
+
+                                        int lastSlashInFolder = folder.LastIndexOf("\\");
+
+                                        string interroot = folder.Substring(0, lastSlashInFolder);
+
+                                        string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
+
+                                        string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
+
+                                        // modengine check
+                                        if (!File.Exists(oodleSource))
+                                        {
+                                            oodleSource = Utils.Frankenpath(interroot, @"..\oo2core_6_win64.dll");
+                                        }
+
+                                        if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
+                                        {
+                                            System.IO.File.Copy(oodleSource, oodleTarget, true);
+
+                                            System.Windows.Forms.MessageBox.Show("Oodle compression library was automatically copied from game directory " +
+                                                "to editor's '/lib' directory and Sekiro files will load.\n\n", "Required Library Copied",
+                                                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+                                        }
+
+
+                                        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+
+                                        HavokDowngrade.DowngradeAnibnd(debug_testConvert_filename, prog2);
+                                        stopwatch.Stop();
+                                        int minutes = (int)(stopwatch.Elapsed.TotalSeconds / 60);
+                                        int seconds = (int)(Math.Round(stopwatch.Elapsed.TotalSeconds % 60));
+
+                                        //if (minutes > 0)
+                                        //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {minutes}m{seconds}s", "Animation Downgrading Complete");
+                                        //else
+                                        //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {seconds}s", "Animation Downgrading Complete");
+
+                                    }
+                                    catch (DllNotFoundException)
+                                    {
+                                        System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
+                                            "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
+                                            "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
                                             System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
                                     }
-
-                                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-
-                                    HavokDowngrade.DowngradeAnibnd(debug_testConvert_filename, prog2);
-                                    stopwatch.Stop();
-                                    int minutes = (int)(stopwatch.Elapsed.TotalSeconds / 60);
-                                    int seconds = (int)(Math.Round(stopwatch.Elapsed.TotalSeconds % 60));
-
-                                    //if (minutes > 0)
-                                    //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {minutes}m{seconds}s", "Animation Downgrading Complete");
-                                    //else
-                                    //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {seconds}s", "Animation Downgrading Complete");
 
                                 });
 
@@ -490,6 +501,27 @@ namespace DSAnimStudio.TaeEditor
             //});
         }
 
+        public void ShowComboMenu()
+        {
+            GameWindowAsForm.Invoke(new Action(() =>
+            {
+                if (!MenuBar["Tools\\Combo Viewer"].Enabled)
+                    return;
+
+                if (ComboMenu == null || ComboMenu.IsDisposed)
+                {
+                    ComboMenu = new TaeComboMenu();
+                    ComboMenu.Owner = GameWindowAsForm;
+                    ComboMenu.MainScreen = this;
+                    ComboMenu.SetupTaeComboBoxes();
+                }
+
+                ComboMenu.Show();
+                ComboMenu.Activate();
+            }));
+            
+        }
+
         public TaeComboMenu ComboMenu = null;
 
         public float AnimSwitchRenderCooldown = 0;
@@ -523,8 +555,8 @@ namespace DSAnimStudio.TaeEditor
             ShaderAdjuster
         }
 
-        public DbgMenus.DbgMenuPadRepeater NextAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.05f);
-        public DbgMenus.DbgMenuPadRepeater PrevAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadUp, 0.4f, 0.05f);
+        public DbgMenus.DbgMenuPadRepeater NextAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.016666667f);
+        public DbgMenus.DbgMenuPadRepeater PrevAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadUp, 0.4f, 0.016666667f);
 
         public DbgMenus.DbgMenuPadRepeater NextFrameRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadLeft, 0.3f, 0.016666667f);
         public DbgMenus.DbgMenuPadRepeater PrevFrameRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadRight, 0.3f, 0.016666667f);
@@ -993,6 +1025,12 @@ namespace DSAnimStudio.TaeEditor
 
         public bool? LoadCurrentFile()
         {
+            Graph?.ViewportInteractor?.CloseEquipForm();
+
+            IsCurrentlyLoadingGraph = true;
+            Scene.DisableModelDrawing();
+            Scene.DisableModelDrawing2();
+
             // Even if it fails to load, just always push it to the recent files list
             PushNewRecentFile(FileContainerName);
 
@@ -1017,6 +1055,22 @@ namespace DSAnimStudio.TaeEditor
 
                     string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
 
+                    // modengine check
+                    if (!File.Exists(oodleSource))
+                    {
+                        oodleSource = Utils.Frankenpath(interroot, @"..\oo2core_6_win64.dll");
+                    }
+
+                    //if (!File.Exists(oodleSource))
+                    //{
+                    //    System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
+                    //    "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
+                    //    "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
+                    //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+
+                    //    return false;
+                    //}
+
                     string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
 
                     if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
@@ -1032,9 +1086,14 @@ namespace DSAnimStudio.TaeEditor
                 }
                 catch (System.DllNotFoundException)
                 {
-                    System.Windows.Forms.MessageBox.Show("Cannot open Sekiro files unless you " +
-                        "copy the `oo2core_6_win64.dll` file from the Sekiro folder into the " +
-                        "'lib' folder next to DS Anim Studio.exe.", "Additional DLL Required", 
+                    //System.Windows.Forms.MessageBox.Show("Cannot open Sekiro files unless you " +
+                    //    "copy the `oo2core_6_win64.dll` file from the Sekiro folder into the " +
+                    //    "'lib' folder next to DS Anim Studio.exe.", "Additional DLL Required", 
+                    //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+
+                    System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
+                        "`oo2core_6_win64.dll` file in the \"Sekiro\" folder. Please copy that file to the " +
+                        "'lib' folder next to DS Anim Studio.exe in order to load SDT files.", "Unable to find compression DLL",
                         System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
 
                     return false;
@@ -1060,6 +1119,8 @@ namespace DSAnimStudio.TaeEditor
                 //    LoadTAETemplate(templateName);
                 //}
 
+                IsCurrentlyLoadingGraph = false;
+
                 return true;
             }
             else
@@ -1078,7 +1139,7 @@ namespace DSAnimStudio.TaeEditor
 
             var xmlPath = System.IO.Path.Combine(
                 new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
-                $@"Res\TAE.Template.{SelectedTae.Format}{(objCheck ? ".OBJ" : "")}.xml");
+                $@"Res\TAE.Template.{SelectedTae.Format}{((objCheck && (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)) ? ".OBJ" : "")}.xml");
 
             if (System.IO.File.Exists(xmlPath))
                 LoadTAETemplate(xmlPath);
@@ -1158,7 +1219,7 @@ namespace DSAnimStudio.TaeEditor
             SelectedTaeAnim = SelectedTae.Animations[0];
             AnimationListScreen = new TaeEditAnimList(this);
 
-            IsCurrentlyLoadingGraph = true;
+            
             Graph = null;
             LoadAnimIntoGraph(SelectedTaeAnim);
             IsCurrentlyLoadingGraph = false;
@@ -1178,9 +1239,9 @@ namespace DSAnimStudio.TaeEditor
                 //MenuBar["Edit\\Find First Event of Type..."].Enabled = true;
                 MenuBar["Edit\\Find Value..."].Enabled = true;
                 MenuBar["Edit\\Go To Animation ID..."].Enabled = true;
+                MenuBar["Edit\\Go To Animation Section ID..."].Enabled = true;
                 MenuBar["Edit\\Collapse All TAE Sections"].Enabled = true;
                 MenuBar["Edit\\Expand All TAE Sections"].Enabled = true;
-                MenuBar["Edit\\Go To Animation ID..."].Enabled = true;
                 MenuBar["Edit\\Set Animation Name..."].Enabled = true;
                 MenuBar["Animation\\Set Playback Speed..."].Enabled = true;
                 MenuBar["Tools\\Combo Viewer"].Enabled = true;
@@ -1193,14 +1254,14 @@ namespace DSAnimStudio.TaeEditor
             Vector2 oldScroll = AnimationListScreen.ScrollViewer.Scroll;
             var sectionsCollapsed = AnimationListScreen
                 .AnimTaeSections
-                .ToDictionary(x => x.SectionName, x => x.Collapsed);
+                .ToDictionary(x => x.Key, x => x.Value.Collapsed);
 
             AnimationListScreen = new TaeEditAnimList(this);
 
             foreach (var section in AnimationListScreen.AnimTaeSections)
             {
-                if (sectionsCollapsed.ContainsKey(section.SectionName))
-                    section.Collapsed = sectionsCollapsed[section.SectionName];
+                if (sectionsCollapsed.ContainsKey(section.Key))
+                    section.Value.Collapsed = sectionsCollapsed[section.Key];
             }
             
             AnimationListScreen.ScrollViewer.Scroll = oldScroll;
@@ -1449,7 +1510,7 @@ namespace DSAnimStudio.TaeEditor
                 { "Right Weapon", () =>
                     {
                         Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.RightWeapon;
+                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.RightWeapon0;
                         Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
                         Graph.ViewportInteractor.OnScrubFrameChange();
                     }
@@ -1457,7 +1518,7 @@ namespace DSAnimStudio.TaeEditor
                 { "Left Weapon", () =>
                     {
                         Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.LeftWeapon;
+                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.LeftWeapon0;
                         Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
                         Graph.ViewportInteractor.OnScrubFrameChange();
                         
@@ -1467,9 +1528,9 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
                     return "Body";
-                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon)
+                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon0)
                     return "Right Weapon";
-                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon)
+                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon0)
                     return "Left Weapon";
                 else
                     return "None";
@@ -1515,14 +1576,14 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("Edit");
             MenuBar.AddItem("Edit", "Collapse All TAE Sections", () =>
             {
-                foreach (var kvp in AnimationListScreen.AnimTaeSections)
+                foreach (var kvp in AnimationListScreen.AnimTaeSections.Values)
                 {
                     kvp.Collapsed = true;
                 }
             }, startDisabled: true);
             MenuBar.AddItem("Edit", "Expand All TAE Sections", () =>
             {
-                foreach (var kvp in AnimationListScreen.AnimTaeSections)
+                foreach (var kvp in AnimationListScreen.AnimTaeSections.Values)
                 {
                     kvp.Collapsed = false;
                 }
@@ -1530,7 +1591,8 @@ namespace DSAnimStudio.TaeEditor
             MenuBar.AddSeparator("Edit");
             //MenuBar.AddItem("Edit", "Find First Event of Type...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
             MenuBar.AddItem("Edit", "Find Value...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
-            MenuBar.AddItem("Edit", "Go To Animation ID...|Ctrl+G", () => ShowDialogGoto(), startDisabled: true);
+            MenuBar.AddItem("Edit", "Go To Animation ID...|Ctrl+G", () => ShowDialogGotoAnimID(), startDisabled: true);
+            MenuBar.AddItem("Edit", "Go To Animation Section ID...|Ctrl+H", () => ShowDialogGotoAnimSectionID(), startDisabled: true);
             MenuBar.AddItem("Edit", "Set Animation Name...|F2", () => ShowDialogChangeAnimName(), startDisabled: true);
 
             /////////////////
@@ -2097,7 +2159,7 @@ namespace DSAnimStudio.TaeEditor
 
         public bool DoesAnimIDExist(int id)
         {
-            foreach (var s in AnimationListScreen.AnimTaeSections)
+            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
             {
                 var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
                 if (matchedAnims.Any())
@@ -2108,9 +2170,39 @@ namespace DSAnimStudio.TaeEditor
             return false;
         }
 
+        public bool GotoAnimSectionID(int id, bool scrollOnCenter)
+        {
+            if (FileContainer.AllTAEDict.Count > 1)
+            {
+                if (AnimationListScreen.AnimTaeSections.ContainsKey(id))
+                {
+                    var firstAnimInSection = AnimationListScreen.AnimTaeSections[id].Tae.Animations.FirstOrDefault();
+                    if (firstAnimInSection != null)
+                    {
+                        SelectNewAnimRef(AnimationListScreen.AnimTaeSections[id].Tae, firstAnimInSection, scrollOnCenter);
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var anim in SelectedTae.Animations)
+                {
+                    long sectionOfAnim = GameDataManager.GameTypeHasLongAnimIDs ? (anim.ID / 1_000000) : (anim.ID / 1_0000);
+                    if (sectionOfAnim == id)
+                    {
+                        SelectNewAnimRef(SelectedTae, anim, scrollOnCenter);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public bool GotoAnimID(int id, bool scrollOnCenter)
         {
-            foreach (var s in AnimationListScreen.AnimTaeSections)
+            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
             {
                 var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
                 if (matchedAnims.Any())
@@ -2320,8 +2412,11 @@ namespace DSAnimStudio.TaeEditor
 
                             if (ask)
                             {
-                                if (MenuBar["File\\Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
-                                    MenuBar["File\\Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
+                                GameWindowAsForm.Invoke(new Action(() =>
+                                {
+                                    if (MenuBar["File\\Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
+                                        MenuBar["File\\Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
+                                }));
 
                                 if (Config.RecentFilesList.Contains(fileName))
                                     Config.RecentFilesList.Remove(fileName);
@@ -2796,6 +2891,14 @@ namespace DSAnimStudio.TaeEditor
                     Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
                     Graph.ViewportInteractor.RootMotionSendHome();
                     Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.ResetCurrentDirection();
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.ResetCurrentDirection();
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.ResetCurrentDirection();
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.ResetCurrentDirection();
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.ResetCurrentDirection();
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.ResetCurrentDirection();
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.ResetCurrentDirection();
+                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.ResetCurrentDirection();
                     Graph.ViewportInteractor.ResetRootMotion();
                     Graph.ViewportInteractor.RemoveTransition();
                     Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
@@ -2881,7 +2984,33 @@ namespace DSAnimStudio.TaeEditor
             FindValueDialog = null;
         }
 
-        public void ShowDialogGoto()
+        public void ShowDialogGotoAnimSectionID()
+        {
+            if (FileContainer == null || SelectedTae == null)
+                return;
+            PauseUpdate = true;
+            var anim = KeyboardInput.Show("Goto Anim Section", "Goes to the animation section with the ID\n" +
+                "entered, if applicable.");
+
+            if (!anim.IsCanceled && anim.Result != null)
+            {
+                if (int.TryParse(anim.Result.Replace("a", "").Replace("_", ""), out int id))
+                {
+                    if (!GotoAnimSectionID(id, scrollOnCenter: true))
+                    {
+                        MessageBox.Show("Goto Failed", $"Unable to find anim section {id}.", new[] { "OK" });
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Goto Failed", $"\"{anim.Result}\" is not a valid integer.", new[] { "OK" });
+                }
+            }
+
+            PauseUpdate = false;
+        }
+
+        public void ShowDialogGotoAnimID()
         {
             if (FileContainer == null || SelectedTae == null)
                 return;
@@ -2937,6 +3066,8 @@ namespace DSAnimStudio.TaeEditor
                                     else
                                     {
                                         currentTaeIndex++;
+                                        if (taeList[currentTaeIndex].Animations.Count == 0)
+                                            DoSmallStep();
                                     }
                                 }
                             }
@@ -2954,9 +3085,44 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     DoSmallStep();
                                 }
+
+                                currentAnimIndex = 0;
+                            }
+                            else
+                            {
+                                var startSection = GameDataManager.GameTypeHasLongAnimIDs ? (SelectedTaeAnim.ID / 1_000000) : (SelectedTaeAnim.ID / 1_0000);
+
+                                //long stopAtSection = -1;
+                                for (int i = currentAnimIndex; i < SelectedTae.Animations.Count; i++)
+                                {
+                                    var thisSection = GameDataManager.GameTypeHasLongAnimIDs ? (SelectedTae.Animations[i].ID / 1_000000) : (SelectedTae.Animations[i].ID / 1_0000);
+                                    if (startSection != thisSection)
+                                    {
+                                        currentAnimIndex = i;
+                                        return;
+                                        //if (stopAtSection == -1)
+                                        //{
+                                        //    stopAtSection = thisSection;
+                                        //    currentAnimIndex = i;
+                                        //}
+                                        //else
+                                        //{
+                                        //    if (thisSection == stopAtSection)
+                                        //    {
+                                        //        currentAnimIndex = i;
+                                        //    }
+                                        //    else
+                                        //    {
+                                        //        return;
+                                        //    }
+                                        //}
+                                    }
+                                }
+
+                                currentAnimIndex = 0;
                             }
 
-                            currentAnimIndex = 0;
+                            
                         }
 
                         void DoStep()
@@ -3008,6 +3174,7 @@ namespace DSAnimStudio.TaeEditor
                         var taeList = FileContainer.AllTAE.ToList();
 
                         int currentAnimIndex = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
+
                         int currentTaeIndex = taeList.IndexOf(SelectedTae);
 
                         int startingTaeIndex = currentTaeIndex;
@@ -3025,6 +3192,8 @@ namespace DSAnimStudio.TaeEditor
                                     else
                                     {
                                         currentTaeIndex--;
+                                        if (taeList[currentTaeIndex].Animations.Count == 0)
+                                            DoSmallStep();
                                     }
                                 }
 
@@ -3044,9 +3213,43 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     DoSmallStep();
                                 }
+
+                                currentAnimIndex = 0;
+                            }
+                            else
+                            {
+                                var startSection = GameDataManager.GameTypeHasLongAnimIDs ? (SelectedTaeAnim.ID / 1_000000) : (SelectedTaeAnim.ID / 1_0000);
+                                if (currentAnimIndex == 0)
+                                    currentAnimIndex = SelectedTae.Animations.Count - 1;
+                                long stopAtSection = -1;
+                                for (int i = currentAnimIndex; i >= 0; i--)
+                                {
+                                    var thisSection = GameDataManager.GameTypeHasLongAnimIDs ? (SelectedTae.Animations[i].ID / 1_000000) : (SelectedTae.Animations[i].ID / 1_0000);
+                                    if (startSection != thisSection)
+                                    {
+                                        if (stopAtSection == -1)
+                                        {
+                                            stopAtSection = thisSection;
+                                            currentAnimIndex = i;
+                                        }
+                                        else
+                                        {
+                                            if (thisSection == stopAtSection)
+                                            {
+                                                currentAnimIndex = i;
+                                            }
+                                            else
+                                            {
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                //currentAnimIndex = 0;
                             }
 
-                            currentAnimIndex = 0;
+                            
                         }
 
                         void DoStep()
@@ -3118,6 +3321,14 @@ namespace DSAnimStudio.TaeEditor
             Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
             Graph.ViewportInteractor.RootMotionSendHome();
             Graph.ViewportInteractor.CurrentModel.CurrentDirection = 0;
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.ResetCurrentDirection();
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.ResetCurrentDirection();
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.ResetCurrentDirection();
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.ResetCurrentDirection();
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.ResetCurrentDirection();
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.ResetCurrentDirection();
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.ResetCurrentDirection();
+            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.ResetCurrentDirection();
             Graph.ViewportInteractor.ResetRootMotion();
             Graph.ViewportInteractor.RemoveTransition();
             Graph.PlaybackCursor.RestartFromBeginning();
@@ -3219,6 +3430,9 @@ namespace DSAnimStudio.TaeEditor
                 if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F5))
                     LiveRefresh();
 
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F8))
+                    ShowComboMenu();
+
                 var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
                 var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
 
@@ -3273,7 +3487,11 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else if (Input.KeyDown(Keys.G))
                     {
-                        ShowDialogGoto();
+                        ShowDialogGotoAnimID();
+                    }
+                    else if (Input.KeyDown(Keys.H))
+                    {
+                        ShowDialogGotoAnimSectionID();
                     }
                     else if (Input.KeyDown(Keys.S))
                     {
@@ -3291,7 +3509,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         Graph.DoPaste(isAbsoluteLocation: true);
                     }
-                    if (Input.KeyDown(Keys.S))
+                    else if (Input.KeyDown(Keys.S))
                     {
                         File_SaveAs();
                     }
@@ -3787,20 +4005,29 @@ namespace DSAnimStudio.TaeEditor
         public void DrawDimmingRect(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex)
         {
             sb.Begin();
-            sb.Draw(boxTex, new Rectangle(Rect.Left, Rect.Top, (int)RightSectionStartX - Rect.X, Rect.Height), Color.Black * 0.25f);
-            sb.End();
+            try
+            {
+                sb.Draw(boxTex, new Rectangle(Rect.Left, Rect.Top, (int)RightSectionStartX - Rect.X, Rect.Height), Color.Black * 0.25f);
+            }
+            finally { sb.End(); }
         }
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
             SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex)
         {
             sb.Begin();
-            sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), new Color(0.2f, 0.2f, 0.2f));
+            try
+            {
+                sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), new Color(0.2f, 0.2f, 0.2f));
 
-            // Draw model viewer background lel
-            //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
+                // Draw model viewer background lel
+                //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
 
-            sb.End();
+            }
+            finally { sb.End(); }
+
+
+
             //throw new Exception("TaeUndoMan");
 
             //throw new Exception("Make left/right edges of events line up to same vertical lines so the rounding doesnt make them 1 pixel off");
@@ -3820,24 +4047,29 @@ namespace DSAnimStudio.TaeEditor
                     TopOfGraphAnimInfoMargin);
 
                 sb.Begin();
-
-                if (Config.EnableFancyScrollingStrings)
+                try
                 {
-                    SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect, font, elapsedSeconds, Main.GlobalTaeEditorFontOffset);
-                }
-                else
-                {
-                    var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
+                    if (Config.EnableFancyScrollingStrings)
+                    {
+                        SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect, font, elapsedSeconds, Main.GlobalTaeEditorFontOffset);
+                    }
+                    else
+                    {
+                        var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
 
-                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset, Color.Black);
-                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2) + Main.GlobalTaeEditorFontOffset, Color.Black);
-                    sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Main.GlobalTaeEditorFontOffset, Color.White);
-                }
+                        sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset, Color.Black);
+                        sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2) + Main.GlobalTaeEditorFontOffset, Color.Black);
+                        sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Main.GlobalTaeEditorFontOffset, Color.White);
+                    }
 
-                //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + Vector2.One, Color.Black);
-                //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
-                //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos, Color.White);
-                sb.End();
+                    //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + Vector2.One, Color.Black);
+                    //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
+                    //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos, Color.White);
+                }
+                finally { sb.End(); }
+
+
+
             }
 
             if (Graph != null)

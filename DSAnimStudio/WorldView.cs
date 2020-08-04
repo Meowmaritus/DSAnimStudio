@@ -792,7 +792,7 @@ namespace DSAnimStudio
                 }
                 else if (currentMouseClickR)
                 {
-                    MoveCamera_OrbitCenterPoint_MouseDelta(mousePos, oldMouse, elapsed);
+                    MoveCamera_OrbitCenterPoint_MouseDelta(mousePos, oldMouse, 0.01666667f);
                     //Vector2 mouseDelta = mousePos - oldMouse;
                     //MoveCamera_OrbitCenterPoint(-mouseDelta.X, mouseDelta.Y, 0, moveMult);
                 }
@@ -867,8 +867,8 @@ namespace DSAnimStudio
 
                     
 
-                    float camH = mouseDelta.X * 1 * CameraTurnSpeedMouse * elapsed * 0.15f;
-                    float camV = mouseDelta.Y * -1 * CameraTurnSpeedMouse * elapsed * 0.15f;
+                    float camH = mouseDelta.X * 1 * CameraTurnSpeedMouse * 0.15f * 0.04f;
+                    float camV = mouseDelta.Y * -1 * CameraTurnSpeedMouse * 0.15f * 0.04f;
 
                     if (IsOrbitCam && !isMoveLightKeyPressed)
                     {

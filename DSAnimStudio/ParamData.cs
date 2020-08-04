@@ -31,13 +31,20 @@ namespace DSAnimStudio
 
             public enum DummyPolySource
             {
-                None = 0,
-                Body = 1,
-                RightWeapon = 2,
-                LeftWeapon = 3
+                None,
+                Body,
+                RightWeapon0,
+                RightWeapon1,
+                RightWeapon2,
+                RightWeapon3,
+                LeftWeapon0,
+                LeftWeapon1,
+                LeftWeapon2,
+                LeftWeapon3,
+
             }
 
-            public DummyPolySource SuggestedDummyPolySource;
+            //public DummyPolySource SuggestedDummyPolySource;
 
             public struct Hit
             {
@@ -52,43 +59,124 @@ namespace DSAnimStudio
                 const int SDTSomething1 = 10000;
                 const int SDTSomething2 = 21000;
 
-                public static int GetFilteredDmyPolyID(ParamData.AtkParam.DummyPolySource dmyFilter, int id)
+                public DummyPolySource DummyPolySourceSpawnedOn;
+
+                public NewDummyPolyManager GetDmyPoly1SpawnPlace(NewChrAsm asm, DummyPolySource defaultDummyPolySource)
                 {
-                    if (id < 0)
-                        return -1;
-
-                    int check = id / 1000;
-                    id = id % 1000;
-
-                    if (dmyFilter == DummyPolySource.None)
-                    {
-                        return -1;
-                    }
-                    else if (dmyFilter == DummyPolySource.Body)
-                    {
-                        return (check < 10) ? id : -1;
-                    }
-                    else if (dmyFilter == DummyPolySource.RightWeapon)
-                    {
-                        return (check == 10 || check == 12) ? id : -1;
-                    }
-                    else if (dmyFilter == DummyPolySource.LeftWeapon)
-                    {
-                        return (check == 11 || check == 13 || check == 20) ? id : -1;
-                    }
-
-                    return -1;
+                    return GetDummyPolySpawnPlace(asm, defaultDummyPolySource, DmyPoly1);
                 }
 
-                public int GetFilteredDmyPoly1(ParamData.AtkParam.DummyPolySource dmyFilter)
+                public NewDummyPolyManager GetDmyPoly2SpawnPlace(NewChrAsm asm, DummyPolySource defaultDummyPolySource)
                 {
-                    return GetFilteredDmyPolyID(dmyFilter, DmyPoly1);
+                    return GetDummyPolySpawnPlace(asm, defaultDummyPolySource, DmyPoly2);
                 }
 
-                public int GetFilteredDmyPoly2(ParamData.AtkParam.DummyPolySource dmyFilter)
+                NewDummyPolyManager GetDummyPolySpawnPlace(NewChrAsm asm, DummyPolySource defaultDummySource, int dmy)
                 {
-                    return GetFilteredDmyPolyID(dmyFilter, DmyPoly2);
+                    if (dmy == -1)
+                        return null;
+                    int check = dmy / 1000;
+
+                    if (check == 0)
+                        return asm.GetDummyManager(defaultDummySource);
+                    else if (check == 10)
+                        return asm.GetDummyManager(DummyPolySource.RightWeapon0);
+                    else if (check == 11)
+                        return asm.GetDummyManager(DummyPolySource.RightWeapon1);
+                    else if (check == 12)
+                        return asm.GetDummyManager(DummyPolySource.RightWeapon2);
+                    else if (check == 13)
+                        return asm.GetDummyManager(DummyPolySource.RightWeapon3);
+                    else if (check == 20)
+                        return asm.GetDummyManager(DummyPolySource.LeftWeapon0);
+                    else if (check == 21)
+                        return asm.GetDummyManager(DummyPolySource.LeftWeapon1);
+                    else if (check == 22)
+                        return asm.GetDummyManager(DummyPolySource.LeftWeapon2);
+                    else if (check == 23)
+                        return asm.GetDummyManager(DummyPolySource.LeftWeapon3);
+
+                    return null;
                 }
+
+                public List<Matrix> GetDmyPoly1Locations(Model mdl, DummyPolySource defaultDummySource)
+                {
+                    if (DmyPoly1 == -1)
+                        return new List<Matrix>() { Matrix.Identity };
+
+                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.CurrentRootMotionRotation * mdl.CurrentRootMotionTranslation);
+
+                    if (mdl.ChrAsm == null)
+                        return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly1, modMatrix) ?? new List<Matrix>() { modMatrix };
+
+                    var place = GetDummyPolySpawnPlace(mdl.ChrAsm, defaultDummySource, DmyPoly1);
+
+                    
+                    //if (place == mdl.DummyPolyMan)
+                    //{
+                    //    modMatrix = Matrix.Identity;
+                    //}
+
+                    return place?.GetDummyMatricesByID(DmyPoly1 % 1000, modMatrix) ?? new List<Matrix>() { modMatrix };
+                }
+
+                public List<Matrix> GetDmyPoly2Locations(Model mdl, DummyPolySource defaultDummySource)
+                {
+                    if (DmyPoly2 == -1)
+                        return new List<Matrix>() { Matrix.Identity };
+
+                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.CurrentRootMotionRotation * mdl.CurrentRootMotionTranslation);
+
+                    if (mdl.ChrAsm == null)
+                        return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly2, modMatrix) ?? new List<Matrix>() { modMatrix };
+
+                    var place = GetDummyPolySpawnPlace(mdl.ChrAsm, defaultDummySource, DmyPoly2);
+
+                    //if (place != mdl.DummyPolyMan)
+                    //{
+                    //    modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.CurrentRootMotionRotation * mdl.CurrentRootMotionTranslation);
+                    //}
+
+                    return place?.GetDummyMatricesByID(DmyPoly2 % 1000, modMatrix) ?? new List<Matrix>() { modMatrix };
+                }
+
+                //public static int GetFilteredDmyPolyID(ParamData.AtkParam.DummyPolySource dmyFilter, int id)
+                //{
+                //    if (id < 0)
+                //        return -1;
+
+                //    int check = id / 1000;
+                //    id = id % 1000;
+
+                //    if (dmyFilter == DummyPolySource.None)
+                //    {
+                //        return -1;
+                //    }
+                //    else if (dmyFilter == DummyPolySource.Body)
+                //    {
+                //        return (check < 10) ? id : -1;
+                //    }
+                //    else if (dmyFilter == DummyPolySource.RightWeapon)
+                //    {
+                //        return (check == 10 || check == 12) ? id : -1;
+                //    }
+                //    else if (dmyFilter == DummyPolySource.LeftWeapon)
+                //    {
+                //        return (check == 11 || check == 13 || check == 20) ? id : -1;
+                //    }
+
+                //    return -1;
+                //}
+
+                //public int GetFilteredDmyPoly1(ParamData.AtkParam.DummyPolySource dmyFilter)
+                //{
+                //    return GetFilteredDmyPolyID(dmyFilter, DmyPoly1);
+                //}
+
+                //public int GetFilteredDmyPoly2(ParamData.AtkParam.DummyPolySource dmyFilter)
+                //{
+                //    return GetFilteredDmyPolyID(dmyFilter, DmyPoly2);
+                //}
 
                 //public void ShiftDmyPolyIDIntoPlayerWpnDmyPolyID(bool isLeftHand)
                 //{
@@ -152,6 +240,8 @@ namespace DSAnimStudio
             public short GuardStaminaCutRate;
             public short GuardRate;
             public short ThrowTypeID;
+
+            public byte HitSourceType;
 
             // DS3 Only
             public short AtkDarkCorrection;
@@ -272,14 +362,13 @@ namespace DSAnimStudio
                     Hits[i].HitType = br.ReadEnum8<HitTypes>();
                 }
 
+                br.Position += 14;
+                HitSourceType = br.ReadByte();
+
                 //TODO: Read DS3 hit 4-15
                 if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
                     GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
-                    //u8 Hit0_hitType
-                    //u8 Hit1_hitType
-                    //u8 Hit2_hitType
-                    //u8 Hit3_hitType
                     //u8 hit0_Priority
                     //u8 hit1_Priority
                     //u8 hit2_Priority
@@ -349,7 +438,7 @@ namespace DSAnimStudio
                     //s32 Hit7_VfxId
                     //s32 Hit7_DummyPolyId0
                     //s32 Hit7_DummyPolyId1
-                    br.Position += ((1 * 22) + (4 * 33));
+                    br.Position += ((1 * (22 - 15)) + (4 * 33));
                     for (int i = 4; i <= 15; i++)
                     {
                         Hits[i].Radius = br.ReadSingle();
@@ -398,29 +487,29 @@ namespace DSAnimStudio
                     AtkDark = br.ReadInt16();
                 }
 
-                SuggestedDummyPolySource = DummyPolySource.None;
+                //SuggestedDummyPolySource = DummyPolySource.None;
 
-                for (int i = 0; i < Hits.Length; i++)
-                {
-                    if (Hits[i].DmyPoly1 >= 10000 && Hits[i].DmyPoly1 < 11000)
-                        SuggestedDummyPolySource = DummyPolySource.RightWeapon;
-                    else if (Hits[i].DmyPoly1 >= 11000 && Hits[i].DmyPoly1 < 12000)
-                        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
-                    else if (Hits[i].DmyPoly1 >= 12000 && Hits[i].DmyPoly1 < 13000)
-                        SuggestedDummyPolySource = DummyPolySource.RightWeapon;
-                    else if (Hits[i].DmyPoly1 >= 13000 && Hits[i].DmyPoly1 < 14000)
-                        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
-                    else if (Hits[i].DmyPoly1 >= 20000 && Hits[i].DmyPoly1 < 21000)
-                        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
-                }
+                //for (int i = 0; i < Hits.Length; i++)
+                //{
+                //    if (Hits[i].DmyPoly1 >= 10000 && Hits[i].DmyPoly1 < 11000)
+                //        SuggestedDummyPolySource = DummyPolySource.RightWeapon;
+                //    else if (Hits[i].DmyPoly1 >= 11000 && Hits[i].DmyPoly1 < 12000)
+                //        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
+                //    else if (Hits[i].DmyPoly1 >= 12000 && Hits[i].DmyPoly1 < 13000)
+                //        SuggestedDummyPolySource = DummyPolySource.RightWeapon;
+                //    else if (Hits[i].DmyPoly1 >= 13000 && Hits[i].DmyPoly1 < 14000)
+                //        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
+                //    else if (Hits[i].DmyPoly1 >= 20000 && Hits[i].DmyPoly1 < 21000)
+                //        SuggestedDummyPolySource = DummyPolySource.LeftWeapon;
+                //}
 
-                if (SuggestedDummyPolySource == DummyPolySource.None)
-                {
-                    br.Position = start + 0x7C;
-                    byte hitSourceType = br.ReadByte();
-                    if (hitSourceType == 1)
-                        SuggestedDummyPolySource = DummyPolySource.Body;
-                }
+                //if (SuggestedDummyPolySource == DummyPolySource.None)
+                //{
+                //    br.Position = start + 0x7C;
+                //    byte hitSourceType = br.ReadByte();
+                //    if (hitSourceType == 1)
+                //        SuggestedDummyPolySource = DummyPolySource.Body;
+                //}
             }
         }
 
@@ -613,6 +702,339 @@ namespace DSAnimStudio
 
             public byte FDPSoundType = 0;
 
+            public byte BB_SheathType = 0;
+
+            public int GetDS3TaeConditionFlag(int index)
+            {
+                var absorpPosParam = GetAbsorpPosParam();
+                if (absorpPosParam != null)
+                {
+                    if (index == 0)
+                        return absorpPosParam.Condition1;
+                    else if (index == 1)
+                        return absorpPosParam.Condition2;
+                    else if (index == 2)
+                        return absorpPosParam.Condition3;
+                    else if (index == 3)
+                        return absorpPosParam.Condition4;
+                }
+
+                return -1;
+            }
+
+
+            public WepAbsorpPosParam GetAbsorpPosParam()
+            {
+                if (ParamManager.WepAbsorpPosParam.ContainsKey(WepAbsorpPosID))
+                {
+                    return ParamManager.WepAbsorpPosParam[WepAbsorpPosID];
+                }
+
+                return null;
+            }
+
+            public int DS3_GetRightWeaponDummyPoly(NewChrAsm chrAsm, int modelIndex)
+            {
+                var ds3OverrideMeme = GameDataManager.GameType == GameDataManager.GameTypes.DS3
+                    ? chrAsm.GetDS3PairedWpnMemeKindR(modelIndex) : NewChrAsm.DS3PairedWpnMemeKind.None;
+
+                if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.PositionForFriedeScythe && chrAsm.IsRightWeaponFriedesScythe())
+                {
+                    return NewChrAsm.FRIEDE_SCYTHE_LH_DUMMYPOLY_ID;
+                }
+
+                if (ParamManager.WepAbsorpPosParam.ContainsKey(WepAbsorpPosID))
+                {
+                    var absorp = ParamManager.WepAbsorpPosParam[WepAbsorpPosID];
+
+                    // DS3 OVERRIDE MEME - SHARED L AND R 
+                    if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Left)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand1];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand3];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand5];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand7];
+                    }
+                    else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Right)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand0];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand2];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand4];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand6];
+                    }
+                    // DS3 OVERRIDE MEME - RIGHT SPECIFIC
+                    else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.BothHand)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand0];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand1];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand2];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand3];
+                    }
+                    else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.Sheath)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath1];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath3];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath5];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath7];
+                    }
+                    // REGULAR DS3 STUFF
+                    else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHand)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand0];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand2];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand4];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand6];
+                    }
+                    else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandL)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath1];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath3];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath5];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath7];
+                    }
+                    else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandR)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand0];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand1];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand2];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand3];
+                    }
+                }
+
+                return -1;
+            }
+
+            public int DS3_GetLeftWeaponDummyPoly(NewChrAsm chrAsm, int modelIndex)
+            {
+                var ds3OverrideMeme = GameDataManager.GameType == GameDataManager.GameTypes.DS3 
+                    ? chrAsm.GetDS3PairedWpnMemeKindL(modelIndex) : NewChrAsm.DS3PairedWpnMemeKind.None;
+
+                // Friede meme value actually does not work on left weapon.
+
+                if (ParamManager.WepAbsorpPosParam.ContainsKey(WepAbsorpPosID))
+                {
+                    var absorp = ParamManager.WepAbsorpPosParam[WepAbsorpPosID];
+
+                    // DS3 OVERRIDE MEME - SHARED L AND R 
+                    if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Left)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand1];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand3];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand5];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand7];
+                    }
+                    else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Right)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand0];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand2];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand4];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand6];
+                    }
+                    // DS3 OVERRIDE MEME - LEFT SPECIFIC
+                    else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.BothHand)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand4];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand5];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand6];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand7];
+                    }
+                    else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.Sheath)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath0];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath2];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath4];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath6];
+                    }
+                    // REGULAR DS3 STUFF
+                    else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHand)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand1];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand3];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand5];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand7];
+                    }
+                    else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandL)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand4];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand5];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand6];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand7];
+                    }
+                    else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandR)
+                    {
+                        if (modelIndex == 0)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath0];
+                        else if (modelIndex == 1)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath2];
+                        else if (modelIndex == 2)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath4];
+                        else if (modelIndex == 3)
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath6];
+                    }
+                }
+
+                return -1;
+            }
+
+            public int BB_GetRightWeaponDummyPoly(NewChrAsm chrAsm, int modelIndex)
+            {
+                if (modelIndex == 0)
+                {
+                    if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model0_RH_Sheath;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model0_RH_FormA;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model0_RH_FormB;
+                }
+                else if (modelIndex == 1)
+                {
+                    if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model1_RH_Sheath;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model1_RH_FormA;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model1_RH_FormB;
+                }
+                else if (modelIndex == 2)
+                {
+                    if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model2_RH_Sheath;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model2_RH_FormA;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model2_RH_FormB;
+                }
+                else if (modelIndex == 3)
+                {
+                    if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model3_RH_Sheath;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model3_RH_FormA;
+                    else if (chrAsm.BB_RightWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model3_RH_FormB;
+                }
+                return -1;
+            }
+
+            public int BB_GetLeftWeaponDummyPoly(NewChrAsm chrAsm, int modelIndex)
+            {
+                if (modelIndex == 0)
+                {
+                    if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model0_LH_Sheath;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model0_LH_FormA;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model0_LH_FormB;
+                }
+                else if (modelIndex == 1)
+                {
+                    if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model1_LH_Sheath;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model1_LH_FormA;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model1_LH_FormB;
+                }
+                else if (modelIndex == 2)
+                {
+                    if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model2_LH_Sheath;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model2_LH_FormA;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model2_LH_FormB;
+                }
+                else if (modelIndex == 3)
+                {
+                    if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.Sheathed)
+                        return BB_DummyPoly_Model3_LH_Sheath;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormA)
+                        return BB_DummyPoly_Model3_LH_FormA;
+                    else if (chrAsm.BB_LeftWeaponState == NewChrAsm.BB_WeaponState.FormB)
+                        return BB_DummyPoly_Model3_LH_FormB;
+                }
+                return -1;
+            }
+
+            public short BB_DummyPoly_Model0_RH_Sheath = -1;
+            public short BB_DummyPoly_Model0_RH_FormA = -1;
+            public short BB_DummyPoly_Model0_RH_FormB = -1;
+            public short BB_DummyPoly_Model0_LH_Sheath = -1;
+            public short BB_DummyPoly_Model0_LH_FormA = -1;
+            public short BB_DummyPoly_Model0_LH_FormB = -1;
+            public short BB_DummyPoly_Model1_RH_Sheath = -1;
+            public short BB_DummyPoly_Model1_RH_FormA = -1;
+            public short BB_DummyPoly_Model1_RH_FormB = -1;
+            public short BB_DummyPoly_Model1_LH_Sheath = -1;
+            public short BB_DummyPoly_Model1_LH_FormA = -1;
+            public short BB_DummyPoly_Model1_LH_FormB = -1;
+            public short BB_DummyPoly_Model2_RH_Sheath = -1;
+            public short BB_DummyPoly_Model2_RH_FormA = -1;
+            public short BB_DummyPoly_Model2_RH_FormB = -1;
+            public short BB_DummyPoly_Model2_LH_Sheath = -1;
+            public short BB_DummyPoly_Model2_LH_FormA = -1;
+            public short BB_DummyPoly_Model2_LH_FormB = -1;
+            public short BB_DummyPoly_Model3_RH_Sheath = -1;
+            public short BB_DummyPoly_Model3_RH_FormA = -1;
+            public short BB_DummyPoly_Model3_RH_FormB = -1;
+            public short BB_DummyPoly_Model3_LH_Sheath = -1;
+            public short BB_DummyPoly_Model3_LH_FormA = -1;
+            public short BB_DummyPoly_Model3_LH_FormB = -1;
+
             public bool IsPairedWeaponDS3 => GameDataManager.GameType == GameDataManager.GameTypes.DS3 
                 && (DS3PairedSpAtkCategories.Contains(SpAtkCategory) || (WepMotionCategory == 42)) // DS3 Fist weapons
                 ;
@@ -620,17 +1042,14 @@ namespace DSAnimStudio
             public string GetFullPartBndPath()
             {
                 var name = GetPartBndName();
-                var partsbndPath = $@"{GameDataManager.InterrootPath}\parts\{name}";
-
-                if (System.IO.File.Exists(partsbndPath + ".dcx"))
-                    partsbndPath = partsbndPath + ".dcx";
+                var partsbndPath = GameDataManager.GetInterrootPath($@"parts\{name}");
 
                 return partsbndPath;
             }
 
             public string GetPartBndName()
             {
-                return $"WP_A_{EquipModelID:D4}.partsbnd";
+                return $"WP_A_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
             }
 
             public static readonly int[] DS3PairedSpAtkCategories = new int[]
@@ -668,6 +1087,36 @@ namespace DSAnimStudio
                     SpAtkCategory = br.ReadInt16();
                 else
                     SpAtkCategory = br.ReadByte();
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                {
+                    br.Position = start + 0x107;
+                    BB_SheathType = br.ReadByte();
+                    BB_DummyPoly_Model0_RH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model0_RH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model0_RH_FormB = br.ReadInt16();
+                    BB_DummyPoly_Model0_LH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model0_LH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model0_LH_FormB = br.ReadInt16();
+                    BB_DummyPoly_Model1_RH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model1_RH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model1_RH_FormB = br.ReadInt16();
+                    BB_DummyPoly_Model1_LH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model1_LH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model1_LH_FormB = br.ReadInt16();
+                    BB_DummyPoly_Model2_RH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model2_RH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model2_RH_FormB = br.ReadInt16();
+                    BB_DummyPoly_Model2_LH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model2_LH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model2_LH_FormB = br.ReadInt16();
+                    BB_DummyPoly_Model3_RH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model3_RH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model3_RH_FormB = br.ReadInt16();
+                    BB_DummyPoly_Model3_LH_Sheath = br.ReadInt16();
+                    BB_DummyPoly_Model3_LH_FormA = br.ReadInt16();
+                    BB_DummyPoly_Model3_LH_FormB = br.ReadInt16();
+                }
 
                 if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
                     GameDataManager.GameType == GameDataManager.GameTypes.SDT)
@@ -721,10 +1170,7 @@ namespace DSAnimStudio
             public string GetFullPartBndPath(bool isFemale)
             {
                 var name = GetPartBndName(isFemale);
-                var partsbndPath = $@"{GameDataManager.InterrootPath}\parts\{name}";
-
-                if (System.IO.File.Exists(partsbndPath + ".dcx"))
-                    partsbndPath = partsbndPath + ".dcx";
+                var partsbndPath = GameDataManager.GetInterrootPath($@"parts\{name}");
 
                 return partsbndPath;
             }
@@ -738,14 +1184,15 @@ namespace DSAnimStudio
 
                 switch (EquipModelGender)
                 {
-                    case EquipModelGenders.Unisex: return $"{start}_A_{EquipModelID:D4}.partsbnd";
+                    case EquipModelGenders.Unisex: 
+                        return $"{start}_A_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
                     case EquipModelGenders.MaleOnly:
                     case EquipModelGenders.UseMaleForBoth:
-                        return $"{start}_M_{EquipModelID:D4}.partsbnd";
+                        return $"{start}_M_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
                     case EquipModelGenders.FemaleOnly:
-                        return $"{start}_F_{EquipModelID:D4}.partsbnd";
+                        return $"{start}_F_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
                     case EquipModelGenders.Both:
-                        return $"{start}_{(isFemale ? "F" : "M")}_{EquipModelID:D4}.partsbnd";
+                        return $"{start}_{(isFemale ? "F" : "M")}_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
                 }
 
                 return null;
@@ -839,6 +1286,11 @@ namespace DSAnimStudio
 
             public Dictionary<WepAbsorpPosType, ushort> AbsorpPos = new Dictionary<WepAbsorpPosType, ushort>();
 
+            public byte Condition1;
+            public byte Condition2;
+            public byte Condition3;
+            public byte Condition4;
+
             public override void Read(BinaryReaderEx br)
             {
                 AbsorpPos = new Dictionary<WepAbsorpPosType, ushort>();
@@ -869,7 +1321,10 @@ namespace DSAnimStudio
                 AbsorpPos.Add(WepAbsorpPosType.Sheath6, br.ReadUInt16());
                 AbsorpPos.Add(WepAbsorpPosType.Sheath7, br.ReadUInt16());
 
-                br.Position += 4;
+                Condition1 = br.ReadByte();
+                Condition2 = br.ReadByte();
+                Condition3 = br.ReadByte();
+                Condition4 = br.ReadByte();
 
                 AbsorpPos.Add(WepAbsorpPosType.BothHand4, br.ReadUInt16());
                 AbsorpPos.Add(WepAbsorpPosType.BothHand5, br.ReadUInt16());

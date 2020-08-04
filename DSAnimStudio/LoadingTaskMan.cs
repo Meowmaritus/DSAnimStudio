@@ -48,7 +48,7 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        ErrorHandler.Handle(ex, $"Fatal error encountered during background task '{TaskKey}'");
+                        ErrorLog.HandleException(ex, $"Fatal error encountered during background task '{TaskKey}'");
                     }
                     
                     // We don't check ProgressRatio to see if it's done, since
