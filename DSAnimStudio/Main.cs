@@ -75,6 +75,7 @@ namespace DSAnimStudio
         public static readonly Color SELECTED_MESH_COLOR = Color.Yellow * 0.05f;
         //public static readonly Color SELECTED_MESH_WIREFRAME_COLOR = Color.Yellow;
 
+        public static Texture2D WHITE_TEXTURE;
         public static Texture2D DEFAULT_TEXTURE_DIFFUSE;
         public static Texture2D DEFAULT_TEXTURE_SPECULAR;
         public static Texture2D DEFAULT_TEXTURE_NORMAL;
@@ -301,13 +302,16 @@ namespace DSAnimStudio
                 IsMouseVisible = true;
 
                 DEFAULT_TEXTURE_DIFFUSE = new Texture2D(GraphicsDevice, 1, 1);
-                DEFAULT_TEXTURE_DIFFUSE.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
+                DEFAULT_TEXTURE_DIFFUSE.SetData(new Color[] { new Color(0.5f, 0.5f, 0.5f) });
+
+                WHITE_TEXTURE = new Texture2D(GraphicsDevice, 1, 1);
+                WHITE_TEXTURE.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
 
                 DEFAULT_TEXTURE_SPECULAR = new Texture2D(GraphicsDevice, 1, 1);
-                DEFAULT_TEXTURE_SPECULAR.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
+                DEFAULT_TEXTURE_SPECULAR.SetData(new Color[] { new Color(0.0f, 0.0f, 0.0f) });
 
                 DEFAULT_TEXTURE_NORMAL = new Texture2D(GraphicsDevice, 1, 1);
-                DEFAULT_TEXTURE_NORMAL.SetData(new Color[] { new Color(0.5f, 0.5f, 1.0f) });
+                DEFAULT_TEXTURE_NORMAL.SetData(new Color[] { new Color(0.5f, 0.5f, 0.0f) });
 
                 DEFAULT_TEXTURE_EMISSIVE = new Texture2D(GraphicsDevice, 1, 1);
                 DEFAULT_TEXTURE_EMISSIVE.SetData(new Color[] { Color.Black });
@@ -569,6 +573,9 @@ namespace DSAnimStudio
                     GlobalInputState.Update();
 
                     DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+
+                    //GFX.FlverDitherTime += DELTA_UPDATE;
+                    //GFX.FlverDitherTime = GFX.FlverDitherTime % GFX.FlverDitherTimeMod;
 
                     if (!FIXED_TIME_STEP && GFX.AverageFPS >= 200)
                     {

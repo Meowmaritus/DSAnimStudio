@@ -31,7 +31,7 @@ namespace DSAnimStudio
 
         public BoundingBox Bounds;
 
-        public const int DRAW_MASK_LENGTH = 96;
+        public const int DRAW_MASK_LENGTH = 98;
 
         public bool[] DefaultDrawMask = new bool[DRAW_MASK_LENGTH];
         public bool[] DrawMask = new bool[DRAW_MASK_LENGTH];
@@ -113,6 +113,14 @@ namespace DSAnimStudio
             }
 
             return result;
+        }
+
+        public void ResetDrawMaskToAllVisible()
+        {
+            for (int i = 0; i < DRAW_MASK_LENGTH; i++)
+            {
+                DrawMask[i] = DefaultDrawMask[i] = true;
+            }
         }
 
         public void ResetDrawMaskToDefault()
@@ -387,21 +395,35 @@ namespace DSAnimStudio
             {
                 ChrAsm.RightWeaponModel0?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel0?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.RightWeaponModel0?.Skeleton?.DrawPrimitives();
+
                 ChrAsm.RightWeaponModel1?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel1?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.RightWeaponModel1?.Skeleton?.DrawPrimitives();
+
                 ChrAsm.RightWeaponModel2?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel2?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.RightWeaponModel2?.Skeleton?.DrawPrimitives();
+
                 ChrAsm.RightWeaponModel3?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel3?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.RightWeaponModel3?.Skeleton?.DrawPrimitives();
 
                 ChrAsm.LeftWeaponModel0?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel0?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.LeftWeaponModel0?.Skeleton?.DrawPrimitives();
+
                 ChrAsm.LeftWeaponModel1?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel1?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.LeftWeaponModel1?.Skeleton?.DrawPrimitives();
+
                 ChrAsm.LeftWeaponModel2?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel2?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.LeftWeaponModel2?.Skeleton?.DrawPrimitives();
+
                 ChrAsm.LeftWeaponModel3?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel3?.DbgPrimDrawer.DrawPrimitives();
+                ChrAsm.LeftWeaponModel3?.Skeleton?.DrawPrimitives();
             }
 
             Skeleton.DrawPrimitives();

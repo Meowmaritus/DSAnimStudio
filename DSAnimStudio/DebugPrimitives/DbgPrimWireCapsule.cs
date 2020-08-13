@@ -178,6 +178,10 @@ namespace DSAnimStudio.DebugPrimitives
             //Matrix hitboxMatrix = Matrix.CreateFromQuaternion(Quaternion.CreateFromAxisAngle(Vector3.Normalize(b - a), 0)) * Matrix.CreateTranslation(a);
 
             Transform = new Transform(hitboxMatrix);
+
+            HemisphereA.OverrideColor = OverrideColor;
+            HemisphereB.OverrideColor = OverrideColor;
+            Midst.OverrideColor = OverrideColor;
         }
 
         public DbgPrimWireCapsule(Color color)

@@ -467,9 +467,9 @@ namespace DSAnimStudio
                     return DBG.COLOR_DUMMY_POLY;
             }
 
-            public void DrawPrim(Matrix world)
+            public void DrawPrim(Matrix world, bool isForce)
             {
-                bool generalDummyPolyDraw = DBG.CategoryEnableDraw[DbgPrimCategory.DummyPoly];
+                bool generalDummyPolyDraw = DBG.CategoryEnableDraw[DbgPrimCategory.DummyPoly] || isForce;
 
                 bool hasSpawnStuff = !(SFXSpawnIDs.Count == 0 &&
                     BulletSpawnIDs.Count == 0 && MiscSpawnTexts.Count == 0);
@@ -483,40 +483,40 @@ namespace DSAnimStudio
 
                 Matrix unscaledCurrentMatrix = Matrix.CreateFromQuaternion(currentRot) * Matrix.CreateTranslation(currentPos);
 
-                if (hasSpawnStuff)
+                if (hasSpawnStuff && !isForce)
                 {
                     ArrowPrimitive.OverrideColor = GetCurrentSpawnColor();
 
                     ArrowPrimitive.Draw(null, Matrix.CreateScale(0.4f) * unscaledCurrentMatrix * world);
                 }
-
-                if (generalDummyPolyDraw)
+                else if (generalDummyPolyDraw)
                 {
                     ArrowPrimitive.OverrideColor = DBG.COLOR_DUMMY_POLY;
-                    ArrowPrimitive.Draw(null, Matrix.CreateScale(0.2f) * unscaledCurrentMatrix * world);
+                    ArrowPrimitive.Draw(null, Matrix.CreateScale(isForce ? 0.4f : 0.2f) * unscaledCurrentMatrix * world);
                 }
             }
 
-            public void DrawPrimText(Matrix world)
+            public void DrawPrimText(Matrix world, bool isForce, int globalIDOffset)
             {
-                if (DisableTextDraw)
+                if (DisableTextDraw && !isForce)
                     return;
 
                 SpawnPrinter.Clear();
 
                 bool hasSpawnStuff = !(SFXSpawnIDs.Count == 0 && BulletSpawnIDs.Count == 0 && MiscSpawnTexts.Count == 0);
 
-                string dmyIDTxt = (ReferenceID == 200) ? $"[{ReferenceID} (All Over Body)]" : $"[{ReferenceID}]";
+                //string dmyIDTxt = (ReferenceID == 200) ? $"[{ReferenceID} (All Over Body)]" : $"[{ReferenceID}]";
+                string dmyIDTxt = $"{(ReferenceID + globalIDOffset)}";
 
-                if (hasSpawnStuff)
+                if (hasSpawnStuff && !isForce)
                     SpawnPrinter.AppendLine(dmyIDTxt, GetCurrentSpawnColor() * 2);
-                else if (DBG.CategoryEnableNameDraw[DbgPrimCategory.DummyPoly])
+                else if (DBG.CategoryEnableNameDraw[DbgPrimCategory.DummyPoly] || isForce)
                     SpawnPrinter.AppendLine(dmyIDTxt, DBG.COLOR_DUMMY_POLY * 3);
                 
 
                 Vector3 currentPos = Vector3.Transform(Vector3.Zero, CurrentMatrix * world);
 
-                if (hasSpawnStuff)
+                if (hasSpawnStuff && !isForce)
                 {
                     foreach (var sfx in SFXSpawnIDs)
                     {
@@ -534,7 +534,7 @@ namespace DSAnimStudio
                     }
                 }
 
-                if (ShowAttack != null)
+                if (ShowAttack != null && !isForce)
                 {
                     string atkName = ShowAttack.Name;
                     if (!string.IsNullOrWhiteSpace(atkName) && atkName.Length > 32)
@@ -559,6 +559,8 @@ namespace DSAnimStudio
         private Queue<ParamData.AtkParam.Hit> VisibleHitsToHideForHideAll = new Queue<ParamData.AtkParam.Hit>();
 
         private List<DummyPolyInfo> DummyPoly = new List<DummyPolyInfo>();
+
+        private Dictionary<int, bool> _dummyPolyVisibleByRefID = new Dictionary<int, bool>();
 
         private Dictionary<int, List<DummyPolyInfo>> _dummyPolyByRefID = new Dictionary<int, List<DummyPolyInfo>>();
         private Dictionary<int, List<DummyPolyInfo>> _dummyPolyByBoneID = new Dictionary<int, List<DummyPolyInfo>>();
@@ -683,6 +685,8 @@ namespace DSAnimStudio
                 var dmyA = hit.GetDmyPoly1Locations(MODEL, hit.DummyPolySourceSpawnedOn);
                 var dmyB = hit.GetDmyPoly2Locations(MODEL, hit.DummyPolySourceSpawnedOn);
 
+                
+
                 if (hit.IsCapsule)
                 {
                     ((DbgPrimWireCapsule)HitPrims[hit][0]).UpdateCapsuleEndPoints(Vector3.Transform(Vector3.Zero, dmyA[0]), Vector3.Transform(Vector3.Zero, dmyB[0]), hit.Radius);
@@ -701,6 +705,11 @@ namespace DSAnimStudio
                         HitPrims[hit][i].Transform = new Transform(Matrix.CreateScale(hit.Radius) * rm * tm);
                     }
                    
+                }
+
+                for (int i = 0; i < HitPrims[hit].Count; i++)
+                {
+                    HitPrims[hit][i].OverrideColor = hit.GetColor();
                 }
             }
          
@@ -735,17 +744,21 @@ namespace DSAnimStudio
         {
             lock (_lock_everything_monkaS)
             {
-                foreach (var kvp in HitPrims)
+                if (GlobalForceDummyPolyIDVisible < 0)
                 {
-                    foreach (var prim in kvp.Value)
+                    foreach (var kvp in HitPrims)
                     {
-                        prim.Draw(null, MODEL.CurrentTransform.WorldMatrix);
+                        foreach (var prim in kvp.Value)
+                        {
+                            prim.Draw(null, MODEL.CurrentTransform.WorldMatrix);
+                        }
                     }
                 }
 
                 foreach (var dmy in DummyPoly)
                 {
-                    dmy.DrawPrim(MODEL.CurrentTransform.WorldMatrix);
+                    if ((GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) && DummyPolyVisibleByRefID[dmy.ReferenceID]) || GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID))
+                        dmy.DrawPrim(MODEL.CurrentTransform.WorldMatrix, GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID));
                 }
             }
 
@@ -757,7 +770,8 @@ namespace DSAnimStudio
             {
                 foreach (var dmy in DummyPoly)
                 {
-                    dmy.DrawPrimText(MODEL.CurrentTransform.WorldMatrix);
+                    if ((GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) && DummyPolyVisibleByRefID[dmy.ReferenceID]) || GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID))
+                        dmy.DrawPrimText(MODEL.CurrentTransform.WorldMatrix, GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID), ShowGlobalIDOffset ? GlobalDummyPolyIDOffset : 0);
                 }
             }
 
@@ -912,6 +926,21 @@ namespace DSAnimStudio
             
         }
 
+        public static int GlobalForceDummyPolyIDVisible = -1;
+        public static bool ShowGlobalIDOffset = true;
+
+        public int GlobalDummyPolyIDOffset = 0;
+
+        public string GlobalDummyPolyIDPrefix = "Body - ";
+
+        public void SetDummyPolyVisibility(int id, bool visible)
+        {
+            if (!_dummyPolyVisibleByRefID.ContainsKey(id))
+                _dummyPolyVisibleByRefID.Add(id, visible);
+            else
+                _dummyPolyVisibleByRefID[id] = visible;
+        }
+        public IReadOnlyDictionary<int, bool> DummyPolyVisibleByRefID => _dummyPolyVisibleByRefID;
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByRefID => _dummyPolyByRefID;
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_AttachBone => _dummyPolyByBoneID;
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_ReferenceBone => _dummyPolyByBoneID_Ref;
@@ -980,6 +1009,9 @@ namespace DSAnimStudio
                 if (!_dummyPolyByRefID.ContainsKey(dmy.ReferenceID))
                     _dummyPolyByRefID.Add(dmy.ReferenceID, new List<DummyPolyInfo>());
 
+                if (!_dummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID))
+                    _dummyPolyVisibleByRefID.Add(dmy.ReferenceID, true);
+
                 if (!_dummyPolyByRefID[dmy.ReferenceID].Contains(di))
                     _dummyPolyByRefID[dmy.ReferenceID].Add(di);
 
@@ -1046,13 +1078,15 @@ namespace DSAnimStudio
             foreach (var d in flver.Dummies)
                 AddDummyPoly(d);
 
-            if (DummyPolyByRefID.ContainsKey(200))
-            {
-                for (int i = 0; i < DummyPolyByRefID[200].Count; i++)
-                {
-                    DummyPolyByRefID[200][i].DisableTextDraw = i > 0;
-                }
-            }
+            //if (DummyPolyByRefID.ContainsKey(200))
+            //{
+            //    for (int i = 0; i < DummyPolyByRefID[200].Count; i++)
+            //    {
+            //        DummyPolyByRefID[200][i].DisableTextDraw = i > 0;
+            //    }
+            //}
+
+            _dummyPolyByRefID = _dummyPolyByRefID.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
         public NewDummyPolyManager(Model mdl)

@@ -37,6 +37,8 @@ namespace DSAnimStudio
         public static Dictionary<DbgPrimCategory, bool> CategoryEnableDbgLabelDraw = new Dictionary<DbgPrimCategory, bool>();
         public static Dictionary<DbgPrimCategory, bool> CategoryEnableNameDraw = new Dictionary<DbgPrimCategory, bool>();
 
+        public static Texture2D UV_CHECK_TEX { get; private set; }
+        static string UV_CHECK_TEX_NAME => $@"{Main.Directory}\Content\UVCheck";
         public static SpriteFont DEBUG_FONT { get; private set; }
         static string DEBUG_FONT_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFont";
 
@@ -91,6 +93,10 @@ namespace DSAnimStudio
                 CategoryEnableNameDraw.Add(c, false);
             }
 
+            CategoryEnableDraw[DbgPrimCategory.FlverBone] = true;
+
+            DbgPrimXRay = true;
+
             CategoryEnableDraw[DbgPrimCategory.DummyPolyHelper] = true;
 
             CategoryEnableDraw[DbgPrimCategory.DummyPolySpawnArrow] = true;
@@ -106,20 +112,20 @@ namespace DSAnimStudio
 
         public static bool DbgPrimXRay = false;
 
-        public static Color COLOR_FLVER_BONE = Color.Cyan;
-        public static string COLOR_FLVER_BONE_NAME = "Cyan";
+        public static Color COLOR_FLVER_BONE = Color.Yellow;
+        public static string COLOR_FLVER_BONE_NAME = "Yellow";
 
-        public static Color COLOR_HKX_BONE = Color.Yellow;
-        public static string COLOR_HKX_BONE_NAME = "Yellow";
+        public static Color COLOR_HKX_BONE = Color.Aqua;
+        public static string COLOR_HKX_BONE_NAME = "Aqua";
 
-        public static Color COLOR_FLVER_BONE_BBOX = Color.Cyan;
-        public static string COLOR_FLVER_BONE_BBOX_NAME = "Cyan";
+        public static Color COLOR_FLVER_BONE_BBOX = Color.Lime;
+        public static string COLOR_FLVER_BONE_BBOX_NAME = "Lime";
 
         public static Color COLOR_DUMMY_POLY = Color.MonoGameOrange;
         public static string COLOR_DUMMY_POLY_NAME = "Orange";
 
-        public static Color COLOR_SOUND_EVENT = Color.Lime;
-        public static string COLOR_SOUND_EVENT_NAME = "Lime";
+        public static Color COLOR_SOUND_EVENT = Color.Red;
+        public static string COLOR_SOUND_EVENT_NAME = "Red";
 
         private static object _lock_primitives = new object();
 
@@ -154,11 +160,14 @@ namespace DSAnimStudio
             }
         }
 
+        public static string[] ImguiDummyPolyToggleList = new string[] { };
+        public static int ImguiDummyPolyToggleListIndex = -1;
+
         public static void CreateDebugPrimitives()
         {
             // This is the green grid, which is just hardcoded lel
-            DbgPrim_Grid = new DbgPrimWireGrid(new Color(32, 112, 39), new Color(32, 112, 39), 100, 1);
-            //DbgPrim_Grid.OverrideColor = new Color(32, 112, 39);
+            DbgPrim_Grid = new DbgPrimWireGrid(new Color(127, 127, 127), new Color(127, 127, 127), 100, 1);
+            DbgPrim_Grid.OverrideColor = new Color(32, 112, 39);
             //DbgPrim_Grid.OverrideColor = Color.Green;
             DbgPrim_Skybox = new DbgPrimSkybox();
 
@@ -300,6 +309,8 @@ namespace DSAnimStudio
 
         public static void LoadContent(ContentManager c)
         {
+            UV_CHECK_TEX = c.Load<Texture2D>(UV_CHECK_TEX_NAME);
+
             DEBUG_FONT = c.Load<SpriteFont>(DEBUG_FONT_NAME);
             DEBUG_FONT_SMALL = c.Load<SpriteFont>(DEBUG_FONT_SMALL_NAME);
             DEBUG_FONT_VERY_SMALL = c.Load<SpriteFont>(DEBUG_FONT_VERY_SMALL_NAME);

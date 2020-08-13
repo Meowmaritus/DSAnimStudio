@@ -209,7 +209,7 @@ namespace DSAnimStudio.TaeEditor
                         CheckPathExists = true,
                         //ShowReadOnly = true,
                         Title = "Choose where to save loose TAE file.",
-                        
+
                     };
 
                     var decision = browseDlg.ShowDialog();
@@ -223,7 +223,7 @@ namespace DSAnimStudio.TaeEditor
                         }
                         catch (Exception exc)
                         {
-                            System.Windows.Forms.MessageBox.Show($"Error saving TAE file:\n\n{exc}", "Failed to Save", 
+                            System.Windows.Forms.MessageBox.Show($"Error saving TAE file:\n\n{exc}", "Failed to Save",
                                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                         }
                     }
@@ -236,6 +236,18 @@ namespace DSAnimStudio.TaeEditor
 
 
             }, startDisabled: true, closeOnClick: true, getEnabled: () => SelectedTae != null);
+
+
+            MenuBar.AddItem("[DEBUG]", "Load c5010", () =>
+            {
+                LoadingTaskMan.DoLoadingTask("Debug_Load_c5010", "[Debug] Loading c5010", prog =>
+                {
+                    var c5010 = GameDataManager.LoadCharacter("c5010");
+                    c5010.CurrentTransform = c5010.StartTransform = new Transform(Matrix.CreateTranslation(3, 0, 0));
+                    Scene.AddModel(c5010);
+                });
+                
+            });
 
             //MenuBar.AddItem("Tools", "TEST: Convert SplineCompressed to InterleavedUncompressed", () =>
             //{
@@ -3288,7 +3300,7 @@ namespace DSAnimStudio.TaeEditor
             PlaybackCursor.IsStepping = true;
 
             PlaybackCursor.CurrentTime += PlaybackCursor.CurrentSnapInterval;
-            PlaybackCursor.CurrentTime = Math.Round(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
+            PlaybackCursor.CurrentTime = Math.Floor(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
 
             if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime)
                 PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
@@ -3304,7 +3316,7 @@ namespace DSAnimStudio.TaeEditor
             PlaybackCursor.IsStepping = true;
 
             PlaybackCursor.CurrentTime -= PlaybackCursor.CurrentSnapInterval;
-            PlaybackCursor.CurrentTime = Math.Round(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
+            PlaybackCursor.CurrentTime = Math.Floor(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
 
             if (PlaybackCursor.CurrentTime < 0)
                 PlaybackCursor.CurrentTime += PlaybackCursor.MaxTime;
@@ -3559,6 +3571,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (NextAnimRepeaterButton.State)
                 {
+                    Graph?.ViewportInteractor?.CancelCombo();
                     NextAnim(Input.ShiftHeld, Input.CtrlHeld);
                 }
 
@@ -3566,6 +3579,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (PrevAnimRepeaterButton.State)
                 {
+                    Graph?.ViewportInteractor?.CancelCombo();
                     PrevAnim(Input.ShiftHeld, Input.CtrlHeld);
                 }
 

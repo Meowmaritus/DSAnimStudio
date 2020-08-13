@@ -213,11 +213,13 @@ namespace DSAnimStudio.DebugPrimitives
                     {
                         solid.VertexColorEnabled = false;
                         solid.DiffuseColor = overrideColor;
+                        solid.Alpha = OverrideColor.Value.A / 255f;
                     }
                     else if (Shader is DbgPrimWireShader wire)
                     {
                         wire.VertexColorEnabled = false;
-                        wire.DiffuseColor = overrideColor * 5;
+                        wire.DiffuseColor = overrideColor;
+                        wire.Alpha = OverrideColor.Value.A / 255f;
                     }
                 }
                 else
@@ -225,12 +227,14 @@ namespace DSAnimStudio.DebugPrimitives
                     if (Shader is DbgPrimSolidShader solid)
                     {
                         solid.VertexColorEnabled = true;
-                        solid.DiffuseColor = Vector3.One * 2;
+                        solid.DiffuseColor = Vector3.One;
+                        solid.Alpha = 1;
                     }
                     else if (Shader is DbgPrimWireShader wire)
                     {
                         wire.VertexColorEnabled = true;
-                        wire.DiffuseColor = Vector3.One * 2;
+                        wire.DiffuseColor = Vector3.One;
+                        wire.Alpha = 1;
                     }
                 }
             }

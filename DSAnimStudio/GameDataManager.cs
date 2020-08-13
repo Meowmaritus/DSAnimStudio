@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Microsoft.Xna.Framework;
 
 namespace DSAnimStudio
 {
@@ -154,7 +155,7 @@ namespace DSAnimStudio
             lastGameType = GameType;
         }
 
-        public static string LookupMTDTexture(string mtdName, string texType)
+        public static (string Path, Vector2 UVScale) LookupMTDTexture(string mtdName, string texType)
         {
             LoadSystex();
             var mtdShortName = Utils.GetShortIngameFileName(mtdName);
@@ -166,12 +167,17 @@ namespace DSAnimStudio
                 {
                     if (x.Type.ToUpper() == texType.ToUpper())
                     {
-                        return x.Path;
+                        Vector2 uvScale = Vector2.One;
+                        if (x.UnkFloats.Count == 2 && x.UnkFloats[0] > 0 && x.UnkFloats[1] > 0)
+                        {
+                            uvScale = new Vector2(x.UnkFloats[0], x.UnkFloats[1]);
+                        }
+                        return (x.Path, uvScale);
                     }
                 }
             }
 
-            return null;
+            return (null, Vector2.One);
         }
 
         public static void ReloadAllData()
@@ -258,6 +264,7 @@ namespace DSAnimStudio
                         GetInterrootPath($@"other\bloodtex.tpf.dcx"),
                         GetInterrootPath($@"other\decaltex.tpf.dcx"),
                         GetInterrootPath($@"other\sysenvtex.tpf.dcx"),
+                        GetInterrootPath($@"parts\common_body.tpf.dcx"),
                     }, progress);
                 }
                 else if (GameType == GameTypes.BB)

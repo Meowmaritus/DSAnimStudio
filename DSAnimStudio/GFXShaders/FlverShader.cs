@@ -20,10 +20,34 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(WorkflowType)].SetValue((int)value);
         }
 
+        //public float DitherTime
+        //{
+        //    get => Parameters[nameof(DitherTime)].GetValueSingle();
+        //    set => Parameters[nameof(DitherTime)].SetValue(value);
+        //}
+
         public bool DisableAlpha
         {
             get => Parameters[nameof(DisableAlpha)].GetValueBoolean();
             set => Parameters[nameof(DisableAlpha)].SetValue(value);
+        }
+
+        public bool FancyAlpha_Enable
+        {
+            get => Parameters[nameof(FancyAlpha_Enable)].GetValueBoolean();
+            set => Parameters[nameof(FancyAlpha_Enable)].SetValue(value);
+        }
+
+        public bool FancyAlpha_IsEdgeStep
+        {
+            get => Parameters[nameof(FancyAlpha_IsEdgeStep)].GetValueBoolean();
+            set => Parameters[nameof(FancyAlpha_IsEdgeStep)].SetValue(value);
+        }
+
+        public float FancyAlpha_EdgeCutoff
+        {
+            get => Parameters[nameof(FancyAlpha_EdgeCutoff)].GetValueSingle();
+            set => Parameters[nameof(FancyAlpha_EdgeCutoff)].SetValue(value);
         }
 
         public bool EnableBlendTextures
@@ -36,6 +60,12 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(EnableBlendMaskMap)].GetValueBoolean();
             set => Parameters[nameof(EnableBlendMaskMap)].SetValue(value);
+        }
+
+        public bool IsDoubleFaceCloth
+        {
+            get => Parameters[nameof(IsDoubleFaceCloth)].GetValueBoolean();
+            set => Parameters[nameof(IsDoubleFaceCloth)].SetValue(value);
         }
 
         public Vector3 LightDirection
@@ -219,10 +249,16 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(SpecularMap2)]?.SetValue(value);
         }
 
-        public Texture2D SpecularMapBB
+        public Texture2D ShininessMap
         {
-            get => Parameters[nameof(SpecularMapBB)].GetValueTexture2D();
-            set => Parameters[nameof(SpecularMapBB)]?.SetValue(value);
+            get => Parameters[nameof(ShininessMap)].GetValueTexture2D();
+            set => Parameters[nameof(ShininessMap)]?.SetValue(value);
+        }
+
+        public Texture2D ShininessMap2
+        {
+            get => Parameters[nameof(ShininessMap2)].GetValueTexture2D();
+            set => Parameters[nameof(ShininessMap2)]?.SetValue(value);
         }
 
         public Texture2D EmissiveMap
@@ -243,6 +279,11 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(EnvironmentMap)]?.SetValue(value);
         }
 
+        public Texture2D UVCheckMap
+        {
+            get => Parameters[nameof(UVCheckMap)].GetValueTexture2D();
+            set => Parameters[nameof(UVCheckMap)]?.SetValue(value);
+        }
 
         public Vector2 ColorMapScale
         {
@@ -280,10 +321,16 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(SpecularMapScale2)]?.SetValue(value);
         }
 
-        public Vector2 SpecularMapScaleBB
+        public Vector2 ShininessMapScale
         {
-            get => Parameters[nameof(SpecularMapScaleBB)].GetValueVector2();
-            set => Parameters[nameof(SpecularMapScaleBB)]?.SetValue(value);
+            get => Parameters[nameof(ShininessMapScale)].GetValueVector2();
+            set => Parameters[nameof(ShininessMapScale)]?.SetValue(value);
+        }
+
+        public Vector2 ShininessMapScale2
+        {
+            get => Parameters[nameof(ShininessMapScale2)].GetValueVector2();
+            set => Parameters[nameof(ShininessMapScale2)]?.SetValue(value);
         }
 
         public Vector2 EmissiveMapScale
