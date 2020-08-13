@@ -1,4 +1,11 @@
-﻿#if OPENGL
+/*
+    Note: While making v2.4 this source file got corrupted. The compiled shader has new features
+    which are not in this v2.3 source file. I need to redo the new features from scratch if I am to make new additions.
+    For now I am going to leave it as-is.
+*/
+
+
+#if OPENGL
 	#define SV_POSITION POSITION
 	#define VS_SHADERMODEL vs_3_0
 	#define PS_SHADERMODEL ps_3_0
@@ -916,4 +923,3 @@ technique BasicColorDrawing
 		PixelShader = compile PS_SHADERMODEL MainPS();
 	}
 };
-

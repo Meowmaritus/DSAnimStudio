@@ -14,6 +14,8 @@ namespace DSAnimStudio
 
         public static bool RequestExpandAllTreeNodes = true;
 
+        public static bool DummyPolyListOpen = false;
+
         public static bool RenderConfigOpen = false;
         public static bool Focused;
 
@@ -30,6 +32,13 @@ namespace DSAnimStudio
         private static string prevHoverIDKey = null;
 
         private static string desiredTooltipText = null;
+
+        public static bool EnableDebugMenu = true;
+
+        public const int DefaultItemWidth = 128;
+
+        private static bool IsFirstFrameCaptureDefaultValue = true;
+        private static Dictionary<string, Action> DefaultColorValueActions = new Dictionary<string, Action>();
 
         //private static Dictionary<string, string> tooltipTexts = new Dictionary<string, string>();
 
@@ -52,6 +61,81 @@ namespace DSAnimStudio
                 //    tooltipTexts[idKey] = text;
                 hoveringOverAnythingThisFrame = true;
             }
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // DEBUG STUFF
+        ////////////////////////////////////////////////////////////////////////////////
+
+        public static System.Numerics.Vector4 DEBUG_ColorA = new System.Numerics.Vector4(32 / 255f, 112 / 255f, 39 / 255f, 1);
+
+        //////////////////////////////////////////////////////////////////////////////// 
+        ////////////////////////////////////////////////////////////////////////////////
+
+        private static string CurrentColorEditorOpen = "";
+        private static void HandleColor(string name, Color color, Action<Color> setColor)
+        {
+            if (IsFirstFrameCaptureDefaultValue)
+            {
+                var copyOfColor = color;
+                if (!DefaultColorValueActions.ContainsKey(name))
+                    DefaultColorValueActions.Add(name, () => setColor(copyOfColor));
+            }
+
+            System.Numerics.Vector4 c = new System.Numerics.Vector4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+
+            //ImGui.ColorEdit4(name, ref c);
+
+            float colorLightness = (0.3086f * c.X + 0.6094f * c.Y + 0.0820f * c.Z) * c.W;
+
+            if (colorLightness > 0.5f)
+                ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(0, 0, 0, 1));
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 1, 1, 1));
+
+            ImGui.PushStyleColor(ImGuiCol.Button, c);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, c * 1.25f);
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, c * 0.75f);
+            ImGui.Button(name);
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            if (ImGui.IsItemClicked())
+            {
+                if (CurrentColorEditorOpen == name)
+                {
+                    CurrentColorEditorOpen = "";
+                }
+                else
+                {
+                    CurrentColorEditorOpen = name;
+                }
+            }
+            
+
+            //ImGui.ColorButton(name, c);
+
+            if (CurrentColorEditorOpen == name)
+            {
+                ImGui.ColorPicker4(name, ref c);
+                ImGui.Separator();
+            }
+
+            //if (ImGui.IsItemClicked())
+            //{
+            //    if (CurrentColorEditorOpen == name)
+            //    {
+            //        CurrentColorEditorOpen = "";
+            //    }
+            //    else
+            //    {
+            //        CurrentColorEditorOpen = name;
+            //    }
+
+            //}
+
+            setColor(new Color(c.X, c.Y, c.Z, c.W));
         }
 
         public static void Build(float elapsedTime, float offsetX, float offsetY)
@@ -80,23 +164,267 @@ namespace DSAnimStudio
                 ImGui.SetWindowPos(new System.Numerics.Vector2(x, y));
                 ImGui.SetWindowSize(new System.Numerics.Vector2(w, h));
 
-                //ImGui.LabelText("", "LIGHTING");
+                ImGui.PushItemWidth(DefaultItemWidth);
 
-                //ImGui.Button("Manually Save Config");
-
-                //if (ImGui.IsItemClicked())
-                //{
+                if (EnableDebugMenu)
+                {
                     
-                //}
 
-                //ImGui.Separator();
+                    //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value);
+
+                    if (RequestExpandAllTreeNodes)
+                        ImGui.SetNextItemOpen(true);
+
+                    if (ImGui.TreeNode("[DEBUG]"))
+                    {
+                        //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value);
+                        //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color 2", DBG.DbgPrim_Grid.OverrideColor.Value);
+                        //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color 3", DBG.DbgPrim_Grid.OverrideColor.Value);
+
+                        ImGui.TreePop();
+                    }
+                }
 
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
 
-                if (ImGui.TreeNode("LIGHTING"))
+                if (ImGui.TreeNode("[Colors]"))
                 {
-                    ImGui.PushItemWidth(128);
+                    HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value, c => DBG.DbgPrim_Grid.OverrideColor = c);
+                    HandleColor("Hitbox Color - Root", ParamData.AtkParam.Hit.ColorRoot, c => ParamData.AtkParam.Hit.ColorRoot = c);
+                    HandleColor("Hitbox Color - Middle", ParamData.AtkParam.Hit.ColorMiddle, c => ParamData.AtkParam.Hit.ColorMiddle = c);
+                    HandleColor("Hitbox Color - Tip", ParamData.AtkParam.Hit.ColorTip, c => ParamData.AtkParam.Hit.ColorTip = c);
+
+                    ImGui.Button("Reset All Colors");
+                    if (ImGui.IsItemClicked())
+                    {
+                        foreach (var kvp in DefaultColorValueActions)
+                        {
+                            kvp.Value.Invoke();
+                        }
+                    }
+
+                    ImGui.TreePop();
+                }
+
+                if (Scene.Models.Count > 0 && Scene.Models[0].ChrAsm != null)
+                {
+                    if (RequestExpandAllTreeNodes)
+                        ImGui.SetNextItemOpen(true);
+
+                    if (ImGui.TreeNode("[c0000 Parts Animations]"))
+                    {
+                        void DoWeapon(NewAnimationContainer wpnAnimContainer, string nameStr)
+                        {
+                            if (wpnAnimContainer == null)
+                                return;
+
+                            string[] animNames = wpnAnimContainer.Animations.Keys.ToArray();
+                            int curItem = wpnAnimContainer.CurrentAnimationName == null ? -1 : animNames.ToList().IndexOf(wpnAnimContainer.CurrentAnimationName);
+                            int prevSelItem = curItem;
+                            ImGui.ListBox(nameStr, ref curItem, animNames, animNames.Length);
+                            if (curItem != prevSelItem)
+                            {
+                                wpnAnimContainer.CurrentAnimationName = curItem >= 0 ? animNames[curItem] : null;
+                            }
+                        }
+                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel0?.AnimContainer, "R WPN Model 0");
+                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel1?.AnimContainer, "R WPN Model 1");
+                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel2?.AnimContainer, "R WPN Model 2");
+                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel3?.AnimContainer, "R WPN Model 3");
+                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.AnimContainer, "L WPN Model 0");
+                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.AnimContainer, "L WPN Model 1");
+                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.AnimContainer, "L WPN Model 2");
+                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.AnimContainer, "L WPN Model 3");
+                        ImGui.TreePop();
+                    }
+                }
+
+                
+
+                if (RequestExpandAllTreeNodes)
+                    ImGui.SetNextItemOpen(true);
+
+                if (ImGui.TreeNode("[DummyPoly]"))
+                {
+
+                    lock (Scene._lock_ModelLoad_Draw)
+                    {
+                        if (Scene.Models.Count > 0 && Scene.Models[0].DummyPolyMan != null)
+                        {
+                            bool wasAnyDmyForceVis = false;
+
+                            void DoDummyPolyManager(NewDummyPolyManager dmyPolyMan, string dmyPolyGroupName)
+                            {
+                                if (dmyPolyMan == null)
+                                    return;
+
+                                if (RequestExpandAllTreeNodes)
+                                    ImGui.SetNextItemOpen(true);
+
+                                if (ImGui.TreeNode(dmyPolyGroupName))
+                                {
+                                    foreach (var kvp in dmyPolyMan.DummyPolyByRefID)
+                                    {
+                                        if (dmyPolyMan.DummyPolyVisibleByRefID.ContainsKey(kvp.Key))
+                                        {
+                                            bool dmyVis = dmyPolyMan.DummyPolyVisibleByRefID[kvp.Key];
+
+                                            bool highlightColor = NewDummyPolyManager.GlobalForceDummyPolyIDVisible == (dmyPolyMan.GlobalDummyPolyIDOffset + kvp.Key);
+
+                                            if (highlightColor)
+                                            {
+                                                ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0, 1, 1, 1));
+                                            }
+
+
+                                            //ImGui.Checkbox($"{kvp.Key} ({kvp.Value.Count}x)                                       ", ref dmyVis);
+
+                                            ImGui.Selectable($"{dmyPolyMan.GlobalDummyPolyIDPrefix}{kvp.Key} ({kvp.Value.Count}x)                                       ", ref dmyVis);
+
+                                            dmyPolyMan.SetDummyPolyVisibility(kvp.Key, dmyVis);
+                                            if (!wasAnyDmyForceVis && ImGui.IsItemHovered())
+                                            {
+                                                wasAnyDmyForceVis = true;
+                                                NewDummyPolyManager.GlobalForceDummyPolyIDVisible = (dmyPolyMan.GlobalDummyPolyIDOffset + kvp.Key);
+                                            }
+
+                                            if (highlightColor)
+                                                ImGui.PopStyleColor();
+                                        }
+                                    }
+
+                                    ImGui.Button($"{dmyPolyMan.GlobalDummyPolyIDPrefix}Show All");
+                                    if (ImGui.IsItemClicked())
+                                    {
+                                        foreach (var kvp in dmyPolyMan.DummyPolyByRefID)
+                                        {
+                                            dmyPolyMan.SetDummyPolyVisibility(kvp.Key, true);
+                                        }
+                                    }
+
+                                    ImGui.Button($"{dmyPolyMan.GlobalDummyPolyIDPrefix}Hide All");
+                                    if (ImGui.IsItemClicked())
+                                    {
+                                        foreach (var kvp in dmyPolyMan.DummyPolyByRefID)
+                                        {
+                                            dmyPolyMan.SetDummyPolyVisibility(kvp.Key, false);
+                                        }
+                                    }
+
+                                    ImGui.Button($"{dmyPolyMan.GlobalDummyPolyIDPrefix}Invert All");
+                                    if (ImGui.IsItemClicked())
+                                    {
+                                        foreach (var kvp in dmyPolyMan.DummyPolyByRefID)
+                                        {
+                                            dmyPolyMan.SetDummyPolyVisibility(kvp.Key, !dmyPolyMan.DummyPolyVisibleByRefID[kvp.Key]);
+                                        }
+                                    }
+
+                                    ImGui.TreePop();
+                                }
+
+                                ImGui.Separator();
+                            }
+
+                            DoDummyPolyManager(Scene.Models[0].DummyPolyMan, "Body");
+
+                            if (Scene.Models[0].ChrAsm != null)
+                            {
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan, "Right Weapon Model 0");
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan, "Right Weapon Model 1");
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan, "Right Weapon Model 2");
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan, "Right Weapon Model 3");
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan, "Left Weapon Model 0");
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan, "Left Weapon Model 1");
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan, "Left Weapon Model 2");
+                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan, "Left Weapon Model 3");
+                            }
+
+                            if (!wasAnyDmyForceVis)
+                            {
+                                NewDummyPolyManager.GlobalForceDummyPolyIDVisible = -1;
+                            }
+
+                            //ImGui.Separator();
+
+                            void DummyOperationShowAll(NewDummyPolyManager dmyPolyMan)
+                            {
+                                if (dmyPolyMan == null)
+                                    return;
+                                foreach (var kvp in dmyPolyMan.DummyPolyByRefID)
+                                    dmyPolyMan.SetDummyPolyVisibility(kvp.Key, true);
+                            }
+
+                            void DummyOperationHideAll(NewDummyPolyManager dmyPolyMan)
+                            {
+                                if (dmyPolyMan == null)
+                                    return;
+                                foreach (var kvp in dmyPolyMan.DummyPolyByRefID)
+                                    dmyPolyMan.SetDummyPolyVisibility(kvp.Key, false);
+                            }
+
+                            void DummyOperationInvertAll(NewDummyPolyManager dmyPolyMan)
+                            {
+                                if (dmyPolyMan == null)
+                                    return;
+                                foreach (var kvp in dmyPolyMan.DummyPolyByRefID)
+                                    dmyPolyMan.SetDummyPolyVisibility(kvp.Key, !dmyPolyMan.DummyPolyVisibleByRefID[kvp.Key]);
+                            }
+
+                            ImGui.Button("Global - Show All");
+                            if (ImGui.IsItemClicked())
+                            {
+                                DummyOperationShowAll(Scene.Models[0].DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
+                            }
+
+                            ImGui.Button("Global - Hide All");
+                            if (ImGui.IsItemClicked())
+                            {
+                                DummyOperationHideAll(Scene.Models[0].DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
+                            }
+
+                            ImGui.Button("Global - Invert All");
+                            if (ImGui.IsItemClicked())
+                            {
+                                DummyOperationInvertAll(Scene.Models[0].DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
+                            }
+                        }
+                    }
+
+
+                    ImGui.TreePop();
+                }
+
+                if (RequestExpandAllTreeNodes)
+                    ImGui.SetNextItemOpen(true);
+
+                if (ImGui.TreeNode("[Lighting]"))
+                {
                     ImGui.Checkbox("Auto Light Spin", ref GFX.FlverAutoRotateLight);
 
                     if (!GFX.FlverAutoRotateLight)
@@ -237,19 +565,17 @@ namespace DSAnimStudio
 
                     ImGui.TreePop();
                 }
-                else
-                {
-                    ImGui.PushItemWidth(128);
-                }
 
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
 
-                if (ImGui.TreeNode("SHADER"))
+                if (ImGui.TreeNode("[Shader]"))
                 {
                     ImGui.PushItemWidth(256);
                     {
                         ImGui.Checkbox("Enable Texture Alphas", ref GFX.FlverEnableTextureAlphas);
+                        ImGui.Checkbox("Use Fancy Texture Alphas", ref GFX.FlverUseFancyAlpha);
+                        ImGui.SliderFloat("Fancy Texture Alpha Cutoff", ref GFX.FlverFancyAlphaEdgeCutoff, 0, 1);
                         ImGui.Checkbox("Enable Texture Blending", ref GFX.FlverEnableTextureBlending);
 
                         ImGui.LabelText(" ", "Shading Mode:");
@@ -284,7 +610,7 @@ namespace DSAnimStudio
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
 
-                if (ImGui.TreeNode("DISPLAY"))
+                if (ImGui.TreeNode("[Display]"))
                 {
                     ImGui.Button(GFX.Display.Vsync ? "[V-SYNC: ON]" : "[V-SYNC: OFF]");
                     if (ImGui.IsItemClicked())
@@ -365,7 +691,7 @@ namespace DSAnimStudio
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
 
-                if (ImGui.TreeNode("CONTROLS"))
+                if (ImGui.TreeNode("[Controls]"))
                 {
                     ImGui.SliderFloat("Camera Move Speed", ref GFX.World.CameraMoveSpeed, 0.1f, 10);
                     ImGui.SliderFloat("Camera Turn Speed", ref GFX.World.CameraTurnSpeedMouse, 0.001f, 2);
@@ -399,8 +725,6 @@ namespace DSAnimStudio
                 
             }
             ImGui.End();
-
-            
 
             RequestExpandAllTreeNodes = false;
 
@@ -444,6 +768,8 @@ namespace DSAnimStudio
             prevHoverIDKey = currentHoverIDKey;
 
             ImGui.PopStyleColor();
+
+            IsFirstFrameCaptureDefaultValue = false;
         }
     }
 }

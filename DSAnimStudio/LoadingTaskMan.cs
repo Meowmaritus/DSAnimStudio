@@ -299,7 +299,7 @@ namespace DSAnimStudio
                             GuiDistFromEdgesOfScreenY + currentVerticalOffset,
                             GuiTaskRectWidth, taskRectHeight);
 
-                        GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, thisTaskRect, Color.Black * 0.85f);
+                        GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE, thisTaskRect, Color.Black * 0.85f);
 
                         if (kvp.Value.ProgressRatio >= 0)
                         {
@@ -309,7 +309,7 @@ namespace DSAnimStudio
                                 thisTaskRect.Y + taskRectHeight - GuiProgBarDistFromRectEdge - GuiProgBarHeight,
                                 thisTaskRect.Width - (GuiProgBarDistFromRectEdge * 2), GuiProgBarHeight);
 
-                            GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, progBackgroundRect, new Color(0.25f, 0.25f, 0.25f) * 0.95f);
+                            GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE, progBackgroundRect, new Color(0.25f, 0.25f, 0.25f) * 0.95f);
 
                             // Draw Progress Foreground Rect
 
@@ -319,7 +319,7 @@ namespace DSAnimStudio
                                 (int)((progBackgroundRect.Width - (GuiProgBarEdgeThickness * 2)) * kvp.Value.ProgressRatio),
                                 progBackgroundRect.Height - (GuiProgBarEdgeThickness * 2));
 
-                            GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, progForegroundRect,
+                            GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE, progForegroundRect,
                                 kvp.Value.IsBeingKilledManually ? Color.Red : Color.White);
                         }
 

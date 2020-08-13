@@ -59,30 +59,35 @@ namespace DSAnimStudio
 
             for (int i = 0; i < FlverSkeleton.Count; i++)
             {
-                FlverSkeleton[i].Length = Math.Max(0.1f, 
-                    (flverBones[i].BoundingBoxMax.Z - flverBones[i].BoundingBoxMin.Z) * 0.8f);
+                //FlverSkeleton[i].Length = Math.Max(0.1f, 
+                //    (flverBones[i].BoundingBoxMax.Z - flverBones[i].BoundingBoxMin.Z) * 0.8f);
 
-                if (childCounts[i] == 1 && flverBones[i].ChildIndex >= 0)
+                //if (childCounts[i] == 1 && flverBones[i].ChildIndex >= 0)
+                //{
+                //    var parentChildDifference = Vector3.Transform(Vector3.Zero, 
+                //        FlverSkeleton[flverBones[i].ChildIndex].ReferenceMatrix) -
+                //        Vector3.Transform(Vector3.Zero, FlverSkeleton[i].ReferenceMatrix);
+
+                //    var parentChildDirection = Vector3.Normalize(parentChildDifference);
+
+                //    var parentDir = Vector3.TransformNormal(Vector3.Backward,
+                //        Matrix.CreateRotationX(flverBones[i].Rotation.X) *
+                //        Matrix.CreateRotationZ(flverBones[i].Rotation.Z) *
+                //        Matrix.CreateRotationY(flverBones[i].Rotation.Y));
+
+                //    var dot = Vector3.Dot(parentDir, parentChildDirection);
+
+                //    FlverSkeleton[i].Length = parentChildDifference.Length() * (float)Math.Cos(dot);
+                //}
+                //else
+                //{
+                //     FlverSkeleton[i].Length = Math.Max(0.1f, 
+                //    (flverBones[i].BoundingBoxMax.Z - flverBones[i].BoundingBoxMin.Z) * 0.8f);
+                //}
+
+                if (flverBones[i].ParentIndex >= 0 && flverBones[i].ParentIndex < flverBones.Count)
                 {
-                    var parentChildDifference = Vector3.Transform(Vector3.Zero, 
-                        FlverSkeleton[flverBones[i].ChildIndex].ReferenceMatrix) -
-                        Vector3.Transform(Vector3.Zero, FlverSkeleton[i].ReferenceMatrix);
-
-                    var parentChildDirection = Vector3.Normalize(parentChildDifference);
-
-                    var parentDir = Vector3.TransformNormal(Vector3.Backward,
-                        Matrix.CreateRotationX(flverBones[i].Rotation.X) *
-                        Matrix.CreateRotationZ(flverBones[i].Rotation.Z) *
-                        Matrix.CreateRotationY(flverBones[i].Rotation.Y));
-
-                    var dot = Vector3.Dot(parentDir, parentChildDirection);
-
-                    FlverSkeleton[i].Length = parentChildDifference.Length() * (float)Math.Cos(dot);
-                }
-                else
-                {
-                     FlverSkeleton[i].Length = Math.Max(0.1f, 
-                    (flverBones[i].BoundingBoxMax.Z - flverBones[i].BoundingBoxMin.Z) * 0.8f);
+                    FlverSkeleton[flverBones[i].ParentIndex].ChildBones.Add(FlverSkeleton[i]);
                 }
             }
 
@@ -258,12 +263,29 @@ namespace DSAnimStudio
             public int HkxBoneIndex = -1;
             public Matrix CurrentMatrix = Matrix.Identity;
 
-            public float Length = 1.0f;
-            public IDbgPrim BonePrim;
+            public Matrix? NubReferenceMatrix = null;
+            //public Matrix? NubCurrentMatrix = null;
+
+            public List<FlverBoneInfo> ChildBones = new List<FlverBoneInfo>();
+
+            //public float Length = 1.0f;
+            //public IDbgPrim BonePrim;
             public DbgPrimWireBox BoundingBoxPrim;
+
+            static IDbgPrim GlobalBonePrim;
+
+            public StatusPrinter SpawnPrinter = new StatusPrinter(null);
 
             public FlverBoneInfo(FLVER.Bone bone, List<FLVER.Bone> boneList)
             {
+                if (GlobalBonePrim == null)
+                {
+                    GlobalBonePrim = new DbgPrimWireBone("(BONE)", new Transform(Matrix.Identity), DBG.COLOR_FLVER_BONE)
+                    {
+                        Category = DbgPrimCategory.FlverBone,
+                    };
+                }
+
                 Matrix GetBoneMatrix(SoulsFormats.FLVER.Bone b)
                 {
                     SoulsFormats.FLVER.Bone parentBone = b;
@@ -291,33 +313,94 @@ namespace DSAnimStudio
                 ReferenceMatrix = GetBoneMatrix(bone);
                 Name = bone.Name;
 
+                SpawnPrinter.AppendLine(Name, DBG.COLOR_FLVER_BONE);
+
                 if (bone.Unk3C == 0)
                 {
-                    BonePrim = new DbgPrimWireBone(bone.Name, new Transform(ReferenceMatrix), DBG.COLOR_FLVER_BONE)
-                    {
-                        Category = DbgPrimCategory.FlverBone,
-                    };
+                    var nubBone = boneList.Where(bn => bn.Name == bone.Name + "Nub").FirstOrDefault();
 
-                    BoundingBoxPrim = new DbgPrimWireBox(Transform.Default,
+                    if (nubBone != null)
+                    {
+                        var nubMat = Matrix.Identity;
+                        nubMat *= Matrix.CreateScale(nubBone.Scale.X, nubBone.Scale.Y, nubBone.Scale.Z);
+                        nubMat *= Matrix.CreateRotationX(nubBone.Rotation.X);
+                        nubMat *= Matrix.CreateRotationZ(nubBone.Rotation.Z);
+                        nubMat *= Matrix.CreateRotationY(nubBone.Rotation.Y);
+                        nubMat *= Matrix.CreateTranslation(nubBone.Translation.X, nubBone.Translation.Y, nubBone.Translation.Z);
+
+                        NubReferenceMatrix = nubMat;
+                    }
+
+                    
+                }
+
+                BoundingBoxPrim = new DbgPrimWireBox(Transform.Default,
                         new Vector3(bone.BoundingBoxMin.X, bone.BoundingBoxMin.Y, bone.BoundingBoxMin.Z),
                         new Vector3(bone.BoundingBoxMax.X, bone.BoundingBoxMax.Y, bone.BoundingBoxMax.Z),
                         DBG.COLOR_FLVER_BONE_BBOX)
-                    {
-                        Category = DbgPrimCategory.FlverBoneBoundingBox,
-                    };
-                }
-               
+                {
+                    Category = DbgPrimCategory.FlverBoneBoundingBox,
+                };
+
             }
 
             public void DrawPrim(Matrix world)
             {
-                if (BonePrim != null && BoundingBoxPrim != null)
+                if (BoundingBoxPrim != null)
                 {
-                    BonePrim.Transform = new Transform(Matrix.CreateScale(Length) * CurrentMatrix);
-                    BonePrim.Draw(null, world);
+                    //BonePrim.Transform = new Transform(Matrix.CreateScale(Length) * CurrentMatrix);
+                    //BonePrim.Draw(null, world);
                     BoundingBoxPrim.UpdateTransform(new Transform(CurrentMatrix));
                     BoundingBoxPrim.Draw(null, world);
                 }
+
+                Vector3 boneStart = Vector3.Transform(Vector3.Zero, CurrentMatrix);
+
+                void DrawToEndPoint(Vector3 endPoint)
+                {
+                    var forward = -Vector3.Normalize(endPoint - boneStart);
+
+                    Matrix hitboxMatrix = Matrix.CreateWorld(boneStart, forward, Vector3.Up);
+
+                    if (forward.X == 0 && forward.Z == 0)
+                    {
+                        if (forward.Y >= 0)
+                            hitboxMatrix = Matrix.CreateRotationX(MathHelper.PiOver2) * Matrix.CreateTranslation(boneStart);
+                        else
+                            hitboxMatrix = Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateTranslation(boneStart);
+                    }
+
+                    float boneLength = (endPoint - boneStart).Length();
+
+                    GlobalBonePrim.Transform = new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateScale(boneLength) * hitboxMatrix);
+                    GlobalBonePrim.Draw(null, world);
+
+                    //using (var tempBone = new DbgPrimWireBone(Name, new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * hitboxMatrix), DBG.COLOR_FLVER_BONE, boneLength, boneLength * 0.2f))
+                    //{
+                    //    tempBone.Draw(null, world);
+                    //}
+                }
+
+                if (DBG.CategoryEnableDraw[DbgPrimCategory.FlverBone])
+                {
+                    if (NubReferenceMatrix != null)
+                    {
+                        DrawToEndPoint(Vector3.Transform(Vector3.Zero, NubReferenceMatrix.Value * CurrentMatrix));
+                    }
+
+                    foreach (var cb in ChildBones)
+                    {
+                        DrawToEndPoint(Vector3.Transform(Vector3.Zero, cb.CurrentMatrix));
+                    }
+                }
+
+                if (DBG.CategoryEnableNameDraw[DbgPrimCategory.FlverBone])
+                {
+                    SpawnPrinter.Position3D = Vector3.Transform(Vector3.Zero, CurrentMatrix * world);
+                    SpawnPrinter.Draw();
+                }
+
+               
             }
         }
 

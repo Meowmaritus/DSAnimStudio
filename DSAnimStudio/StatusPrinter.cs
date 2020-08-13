@@ -85,7 +85,7 @@ namespace DSAnimStudio
                 if (screenPos3D.Z >= 1)
                     return;
 
-                screenPos3D += new Vector3(4, 4, 0) * scale;
+                //screenPos3D += new Vector3(4, 4, 0) * scale;
 
                 currentPos = new Vector2(screenPos3D.X, screenPos3D.Y);
             }

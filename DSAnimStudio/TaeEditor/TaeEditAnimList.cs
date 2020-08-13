@@ -240,7 +240,10 @@ namespace DSAnimStudio.TaeEditor
                             var thisAnimRect = new Rectangle(0, (int)(groupStartOffset + anim.Value.VerticalOffset),
                                 ScrollViewer.Viewport.Width, AnimHeight);
                             if (thisAnimRect.Contains(mouseCheckPoint))
+                            {
+                                MainScreen.Graph?.ViewportInteractor?.CancelCombo();
                                 MainScreen.SelectNewAnimRef(taeSection.Tae, anim.Value.Ref);
+                            }
                             offset += AnimHeight;
                         }
                     }

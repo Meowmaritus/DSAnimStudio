@@ -548,7 +548,7 @@ namespace DSAnimStudio.DbgMenus
 
             var clickMeSize = DBG.DEBUG_FONT_SMALL.MeasureString("MENU");
 
-            GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, DbgMenuTopLeftButtonRect, Color.Black * 0.85f);
+            GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE, DbgMenuTopLeftButtonRect, Color.Black * 0.85f);
 
             GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT_SMALL, "MENU", DbgMenuTopLeftButtonRect.Center(), Color.White,  0, clickMeSize / 2, 1, SpriteEffects.None, 0);
 
@@ -565,9 +565,9 @@ namespace DSAnimStudio.DbgMenus
             // Draw menu background rect
 
             //---- Full Background
-            GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, SubMenuRect, Color.Black * 0.5f * menuBackgroundOpacityMult);
+            GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE, SubMenuRect, Color.Black * 0.5f * menuBackgroundOpacityMult);
             //---- Slightly Darker Part On Top
-            GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, darkTitleRect,
+            GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE, darkTitleRect,
                 Color.Black * 0.75f * menuBackgroundOpacityMult);
 
             if (MenuOpenState == DbgMenuOpenState.Open)
@@ -716,7 +716,7 @@ namespace DSAnimStudio.DbgMenus
                                     underlineRect = new Rectangle(underlineRect.X + 12, underlineRect.Y, underlineRect.Width - 4, underlineRect.Height);
                                 }
 
-                                GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE, underlineRect, 
+                                GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE, underlineRect, 
                                 Color.Black);
                             }
 
@@ -735,14 +735,14 @@ namespace DSAnimStudio.DbgMenus
                     if (menuHeight > SubMenuRect.Height)
                     {
                         //---- Draw Scrollbar Background
-                        GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE,
+                        GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE,
                             new Rectangle(0, 0, 8, SubMenuRect.Height), Color.White * 0.5f * menuBackgroundOpacityMult);
 
                         float curScrollRectTop = (Scroll / menuHeight) * SubMenuRect.Height;
                         float curScrollRectHeight = (SubMenuRect.Height / menuHeight) * SubMenuRect.Height;
 
                         //---- Scroll Scrollbar current scroll
-                        GFX.SpriteBatch.Draw(Main.DEFAULT_TEXTURE_DIFFUSE,
+                        GFX.SpriteBatch.Draw(Main.WHITE_TEXTURE,
                             new Rectangle(0, (int)curScrollRectTop, 8, (int)curScrollRectHeight),
                             Color.White * 0.75f * menuBackgroundOpacityMult);
                     }

@@ -201,13 +201,17 @@ namespace DSAnimStudio
                 //    }
                 //}
 
+                public static Color ColorTip = new Color(231, 186, 50);
+                public static Color ColorMiddle = new Color(230, 26, 26);
+                public static Color ColorRoot = new Color(26, 26, 230);
+
                 public Color GetColor()
                 {
                     switch (HitType)
                     {
-                        case HitTypes.Tip: return new Color(231, 186, 50);
-                        case HitTypes.Middle: return new Color(230, 26, 26);
-                        case HitTypes.Root: return new Color(26, 26, 230);
+                        case HitTypes.Tip: return ColorTip;
+                        case HitTypes.Middle: return ColorMiddle;
+                        case HitTypes.Root: return ColorRoot;
                         default: return Color.Fuchsia;
                     }
                 }
@@ -1141,16 +1145,18 @@ namespace DSAnimStudio
             public bool LegEquip;
             public List<bool> InvisibleFlags = new List<bool>();
 
-            public void ApplyInvisFlagsToMask(ref bool[] mask)
+            public bool[] ApplyInvisFlagsToMask(bool[] mask)
             {
                 for (int i = 0; i < InvisibleFlags.Count; i++)
                 {
                     if (i > mask.Length)
-                        return;
+                        break;
 
                     if (InvisibleFlags[i])
                         mask[i] = false;
                 }
+
+                return mask;
             }
 
             private string GetPartFileNameStart()
@@ -1246,7 +1252,7 @@ namespace DSAnimStudio
                     LegEquip = firstBitmask[4];
 
                     br.Position = start + 0x12E;
-                    for (int i = 0; i < 96; i++)
+                    for (int i = 0; i < 98; i++)
                     {
                         InvisibleFlags.Add(br.ReadByte() == 1);
                     }

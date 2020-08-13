@@ -248,6 +248,13 @@ namespace DSAnimStudio.TaeEditor
             int soundType = Convert.ToInt32(evBox.MyEvent.Parameters["SoundType"]);
             int soundID = Convert.ToInt32(evBox.MyEvent.Parameters["SoundID"]);
 
+            int? stateInfoSlot = null;
+
+            if (evBox.MyEvent.TypeName.StartsWith("PlaySound_ByStateInfo"))
+            {
+                stateInfoSlot = Convert.ToInt32(evBox.MyEvent.Parameters["SlotNumber"]);
+            }
+
             Func<Vector3> getPosFunc = null;
 
             if (evBox.MyEvent.Template.ContainsKey("DummyPolyID"))
@@ -277,7 +284,11 @@ namespace DSAnimStudio.TaeEditor
                 getPosFunc = () => Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
             }
 
-            FmodManager.PlaySE(soundType, soundID, getPosFunc);
+            if (stateInfoSlot != null && stateInfoSlot.Value >= 0 && FmodManager.IsStateInfoAlreadyPlaying(stateInfoSlot.Value))
+            {
+                FmodManager.StopSE(stateInfoSlot.Value, true);
+            }
+            FmodManager.PlaySE(soundType, soundID, getPosFunc, stateInfoSlot == -1 ? null : stateInfoSlot);
         }
 
         public void RootMotionWrapForBlades(Vector3 wrap)
@@ -318,6 +329,36 @@ namespace DSAnimStudio.TaeEditor
                                 PlaySoundEffectOfBox(evBox);
                             }
                             evBox.PrevFrameEnteredState_ForSoundEffectPlayback = thisBoxEntered;
+
+                            
+                        },
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
+                        {
+                            List<int> allStateInfos = new List<int>();
+                            List<int> activeStateInfos = new List<int>();
+                            foreach (var evBox in evBoxes)
+                            {
+                                if (evBox.MyEvent.TypeName == null || !evBox.MyEvent.TypeName.StartsWith("PlaySound_ByStateInfo"))
+                                    continue;
+
+                                int stateInfo = Convert.ToInt32(evBox.MyEvent.Parameters["StateInfo"]);
+                                if (evBox.PlaybackHighlight)
+                                {
+                                    if (!activeStateInfos.Contains(stateInfo))
+                                        activeStateInfos.Add(stateInfo);
+                                }
+
+
+                                if (!allStateInfos.Contains(stateInfo))
+                                    allStateInfos.Add(stateInfo);
+                            }
+
+                            foreach (var si in allStateInfos)
+                            {
+                                if (!activeStateInfos.Contains(si))
+                                    FmodManager.StopSE(si, false);
+                            }
+                            
                         },
                     }
                 },
@@ -406,7 +447,7 @@ namespace DSAnimStudio.TaeEditor
                                 var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
                                 if (blend != null)
                                 {
-                                    float blendRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.CurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
+                                    float blendRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.GUICurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
                                     MODEL.AnimContainer.AnimationLayers[0].Weight = 1 - blendRatio;
                                     MODEL.AnimContainer.AnimationLayers[1].Weight = blendRatio;
                                 }

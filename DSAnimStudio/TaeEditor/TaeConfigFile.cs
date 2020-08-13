@@ -7,11 +7,11 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeConfigFile
     {
-        public ParamData.AtkParam.DummyPolySource HitViewDummyPolySource { get; set; } = ParamData.AtkParam.DummyPolySource.Body;
+        public ParamData.AtkParam.DummyPolySource HitViewDummyPolySource { get; set; } = ParamData.AtkParam.DummyPolySource.RightWeapon0;
 
         public bool UseGamesMenuSounds { get; set; } = true;
 
-        public bool DbgPrimXRay { get; set; } = false;
+        public bool DbgPrimXRay { get; set; } = true;
         public enum EventSnapTypes
         {
             None,

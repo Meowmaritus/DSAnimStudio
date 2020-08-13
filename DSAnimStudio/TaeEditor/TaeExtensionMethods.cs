@@ -132,22 +132,22 @@ namespace DSAnimStudio.TaeEditor
 
         //public static int GetStartFrame(this TAE.Event ev, double frameDuration)
         //{
-        //    return (int)Math.Round(ev.StartTime / frameDuration);
+        //    return (int)Math.Floor(ev.StartTime / frameDuration);
         //}
 
         //public static int GetEndFrame(this TAE.Event ev, double frameDuration)
         //{
-        //    return (int)Math.Round(ev.EndTime / frameDuration);
+        //    return (int)Math.Floor(ev.EndTime / frameDuration);
         //}
 
         //public static int GetStartTAEFrame(this TAE.Event ev)
         //{
-        //    return (int)Math.Round(ev.StartTime / TAE_FRAME);
+        //    return (int)Math.Floor(ev.StartTime / TAE_FRAME);
         //}
 
         //public static int GetEndTAEFrame(this TAE.Event ev)
         //{
-        //    return (int)Math.Round(ev.EndTime / TAE_FRAME);
+        //    return (int)Math.Floor(ev.EndTime / TAE_FRAME);
         //}
 
         public static float GetEndTimeFr(this TAE.Event ev)

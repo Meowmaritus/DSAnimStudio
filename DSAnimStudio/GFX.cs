@@ -56,7 +56,7 @@ namespace DSAnimStudio
             }
         }
 
-        public static int SSAA = 2;
+        public static int SSAA = 1;
 
         public static int EffectiveSSAA = 1;
 
@@ -121,6 +121,9 @@ namespace DSAnimStudio
             { FlverShadingMode.TEXDEBUG_SHININESSMAP, "TEX DEBUG: Shininess Map" },
             { FlverShadingMode.TEXDEBUG_NORMALMAP_BLUE, "TEX DEBUG: Normal Map (Blue Channel)" },
 
+            { FlverShadingMode.TEXDEBUG_UVCHECK_0, "TEX DEBUG: UV Check (TEXCOORD0)" },
+            { FlverShadingMode.TEXDEBUG_UVCHECK_1, "TEX DEBUG: UV Check (TEXCOORD1)" },
+
             { FlverShadingMode.MESHDEBUG_NORMALS, "MESH DEBUG: Normals" },
             { FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY, "MESH DEBUG: Normals (Mesh Only)" },
             { FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA, "MESH DEBUG: Vertex Color Alpha" },
@@ -146,8 +149,14 @@ namespace DSAnimStudio
         private static float LightSpinTimer = 0;
         public static bool FlverLightFollowsCamera = true;
 
+        //public static float FlverDitherTime = 0;
+        //public const float FlverDitherTimeMod = 100;
+
         public static bool FlverEnableTextureBlending = true;
         public static bool FlverEnableTextureAlphas = true;
+        public static bool FlverUseFancyAlpha = true;
+        public static float FlverFancyAlphaEdgeCutoff = 0.5f;
+        //public static bool FlverInvertSimpleTextureAlphas = false;
 
         public static bool UseTonemap = true;
 

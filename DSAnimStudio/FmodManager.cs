@@ -1,6 +1,7 @@
 ﻿using DSAnimStudio.TaeEditor;
 using FMOD;
 using Microsoft.Xna.Framework;
+using SharpDX.XInput;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,8 +55,6 @@ namespace DSAnimStudio
         public static Dictionary<int, string> FloorMaterialNames = new Dictionary<int, string>();
 
         public static DebugPrimitives.DbgPrimWireArrow DbgPrimCamPos;
-
-
 
         public static void Update()
         {
@@ -150,12 +149,28 @@ namespace DSAnimStudio
             public bool EventIsOver = false;
             RESULT evtRes;
             Vector3 oldPos;
-            public FmodEventUpdater(FMOD.Event evt, Func<Vector3> getPosFunc, string name)
+
+            public int? StateInfo = null;
+
+            public FmodEventUpdater(FMOD.Event evt, Func<Vector3> getPosFunc, string name, int? stateInfo = null)
             {
                 EventName = name;
                 Event = evt;
                 GetPosFunc = getPosFunc;
+                StateInfo = stateInfo;
             }
+
+            public void Stop(bool immediate)
+            {
+                var res = Event.stop(immediate);
+
+                if (res == RESULT.ERR_INVALID_HANDLE)
+                {
+                    EventIsOver = true;
+                    return;
+                }
+            }
+
             public void Update(float deltaTime, Matrix world)
             {
                 //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
@@ -167,7 +182,7 @@ namespace DSAnimStudio
                 //}
 
                 FMOD.EVENT_STATE state = EVENT_STATE.PLAYING;
-                evtRes = Event.getState(ref state);
+                var evtRes = Event.getState(ref state);
 
                 if (evtRes == RESULT.ERR_INVALID_HANDLE)
                 {
@@ -353,22 +368,22 @@ namespace DSAnimStudio
             return true;
         }
 
-        public static bool PlayEventInFEV(string fevFilePath, string eventName)
-        {
-            //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-            //{
-            //    return false;
-            //}
+        //public static bool PlayEventInFEV(string fevFilePath, string eventName)
+        //{
+        //    //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+        //    //{
+        //    //    return false;
+        //    //}
 
-            var foundFev = LoadFEV(fevFilePath);
-            if (!foundFev)
-                return false;
-            else
-                return PlayEvent(eventName);
-        }
+        //    var foundFev = LoadFEV(fevFilePath);
+        //    if (!foundFev)
+        //        return false;
+        //    else
+        //        return PlayEvent(eventName, null, null);
+        //}
 
         /// <summary>
         /// Example "main" will return the full path ending like "Game/sound/fdp_main.fev" in DS3.
@@ -442,7 +457,7 @@ namespace DSAnimStudio
             }
         }
 
-        public static bool PlaySE(int category, int id, Func<Vector3> getPosFunc = null)
+        public static bool PlaySE(int category, int id, Func<Vector3> getPosFunc, int? stateInfo)
         {
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
             //    GameDataManager.GameType == GameDataManager.GameTypes.DS1R || 
@@ -484,14 +499,32 @@ namespace DSAnimStudio
             if (soundName == null)
                 return false;
 
-            return PlaySE(soundName, getPosFunc);
+            return PlaySE(soundName, getPosFunc, stateInfo);
+        }
+
+        public static void StopSE(int stateInfo, bool immediate)
+        {
+            foreach (var snd in _eventsToUpdate)
+            {
+                if (snd.StateInfo == stateInfo)
+                    snd.Stop(immediate);
+            }
+        }
+
+        public static bool IsStateInfoAlreadyPlaying(int stateInfo)
+        {
+            foreach (var snd in _eventsToUpdate)
+            {
+                if (snd.StateInfo == stateInfo)
+                    return true;
+            }
+            return false;
         }
 
 
-
-        public static bool PlaySE(string seEventName, Func<Vector3> getPosFunc = null)
+        public static bool PlaySE(string seEventName, Func<Vector3> getPosFunc, int? stateInfo)
         {
-            if (PlayEvent(seEventName, getPosFunc))
+            if (PlayEvent(seEventName, getPosFunc, stateInfo))
             {
                 return true;
             }
@@ -555,7 +588,7 @@ namespace DSAnimStudio
             }));
         }
 
-        private static bool PlayEvent(string eventName, Func<Vector3> getPosFunc = null)
+        private static bool PlayEvent(string eventName, Func<Vector3> getPosFunc, int? stateInfo)
         {
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
@@ -648,7 +681,7 @@ namespace DSAnimStudio
                     {
                         lock (_lock_eventsToUpdate)
                         {
-                            _eventsToUpdate.Add(new FmodEventUpdater(newEvent, getPosFunc, eventName));
+                            _eventsToUpdate.Add(new FmodEventUpdater(newEvent, getPosFunc, eventName, stateInfo));
                         }
                     }
 

@@ -20,6 +20,8 @@ namespace DSAnimStudio
             Legs,
             RightWeapon,
             LeftWeapon,
+            Face,
+            Facegen,
         }
 
         public enum DS3PairedWpnMemeKind : sbyte
@@ -139,6 +141,9 @@ namespace DSAnimStudio
         public NewMesh BodyMesh = null;
         public NewMesh ArmsMesh = null;
         public NewMesh LegsMesh = null;
+
+        public NewMesh FaceMesh = null;
+        public NewMesh FacegenMesh = null;
 
         public NewAnimSkeleton Skeleton { get; private set; } = null;
 
@@ -485,6 +490,17 @@ namespace DSAnimStudio
                     }
 
                     wpnMdl.AnimContainer.ScrubRelative(timeDelta);
+
+                    if (MODEL.AnimContainer.CurrentAnimDuration.HasValue && wpnMdl.AnimContainer.CurrentAnimDuration.HasValue)
+                    {
+                        float curModTime = MODEL.AnimContainer.CurrentAnimTime % MODEL.AnimContainer.CurrentAnimDuration.Value;
+
+                        // Make subsequent loops of player anim be the subsequent loops of the weapon anim so it will not blend
+                        if (MODEL.AnimContainer.CurrentAnimTime >= MODEL.AnimContainer.CurrentAnimDuration.Value)
+                            curModTime += wpnMdl.AnimContainer.CurrentAnimDuration.Value;
+
+                        wpnMdl.AnimContainer.ScrubRelative(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
+                    }
                 }
             }
 
@@ -588,6 +604,16 @@ namespace DSAnimStudio
                 LegsMesh?.Dispose();
                 LegsMesh = LoadArmorMesh(partsbnd);
             }
+            else if (slot == EquipSlot.Face)
+            {
+                FaceMesh?.Dispose();
+                FaceMesh = LoadArmorMesh(partsbnd);
+            }
+            else if (slot == EquipSlot.Facegen)
+            {
+                FacegenMesh?.Dispose();
+                FacegenMesh = LoadArmorMesh(partsbnd);
+            }
         }
 
         public void LoadArmorPartsbnd(string partsbndPath, EquipSlot slot)
@@ -608,18 +634,32 @@ namespace DSAnimStudio
                 if (slot == EquipSlot.Head)
                 {
                     HeadMesh?.Dispose();
+                    HeadMesh = null;
                 }
                 else if (slot == EquipSlot.Body)
                 {
                     BodyMesh?.Dispose();
+                    BodyMesh = null;
                 }
                 else if (slot == EquipSlot.Arms)
                 {
                     ArmsMesh?.Dispose();
+                    ArmsMesh = null;
                 }
                 else if (slot == EquipSlot.Legs)
                 {
                     LegsMesh?.Dispose();
+                    LegsMesh = null;
+                }
+                else if (slot == EquipSlot.Face)
+                {
+                    FaceMesh?.Dispose();
+                    FaceMesh = null;
+                }
+                else if (slot == EquipSlot.Facegen)
+                {
+                    FacegenMesh?.Dispose();
+                    FacegenMesh = null;
                 }
             }
            
@@ -627,6 +667,20 @@ namespace DSAnimStudio
 
         public void Draw(bool[] mask, int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
+            UpdateWeaponTransforms(0);
+
+            if (FaceMesh != null)
+            {
+                FaceMesh.DrawMask = mask;
+                FaceMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+            }
+
+            if (FacegenMesh != null)
+            {
+                FacegenMesh.DrawMask = mask;
+                FacegenMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+            }
+
             if (HeadMesh != null)
             {
                 HeadMesh.DrawMask = mask;
@@ -864,7 +918,27 @@ namespace DSAnimStudio
         {
             LoadingTaskMan.DoLoadingTask("ChrAsm_UpdateModels", "Updating c0000 models...", progress =>
             {
-                MODEL.ResetDrawMaskToDefault();
+                MODEL.ResetDrawMaskToAllVisible();
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                {
+                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
+                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
+                }
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                {
+                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
+                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
+                }
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                {
+                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_m_0100.partsbnd.dcx"), EquipSlot.Face);
+
+                    FacegenMesh?.Dispose();
+                    FacegenMesh = null;
+
+                }
+
                 if (HeadID != lastHeadLoaded)
                 {
                     if (Head != null)
@@ -960,6 +1034,8 @@ namespace DSAnimStudio
                                     {
                                         RightWeaponModel0.IS_PLAYER = true;
                                         RightWeaponModel0.IS_PLAYER_WEAPON = true;
+                                        RightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 10000;
+                                        RightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 0 - ";
                                     }
 
                                     RightWeaponModel1 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
@@ -972,6 +1048,8 @@ namespace DSAnimStudio
                                     {
                                         RightWeaponModel1.IS_PLAYER = true;
                                         RightWeaponModel1.IS_PLAYER_WEAPON = true;
+                                        RightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 11000;
+                                        RightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 1 - ";
                                     }
 
                                     RightWeaponModel2 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
@@ -984,6 +1062,8 @@ namespace DSAnimStudio
                                     {
                                         RightWeaponModel2.IS_PLAYER = true;
                                         RightWeaponModel2.IS_PLAYER_WEAPON = true;
+                                        RightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 12000;
+                                        RightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 2 - ";
                                     }
 
                                     RightWeaponModel3 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
@@ -996,6 +1076,8 @@ namespace DSAnimStudio
                                     {
                                         RightWeaponModel3.IS_PLAYER = true;
                                         RightWeaponModel3.IS_PLAYER_WEAPON = true;
+                                        RightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 13000;
+                                        RightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 3 - ";
                                     }
 
                                 }
@@ -1054,6 +1136,8 @@ namespace DSAnimStudio
                                     {
                                         LeftWeaponModel0.IS_PLAYER = true;
                                         LeftWeaponModel0.IS_PLAYER_WEAPON = true;
+                                        LeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 20000;
+                                        LeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 0 - ";
                                     }
 
                                     LeftWeaponModel1 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
@@ -1066,6 +1150,8 @@ namespace DSAnimStudio
                                     {
                                         LeftWeaponModel1.IS_PLAYER = true;
                                         LeftWeaponModel1.IS_PLAYER_WEAPON = true;
+                                        LeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 21000;
+                                        LeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 1 - ";
                                     }
 
                                     LeftWeaponModel2 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
@@ -1078,6 +1164,8 @@ namespace DSAnimStudio
                                     {
                                         LeftWeaponModel2.IS_PLAYER = true;
                                         LeftWeaponModel2.IS_PLAYER_WEAPON = true;
+                                        LeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 22000;
+                                        LeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 2 - ";
                                     }
 
                                     LeftWeaponModel3 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
@@ -1090,6 +1178,8 @@ namespace DSAnimStudio
                                     {
                                         LeftWeaponModel3.IS_PLAYER = true;
                                         LeftWeaponModel3.IS_PLAYER_WEAPON = true;
+                                        LeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 23000;
+                                        LeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 3 - ";
                                     }
 
                                 }
@@ -1130,10 +1220,16 @@ namespace DSAnimStudio
 
                 }
 
-                Head?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
-                Body?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
-                Arms?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
-                Legs?.ApplyInvisFlagsToMask(ref MODEL.DrawMask);
+                if (Head != null)
+                    MODEL.DefaultDrawMask = Head.ApplyInvisFlagsToMask(MODEL.DrawMask);
+                if (Body != null)
+                    MODEL.DefaultDrawMask = Body.ApplyInvisFlagsToMask(MODEL.DrawMask);
+                if (Arms != null)
+                    MODEL.DefaultDrawMask = Arms.ApplyInvisFlagsToMask(MODEL.DrawMask);
+                if (Legs != null)
+                    MODEL.DefaultDrawMask = Legs.ApplyInvisFlagsToMask(MODEL.DrawMask);
+
+                MODEL.ResetDrawMaskToDefault();
 
                 progress.Report(6.0 / 6.0);
                 onCompleteAction?.Invoke();
@@ -1168,6 +1264,8 @@ namespace DSAnimStudio
 
         public void TryToLoadTextures()
         {
+            FaceMesh?.TryToLoadTextures();
+            FacegenMesh?.TryToLoadTextures();
             HeadMesh?.TryToLoadTextures();
             BodyMesh?.TryToLoadTextures();
             ArmsMesh?.TryToLoadTextures();
@@ -1184,6 +1282,8 @@ namespace DSAnimStudio
 
         public void Dispose()
         {
+            FaceMesh?.Dispose();
+            FacegenMesh?.Dispose();
             HeadMesh?.Dispose();
             BodyMesh?.Dispose();
             ArmsMesh?.Dispose();

@@ -462,6 +462,8 @@ namespace DSAnimStudio.TaeEditor
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
+            UpdateCombo();
+
             var timeDelta = (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
             //V2.0
@@ -651,9 +653,20 @@ namespace DSAnimStudio.TaeEditor
                 if (CurrentComboIndex < CurrentCombo.Length)
                 {
 
-                    if (Graph.PlaybackCursor.CurrentTime >= (Graph.PlaybackCursor.MaxTime - Graph.PlaybackCursor.CurrentSnapInterval) ||
+                    if (Graph.PlaybackCursor.MaxTime > 0 && (Graph.PlaybackCursor.CurrentTime >= (Graph.PlaybackCursor.MaxTime - 0.00005f)) ||
                         (CurrentCombo[CurrentComboIndex].EndFrame >= 0 && Graph.PlaybackCursor.CurrentFrame >= CurrentCombo[CurrentComboIndex].EndFrame))
                     {
+                        if (CurrentCombo[CurrentComboIndex].EndFrame >= 0)
+                        {
+                            Graph.PlaybackCursor.CurrentTime = (CurrentCombo[CurrentComboIndex].EndFrame * Graph.PlaybackCursor.CurrentSnapInterval);
+                        }
+                        else
+                        {
+                            Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime - 0.00005f;
+                        }
+                        
+                        //Graph.PlaybackCursor.UpdateScrubbing();
+
                         GoToNextItemInCombo();
                         return;
                     }
