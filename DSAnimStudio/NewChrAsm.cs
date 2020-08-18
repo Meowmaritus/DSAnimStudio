@@ -329,6 +329,7 @@ namespace DSAnimStudio
         public readonly Model MODEL;
 
         public bool DebugRightWeaponModelPositions = false;
+        public bool DebugLeftWeaponModelPositions = false;
 
         public NewChrAsm(Model mdl)
         {
@@ -419,21 +420,24 @@ namespace DSAnimStudio
                     if (DebugRightWeaponModelPositions && !isLeft)
                     {
                         if (modelIdx == 0)
-                        {
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-1.5f, 0, 0);
-                        }
-                        else if (modelIdx == 1)
-                        {
                             absoluteWeaponTransform = Matrix.CreateTranslation(-0.5f, 0, 0);
-                        }
+                        else if (modelIdx == 1)
+                            absoluteWeaponTransform = Matrix.CreateTranslation(-1.5f, 0, 0);
                         else if (modelIdx == 2)
-                        {
-                            absoluteWeaponTransform = Matrix.CreateTranslation(0.5f, 0, 0);
-                        }
+                            absoluteWeaponTransform = Matrix.CreateTranslation(2.5f, 0, 0);
                         else if (modelIdx == 3)
-                        {
+                            absoluteWeaponTransform = Matrix.CreateTranslation(-3.5f, 0, 0);
+                    }
+                    else if (DebugLeftWeaponModelPositions && isLeft)
+                    {
+                        if (modelIdx == 0)
+                            absoluteWeaponTransform = Matrix.CreateTranslation(0.5f, 0, 0);
+                        else if (modelIdx == 1)
                             absoluteWeaponTransform = Matrix.CreateTranslation(1.5f, 0, 0);
-                        }
+                        else if (modelIdx == 2)
+                            absoluteWeaponTransform = Matrix.CreateTranslation(2.5f, 0, 0);
+                        else if (modelIdx == 3)
+                            absoluteWeaponTransform = Matrix.CreateTranslation(3.5f, 0, 0);
                     }
 
                     wpnMdl.StartTransform = new Transform(
@@ -468,38 +472,45 @@ namespace DSAnimStudio
 
                 if (wpnMdl != null && wpnMdl.AnimContainer != null)
                 {
-                    //V2.0
-                    //RightWeaponModel.AnimContainer.IsLoop = false;
-                    if (wpnMdl.AnimContainer.AnimationLayers.Count == 2)
+                    if (wpnMdl.IsStatic)
                     {
-                        if (MODEL.AnimContainer.AnimationLayers.Count == 2)
+                        //V2.0
+                        //RightWeaponModel.AnimContainer.IsLoop = false;
+                        if (wpnMdl.AnimContainer.AnimationLayers.Count == 2)
                         {
-                            wpnMdl.AnimContainer.AnimationLayers[0].Weight = MODEL.AnimContainer.AnimationLayers[0].Weight;
-                            wpnMdl.AnimContainer.AnimationLayers[1].Weight = MODEL.AnimContainer.AnimationLayers[1].Weight;
+                            if (MODEL.AnimContainer.AnimationLayers.Count == 2)
+                            {
+                                wpnMdl.AnimContainer.AnimationLayers[0].Weight = MODEL.AnimContainer.AnimationLayers[0].Weight;
+                                wpnMdl.AnimContainer.AnimationLayers[1].Weight = MODEL.AnimContainer.AnimationLayers[1].Weight;
+                            }
+                            else
+                            {
+                                wpnMdl.AnimContainer.AnimationLayers[0].Weight = 0;
+                                wpnMdl.AnimContainer.AnimationLayers[1].Weight = 1;
+                            }
+
                         }
-                        else
+                        else if (wpnMdl.AnimContainer.AnimationLayers.Count == 1)
                         {
-                            wpnMdl.AnimContainer.AnimationLayers[0].Weight = 0;
-                            wpnMdl.AnimContainer.AnimationLayers[1].Weight = 1;
+                            wpnMdl.AnimContainer.AnimationLayers[0].Weight = 1;
                         }
-                        
+
+                        wpnMdl.AnimContainer.ScrubRelative(timeDelta);
+
+                        if (MODEL.AnimContainer.CurrentAnimDuration.HasValue && wpnMdl.AnimContainer.CurrentAnimDuration.HasValue)
+                        {
+                            float curModTime = MODEL.AnimContainer.CurrentAnimTime % MODEL.AnimContainer.CurrentAnimDuration.Value;
+
+                            // Make subsequent loops of player anim be the subsequent loops of the weapon anim so it will not blend
+                            if (MODEL.AnimContainer.CurrentAnimTime >= MODEL.AnimContainer.CurrentAnimDuration.Value)
+                                curModTime += wpnMdl.AnimContainer.CurrentAnimDuration.Value;
+
+                            wpnMdl.AnimContainer.ScrubRelative(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
+                        }
                     }
-                    else if (wpnMdl.AnimContainer.AnimationLayers.Count == 1)
+                    else
                     {
-                        wpnMdl.AnimContainer.AnimationLayers[0].Weight = 1;
-                    }
-
-                    wpnMdl.AnimContainer.ScrubRelative(timeDelta);
-
-                    if (MODEL.AnimContainer.CurrentAnimDuration.HasValue && wpnMdl.AnimContainer.CurrentAnimDuration.HasValue)
-                    {
-                        float curModTime = MODEL.AnimContainer.CurrentAnimTime % MODEL.AnimContainer.CurrentAnimDuration.Value;
-
-                        // Make subsequent loops of player anim be the subsequent loops of the weapon anim so it will not blend
-                        if (MODEL.AnimContainer.CurrentAnimTime >= MODEL.AnimContainer.CurrentAnimDuration.Value)
-                            curModTime += wpnMdl.AnimContainer.CurrentAnimDuration.Value;
-
-                        wpnMdl.AnimContainer.ScrubRelative(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
+                        wpnMdl.Skeleton.ApplyBakedFlverReferencePose();
                     }
                 }
             }
@@ -743,7 +754,7 @@ namespace DSAnimStudio
                 {
                     wpnMdl?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
                 }
-                else if (DebugRightWeaponModelPositions && !isLeft)
+                else if ((DebugRightWeaponModelPositions && !isLeft) || (DebugLeftWeaponModelPositions && isLeft))
                 {
                     float prevOpacity = GFX.FlverShader.Effect.Opacity;
                     GFX.FlverShader.Effect.Opacity = 0.2f;
@@ -1260,6 +1271,61 @@ namespace DSAnimStudio
                 return LeftWeaponModel3?.DummyPolyMan;
 
             return null;
+        }
+
+        public NewDummyPolyManager GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource defaultDummySource, int dmy)
+        {
+            if (dmy == -1)
+                return null;
+            int check = dmy / 1000;
+
+            if (check == 0)
+                return GetDummyManager(defaultDummySource);
+            else if (check == 10)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon0);
+            else if (check == 11)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon1);
+            else if (check == 12)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon2);
+            else if (check == 13)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon3);
+            else if (check == 20)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon0);
+            else if (check == 21)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon1);
+            else if (check == 22)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon2);
+            else if (check == 23)
+                return GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon3);
+
+            return null;
+        }
+
+        public void ForeachWeaponModel(Action<Model> doAction)
+        {
+            if (RightWeaponModel0 != null)
+                doAction(RightWeaponModel0);
+
+            if (RightWeaponModel1 != null)
+                doAction(RightWeaponModel1);
+
+            if (RightWeaponModel2 != null)
+                doAction(RightWeaponModel2);
+
+            if (RightWeaponModel3 != null)
+                doAction(RightWeaponModel3);
+
+            if (LeftWeaponModel0 != null)
+                doAction(LeftWeaponModel0);
+
+            if (LeftWeaponModel1 != null)
+                doAction(LeftWeaponModel1);
+
+            if (LeftWeaponModel2 != null)
+                doAction(LeftWeaponModel2);
+
+            if (LeftWeaponModel3 != null)
+                doAction(LeftWeaponModel3);
         }
 
         public void TryToLoadTextures()

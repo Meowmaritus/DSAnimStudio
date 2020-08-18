@@ -28,6 +28,8 @@ namespace DSAnimStudio
 
         public object _lock_AnimationLayers = new object();
 
+        public object _lock_AdditiveOverlays = new object();
+
         public bool IsAnimLoaded(string name)
         {
             return AnimationCache.ContainsKey(name);
@@ -76,6 +78,37 @@ namespace DSAnimStudio
             }
             
         }
+
+        private void PopulateAdditiveBlendOverlays()
+        {
+            lock (_lock_AdditiveOverlays)
+            {
+                _additiveBlendOverlays = new List<NewHavokAnimation>();
+                List<string> allAnimNames = new List<string>();
+                lock (_lock_animDict)
+                {
+                    foreach (var kvp in animHKXsToLoad)
+                        allAnimNames.Add(kvp.Key);
+                }
+                foreach (var name in allAnimNames)
+                {
+                    CurrentAnimationName = name;
+                    if (CurrentAnimation != null)
+                    {
+                        if (CurrentAnimation.IsAdditiveBlend)
+                        {
+                            var clone = NewHavokAnimation.Clone(CurrentAnimation);
+                            clone.Weight = -1;
+                            _additiveBlendOverlays.Add(clone);
+                        }
+                    }
+                }
+                CurrentAnimationName = null;
+            }
+        }
+        private List<NewHavokAnimation> _additiveBlendOverlays = new List<NewHavokAnimation>();
+
+        public IReadOnlyList<NewHavokAnimation> AdditiveBlendOverlays => _additiveBlendOverlays;
 
         private string _currentAnimationName = null;
         public string CurrentAnimationName
@@ -484,6 +517,15 @@ namespace DSAnimStudio
                         if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
                             currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
 
+                        lock (_lock_AdditiveOverlays)
+                        {
+                            foreach (var overlay in _additiveBlendOverlays)
+                            {
+                                if (overlay.Weight > 0)
+                                    currentMatrix *= overlay.GetBlendableTransformOnCurrentFrame(i).GetMatrix().ToXna();
+                            }
+                        }
+
                         currentMatrix *= parentTransformation;
                         scaleMatrix *= parentScaleMatrix;
                     }
@@ -498,6 +540,15 @@ namespace DSAnimStudio
 
                         if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
                             currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
+
+                        lock (_lock_AdditiveOverlays)
+                        {
+                            foreach (var overlay in _additiveBlendOverlays)
+                            {
+                                if (overlay.Weight > 0)
+                                    currentMatrix *= overlay.GetBlendableTransformOnCurrentFrame(i).GetMatrix().ToXna();
+                            }
+                        }
 
                         currentMatrix *= parentTransformation;
                         scaleMatrix *= parentScaleMatrix;
@@ -530,6 +581,16 @@ namespace DSAnimStudio
             //{
             //    CurrentAnimation.Play(Main.DELTA_UPDATE, IsLoop, false, false);
             //}
+            lock (_lock_AdditiveOverlays)
+            {
+                foreach (var overlay in _additiveBlendOverlays)
+                {
+                    if (overlay.Weight > 0)
+                    {
+                        overlay.ScrubRelative(Main.DELTA_UPDATE, doNotCheckRootMotionRotation: true);
+                    }
+                }
+            }
         }
 
         private NewHavokAnimation LoadAnimHKX(byte[] hkxBytes, string name)
@@ -647,6 +708,8 @@ namespace DSAnimStudio
                     }
                 }
 
+                PopulateAdditiveBlendOverlays();
+
                 if (CurrentAnimationName == null && animHKXsToLoad.Count > 0)
                 {
                     string firstAnim = null;
@@ -749,6 +812,8 @@ namespace DSAnimStudio
                             timeactFiles[kvp.Key] = kvp.Value;
                     }
                 }
+
+                PopulateAdditiveBlendOverlays();
 
                 lock (_lock_animDict)
                 {

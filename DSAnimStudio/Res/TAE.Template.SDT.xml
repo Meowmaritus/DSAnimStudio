@@ -11,7 +11,7 @@
 			  <!-- ArgC = 6 = 1011,7 = 1012, 8 = 1013 -->
 			  <entry value="5"   name="5: InvokeParriedState(ArgC)"/>
 			  <entry value="6"   name="6: InvokeAnimCancelEndWithKeyboardKey"/>
-			  <entry value="7"   name="7: InvokeLockChrRotation"/>
+			  <entry value="7"   name="7: Disable Turning"/>
 			  <entry value="8"   name="8: Flag As Dodging"/>
 			  <entry value="9"   name="9: InvokeAnimCancelStart_L1_L2"/>
 			  <entry value="10"  name="10: InvokeAnimCancelStart_MagicR_MagicL"/>
@@ -795,8 +795,8 @@
       <s32 assert="0"/>
       <s32 assert="0"/>
     </event>
-    <event id="224" name="SetChrTurnRate">
-      <f32 name="TurnRate"/>
+    <event id="224" name="SetTurnSpeed">
+      <f32 name="TurnSpeed"/>
       <b name="IsLockOnCheck"/>
       <u8 assert="0"/>
       <u8 assert="0"/>

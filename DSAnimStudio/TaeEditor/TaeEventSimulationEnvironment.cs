@@ -400,6 +400,49 @@ namespace DSAnimStudio.TaeEditor
                         },
                     }
                 },
+                {
+                    "EventSimTracking",
+                    new EventSimEntry("Simulate Character Tracking (A/D Keys)", true)
+                    {
+                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
+                        {
+                            MODEL.TrackingTestInput = 0;
+                            MODEL.CurrentTrackingSpeed = MODEL.BaseTrackingSpeed;
+                        },
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
+                        {
+                            float activeTrackingSpeedThisFrame = MODEL.BaseTrackingSpeed;
+                            foreach (var evBox in evBoxes)
+                            {
+                                if (evBox.PlaybackHighlight && evBox.MyEvent.Template != null)
+                                {
+                                    if (evBox.MyEvent.Type == 0 && Convert.ToInt32(evBox.MyEvent.Parameters["JumpTableID"]) == 7)
+                                    {
+                                        // No matter what, if any disable rotation event is active the character can NOT rotate.
+                                        activeTrackingSpeedThisFrame = 0;
+                                        break;
+                                    }
+                                    else if (evBox.MyEvent.Type == 224)
+                                    {
+                                        activeTrackingSpeedThisFrame = Convert.ToSingle(evBox.MyEvent.Parameters["TurnSpeed"]);
+                                    }
+                                }
+                            }
+                            MODEL.CurrentTrackingSpeed = activeTrackingSpeedThisFrame;
+
+                            if (!Graph.MainScreen.Input.AnyModifiersHeld)
+                            {
+                                float trackDir = 0;
+                                if (Graph.MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.D))
+                                    trackDir += 1;
+                                if (Graph.MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.A))
+                                    trackDir -= 1;
+
+                                MODEL.TrackingTestInput = Model.GlobalTrackingInput + trackDir;
+                            }
+                        },
+                    }
+                },
                 ///////////////////////////////////////
                 // NOT READY YET - EXTREMELY UNSTABLE
                 ///////////////////////////////////////
@@ -614,16 +657,7 @@ namespace DSAnimStudio.TaeEditor
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
                             MODEL.DummyPolyMan.HideAllHitboxes();
-
-                            MODEL.ChrAsm?.RightWeaponModel0?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.RightWeaponModel1?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.RightWeaponModel2?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.RightWeaponModel3?.DummyPolyMan?.HideAllHitboxes();
-
-                            MODEL.ChrAsm?.LeftWeaponModel0?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.LeftWeaponModel1?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.LeftWeaponModel2?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.LeftWeaponModel3?.DummyPolyMan?.HideAllHitboxes();
+                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.HideAllHitboxes());
 
                             //if (MODEL.ChrAsm?.RightWeaponModel != null)
                             //    MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.HideAllHitboxes();
@@ -634,16 +668,7 @@ namespace DSAnimStudio.TaeEditor
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.HideAllHitboxes();
-
-                            MODEL.ChrAsm?.RightWeaponModel0?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.RightWeaponModel1?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.RightWeaponModel2?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.RightWeaponModel3?.DummyPolyMan?.HideAllHitboxes();
-
-                            MODEL.ChrAsm?.LeftWeaponModel0?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.LeftWeaponModel1?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.LeftWeaponModel2?.DummyPolyMan?.HideAllHitboxes();
-                            MODEL.ChrAsm?.LeftWeaponModel3?.DummyPolyMan?.HideAllHitboxes();
+                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.HideAllHitboxes());
 
                             //if (MODEL.ChrAsm?.RightWeaponModel != null)
                             //    MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.HideAllHitboxes();
@@ -759,10 +784,12 @@ namespace DSAnimStudio.TaeEditor
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
                             MODEL.DummyPolyMan.ClearAllBulletSpawns();
+                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllBulletSpawns());
                         },
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.ClearAllBulletSpawns();
+                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllBulletSpawns());
                         },
                         SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
                         {
@@ -777,7 +804,15 @@ namespace DSAnimStudio.TaeEditor
 
                                 if (bulletParamID >= 0)
                                 {
-                                    MODEL.DummyPolyMan.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID);
+                                    var asmSrc = MODEL.ChrAsm?.GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource.Body, dummyPolyID);
+                                    if (asmSrc == null || asmSrc == MODEL.DummyPolyMan)
+                                    {
+                                        MODEL.DummyPolyMan.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID);
+                                    }
+                                    else
+                                    {
+                                        asmSrc.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID % 1000);
+                                    }
                                 }
 
                             }
@@ -793,10 +828,12 @@ namespace DSAnimStudio.TaeEditor
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
                             MODEL.DummyPolyMan.ClearAllSFXSpawns();
+                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllSFXSpawns());
                         },
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
                             MODEL.DummyPolyMan.ClearAllSFXSpawns();
+                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllSFXSpawns());
                         },
                         SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
                         {
@@ -813,10 +850,12 @@ namespace DSAnimStudio.TaeEditor
                                 // value types.
                                 int ffxid = Convert.ToInt32(evBox.MyEvent.Parameters["FFXID"]);
                                 int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
-                                ParamData.AtkParam.DummyPolySource dummyPolySrc = ParamData.AtkParam.DummyPolySource.Body;
+                                
 
                                 if (evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolySource"))
                                 {
+                                    ParamData.AtkParam.DummyPolySource dummyPolySrc = ParamData.AtkParam.DummyPolySource.Body;
+
                                     int dplsVal = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolySource"]);
                                     if (dplsVal == 0)
                                     {
@@ -848,9 +887,33 @@ namespace DSAnimStudio.TaeEditor
                                         }
 
                                     }
+
+                                    var asmSrc = MODEL.ChrAsm?.GetDummyManager(dummyPolySrc);
+
+                                    if (asmSrc != null)
+                                    {
+                                        asmSrc.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
+                                    }
+                                    else
+                                    {
+                                        MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
+                                    }
                                 }
 
-                                MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
+                                else
+                                {
+                                    var asmSrc = MODEL.ChrAsm?.GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource.Body, dummyPolyID);
+                                    if (asmSrc == null || asmSrc == MODEL.DummyPolyMan)
+                                    {
+                                        MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
+                                    }
+                                    else
+                                    {
+                                        asmSrc.SpawnSFXOnDummyPoly(ffxid, dummyPolyID % 1000);
+                                    }
+                                }
+
+                                
                             }
                         },
                     }

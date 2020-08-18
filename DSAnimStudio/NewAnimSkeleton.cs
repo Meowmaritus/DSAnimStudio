@@ -153,6 +153,8 @@ namespace DSAnimStudio
                 return result;
             }
 
+            var flverDeadBonesToApplyHkxChildrenTo = new Dictionary<int, int>();
+
             for (int i = 0; i < HkxSkeleton.Count; i++)
             {
                 HkxSkeleton[i].ReferenceMatrix = GetAbsoluteReferenceMatrix(i);
@@ -165,6 +167,54 @@ namespace DSAnimStudio
                 }
                 if (HkxSkeleton[i].ParentIndex < 0)
                     RootBoneIndices.Add(i);
+
+                if (HkxSkeleton[i].FlverBoneIndex == -1)
+                {
+                    HkxSkeleton[i].FlverBoneIndex = FlverSkeleton.Count;
+                    var newFlverBone = new FlverBoneInfo(HkxSkeleton[i], HkxSkeleton, FlverSkeleton);
+                    FlverSkeleton.Add(newFlverBone);
+                    if (!flverDeadBonesToApplyHkxChildrenTo.ContainsKey(HkxSkeleton[i].FlverBoneIndex))
+                    {
+                        flverDeadBonesToApplyHkxChildrenTo.Add(HkxSkeleton[i].FlverBoneIndex, i);
+                    }
+                }
+                else if (FlverSkeleton[HkxSkeleton[i].FlverBoneIndex].IsNub)
+                {
+                    FlverSkeleton[HkxSkeleton[i].FlverBoneIndex].ApplyHkxBoneProperties(HkxSkeleton[i], HkxSkeleton, FlverSkeleton);
+                    if (!flverDeadBonesToApplyHkxChildrenTo.ContainsKey(HkxSkeleton[i].FlverBoneIndex))
+                    {
+                        flverDeadBonesToApplyHkxChildrenTo.Add(HkxSkeleton[i].FlverBoneIndex, i);
+                    }
+                }
+
+                foreach (var kvp in flverDeadBonesToApplyHkxChildrenTo)
+                {
+                    FlverSkeleton[kvp.Key].ChildBones.Clear();
+                    var copyFromHkx = HkxSkeleton[kvp.Value];
+                    foreach (var ci in copyFromHkx.ChildIndices)
+                    {
+                        if (ci >= 0 && ci < HkxSkeleton.Count)
+                        {
+                            var matchingFlverChildBone = FlverSkeleton.FirstOrDefault(b => b.Name == HkxSkeleton[ci].Name);
+                            if (matchingFlverChildBone != null && !FlverSkeleton[kvp.Key].ChildBones.Contains(matchingFlverChildBone))
+                            {
+                                FlverSkeleton[kvp.Key].ChildBones.Add(matchingFlverChildBone);
+                            }
+                        }
+                    }
+
+                    if (HkxSkeleton[kvp.Value].ParentIndex >= 0 && HkxSkeleton[kvp.Value].ParentIndex < HkxSkeleton.Count)
+                    {
+                        var matchingFlverParentBone = FlverSkeleton.FirstOrDefault(b => b.Name == HkxSkeleton[HkxSkeleton[kvp.Value].ParentIndex].Name);
+                        if (matchingFlverParentBone != null && !matchingFlverParentBone.ChildBones.Contains(FlverSkeleton[kvp.Key]))
+                        {
+                            matchingFlverParentBone.ChildBones.Add(FlverSkeleton[kvp.Key]);
+                        }
+                    }
+
+                    
+
+                }
             }
         }
 
@@ -245,6 +295,7 @@ namespace DSAnimStudio
             for (int i = 0; i < FlverSkeleton.Count; i++)
             {
                 this[i] = FlverSkeleton[i].ReferenceMatrix;
+                FlverSkeleton[i].CurrentMatrix = FlverSkeleton[i].ReferenceMatrix;
             }
         }
 
@@ -259,6 +310,7 @@ namespace DSAnimStudio
         public class FlverBoneInfo
         {
             public string Name;
+            public Matrix ParentReferenceMatrix = Matrix.Identity;
             public Matrix ReferenceMatrix = Matrix.Identity;
             public int HkxBoneIndex = -1;
             public Matrix CurrentMatrix = Matrix.Identity;
@@ -276,6 +328,46 @@ namespace DSAnimStudio
 
             public StatusPrinter SpawnPrinter = new StatusPrinter(null);
 
+            public bool IsNub = false;
+
+            public void ApplyHkxBoneProperties(HkxBoneInfo copyFromHkx, List<HkxBoneInfo> hkxBoneList, List<FlverBoneInfo> flverBoneList)
+            {
+                Name = copyFromHkx.Name;
+                ParentReferenceMatrix = copyFromHkx.ReferenceMatrix * Matrix.Invert(copyFromHkx.RelativeReferenceMatrix);
+                ReferenceMatrix = copyFromHkx.ReferenceMatrix;
+                CurrentMatrix = ReferenceMatrix;
+                HkxBoneIndex = hkxBoneList.IndexOf(copyFromHkx);
+
+                IsNub = false;
+                ChildBones.Clear();
+                foreach (var ci in copyFromHkx.ChildIndices)
+                {
+                    if (ci >= 0 && ci < hkxBoneList.Count)
+                    {
+                        var matchingFlverChildBone = flverBoneList.FirstOrDefault(b => b.Name == hkxBoneList[ci].Name);
+                        if (matchingFlverChildBone != null && !ChildBones.Contains(matchingFlverChildBone))
+                        {
+                            ChildBones.Add(matchingFlverChildBone);
+                        }
+                    }
+                }
+            }
+
+            public FlverBoneInfo(HkxBoneInfo copyFromHkx, List<HkxBoneInfo> hkxBoneList, List<FlverBoneInfo> flverBoneList)
+            {
+                ApplyHkxBoneProperties(copyFromHkx, hkxBoneList, flverBoneList);
+
+                BoundingBoxPrim = new DbgPrimWireBox(Transform.Default,
+                        Vector3.One * -0.01f,
+                        Vector3.One * 0.01f,
+                        DBG.COLOR_FLVER_BONE_BBOX)
+                {
+                    Category = DbgPrimCategory.FlverBoneBoundingBox,
+                };
+
+                SpawnPrinter.AppendLine(Name, DBG.COLOR_FLVER_BONE);
+            }
+
             public FlverBoneInfo(FLVER.Bone bone, List<FLVER.Bone> boneList)
             {
                 if (GlobalBonePrim == null)
@@ -286,11 +378,13 @@ namespace DSAnimStudio
                     };
                 }
 
-                Matrix GetBoneMatrix(SoulsFormats.FLVER.Bone b)
+                Matrix GetBoneMatrix(SoulsFormats.FLVER.Bone b, bool saveParentBone)
                 {
                     SoulsFormats.FLVER.Bone parentBone = b;
 
                     var result = Matrix.Identity;
+
+                    bool isTopBone = true;
 
                     do
                     {
@@ -304,13 +398,18 @@ namespace DSAnimStudio
                             parentBone = boneList[parentBone.ParentIndex];
                         else
                             parentBone = null;
+
+                        isTopBone = false;
+
+                        if (saveParentBone && isTopBone)
+                            ParentReferenceMatrix = GetBoneMatrix(parentBone, saveParentBone: false);
                     }
                     while (parentBone != null);
 
                     return result;
                 }
 
-                ReferenceMatrix = GetBoneMatrix(bone);
+                ReferenceMatrix = GetBoneMatrix(bone, saveParentBone: true);
                 Name = bone.Name;
 
                 SpawnPrinter.AppendLine(Name, DBG.COLOR_FLVER_BONE);
@@ -333,6 +432,8 @@ namespace DSAnimStudio
 
                     
                 }
+
+                IsNub = bone.Unk3C != 0;
 
                 BoundingBoxPrim = new DbgPrimWireBox(Transform.Default,
                         new Vector3(bone.BoundingBoxMin.X, bone.BoundingBoxMin.Y, bone.BoundingBoxMin.Z),

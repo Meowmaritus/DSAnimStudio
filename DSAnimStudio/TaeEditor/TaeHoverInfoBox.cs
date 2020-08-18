@@ -51,12 +51,12 @@ namespace DSAnimStudio.TaeEditor
         private System.Drawing.Size titleSize;
 
         //public int BoxShadowOffset = 3;
-        
 
-        public Color ColorOutline = new Color(32, 32, 32, 1);
-        public Color ColorBox = new Color(64, 64, 64, 1);// Color.DodgerBlue; //Color.DodgerBlue;
+
+        public Color ColorOutline => Main.Colors.GuiColorEventGraphHoverInfoBoxOutline;
+        public Color ColorBox => Main.Colors.GuiColorEventGraphHoverInfoBoxFill;
         //public Color ColorBoxShadow = Color.Black * 0.5f;
-        public Color ColorText = Color.White;
+        public Color ColorText => Main.Colors.GuiColorEventGraphHoverInfoBoxText;
         //public Color ColorTextShadow = Color.Black;
 
         public bool IsVisible => PopupTimer <= 0;
@@ -127,10 +127,12 @@ namespace DSAnimStudio.TaeEditor
                     e.Bounds.Width - OutlineThickness, e.Bounds.Height - OutlineThickness));
             }
 
-            e.Graphics.DrawString(Title, TooltipTitleFont, System.Drawing.Brushes.White, TextPadding, TextPadding);
+            e.Graphics.DrawString(Title, TooltipTitleFont, new System.Drawing.SolidBrush(
+                System.Drawing.Color.FromArgb(255, ColorText.R, ColorText.G, ColorText.B)), TextPadding, TextPadding);
 
             if (!string.IsNullOrWhiteSpace(Text))
-                e.Graphics.DrawString(Text, TooltipFont, System.Drawing.Brushes.White, 
+                e.Graphics.DrawString(Text, TooltipFont, new System.Drawing.SolidBrush(
+                System.Drawing.Color.FromArgb(255, ColorText.R, ColorText.G, ColorText.B)), 
                     TextPadding, TextPadding + titleSize.Height + PaddingBetweenTitleAndText);
         }
 

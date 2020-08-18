@@ -362,8 +362,8 @@
       <f32 name="OpacityAtEventStart"/>
       <f32 name="OpacityAtEventEnd"/>
     </event>
-    <event id="224" name="SetChrTurnRate">
-      <f32 name="TurnRate"/>
+    <event id="224" name="SetTurnSpeed">
+      <f32 name="TurnSpeed"/>
     </event>
     <event id="225" name="SetSPRegenRatePercent">
       <u8 name="RegenRatePercent"/>

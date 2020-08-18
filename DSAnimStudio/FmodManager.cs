@@ -32,7 +32,7 @@ namespace DSAnimStudio
         public const int MAX_CHANNELS = 32;
 
         public static float BaseSoundVolume = 0.5f;
-        public static float AdjustSoundVolume = 1;
+        public static float AdjustSoundVolume = 100;
 
         public static string StatusString = "FMOD: (Not Running)";
 
@@ -207,7 +207,7 @@ namespace DSAnimStudio
 
                     // If it fails due to the event being released, it's fine. No weirdness should happen.
                     evtRes = Event.set3DAttributes(ref posVec, ref velVec);
-                    evtRes = Event.setVolume(BaseSoundVolume * AdjustSoundVolume);
+                    evtRes = Event.setVolume(BaseSoundVolume * (AdjustSoundVolume / 100));
 
                     oldPos = position;
                 }
@@ -675,7 +675,7 @@ namespace DSAnimStudio
                 {
                     UpdateMediaRoot(Path.GetDirectoryName(newEvent_FullFevPath));
 
-                    ERRCHECK(newEvent.setVolume(BaseSoundVolume * AdjustSoundVolume));
+                    ERRCHECK(newEvent.setVolume(BaseSoundVolume * (AdjustSoundVolume / 100)));
 
                     if (getPosFunc != null)
                     {

@@ -65,6 +65,16 @@ namespace DSAnimStudio
 
         public Matrix RotMatrixAtStartOfAnim { get; private set; } = Matrix.Identity;
 
+        public void ApplyExternalRotation(float r)
+        {
+            RotMatrixAtStartOfAnim *= Matrix.CreateRotationY(r);
+            var keys = StartingRootMotionsPerLoop.Keys.ToList();
+            foreach (var k in keys)
+            {
+                StartingRootMotionsPerLoop[k] = StartingRootMotionsPerLoop[k] * Matrix.CreateRotationY(r);
+            }
+        }
+
         public void Reset()
         {
             CurrentTime = 0;

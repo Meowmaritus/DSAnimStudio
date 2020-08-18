@@ -87,6 +87,7 @@ namespace DSAnimStudio
             checkBoxLWeaponFlipSideways.Checked = ChrAsm.LeftWeaponFlipSideways;
 
             checkBoxDbgRHMdlPos.Checked = ChrAsm.DebugRightWeaponModelPositions;
+            checkBoxDbgLHMdlPos.Checked = ChrAsm.DebugLeftWeaponModelPositions;
         }
 
         public void WriteGUIToChrAsm()
@@ -100,6 +101,7 @@ namespace DSAnimStudio
             ChrAsm.StartWeaponStyle = (NewChrAsm.WeaponStyleType)comboBoxWPRIndex.SelectedIndex;
 
             ChrAsm.DebugRightWeaponModelPositions = checkBoxDbgRHMdlPos.Checked;
+            ChrAsm.DebugLeftWeaponModelPositions = checkBoxDbgLHMdlPos.Checked;
         }
 
         private void ExportToolStripMenuItem_Click(object sender, EventArgs e)
@@ -194,18 +196,21 @@ namespace DSAnimStudio
         {
             ChrAsm.RightWeaponFlipSideways = checkBoxRWeaponFlipSideways.Checked;
             ChrAsm.MODEL.AfterAnimUpdate(0);
+            Main.WinForm.Activate();
         }
 
         private void CheckBoxLWeaponFlipBackwards_CheckedChanged(object sender, EventArgs e)
         {
             ChrAsm.LeftWeaponFlipBackwards = checkBoxLWeaponFlipBackwards.Checked;
             ChrAsm.MODEL.AfterAnimUpdate(0);
+            Main.WinForm.Activate();
         }
 
         private void CheckBoxLWeaponFlipSideways_CheckedChanged(object sender, EventArgs e)
         {
             ChrAsm.LeftWeaponFlipSideways = checkBoxLWeaponFlipSideways.Checked;
             ChrAsm.MODEL.AfterAnimUpdate(0);
+            Main.WinForm.Activate();
         }
 
         private void SetEverythingDisabled(bool isDisabled)
@@ -224,6 +229,9 @@ namespace DSAnimStudio
             comboBoxWPRIndex.Enabled = !isDisabled;
             checkBoxRWeaponFlipBackwards.Enabled = !isDisabled;
             checkBoxRWeaponFlipSideways.Enabled = !isDisabled;
+
+            checkBoxDbgRHMdlPos.Enabled = !isDisabled;
+            checkBoxDbgLHMdlPos.Enabled = !isDisabled;
 
             menuStrip1.Enabled = !isDisabled;
             buttonApplyChanges.Enabled = !isDisabled;
@@ -400,6 +408,20 @@ namespace DSAnimStudio
 
                 e.Graphics.DrawImage(CustomCheck, e.ImageRectangle);
             }
+        }
+
+        private void checkBoxDbgRHMdlPos_CheckedChanged(object sender, EventArgs e)
+        {
+            ChrAsm.DebugRightWeaponModelPositions = checkBoxDbgRHMdlPos.Checked;
+            ChrAsm.MODEL.AfterAnimUpdate(0);
+            Main.WinForm.Activate();
+        }
+
+        private void checkBoxDbgLHMdlPos_CheckedChanged(object sender, EventArgs e)
+        {
+            ChrAsm.DebugLeftWeaponModelPositions = checkBoxDbgLHMdlPos.Checked;
+            ChrAsm.MODEL.AfterAnimUpdate(0);
+            Main.WinForm.Activate();
         }
     }
 }

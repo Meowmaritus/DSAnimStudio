@@ -245,7 +245,7 @@ namespace DSAnimStudio
             else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
             {
                 //TEMP
-                ShadingMode = FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY;
+                ShadingMode = FlverShadingMode.MESHDEBUG_NORMALS;
                 //GFX.ForcedFlverShadingModeIndex = 
                 //    GFX.FlverShadingModeList.IndexOf(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
                 
@@ -549,7 +549,7 @@ namespace DSAnimStudio
                 // Apply bind pose of bone to actual vert if !mesh.Dynamic
                 if (mesh.Dynamic == 0)
                 {
-                    ApplySkin(vert, flvr.Bones.Select(b => GetBoneMatrix(b)).ToList(), mesh.BoneIndices, (flvr.Header.Version <= 0x2000D));
+                    //ApplySkin(vert, flvr.Bones.Select(b => GetBoneMatrix(b)).ToList(), mesh.BoneIndices, (flvr.Header.Version <= 0x2000D));
 
                     //if (!vert.UsesBoneIndices)
                     //{

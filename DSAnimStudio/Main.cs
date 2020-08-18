@@ -20,6 +20,8 @@ namespace DSAnimStudio
     /// </summary>
     public class Main : Game
     {
+        public static ColorConfig Colors = new ColorConfig();
+
         public static Form WinForm;
 
         public static Random Rand = new Random();
@@ -38,7 +40,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.3";
+        public const string VERSION = "Version 2.4";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -469,20 +471,16 @@ namespace DSAnimStudio
 
         private Color GetMemoryUseColor(long MemoryUsage)
         {
-            const double MEM_KB = 1024f;
-            const double MEM_MB = 1024f * 1024f;
+            //const double MEM_KB = 1024f;
+            //const double MEM_MB = 1024f * 1024f;
             const double MEM_GB = 1024f * 1024f * 1024f;
 
-            if (MemoryUsage < MEM_KB)
-                return Color.Cyan;
-            else if (MemoryUsage < MEM_MB)
-                return Color.Lime;
-            else if (MemoryUsage < MEM_GB)
-                return Color.Yellow;
+            if (MemoryUsage < MEM_GB)
+                return Colors.GuiColorMemoryUseTextGood;
             else if (MemoryUsage < (MEM_GB * 2))
-                return Color.Orange;
+                return Colors.GuiColorMemoryUseTextOkay;
             else
-                return Color.Red;
+                return Colors.GuiColorMemoryUseTextBad;
         }
 
         private void DrawMemoryUsage()
@@ -491,7 +489,7 @@ namespace DSAnimStudio
             var str_unmanaged = GetMemoryUseString("RAM USE:  ", MemoryUsage_Unmanaged);
 
             var strSize_managed = DBG.DEBUG_FONT_SMALL.MeasureString(str_managed);
-            var strSize_unmanaged = DBG.DEBUG_FONT.MeasureString(str_unmanaged);
+            var strSize_unmanaged = DBG.DEBUG_FONT_SMALL.MeasureString(str_unmanaged);
 
             //DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 2, 
             //    GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
@@ -499,7 +497,7 @@ namespace DSAnimStudio
             GFX.SpriteBatchBeginForText();
             DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 6,
                 GFX.Device.Viewport.Height),
-                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT, scale: 1, scaleOrigin: strSize_unmanaged);
+                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT_SMALL, scale: 1, scaleOrigin: strSize_unmanaged);
             GFX.SpriteBatchEnd();
         }
 
@@ -720,16 +718,18 @@ namespace DSAnimStudio
             {
                 if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
                 {
+                    Colors.ReadColorsFromConfig();
+
                     // Still initializing just blank out screen while layout freaks out lol
                     if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
                     {
-                        GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
+                        GFX.Device.Clear(Colors.MainColorBackground);
                         return;
                     }
 
                     DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
 
-                    GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
+                    GFX.Device.Clear(Colors.MainColorBackground);
 
                     if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
                     {
@@ -755,7 +755,7 @@ namespace DSAnimStudio
 
                         GFX.Device.SetRenderTarget(SceneRenderTarget);
 
-                        GFX.Device.Clear(Color.DimGray);
+                        GFX.Device.Clear(Colors.MainColorViewportBackground);
 
                         GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
 
@@ -778,7 +778,7 @@ namespace DSAnimStudio
 
                         GFX.Device.SetRenderTarget(null);
 
-                        GFX.Device.Clear(new Color(0.2f, 0.2f, 0.2f));
+                        GFX.Device.Clear(Colors.MainColorBackground);
 
                         GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
 

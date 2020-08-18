@@ -63,40 +63,12 @@ namespace DSAnimStudio
 
                 public NewDummyPolyManager GetDmyPoly1SpawnPlace(NewChrAsm asm, DummyPolySource defaultDummyPolySource)
                 {
-                    return GetDummyPolySpawnPlace(asm, defaultDummyPolySource, DmyPoly1);
+                    return asm.GetDummyPolySpawnPlace(defaultDummyPolySource, DmyPoly1);
                 }
 
                 public NewDummyPolyManager GetDmyPoly2SpawnPlace(NewChrAsm asm, DummyPolySource defaultDummyPolySource)
                 {
-                    return GetDummyPolySpawnPlace(asm, defaultDummyPolySource, DmyPoly2);
-                }
-
-                NewDummyPolyManager GetDummyPolySpawnPlace(NewChrAsm asm, DummyPolySource defaultDummySource, int dmy)
-                {
-                    if (dmy == -1)
-                        return null;
-                    int check = dmy / 1000;
-
-                    if (check == 0)
-                        return asm.GetDummyManager(defaultDummySource);
-                    else if (check == 10)
-                        return asm.GetDummyManager(DummyPolySource.RightWeapon0);
-                    else if (check == 11)
-                        return asm.GetDummyManager(DummyPolySource.RightWeapon1);
-                    else if (check == 12)
-                        return asm.GetDummyManager(DummyPolySource.RightWeapon2);
-                    else if (check == 13)
-                        return asm.GetDummyManager(DummyPolySource.RightWeapon3);
-                    else if (check == 20)
-                        return asm.GetDummyManager(DummyPolySource.LeftWeapon0);
-                    else if (check == 21)
-                        return asm.GetDummyManager(DummyPolySource.LeftWeapon1);
-                    else if (check == 22)
-                        return asm.GetDummyManager(DummyPolySource.LeftWeapon2);
-                    else if (check == 23)
-                        return asm.GetDummyManager(DummyPolySource.LeftWeapon3);
-
-                    return null;
+                    return asm.GetDummyPolySpawnPlace(defaultDummyPolySource, DmyPoly2);
                 }
 
                 public List<Matrix> GetDmyPoly1Locations(Model mdl, DummyPolySource defaultDummySource)
@@ -109,7 +81,7 @@ namespace DSAnimStudio
                     if (mdl.ChrAsm == null)
                         return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly1, modMatrix) ?? new List<Matrix>() { modMatrix };
 
-                    var place = GetDummyPolySpawnPlace(mdl.ChrAsm, defaultDummySource, DmyPoly1);
+                    var place = mdl.ChrAsm.GetDummyPolySpawnPlace(defaultDummySource, DmyPoly1);
 
                     
                     //if (place == mdl.DummyPolyMan)
@@ -130,7 +102,7 @@ namespace DSAnimStudio
                     if (mdl.ChrAsm == null)
                         return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly2, modMatrix) ?? new List<Matrix>() { modMatrix };
 
-                    var place = GetDummyPolySpawnPlace(mdl.ChrAsm, defaultDummySource, DmyPoly2);
+                    var place = mdl.ChrAsm.GetDummyPolySpawnPlace(defaultDummySource, DmyPoly2);
 
                     //if (place != mdl.DummyPolyMan)
                     //{
@@ -559,6 +531,8 @@ namespace DSAnimStudio
         {
             public int BehaviorVariationID;
 
+            public float TurnVelocity;
+
             public bool[] DrawMask;
 
             public string GetMaskString(Dictionary<int, string> materialsPerMask, 
@@ -608,19 +582,24 @@ namespace DSAnimStudio
                 
             }
 
-            public void ApplyMaskToModel(Model mdl)
+            public void ApplyToNpcModel(Model mdl)
             {
                 for (int i = 0; i < Math.Min(Model.DRAW_MASK_LENGTH, DrawMask.Length); i++)
                 {
                     mdl.DrawMask[i] = DrawMask[i];
                     mdl.DefaultDrawMask[i] = DrawMask[i];
                 }
+                mdl.BaseTrackingSpeed = TurnVelocity;
             }
 
             public override void Read(BinaryReaderEx br)
             {
                 var start = br.Position;
                 BehaviorVariationID = br.ReadInt32();
+                //aiThinkId
+                //nameId
+                br.Position += 8;
+                TurnVelocity = br.ReadSingle();
 
                 if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
                     GameDataManager.GameType == GameDataManager.GameTypes.BB ||

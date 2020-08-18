@@ -440,7 +440,7 @@ namespace DSAnimStudio
                     dmy.UseUpwardVector ? Vector3.Normalize(new Vector3(dmy.Upward.X, dmy.Upward.Y, dmy.Upward.Z)) : Vector3.Up)
                     * Matrix.CreateTranslation(new Vector3(dmy.Position.X, dmy.Position.Y, dmy.Position.Z))
                     * (dmy.ParentBoneIndex >= 0 ? skeleton.FlverSkeleton[dmy.ParentBoneIndex].ReferenceMatrix : Matrix.Identity);
-                AttachMatrix = ReferenceMatrix;
+                AttachMatrix = Matrix.Identity;
 
                 ArrowPrimitive = new DbgPrimWireArrow("DummyPoly Spawns", Transform.Default, Color.White)
                 {
@@ -455,14 +455,18 @@ namespace DSAnimStudio
                 SpawnPrinter.FullyOutlined = true;
             }
 
+            public static Color ColorSpawnSFX = Color.Cyan;
+            public static Color ColorSpawnBulletsMisc = Color.Yellow;
+            public static Color ColorSpawnSFXBulletsMisc = Color.Lime;
+
             private Color GetCurrentSpawnColor()
             {
                 if (SFXSpawnIDs.Count > 0 && (BulletSpawnIDs.Count > 0 || MiscSpawnTexts.Count > 0))
-                    return Color.Lime;
+                    return ColorSpawnSFXBulletsMisc;
                 else if (SFXSpawnIDs.Count > 0 && (BulletSpawnIDs.Count == 0 && MiscSpawnTexts.Count == 0))
-                    return Color.Cyan;
+                    return ColorSpawnSFX;
                 else if (SFXSpawnIDs.Count == 0 && (BulletSpawnIDs.Count > 0 || MiscSpawnTexts.Count > 0))
-                    return Color.Yellow;
+                    return ColorSpawnBulletsMisc;
                 else
                     return DBG.COLOR_DUMMY_POLY;
             }
@@ -509,9 +513,9 @@ namespace DSAnimStudio
                 string dmyIDTxt = $"{(ReferenceID + globalIDOffset)}";
 
                 if (hasSpawnStuff && !isForce)
-                    SpawnPrinter.AppendLine(dmyIDTxt, GetCurrentSpawnColor() * 2);
+                    SpawnPrinter.AppendLine(dmyIDTxt, GetCurrentSpawnColor());
                 else if (DBG.CategoryEnableNameDraw[DbgPrimCategory.DummyPoly] || isForce)
-                    SpawnPrinter.AppendLine(dmyIDTxt, DBG.COLOR_DUMMY_POLY * 3);
+                    SpawnPrinter.AppendLine(dmyIDTxt, DBG.COLOR_DUMMY_POLY);
                 
 
                 Vector3 currentPos = Vector3.Transform(Vector3.Zero, CurrentMatrix * world);
@@ -520,26 +524,26 @@ namespace DSAnimStudio
                 {
                     foreach (var sfx in SFXSpawnIDs)
                     {
-                        SpawnPrinter.AppendLine($"SFX {sfx}", Color.Cyan * 2);
+                        SpawnPrinter.AppendLine($"SFX {sfx}", ColorSpawnSFX);
                     }
 
                     foreach (var bullet in BulletSpawnIDs)
                     {
-                        SpawnPrinter.AppendLine($"Bullet {bullet}", Color.Yellow * 2);
+                        SpawnPrinter.AppendLine($"Bullet {bullet}", ColorSpawnBulletsMisc);
                     }
 
                     foreach (var misc in MiscSpawnTexts)
                     {
-                        SpawnPrinter.AppendLine(misc, Color.Yellow * 2);
+                        SpawnPrinter.AppendLine(misc, ColorSpawnBulletsMisc);
                     }
                 }
 
                 if (ShowAttack != null && !isForce)
                 {
                     string atkName = ShowAttack.Name;
-                    if (!string.IsNullOrWhiteSpace(atkName) && atkName.Length > 32)
+                    if (!string.IsNullOrWhiteSpace(atkName) && atkName.Length > 64)
                     {
-                        atkName = atkName.Substring(0, 32) + "...";
+                        atkName = atkName.Substring(0, 64) + "...";
                     }
                     SpawnPrinter.AppendLine($"ATK {ShowAttack.ID}"
                         + (!string.IsNullOrWhiteSpace(atkName) ? $" {atkName}" : ""),
