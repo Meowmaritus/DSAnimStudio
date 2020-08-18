@@ -1,4 +1,5 @@
 ﻿using DSAnimStudio.DebugPrimitives;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +37,10 @@ namespace DSAnimStudio.TaeEditor
         public bool EnableAnimRootMotion { get; set; } = true;
         //public bool SimulateReferencedEvents { get; set; } = true;
 
+
+        public ColorConfig Colors { get; set; } = new ColorConfig();
+
+
         public bool IsNewGraphVisiMode { get; set; } = true;
 
         public int MSAA = 2;
@@ -60,6 +65,9 @@ namespace DSAnimStudio.TaeEditor
 
             MSAA = GFX.MSAA;
             SSAA = GFX.SSAA;
+
+            Colors = Main.Colors;
+            Colors.WriteColorsToConfig();
         }
 
         public void AfterLoading()
@@ -100,6 +108,10 @@ namespace DSAnimStudio.TaeEditor
             GFX.SSAA = SSAA;
 
             Main.RequestViewportRenderTargetResolutionChange = true;
+
+
+            Colors.ReadColorsFromConfig();
+            Main.Colors = Colors;
         }
 
         public Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }

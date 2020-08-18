@@ -113,19 +113,19 @@ namespace DSAnimStudio
         public static bool DbgPrimXRay = false;
 
         public static Color COLOR_FLVER_BONE = Color.Yellow;
-        public static string COLOR_FLVER_BONE_NAME = "Yellow";
+        //public static string COLOR_FLVER_BONE_NAME = "Yellow";
 
-        public static Color COLOR_HKX_BONE = Color.Aqua;
-        public static string COLOR_HKX_BONE_NAME = "Aqua";
+        //public static Color COLOR_HKX_BONE = Color.Aqua;
+        //public static string COLOR_HKX_BONE_NAME = "Aqua";
 
         public static Color COLOR_FLVER_BONE_BBOX = Color.Lime;
-        public static string COLOR_FLVER_BONE_BBOX_NAME = "Lime";
+        //public static string COLOR_FLVER_BONE_BBOX_NAME = "Lime";
 
         public static Color COLOR_DUMMY_POLY = Color.MonoGameOrange;
-        public static string COLOR_DUMMY_POLY_NAME = "Orange";
+        //public static string COLOR_DUMMY_POLY_NAME = "Orange";
 
         public static Color COLOR_SOUND_EVENT = Color.Red;
-        public static string COLOR_SOUND_EVENT_NAME = "Red";
+        //public static string COLOR_SOUND_EVENT_NAME = "Red";
 
         private static object _lock_primitives = new object();
 

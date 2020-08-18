@@ -62,44 +62,44 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeScrollingString EventText { get; private set; } = new TaeScrollingString();
 
-        public Color ColorBG = new Color(80, 80, 80, 255);
-        public Color ColorBGHighlighted = new Color((30.0f / 255.0f) * 0.75f, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);// Color.DodgerBlue;
+        //public Color ColorBG = new Color(80, 80, 80, 255);
+        //public Color ColorBGHighlighted = new Color((30.0f / 255.0f) * 0.75f, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);// Color.DodgerBlue;
 
         //public Color ColorBG_Selected = new Color(0, 196, 0, 255);// Color.White;// new Color(0, 127, 55, 255);
         //public Color ColorBGHighlighted_Selected = new Color(0, 198, 0, 255); //Color.White;// new Color(0, 198, 86, 255);
 
-        private float selectionColorPulseRadians = 0;
-        private float selectionColorPulseLerpRatio = 0;
-        public float SelectionColorPulseRadiansPerSec = MathHelper.PiOver2;
+        //private float selectionColorPulseRadians = 0;
+        //private float selectionColorPulseLerpRatio = 0;
+        //public float SelectionColorPulseRadiansPerSec = MathHelper.PiOver2;
 
-        private Color colorBG_Selected_PulseStart = Color.Purple;
-        private Color colorBG_Selected_PulseEnd = Color.Fuchsia;
-        private Color colorBGHighlighted_Selected_PulseStart = Color.Purple;
-        private Color colorBGHighlighted_Selected_PulseEnd = Color.Fuchsia;
+        //private Color colorBG_Selected_PulseStart = Color.Purple;
+        //private Color colorBG_Selected_PulseEnd = Color.Fuchsia;
+        //private Color colorBGHighlighted_Selected_PulseStart = Color.Purple;
+        //private Color colorBGHighlighted_Selected_PulseEnd = Color.Fuchsia;
 
-        public Color ColorBG_Selected => Color.Lerp(colorBG_Selected_PulseStart, colorBG_Selected_PulseEnd, selectionColorPulseLerpRatio);
-        public Color ColorBGHighlighted_Selected => Color.Lerp(colorBGHighlighted_Selected_PulseStart, colorBGHighlighted_Selected_PulseEnd, selectionColorPulseLerpRatio);
+        //public Color ColorBG_Selected => Color.Lerp(colorBG_Selected_PulseStart, colorBG_Selected_PulseEnd, selectionColorPulseLerpRatio);
+        //public Color ColorBGHighlighted_Selected => Color.Lerp(colorBGHighlighted_Selected_PulseStart, colorBGHighlighted_Selected_PulseEnd, selectionColorPulseLerpRatio);
 
-        public void UpdateSelectionColorPulse(float elapsedTime, bool isSelected)
-        {
-            if (isSelected)
-            {
-                selectionColorPulseRadians += (elapsedTime * SelectionColorPulseRadiansPerSec);
+        //public void UpdateSelectionColorPulse(float elapsedTime, bool isSelected)
+        //{
+        //    if (isSelected)
+        //    {
+        //        selectionColorPulseRadians += (elapsedTime * SelectionColorPulseRadiansPerSec);
 
-                // Loop circle
-                selectionColorPulseRadians = selectionColorPulseRadians % MathHelper.Pi;
+        //        // Loop circle
+        //        selectionColorPulseRadians = selectionColorPulseRadians % MathHelper.Pi;
 
-                selectionColorPulseLerpRatio = (float)((Math.Cos(selectionColorPulseRadians > MathHelper.PiOver2 ? (selectionColorPulseRadians + MathHelper.Pi) : selectionColorPulseRadians) / 2.0) + 0.5);
-            }
-            else
-            {
-                selectionColorPulseRadians = 0;
-                selectionColorPulseLerpRatio = 0;
-            }
-        }
+        //        selectionColorPulseLerpRatio = (float)((Math.Cos(selectionColorPulseRadians > MathHelper.PiOver2 ? (selectionColorPulseRadians + MathHelper.Pi) : selectionColorPulseRadians) / 2.0) + 0.5);
+        //    }
+        //    else
+        //    {
+        //        selectionColorPulseRadians = 0;
+        //        selectionColorPulseLerpRatio = 0;
+        //    }
+        //}
 
-        public Color ColorOutline = Color.Black;
-        public Color ColorFG => Color.White;
+        //public Color ColorOutline = Color.Black;
+        //public Color ColorFG => Color.White;
 
         //private bool CheckHighlight(double startOfHitWindow, double endOfHitWindow, TaeEditAnimEventBox mouseHoverBox)
         //{

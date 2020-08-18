@@ -108,16 +108,16 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeViewportInteractor ViewportInteractor;
 
-        public Color PlaybackCursorHitWindowStartColor = Color.DodgerBlue;
-        public Color PlaybackCursorHitWindowColor = Color.CornflowerBlue * 0.5f;
+        //public Color PlaybackCursorHitWindowStartColor = Color.DodgerBlue;
+        //public Color PlaybackCursorHitWindowColor = Color.CornflowerBlue * 0.5f;
 
-        public Color PlaybackCursorColor = Color.Black;
+        public Color PlaybackCursorColor => Main.Colors.GuiColorEventGraphPlaybackCursor;
 
         public float PlaybackCursorThickness = 2;
 
         public int MultiSelectRectOutlineThickness => 1;
-        public Color MultiSelectRectFillColor => Color.DodgerBlue * 0.5f;
-        public Color MultiSelectRectOutlineColor => Color.White;
+        public Color MultiSelectRectFillColor => Main.Colors.GuiColorEventGraphSelectionRectangleFill;
+        public Color MultiSelectRectOutlineColor => Main.Colors.GuiColorEventGraphSelectionRectangleOutline;
 
         public readonly TaeEditorScreen MainScreen;
         public TAE.Animation AnimRef { get; private set; }
@@ -138,7 +138,7 @@ namespace DSAnimStudio.TaeEditor
         public float SecondsPixelSize = SecondsPixelSizeDefault;
         public float FramePixelSize_HKX => SecondsPixelSize / (1 / (float)PlaybackCursor.CurrentSnapInterval);
         public float MinPixelsBetweenFramesForHelperLines = 4;
-        public float MinPixelsBetweenFramesForFrameNumberText = 20;
+        public float MinPixelsBetweenFramesForFrameNumberText = 12;
 
         public float SecondsPixelSizeFarAwayModeUpperBound = SecondsPixelSizeDefault;
         public float SecondsPixelSizeMax = (SecondsPixelSizeDefault * 256);
@@ -1982,16 +1982,16 @@ namespace DSAnimStudio.TaeEditor
 
             int boxOutlineThickness = 1;// isBoxSelected ? 2 : 1;
 
-            Color textFG = /* isBoxSelected ? new Color(255, 180, 255, 255) : */ (box.PlaybackHighlight ? Color.Yellow : Color.White);
-            Color textBG = Color.Black;
+            Color textFG = (box.PlaybackHighlight ? Main.Colors.GuiColorEventBox_Highlighted_Text : Main.Colors.GuiColorEventBox_Normal_Text);
+            Color textBG = (box.PlaybackHighlight ? Main.Colors.GuiColorEventBox_Highlighted_TextShadow : Main.Colors.GuiColorEventBox_Normal_TextShadow);
 
-            Color boxOutlineColor = box.ColorOutline;
+            Color boxOutlineColor = (box.PlaybackHighlight ? Main.Colors.GuiColorEventBox_Highlighted_Outline : Main.Colors.GuiColorEventBox_Normal_Outline);
 
-            if (updateColorPulse)
-                box.UpdateSelectionColorPulse(elapsedSeconds, isBoxSelected);
+            //if (updateColorPulse)
+            //    box.UpdateSelectionColorPulse(elapsedSeconds, isBoxSelected);
 
-            Color thisBoxBgColor =  isBoxSelected ? Color.Gray :  box.ColorBG;
-            Color thisBoxBgColorSelected = /* isBoxSelected ? box.ColorBGHighlighted_Selected : */ box.ColorBGHighlighted;
+            Color thisBoxBgColor = (box.PlaybackHighlight ? Main.Colors.GuiColorEventBox_Highlighted_Fill : Main.Colors.GuiColorEventBox_Normal_Fill);
+            //Color thisBoxBgColorSelected = /* isBoxSelected ? box.ColorBGHighlighted_Selected : */ box.ColorBGHighlighted;
 
             const string fixedPrefix = "<-";
 
@@ -2015,7 +2015,7 @@ namespace DSAnimStudio.TaeEditor
                 sb.Draw(texture: boxTex,
                        position: outlinePos,
                        sourceRectangle: null,
-                       color: ((isHover || box.PlaybackHighlight) ? textFG : boxOutlineColor) * opacity,
+                       color: boxOutlineColor * opacity,
                        rotation: 0,
                        origin: Vector2.Zero,
                        scale: outlineSize,
@@ -2029,7 +2029,7 @@ namespace DSAnimStudio.TaeEditor
                 sb.Draw(texture: boxTex,
                     position: pos + new Vector2(boxOutlineThickness, boxOutlineThickness - 1),
                     sourceRectangle: null,
-                    color: ((box.PlaybackHighlight) ? thisBoxBgColorSelected : thisBoxBgColor) * opacity,
+                    color: thisBoxBgColor * opacity,
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: size + new Vector2(-boxOutlineThickness * 2, (-boxOutlineThickness * 2) + 2),
@@ -2192,6 +2192,7 @@ namespace DSAnimStudio.TaeEditor
 
                 var thicknessOffset = new Vector2(2/*boxOutlineThickness*/ * 2, 0);
 
+                // Draw dimming rect behind active event's text to make it readable.
                 if (boxHighlightedAndVisiActive || isHover)
                 {
                     sb.Draw(texture: boxTex,
@@ -2257,7 +2258,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (isHover)
                 {
-                    var hoverTextOutlineColor = Color.Black;
+                    var hoverTextOutlineColor = Main.Colors.GuiColorEventBox_Hover_TextOutline;
 
                     sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 0) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                     sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 1) + thicknessOffset, hoverTextOutlineColor * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
@@ -2306,10 +2307,10 @@ namespace DSAnimStudio.TaeEditor
                     textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
                     sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(2, 1) + thicknessOffset,
-                   textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
                     sb.DrawString(fontToUse, shortTextNoPrefix, namePos + new Vector2(1, 2) + thicknessOffset,
-                   textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    textBG * opacity, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                 }
 
                 if (isHover)
@@ -2343,63 +2344,61 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void DrawSelectedEventBoxThickOutline(SpriteBatch sb, Texture2D boxTex, TaeEditAnimEventBox box, float opacity)
-        {
-            return;
+        //private void DrawSelectedEventBoxThickOutline(SpriteBatch sb, Texture2D boxTex, TaeEditAnimEventBox box, float opacity)
+        //{
+        //    Vector2 pos = new Vector2((box.Left + 1) - 2, ((box.Top + 1) - 1) - 2);
+        //    Vector2 size = new Vector2((box.Width - 1) + 4, ((box.HeightFr - 1) + 2) + 4);
 
-            Vector2 pos = new Vector2((box.Left + 1) - 2, ((box.Top + 1) - 1) - 2);
-            Vector2 size = new Vector2((box.Width - 1) + 4, ((box.HeightFr - 1) + 2) + 4);
+        //    void DoCornerThing(Vector2 cornerPos, Vector2 cornerSize)
+        //    {
+        //        sb.Draw(texture: boxTex,
+        //           position: cornerPos + new Vector2(-1, -1),
+        //           sourceRectangle: null,
+        //           color: (box.PlaybackHighlight ? Color.Yellow : Color.Black) * opacity,
+        //           rotation: 0,
+        //           origin: Vector2.Zero,
+        //           scale: cornerSize + new Vector2(2, 2),
+        //           effects: SpriteEffects.None,
+        //           layerDepth: 0
+        //           );
 
-            void DoCornerThing(Vector2 cornerPos, Vector2 cornerSize)
-            {
-                sb.Draw(texture: boxTex,
-                   position: cornerPos + new Vector2(-1, -1),
-                   sourceRectangle: null,
-                   color: (box.PlaybackHighlight ? Color.Yellow : Color.Black) * opacity,
-                   rotation: 0,
-                   origin: Vector2.Zero,
-                   scale: cornerSize + new Vector2(2, 2),
-                   effects: SpriteEffects.None,
-                   layerDepth: 0
-                   );
+        //        sb.Draw(texture: boxTex,
+        //           position: cornerPos,
+        //           sourceRectangle: null,
+        //           color: (box.PlaybackHighlight ? box.ColorBGHighlighted_Selected : box.ColorBG_Selected) * opacity,
+        //           rotation: 0,
+        //           origin: Vector2.Zero,
+        //           scale: cornerSize,
+        //           effects: SpriteEffects.None,
+        //           layerDepth: 0
+        //           );
+        //    }
 
-                sb.Draw(texture: boxTex,
-                   position: cornerPos,
-                   sourceRectangle: null,
-                   color: (box.PlaybackHighlight ? box.ColorBGHighlighted_Selected : box.ColorBG_Selected) * opacity,
-                   rotation: 0,
-                   origin: Vector2.Zero,
-                   scale: cornerSize,
-                   effects: SpriteEffects.None,
-                   layerDepth: 0
-                   );
-            }
+        //    int off = 1;
 
-            int off = 1;
+        //    //if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.25f))
+        //    //    off = 0;
+        //    //else if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.5f))
+        //    //    off = 1;
+        //    //else if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.75f))
+        //    //    off = 0;
+        //    //else
+        //    //    off = 1;
 
-            //if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.25f))
-            //    off = 0;
-            //else if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.5f))
-            //    off = 1;
-            //else if (selectionBoxCornerPulseTimer < (selectionBoxCornerPulseTimerCycleLength * 0.75f))
-            //    off = 0;
-            //else
-            //    off = 1;
+        //    DoCornerThing(pos + new Vector2(off, off), new Vector2(4, 4));
+        //    DoCornerThing(pos + new Vector2(size.X - 4, 0) + new Vector2(-off, off), new Vector2(4, 4));
+        //    DoCornerThing(pos + new Vector2(size.X - 4, size.Y - 4) + new Vector2(-off, -off), new Vector2(4, 4));
+        //    DoCornerThing(pos + new Vector2(0, size.Y - 4) + new Vector2(off, -off), new Vector2(4, 4));
+        //}
 
-            DoCornerThing(pos + new Vector2(off, off), new Vector2(4, 4));
-            DoCornerThing(pos + new Vector2(size.X - 4, 0) + new Vector2(-off, off), new Vector2(4, 4));
-            DoCornerThing(pos + new Vector2(size.X - 4, size.Y - 4) + new Vector2(-off, -off), new Vector2(4, 4));
-            DoCornerThing(pos + new Vector2(0, size.Y - 4) + new Vector2(off, -off), new Vector2(4, 4));
-        }
-
-        private float selectionBoxCornerPulseTimer = 0;
-        private float selectionBoxCornerPulseTimerCycleLength = 1;
+        //private float selectionBoxCornerPulseTimer = 0;
+        //private float selectionBoxCornerPulseTimerCycleLength = 1;
 
         private void DrawAllEventBoxes(float opacity, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
             SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Matrix scrollMatrix)
         {
-            selectionBoxCornerPulseTimer += elapsedSeconds;
-            selectionBoxCornerPulseTimer = selectionBoxCornerPulseTimer % selectionBoxCornerPulseTimerCycleLength;
+            //selectionBoxCornerPulseTimer += elapsedSeconds;
+            //selectionBoxCornerPulseTimer = selectionBoxCornerPulseTimer % selectionBoxCornerPulseTimerCycleLength;
 
             bool isHoverBoxAlsoSelected = false;
 
@@ -2471,7 +2470,7 @@ namespace DSAnimStudio.TaeEditor
                 sb.Draw(texture: boxTex,
                     position: ScrollViewer.Scroll - (Vector2.One * 2),
                     sourceRectangle: null,
-                    color: Color.Black * 0.5f,
+                    color: Main.Colors.GuiColorEventBox_SelectionDimmingOverlay,
                     rotation: 0,
                     origin: Vector2.Zero,
                     scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
@@ -2482,11 +2481,11 @@ namespace DSAnimStudio.TaeEditor
                 selectedBoxes = selectedBoxes.OrderBy(b => b.PlaybackHighlight).ToList();
 
                 // Draw the extra outer outline on the selected event(s)
-                foreach (var box in selectedBoxes)
-                {
-                    box.UpdateSelectionColorPulse(elapsedSeconds, true);
-                    DrawSelectedEventBoxThickOutline(sb, boxTex, box, opacity);
-                }
+                //foreach (var box in selectedBoxes)
+                //{
+                //    box.UpdateSelectionColorPulse(elapsedSeconds, true);
+                //    DrawSelectedEventBoxThickOutline(sb, boxTex, box, opacity);
+                //}
 
                 foreach (var box in selectedBoxes)
                 {
@@ -2497,8 +2496,8 @@ namespace DSAnimStudio.TaeEditor
 
             if (MainScreen.HoveringOverEventBox != null && isHoverBoxAlsoSelected)
             {
-                MainScreen.HoveringOverEventBox.UpdateSelectionColorPulse(elapsedSeconds, true);
-                DrawSelectedEventBoxThickOutline(sb, boxTex, MainScreen.HoveringOverEventBox, opacity);
+                //MainScreen.HoveringOverEventBox.UpdateSelectionColorPulse(elapsedSeconds, true);
+                //DrawSelectedEventBoxThickOutline(sb, boxTex, MainScreen.HoveringOverEventBox, opacity);
                 DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, MainScreen.HoveringOverEventBox, isHover: true, opacity, false);
             }
         }
@@ -2606,7 +2605,7 @@ namespace DSAnimStudio.TaeEditor
                     sb.Draw(texture: boxTex,
                         position: ScrollViewer.Scroll - (Vector2.One * 2),
                         sourceRectangle: null,
-                        color: new Color(120, 120, 120, 255),
+                        color: Main.Colors.GuiColorEventGraphBackground,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
@@ -2617,7 +2616,7 @@ namespace DSAnimStudio.TaeEditor
                     sb.Draw(texture: boxTex,
                         position: ScrollViewer.Scroll - (Vector2.One * 4),
                         sourceRectangle: null,
-                        color: new Color(64, 64, 64, 255),
+                        color: Main.Colors.GuiColorEventGraphTimelineFill,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
@@ -2637,7 +2636,7 @@ namespace DSAnimStudio.TaeEditor
                     //    layerDepth: 0
                     //    );
 
-                    DrawFrameSnapLines(boxTex, sb, Color.LightGray * 0.5f);
+                    DrawFrameSnapLines(boxTex, sb, Main.Colors.GuiColorEventGraphVerticalFrameLines);
 
                     bool zoomedEnoughForFrameNumbers = SecondsPixelSize >= ((1 / (float)PlaybackCursor.CurrentSnapInterval) * MinPixelsBetweenFramesForFrameNumberText);
 
@@ -2652,7 +2651,7 @@ namespace DSAnimStudio.TaeEditor
                             sb.Draw(texture: boxTex,
                             position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
                             sourceRectangle: null,
-                            color: Color.LightGray * 0.75f,
+                            color: Main.Colors.GuiColorEventGraphVerticalSecondLines,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: new Vector2(1, ScrollViewer.Viewport.Height),
@@ -2669,7 +2668,7 @@ namespace DSAnimStudio.TaeEditor
                             sb.Draw(texture: boxTex,
                             position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
                             sourceRectangle: null,
-                            color: Color.LightGray * 0.75f,
+                            color: Main.Colors.GuiColorEventGraphVerticalSecondLines,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: new Vector2(1, ScrollViewer.Viewport.Height),
@@ -2712,7 +2711,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                               position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
                               sourceRectangle: null,
-                              color: Color.White * cooldownRatio,
+                              color: Main.Colors.GuiColorEventGraphAnimEndVerticalLine * cooldownRatio,
                               rotation: 0,
                               origin: Vector2.Zero,
                               scale: new Vector2(2, ScrollViewer.Viewport.Height),
@@ -2739,7 +2738,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                         position: ScrollViewer.Scroll - (Vector2.One * 2),
                         sourceRectangle: null,
-                        color: new Color(120, 120, 120, 255) * 0.5f,
+                        color: Main.Colors.GuiColorEventGraphGhostOverlay,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(ScrollViewer.Viewport.Width, ScrollViewer.Viewport.Height) + (Vector2.One * 4),
@@ -2767,7 +2766,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                         position: new Vector2(ScrollViewer.Scroll.X, kvp.Value),
                         sourceRectangle: null,
-                        color: Color.Black * 0.25f,
+                        color: Main.Colors.GuiColorEventGraphRowHorizontalLines,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(ScrollViewer.Viewport.Width, 1),
@@ -2808,7 +2807,7 @@ namespace DSAnimStudio.TaeEditor
                     sb.Draw(texture: boxTex,
                         position: ScrollViewer.Scroll - (Vector2.One * 4),
                         sourceRectangle: null,
-                        color: new Color(75, 75, 75, 255),
+                        color: Main.Colors.GuiColorEventGraphTimelineFill,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(ScrollViewer.Viewport.Width, TimeLineHeight) + new Vector2(8, 4),
@@ -2817,14 +2816,14 @@ namespace DSAnimStudio.TaeEditor
                         );
 
 
-                    if (!zoomedEnoughForFrameNumbers && SecondsPixelSize >= 32f)
+                    if (!zoomedEnoughForFrameNumbers)
                     {
                         foreach (var kvp in secondVerticalLineXPositions)
                         {
                             sb.Draw(texture: boxTex,
                             position: new Vector2(kvp.Value, ScrollViewer.Scroll.Y),
                             sourceRectangle: null,
-                            color: Color.LightGray * 0.75f,
+                            color: Main.Colors.GuiColorEventGraphVerticalSecondLines,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: new Vector2(1, TimeLineHeight),
@@ -2846,7 +2845,7 @@ namespace DSAnimStudio.TaeEditor
                             sb.Draw(texture: boxTex,
                             position: new Vector2(i * FramePixelSize_HKX, ScrollViewer.Scroll.Y),
                             sourceRectangle: null,
-                            color: Color.Black * 0.125f,
+                            color: Main.Colors.GuiColorEventGraphTimelineFrameVerticalLines,
                             rotation: 0,
                             origin: Vector2.Zero,
                             scale: new Vector2(1, TimeLineHeight),
@@ -2862,7 +2861,7 @@ namespace DSAnimStudio.TaeEditor
                                     {
                                         sb.DrawString(smallFont, i.ToString(),
                                             new Vector2(i * FramePixelSize_HKX + 2,
-                                            (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Color.White);
+                                            (float)Math.Round(ScrollViewer.Scroll.Y + 8)), Main.Colors.GuiColorEventGraphTimelineFrameNumberText);
                                     }
                                 }
 
@@ -2959,7 +2958,7 @@ namespace DSAnimStudio.TaeEditor
                     sb.Draw(texture: boxTex,
                         position: new Vector2((float)Math.Round(((float)(SecondsPixelSize * PlaybackCursor.GUIStartTime) - (PlaybackCursorThickness / 2))), ScrollViewer.Scroll.Y),
                         sourceRectangle: null,
-                        color: Color.Blue,
+                        color: Main.Colors.GuiColorEventGraphPlaybackStartTime,
                         rotation: 0,
                         origin: Vector2.Zero,
                         scale: new Vector2(PlaybackCursorThickness, Rect.Height),
@@ -2997,17 +2996,17 @@ namespace DSAnimStudio.TaeEditor
                     //    );
 
 
-                    // Draw Hit Register Playback Cursor
-                    sb.Draw(texture: boxTex,
-                        position: new Vector2((float)Math.Round(SecondsPixelSize * PlaybackCursor.CurrentTime), ScrollViewer.Scroll.Y),
-                        sourceRectangle: null,
-                        color: PlaybackCursorHitWindowColor,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(1, Rect.Height),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
+                    //// Draw Hit Register Playback Cursor
+                    //sb.Draw(texture: boxTex,
+                    //    position: new Vector2((float)Math.Round(SecondsPixelSize * PlaybackCursor.CurrentTime), ScrollViewer.Scroll.Y),
+                    //    sourceRectangle: null,
+                    //    color: PlaybackCursorHitWindowColor,
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: new Vector2(1, Rect.Height),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
 
 
                     var playbackCursorPixelX = (float)Math.Round(SecondsPixelSize * PlaybackCursor.GUICurrentTime);
@@ -3100,7 +3099,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                               position: new Vector2(animStopPixelX, (float)Math.Round(ScrollViewer.Scroll.Y)),
                               sourceRectangle: null,
-                              color: Color.Black * 0.25f * cooldownRatio,
+                              color: Main.Colors.GuiColorEventGraphAnimEndDarkenRect * cooldownRatio,
                               rotation: 0,
                               origin: Vector2.Zero,
                               scale: new Vector2(darkenedPortionWidth, ScrollViewer.Viewport.Height),
@@ -3111,7 +3110,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                               position: new Vector2(animStopPixelX - 1, (float)Math.Round(ScrollViewer.Scroll.Y)),
                               sourceRectangle: null,
-                              color: Color.White * cooldownRatio,
+                              color: Main.Colors.GuiColorEventGraphAnimEndVerticalLine * cooldownRatio,
                               rotation: 0,
                               origin: Vector2.Zero,
                               scale: new Vector2(2, TimeLineHeight),

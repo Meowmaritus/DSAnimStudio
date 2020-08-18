@@ -76,6 +76,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AutoCompleteExt.cs" />
+    <Compile Include="ColorConfig.cs" />
     <Compile Include="DebugPrimitives\DbgPrimGeometryData.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidBox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />

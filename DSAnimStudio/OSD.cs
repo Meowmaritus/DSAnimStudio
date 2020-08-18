@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace DSAnimStudio
         public static bool RenderConfigOpen = false;
         public static bool Focused;
 
-        public static float WindowWidth = 320;
+        public static float WindowWidth = 360;
         public static int WindowMargin = 8;
 
         private static WinformsTooltipHelper tooltipHelper = new WinformsTooltipHelper();
@@ -36,6 +37,7 @@ namespace DSAnimStudio
         public static bool EnableDebugMenu = true;
 
         public const int DefaultItemWidth = 128;
+        public const int ColorButtonHeight = 26;
 
         private static bool IsFirstFrameCaptureDefaultValue = true;
         private static Dictionary<string, Action> DefaultColorValueActions = new Dictionary<string, Action>();
@@ -73,15 +75,18 @@ namespace DSAnimStudio
         ////////////////////////////////////////////////////////////////////////////////
 
         private static string CurrentColorEditorOpen = "";
-        private static void HandleColor(string name, Color color, Action<Color> setColor)
+
+        private static ColorConfig DefaultColorConfig = new ColorConfig();
+
+        private static void HandleColor(string name, Func<ColorConfig, Color> getColor, Action<ColorConfig, Color> setColor)
         {
             if (IsFirstFrameCaptureDefaultValue)
             {
-                var copyOfColor = color;
                 if (!DefaultColorValueActions.ContainsKey(name))
-                    DefaultColorValueActions.Add(name, () => setColor(copyOfColor));
+                    DefaultColorValueActions.Add(name, () => setColor.Invoke(Main.Colors, getColor(DefaultColorConfig)));
             }
 
+            var color = getColor.Invoke(Main.Colors);
             System.Numerics.Vector4 c = new System.Numerics.Vector4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
 
             //ImGui.ColorEdit4(name, ref c);
@@ -96,21 +101,23 @@ namespace DSAnimStudio
             ImGui.PushStyleColor(ImGuiCol.Button, c);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, c * 1.25f);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, c * 0.75f);
-            ImGui.Button(name);
+            ImGui.Button(name, new System.Numerics.Vector2(300, ColorButtonHeight));
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
-            if (ImGui.IsItemClicked())
+            if (ImGui.IsItemClicked(0))
             {
                 if (CurrentColorEditorOpen == name)
-                {
                     CurrentColorEditorOpen = "";
-                }
                 else
-                {
                     CurrentColorEditorOpen = name;
-                }
+            }
+            else if (ImGui.IsItemClicked(2))
+            {
+                setColor.Invoke(Main.Colors, getColor(DefaultColorConfig));
+                //if (DefaultColorValueActions.ContainsKey(name))
+                //    DefaultColorValueActions[name].Invoke();
             }
             
 
@@ -135,7 +142,7 @@ namespace DSAnimStudio
 
             //}
 
-            setColor(new Color(c.X, c.Y, c.Z, c.W));
+            setColor(Main.Colors, new Color(c.X, c.Y, c.Z, c.W));
         }
 
         public static void Build(float elapsedTime, float offsetX, float offsetY)
@@ -144,12 +151,24 @@ namespace DSAnimStudio
 
             ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0.05f, 0.05f, 0.05f, Focused ? 1 : 0f));
 
-            ImGui.Begin("Viewport Config", ref RenderConfigOpen, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize);
+            ImGui.Begin("Toolbox", ref RenderConfigOpen, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize);
             {
                 //if (!Focused)
                 //    ImGui.SetWindowCollapsed(true);
 
-                ImGui.SliderFloat("Volume", ref FmodManager.AdjustSoundVolume, 0, 1.25f);
+                ImGui.PushItemWidth(DefaultItemWidth);
+
+                ImGui.SliderFloat($"Volume", ref FmodManager.AdjustSoundVolume, 0, 200, "%.2f%%");
+                ImGui.Button("Reset to 100%");
+                if (ImGui.IsItemClicked())
+                    FmodManager.AdjustSoundVolume = 100;
+                ImGui.Separator();
+                ImGui.Text("Tracking Simulation Analog Input");
+                ImGui.SliderFloat("Input", ref Model.GlobalTrackingInput, -1, 1);
+                ImGui.Button("Reset To 0");
+                if (ImGui.IsItemClicked())
+                    Model.GlobalTrackingInput = 0;
+                ImGui.Separator();
 
                 if (RequestCollapse)
                 {
@@ -164,7 +183,7 @@ namespace DSAnimStudio
                 ImGui.SetWindowPos(new System.Numerics.Vector2(x, y));
                 ImGui.SetWindowSize(new System.Numerics.Vector2(w, h));
 
-                ImGui.PushItemWidth(DefaultItemWidth);
+                
 
                 if (EnableDebugMenu)
                 {
@@ -190,17 +209,105 @@ namespace DSAnimStudio
 
                 if (ImGui.TreeNode("[Colors]"))
                 {
-                    HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value, c => DBG.DbgPrim_Grid.OverrideColor = c);
-                    HandleColor("Hitbox Color - Root", ParamData.AtkParam.Hit.ColorRoot, c => ParamData.AtkParam.Hit.ColorRoot = c);
-                    HandleColor("Hitbox Color - Middle", ParamData.AtkParam.Hit.ColorMiddle, c => ParamData.AtkParam.Hit.ColorMiddle = c);
-                    HandleColor("Hitbox Color - Tip", ParamData.AtkParam.Hit.ColorTip, c => ParamData.AtkParam.Hit.ColorTip = c);
+                    ImGui.Text("Left click a color to expand/collapse");
+                    ImGui.Text("color picker. Middle click a color");
+                    ImGui.Text("to reset to default.");
 
-                    ImGui.Button("Reset All Colors");
+                    ImGui.Separator();
+
+                    ImGui.Text("Window");
+
+                    HandleColor("Window Background", cc => cc.MainColorBackground, (cc, c) => cc.MainColorBackground = c);
+
+                    HandleColor("Memory Usage Text - Low", cc => cc.GuiColorMemoryUseTextGood, (cc, c) => cc.GuiColorMemoryUseTextGood = c);
+                    HandleColor("Memory Usage Text - Medium", cc => cc.GuiColorMemoryUseTextOkay, (cc, c) => cc.GuiColorMemoryUseTextOkay = c);
+                    HandleColor("Memory Usage Text - High", cc => cc.GuiColorMemoryUseTextBad, (cc, c) => cc.GuiColorMemoryUseTextBad = c);
+
+                    HandleColor("Viewport Status Text - Default", cc => cc.GuiColorViewportStatus, (cc, c) => cc.GuiColorViewportStatus = c);
+                    HandleColor("Viewport Status Text - Bone Count Exceeded", cc => cc.GuiColorViewportStatusMaxBoneCountExceeded, (cc, c) => cc.GuiColorViewportStatusMaxBoneCountExceeded = c);
+                    HandleColor("Viewport Status Text - Anim Doesn't Exist", cc => cc.GuiColorViewportStatusAnimDoesntExist, (cc, c) => cc.GuiColorViewportStatusAnimDoesntExist = c);
+                    HandleColor("Viewport Status Text - Current Combo Chain", cc => cc.GuiColorViewportStatusCombo, (cc, c) => cc.GuiColorViewportStatusCombo = c);
+
+                    ImGui.Text("Event Graph");
+
+                    HandleColor("Event Graph - Background", cc => cc.GuiColorEventGraphBackground, (cc, c) => cc.GuiColorEventGraphBackground = c);
+                    HandleColor("Event Graph - Ghost Graph Overlay", cc => cc.GuiColorEventGraphGhostOverlay, (cc, c) => cc.GuiColorEventGraphGhostOverlay = c);
+                    HandleColor("Event Graph - Anim End Vertical Line", cc => cc.GuiColorEventGraphAnimEndVerticalLine, (cc, c) => cc.GuiColorEventGraphAnimEndVerticalLine = c);
+                    HandleColor("Event Graph - Anim End Darken Rect", cc => cc.GuiColorEventGraphAnimEndDarkenRect, (cc, c) => cc.GuiColorEventGraphAnimEndDarkenRect = c);
+                    HandleColor("Event Graph - Event Row Horizontal Lines", cc => cc.GuiColorEventGraphRowHorizontalLines, (cc, c) => cc.GuiColorEventGraphRowHorizontalLines = c);
+                    HandleColor("Event Graph - Timeline Fill", cc => cc.GuiColorEventGraphTimelineFill, (cc, c) => cc.GuiColorEventGraphTimelineFill = c);
+                    HandleColor("Event Graph - Timeline Frame Vertical Lines", cc => cc.GuiColorEventGraphTimelineFrameVerticalLines, (cc, c) => cc.GuiColorEventGraphTimelineFrameVerticalLines = c);
+                    HandleColor("Event Graph - Timeline Frame Number Text", cc => cc.GuiColorEventGraphTimelineFrameNumberText, (cc, c) => cc.GuiColorEventGraphTimelineFrameNumberText = c);
+                    HandleColor("Event Graph - Frame Vertical Lines", cc => cc.GuiColorEventGraphVerticalFrameLines, (cc, c) => cc.GuiColorEventGraphVerticalFrameLines = c);
+                    HandleColor("Event Graph - Second Vertical Lines", cc => cc.GuiColorEventGraphVerticalSecondLines, (cc, c) => cc.GuiColorEventGraphVerticalSecondLines = c);
+                    HandleColor("Event Graph - Selection Rectangle Fill", cc => cc.GuiColorEventGraphSelectionRectangleFill, (cc, c) => cc.GuiColorEventGraphSelectionRectangleFill = c);
+                    HandleColor("Event Graph - Selection Rectangle Outline", cc => cc.GuiColorEventGraphSelectionRectangleOutline, (cc, c) => cc.GuiColorEventGraphSelectionRectangleOutline = c);
+                    HandleColor("Event Graph - Playback Cursor", cc => cc.GuiColorEventGraphPlaybackCursor, (cc, c) => cc.GuiColorEventGraphPlaybackCursor = c);
+                    HandleColor("Event Graph - Playback Start Time Vertical Line", cc => cc.GuiColorEventGraphPlaybackStartTime, (cc, c) => cc.GuiColorEventGraphPlaybackStartTime = c);
+                    HandleColor("Event Graph - Hover Info Box Fill", cc => cc.GuiColorEventGraphHoverInfoBoxFill, (cc, c) => cc.GuiColorEventGraphHoverInfoBoxFill = c);
+                    HandleColor("Event Graph - Hover Info Box Text", cc => cc.GuiColorEventGraphHoverInfoBoxText, (cc, c) => cc.GuiColorEventGraphHoverInfoBoxText = c);
+                    HandleColor("Event Graph - Hover Info Box Outline", cc => cc.GuiColorEventGraphHoverInfoBoxOutline, (cc, c) => cc.GuiColorEventGraphHoverInfoBoxOutline = c);
+
+                    HandleColor("Event Graph - Scrollbar Background", cc => cc.GuiColorEventGraphScrollbarBackground, (cc, c) => cc.GuiColorEventGraphScrollbarBackground = c);
+                    HandleColor("Event Graph - Scrollbar Inactive Foreground", cc => cc.GuiColorEventGraphScrollbarForegroundInactive, (cc, c) => cc.GuiColorEventGraphScrollbarForegroundInactive = c);
+                    HandleColor("Event Graph - Scrollbar Active Foreground", cc => cc.GuiColorEventGraphScrollbarForegroundActive, (cc, c) => cc.GuiColorEventGraphScrollbarForegroundActive = c);
+                    HandleColor("Event Graph - Scrollbar Inactive Arrow", cc => cc.GuiColorEventGraphScrollbarArrowButtonForegroundInactive, (cc, c) => cc.GuiColorEventGraphScrollbarArrowButtonForegroundInactive = c);
+                    HandleColor("Event Graph - Scrollbar Active Arrow", cc => cc.GuiColorEventGraphScrollbarArrowButtonForegroundActive, (cc, c) => cc.GuiColorEventGraphScrollbarArrowButtonForegroundActive = c);
+
+                    HandleColor("Event Box - Normal - Fill", cc => cc.GuiColorEventBox_Normal_Fill, (cc, c) => cc.GuiColorEventBox_Normal_Fill = c);
+                    HandleColor("Event Box - Normal - Outline", cc => cc.GuiColorEventBox_Normal_Outline, (cc, c) => cc.GuiColorEventBox_Normal_Outline = c);
+                    HandleColor("Event Box - Normal - Text", cc => cc.GuiColorEventBox_Normal_Text, (cc, c) => cc.GuiColorEventBox_Normal_Text = c);
+                    HandleColor("Event Box - Normal - Text Shadow", cc => cc.GuiColorEventBox_Normal_TextShadow, (cc, c) => cc.GuiColorEventBox_Normal_TextShadow = c);
+
+                    HandleColor("Event Box - Highlighted - Fill", cc => cc.GuiColorEventBox_Highlighted_Fill, (cc, c) => cc.GuiColorEventBox_Highlighted_Fill = c);
+                    HandleColor("Event Box - Highlighted - Outline", cc => cc.GuiColorEventBox_Highlighted_Outline, (cc, c) => cc.GuiColorEventBox_Highlighted_Outline = c);
+                    HandleColor("Event Box - Highlighted - Text", cc => cc.GuiColorEventBox_Highlighted_Text, (cc, c) => cc.GuiColorEventBox_Highlighted_Text = c);
+                    HandleColor("Event Box - Highlighted - Text Shadow", cc => cc.GuiColorEventBox_Highlighted_TextShadow, (cc, c) => cc.GuiColorEventBox_Highlighted_TextShadow = c);
+
+                    HandleColor("Event Box - Selection Dimming Overlay", cc => cc.GuiColorEventBox_SelectionDimmingOverlay, (cc, c) => cc.GuiColorEventBox_SelectionDimmingOverlay = c);
+                    HandleColor("Event Box - Ghost Graph Grayed Out Overlay", cc => cc.GuiColorEventBox_SelectionDimmingOverlay, (cc, c) => cc.GuiColorEventBox_SelectionDimmingOverlay = c);
+
+                    // Deprecated afaik
+                    //HandleColor("Event Box - Hovered - Text Outline", Main.Colors.GuiColorEventBox_Hover_TextOutline, c => Main.Colors.GuiColorEventBox_Hover_TextOutline = c);
+
+
+                    ImGui.Text("Viewport");
+
+                    HandleColor("Grid", cc => cc.ColorGrid, (cc, c) => cc.ColorGrid = c);
+                    HandleColor("Viewport Background", cc => cc.MainColorViewportBackground, (cc, c) => cc.MainColorViewportBackground = c);
+
+
+                    ImGui.Text("Helper");
+
+                    HandleColor("Flver Bone", cc => cc.ColorHelperFlverBone, (cc, c) => cc.ColorHelperFlverBone = c);
+                    HandleColor("Flver Bone Bounding Box", cc => cc.ColorHelperFlverBoneBoundingBox, (cc, c) => cc.ColorHelperFlverBoneBoundingBox = c);
+                    HandleColor("Sound Event", cc => cc.ColorHelperSoundEvent, (cc, c) => cc.ColorHelperSoundEvent = c);
+                    HandleColor("DummyPoly", cc => cc.ColorHelperDummyPoly, (cc, c) => cc.ColorHelperDummyPoly = c);
+                    
+
+
+                    ImGui.Text("Event Simulation");
+
+                    HandleColor("Hitbox (Tip/Default)", cc => cc.ColorHelperHitboxTip, (cc, c) => cc.ColorHelperHitboxTip = c);
+                    HandleColor("Hitbox (Middle)", cc => cc.ColorHelperHitboxMiddle, (cc, c) => cc.ColorHelperHitboxMiddle = c);
+                    HandleColor("Hitbox (Root)", cc => cc.ColorHelperHitboxRoot, (cc, c) => cc.ColorHelperHitboxRoot = c);
+                    
+                    HandleColor("DummyPoly SFX Only Spawn", cc => cc.ColorHelperDummyPolySpawnSFX, (cc, c) => cc.ColorHelperDummyPolySpawnSFX = c);
+                    HandleColor("DummyPoly Bullet/Misc Only Spawn", cc => cc.ColorHelperDummyPolySpawnBulletsMisc, (cc, c) => cc.ColorHelperDummyPolySpawnBulletsMisc = c);
+                    HandleColor("DummyPoly SFX + Bullet/Misc Spawn", cc => cc.ColorHelperDummyPolySpawnSFXBulletsMisc, (cc, c) => cc.ColorHelperDummyPolySpawnSFXBulletsMisc = c);
+
+                    
+
+                    ImGui.Button("Reset All Colors to Default");
                     if (ImGui.IsItemClicked())
                     {
-                        foreach (var kvp in DefaultColorValueActions)
+                        if (System.Windows.Forms.MessageBox.Show("Reset all to default, losing any custom colors?", 
+                            "Reset All?", System.Windows.Forms.MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
                         {
-                            kvp.Value.Invoke();
+                            foreach (var kvp in DefaultColorValueActions)
+                            {
+                                kvp.Value.Invoke();
+                            }
                         }
                     }
 
@@ -240,6 +347,41 @@ namespace DSAnimStudio
                     }
                 }
 
+                if (RequestExpandAllTreeNodes)
+                    ImGui.SetNextItemOpen(true);
+
+                if (ImGui.TreeNode("[Animation Overlays]"))
+                {
+                    if (Scene.Models.Count >= 1 && Scene.Models[0].AnimContainer != null)
+                    {
+                        lock (Scene.Models[0].AnimContainer._lock_AdditiveOverlays)
+                        {
+                            bool requestReset = false;
+                            foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
+                            {
+                                bool selected = overlay.Weight > 0;
+                                bool prevSelected = selected;
+                                ImGui.Selectable(overlay.Name, ref selected);
+                                overlay.Weight = selected ? 1 : -1;
+                                if (!selected)
+                                    overlay.Reset();
+                                if (selected != prevSelected)
+                                {
+                                    requestReset = true;
+                                }
+                            }
+
+                            if (requestReset)
+                            {
+                                foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
+                                {
+                                    overlay.Reset();
+                                }
+                            }
+                        }
+                    }
+                    ImGui.TreePop();
+                }
                 
 
                 if (RequestExpandAllTreeNodes)
@@ -571,31 +713,31 @@ namespace DSAnimStudio
 
                 if (ImGui.TreeNode("[Shader]"))
                 {
+                    
+                    
+                    ImGui.Checkbox("Enable Texture Alphas", ref GFX.FlverEnableTextureAlphas);
+                    ImGui.Checkbox("Use Fancy Texture Alphas", ref GFX.FlverUseFancyAlpha);
+                    ImGui.SliderFloat("Fancy Texture Alpha Cutoff", ref GFX.FlverFancyAlphaEdgeCutoff, 0, 1);
+                    ImGui.Checkbox("Enable Texture Blending", ref GFX.FlverEnableTextureBlending);
+
+                    ImGui.LabelText(" ", "Shading Mode:");
+
+                    DoTooltip("Shading Mode", "The shading mode to use for the 3D rendering. " +
+                        "\nSome of the modes are only here for testing purposes.");
                     ImGui.PushItemWidth(256);
+                    ImGui.ListBox(" ",
+                            ref GFX.ForcedFlverShadingModeIndex, GFX.FlverShadingModeNamesList,
+                            GFX.FlverShadingModeNamesList.Length);
+
+                    ImGui.Separator();
+                    ImGui.Button("Reset All");
+                    if (ImGui.IsItemClicked())
                     {
-                        ImGui.Checkbox("Enable Texture Alphas", ref GFX.FlverEnableTextureAlphas);
-                        ImGui.Checkbox("Use Fancy Texture Alphas", ref GFX.FlverUseFancyAlpha);
-                        ImGui.SliderFloat("Fancy Texture Alpha Cutoff", ref GFX.FlverFancyAlphaEdgeCutoff, 0, 1);
-                        ImGui.Checkbox("Enable Texture Blending", ref GFX.FlverEnableTextureBlending);
-
-                        ImGui.LabelText(" ", "Shading Mode:");
-
-                        DoTooltip("Shading Mode", "The shading mode to use for the 3D rendering. " +
-                            "\nSome of the modes are only here for testing purposes.");
-
-                        ImGui.ListBox(" ",
-                               ref GFX.ForcedFlverShadingModeIndex, GFX.FlverShadingModeNamesList,
-                               GFX.FlverShadingModeNamesList.Length);
-
-                        ImGui.Separator();
-                        ImGui.Button("Reset All");
-                        if (ImGui.IsItemClicked())
-                        {
-                            GFX.FlverEnableTextureAlphas = true;
-                            GFX.FlverEnableTextureBlending = true;
-                            GFX.ForcedFlverShadingModeIndex = 0;
-                        }
+                        GFX.FlverEnableTextureAlphas = true;
+                        GFX.FlverEnableTextureBlending = true;
+                        GFX.ForcedFlverShadingModeIndex = 0;
                     }
+                    
                     ImGui.PopItemWidth();
 
                     ImGui.TreePop();

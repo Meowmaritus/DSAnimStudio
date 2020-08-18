@@ -1790,23 +1790,23 @@ namespace DSAnimStudio.TaeEditor
             //    () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
             //        b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
 
-            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton ({DBG.COLOR_FLVER_BONE_NAME})", 
+            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton", 
                 () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
                 b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = b);
 
-            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton Boxes ({DBG.COLOR_FLVER_BONE_BBOX_NAME})", 
+            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton Boxes", 
                 () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
                 b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
 
-            MenuBar.AddItem("Scene", $"Helper: DummyPoly ({DBG.COLOR_DUMMY_POLY_NAME})", 
+            MenuBar.AddItem("Scene", $"Helper: DummyPoly", 
                 () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                     b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-            MenuBar.AddItem("Scene", $"Helper: DummyPoly IDs ({DBG.COLOR_DUMMY_POLY_NAME}, tinted by spawn simulations)",
+            MenuBar.AddItem("Scene", $"Helper: DummyPoly IDs",
                 () => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                    b => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
-            MenuBar.AddItem("Scene", $"Helper: Sound Event Locations ({DBG.COLOR_SOUND_EVENT_NAME})",
+            MenuBar.AddItem("Scene", $"Helper: Sound Event Locations",
                 () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent],
                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent] = b);
 

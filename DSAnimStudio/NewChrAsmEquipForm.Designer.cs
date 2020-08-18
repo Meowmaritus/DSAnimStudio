@@ -53,6 +53,7 @@
             this.label7 = new System.Windows.Forms.Label();
             this.comboBoxWPRIndex = new System.Windows.Forms.ComboBox();
             this.checkBoxDbgRHMdlPos = new System.Windows.Forms.CheckBox();
+            this.checkBoxDbgLHMdlPos = new System.Windows.Forms.CheckBox();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -348,6 +349,20 @@
             this.checkBoxDbgRHMdlPos.TabStop = false;
             this.checkBoxDbgRHMdlPos.Text = "Debug RH MDL POS";
             this.checkBoxDbgRHMdlPos.UseVisualStyleBackColor = true;
+            this.checkBoxDbgRHMdlPos.CheckedChanged += new System.EventHandler(this.checkBoxDbgRHMdlPos_CheckedChanged);
+            // 
+            // checkBoxDbgLHMdlPos
+            // 
+            this.checkBoxDbgLHMdlPos.AutoSize = true;
+            this.checkBoxDbgLHMdlPos.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.checkBoxDbgLHMdlPos.Location = new System.Drawing.Point(142, 265);
+            this.checkBoxDbgLHMdlPos.Name = "checkBoxDbgLHMdlPos";
+            this.checkBoxDbgLHMdlPos.Size = new System.Drawing.Size(123, 17);
+            this.checkBoxDbgLHMdlPos.TabIndex = 16;
+            this.checkBoxDbgLHMdlPos.TabStop = false;
+            this.checkBoxDbgLHMdlPos.Text = "Debug LH MDL POS";
+            this.checkBoxDbgLHMdlPos.UseVisualStyleBackColor = true;
+            this.checkBoxDbgLHMdlPos.CheckedChanged += new System.EventHandler(this.checkBoxDbgLHMdlPos_CheckedChanged);
             // 
             // NewChrAsmEquipForm
             // 
@@ -355,6 +370,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.ClientSize = new System.Drawing.Size(616, 326);
+            this.Controls.Add(this.checkBoxDbgLHMdlPos);
             this.Controls.Add(this.checkBoxDbgRHMdlPos);
             this.Controls.Add(this.comboBoxWPRIndex);
             this.Controls.Add(this.label7);
@@ -421,5 +437,6 @@
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.ComboBox comboBoxWPRIndex;
         private System.Windows.Forms.CheckBox checkBoxDbgRHMdlPos;
+        private System.Windows.Forms.CheckBox checkBoxDbgLHMdlPos;
     }
 }

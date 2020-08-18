@@ -50,7 +50,7 @@ namespace DSAnimStudio.TaeEditor
                     if (CurrentModel.NpcParam != null)
                     {
                         //CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
-                        CurrentModel.NpcParam.ApplyMaskToModel(CurrentModel);
+                        CurrentModel.NpcParam.ApplyToNpcModel(CurrentModel);
                     }
                 }
             }
@@ -213,7 +213,7 @@ namespace DSAnimStudio.TaeEditor
                             () =>
                             {
                                 CurrentModel.NpcParam = npc;
-                                CurrentModel.NpcParam.ApplyMaskToModel(CurrentModel);
+                                CurrentModel.NpcParam.ApplyToNpcModel(CurrentModel);
                             });
                     }
 
@@ -261,7 +261,7 @@ namespace DSAnimStudio.TaeEditor
                             Graph.MainScreen.MenuBar.AddItem("NPC Settings\\Override Draw Mask",
                                 $"{npc.GetDisplayName()}|{npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams)}", () =>
                                 {
-                                    npc.ApplyMaskToModel(CurrentModel);
+                                    npc.ApplyToNpcModel(CurrentModel);
                                 }, closeOnClick: false);
                         }));
                     }
@@ -1071,7 +1071,7 @@ namespace DSAnimStudio.TaeEditor
         {
             
 
-            var printer = new StatusPrinter(Vector2.One * 4, Color.Yellow);
+            var printer = new StatusPrinter(Vector2.One * 4, Main.Colors.GuiColorViewportStatus);
 
             //if (FmodManager.LoadedFEVs.Count > 0)
             //{
@@ -1093,7 +1093,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (CurrentModel.Skeleton.BoneLimitExceeded)
                 {
-                    printer.AppendLine($"Warning: Model exceeds max bone count.", Color.Orange);
+                    printer.AppendLine($"Warning: Model exceeds max bone count.", Main.Colors.GuiColorViewportStatusMaxBoneCountExceeded);
                 }
 
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)
@@ -1102,15 +1102,15 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else if (CurrentModel.AnimContainer.CurrentAnimationName != null)
                 {
-                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Invalid)", Color.Red);
+                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Invalid)", Main.Colors.GuiColorViewportStatusAnimDoesntExist);
                 }
 
                 if (CurrentComboIndex >= 0)
                 {
-                    printer.AppendLine($"Playing Combo ({(CurrentComboLoop ? "Looping" : "Once")}):", Color.Cyan);
+                    printer.AppendLine($"Playing Combo ({(CurrentComboLoop ? "Looping" : "Once")}):", Main.Colors.GuiColorViewportStatusCombo);
                     for (int c = 0; c < CurrentCombo.Length; c++)
                     {
-                        printer.AppendLine($"    {(CurrentComboIndex == c ? "■" : "□")} {CurrentCombo[c]}", Color.Cyan);
+                        printer.AppendLine($"    {(CurrentComboIndex == c ? "■" : "□")} {CurrentCombo[c]}", Main.Colors.GuiColorViewportStatusCombo);
                     }
                 }
 
@@ -1134,47 +1134,54 @@ namespace DSAnimStudio.TaeEditor
             if (EntityType == TaeEntityType.PC)
             {
                 printer.AppendLine();
-                
+
                 void DoWpnAnim(string wpnKind, Model wpnMdl)
                 {
-                    printer.AppendLine($"{wpnKind} Animation: {(wpnMdl?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
+                    if (wpnMdl?.AnimContainer?.CurrentAnimation != null)
+                        printer.AppendLine($"{wpnKind} Animation: {(wpnMdl?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
                 }
-
-                DoWpnAnim("R WPN MDL 0", CurrentModel?.ChrAsm?.RightWeaponModel0);
-                DoWpnAnim("R WPN MDL 1", CurrentModel?.ChrAsm?.RightWeaponModel1);
-                DoWpnAnim("R WPN MDL 2", CurrentModel?.ChrAsm?.RightWeaponModel2);
-                DoWpnAnim("R WPN MDL 3", CurrentModel?.ChrAsm?.RightWeaponModel3);
-
-                DoWpnAnim("L WPN MDL 0", CurrentModel?.ChrAsm?.LeftWeaponModel0);
-                DoWpnAnim("L WPN MDL 1", CurrentModel?.ChrAsm?.LeftWeaponModel1);
-                DoWpnAnim("L WPN MDL 2", CurrentModel?.ChrAsm?.LeftWeaponModel2);
-                DoWpnAnim("L WPN MDL 3", CurrentModel?.ChrAsm?.LeftWeaponModel3);
-
-                printer.AppendLine();
 
                 if (CurrentModel?.ChrAsm?.RightWeapon != null)
                 {
+                    printer.AppendLine("[Right Weapon]");
+
                     var atk = CurrentModel.ChrAsm.RightWeapon.WepMotionCategory;
                     var spAtk = CurrentModel.ChrAsm.RightWeapon.SpAtkCategory;
 
-                    printer.AppendLine($"R WPN Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+                    printer.AppendLine($"    Part:            WP_A_{CurrentModel.ChrAsm.RightWeapon.EquipModelID:D4}");
+                    printer.AppendLine($"    Moveset(s):      a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+
+                    DoWpnAnim("    MDL 0", CurrentModel?.ChrAsm?.RightWeaponModel0);
+                    DoWpnAnim("    MDL 1", CurrentModel?.ChrAsm?.RightWeaponModel1);
+                    DoWpnAnim("    MDL 2", CurrentModel?.ChrAsm?.RightWeaponModel2);
+                    DoWpnAnim("    MDL 3", CurrentModel?.ChrAsm?.RightWeaponModel3);
                 }
-                else
-                {
-                    printer.AppendLine($"R WPN Moveset(s): NONE");
-                }
+
+                
 
                 if (CurrentModel?.ChrAsm?.LeftWeapon != null)
                 {
+                    printer.AppendLine("[Left Weapon]");
+
                     var atk = CurrentModel.ChrAsm.LeftWeapon.WepMotionCategory;
                     var spAtk = CurrentModel.ChrAsm.LeftWeapon.SpAtkCategory;
 
-                    printer.AppendLine($"L WPN Moveset(s): a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+                    printer.AppendLine($"    Part:            WP_A_{CurrentModel.ChrAsm.LeftWeapon.EquipModelID:D4}");
+                    printer.AppendLine($"    Moveset(s):      a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+
+                    DoWpnAnim("    MDL 0", CurrentModel?.ChrAsm?.LeftWeaponModel0);
+                    DoWpnAnim("    MDL 1", CurrentModel?.ChrAsm?.LeftWeaponModel1);
+                    DoWpnAnim("    MDL 2", CurrentModel?.ChrAsm?.LeftWeaponModel2);
+                    DoWpnAnim("    MDL 3", CurrentModel?.ChrAsm?.LeftWeaponModel3);
                 }
-                else
-                {
-                    printer.AppendLine($"L WPN Moveset(s): NONE");
-                }
+
+                
+
+                printer.AppendLine();
+
+                
+
+                
 
                 
 

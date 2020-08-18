@@ -29,6 +29,29 @@ namespace DSAnimStudio
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
 
+        public bool IsStatic => Skeleton?.OriginalHavokSkeleton == null;
+
+        public float BaseTrackingSpeed = 0;
+        public float CurrentTrackingSpeed = 0;
+
+        public float CharacterTrackingRotation = 0;
+
+        public float TrackingTestInput = 0;
+
+        public void UpdateTrackingTest(float elapsedTime)
+        {
+            TrackingTestInput = MathHelper.Clamp(TrackingTestInput, -1, 1);
+            float delta = (MathHelper.ToRadians(CurrentTrackingSpeed)) * elapsedTime * TrackingTestInput;
+            CharacterTrackingRotation += delta;
+            CurrentDirection += delta;
+            foreach (var anim in AnimContainer.AnimationLayers)
+            {
+                anim.ApplyExternalRotation(delta);
+            }
+        }
+
+        public static float GlobalTrackingInput = 0;
+
         public BoundingBox Bounds;
 
         public const int DRAW_MASK_LENGTH = 98;
@@ -336,10 +359,9 @@ namespace DSAnimStudio
                 OnRootMotionWrap?.Invoke(translationDeltaToGetToMod);
             }
 
-            
+
             //newTransform = new Transform(newTransform.WorldMatrix * );
             ////////
-
 
             CurrentTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionRotation * CurrentRootMotionTranslation);
 
@@ -367,7 +389,7 @@ namespace DSAnimStudio
         public void UpdateAnimation()
         {
             AnimContainer.Update();
-
+            UpdateTrackingTest(Main.DELTA_UPDATE);
             //V2.0
             //if (AnimContainer.IsPlaying)
             //    AfterAnimUpdate();

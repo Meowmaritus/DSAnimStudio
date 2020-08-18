@@ -75,6 +75,8 @@ namespace DSAnimStudio.TaeEditor
         public bool AltDown => KeyDown(Keys.LeftAlt) || KeyDown(Keys.RightAlt);
         public bool AltUp => KeyUp(Keys.LeftAlt) || KeyUp(Keys.RightAlt);
 
+        public bool AnyModifiersHeld => CtrlHeld || ShiftHeld || AltHeld;
+
         private void KeepTrackOfNewKey(Keys k)
         {
             keysToKeepTrackOf.Add(k);
