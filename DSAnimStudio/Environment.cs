@@ -12,10 +12,10 @@ namespace DSAnimStudio
     public static class Environment
     {
         //public static float AmbientLightMult = 1.0f;
-        public static float FlverDirectLightMult = 1.0f;
-        public static float FlverIndirectLightMult = 1.0f;
+        public static float FlverDirectLightMult = 0.65f;
+        public static float FlverIndirectLightMult = 0.65f;
         public static float FlverSceneBrightness = 1.0f;
-        public static float FlverSceneContrast = 0.5f;
+        public static float FlverSceneContrast = 0.6f;
         public static float FlverEmissiveMult = 1.0f;
 
         private static Dictionary<string, TextureCube> cubemaps 

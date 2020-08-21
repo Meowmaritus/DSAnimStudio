@@ -32,6 +32,7 @@ namespace DSAnimStudio.TaeEditor
         public bool LiveRefreshOnSave { get; set; } = false;
         public bool CameraFollowsRootMotion { get; set; } = true;
         public bool CameraFollowsRootMotionRotation { get; set; } = true;
+        public bool CameraPansVerticallyToFollowModel { get; set; } = true;
         public bool WrapRootMotion { get; set; } = true;
         public bool AccumulateRootMotion { get; set; } = true;
         public bool EnableAnimRootMotion { get; set; } = true;

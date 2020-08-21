@@ -359,12 +359,25 @@ namespace DSAnimStudio
                             bool requestReset = false;
                             foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
                             {
-                                bool selected = overlay.Weight > 0;
+                                bool selected = overlay.Weight >= 0;
                                 bool prevSelected = selected;
                                 ImGui.Selectable(overlay.Name, ref selected);
-                                overlay.Weight = selected ? 1 : -1;
-                                if (!selected)
+
+                                if (selected)
+                                {
+                                    if (overlay.Weight < 0)
+                                        overlay.Weight = 1;
+
+                                    float weight = overlay.Weight;
+                                    ImGui.SliderFloat(overlay.Name + " Weight", ref weight, 0, 10);
+                                    overlay.Weight = weight;
+                                }
+                                else
+                                {
+                                    overlay.Weight = -1;
                                     overlay.Reset();
+                                }
+
                                 if (selected != prevSelected)
                                 {
                                     requestReset = true;
@@ -576,36 +589,48 @@ namespace DSAnimStudio
                         DoTooltip("Light Follows Camera", "Makes the light always point forward from the camera. " +
                             "\nOnly works if Auto Light Spin is turned off.");
 
-                        if (!GFX.FlverLightFollowsCamera)
-                        {
-                            ImGui.SliderFloat("Light H", ref GFX.World.LightRotationH, -MathHelper.Pi, MathHelper.Pi);
+                        ImGui.SliderFloat("Light H", ref GFX.World.LightRotationH, -MathHelper.Pi, MathHelper.Pi);
 
-                            DoTooltip("Light Horizontal Movement", "Turns the light left/right. " +
-                                "\nOnly works if both Auto Light Spin and Light " +
-                                "\nFollows Camera are turned off.");
+                        DoTooltip("Light Horizontal Movement", "Turns the light left/right. " +
+                            "\nOnly works if both Auto Light Spin and Light " +
+                            "\nFollows Camera are turned off.");
 
-                            ImGui.SliderFloat("Light V", ref GFX.World.LightRotationV, -MathHelper.PiOver2, MathHelper.PiOver2);
+                        ImGui.SliderFloat("Light V", ref GFX.World.LightRotationV, -MathHelper.PiOver2, MathHelper.PiOver2);
 
-                            DoTooltip("Light Vertical Movement", "Turns the light up/down. " +
-                                "\nOnly works if both Auto Light Spin and Light " +
-                                "\nFollows Camera are turned off.");
-                        }
-                        else
-                        {
-                            ImGui.LabelText("Light H", "(Disabled)");
+                        DoTooltip("Light Vertical Movement", "Turns the light up/down. " +
+                            "\nOnly works if both Auto Light Spin and Light " +
+                            "\nFollows Camera are turned off.");
 
-                            DoTooltip("Light Horizontal Movement", "Turns the light left/right. " +
-                                "\nOnly works if both Auto Light Spin and Light " +
-                                "\nFollows Camera are turned off.");
+                        //if (!GFX.FlverLightFollowsCamera)
+                        //{
+                        //    ImGui.SliderFloat("Light H", ref GFX.World.LightRotationH, -MathHelper.Pi, MathHelper.Pi);
 
-                            ImGui.LabelText("Light V", "(Disabled)");
+                        //    DoTooltip("Light Horizontal Movement", "Turns the light left/right. " +
+                        //        "\nOnly works if both Auto Light Spin and Light " +
+                        //        "\nFollows Camera are turned off.");
 
-                            DoTooltip("Light Vertical Movement", "Turns the light up/down. " +
-                               "\nOnly works if both Auto Light Spin and Light " +
-                               "\nFollows Camera are turned off.");
-                        }
+                        //    ImGui.SliderFloat("Light V", ref GFX.World.LightRotationV, -MathHelper.PiOver2, MathHelper.PiOver2);
 
-                        
+                        //    DoTooltip("Light Vertical Movement", "Turns the light up/down. " +
+                        //        "\nOnly works if both Auto Light Spin and Light " +
+                        //        "\nFollows Camera are turned off.");
+                        //}
+                        //else
+                        //{
+                        //    ImGui.LabelText("Light H", "(Disabled)");
+
+                        //    DoTooltip("Light Horizontal Movement", "Turns the light left/right. " +
+                        //        "\nOnly works if both Auto Light Spin and Light " +
+                        //        "\nFollows Camera are turned off.");
+
+                        //    ImGui.LabelText("Light V", "(Disabled)");
+
+                        //    DoTooltip("Light Vertical Movement", "Turns the light up/down. " +
+                        //       "\nOnly works if both Auto Light Spin and Light " +
+                        //       "\nFollows Camera are turned off.");
+                        //}
+
+
                     }
                     else
                     {
@@ -634,7 +659,7 @@ namespace DSAnimStudio
                     DoTooltip("Direct Light Multiplier", "Multiplies the brightness of light reflected directly off" +
                         "\nthe surface of the model.");
 
-                    //ImGui.SliderFloat("Specular Power Mult", ref GFX.SpecularPowerMult, 0.05f, 2);
+                    ImGui.SliderFloat("Specular Power Mult", ref GFX.SpecularPowerMult, 1, 8);
                     ImGui.SliderFloat("Indirect Light Mult", ref Environment.FlverIndirectLightMult, 0, 3);
 
                     DoTooltip("Indirect Light Multiplier", "Multiplies the brightness of environment map lighting reflected");
@@ -683,14 +708,14 @@ namespace DSAnimStudio
                         GFX.FlverAutoRotateLight = false;
                         GFX.FlverLightFollowsCamera = true;
 
-                        GFX.World.LightRotationH = 0;
+                        GFX.World.LightRotationH = 1.7f;
                         GFX.World.LightRotationV = 0;
 
-                        Environment.FlverDirectLightMult = 1;
-                        Environment.FlverIndirectLightMult = 1;
+                        Environment.FlverDirectLightMult = 0.65f;
+                        Environment.FlverIndirectLightMult = 0.65f;
                         Environment.FlverEmissiveMult = 1;
                         Environment.FlverSceneBrightness = 1;
-                        Environment.FlverSceneContrast = 0.5f;
+                        Environment.FlverSceneContrast = 0.6f;
 
                         GFX.LdotNPower = 0.1f;
                         GFX.SpecularPowerMult = 1;

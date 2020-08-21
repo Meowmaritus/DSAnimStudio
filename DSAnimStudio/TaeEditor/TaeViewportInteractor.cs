@@ -281,10 +281,10 @@ namespace DSAnimStudio.TaeEditor
 
                 CurrentModel.AfterAnimUpdate(timeDelta: 0);
 
-                GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
+                //GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
                 GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
                 GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
-                GFX.World.OrbitCamReset();
+                GFX.World.OrbitCamReset(isFirstTime: true);
 
                 FmodManager.Purge();
                 FmodManager.LoadMainFEVs();
@@ -296,10 +296,10 @@ namespace DSAnimStudio.TaeEditor
 
                 GameDataManager.LoadObject(shortFileName);
 
-                GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
+                //GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
                 GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
                 GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
-                GFX.World.OrbitCamReset();
+                GFX.World.OrbitCamReset(isFirstTime: true);
 
                 FmodManager.Purge();
                 FmodManager.LoadMainFEVs();
@@ -1002,6 +1002,11 @@ namespace DSAnimStudio.TaeEditor
                 if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
                 {
                     GFX.World.WorldMatrixMOD *= Matrix.CreateRotationY(-CurrentModel.CurrentDirection);
+                }
+
+                if (Graph.MainScreen.Config.CameraPansVerticallyToFollowModel)
+                {
+                    GFX.World.UpdateDummyPolyFollowRefPoint(isFirstTime: false);
                 }
 
                 //if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)

@@ -25,6 +25,8 @@ namespace DSAnimStudio
             return num;
         }
 
+        public static float MapRange(double s, double a1, double a2, double b1, double b2) => (float)(b1 + (s - a1) * (b2 - b1) / (a2 - a1));
+
         private static double GetTemp2(float H, float S, float L)
         {
             double temp2;

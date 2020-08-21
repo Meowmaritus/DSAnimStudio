@@ -420,22 +420,29 @@ namespace DSAnimStudio
             SkyboxShader.Effect.EyePosition = Vector3.Zero;
             //FlverShader.Effect.EyePosition = Vector3.Backward;
 
+            Matrix matLightDir = Matrix.CreateRotationY(World.LightRotationH) * Matrix.CreateRotationX(World.LightRotationV);
 
             if (FlverAutoRotateLight)
             {
                 LightSpinTimer = (LightSpinTimer + Main.DELTA_UPDATE);
                 FlverShader.Effect.LightDirection = Vector3.Transform(Vector3.Forward, Matrix.CreateRotationY(MathHelper.Pi * LightSpinTimer * 0.05f));
             }
-            else if (FlverLightFollowsCamera)
+            else 
             {
-                FlverShader.Effect.LightDirection = -Vector3.Normalize(World.CameraTransform.Position);
-            }
-            else
-            {
-                FlverShader.Effect.LightDirection = World.LightDirectionVector;
-            }
-            
+                Vector3 camUpDir = World.GetScreenSpaceUpVector() * new Vector3(1, 1, -1);
+                Vector3 camLookDir = -World.GetScreenSpaceFowardVector() * new Vector3(1, 1, -1);
+                Matrix matCamLook = Matrix.CreateWorld(Vector3.Zero, camLookDir, camUpDir);
 
+                if (FlverLightFollowsCamera)
+                    FlverShader.Effect.LightDirection = Vector3.TransformNormal(Vector3.Forward, matLightDir * matCamLook);
+                else
+                    FlverShader.Effect.LightDirection = Vector3.TransformNormal(Vector3.Forward, matLightDir);
+
+                //if (FlverLightFollowsCamera)
+                //    FlverShader.Effect.LightDirection = Vector3.TransformNormal(camLookDir, matLightDir);
+                //else
+                //    FlverShader.Effect.LightDirection = Vector3.TransformNormal(Vector3.Forward, matLightDir);
+            }
 
             //FlverShader.Effect.LightDirection = World.CameraTransform.RotationMatrix;
             FlverShader.Effect.ColorMap = Main.DEFAULT_TEXTURE_DIFFUSE;
@@ -452,7 +459,7 @@ namespace DSAnimStudio
             FlverShader.Effect.IndirectLightMult = 1.0f;
             FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
             FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
-            FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
+            FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
             FlverShader.Effect.Opacity = FlverOpacity;
             FlverShader.Effect.Parameters["SpecularPowerMult"].SetValue(SpecularPowerMult);
             FlverShader.Effect.Parameters["LdotNPower"].SetValue(LdotNPower);
