@@ -282,6 +282,13 @@ namespace DSAnimStudio
 
                 //FmodManager.DbgPrimCamPos.Draw(null, Matrix.Identity);
             }
+
+            //GFX.SpriteBatchBeginForText();
+
+            //GFX.World.DbgPrintA.Draw();
+            //GFX.World.DbgPrintB.Draw();
+
+            //GFX.SpriteBatchEnd();
         }
 
 

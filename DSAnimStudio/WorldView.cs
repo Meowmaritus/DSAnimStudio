@@ -30,25 +30,112 @@ namespace DSAnimStudio
         public float ModelHeight_ForOrbitCam = 1;
         public float ModelDepth_ForOrbitCam = 1;
         public float ModelDirection_ForOrbitCam = 0;
-        public Vector3 ModelCenter_ForOrbitCam = Vector3.Zero;
+        //public Vector3 ModelCenter_ForOrbitCam = Vector3.Zero;
         public Vector3 OrbitCamCenter = new Vector3(0, 0.5f, 0);
+        public Vector3 OrbitCamCenter_DummyPolyFollowRefPoint = new Vector3(0, 0.5f, 0);
+        public Vector3 OrbitCamCenter_DummyPolyFollowRefPoint_Init = new Vector3(0, 0.5f, 0);
         public bool IsOrbitCam = true;
+
+        public Vector3 LastScreenTop;
+        public Vector3 LastScreenBottom;
 
         public Matrix WorldMatrixMOD = Matrix.Identity;
 
         private float ViewportAspectRatio => 1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height;
 
-        public void OrbitCamReset()
+        public float DummyPolyFollowStartRatioFromScreenCenter = 0.333333f;
+
+        public void UpdateDummyPolyFollowRefPoint(bool isFirstTime)
         {
-            var distDetermine = Math.Max(ModelHeight_ForOrbitCam, ModelDepth_ForOrbitCam);
-            if (ViewportAspectRatio < 1)
-                OrbitCamDistance = (float)Math.Sqrt((distDetermine * 2) / (ViewportAspectRatio * 0.66f));
-            else
-                OrbitCamDistance = (float)Math.Sqrt(distDetermine * 2);
+            if (Scene.Models.Count > 0)
+            {
+                bool CheckCenterDummyPoly(int dmyID)
+                {
+                    if (Scene.Models[0].DummyPolyMan.DummyPolyByRefID.ContainsKey(dmyID))
+                    {
+                        var lockonPoint1 = Scene.Models[0].DummyPolyMan.GetDummyPosByID(dmyID, Matrix.Invert(Scene.Models[0].CurrentTransform.WorldMatrix));
+                        if (lockonPoint1.Count > 0)
+                        {
+                            
+                            if (isFirstTime)
+                            {
+                                OrbitCamCenter_DummyPolyFollowRefPoint_Init = lockonPoint1[0];
+                            }
+                            else
+                            {
+                                //float screenPhysicalHeight = GetScreenPhysicalHeight();
 
-            OrbitCamCenter = new Vector3(0, ModelCenter_ForOrbitCam.Y, 0);
+                                //float verticalDistNeededToMove = 0;
 
-            CameraTransform.EulerRotation = CameraDefaultRot + new Vector3(0, -ModelDirection_ForOrbitCam, 0);
+                                float threshold = (OrbitCamDistance * 0.4f);
+
+                                float verticalDistNeededToMove = lockonPoint1[0].Y - (OrbitCamCenter_DummyPolyFollowRefPoint.Y + (threshold / 2));
+                                
+                                if (verticalDistNeededToMove > 0)
+                                {
+                                    float absDist = Math.Max(Math.Abs(verticalDistNeededToMove), 0);
+                                    verticalDistNeededToMove = absDist;
+                                }
+                                else if (verticalDistNeededToMove < 0)
+                                {
+                                    float absDist = Math.Max(Math.Abs(verticalDistNeededToMove) - threshold, 0);
+                                    verticalDistNeededToMove = -absDist;
+                                }
+
+                                //float top = OrbitCamCenter_DummyPolyFollowRefPoint.Y + threshold;
+                                //float bottom = OrbitCamCenter_DummyPolyFollowRefPoint.Y - threshold;
+
+                                //if (lockonPoint1[0].Y > top)
+                                //{
+                                //    verticalDistNeededToMove = (lockonPoint1[0].Y - top) - ;
+                                //}
+                                //else if (lockonPoint1[0].Y < bottom)
+                                //{
+                                //    verticalDistNeededToMove = lockonPoint1[0].Y - bottom;
+                                //}
+
+
+
+                                //float moveUrgencyRatio = MathHelper.Clamp((Math.Abs(verticalDistNeededToMove / (screenPhysicalHeight / 2))), 0, 0.95f);
+                                //moveUrgencyRatio = MathHelper.Clamp(Utils.MapRange(moveUrgencyRatio, DummyPolyFollowStartRatioFromScreenCenter, 0.6666f, 0, 0.9f), 0, 0.9f);
+                                //float lerpedYCoord = MathHelper.Lerp(OrbitCamCenter_DummyPolyFollowRefPoint.Y, OrbitCamCenter_DummyPolyFollowRefPoint.Y + verticalDistNeededToMove, Main.DELTA_UPDATE * 10);
+
+                                OrbitCamCenter_DummyPolyFollowRefPoint.Y = MathHelper.Lerp(OrbitCamCenter_DummyPolyFollowRefPoint.Y, OrbitCamCenter_DummyPolyFollowRefPoint.Y + verticalDistNeededToMove, Main.DELTA_UPDATE * 15);
+
+                                //OrbitCamCenter_DummyPolyFollowRefPoint = lockonPoint1[0];
+                            }
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                bool foundDmy = false;
+
+                foundDmy = CheckCenterDummyPoly(240);
+
+                if (!foundDmy)
+                    foundDmy = CheckCenterDummyPoly(220);
+
+
+            }
+        }
+
+        public void OrbitCamReset(bool isFirstTime)
+        {
+            //var distDetermine = Math.Max(ModelHeight_ForOrbitCam, ModelDepth_ForOrbitCam);
+            //if (ViewportAspectRatio < 1)
+            //    OrbitCamDistance = (float)Math.Sqrt((distDetermine) / (ViewportAspectRatio * 0.66f));
+            //else
+            //    OrbitCamDistance = (float)Math.Sqrt(distDetermine);
+
+            OrbitCamCenter = new Vector3(0, 0, 0);
+
+            if (isFirstTime)
+                UpdateDummyPolyFollowRefPoint(isFirstTime: true);
+
+            CameraTransform.EulerRotation = CameraDefaultRot;// + new Vector3(0, ModelDirection_ForOrbitCam, 0);
         }
 
 
@@ -76,14 +163,14 @@ namespace DSAnimStudio
         }
 
 
-        public float LightRotationH = 0;
+        public float LightRotationH = 1.7f;
         public float LightRotationV = 0;
         public Vector3 LightDirectionVector
         {
             get
             {
                 var horiz = Vector3.Transform(Vector3.Backward, Matrix.CreateRotationY(LightRotationH));
-                float y = (float)Math.Sin(LightRotationV);
+                float y = (float)Math.Sin(-LightRotationV);
                 return new Vector3(horiz.X, y, horiz.Z);
             }
         }
@@ -273,6 +360,73 @@ namespace DSAnimStudio
             var stickingOutOfScreen = GFX.Device.Viewport.Unproject(
                 new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f), 0.1f),
                 MatrixProjection, CameraTransform.CameraViewMatrix, MatrixWorld);
+
+            return Vector3.Normalize(stickingOutOfScreen - centerScreen);
+        }
+
+        public StatusPrinter DbgPrintA = new StatusPrinter(null, Color.Fuchsia, DBG.DEBUG_FONT_SMALL);
+        public StatusPrinter DbgPrintB = new StatusPrinter(null, Color.Fuchsia, DBG.DEBUG_FONT_SMALL);
+
+        public Ray GetScreenRay(Vector2 screenPos)
+        {
+            var a = GFX.Device.Viewport.Unproject(
+                new Vector3(screenPos, 0.1f),
+                MatrixProjection, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), WorldMatrixMOD);
+
+            var b = GFX.Device.Viewport.Unproject(
+                new Vector3(screenPos, 0.2f),
+                MatrixProjection, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), WorldMatrixMOD);
+
+            return new Ray(a, Vector3.Normalize(b - a));
+        }
+
+        public float GetScreenPhysicalHeight()
+        {
+            Vector3 forward = GetScreenSpaceFowardVector();
+            forward = Vector3.TransformNormal(forward, WorldMatrixMOD) * new Vector3(1, 1, -1);
+
+            var plane = new Plane(Vector3.Normalize(new Vector3(forward.X, 0, forward.Z)), 0);
+            var topRay = GetScreenRay(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.333333f));
+            var iTop = topRay.Intersects(plane);
+            var bottomRay = GetScreenRay(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.666666f));
+            var iBottom = bottomRay.Intersects(plane);
+
+            if (iTop.HasValue)
+            {
+                LastScreenTop = topRay.Position + (topRay.Direction * iTop.Value);
+            }
+
+            if (iBottom.HasValue)
+            {
+                LastScreenBottom = bottomRay.Position + (bottomRay.Direction * iBottom.Value);
+            }
+
+            DbgPrintA.Clear();
+            DbgPrintA.AppendLine("SCREEN TOP");
+            DbgPrintA.Position3D = LastScreenTop;
+
+
+            DbgPrintB.Clear();
+            DbgPrintB.AppendLine("SCREEN BOTTOM");
+            DbgPrintB.Position3D = LastScreenBottom;
+
+            float result = (LastScreenTop - LastScreenBottom).Length();
+
+            return result;
+        }
+
+
+
+        public Vector3 GetScreenSpaceFowardVector_Correct()
+        {
+            var centerScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f), 0),
+                MatrixProjection, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixWorld * WorldMatrixMOD);
+
+
+            var stickingOutOfScreen = GFX.Device.Viewport.Unproject(
+                new Vector3(new Vector2(GFX.Device.Viewport.Width * 0.5f, GFX.Device.Viewport.Height * 0.5f), 0.1f),
+                MatrixProjection, CameraTransform.CameraViewMatrix * Matrix.Invert(MatrixWorld), MatrixWorld * WorldMatrixMOD);
 
             return Vector3.Normalize(stickingOutOfScreen - centerScreen);
         }
@@ -484,18 +638,18 @@ namespace DSAnimStudio
 
                 RotateCameraOrbit(-requestCameraDirChange, 0, 1);
 
-                Vector3 orbitOriginOffsetFromModel = (OrbitCamCenter - ModelCenter_ForOrbitCam);
+                Vector3 orbitOriginOffsetFromModel = (OrbitCamCenter);
 
                 orbitOriginOffsetFromModel = Vector3.Transform(orbitOriginOffsetFromModel, Matrix.CreateRotationY(-requestCameraDirChange));
 
-                OrbitCamCenter = (ModelCenter_ForOrbitCam + orbitOriginOffsetFromModel);
+                OrbitCamCenter = (orbitOriginOffsetFromModel);
 
                 CameraTransform.EulerRotation.X = MathHelper.Clamp(CameraTransform.EulerRotation.X, -MathHelper.PiOver2 * SHITTY_CAM_PITCH_LIMIT_FATCAT_CLAMP, MathHelper.PiOver2 * SHITTY_CAM_PITCH_LIMIT_FATCAT_CLAMP);
 
                 OrbitCamDistance = Math.Max(OrbitCamDistance, SHITTY_CAM_ZOOM_MIN_DIST);
 
                 var distanceVectorAfterMove = -Vector3.Transform(Vector3.Forward, CameraTransform.RotationMatrixXYZ * Matrix.CreateRotationY(MathHelper.Pi)) * new Vector3(-1, 1, 1);
-                CameraTransform.Position = (OrbitCamCenter + (distanceVectorAfterMove * (OrbitCamDistance * OrbitCamDistance)));
+                CameraTransform.Position = ((OrbitCamCenter_DummyPolyFollowRefPoint + OrbitCamCenter) + (distanceVectorAfterMove * (OrbitCamDistance * OrbitCamDistance)));
 
                 RequestDirectionChange -= requestCameraDirChange;
             }
@@ -602,7 +756,7 @@ namespace DSAnimStudio
                     OrbitCamDistance = Math.Max(OrbitCamDistance, SHITTY_CAM_ZOOM_MIN_DIST);
 
                     var distanceVectorAfterMove = -Vector3.Transform(Vector3.Forward, CameraTransform.RotationMatrixXYZ * Matrix.CreateRotationY(MathHelper.Pi)) * new Vector3(-1, 1, 1);
-                    CameraTransform.Position = (OrbitCamCenter + (distanceVectorAfterMove * (OrbitCamDistance * OrbitCamDistance)));
+                    CameraTransform.Position = ((OrbitCamCenter_DummyPolyFollowRefPoint + OrbitCamCenter) + (distanceVectorAfterMove * (OrbitCamDistance * OrbitCamDistance)));
 
                     
                 }
@@ -629,9 +783,9 @@ namespace DSAnimStudio
                 return;
             }
 
-            if (currentMouseClickM && !oldMouseClickM && IsOrbitCam)
+            if (currentMouseClickM && IsOrbitCam)
             {
-                OrbitCamReset();
+                OrbitCamReset(isFirstTime: false);
             }
 
             if (currentClickType == MouseClickType.None && gamepad.IsConnected)
@@ -936,7 +1090,7 @@ namespace DSAnimStudio
                 OrbitCamDistance = Math.Max(OrbitCamDistance, SHITTY_CAM_ZOOM_MIN_DIST);
 
                 var distanceVectorAfterMove = -Vector3.Transform(Vector3.Forward, CameraTransform.RotationMatrixXYZ * Matrix.CreateRotationY(MathHelper.Pi)) * new Vector3(-1, 1, 1);
-                CameraTransform.Position = (OrbitCamCenter + (distanceVectorAfterMove * (OrbitCamDistance * OrbitCamDistance)));
+                CameraTransform.Position = ((OrbitCamCenter_DummyPolyFollowRefPoint + OrbitCamCenter) + (distanceVectorAfterMove * (OrbitCamDistance * OrbitCamDistance)));
             }
             else
             {

@@ -257,6 +257,8 @@ namespace DSAnimStudio
                 int msaa = GFX.MSAA;
                 int ssaa = GFX.SSAA;
 
+                
+
                 SceneRenderTarget?.Dispose();
                 GC.Collect();
                 SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * ssaa,
@@ -495,9 +497,9 @@ namespace DSAnimStudio
             //    GFX.Device.Viewport.Height - (strSize_managed.Y * 0.75f) - (strSize_unmanaged.Y * 0.75f)),
             //    Color.Cyan, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
             GFX.SpriteBatchBeginForText();
-            DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 6,
+            DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 6,
                 GFX.Device.Viewport.Height),
-                GetMemoryUseColor(MemoryUsage_Unmanaged), DBG.DEBUG_FONT_SMALL, scale: 1, scaleOrigin: strSize_unmanaged);
+                GetMemoryUseColor(MemoryUsage_Managed), DBG.DEBUG_FONT_SMALL, scale: 1, scaleOrigin: strSize_managed);
             GFX.SpriteBatchEnd();
         }
 

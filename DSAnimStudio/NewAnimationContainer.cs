@@ -81,6 +81,9 @@ namespace DSAnimStudio
 
         private void PopulateAdditiveBlendOverlays()
         {
+            if (MODEL.IS_PLAYER)
+                return; //todo
+
             lock (_lock_AdditiveOverlays)
             {
                 _additiveBlendOverlays = new List<NewHavokAnimation>();
@@ -343,14 +346,15 @@ namespace DSAnimStudio
                 }
             }
 
-            MODEL.ChrAsm?.RightWeaponModel0?.AnimContainer?.ResetAll();
-            MODEL.ChrAsm?.RightWeaponModel1?.AnimContainer?.ResetAll();
-            MODEL.ChrAsm?.RightWeaponModel2?.AnimContainer?.ResetAll();
-            MODEL.ChrAsm?.RightWeaponModel3?.AnimContainer?.ResetAll();
-            MODEL.ChrAsm?.LeftWeaponModel0?.AnimContainer?.ResetAll();
-            MODEL.ChrAsm?.LeftWeaponModel1?.AnimContainer?.ResetAll();
-            MODEL.ChrAsm?.LeftWeaponModel2?.AnimContainer?.ResetAll();
-            MODEL.ChrAsm?.LeftWeaponModel3?.AnimContainer?.ResetAll();
+            lock (_lock_AdditiveOverlays)
+            {
+                foreach (var overlay in AdditiveBlendOverlays)
+                {
+                    overlay.Reset();
+                }
+            }
+
+            MODEL.ChrAsm?.ForeachWeaponModel(m => m.AnimContainer?.ResetAll());
         }
 
         private void OnScrubUpdateAnimLayersRootMotion()
@@ -522,7 +526,7 @@ namespace DSAnimStudio
                             foreach (var overlay in _additiveBlendOverlays)
                             {
                                 if (overlay.Weight > 0)
-                                    currentMatrix *= overlay.GetBlendableTransformOnCurrentFrame(i).GetMatrix().ToXna();
+                                    currentMatrix *= NewBlendableTransform.Lerp(NewBlendableTransform.Identity, overlay.GetBlendableTransformOnCurrentFrame(i), overlay.Weight).GetMatrix().ToXna();
                             }
                         }
 
@@ -546,7 +550,7 @@ namespace DSAnimStudio
                             foreach (var overlay in _additiveBlendOverlays)
                             {
                                 if (overlay.Weight > 0)
-                                    currentMatrix *= overlay.GetBlendableTransformOnCurrentFrame(i).GetMatrix().ToXna();
+                                    currentMatrix *= NewBlendableTransform.Lerp(NewBlendableTransform.Identity, overlay.GetBlendableTransformOnCurrentFrame(i), overlay.Weight).GetMatrix().ToXna();
                             }
                         }
 
