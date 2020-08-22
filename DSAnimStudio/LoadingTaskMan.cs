@@ -194,8 +194,8 @@ namespace DSAnimStudio
             string taskKey, 
             string displayString, 
             Action<IProgress<double>> taskDelegate, 
-            int addFluffMilliseconds = 100, 
-            int synchronousWaitThreadSpinMilliseconds = 250)
+            int addFluffMilliseconds = 20, 
+            int synchronousWaitThreadSpinMilliseconds = 16)
         {
             return DoLoadingTask(taskKey, displayString, taskDelegate, 
                 addFluffMilliseconds, waitForTaskToComplete: true, 

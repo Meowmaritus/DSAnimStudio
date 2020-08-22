@@ -916,6 +916,8 @@ namespace DSAnimStudio.TaeEditor
                 //V2.0: See if this needs something similar in the new system.
                 //CurrentModel.AnimContainer.StoreRootMotionRotation();
 
+                //CurrentModel.AnimContainer.CurrentAnimation.RotMatrixAtStartOfAnim
+
                 CurrentModel.AnimContainer.CurrentAnimationName = mainChrAnimName;
 
                 lock (CurrentModel.AnimContainer._lock_AnimationLayers)

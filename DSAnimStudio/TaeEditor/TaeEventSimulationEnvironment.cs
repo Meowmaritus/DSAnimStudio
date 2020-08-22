@@ -286,7 +286,8 @@ namespace DSAnimStudio.TaeEditor
 
             if (stateInfoSlot != null && stateInfoSlot.Value >= 0 && FmodManager.IsStateInfoAlreadyPlaying(stateInfoSlot.Value))
             {
-                FmodManager.StopSE(stateInfoSlot.Value, true);
+                //FmodManager.StopSE(stateInfoSlot.Value, true);
+                return;
             }
             FmodManager.PlaySE(soundType, soundID, getPosFunc, stateInfoSlot == -1 ? null : stateInfoSlot);
         }
@@ -334,14 +335,14 @@ namespace DSAnimStudio.TaeEditor
                         },
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
-                            List<int> allStateInfos = new List<int>();
+                            //List<int> allStateInfos = new List<int>();
                             List<int> activeStateInfos = new List<int>();
                             foreach (var evBox in evBoxes)
                             {
                                 if (evBox.MyEvent.TypeName == null || !evBox.MyEvent.TypeName.StartsWith("PlaySound_ByStateInfo"))
                                     continue;
 
-                                int stateInfo = Convert.ToInt32(evBox.MyEvent.Parameters["StateInfo"]);
+                                int stateInfo = Convert.ToInt32(evBox.MyEvent.Parameters["SlotNumber"]);
                                 if (evBox.PlaybackHighlight)
                                 {
                                     if (!activeStateInfos.Contains(stateInfo))
@@ -349,14 +350,14 @@ namespace DSAnimStudio.TaeEditor
                                 }
 
 
-                                if (!allStateInfos.Contains(stateInfo))
-                                    allStateInfos.Add(stateInfo);
+                                //if (!allStateInfos.Contains(stateInfo))
+                                //    allStateInfos.Add(stateInfo);
                             }
 
-                            foreach (var si in allStateInfos)
+                            for (int i = 0; i < 8; i++)
                             {
-                                if (!activeStateInfos.Contains(si))
-                                    FmodManager.StopSE(si, false);
+                                if (!activeStateInfos.Contains(i))
+                                    FmodManager.StopSE(i, false);
                             }
                             
                         },

@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -40,7 +41,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4";
+        public const string VERSION = "Version 2.4-PRERELEASE(nightly)";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -348,23 +349,31 @@ namespace DSAnimStudio
 
         private void GameWindowForm_DragDrop(object sender, DragEventArgs e)
         {
-            //string[] modelFiles = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+            string[] modelFiles = (string[])e.Data.GetData(DataFormats.FileDrop, false);
 
             //TAE_EDITOR.
+
+            foreach (var file in modelFiles)
+            {
+                if (file.ToUpper().EndsWith(".FLVER"))
+                {
+                    Scene.AddModel(new Model(FLVER2.Read(file), false));
+                }
+            }
 
             //LoadDragDroppedFiles(modelFiles.ToDictionary(f => f, f => File.ReadAllBytes(f)));
         }
 
         private void GameWindowForm_DragEnter(object sender, DragEventArgs e)
         {
-            //if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            //{
-            //    e.Effect = DragDropEffects.All;
-            //}
-            //else
-            //{
-            //    e.Effect = DragDropEffects.None;
-            //}
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.All;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
         }
 
         protected override void LoadContent()
