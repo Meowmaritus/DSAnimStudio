@@ -67,8 +67,12 @@ namespace DSAnimStudio
 
         public int GetAnimLayerIndexByName(string name)
         {
+            if (!Scene.CheckIfDrawing())
+                return 0;
+
             lock (_lock_AnimationLayers)
             {
+                
                 for (int i = AnimationLayers.Count - 1; i >= 0; i--)
                 {
                     if (AnimationLayers[i].Name == name)
@@ -81,8 +85,8 @@ namespace DSAnimStudio
 
         private void PopulateAdditiveBlendOverlays()
         {
-            if (MODEL.IS_PLAYER)
-                return; //todo
+            //if (MODEL.IS_PLAYER)
+            //    return; //todo
 
             lock (_lock_AdditiveOverlays)
             {
@@ -93,20 +97,29 @@ namespace DSAnimStudio
                     foreach (var kvp in animHKXsToLoad)
                         allAnimNames.Add(kvp.Key);
                 }
-                foreach (var name in allAnimNames)
+
+                LoadingTaskMan.DoLoadingTaskSynchronous("ScanningAllAnimations", "Loading animations...", prog =>
                 {
-                    CurrentAnimationName = name;
-                    if (CurrentAnimation != null)
+                    for (int i = 0; i < allAnimNames.Count; i++)
                     {
-                        if (CurrentAnimation.IsAdditiveBlend)
+                        prog?.Report(1.0 * i / allAnimNames.Count);
+                        CurrentAnimationName = allAnimNames[i];
+                        if (CurrentAnimation != null)
                         {
-                            var clone = NewHavokAnimation.Clone(CurrentAnimation);
-                            clone.Weight = -1;
-                            _additiveBlendOverlays.Add(clone);
+                            if (CurrentAnimation.IsAdditiveBlend)
+                            {
+                                var clone = NewHavokAnimation.Clone(CurrentAnimation);
+                                clone.Weight = -1;
+                                _additiveBlendOverlays.Add(clone);
+                            }
                         }
+                        
                     }
-                }
-                CurrentAnimationName = null;
+                    CurrentAnimationName = null;
+                    prog?.Report(1.0);
+                });
+
+                
             }
         }
         private List<NewHavokAnimation> _additiveBlendOverlays = new List<NewHavokAnimation>();
@@ -408,6 +421,7 @@ namespace DSAnimStudio
                     else if (AnimationLayers.Count == 2)
                     {
                         var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
+                        AnimationLayers[1].ApplyExternalRotation(AnimationLayers[0].RootMotionDeltaOfLastScrub.W * (1 - AnimationLayers[1].Weight));
                         var b = RotateDeltaToCurrentDirectionMat(AnimationLayers[1].RootMotionDeltaOfLastScrub, AnimationLayers[1].RotMatrixAtStartOfAnim);
 
                         var blended = Vector4.Lerp(a, b, AnimationLayers[1].Weight);
@@ -712,7 +726,7 @@ namespace DSAnimStudio
                     }
                 }
 
-                PopulateAdditiveBlendOverlays();
+                //PopulateAdditiveBlendOverlays();
 
                 if (CurrentAnimationName == null && animHKXsToLoad.Count > 0)
                 {
