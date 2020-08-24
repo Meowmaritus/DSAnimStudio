@@ -25,6 +25,9 @@ namespace DSAnimStudio
 
         public static Form WinForm;
 
+        public static float DPIX = 1;
+        public static float DPIY = 1;
+
         public static Random Rand = new Random();
         public static float RandFloat()
         {
@@ -177,6 +180,12 @@ namespace DSAnimStudio
         {
 
             WinForm = (Form)Form.FromHandle(Window.Handle);
+
+            //WinForm.AutoScaleMode = AutoScaleMode.None;
+
+            System.Drawing.Graphics winFormGraphics = WinForm.CreateGraphics();
+            DPIX = winFormGraphics.DpiX / 96f;
+            DPIY = winFormGraphics.DpiY / 96f;
 
             Directory = new FileInfo(typeof(Main).Assembly.Location).DirectoryName;
 
