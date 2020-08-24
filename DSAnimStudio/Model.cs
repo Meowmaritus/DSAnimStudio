@@ -44,10 +44,14 @@ namespace DSAnimStudio
             float delta = (MathHelper.ToRadians(CurrentTrackingSpeed)) * elapsedTime * TrackingTestInput;
             CharacterTrackingRotation += delta;
             CurrentDirection += delta;
-            foreach (var anim in AnimContainer.AnimationLayers)
+            if (AnimContainer != null)
             {
-                anim.ApplyExternalRotation(delta);
+                foreach (var anim in AnimContainer.AnimationLayers)
+                {
+                    anim.ApplyExternalRotation(delta);
+                }
             }
+           
         }
 
         public static float GlobalTrackingInput = 0;
@@ -388,7 +392,7 @@ namespace DSAnimStudio
 
         public void UpdateAnimation()
         {
-            AnimContainer.Update();
+            AnimContainer?.Update();
             UpdateTrackingTest(Main.DELTA_UPDATE);
             //V2.0
             //if (AnimContainer.IsPlaying)

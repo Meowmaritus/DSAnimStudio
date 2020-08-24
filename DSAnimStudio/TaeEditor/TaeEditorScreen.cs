@@ -601,7 +601,7 @@ namespace DSAnimStudio.TaeEditor
 
         private const int RECENT_FILES_MAX = 32;
 
-        private int TopMenuBarMargin = 24;
+        private int TopMenuBarMargin => (int)Math.Ceiling(24 * Main.DPIY);
 
         private int TopOfGraphAnimInfoMargin = 20;
 

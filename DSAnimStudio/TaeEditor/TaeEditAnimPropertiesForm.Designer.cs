@@ -52,9 +52,8 @@
             // 
             // buttonDiscardChanges
             // 
-            this.buttonDiscardChanges.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonDiscardChanges.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonDiscardChanges.Location = new System.Drawing.Point(285, 197);
+            this.buttonDiscardChanges.Location = new System.Drawing.Point(279, 194);
             this.buttonDiscardChanges.Name = "buttonDiscardChanges";
             this.buttonDiscardChanges.Size = new System.Drawing.Size(114, 23);
             this.buttonDiscardChanges.TabIndex = 1;
@@ -64,8 +63,7 @@
             // 
             // buttonSaveChanges
             // 
-            this.buttonSaveChanges.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonSaveChanges.Location = new System.Drawing.Point(174, 197);
+            this.buttonSaveChanges.Location = new System.Drawing.Point(168, 194);
             this.buttonSaveChanges.Name = "buttonSaveChanges";
             this.buttonSaveChanges.Size = new System.Drawing.Size(105, 23);
             this.buttonSaveChanges.TabIndex = 2;
@@ -75,8 +73,7 @@
             // 
             // buttonDeleteAnim
             // 
-            this.buttonDeleteAnim.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.buttonDeleteAnim.Location = new System.Drawing.Point(12, 197);
+            this.buttonDeleteAnim.Location = new System.Drawing.Point(10, 194);
             this.buttonDeleteAnim.Name = "buttonDeleteAnim";
             this.buttonDeleteAnim.Size = new System.Drawing.Size(108, 23);
             this.buttonDeleteAnim.TabIndex = 3;
@@ -116,7 +113,7 @@
             this.groupBoxMiniHeader.Controls.Add(this.checkBoxMHStandardLoopByDefault);
             this.groupBoxMiniHeader.Location = new System.Drawing.Point(12, 97);
             this.groupBoxMiniHeader.Name = "groupBoxMiniHeader";
-            this.groupBoxMiniHeader.Size = new System.Drawing.Size(399, 91);
+            this.groupBoxMiniHeader.Size = new System.Drawing.Size(404, 91);
             this.groupBoxMiniHeader.TabIndex = 6;
             this.groupBoxMiniHeader.TabStop = false;
             this.groupBoxMiniHeader.Text = "Mini-Header Data: Standard";
@@ -238,10 +235,9 @@
             // TaeEditAnimPropertiesForm
             // 
             this.AcceptButton = this.buttonSaveChanges;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.buttonDiscardChanges;
-            this.ClientSize = new System.Drawing.Size(407, 226);
+            this.ClientSize = new System.Drawing.Size(401, 224);
             this.ControlBox = false;
             this.Controls.Add(this.radioButtonMHImportOtherAnimation);
             this.Controls.Add(this.radioButtonMHStandard);
@@ -257,7 +253,7 @@
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MinimumSize = new System.Drawing.Size(380, 200);
+            this.MinimumSize = new System.Drawing.Size(380, 198);
             this.Name = "TaeEditAnimPropertiesForm";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
