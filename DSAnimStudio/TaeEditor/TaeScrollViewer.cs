@@ -316,10 +316,10 @@ namespace DSAnimStudio.TaeEditor
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, Texture2D arrowTex)
         {
-            //var oldViewport = gd.Viewport;
-            //gd.Viewport = new Viewport(FullDisplayRect);
+            var oldViewport = gd.Viewport;
+            gd.Viewport = new Viewport(gd.Viewport.Bounds.DpiScaledExcludePos());
             //{
-            sb.Begin();
+            sb.Begin(transformMatrix: Main.DPIMatrix);
             try
             {
 
@@ -365,7 +365,11 @@ namespace DSAnimStudio.TaeEditor
                    : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, MathHelper.Pi, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
                 }
             }
-            finally { sb.End(); }
+            finally 
+            { 
+                sb.End();
+                gd.Viewport = oldViewport;
+            }
             //}
             //gd.Viewport = oldViewport;
         }

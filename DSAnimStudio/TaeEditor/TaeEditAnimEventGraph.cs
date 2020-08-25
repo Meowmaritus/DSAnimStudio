@@ -377,9 +377,9 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
                     {
-                        if (asStandard.ImportsEvents && asStandard.ImportFromAnimID != -1)
+                        if (asStandard.AllowDelayLoad && asStandard.ImportHKXSourceAnimID != -1)
                         {
-                            var animRef = MainScreen.FileContainer.GetAnimRef(asStandard.ImportFromAnimID);
+                            var animRef = MainScreen.FileContainer.GetAnimRef(asStandard.ImportHKXSourceAnimID);
 
                             GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
                             GhostEventGraph.PlaybackCursor = PlaybackCursor;
@@ -2163,7 +2163,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (MainScreen.HoveringOverEventBox == box)
                 {
-                    box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, fontToUse, elapsedSeconds, fontOffsetToUse);
+                    box.EventText.Draw(gd, sb, scrollMatrix * Main.DPIMatrix, fancyTextRect, fontToUse, elapsedSeconds, fontOffsetToUse);
 
                     if (isHover)
                         DrawOverlayOutline();
@@ -2178,7 +2178,7 @@ namespace DSAnimStudio.TaeEditor
                 else
                 {
                     box.EventText.ResetScroll(startImmediatelyNextTime: true);
-                    box.EventText.Draw(gd, sb, scrollMatrix, fancyTextRect, fontToUse, 0, fontOffsetToUse);
+                    box.EventText.Draw(gd, sb, scrollMatrix * Main.DPIMatrix, fancyTextRect, fontToUse, 0, fontOffsetToUse);
 
                     if (isHover)
                         DrawOverlayOutline();
@@ -2595,9 +2595,9 @@ namespace DSAnimStudio.TaeEditor
             var scrollMatrix = ScrollViewer.GetScrollMatrix();
 
             var oldViewport = gd.Viewport;
-            gd.Viewport = new Viewport(ScrollViewer.Viewport);
+            gd.Viewport = new Viewport(ScrollViewer.Viewport.DpiScaled());
             {
-                sb.Begin(transformMatrix: scrollMatrix);
+                sb.Begin(transformMatrix: scrollMatrix * Main.DPIMatrix);
                 try
                 {
 
@@ -3126,9 +3126,9 @@ namespace DSAnimStudio.TaeEditor
 
             if (MainScreen.Config.ShowEventHoverInfo)
             {
-                gd.Viewport = new Viewport(MainScreen.Rect);
+                gd.Viewport = new Viewport(MainScreen.Rect.DpiScaled());
 
-                sb.Begin(transformMatrix: scrollMatrix);
+                sb.Begin(transformMatrix: scrollMatrix * Main.DPIMatrix);
                 try
                 {
                     if (!Rect.Contains(MainScreen.Input.MousePositionPoint))

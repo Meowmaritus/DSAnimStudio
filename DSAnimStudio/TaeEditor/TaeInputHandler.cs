@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
 
 namespace DSAnimStudio.TaeEditor
@@ -146,9 +147,22 @@ namespace DSAnimStudio.TaeEditor
         {
             Mouse = GlobalInputState.Mouse;
 
-            MouseCursorUpdateRect = mouseCursorUpdateRect;
+            MouseCursorUpdateRect = mouseCursorUpdateRect.DpiScaled();
 
-            var inUpdateCursorRect = MouseCursorUpdateRect.Contains(Mouse.Position);
+            
+
+            ////////////////////////////////////////////////////////////////////////////////
+            // Get the current state.
+            ////////////////////////////////////////////////////////////////////////////////
+            
+            LeftClickHeld = Mouse.LeftButton == ButtonState.Pressed;
+            RightClickHeld = Mouse.RightButton == ButtonState.Pressed;
+            MiddleClickHeld = Mouse.MiddleButton == ButtonState.Pressed;
+            AccumulatedScroll = Mouse.ScrollWheelValue / 150f;
+            MousePosition = new Vector2(Mouse.X / Main.DPIX, Mouse.Y / Main.DPIY);
+            MousePositionPoint = new Point((int)Math.Round(Mouse.Position.X / Main.DPIX), (int)Math.Round(Mouse.Position.Y / Main.DPIY));
+
+            var inUpdateCursorRect = MouseCursorUpdateRect.Contains(MousePositionPoint);
             var prevInUpdateCursorRect = MouseCursorUpdateRect.Contains(new Point((int)oldMousePosition.X, (int)oldMousePosition.Y));
 
             if (inUpdateCursorRect)
@@ -181,17 +195,6 @@ namespace DSAnimStudio.TaeEditor
             {
                 System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.Arrow;
             }
-
-            ////////////////////////////////////////////////////////////////////////////////
-            // Get the current state.
-            ////////////////////////////////////////////////////////////////////////////////
-            
-            LeftClickHeld = Mouse.LeftButton == ButtonState.Pressed;
-            RightClickHeld = Mouse.RightButton == ButtonState.Pressed;
-            MiddleClickHeld = Mouse.MiddleButton == ButtonState.Pressed;
-            AccumulatedScroll = Mouse.ScrollWheelValue / 150f;
-            MousePosition = new Vector2(Mouse.X, Mouse.Y);
-            MousePositionPoint = Mouse.Position;
 
             ////////////////////////////////////////////////////////////////////////////////
             // Cancel delta state when you alt+tab or click back into window.

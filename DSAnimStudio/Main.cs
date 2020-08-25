@@ -28,6 +28,11 @@ namespace DSAnimStudio
         public static float DPIX = 1;
         public static float DPIY = 1;
 
+        public static Vector2 DPIVector => new Vector2(DPIX, DPIY);
+        public static System.Numerics.Vector2 DPIVectorN => new System.Numerics.Vector2(DPIX, DPIY);
+
+        public static Matrix DPIMatrix => Matrix.CreateScale(DPIX, DPIY, 1);
+
         public static Random Rand = new Random();
         public static float RandFloat()
         {
@@ -181,11 +186,12 @@ namespace DSAnimStudio
 
             WinForm = (Form)Form.FromHandle(Window.Handle);
 
-            //WinForm.AutoScaleMode = AutoScaleMode.None;
+            WinForm.AutoScaleMode = AutoScaleMode.Dpi;
 
-            System.Drawing.Graphics winFormGraphics = WinForm.CreateGraphics();
-            DPIX = winFormGraphics.DpiX / 96f;
-            DPIY = winFormGraphics.DpiY / 96f;
+            WinForm.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25f, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0);
+
+            DPIX = DPIY = WinForm.DeviceDpi / 96f;
+            WinForm.DpiChanged += WinForm_DpiChanged;
 
             Directory = new FileInfo(typeof(Main).Assembly.Location).DirectoryName;
 
@@ -202,8 +208,8 @@ namespace DSAnimStudio
             graphics.SynchronizeWithVerticalRetrace = GFX.Display.Vsync;
             graphics.IsFullScreen = GFX.Display.Fullscreen;
             //graphics.PreferMultiSampling = GFX.Display.SimpleMSAA;
-            graphics.PreferredBackBufferWidth = GFX.Display.Width;
-            graphics.PreferredBackBufferHeight = GFX.Display.Height;
+            graphics.PreferredBackBufferWidth = (int)Math.Round(GFX.Display.Width * DPIX);
+            graphics.PreferredBackBufferHeight = (int)Math.Round(GFX.Display.Height * DPIX);
             if (!GraphicsAdapter.DefaultAdapter.IsProfileSupported(GraphicsProfile.HiDef))
             {
                 System.Windows.Forms.MessageBox.Show("MonoGame is detecting your GPU as too " +
@@ -233,6 +239,12 @@ namespace DSAnimStudio
             GFX.Display.SetFromDisplayMode(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode);
 
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+        }
+
+        private void WinForm_DpiChanged(object sender, DpiChangedEventArgs e)
+        {
+            float newDpi = WinForm.DeviceDpi / 96f;
+            DPIX = DPIY = newDpi;
         }
 
         //protected override void Dispose(bool disposing)
@@ -271,8 +283,8 @@ namespace DSAnimStudio
 
                 SceneRenderTarget?.Dispose();
                 GC.Collect();
-                SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * ssaa,
-                       TAE_EDITOR.ModelViewerBounds.Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24, 
+                SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width * ssaa,
+                       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24, 
                        ssaa > 1 ? 1 : msaa, RenderTargetUsage.DiscardContents);
 
                 TimeBeforeNextRenderTargetUpdate = TimeBeforeNextRenderTargetUpdate_Max;
@@ -779,7 +791,7 @@ namespace DSAnimStudio
 
                         GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
 
-                        GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                        GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
 
                         
 
@@ -800,7 +812,7 @@ namespace DSAnimStudio
 
                         GFX.Device.Clear(Colors.MainColorBackground);
 
-                        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
 
                         InitTonemapShader();
                         GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
@@ -808,8 +820,8 @@ namespace DSAnimStudio
                         if (GFX.UseTonemap && !GFX.IsInDebugShadingMode)
                         {
                             MainFlverTonemapShader.ScreenSize = new Vector2(
-                                TAE_EDITOR.ModelViewerBounds.Width,
-                                TAE_EDITOR.ModelViewerBounds.Height);
+                                TAE_EDITOR.ModelViewerBounds.Width * Main.DPIX,
+                                TAE_EDITOR.ModelViewerBounds.Height * Main.DPIY);
                             MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
                         }
 
@@ -865,7 +877,7 @@ namespace DSAnimStudio
 
 
 
-                    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
                     //DBG.DrawPrimitiveNames(gameTime);
 
 
@@ -884,7 +896,7 @@ namespace DSAnimStudio
                     LoadingTaskMan.DrawAllTasks();
 
 
-                    GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+                    GFX.Device.Viewport = new Viewport(0, 0, (int)Math.Ceiling(Window.ClientBounds.Width / Main.DPIY), (int)Math.Ceiling(Window.ClientBounds.Height / Main.DPIY));
 
                     TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
 
@@ -899,7 +911,8 @@ namespace DSAnimStudio
                     }
 
                     //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-                    DrawImGui(gameTime, TAE_EDITOR.ModelViewerBounds.X, TAE_EDITOR.ModelViewerBounds.Y, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height);
+                    var imguiRect = TAE_EDITOR.ModelViewerBounds.DpiScaled();
+                    DrawImGui(gameTime, imguiRect.X, imguiRect.Y, imguiRect.Width, imguiRect.Height);
 
                     GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
                 }

@@ -52,7 +52,7 @@ namespace DSAnimStudio
             public static bool Fullscreen = false;
             public static void Apply()
             {
-                Main.ApplyPresentationParameters(Width, Height, Format, Vsync, Fullscreen);
+                Main.ApplyPresentationParameters((int)Math.Round(Width * Main.DPIX), (int)Math.Round(Height * Main.DPIY), Format, Vsync, Fullscreen);
             }
         }
 
@@ -372,7 +372,7 @@ namespace DSAnimStudio
         {
             if (SpriteBatchHasBegun)
                 SpriteBatchEnd();
-            GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
+            GFX.SpriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend, transformMatrix: Main.DPIMatrix);
             SpriteBatchHasBegun = true;
         }
 
@@ -383,8 +383,11 @@ namespace DSAnimStudio
         {
             if (SpriteBatchHasBegun)
                 SpriteBatchEnd();
+            Matrix m = Main.DPIMatrix;
+            if (transformMatrix.HasValue)
+                m *= transformMatrix.Value;
             SpriteBatch.Begin(sortMode, blendState, samplerState, depthStencilState, 
-                rasterizerState, effect, transformMatrix);
+                rasterizerState, effect, m);
             SpriteBatchHasBegun = true;
         }
 

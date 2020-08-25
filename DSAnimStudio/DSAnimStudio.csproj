@@ -74,6 +74,9 @@
     <LangVersion>latest</LangVersion>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="AutoCompleteExt.cs" />
     <Compile Include="ColorConfig.cs" />
@@ -536,6 +539,7 @@
     <Content Include="Res\TAE.Template.SDT.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
