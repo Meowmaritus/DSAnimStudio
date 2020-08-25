@@ -190,6 +190,7 @@ namespace DSAnimStudio
         {
             ChrAsm.RightWeaponFlipBackwards = checkBoxRWeaponFlipBackwards.Checked;
             ChrAsm.MODEL.AfterAnimUpdate(0);
+            Main.WinForm.Activate();
         }
 
         private void CheckBoxRWeaponFlipSideways_CheckedChanged(object sender, EventArgs e)

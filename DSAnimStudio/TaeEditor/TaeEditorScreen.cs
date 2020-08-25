@@ -612,10 +612,10 @@ namespace DSAnimStudio.TaeEditor
         public TaeTransport Transport;
 
         private int ButtonEditCurrentAnimInfoWidth = 128;
-        private System.Windows.Forms.Button ButtonEditCurrentAnimInfo;
+        private NoPaddingButton ButtonEditCurrentAnimInfo;
 
         private int ButtonGotoEventSourceWidth = 140;
-        public System.Windows.Forms.Button ButtonGotoEventSource;
+        public NoPaddingButton ButtonGotoEventSource;
 
         public void GoToEventSource()
         {
@@ -638,7 +638,7 @@ namespace DSAnimStudio.TaeEditor
 
         private int EditTaeHeaderButtonMargin = 32;
         private int EditTaeHeaderButtonHeight = 20;
-        private System.Windows.Forms.Button ButtonEditCurrentTaeHeader;
+        private NoPaddingButton ButtonEditCurrentTaeHeader;
 
         //public bool CtrlHeld;
         //public bool ShiftHeld;
@@ -978,7 +978,7 @@ namespace DSAnimStudio.TaeEditor
         //private TaeEditAnimEventGraphInspector editScreenGraphInspector;
 
         private Color ColorInspectorBG = Color.DarkGray;
-        private TaeInspectorWinFormsControl inspectorWinFormsControl;
+        public TaeInspectorWinFormsControl inspectorWinFormsControl;
 
         public TaeInputHandler Input;
 
@@ -2057,42 +2057,45 @@ namespace DSAnimStudio.TaeEditor
 
             GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
 
-            ButtonEditCurrentAnimInfo = new System.Windows.Forms.Button();
+            ButtonEditCurrentAnimInfo = new NoPaddingButton();
             ButtonEditCurrentAnimInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             ButtonEditCurrentAnimInfo.TabStop = false;
-            ButtonEditCurrentAnimInfo.Text = "Edit Anim Info (F3)";
+            ButtonEditCurrentAnimInfo.OwnerDrawText = "Edit Anim Info (F3)";
             ButtonEditCurrentAnimInfo.Click += ButtonEditCurrentAnimInfo_Click;
             ButtonEditCurrentAnimInfo.BackColor = inspectorWinFormsControl.BackColor;
             ButtonEditCurrentAnimInfo.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonEditCurrentAnimInfo.Enabled = false;
             ButtonEditCurrentAnimInfo.Visible = false;
             ButtonEditCurrentAnimInfo.Padding = new System.Windows.Forms.Padding(0);
+            ButtonEditCurrentAnimInfo.Margin = new System.Windows.Forms.Padding(0);
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
 
-            ButtonGotoEventSource = new System.Windows.Forms.Button();
+            ButtonGotoEventSource = new NoPaddingButton();
             ButtonGotoEventSource.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             ButtonGotoEventSource.TabStop = false;
-            ButtonGotoEventSource.Text = "Goto Event Source (F4)";
+            ButtonGotoEventSource.OwnerDrawText = "Goto Event Source (F4)";
             ButtonGotoEventSource.Click += ButtonGotoEventSource_Click;
             ButtonGotoEventSource.BackColor = inspectorWinFormsControl.BackColor;
             ButtonGotoEventSource.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonGotoEventSource.Enabled = false;
             ButtonGotoEventSource.Visible = false;
             ButtonGotoEventSource.Padding = new System.Windows.Forms.Padding(0);
+            ButtonGotoEventSource.Margin = new System.Windows.Forms.Padding(0);
 
             GameWindowAsForm.Controls.Add(ButtonGotoEventSource);
 
-            ButtonEditCurrentTaeHeader = new System.Windows.Forms.Button();
+            ButtonEditCurrentTaeHeader = new NoPaddingButton();
             ButtonEditCurrentTaeHeader.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             ButtonEditCurrentTaeHeader.TabStop = false;
-            ButtonEditCurrentTaeHeader.Text = "Edit TAE Header...";
+            ButtonEditCurrentTaeHeader.OwnerDrawText = "Edit TAE Header...";
             ButtonEditCurrentTaeHeader.Click += ButtonEditCurrentTaeHeader_Click;
             ButtonEditCurrentTaeHeader.BackColor = inspectorWinFormsControl.BackColor;
             ButtonEditCurrentTaeHeader.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonEditCurrentTaeHeader.Enabled = false;
             ButtonEditCurrentTaeHeader.Visible = false;
-            ButtonEditCurrentTaeHeader.Padding =new System.Windows.Forms.Padding(0);
+            ButtonEditCurrentTaeHeader.Padding = new System.Windows.Forms.Padding(0);
+            ButtonEditCurrentTaeHeader.Margin = new System.Windows.Forms.Padding(0);
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
 
@@ -4053,6 +4056,7 @@ namespace DSAnimStudio.TaeEditor
                     (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad + TransportHeight), 
                     (int)RightSectionWidth, 
                     (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin - TransportHeight)).DpiScaled();
+                
                 //ShaderAdjuster.Location = new System.Drawing.Point(Rect.Right - ShaderAdjuster.Size.Width, Rect.Top + TopMenuBarMargin);
             }));
 

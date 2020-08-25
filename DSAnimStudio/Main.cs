@@ -49,7 +49,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4-PRERELEASE(nightly)";
+        public const string VERSION = "Version 2.4 PREVIEW BUILD (nightly 08-24-2020)";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -243,8 +243,22 @@ namespace DSAnimStudio
 
         private void WinForm_DpiChanged(object sender, DpiChangedEventArgs e)
         {
+            UpdateDpiStuff();
+        }
+
+        public void UpdateDpiStuff()
+        {
             float newDpi = WinForm.DeviceDpi / 96f;
             DPIX = DPIY = newDpi;
+
+            // Really shitty hotfix I know
+            TAE_EDITOR.inspectorWinFormsControl.dataGridView1.RowTemplate.Height = (int)Math.Round(22 * Main.DPIY);
+            foreach (DataGridViewRow row in TAE_EDITOR.inspectorWinFormsControl.dataGridView1.Rows)
+            {
+                row.Height = (int)Math.Round(22 * Main.DPIY);
+            }
+
+            RequestViewportRenderTargetResolutionChange = true;
         }
 
         //protected override void Dispose(bool disposing)
@@ -469,6 +483,8 @@ namespace DSAnimStudio
             TAE_EDITOR.LoadContent(Content);
 
             FmodManager.InitTest();
+
+            UpdateDpiStuff();
         }
 
         private static void DrawImGui(GameTime gameTime, int x, int y, int w, int h)
@@ -528,7 +544,7 @@ namespace DSAnimStudio
             //    Color.Cyan, DBG.DEBUG_FONT_SMALL, scale: 0.75f, scaleOrigin: new Vector2(strSize_managed.X, 0));
             GFX.SpriteBatchBeginForText();
             DBG.DrawOutlinedText(str_managed, new Vector2(GFX.Device.Viewport.Width - 6,
-                GFX.Device.Viewport.Height),
+                GFX.Device.Viewport.Height) / DPIVector,
                 GetMemoryUseColor(MemoryUsage_Managed), DBG.DEBUG_FONT_SMALL, scale: 1, scaleOrigin: strSize_managed);
             GFX.SpriteBatchEnd();
         }

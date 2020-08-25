@@ -87,7 +87,7 @@ namespace DSAnimStudio
 
                 //screenPos3D += new Vector3(4, 4, 0) * scale;
 
-                currentPos = new Vector2(screenPos3D.X, screenPos3D.Y);
+                currentPos = new Vector2(screenPos3D.X, screenPos3D.Y) / Main.DPIVector;
             }
 
             currentPos = new Vector2((float)Math.Round(currentPos.X), (float)Math.Round(currentPos.Y));

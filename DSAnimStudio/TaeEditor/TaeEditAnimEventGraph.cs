@@ -3140,7 +3140,7 @@ namespace DSAnimStudio.TaeEditor
                         //    new Vector2(Rect.X + HoverInfoBoxOffsetFromMouse.X,
                         //    Rect.Y + HoverInfoBoxOffsetFromMouse.Y + TimeLineHeight);
 
-                        HoverInfoBox.DrawPosition = MainScreen.Input.MousePosition + new Vector2(32, 48);
+                        HoverInfoBox.DrawPosition = (MainScreen.Input.MousePosition + new Vector2(16, 40)) * Main.DPIVector;
 
                         //MainScreen.SetInspectorVisibility(true);
                     }
