@@ -21,7 +21,7 @@ namespace DSAnimStudio
         public static bool Focused;
 
         public static float WindowWidth = 360;
-        public static int WindowMargin = 8;
+        public static float WindowMargin = 8;
 
         private static WinformsTooltipHelper tooltipHelper = new WinformsTooltipHelper();
 
@@ -36,8 +36,9 @@ namespace DSAnimStudio
 
         public static bool EnableDebugMenu = true;
 
-        public const int DefaultItemWidth = 128;
-        public const int ColorButtonHeight = 26;
+        public static int DefaultItemWidth => (int)Math.Round(128 * Main.DPIX);
+        public static int ColorButtonWidth => (int)Math.Round(300 * Main.DPIX);
+        public static int ColorButtonHeight => (int)Math.Round(26 * Main.DPIY);
 
         private static bool IsFirstFrameCaptureDefaultValue = true;
         private static Dictionary<string, Action> DefaultColorValueActions = new Dictionary<string, Action>();
@@ -101,7 +102,7 @@ namespace DSAnimStudio
             ImGui.PushStyleColor(ImGuiCol.Button, c);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, c * 1.25f);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, c * 0.75f);
-            ImGui.Button(name, new System.Numerics.Vector2(300, ColorButtonHeight));
+            ImGui.Button(name, new System.Numerics.Vector2(ColorButtonWidth, ColorButtonHeight));
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
@@ -147,11 +148,15 @@ namespace DSAnimStudio
 
         public static void Build(float elapsedTime, float offsetX, float offsetY)
         {
+            
+
             hoveringOverAnythingThisFrame = false;
 
             ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0.05f, 0.05f, 0.05f, Focused ? 1 : 0f));
 
             ImGui.Begin("Toolbox", ref RenderConfigOpen, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize);
+
+            ImGui.SetWindowFontScale(Main.DPIY);
             {
                 //if (!Focused)
                 //    ImGui.SetWindowCollapsed(true);
@@ -180,8 +185,8 @@ namespace DSAnimStudio
                 float y = 8 + Main.TAE_EDITOR.ModelViewerBounds.Top;
                 float w = WindowWidth;
                 float h = Main.TAE_EDITOR.ModelViewerBounds.Height - (WindowMargin * 2) - 24;
-                ImGui.SetWindowPos(new System.Numerics.Vector2(x, y));
-                ImGui.SetWindowSize(new System.Numerics.Vector2(w, h));
+                ImGui.SetWindowPos(new System.Numerics.Vector2(x, y) * Main.DPIVectorN);
+                ImGui.SetWindowSize(new System.Numerics.Vector2(w, h) * Main.DPIVectorN);
 
                 
 

@@ -259,9 +259,9 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (asStandard.ImportsHKX)
                 {
-                    if (asStandard.ImportFromAnimID > 0)
+                    if (asStandard.ImportHKXSourceAnimID > 0)
                     {
-                        var importAnim = GetTAEAnim(asStandard.ImportFromAnimID);
+                        var importAnim = GetTAEAnim(asStandard.ImportHKXSourceAnimID);
 
                         if (importAnim.Anim != null)
                         {
@@ -269,12 +269,12 @@ namespace DSAnimStudio.TaeEditor
                         }
                         else
                         {
-                            return asStandard.ImportFromAnimID;
+                            return asStandard.ImportHKXSourceAnimID;
                         }
                     }
                     else
                     {
-                        return asStandard.ImportFromAnimID;
+                        return asStandard.ImportHKXSourceAnimID;
                     }
                 }
             }

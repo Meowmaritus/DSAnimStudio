@@ -531,16 +531,16 @@ namespace DSAnimStudio
 
         public void MoveCamera_OrbitCenterPoint_MouseDelta(Vector2 curMouse, Vector2 oldMouse, float elapsed)
         {
-            var curMouse3DX = GFX.LastViewport.Unproject(new Vector3(curMouse.X - GFX.LastViewport.X, GFX.LastViewport.Height / 2f, 0),
+            var curMouse3DX = GFX.LastViewport.Unproject(new Vector3(curMouse.X - GFX.LastViewport.X, GFX.LastViewport.Height / 2f, 0.5f),
                 GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
 
-            var curMouse3DY = GFX.LastViewport.Unproject(new Vector3(GFX.LastViewport.Width / 2f, curMouse.Y - GFX.LastViewport.Y, 0),
+            var curMouse3DY = GFX.LastViewport.Unproject(new Vector3(GFX.LastViewport.Width / 2f, curMouse.Y - GFX.LastViewport.Y, 0.5f),
                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
 
-            var oldMouse3DX = GFX.LastViewport.Unproject(new Vector3(oldMouse.X - GFX.LastViewport.X, GFX.LastViewport.Height / 2f, 0),
+            var oldMouse3DX = GFX.LastViewport.Unproject(new Vector3(oldMouse.X - GFX.LastViewport.X, GFX.LastViewport.Height / 2f, 0.5f),
                 GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
 
-            var oldMouse3DY = GFX.LastViewport.Unproject(new Vector3(GFX.LastViewport.Width / 2f, oldMouse.Y - GFX.LastViewport.Y, 0),
+            var oldMouse3DY = GFX.LastViewport.Unproject(new Vector3(GFX.LastViewport.Width / 2f, oldMouse.Y - GFX.LastViewport.Y, 0.5f),
                GFX.World.MatrixProjection, GFX.World.CameraTransform.CameraViewMatrix * Matrix.Invert(GFX.World.MatrixWorld), Matrix.Identity);
 
             //int minDimension = Math.Min(GFX.Device.Viewport.Width, GFX.Device.Viewport.Height);
@@ -677,8 +677,8 @@ namespace DSAnimStudio
             //TODO: Figure out what I was thinking here??
             float clampedLerpF = 1;// MathHelper.Clamp(30 * elapsed, 0, 1);
 
-            mousePos = new Vector2(MathHelper.Lerp(oldMouse.X, mouse.X, clampedLerpF),
-                MathHelper.Lerp(oldMouse.Y, mouse.Y, clampedLerpF));
+            mousePos = new Vector2(MathHelper.Lerp(oldMouse.X, mouse.X / Main.DPIX, clampedLerpF),
+                MathHelper.Lerp(oldMouse.Y, mouse.Y / Main.DPIY, clampedLerpF));
 
             
 
@@ -1008,7 +1008,7 @@ namespace DSAnimStudio
                 else
                 {
                     //game.IsMouseVisible = false;
-                    Vector2 mouseDelta = mousePos - oldMouse;
+                    Vector2 mouseDelta = (mousePos - oldMouse) * Main.DPIVector;
 
                     if (mouseDelta.LengthSquared() == 0)
                     {

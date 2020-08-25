@@ -53,6 +53,18 @@
 * Zooming the graph way out no longer makes the timeline blank on top.
 * Middle clicking to recenter camera now goes to the proper rotation if the model is root motion rotated and camera follows root motion rotation is on
 * Fixed longstanding bug where playing an animation with rotational root motion then blending into an animation with lateral root motion would result in the model moving in a different direction than it is facing (sliding sideways on dashes etc)
+* Fixed Edit Animation Properties being cutoff if you are using an abnormal windows DPI scale factor. Note that you must still do this if you use DPI scaling:
+  * Right click `DS Anim Studio.exe`
+  * Click `Properties`
+  * Go to `Compatibility` tab
+  * Go to `Change high DPI settings`
+  * Check both checkboxes
+  * Set lower scaling override dropdown to `Application`
+  * Hit OK
+  * Hit Apply 
+  * Hit OK 
+  * Close any running instance of DS Anim Studio and launch it again
+* Sekiro Edit Animation Properties window no longer shows short animation ID format (aXX_YYYY) like DS1.
 
 meowtodo 
 * make ctrl+insert to a duplicate where it imports hkx from the current anim and has all events pasted

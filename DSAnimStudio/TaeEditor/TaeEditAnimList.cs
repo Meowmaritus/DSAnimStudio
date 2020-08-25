@@ -301,9 +301,9 @@ namespace DSAnimStudio.TaeEditor
             ScrollViewer.Draw(gd, sb, boxTex, scrollbarArrowTex);
 
             var oldViewport = gd.Viewport;
-            gd.Viewport = new Viewport(ScrollViewer.Viewport);
+            gd.Viewport = new Viewport(ScrollViewer.Viewport.DpiScaled());
             {
-                sb.Begin(transformMatrix: ScrollViewer.GetScrollMatrix());
+                sb.Begin(transformMatrix: ScrollViewer.GetScrollMatrix() * Main.DPIMatrix);
                 try
                 {
                     //sb.Draw(texture: boxTex,

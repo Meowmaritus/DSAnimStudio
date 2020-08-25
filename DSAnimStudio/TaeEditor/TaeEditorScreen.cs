@@ -238,16 +238,16 @@ namespace DSAnimStudio.TaeEditor
             }, startDisabled: true, closeOnClick: true, getEnabled: () => SelectedTae != null);
 
 
-            MenuBar.AddItem("[DEBUG]", "Load c5010", () =>
-            {
-                LoadingTaskMan.DoLoadingTask("Debug_Load_c5010", "[Debug] Loading c5010", prog =>
-                {
-                    var c5010 = GameDataManager.LoadCharacter("c5010");
-                    c5010.CurrentTransform = c5010.StartTransform = new Transform(Matrix.CreateTranslation(3, 0, 0));
-                    Scene.AddModel(c5010);
-                });
+            //MenuBar.AddItem("[DEBUG]", "Load c5010", () =>
+            //{
+            //    LoadingTaskMan.DoLoadingTask("Debug_Load_c5010", "[Debug] Loading c5010", prog =>
+            //    {
+            //        var c5010 = GameDataManager.LoadCharacter("c5010");
+            //        c5010.CurrentTransform = c5010.StartTransform = new Transform(Matrix.CreateTranslation(3, 0, 0));
+            //        Scene.AddModel(c5010);
+            //    });
                 
-            });
+            //});
 
             //MenuBar.AddItem("Tools", "TEST: Convert SplineCompressed to InterleavedUncompressed", () =>
             //{
@@ -541,6 +541,8 @@ namespace DSAnimStudio.TaeEditor
         public float AnimSwitchRenderCooldownFadeLength = 0.1f;
         public Color AnimSwitchRenderCooldownColor = Color.Black * 0.35f;
 
+        private bool HasntSelectedAnAnimYetAfterBuildingAnimList = true;
+
         public void SetInspectorVisibility(bool visible)
         {
             inspectorWinFormsControl.Visible = visible;
@@ -601,7 +603,7 @@ namespace DSAnimStudio.TaeEditor
 
         private const int RECENT_FILES_MAX = 32;
 
-        private int TopMenuBarMargin => (int)Math.Ceiling(24 * Main.DPIY);
+        private int TopMenuBarMargin => (int)Math.Round(WinFormsMenuStrip.Size.Height / Main.DPIY);
 
         private int TopOfGraphAnimInfoMargin = 20;
 
@@ -625,9 +627,9 @@ namespace DSAnimStudio.TaeEditor
             }
             else if (Graph.AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
             {
-                if (asStandard.ImportsEvents)
+                if (asStandard.AllowDelayLoad)
                 {
-                    var animRef = FileContainer.GetAnimRefFull(asStandard.ImportFromAnimID);
+                    var animRef = FileContainer.GetAnimRefFull(asStandard.ImportHKXSourceAnimID);
 
                     SelectNewAnimRef(animRef.Item1, animRef.Item2);
                 }
@@ -980,7 +982,7 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeInputHandler Input;
 
-        private System.Windows.Forms.MenuStrip WinFormsMenuStrip;
+        public System.Windows.Forms.MenuStrip WinFormsMenuStrip;
 
         public string FileContainerName = "";
 
@@ -1277,16 +1279,51 @@ namespace DSAnimStudio.TaeEditor
             }
             
             AnimationListScreen.ScrollViewer.Scroll = oldScroll;
-            
+
+            HasntSelectedAnAnimYetAfterBuildingAnimList = true;
         }
 
         public void AddNewAnimation()
         {
+            TAE.Animation.AnimMiniHeader header = null;
+
+
+
             var newAnimRef = new TAE.Animation(
-                SelectedTaeAnim.ID, SelectedTaeAnim.MiniHeader.GetClone(), 
+                SelectedTaeAnim.ID, new TAE.Animation.AnimMiniHeader.Standard(), 
                 SelectedTaeAnim.AnimFileName);
 
-            var index = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
+            if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard stand)
+            {
+                var standardHeader = new TAE.Animation.AnimMiniHeader.Standard();
+
+                standardHeader.AllowDelayLoad = false;
+
+                if (stand.ImportHKXSourceAnimID >= 0)
+                {
+                    if (stand.ImportsHKX)
+                    {
+                        standardHeader.ImportsHKX = true;
+                        
+                    }
+
+                    if (stand.AllowDelayLoad)
+                    {
+
+                    }
+                }
+
+
+                header = standardHeader;
+            }
+            else if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim imp)
+            {
+                header = imp;
+            }
+
+
+
+                var index = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
             SelectedTae.Animations.Insert(index + 1, newAnimRef);
 
             RecreateAnimList();
@@ -2029,6 +2066,7 @@ namespace DSAnimStudio.TaeEditor
             ButtonEditCurrentAnimInfo.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonEditCurrentAnimInfo.Enabled = false;
             ButtonEditCurrentAnimInfo.Visible = false;
+            ButtonEditCurrentAnimInfo.Padding = new System.Windows.Forms.Padding(0);
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentAnimInfo);
 
@@ -2041,6 +2079,7 @@ namespace DSAnimStudio.TaeEditor
             ButtonGotoEventSource.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonGotoEventSource.Enabled = false;
             ButtonGotoEventSource.Visible = false;
+            ButtonGotoEventSource.Padding = new System.Windows.Forms.Padding(0);
 
             GameWindowAsForm.Controls.Add(ButtonGotoEventSource);
 
@@ -2053,6 +2092,7 @@ namespace DSAnimStudio.TaeEditor
             ButtonEditCurrentTaeHeader.ForeColor = inspectorWinFormsControl.ForeColor;
             ButtonEditCurrentTaeHeader.Enabled = false;
             ButtonEditCurrentTaeHeader.Visible = false;
+            ButtonEditCurrentTaeHeader.Padding =new System.Windows.Forms.Padding(0);
 
             GameWindowAsForm.Controls.Add(ButtonEditCurrentTaeHeader);
 
@@ -2784,17 +2824,17 @@ namespace DSAnimStudio.TaeEditor
                     if (asStandard.IsLoopByDefault)
                         stringBuilder.Append($" [{nameof(TAE.Animation.AnimMiniHeader.Standard.IsLoopByDefault)}]");
 
-                    if (asStandard.ImportsEvents && asStandard.ImportsHKX)
+                    if (asStandard.AllowDelayLoad && asStandard.ImportsHKX)
                     {
-                        stringBuilder.Append($" [IMPORTS EVENTS + HKX FROM: {HKXNameFromCompositeID(asStandard.ImportFromAnimID)}]");
+                        stringBuilder.Append($" [IMPORTS EVENTS + HKX FROM: {HKXNameFromCompositeID(asStandard.ImportHKXSourceAnimID)}]");
                     }
-                    else if (asStandard.ImportsEvents && !asStandard.ImportsHKX)
+                    else if (asStandard.AllowDelayLoad && !asStandard.ImportsHKX)
                     {
-                        stringBuilder.Append($" [IMPORTS EVENTS FROM: {HKXNameFromCompositeID(asStandard.ImportFromAnimID)}]");
+                        stringBuilder.Append($" [IMPORTS EVENTS FROM: {HKXNameFromCompositeID(asStandard.ImportHKXSourceAnimID)}]");
                     }
-                    else if (!asStandard.ImportsEvents && asStandard.ImportsHKX)
+                    else if (!asStandard.AllowDelayLoad && asStandard.ImportsHKX)
                     {
-                        stringBuilder.Append($" [IMPORTS HKX FROM: {HKXNameFromCompositeID(asStandard.ImportFromAnimID)}]");
+                        stringBuilder.Append($" [IMPORTS HKX FROM: {HKXNameFromCompositeID(asStandard.ImportHKXSourceAnimID)}]");
                     }
 
                 }
@@ -2889,8 +2929,11 @@ namespace DSAnimStudio.TaeEditor
 
                 LoadAnimIntoGraph(SelectedTaeAnim);
 
-                //if (wasFirstAnimSelected)
-                //    UpdateLayout(); // Fixes scroll when you first open anibnd (hopefully)
+                if (HasntSelectedAnAnimYetAfterBuildingAnimList)
+                {
+                    UpdateLayout(); // Fixes scroll when you first open anibnd and when you rebuild anim list.
+                    HasntSelectedAnAnimYetAfterBuildingAnimList = false;
+                }
 
                 AnimationListScreen.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
 
@@ -3795,7 +3838,7 @@ namespace DSAnimStudio.TaeEditor
                         inspectorWinFormsControl.Bounds.Top,
                         inspectorWinFormsControl.Bounds.Width,
                         inspectorWinFormsControl.Bounds.Height
-                        )
+                        ).InverseDpiScaled()
                         .Contains(Input.MousePositionPoint))
                     MouseHoverKind = ScreenMouseHoverKind.Inspector;
                 //else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
@@ -3951,13 +3994,13 @@ namespace DSAnimStudio.TaeEditor
                         plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
                         Rect.Top + TopMenuBarMargin,
                         ButtonEditCurrentAnimInfoWidth,
-                        TopOfGraphAnimInfoMargin);
+                        TopOfGraphAnimInfoMargin).DpiScaled();
 
                     ButtonGotoEventSource.Bounds = new System.Drawing.Rectangle(
                         plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
                         Rect.Top + TopMenuBarMargin,
                         ButtonGotoEventSourceWidth,
-                        TopOfGraphAnimInfoMargin);
+                        TopOfGraphAnimInfoMargin).DpiScaled();
 
                 }
                 else
@@ -3972,13 +4015,13 @@ namespace DSAnimStudio.TaeEditor
                         plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth,
                         Rect.Top + TopMenuBarMargin - 4,
                         ButtonEditCurrentAnimInfoWidth,
-                        TopOfGraphAnimInfoMargin);
+                        TopOfGraphAnimInfoMargin).DpiScaled();
 
                     ButtonEditCurrentAnimInfo.Bounds = new System.Drawing.Rectangle(
                         plannedGraphRect.Right - 4 - ButtonEditCurrentAnimInfoWidth - 8 - ButtonGotoEventSourceWidth,
                         Rect.Top + TopMenuBarMargin - 4,
                         ButtonGotoEventSourceWidth,
-                        TopOfGraphAnimInfoMargin);
+                        TopOfGraphAnimInfoMargin).DpiScaled();
                 }
 
                 Transport.Rect = new Rectangle(
@@ -3991,7 +4034,7 @@ namespace DSAnimStudio.TaeEditor
                         (int)LeftSectionStartX,
                         Rect.Bottom - EditTaeHeaderButtonHeight,
                         (int)LeftSectionWidth,
-                        EditTaeHeaderButtonHeight);
+                        EditTaeHeaderButtonHeight).DpiScaled();
 
                 //editScreenGraphInspector.Rect = new Rectangle(Rect.Width - LayoutInspectorWidth, 0, LayoutInspectorWidth, Rect.Height);
 
@@ -4009,7 +4052,7 @@ namespace DSAnimStudio.TaeEditor
                     (int)RightSectionStartX, 
                     (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad + TransportHeight), 
                     (int)RightSectionWidth, 
-                    (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin - TransportHeight));
+                    (int)(Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin - TransportHeight)).DpiScaled();
                 //ShaderAdjuster.Location = new System.Drawing.Point(Rect.Right - ShaderAdjuster.Size.Width, Rect.Top + TopMenuBarMargin);
             }));
 
@@ -4065,7 +4108,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     if (Config.EnableFancyScrollingStrings)
                     {
-                        SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect, font, elapsedSeconds, Main.GlobalTaeEditorFontOffset);
+                        SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Main.DPIMatrix, curAnimInfoTextRect, font, elapsedSeconds, Main.GlobalTaeEditorFontOffset);
                     }
                     else
                     {

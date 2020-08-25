@@ -70,17 +70,17 @@ namespace DSAnimStudio.TaeEditor
         {
             if (miniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
             {
-                checkBoxMHStandardImportEvents.Checked = asStandard.ImportsEvents;
+                checkBoxMHStandardImportEvents.Checked = asStandard.AllowDelayLoad;
                 checkBoxMHStandardImportHKX.Checked = asStandard.ImportsHKX;
                 checkBoxMHStandardLoopByDefault.Checked = asStandard.IsLoopByDefault;
-                textBoxMHBothImportFrom.Text = HKXNameFromCompositeID(asStandard.ImportFromAnimID);
+                textBoxMHStandardImportHKXFrom.Text = HKXNameFromCompositeID(asStandard.ImportHKXSourceAnimID);
             }
             else if (miniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
             {
-                groupBoxMiniHeader.Text = "Mini-Header Type: Import Other Animation";
+                groupBoxMHStandard.Text = "Mini-Header Type: Import Other Animation";
 
-                textBoxMHBothImportFrom.Text = HKXNameFromCompositeID(asImportOtherAnim.ImportFromAnimID);
-                textBoxMHImportAnimUnknown.Text = asImportOtherAnim.Unknown.ToString();
+                textBoxMHDuplicateSourceAnimID.Text = HKXNameFromCompositeID(asImportOtherAnim.ImportFromAnimID);
+                textBoxMHDuplicateUnk.Text = asImportOtherAnim.Unknown.ToString();
             }
             else
             {
@@ -97,17 +97,17 @@ namespace DSAnimStudio.TaeEditor
             {
                 var asStandard = new TAE.Animation.AnimMiniHeader.Standard();
 
-                asStandard.ImportsEvents = checkBoxMHStandardImportEvents.Checked;
+                asStandard.AllowDelayLoad = checkBoxMHStandardImportEvents.Checked;
                 asStandard.ImportsHKX = checkBoxMHStandardImportHKX.Checked;
                 asStandard.IsLoopByDefault = checkBoxMHStandardLoopByDefault.Checked;
 
-                if (string.IsNullOrWhiteSpace(textBoxMHBothImportFrom.Text))
+                if (string.IsNullOrWhiteSpace(textBoxMHStandardImportHKXFrom.Text))
                 {
-                    asStandard.ImportFromAnimID = -1;
+                    asStandard.ImportHKXSourceAnimID = -1;
                 }
-                else if (uint.TryParse(textBoxMHBothImportFrom.Text.Replace("_", "").Replace("a", ""), out uint importFromID))
+                else if (uint.TryParse(textBoxMHStandardImportHKXFrom.Text.Replace("_", "").Replace("a", ""), out uint importFromID))
                 {
-                    asStandard.ImportFromAnimID = (int)importFromID;
+                    asStandard.ImportHKXSourceAnimID = (int)importFromID;
                 }
                 else
                 {
@@ -124,11 +124,11 @@ namespace DSAnimStudio.TaeEditor
             {
                 var asImportOtherAnim = new TAE.Animation.AnimMiniHeader.ImportOtherAnim();
 
-                if (string.IsNullOrWhiteSpace(textBoxMHBothImportFrom.Text))
+                if (string.IsNullOrWhiteSpace(textBoxMHStandardImportHKXFrom.Text))
                 {
                     asImportOtherAnim.ImportFromAnimID = -1;
                 }
-                else if (uint.TryParse(textBoxMHBothImportFrom.Text.Replace("_", "").Replace("a", ""), out uint importFromID))
+                else if (uint.TryParse(textBoxMHDuplicateSourceAnimID.Text.Replace("_", "").Replace("a", ""), out uint importFromID))
                 {
                     asImportOtherAnim.ImportFromAnimID = (int)importFromID;
                 }
@@ -141,7 +141,7 @@ namespace DSAnimStudio.TaeEditor
                     return null;
                 }
 
-                if (int.TryParse(textBoxMHImportAnimUnknown.Text, out int unknownInt))
+                if (int.TryParse(textBoxMHDuplicateUnk.Text, out int unknownInt))
                 {
                     asImportOtherAnim.Unknown = unknownInt;
                 }
@@ -164,46 +164,55 @@ namespace DSAnimStudio.TaeEditor
         {
             if (miniHeaderType == TAE.Animation.MiniHeaderType.Standard)
             {
-                groupBoxMiniHeader.Text = "Mini-Header Data: Standard";
+                //groupBoxMHStandard.Text = "Mini-Header Data: Standard";
 
-                checkBoxMHStandardImportEvents.Enabled = true;
-                checkBoxMHStandardImportEvents.Visible = true;
+                //checkBoxMHStandardImportEvents.Enabled = true;
+                //checkBoxMHStandardImportEvents.Visible = true;
 
-                checkBoxMHStandardImportHKX.Enabled = true;
-                checkBoxMHStandardImportHKX.Visible = true;
+                //checkBoxMHStandardImportHKX.Enabled = true;
+                //checkBoxMHStandardImportHKX.Visible = true;
 
-                checkBoxMHStandardLoopByDefault.Enabled = true;
-                checkBoxMHStandardLoopByDefault.Visible = true;
+                //checkBoxMHStandardLoopByDefault.Enabled = true;
+                //checkBoxMHStandardLoopByDefault.Visible = true;
 
-                labelMHImportAnimUnknown.Enabled = false;
-                labelMHImportAnimUnknown.Visible = false;
+                groupBoxMHStandard.Enabled = true;
+                groupBoxMHDuplicate.Enabled = false;
 
-                textBoxMHImportAnimUnknown.Enabled = false;
-                textBoxMHImportAnimUnknown.Visible = false;
+                textBoxMHDuplicateSourceAnimID.Text = "";
+                textBoxMHDuplicateUnk.Text = "";
 
                 //radioButtonMHStandard.Checked = true;
                 //radioButtonMHImportOtherAnimation.Checked = false;
 
+                //textBoxMHStandardImportHKXFrom.Enabled = checkBoxMHStandardImportHKX.Checked;
+
                 //CurrentMiniHeaderType = miniHeaderType;
+                //checkBoxMHStandardImportHKX.Text = "Import the model animation data (.HKX) from this animation ID:";
+
             }
             else if (miniHeaderType == TAE.Animation.MiniHeaderType.ImportOtherAnim)
             {
-                groupBoxMiniHeader.Text = "Mini-Header Data: Direct Reference";
+                //groupBoxMHStandard.Text = "Mini-Header Data: Direct Reference";
 
-                checkBoxMHStandardImportEvents.Enabled = false;
-                checkBoxMHStandardImportEvents.Visible = false;
+                //checkBoxMHStandardImportEvents.Enabled = false;
+                //checkBoxMHStandardImportEvents.Visible = false;
 
-                checkBoxMHStandardImportHKX.Enabled = false;
-                checkBoxMHStandardImportHKX.Visible = false;
+                //checkBoxMHStandardImportHKX.Enabled = false;
+                //checkBoxMHStandardImportHKX.Visible = false;
 
-                checkBoxMHStandardLoopByDefault.Enabled = false;
-                checkBoxMHStandardLoopByDefault.Visible = false;
+                //checkBoxMHStandardLoopByDefault.Enabled = false;
+                //checkBoxMHStandardLoopByDefault.Visible = false;
 
-                labelMHImportAnimUnknown.Enabled = true;
-                labelMHImportAnimUnknown.Visible = true;
+                groupBoxMHStandard.Enabled = false;
+                groupBoxMHDuplicate.Enabled = true;
 
-                textBoxMHImportAnimUnknown.Enabled = true;
-                textBoxMHImportAnimUnknown.Visible = true;
+
+
+                checkBoxMHStandardImportEvents.Checked = false;
+                checkBoxMHStandardImportHKX.Checked = false;
+                checkBoxMHStandardLoopByDefault.Checked = false;
+                textBoxMHStandardImportHKXFrom.Text = "";
+
 
                 //radioButtonMHStandard.Checked = false;
                 //radioButtonMHImportOtherAnimation.Checked = true;
@@ -241,9 +250,7 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                labelAnimSubIDPrefix.Text = (GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS3)
-                ? "Animation Sub-ID: aXXX_" : "Animation Sub-ID: aXX_";
+                labelAnimSubIDPrefix.Text = GameDataManager.GameTypeHasLongAnimIDs ? "Animation Sub-ID: aXXX_" : "Animation Sub-ID: aXX_";
 
                 textBoxAnimSubID.Text = HKXSubIDDispNameFromInt_NoPrefix(AnimRef.ID);
             }
@@ -369,7 +376,16 @@ namespace DSAnimStudio.TaeEditor
 
         private void TaeEditAnimPropertiesForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            e.Cancel = !ReadyToExit;
+            if (!ReadyToExit)
+            {
+                AnimRef.ID = originalID;
+                AnimRef.MiniHeader = originalMiniHeader;
+                AnimRef.AnimFileName = originalDisplayName;
+
+                WereThingsChanged = false;
+                WasAnimDeleted = false;
+                WasAnimIDChanged = false;
+            }
         }
 
         private void buttonDeleteAnim_Click(object sender, EventArgs e)
@@ -388,7 +404,8 @@ namespace DSAnimStudio.TaeEditor
 
         private void TaeEditAnimPropertiesForm_Load(object sender, EventArgs e)
         {
-
+            //this.Scale(new System.Drawing.SizeF(Main.DPIX, Main.DPIY));
+            //RescaleConstantsForDpi(96, 96 * 2);
         }
 
         private void radioButtonMHStandard_CheckedChanged(object sender, EventArgs e)
@@ -407,6 +424,11 @@ namespace DSAnimStudio.TaeEditor
                 radioButtonMHStandard.Checked = false;
                 MiniHeaderPrepareGUI(TAE.Animation.MiniHeaderType.ImportOtherAnim);
             }
+        }
+
+        private void checkBoxMHStandardImportHKX_CheckedChanged(object sender, EventArgs e)
+        {
+            textBoxMHStandardImportHKXFrom.Enabled = checkBoxMHStandardImportHKX.Checked;
         }
     }
 }

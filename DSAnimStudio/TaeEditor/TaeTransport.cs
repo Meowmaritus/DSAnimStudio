@@ -22,7 +22,7 @@ namespace DSAnimStudio.TaeEditor
 
         int ButtonCageThickness = 4;
         int ButtonSeparatorThickness = 2;
-        int ButtonSize = 24;
+        int ButtonSize = 22;
 
         public TaeTransport(TaeEditorScreen mainScreen)
         {
@@ -210,9 +210,9 @@ namespace DSAnimStudio.TaeEditor
                 return;
 
             var oldViewport = gd.Viewport;
-            gd.Viewport = new Viewport(Rect.X, Rect.Y, Rect.Width, Rect.Height);
+            gd.Viewport = new Viewport(Rect.DpiScaled());
             {
-                sb.Begin();
+                sb.Begin(transformMatrix: Main.DPIMatrix);
                 try
                 {
                     var str = MainScreen.Graph.PlaybackCursor.GetFrameCounterText(MainScreen.Config.LockFramerateToOriginalAnimFramerate);

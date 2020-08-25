@@ -14,6 +14,78 @@ namespace DSAnimStudio
         //    if (direction == Vector3.Up)
         //}
 
+        public static Rectangle DpiScaled(this Rectangle rect)
+        {
+            return new Rectangle(
+                (int)Math.Round(rect.X * Main.DPIX),
+                (int)Math.Round(rect.Y * Main.DPIY),
+                (int)Math.Round(rect.Width * Main.DPIX),
+                (int)Math.Round(rect.Height * Main.DPIY));
+        }
+
+        public static System.Drawing.Rectangle DpiScaled(this System.Drawing.Rectangle rect)
+        {
+            return new System.Drawing.Rectangle(
+                (int)Math.Round(rect.X * Main.DPIX),
+                (int)Math.Round(rect.Y * Main.DPIY),
+                (int)Math.Round(rect.Width * Main.DPIX),
+                (int)Math.Round(rect.Height * Main.DPIY));
+        }
+
+        public static Rectangle InverseDpiScaled(this Rectangle rect)
+        {
+            return new Rectangle(
+                (int)Math.Round(rect.X / Main.DPIX),
+                (int)Math.Round(rect.Y / Main.DPIY),
+                (int)Math.Round(rect.Width / Main.DPIX),
+                (int)Math.Round(rect.Height / Main.DPIY));
+        }
+
+        public static System.Drawing.Rectangle InverseDpiScaled(this System.Drawing.Rectangle rect)
+        {
+            return new System.Drawing.Rectangle(
+                (int)Math.Round(rect.X / Main.DPIX),
+                (int)Math.Round(rect.Y / Main.DPIY),
+                (int)Math.Round(rect.Width / Main.DPIX),
+                (int)Math.Round(rect.Height / Main.DPIY));
+        }
+
+        public static Rectangle DpiScaledExcludePos(this Rectangle rect)
+        {
+            return new Rectangle(
+                rect.X,
+                rect.Y,
+                (int)Math.Round(rect.Width * Main.DPIX),
+                (int)Math.Round(rect.Height * Main.DPIY));
+        }
+
+        public static System.Drawing.Rectangle DpiScaledExcludePos(this System.Drawing.Rectangle rect)
+        {
+            return new System.Drawing.Rectangle(
+                rect.X,
+                rect.Y,
+                (int)Math.Round(rect.Width * Main.DPIX),
+                (int)Math.Round(rect.Height * Main.DPIY));
+        }
+
+        public static Rectangle InverseDpiScaledExcludePos(this Rectangle rect)
+        {
+            return new Rectangle(
+                rect.X,
+                rect.Y,
+                (int)Math.Round(rect.Width / Main.DPIX),
+                (int)Math.Round(rect.Height / Main.DPIY));
+        }
+
+        public static System.Drawing.Rectangle InverseDpiScaledExcludePos(this System.Drawing.Rectangle rect)
+        {
+            return new System.Drawing.Rectangle(
+                rect.X,
+                rect.Y,
+                (int)Math.Round(rect.Width / Main.DPIX),
+                (int)Math.Round(rect.Height / Main.DPIY));
+        }
+
         public static Quaternion QuatLookRotation(Vector3 forward, Vector3 up)
         {
             forward = Vector3.Normalize(forward);
