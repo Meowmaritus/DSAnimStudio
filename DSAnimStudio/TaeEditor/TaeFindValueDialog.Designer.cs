@@ -49,9 +49,10 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxSearchQuery.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.textBoxSearchQuery.ForeColor = System.Drawing.Color.White;
-            this.textBoxSearchQuery.Location = new System.Drawing.Point(106, 12);
+            this.textBoxSearchQuery.Location = new System.Drawing.Point(212, 23);
+            this.textBoxSearchQuery.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.textBoxSearchQuery.Name = "textBoxSearchQuery";
-            this.textBoxSearchQuery.Size = new System.Drawing.Size(544, 20);
+            this.textBoxSearchQuery.Size = new System.Drawing.Size(1084, 31);
             this.textBoxSearchQuery.TabIndex = 0;
             this.textBoxSearchQuery.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TextBoxSearchQuery_KeyPress);
             // 
@@ -59,18 +60,20 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(12, 16);
+            this.label1.Location = new System.Drawing.Point(24, 31);
+            this.label1.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(88, 13);
+            this.label1.Size = new System.Drawing.Size(165, 26);
             this.label1.TabIndex = 1;
             this.label1.Text = "Search Query:";
             // 
             // checkBox1
             // 
             this.checkBox1.AutoSize = true;
-            this.checkBox1.Location = new System.Drawing.Point(106, 38);
+            this.checkBox1.Location = new System.Drawing.Point(212, 73);
+            this.checkBox1.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(116, 17);
+            this.checkBox1.Size = new System.Drawing.Size(226, 29);
             this.checkBox1.TabIndex = 2;
             this.checkBox1.Text = "Match Entire Value";
             this.checkBox1.UseVisualStyleBackColor = true;
@@ -78,9 +81,10 @@
             // labelResults
             // 
             this.labelResults.AutoSize = true;
-            this.labelResults.Location = new System.Drawing.Point(14, 65);
+            this.labelResults.Location = new System.Drawing.Point(28, 125);
+            this.labelResults.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.labelResults.Name = "labelResults";
-            this.labelResults.Size = new System.Drawing.Size(45, 13);
+            this.labelResults.Size = new System.Drawing.Size(90, 25);
             this.labelResults.TabIndex = 3;
             this.labelResults.Text = "Results:";
             this.labelResults.Click += new System.EventHandler(this.Label2_Click);
@@ -102,10 +106,11 @@
             this.listViewResults.GridLines = true;
             this.listViewResults.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.listViewResults.HideSelection = false;
-            this.listViewResults.Location = new System.Drawing.Point(15, 83);
+            this.listViewResults.Location = new System.Drawing.Point(30, 160);
+            this.listViewResults.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.listViewResults.MultiSelect = false;
             this.listViewResults.Name = "listViewResults";
-            this.listViewResults.Size = new System.Drawing.Size(773, 355);
+            this.listViewResults.Size = new System.Drawing.Size(1542, 679);
             this.listViewResults.TabIndex = 4;
             this.listViewResults.UseCompatibleStateImageBehavior = false;
             this.listViewResults.View = System.Windows.Forms.View.Details;
@@ -142,9 +147,10 @@
             // 
             this.buttonSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonSearch.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonSearch.Location = new System.Drawing.Point(656, 10);
+            this.buttonSearch.Location = new System.Drawing.Point(1312, 19);
+            this.buttonSearch.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.buttonSearch.Name = "buttonSearch";
-            this.buttonSearch.Size = new System.Drawing.Size(132, 24);
+            this.buttonSearch.Size = new System.Drawing.Size(264, 46);
             this.buttonSearch.TabIndex = 5;
             this.buttonSearch.Text = "Search";
             this.buttonSearch.UseVisualStyleBackColor = true;
@@ -154,9 +160,10 @@
             // 
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(580, 46);
+            this.label2.Location = new System.Drawing.Point(1160, 88);
+            this.label2.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(71, 13);
+            this.label2.Size = new System.Drawing.Size(140, 25);
             this.label2.TabIndex = 6;
             this.label2.Text = "Search Type:";
             // 
@@ -172,17 +179,18 @@
             "Parameter Name",
             "Event Name",
             "Event Type Num"});
-            this.comboBoxSearchType.Location = new System.Drawing.Point(656, 42);
+            this.comboBoxSearchType.Location = new System.Drawing.Point(1312, 81);
+            this.comboBoxSearchType.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.comboBoxSearchType.Name = "comboBoxSearchType";
-            this.comboBoxSearchType.Size = new System.Drawing.Size(132, 21);
+            this.comboBoxSearchType.Size = new System.Drawing.Size(260, 33);
             this.comboBoxSearchType.TabIndex = 7;
             // 
             // TaeFindValueDialog
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(1600, 865);
             this.Controls.Add(this.comboBoxSearchType);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.buttonSearch);
@@ -192,7 +200,9 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBoxSearchQuery);
             this.ForeColor = System.Drawing.Color.White;
+            this.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.Name = "TaeFindValueDialog";
+            this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Find Value";
             this.Load += new System.EventHandler(this.TaeFindValueDialog_Load);

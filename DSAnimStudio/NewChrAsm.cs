@@ -390,8 +390,7 @@ namespace DSAnimStudio
                         // Weapon
                         if (modelIdx == 0)
                         {
-                            absoluteWeaponTransform =
-                                Skeleton.FlverSkeleton[defaultBoneIndex].ReferenceMatrix
+                            absoluteWeaponTransform = Skeleton.FlverSkeleton[defaultBoneIndex].ReferenceMatrix
                                 * Skeleton[defaultBoneIndex];
                         }
                         // Sheath
@@ -452,15 +451,27 @@ namespace DSAnimStudio
                 }
             }
 
-            DoWPN(RightWeapon, RightWeaponModel0, 0, RightWeaponBoneIndex, isLeft: false, RightWeaponFlipBackwards, RightWeaponFlipSideways);
-            DoWPN(RightWeapon, RightWeaponModel1, 1, RightWeaponBoneIndex, isLeft: false, RightWeaponFlipBackwards, RightWeaponFlipSideways);
-            DoWPN(RightWeapon, RightWeaponModel2, 2, RightWeaponBoneIndex, isLeft: false, RightWeaponFlipBackwards, RightWeaponFlipSideways);
-            DoWPN(RightWeapon, RightWeaponModel3, 3, RightWeaponBoneIndex, isLeft: false, RightWeaponFlipBackwards, RightWeaponFlipSideways);
+            var rback = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                ? !RightWeaponFlipBackwards : RightWeaponFlipBackwards;
 
-            DoWPN(LeftWeapon, LeftWeaponModel0, 0, LeftWeaponBoneIndex, isLeft: true, LeftWeaponFlipBackwards, LeftWeaponFlipSideways);
-            DoWPN(LeftWeapon, LeftWeaponModel1, 1, LeftWeaponBoneIndex, isLeft: true, LeftWeaponFlipBackwards, LeftWeaponFlipSideways);
-            DoWPN(LeftWeapon, LeftWeaponModel2, 2, LeftWeaponBoneIndex, isLeft: true, LeftWeaponFlipBackwards, LeftWeaponFlipSideways);
-            DoWPN(LeftWeapon, LeftWeaponModel3, 3, LeftWeaponBoneIndex, isLeft: true, LeftWeaponFlipBackwards, LeftWeaponFlipSideways);
+            var rside = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                ? !RightWeaponFlipSideways : !RightWeaponFlipSideways;
+
+            var lback = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                ? !LeftWeaponFlipBackwards : LeftWeaponFlipBackwards;
+
+            var lside = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                ? LeftWeaponFlipSideways : !LeftWeaponFlipSideways;
+
+            DoWPN(RightWeapon, RightWeaponModel0, 0, RightWeaponBoneIndex, isLeft: false, rback, rside);
+            DoWPN(RightWeapon, RightWeaponModel1, 1, RightWeaponBoneIndex, isLeft: false, rback, rside);
+            DoWPN(RightWeapon, RightWeaponModel2, 2, RightWeaponBoneIndex, isLeft: false, rback, rside);
+            DoWPN(RightWeapon, RightWeaponModel3, 3, RightWeaponBoneIndex, isLeft: false, rback, rside);
+
+            DoWPN(LeftWeapon, LeftWeaponModel0, 0, LeftWeaponBoneIndex, isLeft: true, lback, lside);
+            DoWPN(LeftWeapon, LeftWeaponModel1, 1, LeftWeaponBoneIndex, isLeft: true, lback, lside);
+            DoWPN(LeftWeapon, LeftWeaponModel2, 2, LeftWeaponBoneIndex, isLeft: true, lback, lside);
+            DoWPN(LeftWeapon, LeftWeaponModel3, 3, LeftWeaponBoneIndex, isLeft: true, lback, lside);
         }
 
         public void UpdateWeaponAnimation(float timeDelta)
@@ -472,7 +483,7 @@ namespace DSAnimStudio
 
                 if (wpnMdl != null && wpnMdl.AnimContainer != null)
                 {
-                    if (wpnMdl.IsStatic)
+                    if (!wpnMdl.IsStatic)
                     {
                         //V2.0
                         //RightWeaponModel.AnimContainer.IsLoop = false;

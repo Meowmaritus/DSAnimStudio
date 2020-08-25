@@ -70,6 +70,8 @@ namespace DSAnimStudio.TaeEditor
                             row.Cells.Add(new DataGridViewTextBoxCell() { Value = p.Value.Name });
                             row.Cells.Add(cell);
 
+                            row.Height = (int)Math.Round(22 * Main.DPIY);
+
                             dataGridView1.Rows.Add(row);
                         }
                         else if (p.Value.Type == TAE.Template.ParamType.b)
@@ -82,6 +84,8 @@ namespace DSAnimStudio.TaeEditor
                             row.Cells.Add(new DataGridViewTextBoxCell() { Value = p.Value.Type });
                             row.Cells.Add(new DataGridViewTextBoxCell() { Value = p.Value.Name });
                             row.Cells.Add(cell);
+
+                            row.Height = (int)Math.Round(22 * Main.DPIY);
 
                             dataGridView1.Rows.Add(row);
                         }
@@ -100,6 +104,8 @@ namespace DSAnimStudio.TaeEditor
                             //dataGridView1.Rows.Add(row);
 
                             dataGridView1.Rows.Add(p.Value.Type, p.Value.Name, p.Value.ValueToString(ev.Parameters[p.Key]));
+
+                            dataGridView1.Rows[dataGridView1.Rows.Count - 1].Height = (int)Math.Round(22 * Main.DPIY);
                         }
 
                         //dataGridView1.Rows[dataGridView1.RowCount - 1].Cells[2].ValueType = p.Value.GetValueObjectType();
@@ -113,6 +119,7 @@ namespace DSAnimStudio.TaeEditor
                     for (int i = 0; i < bytes.Length; i++)
                     {
                         dataGridView1.Rows.Add(TAE.Template.ParamType.x8, $"Byte[{i}]", bytes[i].ToString("X2"));
+                        dataGridView1.Rows[dataGridView1.Rows.Count - 1].Height = (int)Math.Round(22 * Main.DPIY);
                         //dataGridView1.Rows[dataGridView1.RowCount - 1].Cells[2].ValueType = typeof(byte);
                     }
                 }
@@ -272,6 +279,8 @@ namespace DSAnimStudio.TaeEditor
         public TaeInspectorWinFormsControl()
         {
             InitializeComponent();
+
+            dataGridView1.RowTemplate.Height = (int)Math.Round(22 * Main.DPIY);
 
             dataGridView1.SelectionMode = DataGridViewSelectionMode.CellSelect;
 

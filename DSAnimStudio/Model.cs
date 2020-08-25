@@ -31,7 +31,7 @@ namespace DSAnimStudio
 
         public bool IsStatic => Skeleton?.OriginalHavokSkeleton == null;
 
-        public float BaseTrackingSpeed = 0;
+        public float BaseTrackingSpeed = 360;
         public float CurrentTrackingSpeed = 0;
 
         public float CharacterTrackingRotation = 0;

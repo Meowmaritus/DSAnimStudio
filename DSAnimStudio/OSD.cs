@@ -754,7 +754,7 @@ namespace DSAnimStudio
 
                     DoTooltip("Shading Mode", "The shading mode to use for the 3D rendering. " +
                         "\nSome of the modes are only here for testing purposes.");
-                    ImGui.PushItemWidth(256);
+                    ImGui.PushItemWidth(256 * Main.DPIX);
                     ImGui.ListBox(" ",
                             ref GFX.ForcedFlverShadingModeIndex, GFX.FlverShadingModeNamesList,
                             GFX.FlverShadingModeNamesList.Length);
@@ -799,7 +799,7 @@ namespace DSAnimStudio
                     //DoTooltip("Camera Mouse Input Tick Rate", "Milliseconds to wait between mouse input updates. " +
                     //    "\nLower this if mouse movement looks choppy or raise if it's using too much CPU.");
 
-                    ImGui.PushItemWidth(100);
+                    ImGui.PushItemWidth(100 * Main.DPIX);
                     {
                         if (ImGui.SliderInt("MSAA (SSAA must be off)", ref GFX.MSAA, 1, 8, GFX.MSAA > 1 ? "%dx" : "Off"))
                             Main.RequestViewportRenderTargetResolutionChange = true;

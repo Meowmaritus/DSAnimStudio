@@ -580,7 +580,8 @@ namespace DSAnimStudio
             if (Main.SceneRenderTarget != null)
             {
                 GFX.SpriteBatchBeginForText();
-                DBG.DrawOutlinedText($"Rendering {(Main.SceneRenderTarget.Width)}x{(Main.SceneRenderTarget.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS", new Vector2(4, GFX.Device.Viewport.Height - 24), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
+                DBG.DrawOutlinedText($"Rendering {(Main.SceneRenderTarget.Width)}x{(Main.SceneRenderTarget.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS", 
+                    new Vector2(4, (GFX.Device.Viewport.Height / Main.DPIY) - 24), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
                 GFX.SpriteBatchEnd();
             }
             //DBG.DrawOutlinedText($"FPS: {(Math.Round(1 / (float)gameTime.ElapsedGameTime.TotalSeconds))}", new Vector2(0, GFX.Device.Viewport.Height - 20), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);

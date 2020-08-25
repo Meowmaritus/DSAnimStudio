@@ -729,7 +729,7 @@ namespace DSAnimStudio
             if (currentClickType == MouseClickType.None)
             {
                 // If nothing is pressed, just dont bother lerping
-                mousePos = new Vector2(mouse.X, mouse.Y);
+                mousePos = new Vector2(mouse.X / Main.DPIX, mouse.Y / Main.DPIY);
             }
 
             bool isSpeedupKeyPressed = keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl);
