@@ -49,7 +49,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4 PREVIEW BUILD (nightly 08-24-2020)";
+        public const string VERSION = "Version 2.4 PREVIEW BUILD (nightly 08-26-2020)";
 
         public static bool FIXED_TIME_STEP = false;
 

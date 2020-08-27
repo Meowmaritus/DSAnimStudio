@@ -80,7 +80,8 @@ meowtodo
   [done]plysound_bystateinfo
 * animated armor
 * bug: time on frame 0 says " .0000" instead of "0.0000" or whatever
-
+* [implented] change event type dialogue now copies over the bytes of the last event (basically i made this solely for quickly swapping between spawn ffx event types with same args)
+* going to next anim in combo is now checked BEFORE events are checked so events after the combo cancel frame should not trigger the same frame it switches animations (ds1 seems to do it like this afaik)
 
 direct mult 0.65
 indirect mult 0.65

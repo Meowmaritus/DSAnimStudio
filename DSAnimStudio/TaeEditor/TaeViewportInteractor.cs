@@ -462,7 +462,7 @@ namespace DSAnimStudio.TaeEditor
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
-            UpdateCombo();
+            
 
             var timeDelta = (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
@@ -472,13 +472,16 @@ namespace DSAnimStudio.TaeEditor
 
             CurrentModel.AfterAnimUpdate(timeDelta);
 
+            if (UpdateCombo())
+                return;
+
             //V2.0
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTimeMod);
 
-            UpdateCombo();
+            
         }
 
         private void CheckSimEnvironment()
@@ -643,10 +646,10 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void UpdateCombo()
+        private bool UpdateCombo()
         {
             if (!Graph.PlaybackCursor.IsPlaying || Graph.PlaybackCursor.Scrubbing)
-                return;
+                return false;
 
             if (CurrentComboIndex >= 0)
             {
@@ -668,7 +671,7 @@ namespace DSAnimStudio.TaeEditor
                         //Graph.PlaybackCursor.UpdateScrubbing();
 
                         GoToNextItemInCombo();
-                        return;
+                        return true;
                     }
                     else if (CurrentComboIndex < CurrentCombo.Length - 1 || CurrentComboLoop)
                     {
@@ -686,7 +689,7 @@ namespace DSAnimStudio.TaeEditor
                                 if (cancelTypeAsInt == CurrentCombo[CurrentComboIndex].Event0CancelType)
                                 {
                                     GoToNextItemInCombo();
-                                    return;
+                                    return true;
                                 }
                             }
                         }
@@ -700,11 +703,14 @@ namespace DSAnimStudio.TaeEditor
                 else
                 {
                     CurrentComboIndex = -1;
+                    return true;
                 }
 
 
                 
             }
+
+            return false;
         }
 
         private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
