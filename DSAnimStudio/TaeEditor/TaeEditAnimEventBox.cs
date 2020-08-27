@@ -283,7 +283,11 @@ namespace DSAnimStudio.TaeEditor
 
         public void ChangeEvent(TAE.Event newEvent, TAE.Animation animNewEventIsFor)
         {
+            var oldBytes = MyEvent.GetParameterBytes(bigEndian: false);
+            var newBytes = newEvent.GetParameterBytes(bigEndian: false);
             MyEvent = newEvent;
+            Array.Resize(ref oldBytes, newBytes.Length);
+            MyEvent.SetParameterBytes(bigEndian: false, oldBytes);
             AnimMyEventIsFor = animNewEventIsFor;
             UpdateEventText();
         }
