@@ -279,6 +279,28 @@ namespace DSAnimStudio
                     break;
             }
         }
+        private static ContentManager DebugReloadContentManager = null;
+        public static void ReloadFlverShader()
+        {
+            if (DebugReloadContentManager != null)
+            {
+                DebugReloadContentManager.Unload();
+                DebugReloadContentManager.Dispose();
+            }
+
+            DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+
+
+            GFX.FlverShader.Effect.Dispose();
+            GFX.FlverShader = null;
+            GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
+
+            //Main.MainFlverTonemapShader.Effect.Dispose();
+            //Main.MainFlverTonemapShader = null;
+            //Main.MainFlverTonemapShader = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
+
+            GFX.InitShaders();
+        }
 
         public static void Init(ContentManager c)
         {
@@ -418,12 +440,15 @@ namespace DSAnimStudio
 
             Device.SamplerStates[0] = SamplerState.LinearWrap;
 
-            FlverShader.Effect.EyePosition = World.CameraTransform.Position;
+            //FlverShader.Effect.EyePosition = World.NewCameraTransform.Position;
+
+            FlverShader.Effect.EyePosition = World.NewCameraTransform.Position;
+
             //SkyboxShader.Effect.EyePosition = World.CameraTransform.Position;
             SkyboxShader.Effect.EyePosition = Vector3.Zero;
             //FlverShader.Effect.EyePosition = Vector3.Backward;
 
-            Matrix matLightDir = Matrix.CreateRotationY(World.LightRotationH) * Matrix.CreateRotationX(World.LightRotationV);
+            Matrix matLightDir = Matrix.CreateRotationY(Environment.LightRotationH) * Matrix.CreateRotationX(Environment.LightRotationV);
 
             if (FlverAutoRotateLight)
             {
@@ -432,8 +457,8 @@ namespace DSAnimStudio
             }
             else 
             {
-                Vector3 camUpDir = World.GetScreenSpaceUpVector() * new Vector3(1, 1, -1);
-                Vector3 camLookDir = -World.GetScreenSpaceFowardVector() * new Vector3(1, 1, -1);
+                Vector3 camUpDir = World.NewGetScreenSpaceUpVector() * new Vector3(1, 1, 1);
+                Vector3 camLookDir = World.NewGetScreenSpaceForwardVector() * new Vector3(1, 1, 1);
                 Matrix matCamLook = Matrix.CreateWorld(Vector3.Zero, camLookDir, camUpDir);
 
                 if (FlverLightFollowsCamera)
@@ -467,8 +492,8 @@ namespace DSAnimStudio
             FlverShader.Effect.Parameters["SpecularPowerMult"].SetValue(SpecularPowerMult);
             FlverShader.Effect.Parameters["LdotNPower"].SetValue(LdotNPower);
 
-            SkyboxShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
-            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
+            SkyboxShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * Environment.SkyboxBrightnessMult;
+            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
 
             Main.MainFlverTonemapShader.Effect.Parameters["SceneContrast"].SetValue(Environment.FlverSceneContrast);
 
@@ -478,7 +503,7 @@ namespace DSAnimStudio
             DbgPrimSolidShader.Effect.DirectionalLight1.Enabled = false;
             DbgPrimSolidShader.Effect.DirectionalLight2.Enabled = false;
 
-            CollisionShader.Effect.EyePosition = World.CameraTransform.Position;
+            CollisionShader.Effect.EyePosition = World.NewCameraTransform.Position;
 
         }
 

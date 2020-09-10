@@ -65,6 +65,7 @@
   * Hit OK 
   * Close any running instance of DS Anim Studio and launch it again
 * Sekiro Edit Animation Properties window no longer shows short animation ID format (aXX_YYYY) like DS1.
+* Fixed bug where "Goto Event Source" button would internally set a value wrong causing it to fail to copy events to clipboard until you switched animations.
 
 meowtodo 
 * make ctrl+insert to a duplicate where it imports hkx from the current anim and has all events pasted

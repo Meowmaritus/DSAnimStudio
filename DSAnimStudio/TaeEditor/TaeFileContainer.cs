@@ -120,6 +120,9 @@ namespace DSAnimStudio.TaeEditor
 
         private TAE GetTAE(long id)
         {
+            if (AllTAEDict.Count == 1)
+                return AllTAEDict.FirstOrDefault().Value;
+
             foreach (var kvp in AllTAEDict)
             {
                 if (kvp.Key.ToUpper().EndsWith($"{id:D2}.TAE"))

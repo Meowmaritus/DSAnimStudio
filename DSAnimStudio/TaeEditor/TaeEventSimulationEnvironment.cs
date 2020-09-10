@@ -265,7 +265,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     if (dummyPolyID == -1)
                     {
-                        return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+                        return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.OrbitCamCenter_DummyPolyFollowRefPoint.Y, 0);
                     }
 
                     if (MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
@@ -275,13 +275,13 @@ namespace DSAnimStudio.TaeEditor
                             * MODEL.CurrentTransform.WorldMatrix);
                     }
 
-                    return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+                    return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.OrbitCamCenter_DummyPolyFollowRefPoint.Y, 0);
                 };
 
             }
             else
             {
-                getPosFunc = () => Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.ModelHeight_ForOrbitCam / 2, 0);
+                getPosFunc = () => Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.OrbitCamCenter_DummyPolyFollowRefPoint.Y, 0);
             }
 
             if (stateInfoSlot != null && stateInfoSlot.Value >= 0 && FmodManager.IsStateInfoAlreadyPlaying(stateInfoSlot.Value))

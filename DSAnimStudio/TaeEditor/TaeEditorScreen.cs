@@ -980,7 +980,7 @@ namespace DSAnimStudio.TaeEditor
         private Color ColorInspectorBG = Color.DarkGray;
         public TaeInspectorWinFormsControl inspectorWinFormsControl;
 
-        public TaeInputHandler Input;
+        public FancyInputHandler Input => Main.Input;
 
         public System.Windows.Forms.MenuStrip WinFormsMenuStrip;
 
@@ -1375,7 +1375,7 @@ namespace DSAnimStudio.TaeEditor
 
             GameWindowAsForm.MinimumSize = new System.Drawing.Size(1280  - 64, 720 - 64);
 
-            Input = new TaeInputHandler();
+            //Input = new FancyInputHandler();
 
             //editScreenAnimList = new TaeEditAnimList(this);
             //editScreenCurrentAnim = new TaeEditAnimEventGraph(this);

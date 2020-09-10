@@ -28,6 +28,8 @@ namespace DSAnimStudio
         public static float DPIX = 1;
         public static float DPIY = 1;
 
+        public static FancyInputHandler Input;
+
         public static Vector2 DPIVector => new Vector2(DPIX, DPIY);
         public static System.Numerics.Vector2 DPIVectorN => new System.Numerics.Vector2(DPIX, DPIY);
 
@@ -49,7 +51,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4 PREVIEW BUILD (nightly 08-26-2020)";
+        public const string VERSION = "Version 2.4 PREVIEW BUILD (nightly 08-28-2020)";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -238,6 +240,8 @@ namespace DSAnimStudio
 
             GFX.Display.SetFromDisplayMode(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode);
 
+
+            Input = new FancyInputHandler();
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
 
@@ -421,8 +425,6 @@ namespace DSAnimStudio
             //InterrootLoader.OnLoadError += InterrootLoader_OnLoadError;
 
             DBG.CreateDebugPrimitives();
-
-            GFX.World.ResetCameraLocation();
 
             //DBG.EnableMenu = true;
             //DBG.EnableMouseInput = true;
@@ -654,15 +656,7 @@ namespace DSAnimStudio
                     //    GFX.World.UpdateInput(this, gameTime);
                     //}
 
-                    GFX.World.UpdateMatrices(GraphicsDevice);
-
-                    GFX.World.CameraPositionDefault.Position = Vector3.Zero;
-
-                    GFX.World.CameraOrigin.Position = new Vector3(GFX.World.CameraPositionDefault.Position.X,
-                        GFX.World.CameraOrigin.Position.Y, GFX.World.CameraPositionDefault.Position.Z);
-
-                    if (DBG.DbgPrim_Grid != null)
-                        DBG.DbgPrim_Grid.Transform = GFX.World.CameraPositionDefault;
+                    GFX.World.NewUpdate();
 
                     if (REQUEST_EXIT)
                         Exit();
@@ -714,7 +708,7 @@ namespace DSAnimStudio
                         //UpdateStopwatch.Restart();
 
                         if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
-                            TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+                            TAE_EDITOR.Input.CursorType = MouseCursorType.Arrow;
 
                         
                         
@@ -725,7 +719,7 @@ namespace DSAnimStudio
                         }
                         else
                         {
-                            TAE_EDITOR.Input.CursorType = TaeEditor.MouseCursorType.Arrow;
+                            TAE_EDITOR.Input.CursorType = MouseCursorType.Arrow;
                         }
                         
 
@@ -782,7 +776,7 @@ namespace DSAnimStudio
                     if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
                     {
                         // Only update input if debug menu isnt fully open.
-                        GFX.World.UpdateInput(this, DELTA_UPDATE);
+                        GFX.World.NewUpdateInput(Main.Input);
                     }
 
                     if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)

@@ -205,6 +205,12 @@ namespace DSAnimStudio
                         //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color 2", DBG.DbgPrim_Grid.OverrideColor.Value);
                         //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color 3", DBG.DbgPrim_Grid.OverrideColor.Value);
 
+                        ImGui.Button("Reload FLVER Shader");
+                        if (ImGui.IsItemClicked())
+                        {
+                            GFX.ReloadFlverShader();
+                        }
+
                         ImGui.TreePop();
                     }
                 }
@@ -594,13 +600,13 @@ namespace DSAnimStudio
                         DoTooltip("Light Follows Camera", "Makes the light always point forward from the camera. " +
                             "\nOnly works if Auto Light Spin is turned off.");
 
-                        ImGui.SliderFloat("Light H", ref GFX.World.LightRotationH, -MathHelper.Pi, MathHelper.Pi);
+                        ImGui.SliderFloat("Light H", ref Environment.LightRotationH, -MathHelper.Pi, MathHelper.Pi);
 
                         DoTooltip("Light Horizontal Movement", "Turns the light left/right. " +
                             "\nOnly works if both Auto Light Spin and Light " +
                             "\nFollows Camera are turned off.");
 
-                        ImGui.SliderFloat("Light V", ref GFX.World.LightRotationV, -MathHelper.PiOver2, MathHelper.PiOver2);
+                        ImGui.SliderFloat("Light V", ref Environment.LightRotationV, -MathHelper.PiOver2, MathHelper.PiOver2);
 
                         DoTooltip("Light Vertical Movement", "Turns the light up/down. " +
                             "\nOnly works if both Auto Light Spin and Light " +
@@ -666,6 +672,7 @@ namespace DSAnimStudio
 
                     ImGui.SliderFloat("Specular Power Mult", ref GFX.SpecularPowerMult, 1, 8);
                     ImGui.SliderFloat("Indirect Light Mult", ref Environment.FlverIndirectLightMult, 0, 3);
+                    ImGui.SliderFloat("Skybox Brightness", ref Environment.SkyboxBrightnessMult, 0, 0.5f);
 
                     DoTooltip("Indirect Light Multiplier", "Multiplies the brightness of environment map lighting reflected");
 
@@ -713,11 +720,12 @@ namespace DSAnimStudio
                         GFX.FlverAutoRotateLight = false;
                         GFX.FlverLightFollowsCamera = true;
 
-                        GFX.World.LightRotationH = 1.7f;
-                        GFX.World.LightRotationV = 0;
+                        Environment.LightRotationH = -0.75f;
+                        Environment.LightRotationV = -0.75f;
 
                         Environment.FlverDirectLightMult = 0.65f;
                         Environment.FlverIndirectLightMult = 0.65f;
+                        Environment.SkyboxBrightnessMult = 0.25f;
                         Environment.FlverEmissiveMult = 1;
                         Environment.FlverSceneBrightness = 1;
                         Environment.FlverSceneContrast = 0.6f;
@@ -730,10 +738,14 @@ namespace DSAnimStudio
                     }
                     ImGui.Separator();
 
+                    ImGui.PushItemWidth(DefaultItemWidth * 1.5f);
+
                     //ImGui.LabelText(" ", " ");
                     ImGui.ListBox("Cubemap",
                            ref Environment.CubemapNameIndex, Environment.CubemapNames,
                            Environment.CubemapNames.Length);
+
+                    ImGui.PopItemWidth();
 
                     ImGui.TreePop();
                 }
@@ -821,13 +833,13 @@ namespace DSAnimStudio
                     ImGui.Checkbox("Show Grid", ref DBG.ShowGrid);
                     ImGui.SliderFloat("Vertical FOV", ref GFX.World.FieldOfView, 1, 160);
 
-                    ImGui.SliderFloat("Near Clip Dist", ref GFX.World.NearClipDistance, 0.001f, 1);
+                    ImGui.SliderFloat("Near Clip Dist", ref GFX.World.NewNearClipDistance, 0.001f, 1);
                     DoTooltip("Near Clipping Distance", "Distance for the near clipping plane. " +
                         "\nSetting it too high will cause geometry to disappear when near the camera. " +
                         "\nSetting it too low will cause geometry to flicker or render with " +
                         "the wrong depth when very far away from the camera.");
 
-                    ImGui.SliderFloat("Far Clip Dist", ref GFX.World.FarClipDistance, 1000, 100000);
+                    ImGui.SliderFloat("Far Clip Dist", ref GFX.World.NewFarClipDistance, 1000, 100000);
                     DoTooltip("Far Clipping Distance", "Distance for the far clipping plane. " +
                         "\nSetting it too low will cause geometry to disappear when far from the camera. " +
                         "\nSetting it too high will cause geometry to flicker or render with " +
@@ -839,8 +851,8 @@ namespace DSAnimStudio
                     {
                         DBG.ShowGrid = true;
                         GFX.World.FieldOfView = 43;
-                        GFX.World.NearClipDistance = 0.1f;
-                        GFX.World.FarClipDistance = 10000;
+                        GFX.World.NewNearClipDistance = 0.1f;
+                        GFX.World.NewFarClipDistance = 10000;
 
                         GFX.Display.Vsync = true;
                         GFX.Display.Width = GFX.Device.Viewport.Width;

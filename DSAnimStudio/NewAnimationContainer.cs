@@ -83,46 +83,42 @@ namespace DSAnimStudio
             
         }
 
-        private void PopulateAdditiveBlendOverlays()
+
+
+        private void ScanAllAnimations()
         {
             //if (MODEL.IS_PLAYER)
             //    return; //todo
-
-            lock (_lock_AdditiveOverlays)
+            //lock (_lock_AdditiveOverlays)
+            //{
+            //    _additiveBlendOverlays = new List<NewHavokAnimation>();
+            //    _additiveBlendOverlayNames = new List<string>();
+            //}
+            
+                
+            List<string> allAnimNames = new List<string>();
+            lock (_lock_animDict)
             {
-                _additiveBlendOverlays = new List<NewHavokAnimation>();
-                List<string> allAnimNames = new List<string>();
-                lock (_lock_animDict)
-                {
-                    foreach (var kvp in animHKXsToLoad)
-                        allAnimNames.Add(kvp.Key);
-                }
+                foreach (var kvp in animHKXsToLoad)
+                    allAnimNames.Add(kvp.Key);
+            }
 
-                LoadingTaskMan.DoLoadingTaskSynchronous("ScanningAllAnimations", "Loading animations...", prog =>
+            LoadingTaskMan.DoLoadingTaskSynchronous("ScanningAllAnimations", "Loading animations...", prog =>
+            {
+                for (int i = 0; i < allAnimNames.Count; i++)
                 {
-                    for (int i = 0; i < allAnimNames.Count; i++)
-                    {
-                        prog?.Report(1.0 * i / allAnimNames.Count);
-                        CurrentAnimationName = allAnimNames[i];
-                        if (CurrentAnimation != null)
-                        {
-                            if (CurrentAnimation.IsAdditiveBlend)
-                            {
-                                var clone = NewHavokAnimation.Clone(CurrentAnimation);
-                                clone.Weight = -1;
-                                _additiveBlendOverlays.Add(clone);
-                            }
-                        }
-                        
-                    }
-                    CurrentAnimationName = null;
-                    prog?.Report(1.0);
-                });
+                    prog?.Report(1.0 * i / allAnimNames.Count);
+                    CurrentAnimationName = allAnimNames[i];
+                }
+                CurrentAnimationName = null;
+                prog?.Report(1.0);
+            });
 
                 
-            }
+            
         }
         private List<NewHavokAnimation> _additiveBlendOverlays = new List<NewHavokAnimation>();
+        private List<string> _additiveBlendOverlayNames = new List<string>();
 
         public IReadOnlyList<NewHavokAnimation> AdditiveBlendOverlays => _additiveBlendOverlays;
 
@@ -615,7 +611,29 @@ namespace DSAnimStudio
         {
             var hkxVariation = GameDataManager.GetCurrentLegacyHKXType();
             var hkx = HKX.Read(hkxBytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == GameDataManager.GameTypes.DS1R || GameDataManager.GameType == GameDataManager.GameTypes.SDT));
-            return LoadAnimHKX(hkx, name);
+            var anim = LoadAnimHKX(hkx, name);
+
+            if (anim != null)
+            {
+                if (anim.IsAdditiveBlend)
+                {
+                    lock (_lock_AdditiveOverlays)
+                    {
+                        if (!_additiveBlendOverlayNames.Contains(anim.Name))
+                        {
+                            var clone = NewHavokAnimation.Clone(anim);
+                            clone.Weight = -1;
+                            _additiveBlendOverlays.Add(clone);
+                            _additiveBlendOverlayNames.Add(anim.Name);
+                            _additiveBlendOverlays = _additiveBlendOverlays.OrderBy(x => x.Name).ToList();
+                        }
+                    }
+
+
+                }
+            }
+
+            return anim;
         }
 
         private void AddAnimHKXFetch(string name, byte[] hkx)
@@ -676,7 +694,7 @@ namespace DSAnimStudio
             return anim;
         }
 
-        public void LoadAdditionalANIBND(IBinder anibnd, IProgress<double> progress)
+        public void LoadAdditionalANIBND(IBinder anibnd, IProgress<double> progress, bool scanAnims)
         {
             var hkxVariation = GameDataManager.GetCurrentLegacyHKXType();
 
@@ -726,7 +744,11 @@ namespace DSAnimStudio
                     }
                 }
 
-                //PopulateAdditiveBlendOverlays();
+                if (scanAnims)
+                {
+                    ScanAllAnimations();
+                }
+                
 
                 if (CurrentAnimationName == null && animHKXsToLoad.Count > 0)
                 {
@@ -831,7 +853,7 @@ namespace DSAnimStudio
                     }
                 }
 
-                PopulateAdditiveBlendOverlays();
+                ScanAllAnimations();
 
                 lock (_lock_animDict)
                 {

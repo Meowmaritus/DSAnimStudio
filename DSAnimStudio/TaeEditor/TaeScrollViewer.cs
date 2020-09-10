@@ -230,7 +230,7 @@ namespace DSAnimStudio.TaeEditor
             return Matrix.CreateTranslation(-(float)Math.Round(Scroll.X), -(float)Math.Round(Scroll.Y), 0);
         }
 
-        public void UpdateInput(TaeInputHandler input, float elapsedSeconds, bool allowScrollWheel)
+        public void UpdateInput(FancyInputHandler input, float elapsedSeconds, bool allowScrollWheel)
         {
             var relMouse = new Point((int)(input.MousePosition.X),
                 (int)(input.MousePosition.Y));

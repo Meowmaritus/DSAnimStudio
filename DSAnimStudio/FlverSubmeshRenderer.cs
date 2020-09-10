@@ -73,7 +73,7 @@ namespace DSAnimStudio
 
 
         public bool IsShaderDoubleFaceCloth = false;
-
+        public bool IsDS3Veil = false;
         public GFXDrawStep DrawStep { get; private set; }
 
         public int VertexCount { get; private set; }
@@ -287,9 +287,10 @@ namespace DSAnimStudio
                 DrawStep = GFXDrawStep.Opaque;
             }
 
-            
+
             IsShaderDoubleFaceCloth = shortMaterialName.Contains("_df_");
-            
+            IsDS3Veil = shortMaterialName.Contains("veil");
+
 
 
 
@@ -1020,11 +1021,16 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.FancyAlpha_Enable = GFX.FlverUseFancyAlpha;
                 //GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = GFX.FlverInvertSimpleTextureAlphas;
                 GFX.FlverShader.Effect.FancyAlpha_EdgeCutoff = GFX.FlverFancyAlphaEdgeCutoff;
-                GFX.FlverShader.Effect.FancyAlpha_Enable = GFX.FlverUseFancyAlpha;
+
+                if (IsDS3Veil)
+                {
+                    GFX.FlverShader.Effect.FancyAlpha_EdgeCutoff = -1;
+                    GFX.FlverShader.Effect.FancyAlpha_Enable = false;
+                }
 
                 if (GFX.CurrentStep == GFXDrawStep.AlphaEdge)
                 {
-                    if (DrawStep != GFXDrawStep.AlphaEdge)
+                    if (DrawStep != GFXDrawStep.AlphaEdge || !GFX.FlverShader.Effect.FancyAlpha_Enable)
                         return;
 
                     GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = true;
