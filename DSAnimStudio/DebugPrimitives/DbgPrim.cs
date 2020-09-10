@@ -320,7 +320,7 @@ namespace DSAnimStudio.DebugPrimitives
 
             if (DbgLabels.Count > 0)
             {
-                foreach (var label in DbgLabels.OrderByDescending(lbl => (GFX.World.CameraTransform.Position - Vector3.Transform(Vector3.Zero, lbl.World)).LengthSquared()))
+                foreach (var label in DbgLabels.OrderByDescending(lbl => (GFX.World.NewCameraTransform.Position - Vector3.Transform(Vector3.Zero, lbl.World)).LengthSquared()))
                 {
                     DBG.Draw3DBillboard(label.Text, label.World * Transform.WorldMatrix * world, label.Color);
                 }

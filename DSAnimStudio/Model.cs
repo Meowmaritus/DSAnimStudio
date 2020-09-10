@@ -354,13 +354,18 @@ namespace DSAnimStudio
             // TEST: modulo world pos
             Vector3 locationWithNewTransform = Vector3.Transform(Vector3.Zero, newTransform.WorldMatrix);
 
+            bool justWrapped = false;
+
+            Vector3 translationDeltaToGetToMod = Vector3.Zero;
+
             if (!ignorePosWrap && AnimContainer?.EnableRootMotionWrap == true && (locationWithNewTransform.LengthSquared() > 100))
             {
                 Vector3 locationWithNewTransform_Mod = new Vector3(locationWithNewTransform.X % 1, locationWithNewTransform.Y, locationWithNewTransform.Z % 1);
-                Vector3 translationDeltaToGetToMod = locationWithNewTransform_Mod - locationWithNewTransform;
+                translationDeltaToGetToMod = locationWithNewTransform_Mod - locationWithNewTransform;
                 CurrentRootMotionTranslation *= Matrix.CreateTranslation(translationDeltaToGetToMod);
 
-                OnRootMotionWrap?.Invoke(translationDeltaToGetToMod);
+                justWrapped = true;
+                
             }
 
 
@@ -388,6 +393,8 @@ namespace DSAnimStudio
                 ChrAsm.LeftWeaponModel2?.DummyPolyMan.UpdateAllHitPrims();
                 ChrAsm.LeftWeaponModel3?.DummyPolyMan.UpdateAllHitPrims();
             }
+
+            OnRootMotionWrap?.Invoke(translationDeltaToGetToMod);
         }
 
         public void UpdateAnimation()

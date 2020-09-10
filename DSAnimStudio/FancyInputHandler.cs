@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 
-namespace DSAnimStudio.TaeEditor
+namespace DSAnimStudio
 {
     public enum MouseCursorType
     {
@@ -15,7 +15,7 @@ namespace DSAnimStudio.TaeEditor
         GrabPan,
     }
 
-    public class TaeInputHandler
+    public class FancyInputHandler
     {
         private Rectangle MouseCursorUpdateRect;
 

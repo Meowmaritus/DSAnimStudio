@@ -73,9 +73,9 @@ namespace DSAnimStudio.DbgMenus
                             (f) => GFX.World.FieldOfView = f, () => GFX.World.FieldOfView,
                             (f) => $"{((int)(Math.Round(f)))}"),
                         new DbgMenuItemNumber("Near Clip Distance", 0.0001f, 5, 0.0001f,
-                            (f) => GFX.World.NearClipDistance = f, () => GFX.World.NearClipDistance),
+                            (f) => GFX.World.NewNearClipDistance = f, () => GFX.World.NewNearClipDistance),
                         new DbgMenuItemNumber("Far Clip Distance", 100, 1000000, 100,
-                            (f) => GFX.World.FarClipDistance = f, () => GFX.World.FarClipDistance),
+                            (f) => GFX.World.NewFarClipDistance = f, () => GFX.World.NewFarClipDistance),
                         new DbgMenuItem()
                         {
                             Text = "Reset All To Default",
@@ -141,7 +141,7 @@ namespace DSAnimStudio.DbgMenus
                 new DbgMenuItem()
                 {
                     Text = "Return Camera to Origin",
-                    ClickAction = m => GFX.World.ResetCameraLocation()
+                    ClickAction = m => GFX.World.NewRecenter(),
                 },
                 new DbgMenuItem()
                 {

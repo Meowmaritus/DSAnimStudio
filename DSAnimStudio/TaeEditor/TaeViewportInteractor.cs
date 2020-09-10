@@ -281,10 +281,11 @@ namespace DSAnimStudio.TaeEditor
 
                 CurrentModel.AfterAnimUpdate(timeDelta: 0);
 
-                //GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
-                GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
-                GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
-                GFX.World.OrbitCamReset(isFirstTime: true);
+                GFX.World.NewDoRecenterAction = () =>
+                {
+                    GFX.World.NewCameraLookDirection = Quaternion.Identity;
+                };
+                GFX.World.NewRecenter();
 
                 FmodManager.Purge();
                 FmodManager.LoadMainFEVs();
@@ -296,10 +297,11 @@ namespace DSAnimStudio.TaeEditor
 
                 GameDataManager.LoadObject(shortFileName);
 
-                //GFX.World.ModelCenter_ForOrbitCam = CurrentModel.MainMesh.Bounds.GetCenter();
-                GFX.World.ModelHeight_ForOrbitCam = CurrentModel.MainMesh.Bounds.Max.Y - CurrentModel.MainMesh.Bounds.Min.Y;
-                GFX.World.ModelDepth_ForOrbitCam = (CurrentModel.MainMesh.Bounds.Max.Z - CurrentModel.MainMesh.Bounds.Min.Z) * 1.5f;
-                GFX.World.OrbitCamReset(isFirstTime: true);
+                GFX.World.NewDoRecenterAction = () =>
+                {
+                    GFX.World.NewCameraLookDirection = Quaternion.Identity;
+                };
+                GFX.World.NewRecenter();
 
                 FmodManager.Purge();
                 FmodManager.LoadMainFEVs();
@@ -321,7 +323,9 @@ namespace DSAnimStudio.TaeEditor
 
             CurrentModel.OnRootMotionWrap = (wrap) =>
             {
-                EventSim?.RootMotionWrapForBlades(wrap);
+                GeneralUpdate();
+                GFX.World.NewUpdate();
+                FmodManager.Update();
             };
 
             Scene.EnableModelDrawing();
@@ -984,32 +988,24 @@ namespace DSAnimStudio.TaeEditor
             
             if (CurrentModel != null)
             {
-                GFX.World.ModelDirection_ForOrbitCam = Graph.MainScreen.Config.CameraFollowsRootMotionRotation ? CurrentModel.CurrentDirection : 0;
-
-                GFX.World.WorldMatrixMOD = Matrix.Identity;
-
-               
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {
-                    //GFX.World.WorldMatrixMOD = //Matrix.CreateFromQuaternion(Quaternion.CreateFromRotationMatrix(CurrentModel.CurrentRootMotionTransform.WorldMatrix)) * 
-                    //    Matrix.CreateTranslation(
-                    //    -Vector3.Transform(Vector3.Zero,
-                    //    CurrentModel.CurrentRootMotionTranslation));
-
-                    GFX.World.WorldMatrixMOD *= //Matrix.CreateRotationY(CurrentModel.CurrentDirection) *
-                        Matrix.CreateTranslation(
-                        -Vector3.Transform(Vector3.Zero,
-                        CurrentModel.CurrentRootMotionTranslation));
+                    GFX.World.NewRootMotionFollow_Position = 
+                        Vector3.Transform(Vector3.Zero, CurrentModel.CurrentRootMotionTranslation);
                 }
-                //else
-                //{
-                //    GFX.World.WorldMatrixMOD = Matrix.Identity;
-                //}
+                else
+                {
+                    GFX.World.NewRootMotionFollow_Position = Vector3.Zero;
+                }
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
                 {
-                    GFX.World.WorldMatrixMOD *= Matrix.CreateRotationY(-CurrentModel.CurrentDirection);
+                    GFX.World.NewRootMotionFollow_Rotation = CurrentModel.CurrentDirection;
+                }
+                else
+                {
+                    GFX.World.NewRootMotionFollow_Rotation = 0;
                 }
 
                 if (Graph.MainScreen.Config.CameraPansVerticallyToFollowModel)
@@ -1017,44 +1013,16 @@ namespace DSAnimStudio.TaeEditor
                     GFX.World.UpdateDummyPolyFollowRefPoint(isFirstTime: false);
                 }
 
-                //if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
-                //{
-                //    float turnAmount = CurrentModel.CurrentDirection - modelDirectionLastFrame;
-
-                //    //GFX.World.CameraTransform.EulerRotationExtraY += turnAmount;
-
-                //    GFX.World.ModelCenter_ForOrbitCam = Vector3.Transform(
-                //        CurrentModel.MainMesh.Bounds.GetCenter(), CurrentModel.CurrentTransform.WorldMatrix);
-                //    GFX.World.RotateFromRootMotion(-turnAmount);
-
-                //    modelDirectionLastFrame = CurrentModel.CurrentDirection;
-                //}
-                //else
-                //{
-                //    if (GFX.World.CameraTransform.EulerRotationExtraY != 0)
-                //    {
-                //        GFX.World.RotateCameraOrbit(GFX.World.CameraTransform.EulerRotationExtraY, 0, 1);
-                //        GFX.World.CameraTransform.EulerRotationExtraY = 0;
-                //    }
-                //}
-
                 if (CurrentModel.AnimContainer != null)
                 {
                     CurrentModel.AnimContainer.EnableRootMotion = Graph.MainScreen.Config.EnableAnimRootMotion;
                     CurrentModel.AnimContainer.EnableRootMotionWrap = Graph.MainScreen.Config.WrapRootMotion;
-
-                    
-                    //V2.0
-                    //if (CurrentModel.AnimContainer.CurrentAnimation != null && CurrentModel.AnimContainer.CurrentAnimation.data.RootMotion != null)
-                    //    CurrentModel.AnimContainer.CurrentAnimation.RootMotion.Accumulate = Graph.MainScreen.Config.AccumulateRootMotion;
                 }
 
                 int frame = (int)Math.Round(Graph.PlaybackCursor.CurrentTime / (1.0 / 60.0));
 
                 if (Graph.PlaybackCursor.ContinuousTimeDelta != 0)
                 {
-                    //EventSim?.UpdateAllBladeSFXsLive();
-
                     if (frame != lastFrameForTrails)
                         EventSim?.UpdateAllBladeSFXsLowHz();
 
@@ -1067,7 +1035,8 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                GFX.World.WorldMatrixMOD = Matrix.Identity;
+                GFX.World.NewRootMotionFollow_Position = Vector3.Zero;
+                GFX.World.NewRootMotionFollow_Rotation = 0;
             }
             
         }

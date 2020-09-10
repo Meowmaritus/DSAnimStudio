@@ -71,20 +71,13 @@ namespace DSAnimStudio
 
                 //_eventSystem.set3DListenerAttributes(listener: 0, ref pos, ref vel, ref forward, ref up);Vector3.Transform(
 
-                Vector3 pos = (GFX.World.CameraTransform.Position /* - Vector3.Transform(Vector3.Zero, GFX.World.WorldMatrixMOD)*/ ) * new Vector3(1, 1, 1);
-                Vector3 vel = Vector3.Zero;// (pos - listenerPosOnPreviousFrame) / Main.DELTA_UPDATE;
-                Vector3 up = GFX.World.GetScreenSpaceUpVector();// Vector3.TransformNormal(Vector3.Up, GFX.World.CameraTransform.RotationMatrix);
-                Vector3 forward = -GFX.World.GetScreenSpaceFowardVector();
-
-                pos = Vector3.Transform(pos, Matrix.Invert(GFX.World.WorldMatrixMOD));
-
-                forward = Vector3.TransformNormal(forward, GFX.World.WorldMatrixMOD) * new Vector3(1, 1, -1);
-
-                up = Vector3.TransformNormal(up, GFX.World.WorldMatrixMOD) * new Vector3(1, 1, -1);
+                Vector3 pos = GFX.World.NewCameraTransform.Position * new Vector3(1, 1, -1);
+                Vector3 vel = Vector3.Zero;
+                Vector3 up = GFX.World.NewGetScreenSpaceUpVector() * new Vector3(1, 1, -1);
+                Vector3 forward = GFX.World.NewGetScreenSpaceForwardVector() * new Vector3(1, 1, -1);
 
 
-
-                DbgPrimCamPos.Transform = new Transform(Matrix.CreateWorld(Vector3.Zero, forward, up));
+                DbgPrimCamPos.Transform = new Transform(Matrix.CreateWorld(pos, forward, up));
 
 
                 //if (GFX.World.CameraTransform.EulerRotation.X > MathHelper.PiOver4)

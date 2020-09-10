@@ -201,7 +201,7 @@
     <Compile Include="TaeEditor\TaeFindValueDialog.Designer.cs">
       <DependentUpon>TaeFindValueDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="TaeEditor\TaeInputHandler.cs" />
+    <Compile Include="FancyInputHandler.cs" />
     <Compile Include="TaeEditor\TaeInspectorFormChangeEventType.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -385,6 +385,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Cubemaps\DefaultCubemap.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="fmodex64.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -445,7 +448,7 @@
     <Content Include="Content\Cubemaps\m33_00_GILM0100.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Content\Cubemaps\DefaultCubemap.dds">
+    <Content Include="Content\Cubemaps\DefaultCubemap_Old.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Content\Cubemaps\m34_01_GILM0001.dds">
@@ -546,6 +549,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="Content\Cubemaps\debug_cube.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Content\Fonts\DbgMenuFont.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

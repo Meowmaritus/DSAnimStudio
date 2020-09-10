@@ -48,8 +48,8 @@ namespace DSAnimStudio
                 //DBG.SimpleTextLabelSize = true;
 
                 GFX.World.FieldOfView = 43;
-                GFX.World.NearClipDistance = 0.1f;
-                GFX.World.FarClipDistance = 10000f;
+                GFX.World.NewNearClipDistance = 0.1f;
+                GFX.World.NewFarClipDistance = 10000f;
 
                 Save();
                 Load();
@@ -119,8 +119,8 @@ namespace DSAnimStudio
                     GFX.World.CameraTurnSpeedGamepad = Current.GFX_World_CameraTurnSpeedGamepad;
                     GFX.World.CameraTurnSpeedMouse = Current.GFX_World_CameraTurnSpeedMouse;
                     GFX.World.FieldOfView = Current.GFX_World_FieldOfView;
-                    GFX.World.NearClipDistance = Current.GFX_World_NearClipDistance;
-                    GFX.World.FarClipDistance = Current.GFX_World_FarClipDistance;
+                    GFX.World.NewNearClipDistance = Current.GFX_World_NearClipDistance;
+                    GFX.World.NewFarClipDistance = Current.GFX_World_FarClipDistance;
 
                     GFX.Display.Width = Current.GFX_Display_Width;
                     GFX.Display.Height = Current.GFX_Display_Height;
@@ -166,8 +166,8 @@ namespace DSAnimStudio
                     Current.GFX_World_CameraTurnSpeedGamepad = GFX.World.CameraTurnSpeedGamepad;
                     Current.GFX_World_CameraTurnSpeedMouse = GFX.World.CameraTurnSpeedMouse;
                     Current.GFX_World_FieldOfView = GFX.World.FieldOfView;
-                    Current.GFX_World_NearClipDistance = GFX.World.NearClipDistance;
-                    Current.GFX_World_FarClipDistance = GFX.World.FarClipDistance;
+                    Current.GFX_World_NearClipDistance = GFX.World.NewNearClipDistance;
+                    Current.GFX_World_FarClipDistance = GFX.World.NewFarClipDistance;
 
                     Current.GFX_Display_Width = GFX.Display.Width;
                     Current.GFX_Display_Height = GFX.Display.Height;

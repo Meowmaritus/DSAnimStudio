@@ -496,7 +496,11 @@ namespace DSAnimStudio
                         else
                             anibnd = BND4.Read(anibndName);
 
-                        chr.AnimContainer.LoadAdditionalANIBND(anibnd, null);
+                        string anibndCheck = Path.GetFileNameWithoutExtension(anibndName).ToLower();
+
+                        bool isFirstPlayerAnibnd = anibndCheck.Contains(GameType == GameTypes.SDT ? "c0000_a000_lo" : "c0000_a00_lo");
+
+                        chr.AnimContainer.LoadAdditionalANIBND(anibnd, null, scanAnims: isFirstPlayerAnibnd);
 
                         progress.Report(1.0 * i / anibnds.Length);
                     }
@@ -531,7 +535,7 @@ namespace DSAnimStudio
                             else
                                 anibnd = BND4.Read(anibndName);
 
-                            chr.AnimContainer.LoadAdditionalANIBND(anibnd, null);
+                            chr.AnimContainer.LoadAdditionalANIBND(anibnd, null, scanAnims: true);
 
                             progress.Report(1.0 * i / additionalAnibnds.Count);
                         }

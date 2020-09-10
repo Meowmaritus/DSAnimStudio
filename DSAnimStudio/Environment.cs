@@ -14,9 +14,13 @@ namespace DSAnimStudio
         //public static float AmbientLightMult = 1.0f;
         public static float FlverDirectLightMult = 0.65f;
         public static float FlverIndirectLightMult = 0.65f;
+        public static float SkyboxBrightnessMult = 0.25f;
         public static float FlverSceneBrightness = 1.0f;
         public static float FlverSceneContrast = 0.6f;
         public static float FlverEmissiveMult = 1.0f;
+
+        public static float LightRotationH = -0.75f;
+        public static float LightRotationV = -0.75f;
 
         private static Dictionary<string, TextureCube> cubemaps 
             = new Dictionary<string, TextureCube>();
@@ -52,9 +56,21 @@ namespace DSAnimStudio
             cubemaps.Clear();
             foreach (var cube in cubemapNames)
             {
-                cubemaps.Add(Utils.GetFileNameWithoutDirectoryOrExtension(cube),
+                if (cube.Contains("debug_cube"))
+                {
+                    cubemaps.Add(Utils.GetFileNameWithoutDirectoryOrExtension(cube),
+                    c.Load<TextureCube>("debug_cube"));
+                }
+                else
+                {
+                    cubemaps.Add(Utils.GetFileNameWithoutDirectoryOrExtension(cube),
                     new TextureFetchRequest(File.ReadAllBytes(cube), cube).FetchCube());
+                }
+
             }
+
+            cubemaps.Add("debug_cube", c.Load<TextureCube>(@"Content\Cubemaps\debug_cube"));
+        
 
             CubemapNames = Cubemaps.Keys.ToArray();
 

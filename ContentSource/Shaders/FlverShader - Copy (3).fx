@@ -7,7 +7,7 @@
 	#define PS_SHADERMODEL ps_5_0
 #endif
 
-//#define NO_SKINNING
+#define NO_SKINNING
 
 #define MAXLIGHTS 3
 
@@ -111,8 +111,7 @@ float2 SpecularMapScale;
 float2 ColorMapScale2;
 float2 NormalMapScale2;
 float2 SpecularMapScale2;
-float2 ShininessMapScale;
-float2 ShininessMapScale2;
+float2 SpecularMapScaleBB;
 float2 EmissiveMapScale;
 float2 BlendmaskMapScale;
 
@@ -179,19 +178,10 @@ sampler2D SpecularMap2Sampler = sampler_state
 	MipFilter = linear;
 };
 
-texture2D ShininessMap;
-sampler2D ShininessMapSampler = sampler_state
+texture2D SpecularMapBB;
+sampler2D SpecularMapBBSampler = sampler_state
 {
-	Texture = <ShininessMap>;
-	MinFilter = linear;
-	MagFilter = linear;
-	MipFilter = linear;
-};
-
-texture2D ShininessMap2;
-sampler2D ShininessMap2Sampler = sampler_state
-{
-	Texture = <ShininessMap2>;
+	Texture = <SpecularMapBB>;
 	MinFilter = linear;
 	MagFilter = linear;
 	MipFilter = linear;
@@ -437,11 +427,7 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 	output.TexCoord = input.TexCoord;
 	output.TexCoord2.xy = input.TexCoord2.xy;// * input.AtlasScale.xy + input.AtlasOffset.xy;
 
-    [branch]
-    if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY)
-    {
-        output.Normal = normalize(mul(SkinVert(input, float4(input.Normal, 0)).xyz, World));
-    }
+    //output.Normal = normalize(SkinVert(input, float4(input.Normal, 0)).xyz);
 
 	output.WorldToTangentSpace[0] = mul(normalize(SkinVert(input, input.Bitangent).xyz), World);
 	output.WorldToTangentSpace[1] = mul(normalize(SkinVert(input, float4(input.Binormal, 0)).xyz), World);
@@ -501,7 +487,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     [branch]
 	if (IsDoubleFaceCloth)
 	{
-		if (!isFrontFacing)
+		if (isFrontFacing)
 		{
 			texBlendVal = 0;
 		}
@@ -546,13 +532,6 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
 			
 			color.a = 1;
 		}
-
-        float dissolve = B16(input.Position.xy);
-
-        if ((((Opacity) * 1.05) + 0.125) < dissolve)
-		{
-			clip(-1);
-		}
 	}
 	else
 	{
@@ -594,16 +573,8 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     
     float3 nmapcol = lerp(tex2D(NormalMapSampler, input.TexCoord / NormalMapScale), tex2D(NormalMap2Sampler, input.TexCoord2 / NormalMapScale2), texBlendVal);
     
-    float4 shininessMapColor = lerp(tex2D(ShininessMapSampler, input.TexCoord / ShininessMapScale), tex2D(ShininessMap2Sampler, input.TexCoord2 / ShininessMapScale2), texBlendVal);
+    float4 shininessMapColor = tex2D(SpecularMapBBSampler, input.TexCoord / SpecularMapScaleBB);
     
-    float3 normalMap;
-    normalMap.xy = (nmapcol.yx * 2.0 - 1.0) * float2(1, 1);
-    normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
-    normalMap = normalize(normalMap);
-
-    normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
-    float3 N = (!isFrontFacing ? normalMap : -normalMap);
-
     [branch]
     if (WorkflowType == WORKFLOW_TEXDEBUG_DIFFUSEMAP)
     {
@@ -643,11 +614,19 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
 	}
     else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS)
     {
-        return float4(N * float3(1, 1, 1) * 0.25 + 0.5, 1);
+        float3 normalMap;
+        normalMap.xy = (nmapcol.yx * 2.0 - 1.0) * float2(1, 1);
+        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
+        normalMap = normalize(normalMap);
+
+        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
+        float3 normal = (!isFrontFacing ? normalMap : -normalMap);
+        
+        return float4(normal * 0.25 + 0.5, 1);
     }
     else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY)
     {
-        return float4((input.Normal * float3(1,1,1)) * 0.25 + 0.5, 1);
+        return float4((input.Normal * float3(1,1,-1)) * 0.25 + 0.5, 1);
     }
     else if (WorkflowType == WORKFLOW_MESHDEBUG_VERTEX_COLOR_ALPHA)
     {
@@ -665,6 +644,12 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         float roughness = 1 - normalMapBlueChannel;
         
+        float3 normalMap;
+        normalMap.xy = (nmapcol.yx * 2.0 - 1.0);
+        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
+        normalMap = normalize(normalMap);
+        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
+        float3 N = (!isFrontFacing ? normalMap : -normalMap);
         
         //return float4(N * 0.25 + 0.5, 1);
 
@@ -726,18 +711,16 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
 
         float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(reflectVec * float3(1,1,1), envMip));
 
-        //return float4(ambientSpec, 1);
-
-        //float3 normalCubemapTest = texCUBElod(EnvironmentMapSampler, float4(reflectVec, envMip));
+        float3 normalCubemapTest = texCUBElod(EnvironmentMapSampler, float4(reflectVec, envMip));
 
 		//return float4(normalCubemapTest, 1);
-        //return float4(ambientSpec, 1);
+        return float4(ambientSpec, 1);
         //return float4(reflectVec, 1);
 		
         //ambientSpec *= ambientSpec;
         ambientSpec *= AmbientLightMult;
         
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(-N, 5));
+        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(N * float3(1,1,1), 5));
 		
         //ambientDiffuse *= ambientDiffuse;
         ambientDiffuse *= AmbientLightMult;
@@ -768,14 +751,22 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     {
         //float3 normal = input.Normal;
         
-        float normalMapBlueChannel = shininessMapColor.r * shininessMapColor.r;
+        float normalMapBlueChannel = nmapcol.z;
         
         
-        //normalMapBlueChannel *= shininessMapColor.r * shininessMapColor.r;
+        normalMapBlueChannel *= shininessMapColor.r;
         
         float roughness = 1 - normalMapBlueChannel;
         
-        float3 viewVec = -normalize(input.View);
+        float3 normalMap;
+        normalMap.xy = nmapcol.yx * 2.0 - 1.0;
+        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
+        normalMap = normalize(normalMap);
+
+        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
+        float3 N = (!isFrontFacing ? normalMap : -normalMap);
+        
+        float3 viewVec = normalize(input.View);
         float3 diffuseColor = color.xyz * color.xyz;
         float3 L = -LightDirection;
         
@@ -828,7 +819,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //ambientSpec *= ambientSpec;
         ambientSpec *= AmbientLightMult;
         
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(-N, 5));
+        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(N * float3(1,1,1), 5));
         //ambientDiffuse *= ambientDiffuse;
         ambientDiffuse *= AmbientLightMult;
         
@@ -861,6 +852,14 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float normalMapBlueChannel = nmapcol.z;
         
         float roughness = 1 - normalMapBlueChannel;
+        
+        float3 normalMap;
+        normalMap.yx = nmapcol.xy * 2.0 - 1.0;
+        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
+        normalMap = normalize(normalMap);
+
+        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
+        float3 N = (!isFrontFacing ? normalMap : -normalMap);
         
         float3 viewVec = normalize(input.View);
         float3 diffuseColor = color.xyz;
@@ -915,7 +914,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //ambientSpec *= ambientSpec;
         ambientSpec *= AmbientLightMult;
         
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(-N, 5));
+        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(N * float3(1,1,1), 5));
         //ambientDiffuse *= ambientDiffuse;
         ambientDiffuse *= AmbientLightMult;
         
@@ -959,8 +958,13 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //
         //normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
         //float4 normal = float4(normalMap,1.0);
+        float3 normalMap;
+        normalMap.xy = nmapcol.xy * 2.0 - 1.0;
+        normalMap.z =  sqrt(1.0 - min(dot(normalMap.xy, normalMap.xy), 1.0));
+        normalMap = normalize(normalMap);
 
-        float3 normal = N;
+        normalMap = normalize(mul(normalMap, input.WorldToTangentSpace));
+        float3 normal = (!isFrontFacing ? normalMap : -normalMap);
         //float4 debugNormalColor = float4(
         //	(normal.x * DebugBlend_Normal_ColorScale) + DebugBlend_Normal_ColorStart,
         //	(normal.y * DebugBlend_Normal_ColorScale) + DebugBlend_Normal_ColorStart,

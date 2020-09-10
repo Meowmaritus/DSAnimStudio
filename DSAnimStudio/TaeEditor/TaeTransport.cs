@@ -264,7 +264,7 @@ namespace DSAnimStudio.TaeEditor
 
             private bool prevMouseHover;
 
-            public void Update(TaeInputHandler input, TaeTransport parentTransport)
+            public void Update(FancyInputHandler input, TaeTransport parentTransport)
             {
                 if (IsSeparator)
                     return;
