@@ -197,13 +197,17 @@ namespace DSAnimStudio
             Main.TAE_EDITOR.Graph?.ViewportInteractor?.DrawDebug();
         }
 
-        public static void DrawBehindPrims()
+        public static void DrawSkybox()
         {
-            if (Environment.DrawCubemap && !GFX.IsInDebugShadingMode)
+            if (Environment.DrawCubemap)
             {
                 GFX.World.ApplyViewToShader_Skybox(GFX.SkyboxShader);
                 DbgPrim_Skybox.Draw(null, Matrix.Identity);
             }
+        }
+
+        public static void DrawBehindPrims()
+        {
 
             if (ShowGrid)
                 DbgPrim_Grid.Draw(null, Matrix.Identity);
@@ -463,8 +467,8 @@ namespace DSAnimStudio
                 GFX.SpriteBatchBeginForText();
 
             Vector3 screenPos3D = GFX.Device.Viewport.Project(location,
-                GFX.World.NewMatrix_Projection, 
-                GFX.World.NewMatrix_View, m * GFX.World.NewMatrix_World);
+                GFX.World.Matrix_Projection, 
+                GFX.World.Matrix_View, m * GFX.World.Matrix_World);
 
             screenPos3D -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
 
@@ -549,12 +553,12 @@ namespace DSAnimStudio
         {
             // Project the 3d position first
             Vector3 screenPos3D_Top = GFX.Device.Viewport.Project(location + new Vector3(0, physicalHeight / 2, 0),
-                GFX.World.NewMatrix_Projection,
-                GFX.World.NewMatrix_View, m * GFX.World.NewMatrix_World);
+                GFX.World.Matrix_Projection,
+                GFX.World.Matrix_View, m * GFX.World.Matrix_World);
 
             Vector3 screenPos3D_Bottom = GFX.Device.Viewport.Project(location - new Vector3(0, physicalHeight / 2, 0),
-                GFX.World.NewMatrix_Projection,
-                GFX.World.NewMatrix_View, m * GFX.World.NewMatrix_World);
+                GFX.World.Matrix_Projection,
+                GFX.World.Matrix_View, m * GFX.World.Matrix_World);
 
             screenPos3D_Top -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
             screenPos3D_Bottom -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
@@ -774,7 +778,7 @@ namespace DSAnimStudio
 
             private IEnumerable<IDbgPrim> GetPrimitivesByDistance()
             {
-                return Primitives.OrderByDescending(p => (GFX.World.NewCameraTransform.Position - p.Transform.Position).LengthSquared());
+                return Primitives.OrderByDescending(p => (GFX.World.CameraLocationInWorld.Position - p.Transform.Position).LengthSquared());
             }
 
             public IEnumerable<IDbgPrim> GetPrimitives()

@@ -157,7 +157,7 @@ namespace DSAnimStudio.DebugPrimitives
         /// Set this to choose specific technique(s).
         /// Null to just use the current technique.
         /// </summary>
-        public virtual string[] ShaderTechniquesSelection => null;
+        //public virtual string[] ShaderTechniquesSelection => null;
 
         private void DrawPrimitive()
         {
@@ -239,34 +239,14 @@ namespace DSAnimStudio.DebugPrimitives
                 }
             }
 
-
-            var techniques = ShaderTechniquesSelection;
-
             var effect = Shader.Effect;
 
-            if (techniques != null)
+            foreach (var pass in effect.CurrentTechnique.Passes)
             {
-                foreach (var techniqueName in techniques)
-                {
-                    effect.CurrentTechnique = effect.Techniques[techniqueName];
-                    foreach (var pass in effect.CurrentTechnique.Passes)
-                    {
-                        if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                            GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * world);
-                        pass.Apply();
-                        DrawPrimitive();
-                    }
-                }
-            }
-            else
-            {
-                foreach (var pass in effect.CurrentTechnique.Passes)
-                {
-                    if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
-                        GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * world);
-                    pass.Apply();
-                    DrawPrimitive();
-                }
+                if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
+                    GFX.World.ApplyViewToShader(Shader, Transform.WorldMatrix * world);
+                pass.Apply();
+                DrawPrimitive();
             }
 
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
@@ -320,7 +300,7 @@ namespace DSAnimStudio.DebugPrimitives
 
             if (DbgLabels.Count > 0)
             {
-                foreach (var label in DbgLabels.OrderByDescending(lbl => (GFX.World.NewCameraTransform.Position - Vector3.Transform(Vector3.Zero, lbl.World)).LengthSquared()))
+                foreach (var label in DbgLabels.OrderByDescending(lbl => (GFX.World.CameraLocationInWorld.Position - Vector3.Transform(Vector3.Zero, lbl.World)).LengthSquared()))
                 {
                     DBG.Draw3DBillboard(label.Text, label.World * Transform.WorldMatrix * world, label.Color);
                 }

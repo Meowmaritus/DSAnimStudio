@@ -14,10 +14,16 @@ namespace DSAnimStudio.GFXShaders
 
         public FlverShader Effect => this;
 
-        public FlverShadingMode WorkflowType
+        public FlverShadingModes WorkflowType
         {
-            get => (FlverShadingMode)Parameters[nameof(WorkflowType)].GetValueInt32();
+            get => (FlverShadingModes)Parameters[nameof(WorkflowType)].GetValueInt32();
             set => Parameters[nameof(WorkflowType)].SetValue((int)value);
+        }
+
+        public PtdeMtdTypes PtdeMtdType
+        {
+            get => (PtdeMtdTypes)Parameters[nameof(PtdeMtdType)].GetValueInt32();
+            set => Parameters[nameof(PtdeMtdType)].SetValue((int)value);
         }
 
         //public float DitherTime
@@ -151,6 +157,12 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(Projection)].GetValueMatrix();
             set => Parameters[nameof(Projection)].SetValue(value);
+        }
+
+        public Matrix FlipSkybox
+        {
+            get => Parameters[nameof(FlipSkybox)].GetValueMatrix();
+            set => Parameters[nameof(FlipSkybox)].SetValue(value);
         }
         #endregion
 
@@ -403,6 +415,7 @@ namespace DSAnimStudio.GFXShaders
             View = view;
             Projection = projection;
             //ViewInverse = Matrix.Invert(view);
+            FlipSkybox = Matrix.CreateRotationX(MathHelper.Pi);
         }
     }
 }

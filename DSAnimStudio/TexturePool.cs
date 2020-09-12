@@ -81,7 +81,7 @@ namespace DSAnimStudio
 
         public static void AddFetchTPF(TPF tpf, string texName)
         {
-            string shortName = Utils.GetShortIngameFileName(texName);
+            string shortName = Utils.GetShortIngameFileName(texName).ToLower();
             if (!fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
@@ -94,7 +94,7 @@ namespace DSAnimStudio
                     //{
                     //    tpf.ConvertPS4ToPC();
                     //}
-                    var newFetch = new TextureFetchRequest(tpf, texName);
+                    var newFetch = new TextureFetchRequest(tpf, texName.ToLower());
                     fetches.Add(shortName, newFetch);
                 }
             }
@@ -103,7 +103,7 @@ namespace DSAnimStudio
 
         public static void AddFetchDDS(byte[] dds, string texName)
         {
-            string shortName = Utils.GetShortIngameFileName(texName);
+            string shortName = Utils.GetShortIngameFileName(texName).ToLower();
             if (!fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
@@ -116,7 +116,7 @@ namespace DSAnimStudio
                     //{
                     //    tpf.ConvertPS4ToPC();
                     //}
-                    var newFetch = new TextureFetchRequest(dds, texName);
+                    var newFetch = new TextureFetchRequest(dds, texName.ToLower());
                     fetches.Add(shortName, newFetch);
                 }
             }
@@ -128,7 +128,7 @@ namespace DSAnimStudio
             double i = 0;
             foreach (var tex in tpf.Textures)
             {
-                AddFetchTPF(tpf, tex.Name);
+                AddFetchTPF(tpf, tex.Name.ToLower());
                 progress?.Report(++i / tpf.Textures.Count);
             }
         }
@@ -139,7 +139,7 @@ namespace DSAnimStudio
                 ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
             foreach (var d in dds)
             {
-                string shortName = Utils.GetShortIngameFileName(d);
+                string shortName = Utils.GetShortIngameFileName(d).ToLower();
                 AddFetchDDS(File.ReadAllBytes(d), shortName);
             }
         }
@@ -149,7 +149,7 @@ namespace DSAnimStudio
             var tpfs = GameDataManager.GetInterrootFiles(folderPath, dcx ? "*.tpf.dcx" : "*.tpf");
             foreach (var t in tpfs)
             {
-                string shortName = Utils.GetShortIngameFileName(t);
+                string shortName = Utils.GetShortIngameFileName(t).ToLower();
                 if (directDdsFetches)
                 {
                     foreach (var tex in TPF.Read(t).Textures)
@@ -242,7 +242,7 @@ namespace DSAnimStudio
             {
                 for (int j = 0; j < tpfList[i].Textures.Count; j++)
                 {
-                    AddFetchTPF(tpfList[i], Utils.GetShortIngameFileName(tpfList[i].Textures[j].Name));
+                    AddFetchTPF(tpfList[i], Utils.GetShortIngameFileName(tpfList[i].Textures[j].Name).ToLower());
                     progress?.Report(++texIndex / totalTexCount);
                 }
             }
@@ -253,7 +253,7 @@ namespace DSAnimStudio
         {
             if (name == null)
                 return null;
-            var shortName = Utils.GetShortIngameFileName(name);
+            var shortName = Utils.GetShortIngameFileName(name).ToLower();
             if (fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)
@@ -287,7 +287,7 @@ namespace DSAnimStudio
             foreach (var f in bxf.Files)
             {
                 if (f.Name != null && f.Name.ToLower().Contains(".tpf") &&
-                    textures.Contains(Utils.GetShortIngameFileName(f.Name)))
+                    textures.Contains(Utils.GetShortIngameFileName(f.Name.ToLower())))
                 {
                     AddTpf(TPF.Read(f.Bytes));
                 }
@@ -317,15 +317,15 @@ namespace DSAnimStudio
             foreach (var f in bnd.Files)
             {
 
-                if (directEntryNameMatch ? textures.Contains(Utils.GetShortIngameFileName(f.Name)) : TPF.Is(f.Bytes))
+                if (directEntryNameMatch ? textures.Contains(Utils.GetShortIngameFileName(f.Name).ToLower()) : TPF.Is(f.Bytes))
                 {
                     var tpf = TPF.Read(f.Bytes);
                     foreach (var tx in tpf.Textures)
                     {
-                        var shortTexName = Utils.GetShortIngameFileName(tx.Name);
+                        var shortTexName = Utils.GetShortIngameFileName(tx.Name).ToLower();
                         if (textures.Contains(shortTexName))
                         {
-                            AddFetchTPF(tpf, tx.Name);
+                            AddFetchTPF(tpf, tx.Name.ToLower());
 
                             textures.Remove(shortTexName);
                         }
@@ -338,7 +338,7 @@ namespace DSAnimStudio
         {
             if (name == null)
                 return null;
-            var shortName = Utils.GetShortIngameFileName(name);
+            var shortName = Utils.GetShortIngameFileName(name).ToLower();
             if (fetches.ContainsKey(shortName))
             {
                 lock (_lock_pool)

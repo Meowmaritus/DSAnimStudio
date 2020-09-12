@@ -8,10 +8,11 @@
 
 
 ## Changes/Additions:
-* `Viewport Config` now renamed to `Toolbox`, but to avoid confusion, changes in this log related to it still say `Viewport Config`.
+* More accurate and good looking lighting/shading.
+* `Viewport Config` now renamed to `Toolbox`. It is referred to as such within this changelog as well.
 * DummyPoly ID text is now closer to the actual location 
 * DummyPoly 200 shows regular ID text on all points instead of just one that says "(all over body)"
-* New DummyPoly menu in `Viewport Config`. Has a list of DummyPoly for each model. Hovering over them shows just that DummyPoly in the viewport allowing you to tell where it is.
+* New DummyPoly menu in `Toolbox`. Has a list of DummyPoly for each model. Hovering over them shows just that DummyPoly in the viewport allowing you to tell where it is.
   * Click a DummyPoly to toggle it on/off. If off nothing related to it will show. Even SFX spawns etc will not show from that DummyPoly. The only exception is hitbox shapes which will always show entirely with hitbox simulation enabled.
 * Some helper colors changed around.
 * [NOT YET] New option `Scene -> Show c0000 Weapon Global DummyPoly ID Values (10000+)`, which displays the globally-offsetted values you would use for paired weapon / trick weapon AtkParams etc.
@@ -30,11 +31,11 @@
   * Preview character rotation speed.
   * Takes JumpTable 7 (Disable Turning) into account.
   * Takes Event 224 (SetTurnSpeed) into account.
-  * Apply an automatic constant turn speed right at the top of `Viewport Config`.
+  * Apply an automatic constant turn speed right at the top of `Toolbox`.
 * Volume bar now displays in percent instead of multiplier.
 * Volume bar maximum increased to 200%
 * New "Reset to 100%" button under volume.
-* Some new separators added to viewport config imgui menu for increased readability.
+* Some new separators added to Toolbox imgui menu for increased readability.
 * Made memory usage text on bottom right smaller.
 * You now have to zoom in less to see individual frame numbers.
 * Camera default orbit point makes more sense on more models
@@ -43,8 +44,28 @@
   * New default has model lit from the side, giving a more dramatic look.
 * [not yet] oading a new character now force stops all sound output (you can't manually end sound output until after it finishes loading the new character, so that was really annoying)
 * Middle clicking to recenter the camera no longer resets the zoom.
+* Entire camera system rewritten from scratch to use quaternions and also lots of spaghetti code removed. Along with that, are a few changes:
+  * Camera can now be rotated freely vertically even past the top.
+  * Skybox no longer rotates with the player model during rotational root motion.
+  * [not yet] Moving the camera pivot point now shows the pivot point in 3D space for a brief moment to let you better know what is happening.
+  * Zooming now uses different math that makes it finer/slower near the pivot point and faster far away from it.
+  * Zooming in too close to the pivot point now pushes the pivot point forward.
+  * Clicking and dragging to rotate the camera / pan the camera has been rewritten: 
+    * [NOT YET: CURSOR] Mouse cursor gets locked in place and changes to a custom cursor icon indicating movement being inputted into the viewport.
+	  * This allows free movement in all directions without ever hitting the edge of your monitor.
+    * Uses raw mouse input
+	  * No mouse acceleration.
+	  * The DPI of your mouse directly maps to the precision of movement in DS Anim Studio.
+	  * Factors in your Windows mouse pointer speed as a base so users of high DPI mouse with low speed shouldn't have issues with it being way too fast by default.
+	  * New overall mouse input speed multiplier in the Toolbox near the camera rotate/move speed values that were already there.
+* [not yet] There is now a waypoint indicating where on the ground the character was at the start of the last few animations played, so you can measure root motion distance etc.
+  * They fade out each time like onion skinning.
+* [not yet] You can now drag the bottom-left corner of the model viewer pane to resize the width and height simultaneously.
+* [not yet] Resizing the application window maintains the same model viewer and inspector pane size ratios relative to the total size of the screen.
+
 
 ## Fixes:
+* Fixed longstanding critical oversight where the individual normals from normal maps were not oriented correctly.
 * [NOT YET] Spawn events that use the global weapon model offsets (10000+) now display correctly.
 * Fixed a bug where weapon locations displayed in the location of the previous animation frame for 1 render frame after changing animation frames before suddenly snapping to the right location. This was extremely noticable for very drastic location changes such as Bloodborne trick weapon transformation animations, where you would see the weapon in an extremely incorrect location for 1 frame and it appeared very jarring.
 * [NOT YET] Fixed bug where hitting Insert key to insert a new animation would scroll to a weird place in the animation list.

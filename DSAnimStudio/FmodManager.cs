@@ -71,10 +71,10 @@ namespace DSAnimStudio
 
                 //_eventSystem.set3DListenerAttributes(listener: 0, ref pos, ref vel, ref forward, ref up);Vector3.Transform(
 
-                Vector3 pos = GFX.World.NewCameraTransform.Position * new Vector3(1, 1, -1);
+                Vector3 pos = GFX.World.CameraLocationInWorld.Position * new Vector3(1, 1, -1);
                 Vector3 vel = Vector3.Zero;
-                Vector3 up = GFX.World.NewGetScreenSpaceUpVector() * new Vector3(1, 1, -1);
-                Vector3 forward = GFX.World.NewGetScreenSpaceForwardVector() * new Vector3(1, 1, -1);
+                Vector3 up = GFX.World.GetCameraUp() * new Vector3(1, 1, -1);
+                Vector3 forward = GFX.World.GetCameraForward() * new Vector3(1, 1, -1);
 
 
                 DbgPrimCamPos.Transform = new Transform(Matrix.CreateWorld(pos, forward, up));

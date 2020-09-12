@@ -1,5 +1,4 @@
 ﻿using DSAnimStudio.DbgMenus;
-using DSAnimStudio.DebugPrimitives;
 using DSAnimStudio.GFXShaders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -21,6 +20,13 @@ namespace DSAnimStudio
     /// </summary>
     public class Main : Game
     {
+        protected override void Dispose(bool disposing)
+        {
+            WindowsMouseHook.Unhook();
+
+            base.Dispose(disposing);
+        }
+
         public static ColorConfig Colors = new ColorConfig();
 
         public static Form WinForm;
@@ -115,6 +121,8 @@ namespace DSAnimStudio
         public static ContentManager CM = null;
 
         public static RenderTarget2D SceneRenderTarget = null;
+        public static RenderTarget2D UnusedRendertarget0 = null;
+        public static int UnusedRenderTarget0Padding = 0;
 
         public static int RequestHideOSD = 0;
         public static int RequestHideOSD_MAX = 10;
@@ -185,6 +193,7 @@ namespace DSAnimStudio
 
         public Main()
         {
+            WindowsMouseHook.Hook();
 
             WinForm = (Form)Form.FromHandle(Window.Handle);
 
@@ -245,6 +254,7 @@ namespace DSAnimStudio
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
 
+
         private void WinForm_DpiChanged(object sender, DpiChangedEventArgs e)
         {
             UpdateDpiStuff();
@@ -297,13 +307,25 @@ namespace DSAnimStudio
                 int msaa = GFX.MSAA;
                 int ssaa = GFX.SSAA;
 
-                
+
 
                 SceneRenderTarget?.Dispose();
+                UnusedRendertarget0?.Dispose();
+                //GFX.BokehRenderTarget?.Dispose();
+
                 GC.Collect();
+
                 SceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width * ssaa,
-                       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24, 
+                       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24,
                        ssaa > 1 ? 1 : msaa, RenderTargetUsage.DiscardContents);
+
+                UnusedRendertarget0 = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width + (UnusedRenderTarget0Padding * 2),
+                       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height + (UnusedRenderTarget0Padding * 2), true, SurfaceFormat.Vector4, DepthFormat.Depth24,
+                       1, RenderTargetUsage.DiscardContents);
+
+                //GFX.BokehRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width + (UnusedRenderTarget0Padding * 2),
+                //       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height + (UnusedRenderTarget0Padding * 2), true, SurfaceFormat.Vector4, DepthFormat.Depth24,
+                //       1, RenderTargetUsage.DiscardContents);
 
                 TimeBeforeNextRenderTargetUpdate = TimeBeforeNextRenderTargetUpdate_Max;
 
@@ -386,26 +408,44 @@ namespace DSAnimStudio
             
         }
 
+        private static Microsoft.Xna.Framework.Vector3 currModelAddOffset = Microsoft.Xna.Framework.Vector3.Zero;
         private void GameWindowForm_DragDrop(object sender, DragEventArgs e)
         {
             string[] modelFiles = (string[])e.Data.GetData(DataFormats.FileDrop, false);
 
             //TAE_EDITOR.
 
-            foreach (var file in modelFiles)
+            LoadingTaskMan.DoLoadingTask("LoadingDroppedModel", "Loading dropped model(s)...", prog =>
             {
-                if (file.ToUpper().EndsWith(".FLVER"))
+                foreach (var file in modelFiles)
                 {
-                    Scene.AddModel(new Model(FLVER2.Read(file), false));
+                    if (file.ToUpper().EndsWith(".FLVER"))
+                    {
+                        currModelAddOffset.X += 3;
+                        var m = new Model(FLVER2.Read(file), false);
+                        m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                        Scene.AddModel(m);
+                    }
+                    else if (file.ToUpper().EndsWith(".CHRBND") || file.ToUpper().EndsWith(".CHRBND.DCX"))
+                    {
+                        currModelAddOffset.X += 3;
+                        var m = GameDataManager.LoadCharacter(Utils.GetShortIngameFileName(file));
+                        m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                        m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
+                        m.UpdateAnimation();
+                        Scene.AddModel(m);
+                    }
                 }
-            }
+
+            }, disableProgressBarByDefault: true);
+            
 
             //LoadDragDroppedFiles(modelFiles.ToDictionary(f => f, f => File.ReadAllBytes(f)));
         }
 
         private void GameWindowForm_DragEnter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) && !LoadingTaskMan.AnyTasksRunning())
             {
                 e.Effect = DragDropEffects.All;
             }
@@ -656,7 +696,7 @@ namespace DSAnimStudio
                     //    GFX.World.UpdateInput(this, gameTime);
                     //}
 
-                    GFX.World.NewUpdate();
+                    GFX.World.Update();
 
                     if (REQUEST_EXIT)
                         Exit();
@@ -756,10 +796,14 @@ namespace DSAnimStudio
 
         protected override void Draw(GameTime gameTime)
         {
+#if !DEBUG
             try
             {
+#endif
                 if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
                 {
+                    Input.Update(new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height));
+
                     Colors.ReadColorsFromConfig();
 
                     // Still initializing just blank out screen while layout freaks out lol
@@ -776,7 +820,7 @@ namespace DSAnimStudio
                     if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
                     {
                         // Only update input if debug menu isnt fully open.
-                        GFX.World.NewUpdateInput(Main.Input);
+                        GFX.World.UpdateInput();
                     }
 
                     if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
@@ -795,18 +839,57 @@ namespace DSAnimStudio
                                 TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
                         }
 
-                        GFX.Device.SetRenderTarget(SceneRenderTarget);
 
-                        GFX.Device.Clear(Colors.MainColorViewportBackground);
+                    //GFX.Device.SetRenderTarget(UnusedRendertarget0);
+
+                    //GFX.Device.Clear(Colors.MainColorViewportBackground);
+
+                    //GFX.Device.Viewport = new Viewport(0, 0, UnusedRendertarget0.Width, UnusedRendertarget0.Height);
+
+                    //GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+
+                    //GFX.BeginDraw();
+                    ////GFX.InitDepthStencil(writeDepth: false);
+                    //DBG.DrawSkybox();
+
+                    //GFX.Device.SetRenderTarget(null);
+
+
+                    //GFX.Bokeh.Draw(SkyboxRenderTarget, GFX.BokehShapeHexagon, GFX.BokehRenderTarget,
+                    //    GFX.BokehBrightness, GFX.BokehSize, GFX.BokehDownsize, GFX.BokehIsFullPrecision, GFX.BokehIsDynamicDownsize);
+
+                    GFX.Device.SetRenderTarget(null);
+
+                    //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+                    
+
+
+                    
+
+
+                    GFX.Device.SetRenderTarget(SceneRenderTarget);
+
+                        GFX.Device.Clear(Color.Transparent);
 
                         GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
 
                         GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
 
-                        
+                    //GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                    //GFX.SpriteBatch.Draw(SkyboxRenderTarget,
+                    //new Rectangle(-SkyboxRenderTargetPadding, -SkyboxRenderTargetPadding,
+                    //(TAE_EDITOR.ModelViewerBounds.Width + (SkyboxRenderTargetPadding * 2)) * GFX.EffectiveSSAA,
+                    //(TAE_EDITOR.ModelViewerBounds.Height + (SkyboxRenderTargetPadding * 2)) * GFX.EffectiveSSAA), Color.White);
+                    //GFX.SpriteBatchEnd();
 
-                        //TaeInterop.TaeViewportDrawPre(gameTime);
-                        GFX.DrawScene3D();
+                    GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+                    //GFX.Device.Clear(ClearOptions.Stencil, Color.Transparent, 1, 0);
+                    GFX.BeginDraw();
+                    DBG.DrawSkybox();
+                    //TaeInterop.TaeViewportDrawPre(gameTime);
+                    GFX.DrawScene3D();
+
+                    
 
                         //if (!DBG.DbgPrimXRay)
                         //    GFX.DrawSceneOver3D();
@@ -818,7 +901,7 @@ namespace DSAnimStudio
 
                         GFX.DrawSceneOver3D();
 
-                        GFX.Device.SetRenderTarget(null);
+                    GFX.Device.SetRenderTarget(null);
 
                         GFX.Device.Clear(Colors.MainColorBackground);
 
@@ -827,7 +910,7 @@ namespace DSAnimStudio
                         InitTonemapShader();
                         GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
 
-                        if (GFX.UseTonemap && !GFX.IsInDebugShadingMode)
+                        if (GFX.UseTonemap)
                         {
                             MainFlverTonemapShader.ScreenSize = new Vector2(
                                 TAE_EDITOR.ModelViewerBounds.Width * Main.DPIX,
@@ -835,9 +918,14 @@ namespace DSAnimStudio
                             MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
                         }
 
-                        GFX.SpriteBatch.Draw(SceneRenderTarget,
+                    
+
+                    GFX.SpriteBatch.Draw(SceneRenderTarget,
                             new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
-                        GFX.SpriteBatchEnd();
+
+                    GFX.SpriteBatchEnd();
+
+                        
 
                         //try
                         //{
@@ -931,12 +1019,14 @@ namespace DSAnimStudio
                 //    // TESTING
                 //    GFX.Device.Clear(Color.Fuchsia);
                 //}
+#if !DEBUG
             }
             catch (Exception ex)
             {
                 ErrorLog.HandleException(ex, "Fatal error ocurred during rendering");
                 GFX.Device.SetRenderTarget(null);
             }
+#endif
 
             
 

@@ -87,7 +87,9 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidBladeTrail.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireBladeTrail.cs" />
     <Compile Include="ErrorLog.cs" />
-    <Compile Include="FlverShadingMode.cs" />
+    <Compile Include="FancyShaders\BokehShader.cs" />
+    <Compile Include="FancyShaders\QuadRenderer.cs" />
+    <Compile Include="FlverShaderEnums.cs" />
     <Compile Include="FmodManager.cs" />
     <Compile Include="FMOD\fmod.cs" />
     <Compile Include="FMOD\fmod_dsp.cs" />
@@ -226,6 +228,7 @@
     <Compile Include="CFG.cs" />
     <Compile Include="TexturePool.cs" />
     <Compile Include="FlverShaderVertInput.cs" />
+    <Compile Include="WindowsMouseHook.cs" />
     <Compile Include="WorldView.cs" />
     <Compile Include="DBG.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireGrid.cs" />
@@ -266,6 +269,10 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\Lib\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="RawInput.Sharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RawInput.Sharp.0.0.3\lib\netstandard1.1\RawInput.Sharp.dll</HintPath>
     </Reference>
     <Reference Include="SharpDX, Version=2.6.3.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -571,6 +578,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Content\Fonts\TaeEditorFontSmall.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Shaders\Bokeh.xnb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Shaders\BokehShapeHexagon.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Content\Shaders\CollisionShader.xnb">

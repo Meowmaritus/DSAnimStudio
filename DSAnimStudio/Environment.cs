@@ -11,13 +11,15 @@ namespace DSAnimStudio
 {
     public static class Environment
     {
-        //public static float AmbientLightMult = 1.0f;
+        public static float AmbientLightMult = 1.0f;
         public static float FlverDirectLightMult = 0.65f;
         public static float FlverIndirectLightMult = 0.65f;
         public static float SkyboxBrightnessMult = 0.25f;
         public static float FlverSceneBrightness = 1.0f;
         public static float FlverSceneContrast = 0.6f;
         public static float FlverEmissiveMult = 1.0f;
+
+        public static float MotionBlurStrength = 1;
 
         public static float LightRotationH = -0.75f;
         public static float LightRotationV = -0.75f;

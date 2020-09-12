@@ -30,10 +30,28 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(Projection)].SetValue(value);
         }
 
+        public Matrix FlipSkybox
+        {
+            get => Parameters[nameof(FlipSkybox)].GetValueMatrix();
+            set => Parameters[nameof(FlipSkybox)].SetValue(value);
+        }
+
         public Vector3 EyePosition
         {
             get => Parameters[nameof(EyePosition)].GetValueVector3();
             set => Parameters[nameof(EyePosition)].SetValue(value);
+        }
+
+        public Vector3 MotionBlurVector
+        {
+            get => Parameters[nameof(MotionBlurVector)].GetValueVector3();
+            set => Parameters[nameof(MotionBlurVector)].SetValue(value);
+        }
+
+        public int NumMotionBlurSamples
+        {
+            get => Parameters[nameof(NumMotionBlurSamples)].GetValueInt32();
+            set => Parameters[nameof(NumMotionBlurSamples)].SetValue(value);
         }
 
         public TextureCube EnvironmentMap
@@ -54,6 +72,8 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(SceneBrightness)].SetValue(value);
         }
 
+        
+
         public SkyboxShader(GraphicsDevice graphicsDevice, byte[] effectCode) : base(graphicsDevice, effectCode)
         {
         }
@@ -72,6 +92,7 @@ namespace DSAnimStudio.GFXShaders
             View = view;
             Projection = projection;
             //ViewInverse = Matrix.Invert(view);
+            FlipSkybox = Matrix.CreateRotationX(MathHelper.Pi);
         }
     }
 }

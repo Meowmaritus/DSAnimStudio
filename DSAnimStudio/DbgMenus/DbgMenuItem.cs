@@ -70,12 +70,12 @@ namespace DSAnimStudio.DbgMenus
                         //new DbgMenuItemBool("View Frustum Culling (Experimental)", "ON", "OFF",
                         //    (b) => GFX.EnableFrustumCulling = b, () => GFX.EnableFrustumCulling),
                         new DbgMenuItemNumber("Vertical Field of View (Degrees)", 20, 150, 1,
-                            (f) => GFX.World.FieldOfView = f, () => GFX.World.FieldOfView,
+                            (f) => GFX.World.ProjectionVerticalFoV = f, () => GFX.World.ProjectionVerticalFoV,
                             (f) => $"{((int)(Math.Round(f)))}"),
                         new DbgMenuItemNumber("Near Clip Distance", 0.0001f, 5, 0.0001f,
-                            (f) => GFX.World.NewNearClipDistance = f, () => GFX.World.NewNearClipDistance),
+                            (f) => GFX.World.ProjectionNearClipDist = f, () => GFX.World.ProjectionNearClipDist),
                         new DbgMenuItemNumber("Far Clip Distance", 100, 1000000, 100,
-                            (f) => GFX.World.NewFarClipDistance = f, () => GFX.World.NewFarClipDistance),
+                            (f) => GFX.World.ProjectionFarClipDist = f, () => GFX.World.ProjectionFarClipDist),
                         new DbgMenuItem()
                         {
                             Text = "Reset All To Default",

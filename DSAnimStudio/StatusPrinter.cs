@@ -77,7 +77,7 @@ namespace DSAnimStudio
             else
             {
                 Vector3 screenPos3D = GFX.Device.Viewport.Project(Position3D,
-                GFX.World.NewMatrix_Projection, GFX.World.NewMatrix_View, GFX.World.NewMatrix_World);
+                GFX.World.Matrix_Projection, GFX.World.Matrix_View, GFX.World.Matrix_World);
 
                 screenPos3D -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
 

@@ -106,7 +106,7 @@ namespace DSAnimStudio
                 if (TPFReference == null)
                     return null;
 
-                var matchedTextures = TPFReference.Textures.Where(x => x.Name == TexName).ToList();
+                var matchedTextures = TPFReference.Textures.Where(x => x.Name.ToLower() == TexName.ToLower()).ToList();
 
                 if (matchedTextures.Count > 0)
                 {

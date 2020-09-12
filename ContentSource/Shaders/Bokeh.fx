@@ -1,0 +1,152 @@
+﻿
+//Transition shader, TheKosmonaut 2017
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  VARIABLES
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Texture2D Screen;
+Texture2D Shape;
+
+float Timer = 0;
+
+float AspectRatio = 1.6f;
+
+float2 ImageTexCoord = float2(0.5f, 0.5f);
+
+float Brightness = 0.01f;
+
+SamplerState texSampler
+{
+    
+    AddressU = CLAMP;
+    AddressV = CLAMP;
+    MagFilter = POINT;
+    MinFilter = POINT;
+    Mipfilter = POINT;
+};
+
+SamplerState bilinearSampler
+{
+	AddressU = CLAMP;
+	AddressV = CLAMP;
+	MagFilter = LINEAR;
+	MinFilter = LINEAR;
+	Mipfilter = LINEAR;
+};
+ 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  STRUCTS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct VertexShaderInput
+{
+    float3 Position : POSITION0;
+    float2 TexCoord : TEXCOORD0;
+	float2 TexCoord2 : TEXCOORD1;
+};
+
+struct VertexShaderOutput
+{
+    float4 Position : POSITION0;
+    float2 TexCoord : TEXCOORD0;
+	float3 Color : COLOR;
+};
+
+struct VertexShaderInputSimple
+{
+	float3 Position : POSITION0;
+	float2 TexCoord : TEXCOORD0;
+};
+
+struct VertexShaderOutputSimple
+{
+	float4 Position : POSITION0;
+	float2 TexCoord : TEXCOORD0;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//  VERTEX SHADER
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
+{
+    VertexShaderOutput output;
+    output.Position = float4(input.Position, 1);
+    output.TexCoord = input.TexCoord;
+	//output.TexCoord2 = input.TexCoord2;
+	output.Color = Screen.SampleLevel(texSampler, input.TexCoord2, 0).rgb;
+
+    return output;
+
+}
+
+VertexShaderOutputSimple VertexShaderFunctionSimple(VertexShaderInputSimple input)
+{
+	VertexShaderOutputSimple output;
+	output.Position = float4(input.Position, 1);
+	output.TexCoord = input.TexCoord;
+	return output;
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//  PIXEL SHADER
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//  HELPER FUNCTIONS
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//  Main function
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+float4 PixelShaderFunction(VertexShaderOutput input) : COLOR
+{
+	const float shape_size = 100;
+
+	//float4 color = Screen.Sample(texSampler, input.TexCoord2);
+
+	
+	float shape = /*Shape.Sample(bilinearSampler, input.TexCoord).r; */
+		Shape.Load(int3(input.TexCoord * shape_size, 0)).r;
+
+	//float luma = color.r * 0.299 + 0.587 * color.g + 0.11f * color.b;
+	
+	return float4(input.Color * shape, 1/* luma * 0.5f*/);
+}
+
+
+float4 PixelShaderFunctionTex(VertexShaderOutputSimple input) : COLOR
+{
+	return Screen.Sample(bilinearSampler, input.TexCoord)* Brightness * 0.1f;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//  TECHNIQUES
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+technique Default
+{
+	pass Pass1
+	{
+		VertexShader = compile vs_5_0 VertexShaderFunction();
+		PixelShader = compile ps_5_0 PixelShaderFunction();
+	}
+}
+
+technique Texture
+{
+	pass Pass1
+	{
+		VertexShader = compile vs_5_0 VertexShaderFunctionSimple();
+		PixelShader = compile ps_5_0 PixelShaderFunctionTex();
+	}
+}
+

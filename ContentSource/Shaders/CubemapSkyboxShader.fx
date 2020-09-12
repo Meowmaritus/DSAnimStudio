@@ -11,11 +11,15 @@
 float4x4 World;
 float4x4 View;
 float4x4 Projection;
+float4x4 FlipSkybox;
 
 float3 EyePosition;
 
 float AmbientLightMult;
 float SceneBrightness;
+
+float3 MotionBlurVector;
+int NumMotionBlurSamples;
 
 textureCUBE EnvironmentMap;
 samplerCUBE EnvironmentMapSampler = sampler_state
@@ -53,7 +57,7 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
-	float3 viewVec = normalize(input.View);
+	float3 viewVec = mul(float4(normalize(input.View), 1), FlipSkybox).xyz;
     
     float3 mipA = texCUBElod(EnvironmentMapSampler, float4(viewVec, 0));
     float3 mipB = texCUBElod(EnvironmentMapSampler, float4(viewVec, 1));
@@ -64,8 +68,30 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     mipB *= mipB;
     mipC *= mipC;
     mipD *= mipD;
-    
+
     return float4(((mipA + mipB + mipC + mipD) / 4) * AmbientLightMult * SceneBrightness, 1);
+
+    // Get the initial color at this pixel.   
+    // float3 color = texCUBElod(EnvironmentMapSampler, float4(viewVec, 0));
+
+    // [branch]
+    // if (NumMotionBlurSamples == 0)    
+    // {
+    //     return float4(color * AmbientLightMult * SceneBrightness, 1);
+    // }
+    // else
+    // {
+    //     for(int i = 0; i < NumMotionBlurSamples; i++) 
+    //     {
+    //         viewVec += MotionBlurVector;
+    //         // Sample the color buffer along the velocity vector.    
+    //         float3 currentColor = texCUBElod(EnvironmentMapSampler, float4(normalize(viewVec), 0));
+    //         // Add the current color to our color sum.   
+    //         color += currentColor; 
+    //     } 
+    //     // Average all of the samples to get the final blur color.    
+    //     return float4((color / NumMotionBlurSamples) * AmbientLightMult * SceneBrightness, 1); 
+    // }
 }
 
 technique BasicColorDrawing
