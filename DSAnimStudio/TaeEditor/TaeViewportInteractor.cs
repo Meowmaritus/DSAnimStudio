@@ -283,7 +283,7 @@ namespace DSAnimStudio.TaeEditor
 
                 GFX.World.NewDoRecenterAction = () =>
                 {
-                    GFX.World.NewCameraLookDirection = Quaternion.Identity;
+                    GFX.World.CameraLookDirection = Quaternion.Identity;
                 };
                 GFX.World.NewRecenter();
 
@@ -299,7 +299,7 @@ namespace DSAnimStudio.TaeEditor
 
                 GFX.World.NewDoRecenterAction = () =>
                 {
-                    GFX.World.NewCameraLookDirection = Quaternion.Identity;
+                    GFX.World.CameraLookDirection = Quaternion.Identity;
                 };
                 GFX.World.NewRecenter();
 
@@ -324,7 +324,7 @@ namespace DSAnimStudio.TaeEditor
             CurrentModel.OnRootMotionWrap = (wrap) =>
             {
                 GeneralUpdate();
-                GFX.World.NewUpdate();
+                GFX.World.Update();
                 FmodManager.Update();
             };
 
@@ -991,21 +991,21 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {
-                    GFX.World.NewRootMotionFollow_Position = 
+                    GFX.World.RootMotionFollow_Translation = 
                         Vector3.Transform(Vector3.Zero, CurrentModel.CurrentRootMotionTranslation);
                 }
                 else
                 {
-                    GFX.World.NewRootMotionFollow_Position = Vector3.Zero;
+                    GFX.World.RootMotionFollow_Translation = Vector3.Zero;
                 }
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
                 {
-                    GFX.World.NewRootMotionFollow_Rotation = CurrentModel.CurrentDirection;
+                    GFX.World.RootMotionFollow_Rotation = CurrentModel.CurrentDirection;
                 }
                 else
                 {
-                    GFX.World.NewRootMotionFollow_Rotation = 0;
+                    GFX.World.RootMotionFollow_Rotation = 0;
                 }
 
                 if (Graph.MainScreen.Config.CameraPansVerticallyToFollowModel)
@@ -1035,8 +1035,8 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                GFX.World.NewRootMotionFollow_Position = Vector3.Zero;
-                GFX.World.NewRootMotionFollow_Rotation = 0;
+                GFX.World.RootMotionFollow_Translation = Vector3.Zero;
+                GFX.World.RootMotionFollow_Rotation = 0;
             }
             
         }

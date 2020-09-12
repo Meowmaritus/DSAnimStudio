@@ -47,9 +47,9 @@ namespace DSAnimStudio
                 DBG.ShowGrid = true;
                 //DBG.SimpleTextLabelSize = true;
 
-                GFX.World.FieldOfView = 43;
-                GFX.World.NewNearClipDistance = 0.1f;
-                GFX.World.NewFarClipDistance = 10000f;
+                GFX.World.ProjectionVerticalFoV = 43;
+                GFX.World.ProjectionNearClipDist = 0.1f;
+                GFX.World.ProjectionFarClipDist = 10000f;
 
                 Save();
                 Load();
@@ -61,7 +61,6 @@ namespace DSAnimStudio
             if (IsEnabled)
             {
                 GFX.World.CameraMoveSpeed = 1;
-                GFX.World.CameraTurnSpeedGamepad = 1;
                 GFX.World.CameraTurnSpeedMouse = 1;
 
                 Save();
@@ -116,11 +115,10 @@ namespace DSAnimStudio
                     //DBG.SimpleTextLabelSize = Current.DBG_SimpleTextLabelSize;
 
                     GFX.World.CameraMoveSpeed = Current.GFX_World_CameraMoveSpeed;
-                    GFX.World.CameraTurnSpeedGamepad = Current.GFX_World_CameraTurnSpeedGamepad;
                     GFX.World.CameraTurnSpeedMouse = Current.GFX_World_CameraTurnSpeedMouse;
-                    GFX.World.FieldOfView = Current.GFX_World_FieldOfView;
-                    GFX.World.NewNearClipDistance = Current.GFX_World_NearClipDistance;
-                    GFX.World.NewFarClipDistance = Current.GFX_World_FarClipDistance;
+                    GFX.World.ProjectionVerticalFoV = Current.GFX_World_FieldOfView;
+                    GFX.World.ProjectionNearClipDist = Current.GFX_World_NearClipDistance;
+                    GFX.World.ProjectionFarClipDist = Current.GFX_World_FarClipDistance;
 
                     GFX.Display.Width = Current.GFX_Display_Width;
                     GFX.Display.Height = Current.GFX_Display_Height;
@@ -163,11 +161,10 @@ namespace DSAnimStudio
                     //Current.DBG_SimpleTextLabelSize = true;
 
                     Current.GFX_World_CameraMoveSpeed = GFX.World.CameraMoveSpeed;
-                    Current.GFX_World_CameraTurnSpeedGamepad = GFX.World.CameraTurnSpeedGamepad;
                     Current.GFX_World_CameraTurnSpeedMouse = GFX.World.CameraTurnSpeedMouse;
-                    Current.GFX_World_FieldOfView = GFX.World.FieldOfView;
-                    Current.GFX_World_NearClipDistance = GFX.World.NewNearClipDistance;
-                    Current.GFX_World_FarClipDistance = GFX.World.NewFarClipDistance;
+                    Current.GFX_World_FieldOfView = GFX.World.ProjectionVerticalFoV;
+                    Current.GFX_World_NearClipDistance = GFX.World.ProjectionNearClipDist;
+                    Current.GFX_World_FarClipDistance = GFX.World.ProjectionFarClipDist;
 
                     Current.GFX_Display_Width = GFX.Display.Width;
                     Current.GFX_Display_Height = GFX.Display.Height;

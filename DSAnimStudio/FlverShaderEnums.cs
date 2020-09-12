@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio
 {
-    public enum FlverShadingMode
+    public enum FlverShadingModes
     {
         HIGHLIGHT = -2,
 
@@ -35,5 +35,13 @@ namespace DSAnimStudio
         PBR_GLOSS_DS3 = 201,
         PBR_GLOSS_BB = 202,
         CLASSIC_DIFFUSE_PTDE = 203,
+    }
+
+    public enum PtdeMtdTypes : int
+    {
+        PTDE_MTD_TYPE_DEFAULT = 0,
+        PTDE_MTD_TYPE_METAL = 1,
+        PTDE_MTD_TYPE_WET = 2,
+        PTDE_MTD_TYPE_DULL = 3,
     }
 }

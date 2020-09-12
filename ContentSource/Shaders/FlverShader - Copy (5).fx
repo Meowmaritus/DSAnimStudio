@@ -33,11 +33,6 @@
 #define WORKFLOW_PBR_GLOSS_BB 202
 #define WORKFLOW_CLASSIC_DIFFUSE_PTDE 203
 
-#define PTDE_MTD_TYPE_DEFAULT 0
-#define PTDE_MTD_TYPE_METAL 1
-#define PTDE_MTD_TYPE_WET 2
-#define PTDE_MTD_TYPE_DULL 3
-
 #ifndef NO_SKINNING
 cbuffer cbSkinned
 {
@@ -73,7 +68,6 @@ int WorkflowType = 0;
 float4x4 World;
 float4x4 View;
 float4x4 Projection;
-float4x4 FlipSkybox;
 bool IsSkybox = false;
 
 //Highlight
@@ -129,8 +123,6 @@ float FancyAlpha_EdgeCutoff = 0.5;
 
 //DOUBLE FACE CLOTH 
 bool IsDoubleFaceCloth;
-
-int PtdeMtdType = 0;
 
 // Textures
 texture2D ColorMap;
@@ -619,51 +611,51 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     }
     else if (WorkflowType == WORKFLOW_TEXDEBUG_SPECULARMAP)
     {
-        return float4(specularMapColor.rgb, color.a);
+        return specularMapColor;
     }
     else if (WorkflowType == WORKFLOW_TEXDEBUG_NORMALMAP)
     {
-        return float4(nmapcol.x, nmapcol.y, 1, color.a);
+        return float4(nmapcol.x, nmapcol.y, 1, 1);
     }
     else if (WorkflowType == WORKFLOW_TEXDEBUG_EMISSIVEMAP)
     {
-        return float4(emissiveMapColor.rgb, color.a);
+        return emissiveMapColor;
     }
     else if (WorkflowType == WORKFLOW_TEXDEBUG_BLENDMASKMAP)
     {
-        return float4(blendmaskColor.rgb, color.a);
+        return blendmaskColor;
     }
     else if (WorkflowType == WORKFLOW_TEXDEBUG_SHININESSMAP)
     {
-        return float4(shininessMapColor.rgb, color.a);
+        return shininessMapColor;
     }
     else if (WorkflowType == WORKFLOW_TEXDEBUG_NORMALMAP_BLUE)
     {
-        return float4(nmapcol.b, nmapcol.b, nmapcol.b, color.a);
+        return float4(nmapcol.b, nmapcol.b, nmapcol.b, 1);
     }
 	else if (WorkflowType == WORKFLOW_TEXDEBUG_UVCHECK_0)
 	{
-		return float4(tex2D(UVCheckMapSampler, input.TexCoord).xyz, color.a);
+		return float4(tex2D(UVCheckMapSampler, input.TexCoord).xyz, 1);
 	}
 	else if (WorkflowType == WORKFLOW_TEXDEBUG_UVCHECK_1)
 	{
-		return float4(tex2D(UVCheckMapSampler, input.TexCoord2).xyz, color.a);
+		return float4(tex2D(UVCheckMapSampler, input.TexCoord2).xyz, 1);
 	}
     else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS)
     {
-        return float4(N * float3(1, 1, 1) * 0.25 + 0.5, color.a);
+        return float4(N * float3(1, 1, 1) * 0.25 + 0.5, 1);
     }
     else if (WorkflowType == WORKFLOW_MESHDEBUG_NORMALS_MESH_ONLY)
     {
-        return float4((input.Normal * float3(1,1,1)) * 0.25 + 0.5, color.a);
+        return float4((input.Normal * float3(1,1,1)) * 0.25 + 0.5, 1);
     }
     else if (WorkflowType == WORKFLOW_MESHDEBUG_VERTEX_COLOR_ALPHA)
     {
-        return float4(input.Color.a, input.Color.a, input.Color.a, color.a);
+        return float4(input.Color.a, input.Color.a, input.Color.a, 1);
     }
     else if (WorkflowType == WORKFLOW_MESHDEBUG_VERTEX_COLOR_RGB)
     {
-        return float4(input.Color.r, input.Color.g, input.Color.b, color.a);
+        return float4(input.Color.r, input.Color.g, input.Color.b, 1);
     }
     else if (WorkflowType == WORKFLOW_PBR_GLOSS_DS3)
     {
@@ -732,7 +724,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         //return float4(clamp(NdotV, 0, 1), clamp(NdotV, 0, 1), clamp(NdotV, 0, 1), 1);
 
-        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(mul(float4(reflectVec, 1), FlipSkybox).xyz, envMip));
+        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(reflectVec * float3(1,1,1), envMip));
 
         //return float4(ambientSpec, 1);
 
@@ -745,7 +737,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //ambientSpec *= ambientSpec;
         ambientSpec *= AmbientLightMult;
         
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(mul(float4(-N, 1), FlipSkybox).xyz, 5));
+        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(-N, 5));
 		
         //ambientDiffuse *= ambientDiffuse;
         ambientDiffuse *= AmbientLightMult;
@@ -796,11 +788,6 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         // TEST
         
         F0 *= F0;
-
-        ////////////////////////////////////////////////////////////////////////////////
-        // DEBUG: F0
-        //return float4(float3(1,1,1) * F0, 1);
-        ////////////////////////////////////////////////////////////////////////////////
         
         float LdotN = saturate(dot(N, L));
         float NdotV = abs(saturate(dot(viewVec, N)));
@@ -812,47 +799,23 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         float3 finalDiffuse = diffuseColor * (LdotN);
         
-        ////////////////////////////////////////////////////////////////////////////////
-        // DEBUG: finalDiffuse
-        //return float4(float3(1,1,1) * finalDiffuse, 1);
-        ////////////////////////////////////////////////////////////////////////////////
-
         float3 F = pow(1.0 - VdotH, 5) * (1.0 - F0) + F0;
-
-        ////////////////////////////////////////////////////////////////////////////////
-        // DEBUG: F
-        //return float4(float3(1,1,1) * F, 1);
-        ////////////////////////////////////////////////////////////////////////////////
         
-        
+        float denom = NdotH * NdotH * (alphasquare - 1.0) + 1.0;
         
         //[OLD D]
-        //float denom = NdotH * NdotH * (alphasquare - 1.0) + 1.0;
         //float D = alphasquare / (Pi * denom * denom);
         
         float specPower = exp2((1 - roughness) * 13.0);
         specPower = max(1.0, specPower / (specPower * 0.01 + 1.0)) * SpecularPowerMult;
         float D = pow(NdotH, specPower) * (specPower * 0.125 + 0.25);
         
-        ////////////////////////////////////////////////////////////////////////////////
-        // DEBUG: D
-        //return float4(float3(1,1,1) * D, 1);
-        ////////////////////////////////////////////////////////////////////////////////
-
-        float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
-          NdotV * sqrt(alphasquare + ((1.0 - alphasquare) * (LdotN * LdotN )));
-        V = min(0.5 / max(V, Epsilon), 1.0);
+        //float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
+        //  NdotV * sqrt(alphasquare + ((1.0 - alphasquare) * (LdotN * LdotN )));
+        //V = min(0.5 / max(V, Epsilon), 1.0);
         
-        ////////////////////////////////////////////////////////////////////////////////
-        // DEBUG: V
-        //return float4(float3(1,1,1) * V, 1);
-        ////////////////////////////////////////////////////////////////////////////////
-
-
         float3 specular = D * F * pow(LdotN, LdotNPower);//D * F * V * LdotN;
         
-
-
         uint envWidth, envHeight, envLevels;
         
         EnvironmentMap.GetDimensions(0, envWidth, envHeight, envLevels);
@@ -860,12 +823,12 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float envMip =  min(6.0, -(1 - roughness) * 6.5 + 6.5);//log2(alpha * float(envWidth));
         float3 reflectVec = reflect(viewVec, N);
         
-        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(mul(float4(reflectVec, 1), FlipSkybox).xyz, envMip));
+        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(reflectVec * float3(1,1,1), envMip));
 		
         //ambientSpec *= ambientSpec;
         ambientSpec *= AmbientLightMult;
         
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(mul(float4(-N, 1), FlipSkybox).xyz, 5));
+        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(-N, 5));
         //ambientDiffuse *= ambientDiffuse;
         ambientDiffuse *= AmbientLightMult;
         
@@ -909,58 +872,14 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     }
     else if (WorkflowType == WORKFLOW_CLASSIC_DIFFUSE_PTDE)
     {
-        //float3 normal = input.Normal;
+       //float3 normal = input.Normal;
         
         float normalMapBlueChannel = nmapcol.z;
         
         float roughness = 1 - normalMapBlueChannel;
         
-        float specMapGrayscale = 0.3086 * specularMapColor.x + 0.6094 * specularMapColor.y + 0.0820 * specularMapColor.z;
-        float gloss = specMapGrayscale;
-        float ptdeSpecPower = 1;
-
-        [branch]
-        if (PtdeMtdType == PTDE_MTD_TYPE_METAL)
-        {
-            gloss = clamp(gloss * 1.3 + 0.25, 0, 1);
-            color.xyz = color.xyz * 0.5;
-            specularMapColor.xyz = specularMapColor.xyz;
-        }
-        else if (PtdeMtdType == PTDE_MTD_TYPE_WET)
-        {
-            gloss = clamp(gloss * 0.85 + 0.15, 0, 1);
-            color.xyz = color.xyz * 0.75;
-            specularMapColor.xyz = specularMapColor.xyz * 1.15;
-            ptdeSpecPower = 5;
-        }
-        else if (PtdeMtdType == PTDE_MTD_TYPE_DULL)
-        {
-            color.xyz = color.xyz * 0.9;
-            specularMapColor.xyz = 0.1 + specularMapColor.xyz * 0.9;// * 0.75 * 0.45;
-            gloss *= 0.75;
-            //ptdeSpecPower = 0.85;
-        }
-        else 
-        {
-            color.xyz = color.xyz * 0.75;
-            specularMapColor.xyz = specularMapColor.xyz * 1.1;// * 0.75 * 0.45;
-            gloss = clamp(gloss * 0.90 + 0.10, 0, 1);
-        }
-        
-        roughness = 1 - gloss;
-
-        //return float4(specularMapColor.xyz, 1);
-
-        
-
-        //return float4(float3(1,1,1) * gloss, 1);
-
-        //return float4(N * 0.25 + 0.5, 1);
-
-        //return float4((N * float3(1,1,1)) * 0.6666 + 0.3333, 1);
-
-        float3 viewVec = -normalize(input.View);
-        float3 diffuseColor = color.xyz * color.xyz;
+        float3 viewVec = normalize(input.View);
+        float3 diffuseColor = color.xyz;
         float3 L = -LightDirection;
         
         float3 H = normalize(L + viewVec);
@@ -969,15 +888,10 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         F0 = specularMapColor.rgb;
         
-        float3 F0_Gray = specMapGrayscale;
-
         // TEST
         F0 *= F0;
-        //F0_Gray *= F0_Gray;
         //F0 = 1;
         ///////
-
-        
         
         float LdotN = saturate(dot(N, L));
         float NdotV = abs(saturate(dot(viewVec, N)));
@@ -997,42 +911,27 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         //float D = alphasquare / (Pi * denom * denom);
         
         float specPower = exp2((1 - roughness) * 13.0);
-        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0)) * SpecularPowerMult * ptdeSpecPower;
+        specPower = max(1.0, specPower / (specPower * 0.01 + 1.0));
         float D = pow(NdotH, specPower) * (specPower * 0.125 + 0.25);
         
         //float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
         //  NdotV * sqrt(alphasquare + ((1.0 - alphasquare) * (LdotN * LdotN )));
         //V = min(0.5 / max(V, Epsilon), 1.0);
         
-        float3 specular = D * F * pow(LdotN, LdotNPower);//D * F * V * LdotN;
+        float3 specular = D * F * LdotN;//D * F * V * LdotN;
         
         uint envWidth, envHeight, envLevels;
         
         EnvironmentMap.GetDimensions(0, envWidth, envHeight, envLevels);
         
         float envMip =  min(6.0, -(1 - roughness) * 6.5 + 6.5);//log2(alpha * float(envWidth));
-
-        
-
         float3 reflectVec = reflect(viewVec, N);
         
-        //return float4(clamp(NdotV, 0, 1), clamp(NdotV, 0, 1), clamp(NdotV, 0, 1), 1);
-
-        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(mul(float4(reflectVec, 1), FlipSkybox).xyz, envMip));
-
-        //return float4(ambientSpec, 1);
-
-        //float3 normalCubemapTest = texCUBElod(EnvironmentMapSampler, float4(reflectVec, envMip));
-
-		//return float4(normalCubemapTest, 1);
-        //return float4(ambientSpec, 1);
-        //return float4(reflectVec, 1);
-		
+        float3 ambientSpec = texCUBElod(EnvironmentMapSampler, float4(reflectVec * float3(1,1,1), envMip));
         //ambientSpec *= ambientSpec;
         ambientSpec *= AmbientLightMult;
         
-        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(mul(float4(-N, 1), FlipSkybox).xyz, 5));
-		
+        float3 ambientDiffuse = texCUBElod(EnvironmentMapSampler, float4(-N, 5));
         //ambientDiffuse *= ambientDiffuse;
         ambientDiffuse *= AmbientLightMult;
         
@@ -1043,10 +942,8 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         float3 aF = pow(1.0 - NdotV, 5) * (1 - roughness) * (1 - roughness) * (1.0 - F0) + F0;//pow(1.0 - NdotV, 5) * (1.0 - F0) + F0;
         
-        float3 diffuse = finalDiffuse * (1 - F0_Gray);
+        float3 diffuse = finalDiffuse * (1 - F0);
         
-        //return float4(diffuse.xyz, 1);
-
         float3 indirectDiffuse = finalDiffuse * ambientDiffuse * (1 - F0);
         
         float3 indirectSpecular = ambientSpec * aF;// * iV;

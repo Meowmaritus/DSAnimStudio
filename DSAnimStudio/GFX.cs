@@ -1,5 +1,6 @@
 ﻿using DSAnimStudio.DbgMenus;
 using DSAnimStudio.DebugPrimitives;
+using DSAnimStudio.FancyShaders;
 using DSAnimStudio.GFXShaders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -7,6 +8,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -83,13 +85,15 @@ namespace DSAnimStudio
             FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
             SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
 
+            SkyboxShader.Effect.NumMotionBlurSamples = 0;
+
             //GFX.FlverOpacity = 0.15f;
         }
 
         public static int ForcedFlverShadingModeIndex = 0;
 
         public static string[] FlverShadingModeNamesList;
-        public static List<FlverShadingMode> FlverShadingModeList;
+        public static List<FlverShadingModes> FlverShadingModeList;
 
         static GFX()
         {
@@ -99,51 +103,51 @@ namespace DSAnimStudio
             FlverShadingModeList = _flverShadingModeNames.Keys.ToList();
         }
 
-        public static FlverShadingMode ForcedFlverShadingMode =>
+        public static FlverShadingModes ForcedFlverShadingMode =>
             ForcedFlverShadingModeIndex >= 0 && ForcedFlverShadingModeIndex < FlverShadingModeNamesList.Length
-            ? FlverShadingModeList[ForcedFlverShadingModeIndex] : FlverShadingMode.DEFAULT;
+            ? FlverShadingModeList[ForcedFlverShadingModeIndex] : FlverShadingModes.DEFAULT;
 
-        private static Dictionary<FlverShadingMode, string> _flverShadingModeNames
-            = new Dictionary<FlverShadingMode, string>
+        private static Dictionary<FlverShadingModes, string> _flverShadingModeNames
+            = new Dictionary<FlverShadingModes, string>
         {
-            { FlverShadingMode.DEFAULT, "Default" },
+            { FlverShadingModes.DEFAULT, "Default" },
 
-            { FlverShadingMode.PBR_GLOSS_DS3, "PBR Gloss (Dark Souls III)" },
-            { FlverShadingMode.PBR_GLOSS_BB, "PBR Gloss (Bloodborne) [WIP]" },
-            { FlverShadingMode.CLASSIC_DIFFUSE_PTDE, "Classic Diffuse (PTDE) [Placeholder]" },
-            { FlverShadingMode.LEGACY, "Legacy (MVDX)" },
+            { FlverShadingModes.PBR_GLOSS_DS3, "PBR Gloss (Dark Souls III)" },
+            { FlverShadingModes.PBR_GLOSS_BB, "PBR Gloss (Bloodborne) [WIP]" },
+            { FlverShadingModes.CLASSIC_DIFFUSE_PTDE, "Classic Diffuse (PTDE) [Placeholder]" },
+            { FlverShadingModes.LEGACY, "Legacy (MVDX)" },
 
-            { FlverShadingMode.TEXDEBUG_DIFFUSEMAP, "TEX DEBUG: Diffuse/Albedo Map" },
-            { FlverShadingMode.TEXDEBUG_SPECULARMAP, "TEX DEBUG: Specular/Reflectance Map" },
-            { FlverShadingMode.TEXDEBUG_NORMALMAP, "TEX DEBUG: Normal Map" },
-            { FlverShadingMode.TEXDEBUG_EMISSIVEMAP, "TEX DEBUG: Emissive Map" },
-            { FlverShadingMode.TEXDEBUG_BLENDMASKMAP, "TEX DEBUG: Blend Mask Map" },
-            { FlverShadingMode.TEXDEBUG_SHININESSMAP, "TEX DEBUG: Shininess Map" },
-            { FlverShadingMode.TEXDEBUG_NORMALMAP_BLUE, "TEX DEBUG: Normal Map (Blue Channel)" },
+            { FlverShadingModes.TEXDEBUG_DIFFUSEMAP, "TEX DEBUG: Diffuse/Albedo Map" },
+            { FlverShadingModes.TEXDEBUG_SPECULARMAP, "TEX DEBUG: Specular/Reflectance Map" },
+            { FlverShadingModes.TEXDEBUG_NORMALMAP, "TEX DEBUG: Normal Map" },
+            { FlverShadingModes.TEXDEBUG_EMISSIVEMAP, "TEX DEBUG: Emissive Map" },
+            { FlverShadingModes.TEXDEBUG_BLENDMASKMAP, "TEX DEBUG: Blend Mask Map" },
+            { FlverShadingModes.TEXDEBUG_SHININESSMAP, "TEX DEBUG: Shininess Map" },
+            { FlverShadingModes.TEXDEBUG_NORMALMAP_BLUE, "TEX DEBUG: Normal Map (Blue Channel)" },
 
-            { FlverShadingMode.TEXDEBUG_UVCHECK_0, "TEX DEBUG: UV Check (TEXCOORD0)" },
-            { FlverShadingMode.TEXDEBUG_UVCHECK_1, "TEX DEBUG: UV Check (TEXCOORD1)" },
+            { FlverShadingModes.TEXDEBUG_UVCHECK_0, "TEX DEBUG: UV Check (TEXCOORD0)" },
+            { FlverShadingModes.TEXDEBUG_UVCHECK_1, "TEX DEBUG: UV Check (TEXCOORD1)" },
 
-            { FlverShadingMode.MESHDEBUG_NORMALS, "MESH DEBUG: Normals" },
-            { FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY, "MESH DEBUG: Normals (Mesh Only)" },
-            { FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA, "MESH DEBUG: Vertex Color Alpha" },
-            { FlverShadingMode.MESHDEBUG_VERTEX_COLOR_RGB, "MESH DEBUG: Vertex Color RGB" },
+            { FlverShadingModes.MESHDEBUG_NORMALS, "MESH DEBUG: Normals" },
+            { FlverShadingModes.MESHDEBUG_NORMALS_MESH_ONLY, "MESH DEBUG: Normals (Mesh Only)" },
+            { FlverShadingModes.MESHDEBUG_VERTEX_COLOR_ALPHA, "MESH DEBUG: Vertex Color Alpha" },
+            { FlverShadingModes.MESHDEBUG_VERTEX_COLOR_RGB, "MESH DEBUG: Vertex Color RGB" },
         };
 
-        private static List<FlverShadingMode> _flverNonDebugShadingModes = new List<FlverShadingMode>
+        private static List<FlverShadingModes> _flverNonDebugShadingModes = new List<FlverShadingModes>
         {
-            FlverShadingMode.DEFAULT,
-            FlverShadingMode.LEGACY,
-            FlverShadingMode.PBR_GLOSS_DS3,
-            FlverShadingMode.PBR_GLOSS_BB,
-            FlverShadingMode.CLASSIC_DIFFUSE_PTDE,
+            FlverShadingModes.DEFAULT,
+            FlverShadingModes.LEGACY,
+            FlverShadingModes.PBR_GLOSS_DS3,
+            FlverShadingModes.PBR_GLOSS_BB,
+            FlverShadingModes.CLASSIC_DIFFUSE_PTDE,
         };
 
-        public static IReadOnlyList<FlverShadingMode> FlverNonDebugShadingModes => _flverNonDebugShadingModes;
+        public static IReadOnlyList<FlverShadingModes> FlverNonDebugShadingModes => _flverNonDebugShadingModes;
 
-        public static bool IsInDebugShadingMode => !((GFX.ForcedFlverShadingMode == FlverShadingMode.DEFAULT || GFX.FlverNonDebugShadingModes.Contains(GFX.ForcedFlverShadingMode)));
+        public static bool IsInDebugShadingMode => !((GFX.ForcedFlverShadingMode == FlverShadingModes.DEFAULT || GFX.FlverNonDebugShadingModes.Contains(GFX.ForcedFlverShadingMode)));
 
-        public static IReadOnlyDictionary<FlverShadingMode, string> FlverShadingModeNames => _flverShadingModeNames;
+        public static IReadOnlyDictionary<FlverShadingModes, string> FlverShadingModeNames => _flverShadingModeNames;
 
         public static bool FlverAutoRotateLight = false;
         private static float LightSpinTimer = 0;
@@ -178,11 +182,22 @@ namespace DSAnimStudio
 
         public static IGFXShader<FlverShader> FlverShader;
         public static IGFXShader<SkyboxShader> SkyboxShader;
+        public static Vector3 SkyboxShader_PrevFrameLookDir;
         public static IGFXShader<CollisionShader> CollisionShader;
         public static IGFXShader<DbgPrimWireShader> DbgPrimWireShader;
         public static IGFXShader<DbgPrimSolidShader> DbgPrimSolidShader;
         public static Stopwatch FpsStopwatch = new Stopwatch();
         private static FrameCounter FpsCounter = new FrameCounter();
+
+        //public static BokehShader Bokeh;
+        //public static Texture2D BokehShapeHexagon;
+        //public static RenderTarget2D BokehRenderTarget;
+
+        public static float BokehBrightness = 1;
+        public static float BokehSize = 16;
+        public static int BokehDownsize = 1;
+        public static bool BokehIsFullPrecision = true;
+        public static bool BokehIsDynamicDownsize = true;
 
         public static float FPS => FpsCounter.CurrentFramesPerSecond;
         public static float AverageFPS => FpsCounter.AverageFramesPerSecond;
@@ -267,20 +282,32 @@ namespace DSAnimStudio
             UpdateRasterizerState();
         }
 
-        public static void InitDepthStencil()
+        public static void InitDepthStencil(bool writeDepth)
         {
-            switch (CurrentStep)
-            {
-                case GFXDrawStep.Opaque:
-                    Device.DepthStencilState = DepthStencilState_Normal;
-                    break;
-                default:
-                    Device.DepthStencilState = DepthStencilState_DontWriteDepth;
-                    break;
-            }
+            Device.DepthStencilState = writeDepth ? DepthStencilState_Normal : DepthStencilState_DontWriteDepth;
         }
         private static ContentManager DebugReloadContentManager = null;
         public static void ReloadFlverShader()
+        {
+            lock (Scene._lock_ModelLoad_Draw)
+            {
+                if (DebugReloadContentManager != null)
+                {
+                    DebugReloadContentManager.Unload();
+                    DebugReloadContentManager.Dispose();
+                }
+
+                DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+
+                GFX.FlverShader.Effect.Dispose();
+                GFX.FlverShader = null;
+                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\FlverShader"));
+
+                GFX.InitShaders();
+            }
+        }
+
+        public static void ReloadTonemapShader()
         {
             if (DebugReloadContentManager != null)
             {
@@ -290,14 +317,26 @@ namespace DSAnimStudio
 
             DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
 
+            Main.MainFlverTonemapShader.Effect.Dispose();
+            Main.MainFlverTonemapShader = null;
+            Main.MainFlverTonemapShader = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\FlverTonemapShader"));
 
-            GFX.FlverShader.Effect.Dispose();
-            GFX.FlverShader = null;
-            GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
+            GFX.InitShaders();
+        }
 
-            //Main.MainFlverTonemapShader.Effect.Dispose();
-            //Main.MainFlverTonemapShader = null;
-            //Main.MainFlverTonemapShader = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
+        public static void ReloadCubemapSkyboxShader()
+        {
+            if (DebugReloadContentManager != null)
+            {
+                DebugReloadContentManager.Unload();
+                DebugReloadContentManager.Dispose();
+            }
+
+            DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
+
+            GFX.SkyboxShader.Effect.Dispose();
+            GFX.SkyboxShader = null;
+            GFX.SkyboxShader = new SkyboxShader(DebugReloadContentManager.Load<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\CubemapSkyboxShader"));
 
             GFX.InitShaders();
         }
@@ -386,6 +425,10 @@ namespace DSAnimStudio
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.CullMode = CullMode.CullClockwiseFace;
             HotSwapRasterizerState_BackfaceCullingOn_WireframeOn.FillMode = FillMode.WireFrame;
 
+            //Bokeh = new BokehShader();
+            //Bokeh.ShaderEffect = c.Load<Effect>(@"Content\Shaders\Bokeh");
+            //Bokeh.Initialize(Device);
+            //BokehShapeHexagon = c.Load<Texture2D>(@"Content\Shaders\BokehShapeHexagon");
         }
 
         public static bool SpriteBatchHasBegun { get; private set; } = false;
@@ -422,7 +465,7 @@ namespace DSAnimStudio
 
         public static void BeginDraw()
         {
-            InitDepthStencil();
+            InitDepthStencil(CurrentStep == GFXDrawStep.Opaque);
             //InitBlendState();
 
             Device.BlendState = BlendState.NonPremultiplied;
@@ -442,11 +485,35 @@ namespace DSAnimStudio
 
             //FlverShader.Effect.EyePosition = World.NewCameraTransform.Position;
 
-            FlverShader.Effect.EyePosition = World.NewCameraTransform.Position;
+            FlverShader.Effect.EyePosition = World.CameraLocationInWorld.Position;
 
             //SkyboxShader.Effect.EyePosition = World.CameraTransform.Position;
+
+            //var curForw = World.GetCameraForward();
+            //if (curForw != SkyboxShader_PrevFrameLookDir)
+            //{
+            //    curForw = XnaExtensions.Vector3Slerp(SkyboxShader_PrevFrameLookDir, World.GetCameraForward(), 0.6f);
+            //    var nextSkyboxMotionBlurVec = -((curForw - SkyboxShader_PrevFrameLookDir) * Environment.MotionBlurStrength);
+            //    var nextSkyboxMotionBlurVec_Dir = Vector3.Normalize(nextSkyboxMotionBlurVec);
+            //    if (float.IsNaN(nextSkyboxMotionBlurVec_Dir.X))
+            //    {
+            //        nextSkyboxMotionBlurVec_Dir = Vector3.Zero;
+            //    }
+            //    if (float.IsNaN(SkyboxShader.Effect.MotionBlurVector.X))
+            //    {
+            //        SkyboxShader.Effect.MotionBlurVector = Vector3.Zero;
+            //    }
+            //    var nextSkyboxMotionBlurVec_Len = nextSkyboxMotionBlurVec.Length();
+            //    //nextSkyboxMotionBlurVec_Len = Math.Max(nextSkyboxMotionBlurVec_Len, 0.01f);
+            //    nextSkyboxMotionBlurVec = nextSkyboxMotionBlurVec_Dir * nextSkyboxMotionBlurVec_Len;
+            //    SkyboxShader.Effect.MotionBlurVector = nextSkyboxMotionBlurVec;
+            //}
+            //SkyboxShader_PrevFrameLookDir = curForw;
+
+            SkyboxShader.Effect.MotionBlurVector = Vector3.Transform(Vector3.Right, World.CameraLookDirection) * Environment.MotionBlurStrength;
+
             SkyboxShader.Effect.EyePosition = Vector3.Zero;
-            //FlverShader.Effect.EyePosition = Vector3.Backward;
+
 
             Matrix matLightDir = Matrix.CreateRotationY(Environment.LightRotationH) * Matrix.CreateRotationX(Environment.LightRotationV);
 
@@ -457,8 +524,8 @@ namespace DSAnimStudio
             }
             else 
             {
-                Vector3 camUpDir = World.NewGetScreenSpaceUpVector() * new Vector3(1, 1, 1);
-                Vector3 camLookDir = World.NewGetScreenSpaceForwardVector() * new Vector3(1, 1, 1);
+                Vector3 camUpDir = World.GetCameraUp() * new Vector3(1, 1, 1);
+                Vector3 camLookDir = World.GetCameraForward() * new Vector3(1, 1, 1);
                 Matrix matCamLook = Matrix.CreateWorld(Vector3.Zero, camLookDir, camUpDir);
 
                 if (FlverLightFollowsCamera)
@@ -482,9 +549,9 @@ namespace DSAnimStudio
             FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
             SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
 
-            FlverShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * 1;
+            FlverShader.Effect.AmbientLightMult = Environment.AmbientLightMult;
             FlverShader.Effect.DirectLightMult = Environment.FlverDirectLightMult * 1;
-            FlverShader.Effect.IndirectLightMult = 1.0f;
+            FlverShader.Effect.IndirectLightMult = Environment.FlverIndirectLightMult;
             FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
             FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
             FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
@@ -503,7 +570,7 @@ namespace DSAnimStudio
             DbgPrimSolidShader.Effect.DirectionalLight1.Enabled = false;
             DbgPrimSolidShader.Effect.DirectionalLight2.Enabled = false;
 
-            CollisionShader.Effect.EyePosition = World.NewCameraTransform.Position;
+            CollisionShader.Effect.EyePosition = World.CameraLocationInWorld.Position;
 
         }
 

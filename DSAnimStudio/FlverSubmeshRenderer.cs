@@ -126,7 +126,9 @@ namespace DSAnimStudio
         //public string DefaultBoneName { get; set; } = null;
         public int DefaultBoneIndex { get; set; } = -1;
 
-        public FlverShadingMode ShadingMode { get; set; } = FlverShadingMode.PBR_GLOSS_DS3;
+        public FlverShadingModes ShadingMode { get; set; } = FlverShadingModes.PBR_GLOSS_DS3;
+
+        public PtdeMtdTypes PtdeMtdType { get; set; } = PtdeMtdTypes.PTDE_MTD_TYPE_DEFAULT;
 
         public int ModelMaskIndex { get; private set; }
 
@@ -232,20 +234,20 @@ namespace DSAnimStudio
 
             if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
             {
-                ShadingMode = FlverShadingMode.PBR_GLOSS_DS3;
+                ShadingMode = FlverShadingModes.PBR_GLOSS_DS3;
             }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
             {
-                ShadingMode = FlverShadingMode.PBR_GLOSS_BB;
+                ShadingMode = FlverShadingModes.PBR_GLOSS_BB;
             }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
             {
-                ShadingMode = FlverShadingMode.CLASSIC_DIFFUSE_PTDE;
+                ShadingMode = FlverShadingModes.CLASSIC_DIFFUSE_PTDE;
             }
             else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
             {
                 //TEMP
-                ShadingMode = FlverShadingMode.MESHDEBUG_NORMALS;
+                ShadingMode = FlverShadingModes.MESHDEBUG_NORMALS;
                 //GFX.ForcedFlverShadingModeIndex = 
                 //    GFX.FlverShadingModeList.IndexOf(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
                 
@@ -257,11 +259,11 @@ namespace DSAnimStudio
                 //GFX.ForcedFlverShadingModeIndex =
                 //    GFX.FlverShadingModeList.IndexOf(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
 
-                ShadingMode = FlverShadingMode.PBR_GLOSS_DS3;
+                ShadingMode = FlverShadingModes.PBR_GLOSS_DS3;
             }
             else
             {
-                ShadingMode = FlverShadingMode.TEXDEBUG_DIFFUSEMAP;
+                ShadingMode = FlverShadingModes.TEXDEBUG_DIFFUSEMAP;
             }
 
             Parent = parent;
@@ -285,6 +287,19 @@ namespace DSAnimStudio
             else
             {
                 DrawStep = GFXDrawStep.Opaque;
+            }
+
+            if (shortMaterialName.Contains("metal"))
+            {
+                PtdeMtdType = PtdeMtdTypes.PTDE_MTD_TYPE_METAL;
+            }
+            else if (shortMaterialName.Contains("wet"))
+            {
+                PtdeMtdType = PtdeMtdTypes.PTDE_MTD_TYPE_WET;
+            }
+            else if (shortMaterialName.Contains("dull"))
+            {
+                PtdeMtdType = PtdeMtdTypes.PTDE_MTD_TYPE_DULL;
             }
 
 
@@ -335,20 +350,20 @@ namespace DSAnimStudio
             foreach (var matParam in flvr.Materials[mesh.MaterialIndex].Textures)
             {
                 var paramNameCheck = matParam.Type.ToUpper();
-                string shortTexPath = Utils.GetShortIngameFileName(matParam.Path);
+                string shortTexPath = Utils.GetShortIngameFileName(matParam.Path).ToLower();
 
                 Vector2 texScaleVal = new Vector2(matParam.Scale.X, matParam.Scale.Y);
 
                 if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
                     var mtdTex = GameDataManager.LookupMTDTexture(flvr.Materials[mesh.MaterialIndex].MTD, matParam.Type);
-                    shortTexPath = Utils.GetShortIngameFileName(mtdTex.Path);
+                    shortTexPath = Utils.GetShortIngameFileName(mtdTex.Path).ToLower();
 
                     texScaleVal /= mtdTex.UVScale;
 
                     if (string.IsNullOrWhiteSpace(shortTexPath))
                     {
-                        shortTexPath = Utils.GetShortIngameFileName(matParam.Path);
+                        shortTexPath = Utils.GetShortIngameFileName(matParam.Path).ToLower();
                     }
                 }
 
@@ -884,40 +899,40 @@ namespace DSAnimStudio
         {
             List<string> result = new List<string>();
             if (TexDataDiffuse == null && TexNameDiffuse != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameDiffuse));
+                result.Add(Utils.GetShortIngameFileName(TexNameDiffuse).ToLower());
 
             if (TexDataSpecular == null && TexNameSpecular != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameSpecular));
+                result.Add(Utils.GetShortIngameFileName(TexNameSpecular).ToLower());
 
             if (TexDataNormal == null && TexNameNormal != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameNormal));
+                result.Add(Utils.GetShortIngameFileName(TexNameNormal).ToLower());
 
             if (TexDataDiffuse2 == null && TexNameDiffuse2 != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameDiffuse2));
+                result.Add(Utils.GetShortIngameFileName(TexNameDiffuse2).ToLower());
 
             if (TexDataSpecular2 == null && TexNameSpecular2 != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameSpecular2));
+                result.Add(Utils.GetShortIngameFileName(TexNameSpecular2).ToLower());
 
             if (TexDataNormal2 == null && TexNameNormal2 != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameNormal2));
+                result.Add(Utils.GetShortIngameFileName(TexNameNormal2).ToLower());
 
             if (TexDataEmissive == null && TexNameEmissive != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameEmissive));
+                result.Add(Utils.GetShortIngameFileName(TexNameEmissive).ToLower());
 
             if (TexDataShininess == null && TexNameShininess != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameShininess));
+                result.Add(Utils.GetShortIngameFileName(TexNameShininess).ToLower());
 
             if (TexDataShininess2 == null && TexNameShininess2 != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameShininess2));
+                result.Add(Utils.GetShortIngameFileName(TexNameShininess2).ToLower());
 
             if (TexDataBlendmask == null && TexNameBlendmask != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameBlendmask));
+                result.Add(Utils.GetShortIngameFileName(TexNameBlendmask).ToLower());
 
             if (TexDataDOL1 == null && TexNameDOL1 != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameDOL1));
+                result.Add(Utils.GetShortIngameFileName(TexNameDOL1).ToLower());
 
             if (TexDataDOL2 == null && TexNameDOL2 != null)
-                result.Add(Utils.GetShortIngameFileName(TexNameDOL2));
+                result.Add(Utils.GetShortIngameFileName(TexNameDOL2).ToLower());
 
             return result;
         }
@@ -1041,6 +1056,13 @@ namespace DSAnimStudio
                     GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = false;
                 }
 
+                if ((GFX.ForcedFlverShadingMode == FlverShadingModes.DEFAULT && 
+                    ShadingMode == FlverShadingModes.CLASSIC_DIFFUSE_PTDE)
+                    || GFX.ForcedFlverShadingMode == FlverShadingModes.CLASSIC_DIFFUSE_PTDE)
+                {
+                    GFX.FlverShader.Effect.PtdeMtdType = PtdeMtdType;
+                }
+
                 if (TexDataDiffuse2 == null)
                 {
                     GFX.FlverShader.Effect.EnableBlendTextures = false;
@@ -1099,14 +1121,15 @@ namespace DSAnimStudio
 
                 //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
 
-                if (GFX.ForcedFlverShadingMode == FlverShadingMode.DEFAULT)
+                if (GFX.ForcedFlverShadingMode == FlverShadingModes.DEFAULT)
                     GFX.FlverShader.Effect.WorkflowType = ShadingMode;
                 else
                     GFX.FlverShader.Effect.WorkflowType = GFX.ForcedFlverShadingMode;
 
                 GFX.FlverShader.Effect.IsDoubleFaceCloth = IsShaderDoubleFaceCloth;
 
-                if (GFX.FlverShader.Effect.WorkflowType == FlverShadingMode.TEXDEBUG_UVCHECK_0 || GFX.FlverShader.Effect.WorkflowType == FlverShadingMode.TEXDEBUG_UVCHECK_1)
+                if (GFX.FlverShader.Effect.WorkflowType == FlverShadingModes.TEXDEBUG_UVCHECK_0 || 
+                    GFX.FlverShader.Effect.WorkflowType == FlverShadingModes.TEXDEBUG_UVCHECK_1)
                 {
                     GFX.FlverShader.Effect.UVCheckMap = DBG.UV_CHECK_TEX;
                 }

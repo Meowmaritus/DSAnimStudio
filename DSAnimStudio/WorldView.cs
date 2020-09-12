@@ -13,104 +13,258 @@ namespace DSAnimStudio
 {
     public class WorldView
     {
-        public Transform NewCameraTransform = Transform.Default;
+        public Transform CameraLocationInWorld = Transform.Default;
 
-        public Vector3 NewRootMotionFollow_Position = Vector3.Zero;
-        public float NewRootMotionFollow_Rotation = 0;
+        public Vector3 RootMotionFollow_Translation = Vector3.Zero;
+        public float RootMotionFollow_Rotation = 0;
 
-        public Vector3 NewCameraOrbitOrigin = Vector3.Zero;
-        public Quaternion NewCameraLookDirection = Quaternion.Identity;
-        public Vector3 NewCameraEuler = Vector3.Zero;
+        public Vector3 CameraOrbitOrigin = Vector3.Zero;
+        public Quaternion CameraLookDirection = Quaternion.Identity;
+        public Vector3 OrbitCamEuler = Vector3.Zero;
 
-        public float NewOrbitCamDistance = 2;
+        public float OrbitCamDistance = 2;
 
-        public float FieldOfView = 43;
-        public float NewNearClipDistance = 0.1f;
-        public float NewFarClipDistance = 10000;
-        public Matrix NewMatrix_Projection = Matrix.Identity;
+        public float ProjectionVerticalFoV = 43;
+        public float ProjectionSkyboxVerticalFovMult = 1.5f;
+        public float ProjectionNearClipDist = 0.1f;
+        public float ProjectionFarClipDist = 10000;
+        public Matrix Matrix_Projection = Matrix.Identity;
+        public Matrix Matrix_Projection_Skybox = Matrix.Identity;
 
-        public Matrix NewMatrix_World = Matrix.Identity;
-        public Matrix NewMatrix_View = Matrix.Identity;
-        public Matrix NewMatrix_View_Skybox = Matrix.Identity;
+        public Matrix Matrix_World = Matrix.Identity;
+        public Matrix Matrix_View = Matrix.Identity;
+        public Matrix Matrix_View_Skybox = Matrix.Identity;
 
         public bool DisableAllInput = false;
 
-        public void NewUpdate()
+        
+        enum ViewportDragType
         {
+            None,
+            Invalid,
+            LeftClick,
+            RightClick,
+        }
+        ViewportDragType dragType = ViewportDragType.None;
+
+        public WorldView()
+        {
+            WindowsMouseHook.RawMouseMoved += HandleRawMouseMove;
+        }
+
+        ~WorldView()
+        {
+            WindowsMouseHook.RawMouseMoved -= HandleRawMouseMove;
+        }
+
+        private void HandleRawMouseMove(int x, int y)
+        {
+            if (!Main.Active)
+            {
+                Program.MainInstance.IsMouseVisible = true;
+                return;
+            }
+
+            float baseMouseSpeed = ((float)System.Windows.Forms.SystemInformation.MouseSpeed / 20f) * OverallMouseSpeedMult;
+
+            
+
+            if (Main.Input.LeftClickHeld && dragType == ViewportDragType.LeftClick)
+            {
+                Program.MainInstance.IsMouseVisible = false;
+                Mouse.SetPosition((int)Math.Round(Main.Input.LeftClickDownAnchor.X), (int)Math.Round(Main.Input.LeftClickDownAnchor.Y));
+                OrbitCamEuler += new Vector3(-y, -x, 0) * baseMouseSpeed * CameraTurnSpeedMouse * 0.01f;
+            }
+            else if (Main.Input.RightClickHeld && dragType == ViewportDragType.RightClick)
+            {
+                Program.MainInstance.IsMouseVisible = false;
+                Mouse.SetPosition((int)Math.Round(Main.Input.RightClickDownAnchor.X), (int)Math.Round(Main.Input.RightClickDownAnchor.Y));
+
+                if (Main.Input.ShiftHeld)
+                {
+                    float zoomMult = (OrbitCamDistance / 50) * (OrbitCamDistance / 50);
+                    zoomMult = Math.Min(zoomMult, 50);
+                    zoomMult = Math.Max(zoomMult, 0.05f);
+                    OrbitCamDistance -= x * zoomMult * baseMouseSpeed * 0.01f;
+
+                    if (OrbitCamDistance < 0.05f)
+                    {
+                        float distToUnfuck = Math.Abs(OrbitCamDistance - 0.1f);
+                        CameraOrbitOrigin += Vector3.Transform(
+                        new Vector3(0, 0, -distToUnfuck),
+                        CameraLocationInWorld.Rotation);
+                        OrbitCamDistance = 0.05f;
+                    }
+                }
+                else
+                {
+                    CameraOrbitOrigin += Vector3.Transform(
+                        new Vector3(-x, y, 0),
+                        CameraLocationInWorld.Rotation) * baseMouseSpeed
+                        * CameraMoveSpeed * 0.0015f * OrbitCamDistance;
+                }
+                
+            }
+            else
+            {
+                Program.MainInstance.IsMouseVisible = true;
+            }
+        }
+
+        public void DrawMouseDragCursor()
+        {
+            if (dragType == ViewportDragType.LeftClick)
+            {
+                //GFX.SpriteBatchBegin(transformMatrix: Main.DPIMatrix);
+                //Draw something at Main.Input.LeftClickDownAnchor
+                //GFX.SpriteBatchEnd();
+            }
+            else if (dragType == ViewportDragType.RightClick)
+            {
+                //GFX.SpriteBatchBegin(transformMatrix: Main.DPIMatrix);
+                //Draw something at Main.Input.RightClickDownAnchor
+                //GFX.SpriteBatchEnd();
+            }
+        }
+
+        public void Update()
+        {
+            //OrbitCamEuler.Y += MathHelper.PiOver4 * Main.DELTA_UPDATE * 0.25f;
             UpdateDummyPolyFollowRefPoint(isFirstTime: false);
 
-            NewCameraLookDirection = Quaternion.CreateFromYawPitchRoll(NewCameraEuler.Y, NewCameraEuler.X, NewCameraEuler.Z);
+            CameraLookDirection = Quaternion.CreateFromYawPitchRoll(OrbitCamEuler.Y, OrbitCamEuler.X, OrbitCamEuler.Z);
 
             //NewCameraOrbitOrigin = OrbitCamCenter_DummyPolyFollowRefPoint;
 
-            Quaternion rot = NewCameraLookDirection;
-            rot = Quaternion.CreateFromYawPitchRoll(-NewRootMotionFollow_Rotation, 0, 0) * rot;
+            Quaternion rot = CameraLookDirection;
+            rot = Quaternion.CreateFromYawPitchRoll(-RootMotionFollow_Rotation, 0, 0) * rot;
 
-            NewCameraTransform.Rotation = rot;
-            NewCameraTransform.Position = NewCameraOrbitOrigin + Vector3.Transform(NewRootMotionFollow_Position, NewMatrix_World) + 
-                (Vector3.Transform(Vector3.Backward * NewOrbitCamDistance, rot));
+            CameraLocationInWorld.Rotation = rot;
+            CameraLocationInWorld.Position = CameraOrbitOrigin + Vector3.Transform(RootMotionFollow_Translation, Matrix_World) + 
+                (Vector3.Transform(Vector3.Backward * OrbitCamDistance, rot));
 
-            NewMatrix_World = Matrix.CreateScale(1, 1, -1);
+            Matrix_World = Matrix.CreateScale(1, 1, -1);
 
-            NewMatrix_Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),
+            Matrix_Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(ProjectionVerticalFoV),
                    1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height,
-                   NewNearClipDistance, NewFarClipDistance);
+                   ProjectionNearClipDist, ProjectionFarClipDist);
 
-            NewMatrix_View = Matrix.CreateTranslation(-NewCameraTransform.Position)
-                * Matrix.CreateFromQuaternion(Quaternion.Inverse(NewCameraTransform.Rotation));
+            Matrix_Projection_Skybox = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(ProjectionVerticalFoV * ProjectionSkyboxVerticalFovMult),
+                   1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height,
+                   ProjectionNearClipDist, ProjectionFarClipDist);
 
-            NewMatrix_View_Skybox = Matrix.CreateFromQuaternion(Quaternion.Inverse(NewCameraTransform.Rotation));
+            Matrix_View = Matrix.CreateTranslation(-CameraLocationInWorld.Position)
+                * Matrix.CreateFromQuaternion(Quaternion.Inverse(CameraLocationInWorld.Rotation));
+
+            Matrix_View_Skybox = Matrix.CreateFromQuaternion(Quaternion.Inverse(CameraLocationInWorld.Rotation));
 
             
         }
 
-        public void NewUpdateInput(FancyInputHandler input)
+        public void UpdateInput()
         {
             if (DisableAllInput || OSD.Focused)
                 return;
 
-            if (input.LeftClickHeld && Main.TAE_EDITOR.ModelViewerBounds.Contains(input.LeftClickDownAnchor))
+
+
+            if (dragType == ViewportDragType.None)
             {
-                NewCameraEuler += new Vector3(-input.MousePositionDelta.Y, -input.MousePositionDelta.X, 0) * CameraTurnSpeedMouse * 0.01f;
-            }
-            else if (input.RightClickHeld && Main.TAE_EDITOR.ModelViewerBounds.Contains(input.RightClickDownAnchor))
-            {
-                NewCameraOrbitOrigin += Vector3.Transform(
-                    new Vector3(-input.MousePositionDelta.X, input.MousePositionDelta.Y, 0),
-                    NewCameraTransform.Rotation) 
-                    * CameraMoveSpeed * 0.0015f * NewOrbitCamDistance;
-            }
-            else if (Main.TAE_EDITOR.ModelViewerBounds.Contains(input.MousePositionPoint))
-            {
-                if (input.MiddleClickDown)
+                if (Main.Input.LeftClickDown)
                 {
-                    NewRecenter();
+                    if (Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.LeftClickDownAnchor))
+                    {
+                        dragType = ViewportDragType.LeftClick;
+                    }
+                    else
+                    {
+                        dragType = ViewportDragType.Invalid;
+                    }
+                }
+                else if (Main.Input.RightClickDown)
+                {
+                    if (Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.RightClickDownAnchor))
+                    {
+                        dragType = ViewportDragType.RightClick;
+                    }
+                    else
+                    {
+                        dragType = ViewportDragType.Invalid;
+                    }
                 }
                 else
                 {
-                    NewOrbitCamDistance -= input.ScrollDelta;
-                    if (NewOrbitCamDistance < 0.05f)
+                    // Handle mouse wheel zoom.
+                    if (Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.MousePositionPoint))
                     {
-                        float distToUnfuck = Math.Abs(NewOrbitCamDistance - 0.1f);
-                        NewCameraOrbitOrigin += Vector3.Transform(
-                        new Vector3(0, 0, -distToUnfuck),
-                        NewCameraTransform.Rotation);
-                        NewOrbitCamDistance = 0.05f;
+                        if (Main.Input.MiddleClickHeld)
+                        {
+                            NewRecenter();
+                        }
+                        else
+                        {
+                            float zoomMult = (OrbitCamDistance / 50) * (OrbitCamDistance / 50);
+                            zoomMult = Math.Min(zoomMult, 50);
+                            zoomMult = Math.Max(zoomMult, 0.25f);
+                            OrbitCamDistance -= Main.Input.ScrollDelta * zoomMult;
+
+                            if (OrbitCamDistance < 0.05f)
+                            {
+                                float distToUnfuck = Math.Abs(OrbitCamDistance - 0.1f);
+                                CameraOrbitOrigin += Vector3.Transform(
+                                new Vector3(0, 0, -distToUnfuck),
+                                CameraLocationInWorld.Rotation);
+                                OrbitCamDistance = 0.05f;
+                            }
+                        }
                     }
                 }
 
-                
+                Program.MainInstance.IsMouseVisible = true;
             }
+            else if (dragType == ViewportDragType.LeftClick)
+            {
+                if (Main.Input.LeftClickHeld)
+                {
+                    Program.MainInstance.IsMouseVisible = false;
+                }
+                else
+                {
+                    dragType = ViewportDragType.None;
+                    Program.MainInstance.IsMouseVisible = true;
+                }
+            }
+            else if (dragType == ViewportDragType.RightClick)
+            {
+                if (Main.Input.RightClickHeld)
+                {
+                    Program.MainInstance.IsMouseVisible = false;
+                }
+                else
+                {
+                    dragType = ViewportDragType.None;
+                    Program.MainInstance.IsMouseVisible = true;
+                }
+            }
+            else if (dragType == ViewportDragType.Invalid)
+            {
+                if (!Main.Input.LeftClickHeld && !Main.Input.RightClickHeld)
+                {
+                    dragType = ViewportDragType.None;
+                    Program.MainInstance.IsMouseVisible = true;
+                }
+            }
+
         }
 
-        public Vector3 NewGetScreenSpaceUpVector()
+        public Vector3 GetCameraUp()
         {
-            return Vector3.TransformNormal(Vector3.Up, Matrix.CreateFromQuaternion(NewCameraTransform.Rotation));
+            return Vector3.TransformNormal(Vector3.Up, Matrix.CreateFromQuaternion(CameraLocationInWorld.Rotation));
         }
 
-        public Vector3 NewGetScreenSpaceForwardVector()
+        public Vector3 GetCameraForward()
         {
-            return Vector3.TransformNormal(Vector3.Forward, Matrix.CreateFromQuaternion(NewCameraTransform.Rotation));
+            return Vector3.TransformNormal(Vector3.Forward, Matrix.CreateFromQuaternion(CameraLocationInWorld.Rotation));
         }
 
         public void ApplyViewToShader_Skybox<T>(IGFXShader<T> shader)
@@ -121,13 +275,13 @@ namespace DSAnimStudio
             //if (TaeInterop.CameraFollowsRootMotion)
             //    m *= Matrix.CreateTranslation(-TaeInterop.CurrentRootMotionDisplacement.XYZ());
 
-            shader.ApplyWorldView(m * NewMatrix_World, NewMatrix_View_Skybox, NewMatrix_Projection);
+            shader.ApplyWorldView(m * Matrix_World, Matrix_View_Skybox, Matrix_Projection_Skybox);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Matrix modelMatrix)
             where T : Effect
         {
-            shader.ApplyWorldView(modelMatrix * NewMatrix_World, NewMatrix_View, NewMatrix_Projection);
+            shader.ApplyWorldView(modelMatrix * Matrix_World, Matrix_View, Matrix_Projection);
         }
 
         public void ApplyViewToShader<T>(IGFXShader<T> shader, Transform modelTransform)
@@ -142,10 +296,10 @@ namespace DSAnimStudio
 
         public void NewRecenter()
         {
-            NewCameraEuler = Vector3.Zero;
-            NewCameraOrbitOrigin 
-                = OrbitCamCenter_DummyPolyFollowRefPoint 
-                = OrbitCamCenter_DummyPolyFollowRefPoint_Init;
+            OrbitCamEuler = Vector3.Zero;
+            CameraOrbitOrigin  
+                = OrbitCamCenter_DummyPolyFollowRefPoint_Init
+                = OrbitCamCenter_DummyPolyFollowRefPoint;
             //NewDoRecenterAction?.Invoke();
         }
 
@@ -235,7 +389,7 @@ namespace DSAnimStudio
             }
         }
 
-        public float CameraTurnSpeedGamepad = 0.15f;
+        public float OverallMouseSpeedMult = 1.0f;
         public float CameraTurnSpeedMouse = 1;
         public float CameraMoveSpeed = 1;
 
@@ -243,11 +397,11 @@ namespace DSAnimStudio
         {
             var a = GFX.Device.Viewport.Unproject(
                 new Vector3(screenPos, 0.1f),
-                NewMatrix_Projection, NewMatrix_View, NewMatrix_World);
+                Matrix_Projection, Matrix_View, Matrix_World);
 
             var b = GFX.Device.Viewport.Unproject(
                 new Vector3(screenPos, 0.2f),
-                NewMatrix_Projection, NewMatrix_View, NewMatrix_World);
+                Matrix_Projection, Matrix_View, Matrix_World);
 
             return new Ray(a, Vector3.Normalize(b - a));
         }

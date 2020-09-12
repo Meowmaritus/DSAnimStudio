@@ -34,16 +34,23 @@ namespace DSAnimStudio
 
         private static string desiredTooltipText = null;
 
+#if DEBUG 
+        //very FromSoft style
         public static bool EnableDebugMenu = true;
+#else
+        public static bool EnableDebugMenu = false;
+#endif
 
         public static int DefaultItemWidth => (int)Math.Round(128 * Main.DPIX);
         public static int ColorButtonWidth => (int)Math.Round(300 * Main.DPIX);
         public static int ColorButtonHeight => (int)Math.Round(26 * Main.DPIY);
 
-        private static bool IsFirstFrameCaptureDefaultValue = true;
+        private static bool IsInit = true;
         private static Dictionary<string, Action> DefaultColorValueActions = new Dictionary<string, Action>();
 
         //private static Dictionary<string, string> tooltipTexts = new Dictionary<string, string>();
+
+
 
         public static void CancelTooltip()
         {
@@ -69,8 +76,8 @@ namespace DSAnimStudio
         ////////////////////////////////////////////////////////////////////////////////
         // DEBUG STUFF
         ////////////////////////////////////////////////////////////////////////////////
+        
 
-        public static System.Numerics.Vector4 DEBUG_ColorA = new System.Numerics.Vector4(32 / 255f, 112 / 255f, 39 / 255f, 1);
 
         //////////////////////////////////////////////////////////////////////////////// 
         ////////////////////////////////////////////////////////////////////////////////
@@ -81,7 +88,7 @@ namespace DSAnimStudio
 
         private static void HandleColor(string name, Func<ColorConfig, Color> getColor, Action<ColorConfig, Color> setColor)
         {
-            if (IsFirstFrameCaptureDefaultValue)
+            if (IsInit)
             {
                 if (!DefaultColorValueActions.ContainsKey(name))
                     DefaultColorValueActions.Add(name, () => setColor.Invoke(Main.Colors, getColor(DefaultColorConfig)));
@@ -199,17 +206,21 @@ namespace DSAnimStudio
                     if (RequestExpandAllTreeNodes)
                         ImGui.SetNextItemOpen(true);
 
-                    if (ImGui.TreeNode("[DEBUG]"))
+                    if (ImGui.TreeNode("[DSAnimStudio Debug]"))
                     {
-                        //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value);
-                        //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color 2", DBG.DbgPrim_Grid.OverrideColor.Value);
-                        //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color 3", DBG.DbgPrim_Grid.OverrideColor.Value);
 
-                        ImGui.Button("Reload FLVER Shader");
+                        ImGui.Button("Hot Reload FlverShader.xnb");
                         if (ImGui.IsItemClicked())
-                        {
                             GFX.ReloadFlverShader();
-                        }
+
+                        ImGui.Button("Hot Reload FlverTonemapShader.xnb");
+                        if (ImGui.IsItemClicked())
+                            GFX.ReloadTonemapShader();
+
+                        ImGui.Button("Hot Reload CubemapSkyboxShader.xnb");
+                        if (ImGui.IsItemClicked())
+                            GFX.ReloadCubemapSkyboxShader();
+
 
                         ImGui.TreePop();
                     }
@@ -217,6 +228,9 @@ namespace DSAnimStudio
 
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
+
+                if (IsInit)
+                    ImGui.SetNextItemOpen(false);
 
                 if (ImGui.TreeNode("[Colors]"))
                 {
@@ -330,6 +344,9 @@ namespace DSAnimStudio
                     if (RequestExpandAllTreeNodes)
                         ImGui.SetNextItemOpen(true);
 
+                    if (IsInit)
+                        ImGui.SetNextItemOpen(false);
+
                     if (ImGui.TreeNode("[c0000 Parts Animations]"))
                     {
                         void DoWeapon(NewAnimationContainer wpnAnimContainer, string nameStr)
@@ -360,6 +377,9 @@ namespace DSAnimStudio
 
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
+
+                if (IsInit)
+                    ImGui.SetNextItemOpen(false);
 
                 if (ImGui.TreeNode("[Animation Overlays]"))
                 {
@@ -670,19 +690,34 @@ namespace DSAnimStudio
                     DoTooltip("Direct Light Multiplier", "Multiplies the brightness of light reflected directly off" +
                         "\nthe surface of the model.");
 
-                    ImGui.SliderFloat("Specular Power Mult", ref GFX.SpecularPowerMult, 1, 8);
+                    
                     ImGui.SliderFloat("Indirect Light Mult", ref Environment.FlverIndirectLightMult, 0, 3);
-                    ImGui.SliderFloat("Skybox Brightness", ref Environment.SkyboxBrightnessMult, 0, 0.5f);
+                    DoTooltip("Indirect Light Mult", "Multiplies the brightness of environment map lighting reflected.");
 
-                    DoTooltip("Indirect Light Multiplier", "Multiplies the brightness of environment map lighting reflected");
-
+                    //ImGui.SliderFloat("Ambient Light Mult", ref Environment.AmbientLightMult, 0, 3);
+                    ImGui.SliderFloat("Specular Power Mult", ref GFX.SpecularPowerMult, 1, 8);
                     ImGui.SliderFloat("Emissive Light Mult", ref Environment.FlverEmissiveMult, 0, 3);
 
-                    DoTooltip("Emissive Light Multiplier", "Multiplies the brightness of light emitted by the model's " +
+                    DoTooltip("Emissive Light Mult", "Multiplies the brightness of light emitted by the model's " +
                         "\nemissive texture map, if applicable.");
 
-                    ImGui.SliderFloat("Brightness", ref Environment.FlverSceneBrightness, 0, 5);
-                    ImGui.SliderFloat("Contrast", ref Environment.FlverSceneContrast, 0, 1);
+                    ImGui.SliderFloat("Skybox Brightness", ref Environment.SkyboxBrightnessMult, 0, 0.5f);
+                    ImGui.SliderFloat("Skybox Motion Blur Strength", ref Environment.MotionBlurStrength, 0, 2);
+                    
+                    ImGui.Separator();
+                    ImGui.Checkbox("Use Tonemap", ref GFX.UseTonemap);
+                    ImGui.SliderFloat("Tonemap Brightness", ref Environment.FlverSceneBrightness, 0, 5);
+                    ImGui.SliderFloat("Tonemap Contrast", ref Environment.FlverSceneContrast, 0, 1);
+
+                    //ImGui.Separator();
+
+                    //ImGui.SliderFloat("Bokeh - Brightness", ref GFX.BokehBrightness, 0, 10);
+                    //ImGui.SliderFloat("Bokeh - Size", ref GFX.BokehSize, 0, 50);
+                    //ImGui.SliderInt("Bokeh - Downsize", ref GFX.BokehDownsize, 1, 4);
+                    //ImGui.Checkbox("Boken - Dynamic Downsize", ref GFX.BokehIsDynamicDownsize);
+                    //ImGui.Checkbox("Boken - Full Precision", ref GFX.BokehIsFullPrecision);
+
+
                     //ImGui.SliderFloat("LdotN Power", ref GFX.LdotNPower, 0, 1);
 
                     //if (ImGui.TreeNode("Cubemap Select"))
@@ -694,7 +729,7 @@ namespace DSAnimStudio
                     //    ImGui.TreePop();
                     //}
 
-                    
+
 
                     //ImGui.BeginGroup();
 
@@ -729,6 +764,8 @@ namespace DSAnimStudio
                         Environment.FlverEmissiveMult = 1;
                         Environment.FlverSceneBrightness = 1;
                         Environment.FlverSceneContrast = 0.6f;
+
+                        Environment.MotionBlurStrength = 1;
 
                         GFX.LdotNPower = 0.1f;
                         GFX.SpecularPowerMult = 1;
@@ -831,15 +868,15 @@ namespace DSAnimStudio
 
 
                     ImGui.Checkbox("Show Grid", ref DBG.ShowGrid);
-                    ImGui.SliderFloat("Vertical FOV", ref GFX.World.FieldOfView, 1, 160);
+                    ImGui.SliderFloat("Vertical FOV", ref GFX.World.ProjectionVerticalFoV, 1, 160);
 
-                    ImGui.SliderFloat("Near Clip Dist", ref GFX.World.NewNearClipDistance, 0.001f, 1);
+                    ImGui.SliderFloat("Near Clip Dist", ref GFX.World.ProjectionNearClipDist, 0.001f, 1);
                     DoTooltip("Near Clipping Distance", "Distance for the near clipping plane. " +
                         "\nSetting it too high will cause geometry to disappear when near the camera. " +
                         "\nSetting it too low will cause geometry to flicker or render with " +
                         "the wrong depth when very far away from the camera.");
 
-                    ImGui.SliderFloat("Far Clip Dist", ref GFX.World.NewFarClipDistance, 1000, 100000);
+                    ImGui.SliderFloat("Far Clip Dist", ref GFX.World.ProjectionFarClipDist, 1000, 100000);
                     DoTooltip("Far Clipping Distance", "Distance for the far clipping plane. " +
                         "\nSetting it too low will cause geometry to disappear when far from the camera. " +
                         "\nSetting it too high will cause geometry to flicker or render with " +
@@ -850,9 +887,9 @@ namespace DSAnimStudio
                     if (ImGui.IsItemClicked())
                     {
                         DBG.ShowGrid = true;
-                        GFX.World.FieldOfView = 43;
-                        GFX.World.NewNearClipDistance = 0.1f;
-                        GFX.World.NewFarClipDistance = 10000;
+                        GFX.World.ProjectionVerticalFoV = 43;
+                        GFX.World.ProjectionNearClipDist = 0.1f;
+                        GFX.World.ProjectionFarClipDist = 10000;
 
                         GFX.Display.Vsync = true;
                         GFX.Display.Width = GFX.Device.Viewport.Width;
@@ -953,7 +990,7 @@ namespace DSAnimStudio
 
             ImGui.PopStyleColor();
 
-            IsFirstFrameCaptureDefaultValue = false;
+            IsInit = false;
         }
     }
 }

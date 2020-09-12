@@ -600,6 +600,7 @@ namespace DSAnimStudio.TaeEditor
         public TaePlaybackCursor PlaybackCursor => Graph?.PlaybackCursor;
 
         public Rectangle ModelViewerBounds;
+        public Rectangle ModelViewerBounds_InputArea;
 
         private const int RECENT_FILES_MAX = 32;
 
@@ -868,7 +869,7 @@ namespace DSAnimStudio.TaeEditor
         private const float MiddleSectionWidthMin = 500;
 
         private float DividerVisiblePad = 3;
-        private float DividerHitboxPad = 10;
+        private int DividerHitboxPad = 10;
 
         private DividerDragMode CurrentDividerDragMode = DividerDragMode.None;
 
@@ -3435,8 +3436,6 @@ namespace DSAnimStudio.TaeEditor
                     Input.CursorType = MouseCursorType.Arrow;
                 }
 
-                Input.Update(Rect);
-
                 if (!Input.LeftClickHeld)
                     Graph?.MouseReleaseStuff();
             }
@@ -3847,7 +3846,7 @@ namespace DSAnimStudio.TaeEditor
                 //else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
                 //    MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
                 else if (
-                    ModelViewerBounds.Contains(Input.MousePositionPoint))
+                    ModelViewerBounds_InputArea.Contains(Input.MousePositionPoint))
                 {
                     MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
                 }
@@ -4051,6 +4050,11 @@ namespace DSAnimStudio.TaeEditor
                     Rect.Top + TopMenuBarMargin + TransportHeight, 
                     (int)RightSectionWidth, 
                     (int)(TopRightPaneHeight));
+                ModelViewerBounds_InputArea = new Rectangle(
+                    ModelViewerBounds.X + (DividerHitboxPad / 2),
+                    ModelViewerBounds.Y + (DividerHitboxPad / 2),
+                    ModelViewerBounds.Width - DividerHitboxPad,
+                    ModelViewerBounds.Height - DividerHitboxPad);
                 inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle(
                     (int)RightSectionStartX, 
                     (int)(Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad + TransportHeight), 
