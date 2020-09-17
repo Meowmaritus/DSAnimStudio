@@ -9,12 +9,12 @@ namespace DSAnimStudio.TaeEditor
     public class TaeComboEntry
     {
         public TaeComboMenu.TaeComboAnimType ComboType;
-        public int AnimID;
+        public long AnimID;
         public int Event0CancelType;
         public float StartFrame = -1;
         public float EndFrame = -1;
 
-        public TaeComboEntry(TaeComboMenu.TaeComboAnimType comboType, int animID, int event0CancelType, float startFrame, float endFrame)
+        public TaeComboEntry(TaeComboMenu.TaeComboAnimType comboType, long animID, int event0CancelType, float startFrame, float endFrame)
         {
             ComboType = comboType;
             AnimID = animID;

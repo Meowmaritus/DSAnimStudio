@@ -21,6 +21,7 @@ namespace DSAnimStudio.DebugPrimitives
         DummyPolyHelper,
         Skybox,
         DummyPolySpawnArrow,
+        CameraPivot,
         Other,
     }
 

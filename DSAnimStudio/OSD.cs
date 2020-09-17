@@ -308,7 +308,8 @@ namespace DSAnimStudio
                     HandleColor("Flver Bone Bounding Box", cc => cc.ColorHelperFlverBoneBoundingBox, (cc, c) => cc.ColorHelperFlverBoneBoundingBox = c);
                     HandleColor("Sound Event", cc => cc.ColorHelperSoundEvent, (cc, c) => cc.ColorHelperSoundEvent = c);
                     HandleColor("DummyPoly", cc => cc.ColorHelperDummyPoly, (cc, c) => cc.ColorHelperDummyPoly = c);
-                    
+                    HandleColor("Camera Pivot Box", cc => cc.ColorHelperCameraPivot, (cc, c) => cc.ColorHelperCameraPivot = c);
+
 
 
                     ImGui.Text("Event Simulation");
@@ -329,10 +330,7 @@ namespace DSAnimStudio
                         if (System.Windows.Forms.MessageBox.Show("Reset all to default, losing any custom colors?", 
                             "Reset All?", System.Windows.Forms.MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
                         {
-                            foreach (var kvp in DefaultColorValueActions)
-                            {
-                                kvp.Value.Invoke();
-                            }
+                            Main.Colors = new ColorConfig();
                         }
                     }
 

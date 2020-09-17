@@ -57,7 +57,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4 PREVIEW BUILD (nightly 08-28-2020)";
+        public const string VERSION = "Version 2.4";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -294,10 +294,15 @@ namespace DSAnimStudio
             UpdateActiveState();
         }
 
+        private Rectangle prevClientBounds = Rectangle.Empty;
         private void Window_ClientSizeChanged(object sender, EventArgs e)
         {
             RequestHideOSD = RequestHideOSD_MAX;
             UpdateActiveState();
+
+            TAE_EDITOR.HandleWindowResize(prevClientBounds, Window.ClientBounds);
+
+            prevClientBounds = Window.ClientBounds;
         }
 
         public void RebuildRenderTarget()
@@ -374,7 +379,7 @@ namespace DSAnimStudio
                 WHITE_TEXTURE.SetData(new Color[] { new Color(1.0f, 1.0f, 1.0f) });
 
                 DEFAULT_TEXTURE_SPECULAR = new Texture2D(GraphicsDevice, 1, 1);
-                DEFAULT_TEXTURE_SPECULAR.SetData(new Color[] { new Color(0.0f, 0.0f, 0.0f) });
+                DEFAULT_TEXTURE_SPECULAR.SetData(new Color[] { new Color(0.5f, 0.5f, 0.5f) });
 
                 DEFAULT_TEXTURE_NORMAL = new Texture2D(GraphicsDevice, 1, 1);
                 DEFAULT_TEXTURE_NORMAL.SetData(new Color[] { new Color(0.5f, 0.5f, 0.0f) });
@@ -434,6 +439,14 @@ namespace DSAnimStudio
                         m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
                         m.UpdateAnimation();
                         Scene.AddModel(m);
+                    }
+                    else if (file.ToUpper().EndsWith(".HKX"))
+                    {
+                        var anim = KeyboardInput.Show("Enter Anim ID", "Enter name to save the dragged and dropped HKX file to e.g. a01_3000.");
+                        string name = anim.Result;
+                        byte[] animData = File.ReadAllBytes(file);
+                        TAE_EDITOR.FileContainer.AddNewHKX(name, animData, out byte[] dataForAnimContainer);
+                        TAE_EDITOR.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(name + ".hkx", dataForAnimContainer);
                     }
                 }
 
@@ -642,8 +655,10 @@ namespace DSAnimStudio
 
         protected override void Update(GameTime gameTime)
         {
+#if !DEBUG
             try
             {
+#endif
                 UpdateActiveState();
 
                 if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
@@ -696,7 +711,7 @@ namespace DSAnimStudio
                     //    GFX.World.UpdateInput(this, gameTime);
                     //}
 
-                    GFX.World.Update();
+                    GFX.World.Update(DELTA_UPDATE);
 
                     if (REQUEST_EXIT)
                         Exit();
@@ -782,11 +797,13 @@ namespace DSAnimStudio
 
                     base.Update(gameTime);
                 }
+#if !DEBUG
             }
             catch (Exception ex)
             {
                 ErrorLog.HandleException(ex, "Fatal error encountered during update loop");
             }
+#endif
         }
 
         private void InitTonemapShader()
@@ -900,6 +917,10 @@ namespace DSAnimStudio
                             GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
 
                         GFX.DrawSceneOver3D();
+
+                    GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+
+                    GFX.DrawPrimDisrespectDepth();
 
                     GFX.Device.SetRenderTarget(null);
 

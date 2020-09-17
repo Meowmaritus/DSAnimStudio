@@ -34,6 +34,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.textBoxComboSeq = new System.Windows.Forms.TextBox();
+            this.checkBoxRecord = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // buttonPlayCombo
@@ -130,6 +131,20 @@
             this.textBoxComboSeq.TabIndex = 9;
             this.textBoxComboSeq.Text = "EnemyComboAtk 3000\r\nEnemyComboAtk 3001\r\nEnemyComboAtk 3002\r\n";
             // 
+            // checkBoxRecord
+            // 
+            this.checkBoxRecord.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.checkBoxRecord.AutoSize = true;
+            this.checkBoxRecord.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.checkBoxRecord.ForeColor = System.Drawing.Color.White;
+            this.checkBoxRecord.Location = new System.Drawing.Point(69, 331);
+            this.checkBoxRecord.Name = "checkBoxRecord";
+            this.checkBoxRecord.Size = new System.Drawing.Size(127, 17);
+            this.checkBoxRecord.TabIndex = 10;
+            this.checkBoxRecord.Text = "Record (Experimental)";
+            this.checkBoxRecord.UseVisualStyleBackColor = true;
+            this.checkBoxRecord.Visible = false;
+            // 
             // TaeComboMenu
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -137,6 +152,7 @@
             this.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.ClientSize = new System.Drawing.Size(584, 361);
+            this.Controls.Add(this.checkBoxRecord);
             this.Controls.Add(this.textBoxComboSeq);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
@@ -165,5 +181,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox textBoxComboSeq;
+        private System.Windows.Forms.CheckBox checkBoxRecord;
     }
 }

@@ -1045,7 +1045,7 @@ namespace DSAnimStudio
 
                 if (GFX.CurrentStep == GFXDrawStep.AlphaEdge)
                 {
-                    if (DrawStep != GFXDrawStep.AlphaEdge || !GFX.FlverShader.Effect.FancyAlpha_Enable)
+                    if (/*DrawStep != GFXDrawStep.AlphaEdge ||*/ !GFX.FlverShader.Effect.FancyAlpha_Enable)
                         return;
 
                     GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = true;
@@ -1105,7 +1105,7 @@ namespace DSAnimStudio
 
                 // Hotfix because loading the DS3 character embered effect with the default shader just makes
                 // them have various fixed glowing orange spots
-                if (TexNameEmissive != "SYSTEX_DummyBurn_em")
+                if (TexNameEmissive != "systex_dummyburn_em")
                 {
                     GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
                     GFX.FlverShader.Effect.EmissiveMapScale = TexScaleEmissive;

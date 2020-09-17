@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SFAnimExtensions.Havok;
 
 namespace DSAnimStudio
 {
@@ -513,6 +514,7 @@ namespace DSAnimStudio
             public Matrix ReferenceMatrix = Matrix.Identity;
             public int FlverBoneIndex = -1;
             public List<int> ChildIndices = new List<int>();
+            public NewBlendableTransform CurrentHavokTransform = NewBlendableTransform.Identity;
         }
     }
 }

@@ -20,6 +20,8 @@ namespace DSAnimStudio.TaeEditor
         public TaeFileContainerType ContainerType { get; private set; }
 
         private IBinder containerANIBND;
+        private IBinder containerANIBND_2010;
+        private bool containerANIBND_2010_IsModified = false;
 
         private IBinder containerOBJBND;
 
@@ -27,6 +29,85 @@ namespace DSAnimStudio.TaeEditor
 
         private Dictionary<string, TAE> taeInBND = new Dictionary<string, TAE>();
         private Dictionary<string, byte[]> hkxInBND = new Dictionary<string, byte[]>();
+
+        private void DeleteAnimHKX(string name)
+        {
+            if (ContainerType != TaeFileContainerType.ANIBND)
+                throw new NotImplementedException("Not supported for anything other than ANIBND right now.");
+
+            BinderFile existingFile = containerANIBND.Files.FirstOrDefault(ff => ff.Name.Contains(name));
+            BinderFile existingFile_2010 = containerANIBND_2010.Files.FirstOrDefault(ff => ff.Name.Contains(name));
+
+            if (existingFile != null)
+                containerANIBND.Files.Remove(existingFile);
+
+            if (existingFile_2010 != null)
+                containerANIBND_2010.Files.Remove(existingFile_2010);
+
+            if (hkxInBND.ContainsKey(name))
+                hkxInBND.Remove(name);
+        }
+
+        public void AddNewHKX(string name, byte[] data, out byte[] dataForAnimContainer)
+        {
+            if (ContainerType != TaeFileContainerType.ANIBND)
+                throw new NotImplementedException("Not supported for anything other than ANIBND right now.");
+
+            dataForAnimContainer = data;
+
+            if (ContainerType == TaeFileContainerType.ANIBND)
+            {
+                DeleteAnimHKX(name + ".hkx");
+
+                if (GameDataManager.GameTypeIsHavokTagfile)
+                {
+                    if (HavokDowngrade.SimpleCheckIfHkxBytesAre2015(data))
+                    {
+                        BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
+                        containerANIBND.Files.Add(f);
+                        containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
+                        
+
+                        byte[] bytes2010 = HavokDowngrade.DowngradeSingleFileInANIBND(containerANIBND, f, isUpgrade: false);
+                        BinderFile f2010 = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", bytes2010);
+                        containerANIBND_2010.Files.Add(f2010);
+                        containerANIBND_2010.Files = containerANIBND_2010.Files.OrderBy(bf => bf.ID).ToList();
+                        containerANIBND_2010_IsModified = true;
+                        hkxInBND.Add(name + ".hkx", bytes2010);
+
+                        dataForAnimContainer = bytes2010;
+
+                        IsModified = true;
+                    }
+                    else
+                    {
+                        hkxInBND.Add(name + ".hkx", data);
+
+                        BinderFile f2010 = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
+                        containerANIBND_2010.Files.Add(f2010);
+                        containerANIBND_2010.Files = containerANIBND_2010.Files.OrderBy(bf => bf.ID).ToList();
+                        containerANIBND_2010_IsModified = true;
+
+                        byte[] bytes2015 = HavokDowngrade.DowngradeSingleFileInANIBND(containerANIBND_2010, f2010, isUpgrade: true);
+
+                        BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", bytes2015);
+                        containerANIBND.Files.Add(f);
+                        containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
+                        IsModified = true;
+                    }
+
+                }
+                else
+                {
+                    hkxInBND.Add(name + ".hkx", data);
+                    BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
+                    containerANIBND.Files.Add(f);
+                    containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
+                    IsModified = true;
+                }
+            }
+            
+        }
 
         public List<BinderFile> RelatedModelFiles = new List<BinderFile>();
 
@@ -211,11 +292,11 @@ namespace DSAnimStudio.TaeEditor
             filePath = file;
 
             containerANIBND = null;
+            containerANIBND_2010 = null;
+            containerANIBND_2010_IsModified = false;
 
             taeInBND.Clear();
             hkxInBND.Clear();
-
-
 
             if (BND3.Is(file))
             {
@@ -248,17 +329,16 @@ namespace DSAnimStudio.TaeEditor
                 {
                     isSekiroMeme = true;
 
-                    IBinder anibnd2010 = null;
                     if (BND3.Is(file + ".2010"))
                     {
-                        anibnd2010 = BND3.Read(file);
+                        containerANIBND_2010 = BND3.Read(file + ".2010");
                     }
                     else if (BND4.Is(file + ".2010"))
                     {
-                        anibnd2010 = BND4.Read(file);
+                        containerANIBND_2010 = BND4.Read(file + ".2010");
                     }
 
-                    if (anibnd2010 != null)
+                    if (containerANIBND_2010 != null)
                     {
                         foreach (var f in containerANIBND.Files)
                         {
@@ -342,6 +422,7 @@ namespace DSAnimStudio.TaeEditor
                 });
             }
 
+            IsModified = false;
             IsCurrentlyLoading = false;
         }
 
@@ -382,6 +463,14 @@ namespace DSAnimStudio.TaeEditor
                     asBND3.Write(file);
                 else if (containerANIBND is BND4 asBND4)
                     asBND4.Write(file);
+
+                if (containerANIBND_2010 != null && containerANIBND_2010_IsModified)
+                {
+                    if (containerANIBND_2010 is BND3 asBND3_2010)
+                        asBND3_2010.Write(file + ".2010");
+                    else if (containerANIBND_2010 is BND4 asBND4_2010)
+                        asBND4_2010.Write(file + ".2010");
+                }
 
                 progress.Report(1.0);
             }
@@ -439,6 +528,8 @@ namespace DSAnimStudio.TaeEditor
 
                 progress.Report(1.0);
             }
+
+            IsModified = false;
 
             Main.TAE_EDITOR.UpdateIsModifiedStuff();
         }

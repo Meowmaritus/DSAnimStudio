@@ -108,6 +108,8 @@ namespace DSAnimStudio
 
             CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
             CategoryEnableDraw[DbgPrimCategory.Other] = true;
+
+            CategoryEnableDraw[DbgPrimCategory.CameraPivot] = true;
         }
 
         public static bool DbgPrimXRay = false;
@@ -195,6 +197,19 @@ namespace DSAnimStudio
         public static void DrawDepthRespectPrims()
         {
             Main.TAE_EDITOR.Graph?.ViewportInteractor?.DrawDebug();
+
+            if (CategoryEnableDraw[DbgPrimCategory.CameraPivot])
+            {
+                GFX.World.DrawPrims();
+            }
+        }
+
+        public static void DrawDepthDisrespectPrims()
+        {
+            if (CategoryEnableDraw[DbgPrimCategory.CameraPivot])
+            {
+                GFX.World.DrawOverPrims();
+            }
         }
 
         public static void DrawSkybox()
@@ -284,15 +299,15 @@ namespace DSAnimStudio
                 }
                 GFX.SpriteBatchEnd();
 
-                FmodManager.DbgPrimCamPos.Draw(null, Matrix.Identity);
+                //FmodManager.DbgPrimCamPos.Draw(null, Matrix.Identity);
             }
 
             //GFX.SpriteBatchBeginForText();
 
-            //GFX.World.DbgPrintA.Draw();
-            //GFX.World.DbgPrintB.Draw();
+                //GFX.World.DbgPrintA.Draw();
+                //GFX.World.DbgPrintB.Draw();
 
-            //GFX.SpriteBatchEnd();
+                //GFX.SpriteBatchEnd();
         }
 
 

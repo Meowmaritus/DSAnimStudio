@@ -23,6 +23,7 @@ namespace DSAnimStudio
         DbgPrimOverlay,
         GUI = 5,
         DbgPrimAlwaysRespectDepth = 6,
+        DbgPrimAlwaysDisrespectDepth = 7,
     }
 
     public enum LODMode : int
@@ -594,6 +595,9 @@ namespace DSAnimStudio
                 case GFXDrawStep.DbgPrimAlwaysRespectDepth:
                     DBG.DrawDepthRespectPrims();
                     break;
+                case GFXDrawStep.DbgPrimAlwaysDisrespectDepth:
+                    DBG.DrawDepthDisrespectPrims();
+                    break;
                 case GFXDrawStep.GUI:
                     DBG.DrawPrimitiveTexts();
                     if (DBG.EnableMenu)
@@ -651,6 +655,13 @@ namespace DSAnimStudio
         public static void DrawPrimRespectDepth()
         {
             CurrentStep = GFXDrawStep.DbgPrimAlwaysRespectDepth;
+            BeginDraw();
+            DoDraw();
+        }
+
+        public static void DrawPrimDisrespectDepth()
+        {
+            CurrentStep = GFXDrawStep.DbgPrimAlwaysDisrespectDepth;
             BeginDraw();
             DoDraw();
         }
