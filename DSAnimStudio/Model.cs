@@ -40,16 +40,26 @@ namespace DSAnimStudio
 
         public void UpdateTrackingTest(float elapsedTime)
         {
-            TrackingTestInput = MathHelper.Clamp(TrackingTestInput, -1, 1);
-            float delta = (MathHelper.ToRadians(CurrentTrackingSpeed)) * elapsedTime * TrackingTestInput;
-            CharacterTrackingRotation += delta;
-            CurrentDirection += delta;
-            if (AnimContainer != null)
+            try
             {
-                foreach (var anim in AnimContainer.AnimationLayers)
+                TrackingTestInput = MathHelper.Clamp(TrackingTestInput, -1, 1);
+                float delta = (MathHelper.ToRadians(CurrentTrackingSpeed)) * elapsedTime * TrackingTestInput;
+                CharacterTrackingRotation += delta;
+                CurrentDirection += delta;
+                if (AnimContainer != null)
                 {
-                    anim.ApplyExternalRotation(delta);
+                    lock (Scene._lock_ModelLoad_Draw)
+                    {
+                        foreach (var anim in AnimContainer.AnimationLayers)
+                        {
+                            anim.ApplyExternalRotation(delta);
+                        }
+                    }
                 }
+            }
+            catch
+            {
+
             }
            
         }

@@ -31,8 +31,41 @@ namespace DSAnimStudio.TaeEditor
             {
                 ShowComboMenu();
             }, startDisabled: true);
+#if DEBUG
+            MenuBar.AddItem("Tools", "Scan for Unused Animations", () =>
+            {
+                List<string> usedAnims = new List<string>();
+                List<string> unusedAnims = new List<string>();
+                foreach (var anim in SelectedTae.Animations)
+                {
+                    string hkx = Graph.ViewportInteractor.GetFinalAnimFileName(SelectedTae, anim);
+                    if (!usedAnims.Contains(hkx))
+                        usedAnims.Add(hkx);
+                }
+                foreach (var anim in Graph.ViewportInteractor.CurrentModel.AnimContainer.Animations.Keys)
+                {
+                    if (!usedAnims.Contains(anim) && !Graph.ViewportInteractor.CurrentModel.AnimContainer.AdditiveBlendOverlayNames.Contains(anim) 
+                    && !unusedAnims.Contains(anim))
+                        unusedAnims.Add(anim);
+                }
+                //var sb = new StringBuilder();
+                foreach (var anim in unusedAnims)
+                {
+                    //sb.AppendLine(anim);
+                    int id = int.Parse(anim.Replace(".hkx", "").Replace("_", "").Replace("a", ""));
+                    var newAnim = new TAE.Animation(9_000_000000 + id, new TAE.Animation.AnimMiniHeader.Standard()
+                    {
+                        ImportHKXSourceAnimID = id,
+                        ImportsHKX = true,
+                    }, $"UNUSED:{anim.Replace(".hkx", "")}");
+                    SelectedTae.Animations.Add(newAnim);
+                }
+                RecreateAnimList();
+                //System.Windows.Forms.MessageBox.Show(sb.ToString());
+            }, startDisabled: false);
 
             MenuBar.AddSeparator("Tools");
+#endif
 
             MenuBar.AddItem("Tools", "Downgrade Sekiro/DS1R ANIBND(s)...", () =>
             {
@@ -747,11 +780,11 @@ namespace DSAnimStudio.TaeEditor
                 try
                 {
                     return (SelectedTae?.Animations.Any(a => a.GetIsModified()) ?? false) ||
-            (FileContainer?.AllTAE.Any(t => t.GetIsModified()) ?? false);
+                    (FileContainer?.AllTAE.Any(t => t.GetIsModified()) ?? false) || (FileContainer?.IsModified ?? false);
                 }
                 catch
                 {
-                    return false;
+                    return true;
                 }
             }
         }
@@ -835,7 +868,7 @@ namespace DSAnimStudio.TaeEditor
         private float DividerLeftVisibleStartX => Rect.Left + LeftSectionWidth;
         private float DividerLeftVisibleEndX => Rect.Left + LeftSectionWidth + DividerVisiblePad;
 
-        private float RightSectionWidth = 600; //not weed
+        private float RightSectionWidth = 600;
         private const float RightSectionWidthMin = 320;
         private float DividerRightVisibleStartX => Rect.Right - RightSectionWidth - DividerVisiblePad;
         private float DividerRightVisibleEndX => Rect.Right - RightSectionWidth;
@@ -986,6 +1019,7 @@ namespace DSAnimStudio.TaeEditor
         public System.Windows.Forms.MenuStrip WinFormsMenuStrip;
 
         public string FileContainerName = "";
+        public string FileContainerName_2010 => FileContainerName + ".2010";
 
         public bool IsReadOnlyFileMode = false;
 
@@ -1844,6 +1878,9 @@ namespace DSAnimStudio.TaeEditor
                 () => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
                    b => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
 
+            MenuBar.AddItem("Scene", "Show c0000 Weapon Global DummyPoly ID Values (10000+)", () => NewDummyPolyManager.ShowGlobalIDOffset,
+                    b => NewDummyPolyManager.ShowGlobalIDOffset = b);
+
             MenuBar.AddItem("Scene", $"Helper: Sound Event Locations",
                 () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent],
                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent] = b);
@@ -2256,7 +2293,7 @@ namespace DSAnimStudio.TaeEditor
             return false;
         }
 
-        public bool GotoAnimID(int id, bool scrollOnCenter)
+        public bool GotoAnimID(long id, bool scrollOnCenter)
         {
             foreach (var s in AnimationListScreen.AnimTaeSections.Values)
             {
@@ -2558,6 +2595,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void File_Open()
         {
+            FmodManager.StopAllSounds();
             if (FileContainer != null && !IsReadOnlyFileMode && FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified())))
             {
                 var yesNoCancel = System.Windows.Forms.MessageBox.Show(
@@ -2893,7 +2931,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
-            bool isBlend = PlaybackCursor.IsPlaying && Graph.ViewportInteractor.IsBlendingActive;
+            bool isBlend = (PlaybackCursor.IsPlaying || Graph.ViewportInteractor.IsComboRecording) && Graph.ViewportInteractor.IsBlendingActive;
 
             AnimSwitchRenderCooldown = AnimSwitchRenderCooldownMax;
 
@@ -3440,6 +3478,11 @@ namespace DSAnimStudio.TaeEditor
                     Graph?.MouseReleaseStuff();
             }
 
+
+            if (ModelViewerBounds.Contains((int)Input.LeftClickDownAnchor.X, (int)Input.LeftClickDownAnchor.Y) || 
+                inspectorWinFormsControl.Bounds.Contains(Input.LeftClickDownAnchor.ToDrawingPoint()))
+                return;
+
             //if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
             //{
             //    if (Config.UseGamesMenuSounds)
@@ -3929,6 +3972,21 @@ namespace DSAnimStudio.TaeEditor
             oldMouseHoverKind = MouseHoverKind;
         }
 
+        public void HandleWindowResize(Rectangle oldBounds, Rectangle newBounds)
+        {
+            if (oldBounds.Width > 0 && oldBounds.Height > 0)
+            {
+                float ratioW = 1.0f * newBounds.Width / oldBounds.Width;
+                float ratioH = 1.0f * newBounds.Height / oldBounds.Height;
+
+                RightSectionWidth = RightSectionWidth * ratioW;
+                TopRightPaneHeight = TopRightPaneHeight * ratioH;
+
+                UpdateLayout();
+            }
+            
+        }
+
         private void UpdateLayout()
         {
            
@@ -4083,7 +4141,7 @@ namespace DSAnimStudio.TaeEditor
             sb.Begin();
             try
             {
-                sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), new Color(0.2f, 0.2f, 0.2f));
+                sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), Main.Colors.MainColorBackground);
 
                 // Draw model viewer background lel
                 //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);

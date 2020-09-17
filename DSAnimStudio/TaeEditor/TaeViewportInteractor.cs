@@ -321,12 +321,17 @@ namespace DSAnimStudio.TaeEditor
                 throw new NotImplementedException("REMO NOT SUPPORTED YET");
             }
 
+            if (CurrentModel?.Skeleton != null)
+                CurrentComboRecorder = new HavokRecorder(CurrentModel.Skeleton.HkxSkeleton);
+
             CurrentModel.OnRootMotionWrap = (wrap) =>
             {
-                GeneralUpdate();
-                GFX.World.Update();
+                GeneralUpdate(allowPlaybackManipulation: false);
+                GFX.World.Update(0);
                 FmodManager.Update();
             };
+
+
 
             Scene.EnableModelDrawing();
             if (!CurrentModel.IS_PLAYER)
@@ -466,7 +471,6 @@ namespace DSAnimStudio.TaeEditor
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
-            
 
             var timeDelta = (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
@@ -476,8 +480,12 @@ namespace DSAnimStudio.TaeEditor
 
             CurrentModel.AfterAnimUpdate(timeDelta);
 
+            
+
             if (UpdateCombo())
+            {
                 return;
+            }
 
             //V2.0
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
@@ -485,7 +493,6 @@ namespace DSAnimStudio.TaeEditor
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTimeMod);
 
-            
         }
 
         private void CheckSimEnvironment()
@@ -537,6 +544,12 @@ namespace DSAnimStudio.TaeEditor
 
             CurrentModel.AfterAnimUpdate(timeDelta);
 
+            if (CurrentComboIndex >= 0 && IsComboRecording)
+            {
+                if (UpdateCombo())
+                    return;
+            }
+
             //V2.0
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
@@ -546,13 +559,17 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
-        public void StartCombo(bool isLoop, TaeComboEntry[] entries)
+        public void StartCombo(bool isLoop, bool isRecord, TaeComboEntry[] entries)
         {
             // Do this before setting current combo since inside here, it will check if there's a combo and not reset stuff if there's currently a combo happening.
             CurrentComboIndex = -1;
             EventSim.OnNewAnimSelected(Graph.EventBoxes);
 
+            if (isRecord)
+                CurrentComboRecorder.ClearRecording();
+
             CurrentComboLoop = isLoop;
+            IsComboRecording = false;
             CurrentCombo = entries;
             CurrentComboIndex = 0;
             if (CurrentModel.ChrAsm != null)
@@ -560,11 +577,11 @@ namespace DSAnimStudio.TaeEditor
                 CurrentModel.ChrAsm.WeaponStyle = CurrentModel.ChrAsm.StartWeaponStyle;
             }
 
-            StartCurrentComboEntry(true);
+            StartCurrentComboEntry(true, isRecord);
             RemoveTransition();
         }
 
-        private void StartCurrentComboEntry(bool isFirstTime)
+        private void StartCurrentComboEntry(bool isFirstTime, bool isRecord = false)
         {
             if (CurrentCombo[CurrentComboIndex].ComboType == TaeComboMenu.TaeComboAnimType.PlayerRH)
             {
@@ -607,20 +624,38 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            
-
-            if (!Graph.PlaybackCursor.IsPlaying)
+            if (isRecord)
             {
-                Graph.PlaybackCursor.Transport_PlayPause();
+                if (Graph.PlaybackCursor.IsPlaying)
+                {
+                    Graph.PlaybackCursor.Transport_PlayPause();
+                }
+
+                //RecordCurrentComboFrame();
+
+                IsComboRecording = true;
             }
+            else
+            {
+                if (!Graph.PlaybackCursor.IsPlaying)
+                {
+                    Graph.PlaybackCursor.Transport_PlayPause();
+                }
+            }
+
+            
         }
 
         public TaeComboEntry[] CurrentCombo = new TaeComboEntry[0];
         public int CurrentComboIndex = -1;
         public bool CurrentComboLoop = false;
+        public bool IsComboRecording = false;
+        private Vector4 CurrentComboRecordLastRootMotion = Vector4.Zero;
+        private HavokRecorder CurrentComboRecorder;
 
         public void CancelCombo()
         {
+            IsComboRecording = false;
             CurrentComboIndex = -1;
             EventSim.OverrideHitViewDummyPolySource = null;
         }
@@ -643,6 +678,10 @@ namespace DSAnimStudio.TaeEditor
                 {
                     if (Graph.PlaybackCursor.IsPlaying)
                         Graph.PlaybackCursor.Transport_PlayPause();
+
+                    if (IsComboRecording)
+                        CurrentComboRecorder?.FinalizeRecording();
+
                     CurrentComboIndex = -1;
                 }
 
@@ -650,10 +689,20 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
+        private void RecordCurrentComboFrame()
+        {
+            Vector3 curModelPosition = Vector3.Transform(Vector3.Zero, CurrentModel.CurrentTransform.WorldMatrix);
+            Vector4 curRootMotionLocation = new Vector4(curModelPosition, CurrentModel.CurrentDirection);
+            Vector4 rootMotionDelta = curRootMotionLocation - CurrentComboRecordLastRootMotion;
+            CurrentComboRecorder.AddFrame(rootMotionDelta, CurrentModel.Skeleton.HkxSkeleton);
+            CurrentComboRecordLastRootMotion = curRootMotionLocation;
+        }
+
         private bool UpdateCombo()
         {
-            if (!Graph.PlaybackCursor.IsPlaying || Graph.PlaybackCursor.Scrubbing)
+            if ((!Graph.PlaybackCursor.IsPlaying || Graph.PlaybackCursor.Scrubbing) && !IsComboRecording)
                 return false;
+
 
             if (CurrentComboIndex >= 0)
             {
@@ -707,6 +756,8 @@ namespace DSAnimStudio.TaeEditor
                 else
                 {
                     CurrentComboIndex = -1;
+                    IsComboRecording = false;
+                    CurrentComboRecorder.FinalizeRecording();
                     return true;
                 }
 
@@ -981,13 +1032,24 @@ namespace DSAnimStudio.TaeEditor
 
         private int lastFrameForTrails = -1;
 
-        public void GeneralUpdate()
+        public void GeneralUpdate(bool allowPlaybackManipulation = true)
         {
             DBG.DbgPrimXRay = Graph.MainScreen.Config.DbgPrimXRay;
 
             
             if (CurrentModel != null)
             {
+                // allowPlaybackManipulation==false prevents infinite recursion.
+                if (allowPlaybackManipulation && IsComboRecording && CurrentComboIndex >= 0)
+                {
+                    Graph.PlaybackCursor.IsPlaying = false;
+                    Graph.PlaybackCursor.Scrubbing = true;
+                    Graph.PlaybackCursor.IsStepping = false;
+                    Graph.PlaybackCursor.CurrentTime += CurrentComboRecorder.DeltaTime;
+                    Graph.PlaybackCursor.UpdateScrubbing();
+                    RecordCurrentComboFrame();
+                }
+
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {
@@ -1016,7 +1078,7 @@ namespace DSAnimStudio.TaeEditor
                 if (CurrentModel.AnimContainer != null)
                 {
                     CurrentModel.AnimContainer.EnableRootMotion = Graph.MainScreen.Config.EnableAnimRootMotion;
-                    CurrentModel.AnimContainer.EnableRootMotionWrap = Graph.MainScreen.Config.WrapRootMotion;
+                    CurrentModel.AnimContainer.EnableRootMotionWrap = Graph.MainScreen.Config.WrapRootMotion && !IsComboRecording;
                 }
 
                 int frame = (int)Math.Round(Graph.PlaybackCursor.CurrentTime / (1.0 / 60.0));
@@ -1030,6 +1092,10 @@ namespace DSAnimStudio.TaeEditor
                     EventSim?.UpdateAllBladeSFXsLive();
 
                 }
+
+
+
+
 
                 lastFrameForTrails = frame;
             }

@@ -27,7 +27,11 @@ namespace DSAnimStudio
 
         const int PARALLEL_CONVERSIONS = 10;
 
-
+        public static bool SimpleCheckIfHkxBytesAre2015(byte[] bytes)
+        {
+            //"TAG0", container name in 2015+
+            return bytes[4] == 0x54 && bytes[5] == 0x41 && bytes[6] == 0x47 && bytes[7] == 0x30;
+        }
 
         static void CreateTempIfNeeded()
         {
@@ -46,7 +50,8 @@ namespace DSAnimStudio
             File.WriteAllBytes(pathCompendium, compendium);
         }
 
-        private static Process GetDowngradeHkxProcess(string debug_hkxName, byte[] hkx, bool useCompendium, int i, Action<Process, byte[], int> whatToDoWithResult)
+        private static Process GetDowngradeHkxProcess(string debug_hkxName, byte[] hkx, 
+            bool useCompendium, int i, Action<Process, byte[], int> whatToDoWithResult, bool isUpgrade = false)
         {
             // Change from 20150100 to 20160000 fatcat
             //hkx[0x13] = 0x36;
@@ -100,7 +105,8 @@ namespace DSAnimStudio
                     var standardError = proc.StandardError.ReadToEnd();
                     byte[] result = File.ReadAllBytes(pathOut);
                     //Patch "hk_2012.2.0-r1" to "hk_2010.2.0-r1"
-                    result[0x2E] = 0x30;
+                    if (!isUpgrade)
+                        result[0x2E] = 0x30;
                     whatToDoWithResult.Invoke(proc, result, j);
                 }
                 catch (FileNotFoundException)
@@ -143,6 +149,48 @@ namespace DSAnimStudio
 
             
         //}
+
+        public static byte[] DowngradeSingleFileInANIBND(IBinder anibnd, BinderFile file, bool isUpgrade)
+        {
+            byte[] resultBytes = null;
+
+            lock (_lock_DoingTask)
+            {
+                BinderFile compendium = null;
+
+                foreach (var f in anibnd.Files)
+                {
+                    var nameCheck = f.Name.ToUpper();
+
+                    if (nameCheck.EndsWith(".COMPENDIUM"))
+                    {
+                        compendium = f;
+                    }
+                }
+
+                CreateTempIfNeeded();
+
+                if (compendium != null)
+                {
+                    SaveCompendiumToTemp(compendium.Bytes);
+                }
+
+                
+
+                var proc = GetDowngradeHkxProcess(file.Name, file.Bytes, compendium != null, 0, (convertProc, result, j) => 
+                {
+                    resultBytes = result;
+                }, isUpgrade);
+
+                proc.Start();
+                proc.WaitForExit();
+
+                
+            }
+
+            return resultBytes;
+        }
+
 
         public static void DowngradeAnibnd(string anibndPath, IProgress<double> prog = null)
         {
@@ -275,8 +323,7 @@ namespace DSAnimStudio
 
                         var nextProc = GetDowngradeHkxProcess(animations[i].Name, animations[i].Bytes, compendium != null, i, (convertProc, result, j) =>
                         {
-                            lock (_lock_animFinished)
-                            {
+                          
                                 if (result == null)
                                 {
                                     lock (_lock_processQueue)
@@ -329,7 +376,7 @@ namespace DSAnimStudio
                                 }
 
                                 
-                            }
+                            
 
 
 

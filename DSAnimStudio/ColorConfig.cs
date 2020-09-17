@@ -25,60 +25,63 @@ namespace DSAnimStudio
         public Color ColorHelperDummyPolySpawnSFXBulletsMisc { get; set; } = Color.Lime;
 
         // Things that don't need to be read/written:
-        public Color MainColorBackground = new Color(0.2f, 0.2f, 0.2f);
 
-        public Color MainColorViewportBackground = Color.DimGray;
+        public Color ColorHelperCameraPivot { get; set; } = Color.Cyan;
 
+        public Color MainColorBackground { get; set; } = new Color(0.2f, 0.2f, 0.2f);
 
-
-        public Color GuiColorMemoryUseTextGood = Color.Yellow;
-        public Color GuiColorMemoryUseTextOkay = Color.Orange;
-        public Color GuiColorMemoryUseTextBad = Color.Red;
-
-        public Color GuiColorViewportStatus = Color.Yellow;
-        public Color GuiColorViewportStatusMaxBoneCountExceeded = Color.Orange;
-        public Color GuiColorViewportStatusAnimDoesntExist = Color.Red;
-        public Color GuiColorViewportStatusCombo = Color.Cyan;
+        public Color MainColorViewportBackground { get; set; } = Color.DimGray;
 
 
 
-        public Color GuiColorEventBox_Normal_Fill = new Color(80, 80, 80, 255);
-        public Color GuiColorEventBox_Normal_Outline = Color.Black;
-        public Color GuiColorEventBox_Normal_Text = Color.White;
-        public Color GuiColorEventBox_Normal_TextShadow = Color.Black;
+        public Color GuiColorMemoryUseTextGood { get; set; } = Color.Yellow;
+        public Color GuiColorMemoryUseTextOkay { get; set; } = Color.Orange;
+        public Color GuiColorMemoryUseTextBad { get; set; } = Color.Red;
 
-        public Color GuiColorEventBox_Highlighted_Fill = new Color((30.0f / 255.0f) * 0.75f, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);
-        public Color GuiColorEventBox_Highlighted_Outline = Color.Yellow;
-        public Color GuiColorEventBox_Highlighted_Text = Color.Yellow;
-        public Color GuiColorEventBox_Highlighted_TextShadow = Color.Black;
+        public Color GuiColorViewportStatus { get; set; } = Color.Yellow;
+        public Color GuiColorViewportStatusMaxBoneCountExceeded { get; set; } = Color.Orange;
+        public Color GuiColorViewportStatusAnimDoesntExist { get; set; } = Color.Red;
+        public Color GuiColorViewportStatusCombo { get; set; } = Color.Cyan;
 
-        public Color GuiColorEventBox_Hover_TextOutline = Color.Black;
 
-        public Color GuiColorEventBox_SelectionDimmingOverlay = Color.Black * 0.5f;
 
-        public Color GuiColorEventGraphBackground = new Color(120, 120, 120, 255);
-        public Color GuiColorEventGraphGhostOverlay = new Color(120, 120, 120, 255) * 0.5f;
-        public Color GuiColorEventGraphAnimEndVerticalLine = Color.White;
-        public Color GuiColorEventGraphAnimEndDarkenRect = Color.Black * 0.25f;
-        public Color GuiColorEventGraphRowHorizontalLines = Color.Black * 0.25f;
-        public Color GuiColorEventGraphTimelineFill = new Color(75, 75, 75, 255);
-        public Color GuiColorEventGraphTimelineFrameVerticalLines = Color.Black * 0.125f;
-        public Color GuiColorEventGraphTimelineFrameNumberText = Color.White;
-        public Color GuiColorEventGraphVerticalFrameLines = Color.LightGray * 0.5f;
-        public Color GuiColorEventGraphVerticalSecondLines = Color.LightGray * 0.75f;
-        public Color GuiColorEventGraphSelectionRectangleFill = Color.DodgerBlue * 0.5f;
-        public Color GuiColorEventGraphSelectionRectangleOutline = Color.White;
-        public Color GuiColorEventGraphPlaybackCursor = Color.Black;
-        public Color GuiColorEventGraphPlaybackStartTime = Color.Blue;
-        public Color GuiColorEventGraphHoverInfoBoxFill = new Color(64, 64, 64, 1);
-        public Color GuiColorEventGraphHoverInfoBoxText = Color.White;
-        public Color GuiColorEventGraphHoverInfoBoxOutline = new Color(32, 32, 32, 1);
+        public Color GuiColorEventBox_Normal_Fill { get; set; } = new Color(80, 80, 80, 255);
+        public Color GuiColorEventBox_Normal_Outline { get; set; } = Color.Black;
+        public Color GuiColorEventBox_Normal_Text { get; set; } = Color.White;
+        public Color GuiColorEventBox_Normal_TextShadow { get; set; } = Color.Black;
 
-        public Color GuiColorEventGraphScrollbarBackground = new Color(0.25f, 0.25f, 0.25f);
-        public Color GuiColorEventGraphScrollbarForegroundInactive = new Color(0.45f, 0.45f, 0.45f);
-        public Color GuiColorEventGraphScrollbarForegroundActive = new Color(0.55f, 0.55f, 0.55f);
-        public Color GuiColorEventGraphScrollbarArrowButtonForegroundInactive = new Color(0.35f, 0.35f, 0.35f);
-        public Color GuiColorEventGraphScrollbarArrowButtonForegroundActive = new Color(0.45f, 0.45f, 0.45f);
+        public Color GuiColorEventBox_Highlighted_Fill { get; set; } = new Color((30.0f / 255.0f) * 0.75f, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);
+        public Color GuiColorEventBox_Highlighted_Outline { get; set; } = Color.Yellow;
+        public Color GuiColorEventBox_Highlighted_Text { get; set; } = Color.Yellow;
+        public Color GuiColorEventBox_Highlighted_TextShadow { get; set; } = Color.Black;
+
+        public Color GuiColorEventBox_Hover_TextOutline { get; set; } = Color.Black;
+
+        public Color GuiColorEventBox_SelectionDimmingOverlay { get; set; } = Color.Black * 0.5f;
+
+        public Color GuiColorEventGraphBackground { get; set; } = new Color(120, 120, 120, 255);
+        public Color GuiColorEventGraphGhostOverlay { get; set; } = new Color(120, 120, 120, 255) * 0.5f;
+        public Color GuiColorEventGraphAnimEndVerticalLine { get; set; } = Color.White;
+        public Color GuiColorEventGraphAnimEndDarkenRect { get; set; } = Color.Black * 0.25f;
+        public Color GuiColorEventGraphRowHorizontalLines { get; set; } = Color.Black * 0.25f;
+        public Color GuiColorEventGraphTimelineFill { get; set; } = new Color(75, 75, 75, 255);
+        public Color GuiColorEventGraphTimelineFrameVerticalLines { get; set; } = Color.Black * 0.125f;
+        public Color GuiColorEventGraphTimelineFrameNumberText { get; set; } = Color.White;
+        public Color GuiColorEventGraphVerticalFrameLines { get; set; } = Color.LightGray * 0.5f;
+        public Color GuiColorEventGraphVerticalSecondLines { get; set; } = Color.LightGray * 0.75f;
+        public Color GuiColorEventGraphSelectionRectangleFill { get; set; } = Color.DodgerBlue * 0.5f;
+        public Color GuiColorEventGraphSelectionRectangleOutline { get; set; } = Color.White;
+        public Color GuiColorEventGraphPlaybackCursor { get; set; } = Color.Black;
+        public Color GuiColorEventGraphPlaybackStartTime { get; set; } = Color.Blue;
+        public Color GuiColorEventGraphHoverInfoBoxFill { get; set; } = new Color(64, 64, 64, 1);
+        public Color GuiColorEventGraphHoverInfoBoxText { get; set; } = Color.White;
+        public Color GuiColorEventGraphHoverInfoBoxOutline { get; set; } = new Color(32, 32, 32, 1);
+
+        public Color GuiColorEventGraphScrollbarBackground { get; set; } = new Color(0.25f, 0.25f, 0.25f);
+        public Color GuiColorEventGraphScrollbarForegroundInactive { get; set; } = new Color(0.45f, 0.45f, 0.45f);
+        public Color GuiColorEventGraphScrollbarForegroundActive { get; set; } = new Color(0.55f, 0.55f, 0.55f);
+        public Color GuiColorEventGraphScrollbarArrowButtonForegroundInactive { get; set; } = new Color(0.35f, 0.35f, 0.35f);
+        public Color GuiColorEventGraphScrollbarArrowButtonForegroundActive { get; set; } = new Color(0.45f, 0.45f, 0.45f);
 
         public void ReadColorsFromConfig()
         {

@@ -51,6 +51,32 @@ namespace DSAnimStudio
 
         private Dictionary<string, byte[]> animHKXsToLoad = new Dictionary<string, byte[]>();
 
+        public void AddNewHKXToLoad(string name, byte[] data)
+        {
+            lock (_lock_animDict)
+            {
+                if (animHKXsToLoad.ContainsKey(name))
+                    animHKXsToLoad.Remove(name);
+                animHKXsToLoad.Add(name, data);
+            }
+
+            lock (_lock_AdditiveOverlays)
+            {
+                var overlay = _additiveBlendOverlays.FirstOrDefault(a => a.Name == name);
+                if (overlay != null)
+                    _additiveBlendOverlays.Remove(overlay);
+
+                if (_additiveBlendOverlayNames.Contains(name))
+                    _additiveBlendOverlayNames.Remove(name);
+            }
+
+            lock (_lock_animCache)
+            {
+                if (AnimationCache.ContainsKey(name))
+                    AnimationCache.Remove(name);
+            }
+        }
+
         public IReadOnlyDictionary<string, byte[]> Animations => animHKXsToLoad;
 
         public List<NewHavokAnimation> AnimationLayers = new List<NewHavokAnimation>();
@@ -121,6 +147,7 @@ namespace DSAnimStudio
         private List<string> _additiveBlendOverlayNames = new List<string>();
 
         public IReadOnlyList<NewHavokAnimation> AdditiveBlendOverlays => _additiveBlendOverlays;
+        public IReadOnlyList<string> AdditiveBlendOverlayNames => _additiveBlendOverlayNames;
 
         private string _currentAnimationName = null;
         public string CurrentAnimationName
@@ -219,8 +246,10 @@ namespace DSAnimStudio
                     {
                         //LoadAnimHKX(animHKXsToLoad[name], name);
 
+
                         try
                         {
+
                             NewHavokAnimation anim = null;
                             NewHavokAnimation cachedAnim = null;
 
@@ -267,22 +296,23 @@ namespace DSAnimStudio
                                 }
                             }
 
-                            
 
 
-                            //V2.0: Testing - Even out anim layer weights
-                            //foreach (var layer in AnimationLayers)
-                            //{
-                            //    layer.Weight = (float)(1.0 / AnimationLayers.Count);
-                            //}
-                        }
-                        catch
+
+                        //V2.0: Testing - Even out anim layer weights
+                        //foreach (var layer in AnimationLayers)
+                        //{
+                        //    layer.Weight = (float)(1.0 / AnimationLayers.Count);
+                        //}
+                    }
+                    catch
+                    {
+                        lock (_lock_animDict)
                         {
-                            lock (_lock_animDict)
-                            {
-                                animHKXsToLoad.Remove(value);
-                            }
+                            animHKXsToLoad.Remove(value);
                         }
+                    }
+
                     }
                     else
                     {
@@ -494,10 +524,19 @@ namespace DSAnimStudio
 
                     for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
                     {
+                        var curTransform = AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t);
                         if (i == 0)
-                            transA.Add(AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t));
+                        {
+                            transA.Add(curTransform);
+                            if (AnimationLayers.Count == 1)
+                                MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = curTransform;
+                        }
                         else if (i == 1)
-                            transB.Add(AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t));
+                        {
+                            transB.Add(curTransform);
+                            if (AnimationLayers.Count == 2)
+                                MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(transA[t], transB[t], AnimationLayers[1].Weight);
+                        }
                     }
                 }
 
@@ -610,7 +649,22 @@ namespace DSAnimStudio
         private NewHavokAnimation LoadAnimHKX(byte[] hkxBytes, string name)
         {
             var hkxVariation = GameDataManager.GetCurrentLegacyHKXType();
-            var hkx = HKX.Read(hkxBytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == GameDataManager.GameTypes.DS1R || GameDataManager.GameType == GameDataManager.GameTypes.SDT));
+            HKX hkx = null;
+            try
+            {
+                hkx = HKX.Read(hkxBytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == GameDataManager.GameTypes.DS1R
+                || GameDataManager.GameType == GameDataManager.GameTypes.SDT));
+            }
+            catch
+            {
+
+            }
+
+            if (hkx == null)
+            {
+                hkx = HKX.Read(hkxBytes, hkxVariation, isDS1RAnimHotfix: false);
+            }
+            
             var anim = LoadAnimHKX(hkx, name);
 
             if (anim != null)

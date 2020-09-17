@@ -922,9 +922,14 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         [branch]
         if (PtdeMtdType == PTDE_MTD_TYPE_METAL)
         {
-            gloss = clamp(gloss * 1.3 + 0.25, 0, 1);
-            color.xyz = color.xyz * 0.5;
-            specularMapColor.xyz = specularMapColor.xyz;
+            //return float4(1,0,0,1);
+            gloss = gloss * gloss;
+            gloss = clamp(gloss * 1 + 0.35, 0, 1);
+            color.xyz = clamp(color.xyz / (1 + (specMapGrayscale * 0.6)) - (specMapGrayscale * 0.2), 0, 1);
+            specularMapColor.xyz = (specularMapColor.xyz * 1.25) + 0.1;
+            ptdeSpecPower = 2;
+
+            
         }
         else if (PtdeMtdType == PTDE_MTD_TYPE_WET)
         {
@@ -935,16 +940,18 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         }
         else if (PtdeMtdType == PTDE_MTD_TYPE_DULL)
         {
-            color.xyz = color.xyz * 0.9;
-            specularMapColor.xyz = 0.1 + specularMapColor.xyz * 0.9;// * 0.75 * 0.45;
+            color.xyz = color.xyz * 0.65;
+            specularMapColor.xyz = 0.1 + specularMapColor.xyz * 0.8;// * 0.75 * 0.45;
             gloss *= 0.75;
             //ptdeSpecPower = 0.85;
         }
         else 
         {
-            color.xyz = color.xyz * 0.75;
-            specularMapColor.xyz = specularMapColor.xyz * 1.1;// * 0.75 * 0.45;
+            color.xyz = color.xyz * 0.65;
+            specularMapColor.xyz = 0.1 + specularMapColor.xyz * 0.8;// * 0.75 * 0.45;
             gloss = clamp(gloss * 0.90 + 0.10, 0, 1);
+
+            //return float4(float3(1,1,1) * specularMapColor, 1);
         }
         
         roughness = 1 - gloss;
@@ -973,7 +980,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
 
         // TEST
         F0 *= F0;
-        //F0_Gray *= F0_Gray;
+        F0_Gray *= F0_Gray;
         //F0 = 1;
         ///////
 

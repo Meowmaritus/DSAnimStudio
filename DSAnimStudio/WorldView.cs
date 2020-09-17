@@ -1,4 +1,5 @@
-﻿using DSAnimStudio.GFXShaders;
+﻿using DSAnimStudio.DebugPrimitives;
+using DSAnimStudio.GFXShaders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -18,14 +19,17 @@ namespace DSAnimStudio
         public Vector3 RootMotionFollow_Translation = Vector3.Zero;
         public float RootMotionFollow_Rotation = 0;
 
-        public Vector3 CameraOrbitOrigin = Vector3.Zero;
+        public Vector3 CameraOrbitOrigin = new Vector3(0, 1, 0);
         public Quaternion CameraLookDirection = Quaternion.Identity;
         public Vector3 OrbitCamEuler = Vector3.Zero;
 
-        public float OrbitCamDistance = 2;
+        private float orbitCamDistanceInput = 5;
+        public float OrbitCamDistance => orbitCamDistanceInput / (ProjectionVerticalFoV / 43);
 
         public float ProjectionVerticalFoV = 43;
-        public float ProjectionSkyboxVerticalFovMult = 1.5f;
+        public bool ProjectionIsOrthographic => ProjectionVerticalFoV <= 2;
+        public float ProjectionVerticalFovRatio => (ProjectionVerticalFoV / 43);
+        public float ProjectionSkyboxVerticalFov = 70;
         public float ProjectionNearClipDist = 0.1f;
         public float ProjectionFarClipDist = 10000;
         public Matrix Matrix_Projection = Matrix.Identity;
@@ -37,7 +41,69 @@ namespace DSAnimStudio
 
         public bool DisableAllInput = false;
 
-        
+        public IDbgPrim PivotPrim = null;
+        public IDbgPrim PivotPrim_DrawOver = null;
+        private float pivotPrimDrawoverPulseTimer = 0;
+        private float pivotPrimDrawoverPulseTimerModulo = 1f;
+        public float PivotPrimVisRatio { get; private set; } = 0;
+        private float pivotPrimVisRatio_FadeOutDuration = 0.25f;
+        private float pivotPrimVisRatio_FadeOutDelay = 1f;
+        private float pivotPrimVisRatio_Timer = 0;
+        private float pivotPrimVisRatio_TimerTarget = 0;
+        private float pivotPrimVisRatio_TimerLerpS = 0.3f;
+        private float pivotPrimVisRatio_MaxScale = 0.125f;
+        public void MakePivotPrimVisible()
+        {
+            pivotPrimVisRatio_TimerTarget = -pivotPrimVisRatio_FadeOutDelay;
+        }
+
+        private void UpdatePivotPrim()
+        {
+            if (pivotPrimVisRatio_Timer < 0)
+            {
+                PivotPrimVisRatio = 1;
+            }
+            else
+            {
+                PivotPrimVisRatio = 1 - MathHelper.Clamp(pivotPrimVisRatio_Timer / pivotPrimVisRatio_FadeOutDuration, 0, 1);
+            }
+
+            if (PivotPrim == null)
+            {
+                PivotPrim = new DbgPrimWireBox(Transform.Default, -Vector3.One, Vector3.One, Color.Transparent);
+            }
+
+            if (PivotPrim_DrawOver == null)
+            {
+                PivotPrim_DrawOver = new DbgPrimWireBox(Transform.Default, -Vector3.One, Vector3.One, Color.Transparent);
+            }
+
+            float pulseRatio = (float)Math.Sin(MathHelper.Pi * (pivotPrimDrawoverPulseTimer / pivotPrimDrawoverPulseTimerModulo));
+
+            PivotPrim.Transform = PivotPrim_DrawOver.Transform = new Transform(Matrix.CreateScale(
+                pivotPrimVisRatio_MaxScale + (pivotPrimVisRatio_MaxScale * (1 + (pulseRatio * pulseRatio * 0.1f))) 
+                * PivotPrimVisRatio * ProjectionVerticalFovRatio)
+                // * Matrix.CreateFromQuaternion(CameraLookDirection)
+                * Matrix.CreateTranslation(CameraOrbitOrigin + Vector3.Transform(RootMotionFollow_Translation, Matrix_World)));
+
+            PivotPrim.OverrideColor = Color.Lerp(
+                new Color(Main.Colors.ColorHelperCameraPivot.R, 
+                Main.Colors.ColorHelperCameraPivot.G, 
+                Main.Colors.ColorHelperCameraPivot.B, (byte)0), Main.Colors.ColorHelperCameraPivot, PivotPrimVisRatio);
+
+            
+
+            PivotPrim_DrawOver.OverrideColor = Color.Lerp(
+                new Color(Main.Colors.ColorHelperCameraPivot.R,
+                Main.Colors.ColorHelperCameraPivot.G,
+                Main.Colors.ColorHelperCameraPivot.B, (byte)0),
+                new Color(Main.Colors.ColorHelperCameraPivot.R,
+                Main.Colors.ColorHelperCameraPivot.G,
+                Main.Colors.ColorHelperCameraPivot.B, 
+                (byte)(255f * 0.25f)), PivotPrimVisRatio);
+        }
+
+
         enum ViewportDragType
         {
             None,
@@ -67,41 +133,47 @@ namespace DSAnimStudio
 
             float baseMouseSpeed = ((float)System.Windows.Forms.SystemInformation.MouseSpeed / 20f) * OverallMouseSpeedMult;
 
-            
+            if (Main.Input.ShiftHeld)
+                baseMouseSpeed *= 5;
 
             if (Main.Input.LeftClickHeld && dragType == ViewportDragType.LeftClick)
             {
                 Program.MainInstance.IsMouseVisible = false;
                 Mouse.SetPosition((int)Math.Round(Main.Input.LeftClickDownAnchor.X), (int)Math.Round(Main.Input.LeftClickDownAnchor.Y));
-                OrbitCamEuler += new Vector3(-y, -x, 0) * baseMouseSpeed * CameraTurnSpeedMouse * 0.01f;
+
+                bool isInvertedPitch = false;
+
+                //float pitchCheck = OrbitCamEuler.X + MathHelper.PiOver2;
+
+                //if (pitchCheck >= 0)
+                //{
+                //    isInvertedPitch = Math.Floor(pitchCheck / MathHelper.Pi) % 2 == 1;
+                //}
+                //else
+                //{
+                //    isInvertedPitch = Math.Floor(-pitchCheck / MathHelper.Pi) % 2 == 0;
+                //}
+
+                OrbitCamEuler += new Vector3(-y, isInvertedPitch ? x : -x, 0) * baseMouseSpeed * CameraTurnSpeedMouse * 0.01f;
             }
             else if (Main.Input.RightClickHeld && dragType == ViewportDragType.RightClick)
             {
                 Program.MainInstance.IsMouseVisible = false;
                 Mouse.SetPosition((int)Math.Round(Main.Input.RightClickDownAnchor.X), (int)Math.Round(Main.Input.RightClickDownAnchor.Y));
 
-                if (Main.Input.ShiftHeld)
+                if (Main.Input.CtrlHeld)
                 {
-                    float zoomMult = (OrbitCamDistance / 50) * (OrbitCamDistance / 50);
-                    zoomMult = Math.Min(zoomMult, 50);
-                    zoomMult = Math.Max(zoomMult, 0.05f);
-                    OrbitCamDistance -= x * zoomMult * baseMouseSpeed * 0.01f;
-
-                    if (OrbitCamDistance < 0.05f)
-                    {
-                        float distToUnfuck = Math.Abs(OrbitCamDistance - 0.1f);
-                        CameraOrbitOrigin += Vector3.Transform(
-                        new Vector3(0, 0, -distToUnfuck),
-                        CameraLocationInWorld.Rotation);
-                        OrbitCamDistance = 0.05f;
-                    }
+                    CameraOrbitOrigin += Vector3.Transform(
+                        new Vector3(-x, 0, -y),
+                        CameraLocationInWorld.Rotation) * baseMouseSpeed
+                        * CameraMoveSpeed * 0.0015f * OrbitCamDistance * ProjectionVerticalFovRatio;
                 }
                 else
                 {
                     CameraOrbitOrigin += Vector3.Transform(
                         new Vector3(-x, y, 0),
                         CameraLocationInWorld.Rotation) * baseMouseSpeed
-                        * CameraMoveSpeed * 0.0015f * OrbitCamDistance;
+                        * CameraMoveSpeed * 0.0015f * OrbitCamDistance * ProjectionVerticalFovRatio;
                 }
                 
             }
@@ -127,7 +199,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void Update()
+        public void Update(float deltaTime)
         {
             //OrbitCamEuler.Y += MathHelper.PiOver4 * Main.DELTA_UPDATE * 0.25f;
             UpdateDummyPolyFollowRefPoint(isFirstTime: false);
@@ -145,11 +217,23 @@ namespace DSAnimStudio
 
             Matrix_World = Matrix.CreateScale(1, 1, -1);
 
-            Matrix_Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(ProjectionVerticalFoV),
+            if (ProjectionIsOrthographic)
+            {
+                Matrix_Projection = Matrix.CreateOrthographic(
+                    (orbitCamDistanceInput * GFX.LastViewport.Width / GFX.LastViewport.Height) * 0.75f,
+                    (orbitCamDistanceInput) * 0.75f,
+                   ProjectionNearClipDist / ProjectionVerticalFovRatio, ProjectionFarClipDist);
+            }
+            else
+            {
+                Matrix_Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(ProjectionVerticalFoV),
                    1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height,
-                   ProjectionNearClipDist, ProjectionFarClipDist);
+                   ProjectionNearClipDist / ProjectionVerticalFovRatio, ProjectionFarClipDist);
+            }
 
-            Matrix_Projection_Skybox = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(ProjectionVerticalFoV * ProjectionSkyboxVerticalFovMult),
+            
+
+            Matrix_Projection_Skybox = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(ProjectionSkyboxVerticalFov),
                    1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height,
                    ProjectionNearClipDist, ProjectionFarClipDist);
 
@@ -158,7 +242,28 @@ namespace DSAnimStudio
 
             Matrix_View_Skybox = Matrix.CreateFromQuaternion(Quaternion.Inverse(CameraLocationInWorld.Rotation));
 
-            
+            if (pivotPrimVisRatio_TimerTarget <= pivotPrimVisRatio_FadeOutDuration)
+            {
+                pivotPrimVisRatio_TimerTarget += deltaTime;
+            }
+
+            pivotPrimVisRatio_Timer = MathHelper.Lerp(pivotPrimVisRatio_Timer, 
+                Math.Max(pivotPrimVisRatio_TimerTarget, 0), MathHelper.Clamp(pivotPrimVisRatio_TimerLerpS * (deltaTime / (1f / 60f)), 0, 1));
+
+            pivotPrimDrawoverPulseTimer += deltaTime;
+            pivotPrimDrawoverPulseTimer = pivotPrimDrawoverPulseTimer % pivotPrimDrawoverPulseTimerModulo;
+
+            UpdatePivotPrim();
+        }
+
+        public void DrawPrims()
+        {
+            PivotPrim.Draw(null, Matrix_World);
+        }
+
+        public void DrawOverPrims()
+        {
+            PivotPrim_DrawOver.Draw(null, Matrix_World);
         }
 
         public void UpdateInput()
@@ -194,27 +299,52 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    // Handle mouse wheel zoom.
-                    if (Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.MousePositionPoint))
+                    
+
+                        // Handle mouse wheel zoom.
+                    if (Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.LeftClickDownAnchor))
                     {
                         if (Main.Input.MiddleClickHeld)
                         {
+                            MakePivotPrimVisible();
                             NewRecenter();
                         }
                         else
                         {
                             float zoomMult = (OrbitCamDistance / 50) * (OrbitCamDistance / 50);
+                            zoomMult = (zoomMult * 0.75f) + 0.25f;
+                            if (Main.Input.ShiftHeld)
+                                zoomMult *= 5;
                             zoomMult = Math.Min(zoomMult, 50);
                             zoomMult = Math.Max(zoomMult, 0.25f);
-                            OrbitCamDistance -= Main.Input.ScrollDelta * zoomMult;
 
-                            if (OrbitCamDistance < 0.05f)
+                            float scrollDelta = Main.Input.ScrollDelta;
+
+                            if (Main.Input.CtrlHeld /*&& !Main.Input.ShiftHeld*/ && !Main.Input.AltHeld)
                             {
-                                float distToUnfuck = Math.Abs(OrbitCamDistance - 0.1f);
-                                CameraOrbitOrigin += Vector3.Transform(
-                                new Vector3(0, 0, -distToUnfuck),
-                                CameraLocationInWorld.Rotation);
-                                OrbitCamDistance = 0.05f;
+                                if (Main.Input.KeyDown(Keys.OemPlus) || Main.Input.KeyDown(Keys.Add))
+                                {
+                                    scrollDelta += 1;
+                                }
+                                else if (Main.Input.KeyDown(Keys.OemMinus) || Main.Input.KeyDown(Keys.Subtract))
+                                {
+                                    scrollDelta -= 1;
+                                }
+                                else if (Main.Input.KeyDown(Keys.D0) || Main.Input.KeyDown(Keys.NumPad0))
+                                {
+                                    orbitCamDistanceInput = 5;
+                                    scrollDelta = 0;
+                                }
+                            }
+
+                            orbitCamDistanceInput -= scrollDelta * zoomMult * ProjectionVerticalFovRatio;
+
+                            if (Main.Input.ScrollDelta != 0)
+                                MakePivotPrimVisible();
+
+                            if (orbitCamDistanceInput < (0.05f / ProjectionVerticalFovRatio))
+                            {
+                                orbitCamDistanceInput = (0.05f / ProjectionVerticalFovRatio);
                             }
                         }
                     }
@@ -222,36 +352,42 @@ namespace DSAnimStudio
 
                 Program.MainInstance.IsMouseVisible = true;
             }
-            else if (dragType == ViewportDragType.LeftClick)
+            else
             {
-                if (Main.Input.LeftClickHeld)
+                if (dragType != ViewportDragType.Invalid)
+                    MakePivotPrimVisible();
+
+                if (dragType == ViewportDragType.LeftClick)
                 {
-                    Program.MainInstance.IsMouseVisible = false;
+                    if (Main.Input.LeftClickHeld)
+                    {
+                        Program.MainInstance.IsMouseVisible = false;
+                    }
+                    else
+                    {
+                        dragType = ViewportDragType.None;
+                        Program.MainInstance.IsMouseVisible = true;
+                    }
                 }
-                else
+                else if (dragType == ViewportDragType.RightClick)
                 {
-                    dragType = ViewportDragType.None;
-                    Program.MainInstance.IsMouseVisible = true;
+                    if (Main.Input.RightClickHeld)
+                    {
+                        Program.MainInstance.IsMouseVisible = false;
+                    }
+                    else
+                    {
+                        dragType = ViewportDragType.None;
+                        Program.MainInstance.IsMouseVisible = true;
+                    }
                 }
-            }
-            else if (dragType == ViewportDragType.RightClick)
-            {
-                if (Main.Input.RightClickHeld)
+                else if (dragType == ViewportDragType.Invalid)
                 {
-                    Program.MainInstance.IsMouseVisible = false;
-                }
-                else
-                {
-                    dragType = ViewportDragType.None;
-                    Program.MainInstance.IsMouseVisible = true;
-                }
-            }
-            else if (dragType == ViewportDragType.Invalid)
-            {
-                if (!Main.Input.LeftClickHeld && !Main.Input.RightClickHeld)
-                {
-                    dragType = ViewportDragType.None;
-                    Program.MainInstance.IsMouseVisible = true;
+                    if (!Main.Input.LeftClickHeld && !Main.Input.RightClickHeld)
+                    {
+                        dragType = ViewportDragType.None;
+                        Program.MainInstance.IsMouseVisible = true;
+                    }
                 }
             }
 
@@ -299,7 +435,7 @@ namespace DSAnimStudio
             OrbitCamEuler = Vector3.Zero;
             CameraOrbitOrigin  
                 = OrbitCamCenter_DummyPolyFollowRefPoint_Init
-                = OrbitCamCenter_DummyPolyFollowRefPoint;
+                = new Vector3(0, OrbitCamCenter_DummyPolyFollowRefPoint.Y, 0);
             //NewDoRecenterAction?.Invoke();
         }
 

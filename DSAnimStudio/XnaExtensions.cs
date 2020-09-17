@@ -238,5 +238,11 @@ namespace DSAnimStudio
         {
             return new System.Numerics.Quaternion(vector.X, vector.Y, vector.Z, vector.W);
         }
+
+        public static System.Drawing.Point ToDrawingPoint(this Vector2 v)
+        {
+            var p = v.ToPoint();
+            return new System.Drawing.Point(p.X, p.Y);
+        }
     }
 }

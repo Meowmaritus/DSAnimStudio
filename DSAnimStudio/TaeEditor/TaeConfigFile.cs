@@ -56,6 +56,8 @@ namespace DSAnimStudio.TaeEditor
         public Dictionary<string, bool> CategoryEnableDbgLabelDraw = new Dictionary<string, bool>();
         public Dictionary<string, bool> CategoryEnableNameDraw = new Dictionary<string, bool>();
 
+        public bool ShowFullWeaponDummyPolyIDs { get; set; } = true;
+
         public void BeforeSaving()
         {
             CategoryEnableDraw = DBG.CategoryEnableDraw.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
@@ -69,6 +71,8 @@ namespace DSAnimStudio.TaeEditor
 
             Colors = Main.Colors;
             Colors.WriteColorsToConfig();
+
+            ShowFullWeaponDummyPolyIDs = NewDummyPolyManager.ShowGlobalIDOffset;
         }
 
         public void AfterLoading()
@@ -113,6 +117,8 @@ namespace DSAnimStudio.TaeEditor
 
             Colors.ReadColorsFromConfig();
             Main.Colors = Colors;
+
+            NewDummyPolyManager.ShowGlobalIDOffset = ShowFullWeaponDummyPolyIDs;
         }
 
         public Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }

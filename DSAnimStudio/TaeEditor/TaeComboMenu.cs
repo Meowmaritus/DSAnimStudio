@@ -96,7 +96,7 @@ namespace DSAnimStudio.TaeEditor
                         float startFrame = -1;
                         float endFrame = -1;
 
-                        if (!int.TryParse(split[1].Replace("_", "").Replace("a", ""), out int animID))
+                        if (!long.TryParse(split[1].Replace("_", "").Replace("a", ""), out long animID))
                         {
                             MessageBox.Show($"\"{split[1]}\" is not a valid animation ID. Expected XXYYYY, aXX_YYYY, XXXYYYYYY, or aXXX_YYYYYY format.",
                                 "Invalid Animation ID", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -190,7 +190,7 @@ namespace DSAnimStudio.TaeEditor
             //    }
             //}
 
-            MainScreen.Graph.ViewportInteractor.StartCombo(checkBoxLoop.Checked, combo.ToArray());
+            MainScreen.Graph.ViewportInteractor.StartCombo(checkBoxLoop.Checked, /*checkBoxRecord.Checked*/false, combo.ToArray());
             MainScreen.GameWindowAsForm.Activate();
         }
 

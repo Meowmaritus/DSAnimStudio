@@ -61,6 +61,9 @@ namespace DSAnimStudio
         public static bool GameTypeHasLongAnimIDs =>
             !(GameType == GameTypes.DS1 || GameType == GameTypes.DS1R || GameType == GameTypes.DES);
 
+        public static bool GameTypeIsHavokTagfile =>
+            (GameType == GameTypes.DS1R || GameType == GameTypes.SDT);
+
         public static HKX.HKXVariation GetCurrentLegacyHKXType()
         {
             if (GameType == GameTypes.DES)
