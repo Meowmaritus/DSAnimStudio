@@ -1,8 +1,10 @@
-﻿using ImGuiNET;
+﻿using DSAnimStudio.TaeEditor;
+using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,8 +22,11 @@ namespace DSAnimStudio
         public static bool RenderConfigOpen = false;
         public static bool Focused;
 
-        public static float WindowWidth = 360;
-        public static float WindowMargin = 8;
+        public static Vector2 QueuedWindowPosChange = Vector2.Zero;
+        public static Vector2 QueuedWindowSizeChange = Vector2.Zero;
+
+        public static float DefaultWindowWidth = 360;
+        public static float DefaultWindowMargin = 8;
 
         private static WinformsTooltipHelper tooltipHelper = new WinformsTooltipHelper();
 
@@ -34,19 +39,28 @@ namespace DSAnimStudio
 
         private static string desiredTooltipText = null;
 
-#if DEBUG 
+        public static float RenderScale = 1;
+        public static float WidthScale = 1;
+        public static float RenderScaleTarget = 100;
+        public static float WidthScaleTarget = 100;
+
+#if DEBUG
         //very FromSoft style
         public static bool EnableDebugMenu = true;
 #else
         public static bool EnableDebugMenu = false;
 #endif
 
-        public static int DefaultItemWidth => (int)Math.Round(128 * Main.DPIX);
-        public static int ColorButtonWidth => (int)Math.Round(300 * Main.DPIX);
-        public static int ColorButtonHeight => (int)Math.Round(26 * Main.DPIY);
+        public static int DefaultItemWidth => (int)Math.Round(128 * Main.DPIX * RenderScale * WidthScale);
+        public static int ColorButtonWidth => (int)Math.Round(300 * Main.DPIX * RenderScale * WidthScale);
+        public static int ColorButtonHeight => (int)Math.Round(26 * Main.DPIY * RenderScale);
+        public static float ShaderModeListWidth => 256 * Main.DPIX * RenderScale * WidthScale;
+        public static float AntialiasingWidth => 100 * Main.DPIX * RenderScale * WidthScale;
 
         private static bool IsInit = true;
         private static Dictionary<string, Action> DefaultColorValueActions = new Dictionary<string, Action>();
+
+        private static Rectangle oldModelViewerBounds = Rectangle.Empty;
 
         //private static Dictionary<string, string> tooltipTexts = new Dictionary<string, string>();
 
@@ -155,21 +169,69 @@ namespace DSAnimStudio
 
         public static void Build(float elapsedTime, float offsetX, float offsetY)
         {
-            
+            var curModelViewerBounds = Main.TAE_EDITOR.ModelViewerBounds;
+
+            if (!IsInit && oldModelViewerBounds != curModelViewerBounds)
+            {
+                QueuedWindowPosChange += new Vector2(curModelViewerBounds.Width - oldModelViewerBounds.Width, 0);
+            }
+
 
             hoveringOverAnythingThisFrame = false;
 
-            ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0.05f, 0.05f, 0.05f, Focused ? 1 : 0f));
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0.05f, 0.05f, 0.05f, Focused ? 1 : 0.4f));
 
-            ImGui.Begin("Toolbox", ref RenderConfigOpen, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize);
+            bool firstTimeWindowCreate = IsInit && !File.Exists("imgui.ini");
 
-            ImGui.SetWindowFontScale(Main.DPIY);
+            ImGui.Begin("Toolbox");
+
+
+
+            ImGui.SetWindowFontScale(Main.DPIY * RenderScale);
             {
                 //if (!Focused)
                 //    ImGui.SetWindowCollapsed(true);
 
+                if (firstTimeWindowCreate)
+                {
+                    float x = Main.TAE_EDITOR.ModelViewerBounds.Width - DefaultWindowWidth - DefaultWindowMargin;
+                    float y = 8;
+                    float w = DefaultWindowWidth;
+                    float h = Main.TAE_EDITOR.ModelViewerBounds.Height - (DefaultWindowMargin * 2) - 24;
+                    ImGui.SetWindowPos(new System.Numerics.Vector2(x, y) * Main.DPIVectorN);
+                    ImGui.SetWindowSize(new System.Numerics.Vector2(w, h) * Main.DPIVectorN);
+                }
+                else
+                {
+                    if (QueuedWindowPosChange != Vector2.Zero)
+                    {
+                        ImGui.SetWindowPos(ImGui.GetWindowPos() + QueuedWindowPosChange.ToCS());
+                        QueuedWindowPosChange = Vector2.Zero;
+                    }
+
+                    if (QueuedWindowSizeChange != Vector2.Zero)
+                    {
+                        ImGui.SetWindowSize(ImGui.GetWindowSize() + QueuedWindowSizeChange.ToCS());
+                        QueuedWindowSizeChange = Vector2.Zero;
+                    }
+                }
+
+                
+
                 ImGui.PushItemWidth(DefaultItemWidth);
 
+                ImGui.SliderFloat($"Toolbox GUI Size", ref RenderScaleTarget, 50, 200, "%.2f%%");
+                ImGui.SliderFloat($"Toolbox Menu Item Width", ref WidthScaleTarget, 25, 200, "%.2f%%");
+                ImGui.Button("Apply New Scaling");
+                if (ImGui.IsItemClicked())
+                {
+                    //var curWinSize = ImGui.GetWindowSize();
+                    RenderScale = RenderScaleTarget / 100f;
+                    WidthScale = WidthScaleTarget / 100f;
+                }
+                ImGui.Separator();
+                ImGui.SliderFloat($"Viewport Status Text Size", ref TaeViewportInteractor.StatusTextScale, 0, 200, "%.2f%%");
+                ImGui.Separator();
                 ImGui.SliderFloat($"Volume", ref FmodManager.AdjustSoundVolume, 0, 200, "%.2f%%");
                 ImGui.Button("Reset to 100%");
                 if (ImGui.IsItemClicked())
@@ -187,13 +249,6 @@ namespace DSAnimStudio
                     RequestCollapse = false;
                     ImGui.SetWindowCollapsed(true);
                 }
-
-                float x = Main.TAE_EDITOR.ModelViewerBounds.Width - WindowWidth - WindowMargin;
-                float y = 8 + Main.TAE_EDITOR.ModelViewerBounds.Top;
-                float w = WindowWidth;
-                float h = Main.TAE_EDITOR.ModelViewerBounds.Height - (WindowMargin * 2) - 24;
-                ImGui.SetWindowPos(new System.Numerics.Vector2(x, y) * Main.DPIVectorN);
-                ImGui.SetWindowSize(new System.Numerics.Vector2(w, h) * Main.DPIVectorN);
 
                 
 
@@ -291,6 +346,19 @@ namespace DSAnimStudio
 
                     HandleColor("Event Box - Selection Dimming Overlay", cc => cc.GuiColorEventBox_SelectionDimmingOverlay, (cc, c) => cc.GuiColorEventBox_SelectionDimmingOverlay = c);
                     HandleColor("Event Box - Ghost Graph Grayed Out Overlay", cc => cc.GuiColorEventBox_SelectionDimmingOverlay, (cc, c) => cc.GuiColorEventBox_SelectionDimmingOverlay = c);
+
+                    HandleColor("Anim List - Section Collapse +/- Foreground", cc => cc.GuiColorAnimListCollapsePlusMinusForeground, (cc, c) => cc.GuiColorAnimListCollapsePlusMinusForeground = c);
+                    HandleColor("Anim List - Section Collapse +/- Background", cc => cc.GuiColorAnimListCollapsePlusMinusBackground, (cc, c) => cc.GuiColorAnimListCollapsePlusMinusBackground = c);
+                    HandleColor("Anim List - Section Rect Outline", cc => cc.GuiColorAnimListAnimSectionHeaderRectOutline, (cc, c) => cc.GuiColorAnimListAnimSectionHeaderRectOutline = c);
+                    HandleColor("Anim List - Section Rect Fill", cc => cc.GuiColorAnimListAnimSectionHeaderRectFill, (cc, c) => cc.GuiColorAnimListAnimSectionHeaderRectFill = c);
+                    HandleColor("Anim List - Section Name", cc => cc.GuiColorAnimListTextAnimSectionName, (cc, c) => cc.GuiColorAnimListTextAnimSectionName = c);
+                    HandleColor("Anim List - Anim ID", cc => cc.GuiColorAnimListTextAnimName, (cc, c) => cc.GuiColorAnimListTextAnimName = c);
+                    HandleColor("Anim List - Anim ID Text - Min Blend", cc => cc.GuiColorAnimListTextAnimNameMinBlend, (cc, c) => cc.GuiColorAnimListTextAnimNameMinBlend = c);
+                    HandleColor("Anim List - Anim ID Text - Max Blend", cc => cc.GuiColorAnimListTextAnimNameMaxBlend, (cc, c) => cc.GuiColorAnimListTextAnimNameMaxBlend = c);
+                    HandleColor("Anim List - Anim Name Text", cc => cc.GuiColorAnimListTextAnimDevName, (cc, c) => cc.GuiColorAnimListTextAnimDevName = c);
+                    HandleColor("Anim List - Text Shadows", cc => cc.GuiColorAnimListTextShadow, (cc, c) => cc.GuiColorAnimListTextShadow = c);
+                    HandleColor("Anim List - Anim Highlight Rect Fill", cc => cc.GuiColorAnimListHighlightRectFill, (cc, c) => cc.GuiColorAnimListHighlightRectFill = c);
+                    HandleColor("Anim List - Anim Highlight Rect Outline", cc => cc.GuiColorAnimListHighlightRectOutline, (cc, c) => cc.GuiColorAnimListHighlightRectOutline = c);
 
                     // Deprecated afaik
                     //HandleColor("Event Box - Hovered - Text Outline", Main.Colors.GuiColorEventBox_Hover_TextOutline, c => Main.Colors.GuiColorEventBox_Hover_TextOutline = c);
@@ -801,7 +869,7 @@ namespace DSAnimStudio
 
                     DoTooltip("Shading Mode", "The shading mode to use for the 3D rendering. " +
                         "\nSome of the modes are only here for testing purposes.");
-                    ImGui.PushItemWidth(256 * Main.DPIX);
+                    ImGui.PushItemWidth(ShaderModeListWidth);
                     ImGui.ListBox(" ",
                             ref GFX.ForcedFlverShadingModeIndex, GFX.FlverShadingModeNamesList,
                             GFX.FlverShadingModeNamesList.Length);
@@ -846,7 +914,7 @@ namespace DSAnimStudio
                     //DoTooltip("Camera Mouse Input Tick Rate", "Milliseconds to wait between mouse input updates. " +
                     //    "\nLower this if mouse movement looks choppy or raise if it's using too much CPU.");
 
-                    ImGui.PushItemWidth(100 * Main.DPIX);
+                    ImGui.PushItemWidth(AntialiasingWidth);
                     {
                         if (ImGui.SliderInt("MSAA (SSAA must be off)", ref GFX.MSAA, 1, 8, GFX.MSAA > 1 ? "%dx" : "Off"))
                             Main.RequestViewportRenderTargetResolutionChange = true;
@@ -866,7 +934,11 @@ namespace DSAnimStudio
 
 
                     ImGui.Checkbox("Show Grid", ref DBG.ShowGrid);
-                    ImGui.SliderFloat("Vertical FOV", ref GFX.World.ProjectionVerticalFoV, 1, 160);
+
+                    ImGui.SliderFloat("Vertical FOV", ref GFX.World.ProjectionVerticalFoV, 1, 160, GFX.World.ProjectionVerticalFoV <= 1.0001f ? "Orthographic" : "%.0f°");
+                    GFX.World.ProjectionVerticalFoV = (float)Math.Round(GFX.World.ProjectionVerticalFoV);
+
+                    ImGui.Checkbox("Snap Cam to 45° Angles", ref GFX.World.AngleSnapEnable);
 
                     ImGui.SliderFloat("Near Clip Dist", ref GFX.World.ProjectionNearClipDist, 0.001f, 1);
                     DoTooltip("Near Clipping Distance", "Distance for the near clipping plane. " +
@@ -888,6 +960,7 @@ namespace DSAnimStudio
                         GFX.World.ProjectionVerticalFoV = 43;
                         GFX.World.ProjectionNearClipDist = 0.1f;
                         GFX.World.ProjectionFarClipDist = 10000;
+                        GFX.World.AngleSnapEnable = false;
 
                         GFX.Display.Vsync = true;
                         GFX.Display.Width = GFX.Device.Viewport.Width;
@@ -914,6 +987,10 @@ namespace DSAnimStudio
                 {
                     ImGui.SliderFloat("Camera Move Speed", ref GFX.World.CameraMoveSpeed, 0.1f, 10);
                     ImGui.SliderFloat("Camera Turn Speed", ref GFX.World.CameraTurnSpeedMouse, 0.001f, 2);
+                    //ImGui.SliderFloat("Raw Mouse Speed", ref GFX.World.OverallMouseSpeedMult, 0, 2, "%.3fx");
+                    ImGui.InputFloat("Raw Mouse Speed", ref GFX.World.OverallMouseSpeedMult, 0.001f, 0.1f, "%.3fx");
+
+
                     ImGui.Separator();
                     ImGui.Button("Reset All");
                     if (ImGui.IsItemClicked())
@@ -935,13 +1012,7 @@ namespace DSAnimStudio
                     ImGui.SetWindowFocus();
                 }
 
-
-
-                var pos = ImGui.GetWindowPos();
-                var size = ImGui.GetWindowSize();
-
                 ImGui.PopItemWidth();
-                
             }
             ImGui.End();
 
@@ -987,6 +1058,8 @@ namespace DSAnimStudio
             prevHoverIDKey = currentHoverIDKey;
 
             ImGui.PopStyleColor();
+
+            oldModelViewerBounds = curModelViewerBounds;
 
             IsInit = false;
         }

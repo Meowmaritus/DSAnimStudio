@@ -225,11 +225,13 @@
     <Compile Include="TaeEditor\TaeScrollingString.cs" />
     <Compile Include="TaeEditor\TaeScrollViewer.cs" />
     <Compile Include="TaeEditor\TaeUndoMan.cs" />
+    <Compile Include="testest.cs" />
     <Compile Include="Tests.cs" />
     <Compile Include="TextureFetchRequest.cs" />
     <Compile Include="CFG.cs" />
     <Compile Include="TexturePool.cs" />
     <Compile Include="FlverShaderVertInput.cs" />
+    <Compile Include="WindowsHook.cs" />
     <Compile Include="WindowsMouseHook.cs" />
     <Compile Include="WorldView.cs" />
     <Compile Include="DBG.cs" />
@@ -404,12 +406,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="fmod_event_net64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Res\ConverterBin\CompressAnim.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Res\ConverterBin\hkxcmd.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\HitMtrlParamNames.DS1.txt">

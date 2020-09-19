@@ -209,16 +209,19 @@ namespace DSAnimStudio
                         }
                     }
 
-                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel0);
-                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel1);
-                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel2);
-                    DoWPNAnims(MODEL.ChrAsm.RightWeaponModel3);
+                    lock (MODEL.ChrAsm._lock_doingAnythingWithWeaponModels)
+                    {
 
-                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel0);
-                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel1);
-                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel2);
-                    DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel3);
+                        DoWPNAnims(MODEL.ChrAsm.RightWeaponModel0);
+                        DoWPNAnims(MODEL.ChrAsm.RightWeaponModel1);
+                        DoWPNAnims(MODEL.ChrAsm.RightWeaponModel2);
+                        DoWPNAnims(MODEL.ChrAsm.RightWeaponModel3);
 
+                        DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel0);
+                        DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel1);
+                        DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel2);
+                        DoWPNAnims(MODEL.ChrAsm.LeftWeaponModel3);
+                    }
 
                    
                 }

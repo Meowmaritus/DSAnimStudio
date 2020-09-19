@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using SharpDX.DirectWrite;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -31,8 +32,14 @@ namespace DSAnimStudio
 
         public static Form WinForm;
 
-        public static float DPIX = 1;
-        public static float DPIY = 1;
+        public static float DPICustomMultX = 1;
+        public static float DPICustomMultY = 1;
+
+        private static float BaseDPIX = 1;
+        private static float BaseDPIY = 1;
+
+        public static float DPIX => BaseDPIX * DPICustomMultX;
+        public static float DPIY => BaseDPIY * DPICustomMultY;
 
         public static FancyInputHandler Input;
 
@@ -57,7 +64,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4";
+        public const string VERSION = "Version 2.4.1";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -193,15 +200,19 @@ namespace DSAnimStudio
 
         public Main()
         {
-            WindowsMouseHook.Hook();
+            
 
             WinForm = (Form)Form.FromHandle(Window.Handle);
 
+            WinForm.KeyPreview = true;
+            
+
+            WindowsMouseHook.Hook(Window.Handle);
             WinForm.AutoScaleMode = AutoScaleMode.Dpi;
 
             WinForm.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25f, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0);
 
-            DPIX = DPIY = WinForm.DeviceDpi / 96f;
+            BaseDPIX = BaseDPIY = WinForm.DeviceDpi / 96f;
             WinForm.DpiChanged += WinForm_DpiChanged;
 
             Directory = new FileInfo(typeof(Main).Assembly.Location).DirectoryName;
@@ -220,7 +231,7 @@ namespace DSAnimStudio
             graphics.IsFullScreen = GFX.Display.Fullscreen;
             //graphics.PreferMultiSampling = GFX.Display.SimpleMSAA;
             graphics.PreferredBackBufferWidth = (int)Math.Round(GFX.Display.Width * DPIX);
-            graphics.PreferredBackBufferHeight = (int)Math.Round(GFX.Display.Height * DPIX);
+            graphics.PreferredBackBufferHeight = (int)Math.Round(GFX.Display.Height * DPIY);
             if (!GraphicsAdapter.DefaultAdapter.IsProfileSupported(GraphicsProfile.HiDef))
             {
                 System.Windows.Forms.MessageBox.Show("MonoGame is detecting your GPU as too " +
@@ -254,7 +265,6 @@ namespace DSAnimStudio
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
         }
 
-
         private void WinForm_DpiChanged(object sender, DpiChangedEventArgs e)
         {
             UpdateDpiStuff();
@@ -263,14 +273,17 @@ namespace DSAnimStudio
         public void UpdateDpiStuff()
         {
             float newDpi = WinForm.DeviceDpi / 96f;
-            DPIX = DPIY = newDpi;
+            BaseDPIX = BaseDPIY = newDpi;
 
             // Really shitty hotfix I know
-            TAE_EDITOR.inspectorWinFormsControl.dataGridView1.RowTemplate.Height = (int)Math.Round(22 * Main.DPIY);
+            TAE_EDITOR.inspectorWinFormsControl.dataGridView1.RowTemplate.Height = (int)Math.Round(22 * BaseDPIY);
             foreach (DataGridViewRow row in TAE_EDITOR.inspectorWinFormsControl.dataGridView1.Rows)
             {
-                row.Height = (int)Math.Round(22 * Main.DPIY);
+                row.Height = (int)Math.Round(22 * BaseDPIY);
             }
+            TAE_EDITOR.ButtonEditCurrentAnimInfo.Font = new System.Drawing.Font(System.Drawing.FontFamily.GenericSansSerif, 8.5f * Math.Min(DPIX, DPIY));
+            TAE_EDITOR.ButtonGotoEventSource.Font = new System.Drawing.Font(System.Drawing.FontFamily.GenericSansSerif, 8.5f * Math.Min(DPIX, DPIY));
+            TAE_EDITOR.ButtonEditCurrentTaeHeader.Font = new System.Drawing.Font(System.Drawing.FontFamily.GenericSansSerif, 8.5f * Math.Min(DPIX, DPIY));
 
             RequestViewportRenderTargetResolutionChange = true;
         }
@@ -300,7 +313,7 @@ namespace DSAnimStudio
             RequestHideOSD = RequestHideOSD_MAX;
             UpdateActiveState();
 
-            TAE_EDITOR.HandleWindowResize(prevClientBounds, Window.ClientBounds);
+            TAE_EDITOR?.HandleWindowResize(prevClientBounds, Window.ClientBounds);
 
             prevClientBounds = Window.ClientBounds;
         }
@@ -544,11 +557,11 @@ namespace DSAnimStudio
 
         private static void DrawImGui(GameTime gameTime, int x, int y, int w, int h)
         {
-            ImGuiDraw.BeforeLayout(gameTime, x, 0, w, h + y);
+            ImGuiDraw.BeforeLayout(gameTime, x, y, w, h, 0);
 
             OSD.Build(Main.DELTA_DRAW, x, y);
 
-            ImGuiDraw.AfterLayout(x, 0, w, h + y);
+            ImGuiDraw.AfterLayout(x, y, w, h, 0);
         }
 
         private void InterrootLoader_OnLoadError(string contentName, string error)
@@ -819,7 +832,7 @@ namespace DSAnimStudio
 #endif
                 if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
                 {
-                    Input.Update(new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height));
+                    Input.Update(new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height).DpiScaled());
 
                     Colors.ReadColorsFromConfig();
 
@@ -1015,9 +1028,9 @@ namespace DSAnimStudio
                     LoadingTaskMan.DrawAllTasks();
 
 
-                    GFX.Device.Viewport = new Viewport(0, 0, (int)Math.Ceiling(Window.ClientBounds.Width / Main.DPIY), (int)Math.Ceiling(Window.ClientBounds.Height / Main.DPIY));
+                    GFX.Device.Viewport = new Viewport(0, 0, (int)Math.Ceiling(Window.ClientBounds.Width / Main.DPIX), (int)Math.Ceiling(Window.ClientBounds.Height / Main.DPIY));
 
-                    TAE_EDITOR.Rect = new Rectangle(2, 0, GraphicsDevice.Viewport.Width - 4, GraphicsDevice.Viewport.Height - 2);
+                    TAE_EDITOR.Rect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height - 2);
 
                     TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
                         TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT,
@@ -1026,12 +1039,13 @@ namespace DSAnimStudio
 
                     if (IsLoadingTaskRunning)
                     {
+                        GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
                         TAE_EDITOR.DrawDimmingRect(GraphicsDevice, TaeEditorSpriteBatch, TAE_EDITOR_BLANK_TEX);
                     }
 
                     //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
                     var imguiRect = TAE_EDITOR.ModelViewerBounds.DpiScaled();
-                    DrawImGui(gameTime, imguiRect.X, imguiRect.Y, imguiRect.Width, imguiRect.Height);
+                    DrawImGui(gameTime, imguiRect.X + TAE_EDITOR.Rect.X, imguiRect.Y + TAE_EDITOR.Rect.Y, imguiRect.Width, imguiRect.Height);
 
                     GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
                 }

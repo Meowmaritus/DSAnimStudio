@@ -199,6 +199,11 @@ namespace DSAnimStudio
             );
         }
 
+        public static Microsoft.Xna.Framework.Vector2 ToXna(this System.Numerics.Vector2 vector)
+        {
+            return new Microsoft.Xna.Framework.Vector2(vector.X, vector.Y);
+        }
+
         public static Microsoft.Xna.Framework.Vector3 ToXna(this System.Numerics.Vector3 vector)
         {
             return new Microsoft.Xna.Framework.Vector3(vector.X, vector.Y, vector.Z);
@@ -212,6 +217,11 @@ namespace DSAnimStudio
         public static Microsoft.Xna.Framework.Quaternion ToXna(this System.Numerics.Quaternion quaternion)
         {
             return new Microsoft.Xna.Framework.Quaternion(quaternion.X, quaternion.Y, quaternion.Z, quaternion.W);
+        }
+
+        public static System.Numerics.Vector2 ToCS(this Microsoft.Xna.Framework.Vector2 vector)
+        {
+            return new System.Numerics.Vector2(vector.X, vector.Y);
         }
 
         public static System.Numerics.Vector3 ToCS(this Microsoft.Xna.Framework.Vector3 vector)
