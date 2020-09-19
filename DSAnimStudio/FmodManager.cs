@@ -58,6 +58,9 @@ namespace DSAnimStudio
 
         public static void Update()
         {
+            if (!initialised)
+                return;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
@@ -71,7 +74,7 @@ namespace DSAnimStudio
 
                 //_eventSystem.set3DListenerAttributes(listener: 0, ref pos, ref vel, ref forward, ref up);Vector3.Transform(
 
-                Vector3 pos = GFX.World.CameraLocationInWorld.Position * new Vector3(1, 1, -1);
+                Vector3 pos = GFX.World.CameraLocationInWorld_CloserForSound.Position * new Vector3(1, 1, -1);
                 Vector3 vel = Vector3.Zero;
                 Vector3 up = GFX.World.GetCameraUp() * new Vector3(1, 1, -1);
                 Vector3 forward = GFX.World.GetCameraForward() * new Vector3(1, 1, -1);
@@ -327,6 +330,9 @@ namespace DSAnimStudio
 
         private static bool LoadFEV(string fullFevPath)
         {
+            if (!initialised)
+                return false;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
@@ -399,6 +405,9 @@ namespace DSAnimStudio
 
         public static void LoadInterrootFEV(string name)
         {
+            if (!initialised)
+                return;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
@@ -419,6 +428,9 @@ namespace DSAnimStudio
 
         public static void LoadMainFEVs()
         {
+            if (!initialised)
+                return;
+
             if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
                 GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
             {
@@ -452,6 +464,9 @@ namespace DSAnimStudio
 
         public static bool PlaySE(int category, int id, Func<Vector3> getPosFunc, int? stateInfo)
         {
+            if (!initialised)
+                return false;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
             //    GameDataManager.GameType == GameDataManager.GameTypes.DS1R || 
             //    GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
@@ -527,10 +542,27 @@ namespace DSAnimStudio
 
         public static void InitTest()
         {
+            initialised = false;
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = FMOD.Event_Factory.EventSystem_Create(ref _eventSystem));
-                ERRCHECK(result = _eventSystem.init(MAX_CHANNELS, FMOD.INITFLAGS.NORMAL, (IntPtr)null, FMOD.EVENT_INITFLAGS.NORMAL));
+                result = _eventSystem.init(MAX_CHANNELS, FMOD.INITFLAGS.NORMAL, (IntPtr)null, FMOD.EVENT_INITFLAGS.NORMAL);
+                if (result == RESULT.ERR_OUTPUT_INIT)
+                {
+                    System.Windows.Forms.MessageBox.Show("Failed to initialize FMOD audio output. " +
+                        "Make sure you have an audio device connected and working and that no other app is taking exclusive control of the device.",
+                        "Failed to Initialize Audio Device", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    initialised = false;
+                }
+                else if (result == RESULT.OK)
+                {
+                    initialised = true;
+                }
+                else
+                {
+                    ERRCHECK(result);
+                }
+
                 ERRCHECK(result = _eventSystem.getSystemObject(ref _system));
 
                 DbgPrimCamPos = new DebugPrimitives.DbgPrimWireArrow("FMOD Camera", Transform.Default, Color.Lime);
@@ -540,6 +572,8 @@ namespace DSAnimStudio
 
         public static void UpdateInterroot()
         {
+            if (!initialised)
+                return;
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
@@ -557,6 +591,9 @@ namespace DSAnimStudio
 
         public static void UpdateMediaRoot(string mediaRoot)
         {
+            if (!initialised)
+                return;
+
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = _eventSystem.setMediaPath(GetDirWithBackslash(mediaRoot)));
@@ -565,6 +602,9 @@ namespace DSAnimStudio
 
         public static void Purge()
         {
+            if (!initialised)
+                return;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
@@ -583,6 +623,9 @@ namespace DSAnimStudio
 
         private static bool PlayEvent(string eventName, Func<Vector3> getPosFunc, int? stateInfo)
         {
+            if (!initialised)
+                return false;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
@@ -689,6 +732,10 @@ namespace DSAnimStudio
 
         public static void Shutdown()
         {
+            //Even if not initialized the event system is created and must be released.
+            //if (!initialised)
+            //    return;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
@@ -709,6 +756,9 @@ namespace DSAnimStudio
 
         public static void StopAllSounds()
         {
+            if (!initialised)
+                return;
+
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||

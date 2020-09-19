@@ -295,7 +295,7 @@ namespace DSAnimStudio
 
                         // Draw Task Rect
                         Rectangle thisTaskRect = new Rectangle(
-                            GFX.Device.Viewport.Width - GuiTaskRectWidth - GuiDistFromEdgesOfScreenX,
+                            (int)Math.Round((GFX.Device.Viewport.Width / Main.DPIX) - GuiTaskRectWidth - GuiDistFromEdgesOfScreenX),
                             GuiDistFromEdgesOfScreenY + currentVerticalOffset,
                             GuiTaskRectWidth, taskRectHeight);
 

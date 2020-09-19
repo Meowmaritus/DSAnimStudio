@@ -83,6 +83,20 @@ namespace DSAnimStudio
         public Color GuiColorEventGraphScrollbarArrowButtonForegroundInactive { get; set; } = new Color(0.35f, 0.35f, 0.35f);
         public Color GuiColorEventGraphScrollbarArrowButtonForegroundActive { get; set; } = new Color(0.45f, 0.45f, 0.45f);
 
+        public Color GuiColorAnimListCollapsePlusMinusForeground { get; set; } = Color.Black;
+        public Color GuiColorAnimListCollapsePlusMinusBackground { get; set; } = Color.White;
+        public Color GuiColorAnimListAnimSectionHeaderRectOutline { get; set; } = Color.White;
+        public Color GuiColorAnimListAnimSectionHeaderRectFill { get; set; } = Color.Gray;
+        public Color GuiColorAnimListTextAnimSectionName { get; set; } = Color.White;
+        public Color GuiColorAnimListTextAnimName { get; set; } = Color.White;
+        public Color GuiColorAnimListTextAnimNameMinBlend { get; set; } = Color.Gray;
+        public Color GuiColorAnimListTextAnimNameMaxBlend { get; set; } = Color.Yellow;
+        public Color GuiColorAnimListTextAnimDevName { get; set; } = Color.PaleGoldenrod;
+        public Color GuiColorAnimListTextShadow { get; set; } = Color.Black;
+        
+        public Color GuiColorAnimListHighlightRectFill { get; set; } = Color.DodgerBlue;
+        public Color GuiColorAnimListHighlightRectOutline { get; set; } = new Color(200, 200, 200);
+
         public void ReadColorsFromConfig()
         {
             DBG.DbgPrim_Grid.OverrideColor = ColorGrid;

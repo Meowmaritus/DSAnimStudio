@@ -949,7 +949,7 @@ namespace DSAnimStudio
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_AttachBone => _dummyPolyByBoneID;
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_ReferenceBone => _dummyPolyByBoneID_Ref;
 
-        public List<Matrix> GetDummyMatricesByID(int id, Matrix modMatrix)
+        public List<Matrix> GetDummyMatricesByID(int id, Matrix modMatrix, bool ignoreModelTransform = false)
         {
             var result = new List<Matrix>();
 
@@ -961,16 +961,19 @@ namespace DSAnimStudio
             {
                 foreach (var d in DummyPolyByRefID[id])
                 {
-                    result.Add(d.CurrentMatrix * MODEL.CurrentTransform.WorldMatrix * modMatrix);
+                    if (ignoreModelTransform)
+                        result.Add(d.CurrentMatrix * modMatrix);
+                    else
+                        result.Add(d.CurrentMatrix * MODEL.CurrentTransform.WorldMatrix * modMatrix);
                 }
             }
 
             return result;
         }
 
-        public List<Vector3> GetDummyPosByID(int id, Matrix modMatrix)
+        public List<Vector3> GetDummyPosByID(int id, Matrix modMatrix, bool ignoreModelTransform = false)
         {
-            return GetDummyMatricesByID(id, modMatrix).Select(x => Vector3.Transform(Vector3.Zero, x)).ToList();
+            return GetDummyMatricesByID(id, modMatrix, ignoreModelTransform).Select(x => Vector3.Transform(Vector3.Zero, x)).ToList();
         }
 
         public void UpdateFlverBone(int index, Matrix relativeMatrix)

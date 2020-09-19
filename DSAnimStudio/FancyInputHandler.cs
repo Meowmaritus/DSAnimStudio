@@ -78,6 +78,10 @@ namespace DSAnimStudio
 
         public bool AnyModifiersHeld => CtrlHeld || ShiftHeld || AltHeld;
 
+        public bool CtrlOnlyHeld => CtrlHeld && !ShiftHeld && !AltHeld;
+        public bool ShiftOnlyHeld => !CtrlHeld && ShiftHeld && !AltHeld;
+        public bool AltOnlyHeld => !CtrlHeld && !ShiftHeld && AltHeld;
+
         private void KeepTrackOfNewKey(Keys k)
         {
             keysToKeepTrackOf.Add(k);

@@ -56,6 +56,8 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
+        public static float StatusTextScale = 100.0f;
+
         public Model CurrentModel => Scene.Models.Count > 0 ? Scene.Models[0] : null;
 
         private void SetEntityType(TaeEntityType entityType)
@@ -275,8 +277,6 @@ namespace DSAnimStudio.TaeEditor
                     //    });
                     //}
                     
-
-                    //throw new NotImplementedException("Implement NPC param change you lazy fuck :tremblecat:");
                 }
 
                 CurrentModel.AfterAnimUpdate(timeDelta: 0);
@@ -332,6 +332,12 @@ namespace DSAnimStudio.TaeEditor
             };
 
 
+            if (CurrentModel != null)
+            {
+                GFX.World.OrbitCamDistanceInput = (CurrentModel.Bounds.Max - CurrentModel.Bounds.Min).Length() * 2f;
+                if (GFX.World.OrbitCamDistanceInput < 0.5f)
+                    GFX.World.OrbitCamDistanceInput = 5;
+            }
 
             Scene.EnableModelDrawing();
             if (!CurrentModel.IS_PLAYER)
@@ -1268,6 +1274,8 @@ namespace DSAnimStudio.TaeEditor
                     printer.AppendLine("    " + spe);
                 }
             }
+
+            printer.BaseScale = StatusTextScale / 100;
 
             GFX.SpriteBatchBeginForText();
             printer.Draw();

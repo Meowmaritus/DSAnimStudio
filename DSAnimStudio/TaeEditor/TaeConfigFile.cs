@@ -38,8 +38,15 @@ namespace DSAnimStudio.TaeEditor
         public bool EnableAnimRootMotion { get; set; } = true;
         //public bool SimulateReferencedEvents { get; set; } = true;
 
+        public bool CamAngleSnapEnable { get; set; } = false;
+
+        public float ViewportStatusTextSize { get; set; } = 100;
+        public float ToolboxGuiScale { get; set; } = 100;
+        public float ToolboxItemWidthScale { get; set; } = 100;
 
         public ColorConfig Colors { get; set; } = new ColorConfig();
+
+        public float MouseSpeedMult { get; set; } = 1;
 
 
         public bool IsNewGraphVisiMode { get; set; } = true;
@@ -73,6 +80,15 @@ namespace DSAnimStudio.TaeEditor
             Colors.WriteColorsToConfig();
 
             ShowFullWeaponDummyPolyIDs = NewDummyPolyManager.ShowGlobalIDOffset;
+
+            CamAngleSnapEnable = GFX.World.AngleSnapEnable;
+
+            MouseSpeedMult = GFX.World.OverallMouseSpeedMult;
+
+            ViewportStatusTextSize = TaeViewportInteractor.StatusTextScale;
+
+            ToolboxGuiScale = OSD.RenderScale * 100;
+            ToolboxItemWidthScale = OSD.WidthScale * 100;
         }
 
         public void AfterLoading()
@@ -119,6 +135,14 @@ namespace DSAnimStudio.TaeEditor
             Main.Colors = Colors;
 
             NewDummyPolyManager.ShowGlobalIDOffset = ShowFullWeaponDummyPolyIDs;
+
+            GFX.World.AngleSnapEnable = CamAngleSnapEnable;
+            GFX.World.OverallMouseSpeedMult = MouseSpeedMult;
+
+            TaeViewportInteractor.StatusTextScale = ViewportStatusTextSize;
+
+            OSD.RenderScale = (OSD.RenderScaleTarget = ToolboxGuiScale) / 100;
+            OSD.WidthScale = (OSD.WidthScaleTarget = ToolboxItemWidthScale) / 100;
         }
 
         public Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }

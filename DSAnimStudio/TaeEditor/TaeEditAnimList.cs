@@ -56,7 +56,7 @@ namespace DSAnimStudio.TaeEditor
             StartDrawScroll = -1;
         }
 
-        int GroupBraceMarginLeft = 16;
+        int GroupBraceMarginLeft = 0;
         //int GroupBraceThickness = 2;
 
         public void ScrollToAnimRef(TAE.Animation anim, bool scrollOnCenter)
@@ -342,22 +342,22 @@ namespace DSAnimStudio.TaeEditor
                     {
                         var sectionOffset = offset;
                         var taeSection = taeSectionValueList[taeSectionIndex];
-                        var thisGroupRect = new Rectangle(1, (int)offset + 1, ScrollViewer.Viewport.Width - 2, AnimSectionHeaderHeight - 2);
+                        var thisGroupRect = new Rectangle(0, (int)offset + 1, ScrollViewer.Viewport.Width, AnimSectionHeaderHeight - 2);
                         int border = BorderThickness;
-                        sb.Draw(boxTex, thisGroupRect, Color.White);
+                        sb.Draw(boxTex, thisGroupRect, Main.Colors.GuiColorAnimListAnimSectionHeaderRectOutline);
                         sb.Draw(boxTex,
                             new Rectangle(
                                 thisGroupRect.X + border,
                                 thisGroupRect.Y + border,
                                 thisGroupRect.Width - border * 2,
                                 thisGroupRect.Height - border * 2),
-                            Color.Gray);
-                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimSectionHeaderHeight, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f))) + Vector2.One
-                             + Main.GlobalTaeEditorFontOffset, Color.Black);
-                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimSectionHeaderHeight, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f))) + (Vector2.One * 2)
-                             + Main.GlobalTaeEditorFontOffset, Color.Black);
-                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(4 + AnimSectionHeaderHeight, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f)))
-                             + Main.GlobalTaeEditorFontOffset, Color.White);
+                            Main.Colors.GuiColorAnimListAnimSectionHeaderRectFill);
+                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(22, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f))) + Vector2.One
+                             + Main.GlobalTaeEditorFontOffset, Main.Colors.GuiColorAnimListTextShadow);
+                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(22, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f))) + (Vector2.One * 2)
+                             + Main.GlobalTaeEditorFontOffset, Main.Colors.GuiColorAnimListTextShadow);
+                        sb.DrawString(font, $"[{taeSection.SectionName}]", new Vector2(22, (int)(offset) + (float)Math.Round((AnimSectionHeaderHeight / 2f) - (font.LineSpacing / 2f)))
+                             + Main.GlobalTaeEditorFontOffset, Main.Colors.GuiColorAnimListTextAnimSectionName);
 
 
                         Rectangle sectionCollapseButton = new Rectangle(
@@ -369,7 +369,7 @@ namespace DSAnimStudio.TaeEditor
                         sb.Draw(texture: boxTex,
                                 position: new Vector2(sectionCollapseButton.X, sectionCollapseButton.Y),
                                 sourceRectangle: null,
-                                color: Color.White,
+                                color: Main.Colors.GuiColorAnimListCollapsePlusMinusBackground,
                                 rotation: 0,
                                 origin: Vector2.Zero,
                                 scale: new Vector2(sectionCollapseButton.Width, sectionCollapseButton.Height),
@@ -387,7 +387,7 @@ namespace DSAnimStudio.TaeEditor
 
                         collapseStrPoint = new Vector2((int)collapseStrPoint.X, (int)collapseStrPoint.Y);
 
-                        sb.DrawString(font, collapseStr, collapseStrPoint + Main.GlobalTaeEditorFontOffset, Color.Black);
+                        sb.DrawString(font, collapseStr, collapseStrPoint + Main.GlobalTaeEditorFontOffset, Main.Colors.GuiColorAnimListCollapsePlusMinusForeground);
 
                         offset += AnimSectionHeaderHeight; //Section Header
 
@@ -448,7 +448,7 @@ namespace DSAnimStudio.TaeEditor
                                     ScrollViewer.Viewport.Width - (GroupBraceMarginLeft),
                                     AnimHeight + 1);
 
-                                sb.Draw(boxTex, thisAnimRect, new Color(200, 200, 200));
+                                sb.Draw(boxTex, thisAnimRect, Main.Colors.GuiColorAnimListHighlightRectOutline);
 
                                 sb.Draw(boxTex,
                                     new Rectangle(
@@ -456,20 +456,25 @@ namespace DSAnimStudio.TaeEditor
                                         thisAnimRect.Y + border,
                                         thisAnimRect.Width - border * 2,
                                         thisAnimRect.Height - border * 2),
-                                    Color.DodgerBlue);
+                                    Main.Colors.GuiColorAnimListHighlightRectFill);
                             }
 
                             Color animNameColor = Color.White;
 
                             if (animBlendWeight >= 0)
                             {
-                                animNameColor = Color.Lerp(Color.Gray, Color.Yellow, MathHelper.Clamp(animBlendWeight, 0, 1));
+                                animNameColor = Color.Lerp(Main.Colors.GuiColorAnimListTextAnimNameMinBlend, 
+                                    Main.Colors.GuiColorAnimListTextAnimNameMaxBlend, MathHelper.Clamp(animBlendWeight, 0, 1));
+                            }
+                            else if (anim.Ref == MainScreen.SelectedTaeAnim)
+                            {
+                                animNameColor = Main.Colors.GuiColorAnimListTextAnimNameMaxBlend;
                             }
 
                             sb.DrawString(font, animIDText, new Vector2(
                                     GroupBraceMarginLeft + 4,
                                     (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
-                                     + Main.GlobalTaeEditorFontOffset, Color.Black);
+                                     + Main.GlobalTaeEditorFontOffset, Main.Colors.GuiColorAnimListTextShadow);
                             sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
                                 (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
@@ -477,14 +482,14 @@ namespace DSAnimStudio.TaeEditor
 
                             var animNameTextSize = font.MeasureString(animNameText);
 
-                            sb.DrawString(font, animNameText, new Vector2(
-                                    ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                                    (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f)))) + (Vector2.One * 1.25f)
-                                     + Main.GlobalTaeEditorFontOffset, Color.Black);
-                            sb.DrawString(font, animNameText, new Vector2(
-                                ScrollViewer.Viewport.Width - animNameTextSize.X - GroupBraceMarginLeft - 4,
-                                (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
-                                 + Main.GlobalTaeEditorFontOffset, Color.PaleGoldenrod);
+                            var devNamePos = new Vector2(
+                                    108,
+                                    (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))));
+
+                            sb.DrawString(font, animNameText, devNamePos + (Vector2.One * 1.25f)
+                                     + Main.GlobalTaeEditorFontOffset, Main.Colors.GuiColorAnimListTextShadow);
+                            sb.DrawString(font, animNameText, devNamePos
+                                 + Main.GlobalTaeEditorFontOffset, Main.Colors.GuiColorAnimListTextAnimDevName);
 
                             offset += AnimHeight;
                         }

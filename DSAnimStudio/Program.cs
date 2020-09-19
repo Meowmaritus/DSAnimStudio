@@ -25,18 +25,21 @@ namespace DSAnimStudio
             ARGS = args;
             //ARGS = new string[] { @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\chr\c4100_bak-chrbnd\chr\c4100\c4100.flver" };
 
+#if !DEBUG
             try
             {
+#endif
                 MainInstance = new Main();
 
-                
-            }
+#if !DEBUG
+        }
             catch (Exception ex)
             {
                 MessageBox.Show(
                     $"Error occurred before DS Anim Studio had a chance to initialize (please report):\n\n{ex.ToString()}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+#endif
 
             try
             {

@@ -141,11 +141,11 @@ namespace DSAnimStudio
         /// <summary>
         /// Sets up ImGui for a new frame, should be called at frame start
         /// </summary>
-        public virtual void BeforeLayout(GameTime gameTime, int x, int y, int w, int h)
+        public virtual void BeforeLayout(GameTime gameTime, int x, int y, int w, int h, int mouseYOff)
         {
             ImGui.GetIO().DeltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            UpdateInput(x, y, w, h);
+            UpdateInput(x, y, w, h, mouseYOff);
 
             ImGui.NewFrame();
         }
@@ -153,11 +153,11 @@ namespace DSAnimStudio
         /// <summary>
         /// Asks ImGui for the generated geometry data and sends it to the graphics pipeline, should be called after the UI is drawn using ImGui.** calls
         /// </summary>
-        public virtual void AfterLayout(int x, int y, int w, int h)
+        public virtual void AfterLayout(int x, int y, int w, int h, int memeY)
         {
             ImGui.Render();
 
-            unsafe { RenderDrawData(ImGui.GetDrawData(), x, y, w, h); }
+            unsafe { RenderDrawData(ImGui.GetDrawData(), x, y, w, h, memeY); }
         }
 
         #endregion ImGuiRenderer
@@ -215,7 +215,7 @@ namespace DSAnimStudio
         /// <summary>
         /// Updates the <see cref="Effect" /> to the current matrices and texture
         /// </summary>
-        protected virtual Effect UpdateEffect(Texture2D texture)
+        protected virtual Effect UpdateEffect(Texture2D texture, Matrix shiftMatrix)
         {
             _effect = _effect ?? new BasicEffect(_graphicsDevice);
 
@@ -229,7 +229,7 @@ namespace DSAnimStudio
             //var offset = 0f;
             ///////////////////////////////////////////
 
-            _effect.World = Matrix.Identity;
+            _effect.World = shiftMatrix;
             _effect.View = Matrix.Identity;
             _effect.Projection = Matrix.CreateOrthographicOffCenter(offset, io.DisplaySize.X + offset, io.DisplaySize.Y + offset, offset, -1f, 1f);
             _effect.TextureEnabled = true;
@@ -242,7 +242,7 @@ namespace DSAnimStudio
         /// <summary>
         /// Sends XNA input state to ImGui
         /// </summary>
-        protected virtual void UpdateInput(int x, int y, int w, int h)
+        protected virtual void UpdateInput(int x, int y, int w, int h, int mouseYOff)
         {
             var io = ImGui.GetIO();
 
@@ -254,6 +254,33 @@ namespace DSAnimStudio
                 io.KeysDown[_keys[i]] = keyboard.IsKeyDown((Keys)_keys[i]);
             }
 
+            //if (Main.Input.KeyDown(Keys.D1) || Main.Input.KeyDown(Keys.NumPad1))
+            //    io.AddInputCharacter('1');
+            //if (Main.Input.KeyDown(Keys.D2) || Main.Input.KeyDown(Keys.NumPad2))
+            //    io.AddInputCharacter('2');
+            //if (Main.Input.KeyDown(Keys.D3) || Main.Input.KeyDown(Keys.NumPad3))
+            //    io.AddInputCharacter('3');
+            //if (Main.Input.KeyDown(Keys.D4) || Main.Input.KeyDown(Keys.NumPad4))
+            //    io.AddInputCharacter('4');
+            //if (Main.Input.KeyDown(Keys.D5) || Main.Input.KeyDown(Keys.NumPad5))
+            //    io.AddInputCharacter('5');
+            //if (Main.Input.KeyDown(Keys.D6) || Main.Input.KeyDown(Keys.NumPad6))
+            //    io.AddInputCharacter('6');
+            //if (Main.Input.KeyDown(Keys.D7) || Main.Input.KeyDown(Keys.NumPad7))
+            //    io.AddInputCharacter('7');
+            //if (Main.Input.KeyDown(Keys.D8) || Main.Input.KeyDown(Keys.NumPad8))
+            //    io.AddInputCharacter('8');
+            //if (Main.Input.KeyDown(Keys.D9) || Main.Input.KeyDown(Keys.NumPad9))
+            //    io.AddInputCharacter('9');
+            //if (Main.Input.KeyDown(Keys.D0) || Main.Input.KeyDown(Keys.NumPad0))
+            //    io.AddInputCharacter('0');
+            //if (Main.Input.KeyDown(Keys.OemPeriod))
+            //    io.AddInputCharacter('.');
+            //if (Main.Input.KeyDown(Keys.OemComma))
+            //    io.AddInputCharacter(',');
+            //if (Main.Input.KeyDown(Keys.OemMinus) || Main.Input.KeyDown(Keys.Subtract))
+            //    io.AddInputCharacter('-');
+
             io.KeyShift = keyboard.IsKeyDown(Keys.LeftShift) || keyboard.IsKeyDown(Keys.RightShift);
             io.KeyCtrl = keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl);
             io.KeyAlt = keyboard.IsKeyDown(Keys.LeftAlt) || keyboard.IsKeyDown(Keys.RightAlt);
@@ -262,7 +289,7 @@ namespace DSAnimStudio
             io.DisplaySize = new System.Numerics.Vector2(w, h);
             io.DisplayFramebufferScale = new System.Numerics.Vector2(1f, 1f);
 
-            io.MousePos = new System.Numerics.Vector2(mouse.X - x, mouse.Y - y);
+            io.MousePos = new System.Numerics.Vector2(mouse.X - x, mouse.Y - y - mouseYOff);
 
             io.MouseDown[0] = mouse.LeftButton == ButtonState.Pressed;
             io.MouseDown[1] = mouse.RightButton == ButtonState.Pressed;
@@ -280,7 +307,7 @@ namespace DSAnimStudio
         /// <summary>
         /// Gets the geometry as set up by ImGui and sends it to the graphics device
         /// </summary>
-        private void RenderDrawData(ImDrawDataPtr drawData, int x, int y, int w, int h)
+        private void RenderDrawData(ImDrawDataPtr drawData, int x, int y, int w, int h, int memeY)
         {
             // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, vertex/texcoord/color pointers
             var lastViewport = _graphicsDevice.Viewport;
@@ -297,11 +324,11 @@ namespace DSAnimStudio
             drawData.DisplayPos = new System.Numerics.Vector2(x, y);
 
             // Setup projection
-             _graphicsDevice.Viewport = new Viewport(x, y, w, h);
+            _graphicsDevice.Viewport = new Viewport(x, y, w, h);
 
             UpdateBuffers(drawData);
 
-            RenderCommandLists(drawData, x, y, w, h);
+            RenderCommandLists(drawData, x, y, w, h, memeY);
 
             // Restore modified state
             _graphicsDevice.Viewport = lastViewport;
@@ -358,7 +385,7 @@ namespace DSAnimStudio
             _indexBuffer.SetData(_indexData, 0, drawData.TotalIdxCount * sizeof(ushort));
         }
 
-        private unsafe void RenderCommandLists(ImDrawDataPtr drawData, int x, int y, int w, int h)
+        private unsafe void RenderCommandLists(ImDrawDataPtr drawData, int x, int y, int w, int h, int memeY)
         {
             _graphicsDevice.SetVertexBuffer(_vertexBuffer);
             _graphicsDevice.Indices = _indexBuffer;
@@ -380,13 +407,13 @@ namespace DSAnimStudio
                     }
 
                     _graphicsDevice.ScissorRectangle = new Rectangle(
-                        (int)drawCmd.ClipRect.X,
-                        (int)drawCmd.ClipRect.Y,
-                        (int)(drawCmd.ClipRect.Z - drawCmd.ClipRect.X + x),
-                        (int)(drawCmd.ClipRect.W - drawCmd.ClipRect.Y + y)
+                        (int)drawCmd.ClipRect.X + x,
+                        (int)drawCmd.ClipRect.Y + y,
+                        (int)(drawCmd.ClipRect.Z - drawCmd.ClipRect.X),
+                        (int)(drawCmd.ClipRect.W - drawCmd.ClipRect.Y)
                     );
 
-                    var effect = UpdateEffect(_loadedTextures[drawCmd.TextureId]);
+                    var effect = UpdateEffect(_loadedTextures[drawCmd.TextureId], Matrix.Identity);
 
                     foreach (var pass in effect.CurrentTechnique.Passes)
                     {

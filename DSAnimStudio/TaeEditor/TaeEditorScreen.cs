@@ -646,7 +646,7 @@ namespace DSAnimStudio.TaeEditor
         public TaeTransport Transport;
 
         private int ButtonEditCurrentAnimInfoWidth = 128;
-        private NoPaddingButton ButtonEditCurrentAnimInfo;
+        public NoPaddingButton ButtonEditCurrentAnimInfo;
 
         private int ButtonGotoEventSourceWidth = 140;
         public NoPaddingButton ButtonGotoEventSource;
@@ -672,7 +672,7 @@ namespace DSAnimStudio.TaeEditor
 
         private int EditTaeHeaderButtonMargin = 32;
         private int EditTaeHeaderButtonHeight = 20;
-        private NoPaddingButton ButtonEditCurrentTaeHeader;
+        public NoPaddingButton ButtonEditCurrentTaeHeader;
 
         //public bool CtrlHeld;
         //public bool ShiftHeld;
@@ -863,8 +863,8 @@ namespace DSAnimStudio.TaeEditor
         private TaeButtonRepeater UndoButton = new TaeButtonRepeater(0.4f, 0.05f);
         private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.4f, 0.05f);
 
-        private float LeftSectionWidth = 320;
-        private const float LeftSectionWidthMin = 320;
+        private float LeftSectionWidth = 236;
+        private const float LeftSectionWidthMin = 120;
         private float DividerLeftVisibleStartX => Rect.Left + LeftSectionWidth;
         private float DividerLeftVisibleEndX => Rect.Left + LeftSectionWidth + DividerVisiblePad;
 
@@ -885,7 +885,7 @@ namespace DSAnimStudio.TaeEditor
 
         private float TopRightPaneHeight = 600;
         private const float TopRightPaneHeightMinNew = 128;
-        private const float BottomRightPaneHeightMinNew = 256;
+        private const float BottomRightPaneHeightMinNew = 64;
 
         private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight + TopMenuBarMargin + TransportHeight;
         private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad + TopMenuBarMargin + TransportHeight;
@@ -899,7 +899,7 @@ namespace DSAnimStudio.TaeEditor
         private float RightSectionStartX => Rect.Right - RightSectionWidth;
 
         private float MiddleSectionWidth => DividerRightVisibleStartX - DividerLeftVisibleEndX;
-        private const float MiddleSectionWidthMin = 500;
+        private const float MiddleSectionWidthMin = 128;
 
         private float DividerVisiblePad = 3;
         private int DividerHitboxPad = 10;
@@ -2079,16 +2079,22 @@ namespace DSAnimStudio.TaeEditor
 
             BuildDebugMenuBar();
 
-            MenuBar.AddTopItem("By Meowmaritus");
+            MenuBar.AddTopItem("Support Meowmaritus");
 
-            MenuBar["By Meowmaritus"].Tag = System.Drawing.Color.Lime;
+            MenuBar["Support Meowmaritus"].Tag = System.Drawing.Color.Lime;
 
-            MenuBar.AddItem("By Meowmaritus", "Click To Donate", () =>
+            MenuBar.AddItem("Support Meowmaritus", "Patreon", () =>
+            {
+                Process.Start("https://www.patreon.com/Meowmaritus");
+            });
+
+            MenuBar.AddItem("Support Meowmaritus", "PayPal", () =>
             {
                 Process.Start("https://paypal.me/Meowmaritus");
             });
 
-            MenuBar["By Meowmaritus\\Click To Donate"].Tag = System.Drawing.Color.Lime;
+            MenuBar["Support Meowmaritus\\Patreon"].Tag = System.Drawing.Color.Lime;
+            MenuBar["Support Meowmaritus\\PayPal"].Tag = System.Drawing.Color.Lime;
 
             WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
             WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
@@ -3478,11 +3484,6 @@ namespace DSAnimStudio.TaeEditor
                     Graph?.MouseReleaseStuff();
             }
 
-
-            if (ModelViewerBounds.Contains((int)Input.LeftClickDownAnchor.X, (int)Input.LeftClickDownAnchor.Y) || 
-                inspectorWinFormsControl.Bounds.Contains(Input.LeftClickDownAnchor.ToDrawingPoint()))
-                return;
-
             //if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
             //{
             //    if (Config.UseGamesMenuSounds)
@@ -3509,6 +3510,9 @@ namespace DSAnimStudio.TaeEditor
             }
 
             Transport.Update(Main.DELTA_UPDATE);
+
+            bool isOtherPaneFocused = ModelViewerBounds.Contains((int)Input.LeftClickDownAnchor.X, (int)Input.LeftClickDownAnchor.Y) ||
+                inspectorWinFormsControl.Bounds.Contains(Input.LeftClickDownAnchor.ToDrawingPoint());
 
             if (Main.Active)
             {
@@ -3538,37 +3542,40 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld)
                 {
-                    if (Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add))
+                    if ((Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add)) && !isOtherPaneFocused)
                     {
                         Graph?.ZoomInOneNotch(
                             (float)(
                             (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
                             - Graph.ScrollViewer.Scroll.X));
                     }
-                    else if (Input.KeyDown(Keys.OemMinus) || Input.KeyDown(Keys.Subtract))
+                    else if ((Input.KeyDown(Keys.OemMinus) || Input.KeyDown(Keys.Subtract)) && !isOtherPaneFocused)
                     {
                         Graph?.ZoomOutOneNotch(
                             (float)(
                             (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
                             - Graph.ScrollViewer.Scroll.X));
                     }
-                    else if (Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0))
+                    else if ((Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0)) && !isOtherPaneFocused)
                     {
                         Graph?.ResetZoom(0);
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && 
+                        WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
                     {
                         Graph?.DoCopy();
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && 
+                        WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
                     {
                         Graph?.DoCut();
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector)
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && 
+                        WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
                     {
                         Graph?.DoPaste(isAbsoluteLocation: false);
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A))
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A) && !isOtherPaneFocused)
                     {
                         if (Graph != null && Graph.currentDrag.DragType == BoxDragType.None)
                         {
@@ -3605,7 +3612,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
                 {
-                    if (Input.KeyDown(Keys.V))
+                    if (Input.KeyDown(Keys.V) && !isOtherPaneFocused)
                     {
                         Graph.DoPaste(isAbsoluteLocation: true);
                     }
@@ -3626,7 +3633,7 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                if (Input.KeyDown(Keys.Delete))
+                if (Input.KeyDown(Keys.Delete) && !isOtherPaneFocused)
                 {
                     Graph.DeleteSelectedEvent();
                 }
@@ -3703,17 +3710,17 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                if (Input.KeyDown(Keys.Back))
+                if (Input.KeyDown(Keys.Back) && !isOtherPaneFocused)
                 {
                     Graph?.ViewportInteractor?.RemoveTransition();
                 }
 
-                if (UndoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (zHeld && !yHeld)))
+                if (UndoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (zHeld && !yHeld)) && !isOtherPaneFocused)
                 {
                     UndoMan.Undo();
                 }
 
-                if (RedoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (!zHeld && yHeld)))
+                if (RedoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (!zHeld && yHeld)) && !isOtherPaneFocused)
                 {
                     UndoMan.Redo();
                 }
@@ -3974,7 +3981,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void HandleWindowResize(Rectangle oldBounds, Rectangle newBounds)
         {
-            if (oldBounds.Width > 0 && oldBounds.Height > 0)
+            if (oldBounds.Width > 0 && oldBounds.Height > 0 && newBounds.Width > 0 && newBounds.Height > 0)
             {
                 float ratioW = 1.0f * newBounds.Width / oldBounds.Width;
                 float ratioH = 1.0f * newBounds.Height / oldBounds.Height;
@@ -4127,7 +4134,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void DrawDimmingRect(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex)
         {
-            sb.Begin();
+            sb.Begin(transformMatrix: Main.DPIMatrix);
             try
             {
                 sb.Draw(boxTex, new Rectangle(Rect.Left, Rect.Top, (int)RightSectionStartX - Rect.X, Rect.Height), Color.Black * 0.25f);
@@ -4141,7 +4148,7 @@ namespace DSAnimStudio.TaeEditor
             sb.Begin();
             try
             {
-                sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height), Main.Colors.MainColorBackground);
+                sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height).DpiScaled(), Main.Colors.MainColorBackground);
 
                 // Draw model viewer background lel
                 //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
