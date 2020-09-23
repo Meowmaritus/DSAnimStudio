@@ -123,12 +123,14 @@ namespace DSAnimStudio
             return npcParams;
         }
         
-        private static void LoadStuffFromParamBND()
+        private static void LoadStuffFromParamBND(bool isClearAll = false)
         {
             void AddParam<T>(Dictionary<long, T> paramDict, string paramName)
                 where T : ParamData, new()
             {
                 paramDict.Clear();
+                if (isClearAll)
+                    return;
                 var param = GetParam(paramName);
                 foreach (var row in param.Rows)
                 {
@@ -160,14 +162,24 @@ namespace DSAnimStudio
                 AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
             AddParam(SpEffectParam, "SpEffectParam");
 
-            var hitMtrlParam = GetParam("HitMtrlParam");
-            foreach (var row in hitMtrlParam.Rows)
+            if (!isClearAll)
             {
-                if (!HitMtrlParamEntries.Contains(row.ID))
-                    HitMtrlParamEntries.Add(row.ID);
+                var hitMtrlParam = GetParam("HitMtrlParam");
+                foreach (var row in hitMtrlParam.Rows)
+                {
+                    if (!HitMtrlParamEntries.Contains(row.ID))
+                        HitMtrlParamEntries.Add(row.ID);
+                }
+                HitMtrlParamEntries = HitMtrlParamEntries.OrderBy(x => x).ToList();
+            }
+            else
+            {
+                HitMtrlParamEntries.Clear();
             }
 
-            HitMtrlParamEntries = HitMtrlParamEntries.OrderBy(x => x).ToList();
+           
+
+            
 
             GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameType;
         }
@@ -320,6 +332,12 @@ namespace DSAnimStudio
                     {
                         return false;
                     }
+                }
+                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+                {
+                    System.Windows.Forms.MessageBox.Show("DS2 Params not supported yet.");
+                    LoadStuffFromParamBND(isClearAll: true);
+                    return true;
                 }
                 else
                 {

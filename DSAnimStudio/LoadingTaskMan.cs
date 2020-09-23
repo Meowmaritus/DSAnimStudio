@@ -42,6 +42,7 @@ namespace DSAnimStudio
 
                 taskThread = new Thread(() =>
                 {
+#if !DEBUG
                     try
                     {
                         doLoad.Invoke(prog);
@@ -50,7 +51,11 @@ namespace DSAnimStudio
                     {
                         ErrorLog.HandleException(ex, $"Fatal error encountered during background task '{TaskKey}'");
                     }
-                    
+#else
+                    doLoad.Invoke(prog);
+#endif
+
+
                     // We don't check ProgressRatio to see if it's done, since
                     // the thread is INSTANTLY KILLED when complete, which would
                     // cause slight progress rounding errors to destroy the

@@ -281,6 +281,37 @@ namespace DSAnimStudio
                     }
                 }
 
+
+                if (RequestExpandAllTreeNodes)
+                    ImGui.SetNextItemOpen(true);
+
+                if (IsInit)
+                    ImGui.SetNextItemOpen(false);
+
+                if (ImGui.TreeNode("[MODEL VIEW MODE]"))
+                {
+                    lock (Scene._lock_ModelLoad_Draw)
+                    {
+                        foreach (var m in Scene.Models)
+                        {
+                            if (m.AnimContainer?.ForcePlayAnim == true)
+                            {
+                                var animNames = m.AnimContainer.Animations.Keys.ToList();
+                                int current = animNames.IndexOf(m.AnimContainer.CurrentAnimationName);
+                                int next = current;
+                                ImGui.ListBox("Animation", ref next, animNames.ToArray(), animNames.Count);
+                                if (current != next)
+                                {
+                                    m.AnimContainer.CurrentAnimationName = animNames[next];
+                                    m.AnimContainer.ResetAll();
+                                }
+                            }
+                        }
+                    }
+
+                    ImGui.TreePop();
+                }
+
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
 
@@ -405,7 +436,7 @@ namespace DSAnimStudio
                     ImGui.TreePop();
                 }
 
-                if (Scene.Models.Count > 0 && Scene.Models[0].ChrAsm != null)
+                if (Scene.Models.Count > 0 && Scene.Models[0]?.ChrAsm != null)
                 {
                     if (RequestExpandAllTreeNodes)
                         ImGui.SetNextItemOpen(true);

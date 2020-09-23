@@ -7,7 +7,7 @@
 	#define PS_SHADERMODEL ps_5_0
 #endif
 
-//#define NO_SKINNING
+#define NO_SKINNING
 
 #define MAXLIGHTS 3
 
@@ -131,6 +131,9 @@ float FancyAlpha_EdgeCutoff = 0.5;
 bool IsDoubleFaceCloth;
 
 int PtdeMtdType = 0;
+
+// DS2
+bool IsDS2NormalMapChannels = true;
 
 // Textures
 texture2D ColorMap;
@@ -600,8 +603,23 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     
     emissiveMapColor.rgb *= emissiveMapColor.rgb;
     
-    float3 nmapcol = lerp(tex2D(NormalMapSampler, input.TexCoord / NormalMapScale), tex2D(NormalMap2Sampler, input.TexCoord2 / NormalMapScale2), texBlendVal);
+    float4 nmapcol_full = lerp(tex2D(NormalMapSampler, input.TexCoord / NormalMapScale), tex2D(NormalMap2Sampler, input.TexCoord2 / NormalMapScale2), texBlendVal);
     
+    float3 nmapcol = nmapcol_full.rgb;
+
+    [branch]
+    if (IsDS2NormalMapChannels)
+    {
+        nmapcol.r = nmapcol_full.a;
+        nmapcol.g = nmapcol.g;
+        nmapcol.b = specularMapColor.r;
+
+        color.rgb = color.rgb * 0.75;
+
+        specularMapColor.rgb = clamp(color.rgb * 1.5, 0, 1);
+        specularMapColor.a = 1;
+    }
+
     float4 shininessMapColor = lerp(tex2D(ShininessMapSampler, input.TexCoord / ShininessMapScale), tex2D(ShininessMap2Sampler, input.TexCoord2 / ShininessMapScale2), texBlendVal);
     
     float3 normalMap;

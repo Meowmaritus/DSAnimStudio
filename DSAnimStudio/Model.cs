@@ -29,7 +29,7 @@ namespace DSAnimStudio
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
 
-        public bool IsStatic => Skeleton?.OriginalHavokSkeleton == null;
+        public bool IsStatic => Skeleton?.OriginalHavokSkeleton == null && GameDataManager.GameType != GameDataManager.GameTypes.DS2SOTFS;
 
         public float BaseTrackingSpeed = 360;
         public float CurrentTrackingSpeed = 0;
@@ -112,6 +112,8 @@ namespace DSAnimStudio
 
         private Model()
         {
+            AnimContainer = new NewAnimationContainer(this);
+
             DummyPolyMan = new NewDummyPolyManager(this);
             DbgPrimDrawer = new DBG.DbgPrimDrawer(this);
 
@@ -174,6 +176,8 @@ namespace DSAnimStudio
             bool ignoreStaticTransforms = false, IBinder additionalTexbnd = null)
             : this()
         {
+            AnimContainer = new NewAnimationContainer(this);
+
             Name = name;
             List<BinderFile> flverFileEntries = new List<BinderFile>();
 
@@ -196,11 +200,11 @@ namespace DSAnimStudio
                     tpfsUsed.Add(TPF.Read(f.Bytes));
                 }
 
-                if ((f.ID % 10) != modelIndex)
+                if ((f.ID % 10) != modelIndex && GameDataManager.GameType != GameDataManager.GameTypes.DS2SOTFS)
                     continue;
 
                 var nameCheck = f.Name.ToLower();
-                if (flver == null && (nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
+                if (flver == null && (nameCheck.EndsWith(".flver") || nameCheck.EndsWith(".flv") || FLVER2.Is(f.Bytes)))
                 {
                     //if (nameCheck.EndsWith($"_{modelIndex}.flver") || modelIndex == 0)
                     flver = FLVER2.Read(f.Bytes);
@@ -222,15 +226,12 @@ namespace DSAnimStudio
             if (flver == null)
             {
                 //throw new ArgumentException("No FLVERs found within CHRBND.");
-                AnimContainer = null;
                 return;
             }
 
             LoadFLVER2(flver, useSecondUV: false, baseDmyPolyID, ignoreStaticTransforms);
 
             loadingProgress.Report(1.0 / 4.0);
-
-            AnimContainer = new NewAnimationContainer(this);
 
             if (anibnd != null)
             {
@@ -344,6 +345,7 @@ namespace DSAnimStudio
         public Model(FLVER2 flver, bool useSecondUV)
             : this()
         {
+            AnimContainer = new NewAnimationContainer(this);
             LoadFLVER2(flver, useSecondUV);
         }
 
@@ -409,6 +411,15 @@ namespace DSAnimStudio
 
         public void UpdateAnimation()
         {
+            if (IsStatic)
+                Skeleton?.ApplyBakedFlverReferencePose();
+
+            if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+            {
+                Skeleton?.RevertToReferencePose();
+                AfterAnimUpdate(Main.DELTA_UPDATE);
+            }
+
             AnimContainer?.Update();
             UpdateTrackingTest(Main.DELTA_UPDATE);
             //V2.0
@@ -469,7 +480,7 @@ namespace DSAnimStudio
                 ChrAsm.LeftWeaponModel3?.Skeleton?.DrawPrimitives();
             }
 
-            Skeleton.DrawPrimitives();
+            Skeleton?.DrawPrimitives();
         }
 
         public void DrawAllPrimitiveTexts()
@@ -501,42 +512,56 @@ namespace DSAnimStudio
                 //((FlverShader)shader).Bones0 = new Matrix[] { Matrix.Identity };
                 GFX.FlverShader.Effect.IsSkybox = true;
             }
-            else
+            else if (Skeleton != null)
             {
-                GFX.FlverShader.Effect.Bones0 = Skeleton.ShaderMatrices0;
-
-                if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray)
+                if (ChrAsm != null)
                 {
-                    GFX.FlverShader.Effect.Bones1 = Skeleton.ShaderMatrices1;
+                    GFX.FlverShader.Effect.Bones0 = Skeleton.ShaderMatrices0;
 
-                    if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 2)
+                    if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray)
                     {
-                        GFX.FlverShader.Effect.Bones2 = Skeleton.ShaderMatrices2;
+                        GFX.FlverShader.Effect.Bones1 = Skeleton.ShaderMatrices1;
 
-                        if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 3)
+                        if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 2)
                         {
-                            GFX.FlverShader.Effect.Bones3 = Skeleton.ShaderMatrices3;
+                            GFX.FlverShader.Effect.Bones2 = Skeleton.ShaderMatrices2;
 
-                            if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 4)
+                            if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 3)
                             {
-                                GFX.FlverShader.Effect.Bones4 = Skeleton.ShaderMatrices4;
+                                GFX.FlverShader.Effect.Bones3 = Skeleton.ShaderMatrices3;
 
-                                if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 5)
+                                if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 4)
                                 {
-                                    GFX.FlverShader.Effect.Bones5 = Skeleton.ShaderMatrices5;
+                                    GFX.FlverShader.Effect.Bones4 = Skeleton.ShaderMatrices4;
+
+                                    if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 5)
+                                    {
+                                        GFX.FlverShader.Effect.Bones5 = Skeleton.ShaderMatrices5;
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
+                
+
                 GFX.FlverShader.Effect.IsSkybox = false;
+            }
+            else
+            {
+                GFX.FlverShader.Effect.Bones0 = NewAnimSkeleton.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones1 = NewAnimSkeleton.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones2 = NewAnimSkeleton.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones3 = NewAnimSkeleton.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones4 = NewAnimSkeleton.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones5 = NewAnimSkeleton.IDENTITY_MATRICES;
             }
 
             if (IsVisible)
             {
                 MainMesh.DrawMask = DrawMask;
-                MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, Skeleton);
             }
             
             if (ChrAsm != null)

@@ -181,8 +181,24 @@ namespace DSAnimStudio.TaeEditor
 
                     var info = new TaeEditAnimInfo()
                     {
-                        GetName = () => (GameDataManager.GameTypeHasLongAnimIDs
-                          ? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}"),
+                        GetName = () =>
+                        {
+                            if (GameDataManager.GameTypeHasLongAnimIDs)
+                            {
+                                string res = $"a{(animID_Upper):D3}_{animID_Lower:D6}";
+                                if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.a00_00_0000)
+                                {
+                                    res = res.Insert(res.Length - 4, "_");
+                                }
+                                return res;
+                            }
+                            else
+                            {
+                                return $"a{(animID_Upper):D2}_{animID_Lower:D4}";
+                            }
+                          //  (GameDataManager.GameTypeHasLongAnimIDs
+                          //? $"a{(animID_Upper):D3}_{animID_Lower:D6}" : $"a{(animID_Upper):D2}_{animID_Lower:D4}"),
+                        },
                         Ref = anim,
                         VerticalOffset = taeSection.HeightOfAllAnims,
                         TaePrefix = MainScreen.FileContainer.AllTAEDict.Count == 1 ? 0 : animID_Upper,

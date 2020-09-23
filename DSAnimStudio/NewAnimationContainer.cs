@@ -30,6 +30,8 @@ namespace DSAnimStudio
 
         public object _lock_AdditiveOverlays = new object();
 
+        public bool ForcePlayAnim = false;
+
         public bool IsAnimLoaded(string name)
         {
             return AnimationCache.ContainsKey(name);
@@ -278,26 +280,31 @@ namespace DSAnimStudio
                                 }
                             }
 
-                            lock (_lock_AnimationLayers)
+                            if (anim != null)
                             {
-                                if (AnimationLayers.Count < 2)
+                                lock (_lock_AnimationLayers)
                                 {
-                                    if (AnimationLayers.Count == 0)
-                                        anim.Weight = 1;
+                                    if (AnimationLayers.Count < 2)
+                                    {
+                                        if (AnimationLayers.Count == 0)
+                                            anim.Weight = 1;
+                                        else
+                                            anim.Weight = 0;
+                                        AnimationLayers.Add(anim);
+                                    }
                                     else
+                                    {
                                         anim.Weight = 0;
-                                    AnimationLayers.Add(anim);
-                                }
-                                else
-                                {
-                                    anim.Weight = 0;
 
-                                    AnimationLayers[1].Weight = 1;
-                                    AnimationLayers[0] = AnimationLayers[1];
+                                        AnimationLayers[1].Weight = 1;
+                                        AnimationLayers[0] = AnimationLayers[1];
 
-                                    AnimationLayers[1] = anim;
+                                        AnimationLayers[1] = anim;
+                                    }
                                 }
                             }
+
+                            
 
 
 
@@ -633,10 +640,10 @@ namespace DSAnimStudio
         {
             //V2.0 TODO: If this is ever gonna be used, actually implement this, using .Scrub
             //           to simulate the old behavior of .Play
-            //if (IsPlaying && CurrentAnimation != null)
-            //{
-            //    CurrentAnimation.Play(Main.DELTA_UPDATE, IsLoop, false, false);
-            //}
+            if (ForcePlayAnim && CurrentAnimation != null)
+            {
+                ScrubRelative(Main.DELTA_UPDATE);
+            }
             lock (_lock_AdditiveOverlays)
             {
                 foreach (var overlay in _additiveBlendOverlays)

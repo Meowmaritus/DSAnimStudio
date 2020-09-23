@@ -118,6 +118,7 @@ namespace DSAnimStudio.TaeEditor
         public static readonly string DefaultSaveFilter = 
             "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
             "Object Container (*.OBJBND[.DCX]) |*.OBJBND*|" +
+            "Loose TimeAct File (*.TAE) |*.TAE|" +
             "All Files|*.*";
 
         public bool IsBloodborne => GameDataManager.GameType == GameDataManager.GameTypes.BB;
@@ -160,14 +161,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private string GetInterrootFromPath()
-        {
-            var folder = new System.IO.FileInfo(filePath).DirectoryName;
-
-            var lastSlashInFolder = folder.LastIndexOf("\\");
-
-            return folder.Substring(0, lastSlashInFolder);
-        }
+        
 
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {
@@ -249,15 +243,13 @@ namespace DSAnimStudio.TaeEditor
             return (tae, anim.Anim);
         }
 
-        private void CheckGameVersionForTaeInterop(string filePath)
+        private void CheckGameVersionForTaeInterop(string internalFilePath)
         {
-            var check = filePath.ToUpper();
-            string interroot = GetInterrootFromPath();
+            var check = internalFilePath.ToUpper();
+            string interroot = GameDataManager.GetInterrootFromFilePath(filePath);
             if (check.Contains("FRPG2"))
             {
-                // SLHSDJFSHH
-                //GameType = TaeGameType.DS2;
-                //GameDataManager.GameType = GameDataManager.GameTypes.DS2;
+                GameDataManager.Init(GameDataManager.GameTypes.DS2SOTFS, interroot);
             }
             else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXX64"))
             {
@@ -313,7 +305,18 @@ namespace DSAnimStudio.TaeEditor
                 CheckGameVersionForTaeInterop(file);
 
                 ContainerType = TaeFileContainerType.TAE;
-                taeInBND.Add(file, TAE.Read(file));
+                var t = TAE.Read(file);
+                taeInBND.Add(file, t);
+
+                if (t.Format == TAE.TAEFormat.SOTFS)
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.DS2SOTFS,
+                        GameDataManager.GetInterrootFromFilePath(filePath));
+                }
+                else
+                {
+                    throw new NotImplementedException("Non-DS2 loose .TAE files not supported yet.");
+                }
             }
 
             //void DoBnd(IBinder bnd)

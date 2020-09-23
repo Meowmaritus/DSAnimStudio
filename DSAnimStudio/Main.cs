@@ -64,7 +64,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4.1";
+        public const string VERSION = "Version 2.5 EARLY TEST BUILD";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -91,7 +91,7 @@ namespace DSAnimStudio
 
         public static int JustStartedLayoutForceUpdateFrameAmountLeft { get; private set; } = 10;
 
-        public static bool DISABLE_DRAW_ERROR_HANDLE = true;
+        public static bool DISABLE_DRAW_ERROR_HANDLE = false;
 
         private static float MemoryUsageCheckTimer = 0;
         private static long MemoryUsage_Unmanaged = 0;
@@ -439,19 +439,34 @@ namespace DSAnimStudio
                 {
                     if (file.ToUpper().EndsWith(".FLVER"))
                     {
-                        currModelAddOffset.X += 3;
+                        //currModelAddOffset.X += 3;
                         var m = new Model(FLVER2.Read(file), false);
                         m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                        Scene.AddModel(m);
+                        Scene.ClearSceneAndAddModel(m);
                     }
                     else if (file.ToUpper().EndsWith(".CHRBND") || file.ToUpper().EndsWith(".CHRBND.DCX"))
                     {
-                        currModelAddOffset.X += 3;
+                        Scene.ClearScene();
+                        //currModelAddOffset.X += 3;
+                        GameDataManager.InitializeFromBND(file);
                         var m = GameDataManager.LoadCharacter(Utils.GetShortIngameFileName(file));
                         m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
                         m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
+                        m.AnimContainer.ForcePlayAnim = true;
                         m.UpdateAnimation();
-                        Scene.AddModel(m);
+                        //Scene.ClearSceneAndAddModel(m);
+                    }
+                    else if (file.ToUpper().EndsWith(".OBJBND") || file.ToUpper().EndsWith(".OBJBND.DCX"))
+                    {
+                        Scene.ClearScene();
+                        //currModelAddOffset.X += 3;
+                        GameDataManager.InitializeFromBND(file);
+                        var m = GameDataManager.LoadObject(Utils.GetShortIngameFileName(file));
+                        m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                        m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
+                        m.AnimContainer.ForcePlayAnim = true;
+                        m.UpdateAnimation();
+                        //Scene.ClearSceneAndAddModel(m);
                     }
                     else if (file.ToUpper().EndsWith(".HKX"))
                     {

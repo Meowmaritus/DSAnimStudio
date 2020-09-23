@@ -18,11 +18,18 @@ namespace DSAnimStudio
             DES,
             DS1,
             DS1R,
-            DS2,
+            //DS2,
             DS2SOTFS,
             DS3,
             BB,
             SDT,
+        }
+
+        public enum AnimIDFormattingType
+        {
+            a00_0000,
+            a000_000000,
+            a00_00_0000,
         }
 
         public static readonly Dictionary<GameTypes, string> GameTypeNames =
@@ -32,7 +39,7 @@ namespace DSAnimStudio
             { GameTypes.DES, "Demon's Souls" },
             { GameTypes.DS1, "Dark Souls: Prepare to Die Edition" },
             { GameTypes.DS1R, "Dark Souls Remastered" },
-            { GameTypes.DS2, "Dark Souls II" },
+            //{ GameTypes.DS2, "Dark Souls II" },
             { GameTypes.DS2SOTFS, "Dark Souls II: Scholar of the First Sin" },
             { GameTypes.DS3, "Dark Souls III" },
             { GameTypes.BB, "Bloodborne" },
@@ -58,8 +65,30 @@ namespace DSAnimStudio
         private static GameTypes lastGameType = GameTypes.None;
         public static GameTypes GameType { get; private set; } = GameTypes.None;
 
-        public static bool GameTypeHasLongAnimIDs =>
-            !(GameType == GameTypes.DS1 || GameType == GameTypes.DS1R || GameType == GameTypes.DES);
+        public static bool GameTypeHasLongAnimIDs => CurrentAnimIDFormatType == AnimIDFormattingType.a000_000000 ||
+            CurrentAnimIDFormatType == AnimIDFormattingType.a00_00_0000;
+
+        public static AnimIDFormattingType CurrentAnimIDFormatType
+        {
+            get
+            {
+                switch (GameType)
+                {
+                    case GameTypes.DS1:
+                    case GameTypes.DS1R:
+                    case GameTypes.DES:
+                        return AnimIDFormattingType.a00_0000;
+                    case GameTypes.BB:
+                    case GameTypes.DS3:
+                    case GameTypes.SDT:
+                        return AnimIDFormattingType.a000_000000;
+                    case GameTypes.DS2SOTFS:
+                        return AnimIDFormattingType.a00_00_0000;
+                    default:
+                        return AnimIDFormattingType.a000_000000;
+                }
+            }
+        }
 
         public static bool GameTypeIsHavokTagfile =>
             (GameType == GameTypes.DS1R || GameType == GameTypes.SDT);
@@ -139,6 +168,68 @@ namespace DSAnimStudio
                         MtdDict[key] = MTD.Read(f.Bytes);
                 }
             }
+        }
+
+        public static bool InitializeFromBND(string bndPath)
+        {
+            IBinder bnd = null;
+            if (BND3.Is(bndPath))
+                bnd = BND3.Read(bndPath);
+            else if (BND4.Is(bndPath))
+                bnd = BND4.Read(bndPath);
+
+            foreach (var f in bnd.Files)
+            {
+                var check = f.Name.ToUpper();
+                string interroot = GameDataManager.GetInterrootFromFilePath(bndPath);
+                if (check.Contains("FRPG2"))
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.DS2SOTFS, interroot);
+                    return true;
+                }
+                else if (check.Contains(@"\FRPG\") && check.Contains(@"INTERROOT_X64"))
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.DS1R, interroot);
+                    return true;
+                }
+                else if (check.Contains(@"\FRPG\") && check.Contains(@"INTERROOT_WIN32"))
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.DS1, interroot);
+                    return true;
+                }
+                else if (check.Contains(@"\SPRJ\"))
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.BB, interroot);
+                    return true;
+                }
+                else if (check.Contains(@"\FDP\"))
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.DS3, interroot);
+                    return true;
+                }
+                else if (check.Contains(@"\DemonsSoul\"))
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.DES, interroot);
+                    return true;
+                }
+                else if (check.Contains(@"\NTC\"))
+                {
+                    GameDataManager.Init(GameDataManager.GameTypes.SDT, interroot);
+                    return true;
+                }
+            }
+
+            return false;
+            
+        }
+
+        public static string GetInterrootFromFilePath(string filePath)
+        {
+            var folder = new System.IO.FileInfo(filePath).DirectoryName;
+
+            var lastSlashInFolder = folder.LastIndexOf("\\");
+
+            return folder.Substring(0, lastSlashInFolder);
         }
 
         public static void Init(GameTypes gameType, string interroot, bool forceReload = false)
@@ -298,54 +389,71 @@ namespace DSAnimStudio
 
         public static Model LoadObject(string id)
         {
+            Scene.DisableModelDrawing();
+            Scene.DisableModelDrawing2();
+
             Model obj = null;
 
             LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_OBJ_{id}", $"Loading object {id}...", progress =>
             {
-                if (GameType == GameTypes.DS3 || GameType == GameTypes.BB || GameType == GameTypes.SDT)
-                {
-                    var chrbnd = BND4.Read(GetInterrootPath($@"obj\{id}.objbnd.dcx"));
-
-                    obj = new Model(progress, id, chrbnd, 0, null, null);
-                }
-                else if (GameType == GameTypes.DS1)
-                {
-                    var chrbnd = BND3.Read(GetInterrootPath($@"obj\{id}.objbnd"));
-
-                    obj = new Model(progress, id, chrbnd, 0, null, null);
-                }
-                else if (GameType == GameTypes.DS1R)
-                {
-                    var chrbnd = BND4.Read(GetInterrootPath($@"obj\{id}.objbnd.dcx"));
-
-                    obj = new Model(progress, id, chrbnd, 0, null, null);
-                }
-
-                Scene.AddModel(obj);
-
-                var texturesToLoad = obj.MainMesh.GetAllTexNamesToLoad();
-
-                LoadingTaskMan.DoLoadingTask($"LOAD_OBJ_{id}_TEX",
-                    "Loading additional object textures...", innerProgress =>
-                {
-                    if (GameType == GameTypes.DS1)
+                
+                    if (GameType == GameTypes.DS3 || GameType == GameTypes.BB || GameType == GameTypes.SDT)
                     {
-                        foreach (var tex in texturesToLoad)
-                        {
-                            TexturePool.AddTpfFromPath(GetInterrootPath($@"map\tx\{tex}.tpf"));
-                        }
+                        var chrbnd = BND4.Read(GetInterrootPath($@"obj\{id}.objbnd.dcx"));
+
+                        obj = new Model(progress, id, chrbnd, 0, null, null);
                     }
-                    else if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT || GameType == GameTypes.BB)
+                    else if (GameType == GameTypes.DS1)
                     {
-                        int objGroup = int.Parse(id.Substring(1)) / 1_0000;
-                        string mapDirName = GetInterrootPath($@"map\m{objGroup:D2}");
-                        var tpfBnds = GameDataManager.GetInterrootFiles(mapDirName, "*.tpfbhd");
-                        foreach (var t in tpfBnds)
-                            TexturePool.AddSpecificTexturesFromBinder(t, texturesToLoad, directEntryNameMatch: true);
+                        var chrbnd = BND3.Read(GetInterrootPath($@"obj\{id}.objbnd"));
+
+                        obj = new Model(progress, id, chrbnd, 0, null, null);
                     }
-                    obj.MainMesh.TextureReloadQueued = true;
-                });
+                    else if (GameType == GameTypes.DS1R)
+                    {
+                        var chrbnd = BND3.Read(GetInterrootPath($@"obj\{id}.objbnd.dcx"));
+
+                        obj = new Model(progress, id, chrbnd, 0, null, null);
+                    }
+
+                    Scene.AddModel(obj, doLock: false);
+
+
+
+                    if (obj.MainMesh != null)
+                    {
+                        var texturesToLoad = obj.MainMesh.GetAllTexNamesToLoad();
+
+                        LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_OBJ_{id}_TEX",
+                            "Loading additional object textures...", innerProgress =>
+                            {
+                                if (GameType == GameTypes.DS1)
+                                {
+                                    foreach (var tex in texturesToLoad)
+                                    {
+                                        TexturePool.AddTpfFromPath(GetInterrootPath($@"map\tx\{tex}.tpf"));
+                                    }
+                                }
+                                else if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT || GameType == GameTypes.BB)
+                                {
+                                    int objGroup = int.Parse(id.Substring(1)) / 1_0000;
+                                    string mapDirName = GetInterrootPath($@"map\m{objGroup:D2}");
+                                    var tpfBnds = GameDataManager.GetInterrootFiles(mapDirName, "*.tpfbhd");
+                                    foreach (var t in tpfBnds)
+                                        TexturePool.AddSpecificTexturesFromBinder(t, texturesToLoad, directEntryNameMatch: true);
+                                }
+                                obj.MainMesh.TextureReloadQueued = true;
+                            });
+                    }
+
+                
+
+
+
             });
+
+            Scene.EnableModelDrawing();
+            Scene.EnableModelDrawing2();
 
             return obj;
 
@@ -355,182 +463,160 @@ namespace DSAnimStudio
         {
             Model chr = null;
 
-            LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_CHR_{id}", $"Loading character {id}...", progress =>
-            {
-                if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT)
+            Scene.DisableModelDrawing();
+            Scene.DisableModelDrawing2();
+
+
+                LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_CHR_{id}", $"Loading character {id}...", progress =>
                 {
-                    var chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
-                    IBinder texbnd = null;
-                    IBinder extraTexbnd = null;
-                    IBinder anibnd = null;
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.texbnd.dcx")))
-                        texbnd = BND4.Read(GetInterrootPath($@"chr\{id}.texbnd.dcx"));
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx")))
-                        extraTexbnd = BND4.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx"));
-
-                    if (GameType == GameTypes.SDT)
+                    if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT)
                     {
-                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010")))
-                            anibnd = BND4.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010"));
-                    }
-                    else
-                    {
-                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx")))
-                            anibnd = BND4.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx"));
-                    }
-
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd, 
-                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
-                }
-                else if (GameType == GameTypes.DS1)
-                {
-                    var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd"));
-                    IBinder anibnd = null;
-                    IBinder texbnd = null;
-                    IBinder extraTexbnd = null;
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd")))
-                        anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd"));
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd")))
-                        extraTexbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.chrtpfbdt")))
-                    {
-                        var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
-
-                        if (chrtpfbhd != null)
-                        {
-                            texbnd = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
-                        }
-                    }
-
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
-                        possibleLooseTpfFolder: $@"chr\{id}\", 
-                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
-                }
-                else if (GameType == GameTypes.DS1R)
-                {
-                    var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
-                    IBinder anibnd = null;
-                    IBinder texbnd = null;
-                    IBinder extraTexbnd = null;
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010")))
-                        anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010"));
-                    else if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx")))
-                        anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx"));
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx")))
-                        extraTexbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.chrtpfbdt")))
-                    {
-                        var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
-
-                        if (chrtpfbhd != null)
-                        {
-                            texbnd = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
-                        }
-                    }
-
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
-                        possibleLooseTpfFolder: $@"chr\{id}\", 
-                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
-                }
-                else if (GameType == GameTypes.BB)
-                {
-                    var chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
-                    IBinder anibnd = null;
-                    IBinder extraTexbnd = null;
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx")))
-                        anibnd = BND4.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx"));
-
-                    if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx")))
-                        extraTexbnd = BND4.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
-
-                    chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
-                        additionalTpfNames: new List<string> { GetInterrootPath($@"chr\{id}_2.tpf.dcx") },
-                        possibleLooseTpfFolder: $@"chr\{id}\", 
-                        ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
-                }
-
-                Scene.AddModel(chr);
-            });
-
-            if (id == "c0000")
-            {
-                chr.IS_PLAYER = true;
-
-                LoadingTaskMan.DoLoadingTask("c0000_ANIBNDs", 
-                    "Loading additional player ANIBNDs...", progress =>
-                {
-                    string[] anibnds = GameDataManager.GetInterrootFiles($@"chr", 
-                        GameType == GameTypes.DS1 ? "c0000_*.anibnd" : "c0000_*.anibnd.dcx")
-                    .OrderBy(fn =>
-                    {
-                        var fnCheck = fn.ToLower();
-                        if (fnCheck.Contains("lo"))
-                            return 0;
-                        else if (fnCheck.Contains("md"))
-                            return 1;
-                        else if (fnCheck.Contains("hi"))
-                            return 2;
-                        else
-                            return 3;
-                    }).ToArray();
-
-                    for (int i = 0; i < anibnds.Length; i++)
-                    {
+                        var chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                        IBinder texbnd = null;
+                        IBinder extraTexbnd = null;
                         IBinder anibnd = null;
 
-                        string anibndName = anibnds[i];
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.texbnd.dcx")))
+                            texbnd = BND4.Read(GetInterrootPath($@"chr\{id}.texbnd.dcx"));
 
-                        if ((GameType == GameTypes.SDT || GameType == GameTypes.DS1R) && System.IO.File.Exists(anibnds[i] + ".2010"))
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx")))
+                            extraTexbnd = BND4.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx"));
+
+                        if (GameType == GameTypes.SDT)
                         {
-                            anibndName = anibnds[i] + ".2010";
+                            if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010")))
+                                anibnd = BND4.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010"));
+                        }
+                        else
+                        {
+                            if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx")))
+                                anibnd = BND4.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx"));
                         }
 
-                        if (BND3.Is(anibndName))
-                            anibnd = BND3.Read(anibndName);
-                        else
-                            anibnd = BND4.Read(anibndName);
+                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                    }
+                    else if (GameType == GameTypes.DS1)
+                    {
+                        var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd"));
+                        IBinder anibnd = null;
+                        IBinder texbnd = null;
+                        IBinder extraTexbnd = null;
 
-                        string anibndCheck = Path.GetFileNameWithoutExtension(anibndName).ToLower();
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd")))
+                            anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd"));
 
-                        bool isFirstPlayerAnibnd = anibndCheck.Contains(GameType == GameTypes.SDT ? "c0000_a000_lo" : "c0000_a00_lo");
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd")))
+                            extraTexbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
 
-                        chr.AnimContainer.LoadAdditionalANIBND(anibnd, null, scanAnims: isFirstPlayerAnibnd);
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.chrtpfbdt")))
+                        {
+                            var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
 
-                        progress.Report(1.0 * i / anibnds.Length);
+                            if (chrtpfbhd != null)
+                            {
+                                texbnd = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
+                            }
+                        }
+
+                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
+                            possibleLooseTpfFolder: $@"chr\{id}\",
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                    }
+                    else if (GameType == GameTypes.DS1R)
+                    {
+                        var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                        IBinder anibnd = null;
+                        IBinder texbnd = null;
+                        IBinder extraTexbnd = null;
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010")))
+                            anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010"));
+                        else if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx")))
+                            anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx"));
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx")))
+                            extraTexbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.chrtpfbdt")))
+                        {
+                            var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
+
+                            if (chrtpfbhd != null)
+                            {
+                                texbnd = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
+                            }
+                        }
+
+                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
+                            possibleLooseTpfFolder: $@"chr\{id}\",
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                    }
+                    else if (GameType == GameTypes.BB)
+                    {
+                        var chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                        IBinder anibnd = null;
+                        IBinder extraTexbnd = null;
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx")))
+                            anibnd = BND4.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx"));
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx")))
+                            extraTexbnd = BND4.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
+
+                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
+                            additionalTpfNames: new List<string> { GetInterrootPath($@"chr\{id}_2.tpf.dcx") },
+                            possibleLooseTpfFolder: $@"chr\{id}\",
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                    }
+                    else if (GameType == GameTypes.DS2SOTFS)
+                    {
+                        var chrbnd = BND4.Read(GetInterrootPath($@"model\chr\{id}.bnd"));
+                        IBinder texbnd = null;
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"model\chr\{id}.texbnd")))
+                            texbnd = BND4.Read(GetInterrootPath($@"model\chr\{id}.texbnd"));
+
+                        chr = new Model(progress, id, chrbnd, 0, anibnd: null, texbnd,
+                            additionalTpfNames: null,
+                            possibleLooseTpfFolder: null,
+                            ignoreStaticTransforms: true, additionalTexbnd: null);
                     }
 
-                    progress.Report(1);
-
-                    Scene.EnableModelDrawing2();
+                    Scene.AddModel(chr, doLock: false);
                 });
-            }
-            else
-            {
-                var additionalAnibnds = GameDataManager.GetInterrootFiles($@"chr", $"{id}_*.anibnd*");
 
-                if (additionalAnibnds.Count > 0)
+                if (id == "c0000")
                 {
-                    LoadingTaskMan.DoLoadingTask($"{id}_ANIBNDs",
-                    "Loading additional character ANIBNDs...", progress =>
+                    chr.IS_PLAYER = true;
+
+                    LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBNDs",
+                        "Loading additional player ANIBNDs...", progress =>
                     {
-                        for (int i = 0; i < additionalAnibnds.Count; i++)
+                        string[] anibnds = GameDataManager.GetInterrootFiles($@"chr",
+                            GameType == GameTypes.DS1 ? "c0000_*.anibnd" : "c0000_*.anibnd.dcx")
+                        .OrderBy(fn =>
+                        {
+                            var fnCheck = fn.ToLower();
+                            if (fnCheck.Contains("lo"))
+                                return 0;
+                            else if (fnCheck.Contains("md"))
+                                return 1;
+                            else if (fnCheck.Contains("hi"))
+                                return 2;
+                            else
+                                return 3;
+                        }).ToArray();
+
+                        for (int i = 0; i < anibnds.Length; i++)
                         {
                             IBinder anibnd = null;
 
-                            string anibndName = additionalAnibnds[i];
+                            string anibndName = anibnds[i];
 
-                            if ((GameType == GameTypes.SDT || GameType == GameTypes.DS1R) && System.IO.File.Exists(additionalAnibnds[i] + ".2010"))
+                            if ((GameType == GameTypes.SDT || GameType == GameTypes.DS1R) && System.IO.File.Exists(anibnds[i] + ".2010"))
                             {
-                                anibndName = additionalAnibnds[i] + ".2010";
+                                anibndName = anibnds[i] + ".2010";
                             }
 
                             if (BND3.Is(anibndName))
@@ -538,15 +624,59 @@ namespace DSAnimStudio
                             else
                                 anibnd = BND4.Read(anibndName);
 
-                            chr.AnimContainer.LoadAdditionalANIBND(anibnd, null, scanAnims: true);
+                            string anibndCheck = Path.GetFileNameWithoutExtension(anibndName).ToLower();
 
-                            progress.Report(1.0 * i / additionalAnibnds.Count);
+                            bool isFirstPlayerAnibnd = anibndCheck.Contains(GameType == GameTypes.SDT ? "c0000_a000_lo" : "c0000_a00_lo");
+
+                            chr.AnimContainer.LoadAdditionalANIBND(anibnd, null, scanAnims: isFirstPlayerAnibnd);
+
+                            progress.Report(1.0 * i / anibnds.Length);
                         }
+
+                        progress.Report(1);
 
                         Scene.EnableModelDrawing2();
                     });
                 }
-            }
+                else
+                {
+                    var additionalAnibnds = GameDataManager.GetInterrootFiles($@"chr", $"{id}_*.anibnd*");
+
+                    if (additionalAnibnds.Count > 0)
+                    {
+                        LoadingTaskMan.DoLoadingTaskSynchronous($"{id}_ANIBNDs",
+                        "Loading additional character ANIBNDs...", progress =>
+                        {
+                            for (int i = 0; i < additionalAnibnds.Count; i++)
+                            {
+                                IBinder anibnd = null;
+
+                                string anibndName = additionalAnibnds[i];
+
+                                if ((GameType == GameTypes.SDT || GameType == GameTypes.DS1R) && System.IO.File.Exists(additionalAnibnds[i] + ".2010"))
+                                {
+                                    anibndName = additionalAnibnds[i] + ".2010";
+                                }
+
+                                if (BND3.Is(anibndName))
+                                    anibnd = BND3.Read(anibndName);
+                                else
+                                    anibnd = BND4.Read(anibndName);
+
+                                chr.AnimContainer.LoadAdditionalANIBND(anibnd, null, scanAnims: true);
+
+                                progress.Report(1.0 * i / additionalAnibnds.Count);
+                            }
+
+                            
+                        });
+                    }
+                }
+
+            
+
+            Scene.EnableModelDrawing();
+            Scene.EnableModelDrawing2();
 
             return chr;
             

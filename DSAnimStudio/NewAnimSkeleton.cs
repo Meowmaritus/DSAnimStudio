@@ -33,6 +33,23 @@ namespace DSAnimStudio
         public Matrix[] ShaderMatrices4 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
         public Matrix[] ShaderMatrices5 = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
 
+        public Matrix[] ShaderMatrices0_RefPose = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices1_RefPose = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices2_RefPose = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices3_RefPose = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices4_RefPose = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+        public Matrix[] ShaderMatrices5_RefPose = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+
+        public static Matrix[] IDENTITY_MATRICES = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
+
+        static NewAnimSkeleton()
+        {
+            for (int i = 0; i < GFXShaders.FlverShader.MaxBonePerMatrixArray; i++)
+            {
+                IDENTITY_MATRICES[i] = Matrix.Identity;
+            }
+        }
+
         public List<FlverBoneInfo> FlverSkeleton = new List<FlverBoneInfo>();
         public List<HkxBoneInfo> HkxSkeleton = new List<HkxBoneInfo>();
 
@@ -41,6 +58,8 @@ namespace DSAnimStudio
         public HKX.HKASkeleton OriginalHavokSkeleton = null;
 
         public readonly Model MODEL;
+
+        public bool EnableRefPoseMatrices = true;
 
         public NewAnimSkeleton(Model mdl, List<FLVER.Bone> flverBones)
         {
@@ -100,6 +119,12 @@ namespace DSAnimStudio
                 ShaderMatrices3[i] = Matrix.Identity;
                 ShaderMatrices4[i] = Matrix.Identity;
                 ShaderMatrices5[i] = Matrix.Identity;
+                ShaderMatrices0_RefPose[i] = Matrix.Identity;
+                ShaderMatrices1_RefPose[i] = Matrix.Identity;
+                ShaderMatrices2_RefPose[i] = Matrix.Identity;
+                ShaderMatrices3_RefPose[i] = Matrix.Identity;
+                ShaderMatrices4_RefPose[i] = Matrix.Identity;
+                ShaderMatrices5_RefPose[i] = Matrix.Identity;
             }
         }
 
@@ -269,7 +294,17 @@ namespace DSAnimStudio
             }
             set
             {
+
+                //Matrix v = value;
+
+                //if (EnableRefPoseMatrices)
+                //{
+                //    v = FlverSkeleton[boneIndex].ReferenceMatrix * v;
+                //}
+
                 FlverSkeleton[boneIndex].CurrentMatrix = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+
+                
 
                 int bank = boneIndex / GFXShaders.FlverShader.MaxBonePerMatrixArray;
                 int bone = boneIndex % GFXShaders.FlverShader.MaxBonePerMatrixArray;
@@ -286,6 +321,22 @@ namespace DSAnimStudio
                     ShaderMatrices4[bone] = value;
                 else if (bank == 5)
                     ShaderMatrices5[bone] = value;
+
+                if (EnableRefPoseMatrices)
+                {
+                    if (bank == 0)
+                        ShaderMatrices0_RefPose[bone] = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+                    else if (bank == 1)
+                        ShaderMatrices1_RefPose[bone] = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+                    else if (bank == 2)
+                        ShaderMatrices2_RefPose[bone] = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+                    else if (bank == 3)
+                        ShaderMatrices3_RefPose[bone] = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+                    else if (bank == 4)
+                        ShaderMatrices4_RefPose[bone] = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+                    else if (bank == 5)
+                        ShaderMatrices5_RefPose[bone] = FlverSkeleton[boneIndex].ReferenceMatrix * value;
+                }
 
                 MODEL.DummyPolyMan.UpdateFlverBone(boneIndex, value);
             }

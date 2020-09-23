@@ -85,7 +85,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void Draw(int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
+        public void Draw(int lod, bool motionBlur, bool forceNoBackfaceCulling, bool isSkyboxLol, NewAnimSkeleton skeleton = null)
         {
             if (TextureReloadQueued)
             {
@@ -100,7 +100,7 @@ namespace DSAnimStudio
 
                 foreach (var submesh in Submeshes)
                 {
-                    submesh.Draw(lod, motionBlur, GFX.FlverShader, DrawMask, forceNoBackfaceCulling, isSkyboxLol);
+                    submesh.Draw(lod, motionBlur, GFX.FlverShader, DrawMask, forceNoBackfaceCulling, isSkyboxLol, skeleton);
                 }
             }
         }

@@ -88,6 +88,25 @@ namespace DSAnimStudio
             }
         }
 
+        public static void ClearSceneAndAddModel(Model m)
+        {
+            lock (_lock_ModelLoad_Draw)
+            {
+                foreach (var mi in Models)
+                {
+                    if (mi == m)
+                        continue;
+                    mi.Dispose();
+                }
+
+                TexturePool.Flush();
+                Models?.Clear();
+                GC.Collect();
+
+                Models.Add(m);
+            }
+        }
+
         public static void DeleteModel(Model m)
         {
             lock (_lock_ModelLoad_Draw)
@@ -98,12 +117,23 @@ namespace DSAnimStudio
             }
         }
 
-        public static void AddModel(Model mdl)
+        public static void AddModel(Model mdl, bool doLock = true)
         {
-            lock (_lock_ModelLoad_Draw)
+            if (mdl == null)
+                throw new ArgumentNullException();
+
+            if (doLock)
+            {
+                lock (_lock_ModelLoad_Draw)
+                {
+                    Models.Add(mdl);
+                }
+            }
+            else
             {
                 Models.Add(mdl);
             }
+           
         }
 
         public static void UpdateAnimation()

@@ -411,6 +411,9 @@
     <Content Include="Res\HitMtrlParamNames.DS1.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Res\TAE.Template.SOTFS.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Res\TagTools\AssetCc2.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

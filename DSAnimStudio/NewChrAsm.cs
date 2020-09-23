@@ -521,7 +521,7 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        wpnMdl.Skeleton.ApplyBakedFlverReferencePose();
+                        wpnMdl?.Skeleton?.ApplyBakedFlverReferencePose();
                     }
                 }
             }

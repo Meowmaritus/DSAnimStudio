@@ -487,8 +487,8 @@ namespace DSAnimStudio
         }
 
        
-        public Vector3 OrbitCamCenter_DummyPolyFollowRefPoint = new Vector3(0, 0.5f, 0);
-        public Vector3 OrbitCamCenter_DummyPolyFollowRefPoint_Init = new Vector3(0, 0.5f, 0);
+        public Vector3 OrbitCamCenter_DummyPolyFollowRefPoint = new Vector3(0, 0, 0);
+        public Vector3 OrbitCamCenter_DummyPolyFollowRefPoint_Init = new Vector3(0, 0, 0);
 
         public void UpdateDummyPolyFollowRefPoint(bool isFirstTime)
         {
@@ -496,6 +496,8 @@ namespace DSAnimStudio
             {
                 bool CheckCenterDummyPoly(int dmyID)
                 {
+                    if (Scene.Models[0] == null)
+                        return false;
                     if (Scene.Models[0].DummyPolyMan.DummyPolyByRefID.ContainsKey(dmyID))
                     {
                         var lockonPoint1 = Scene.Models[0].DummyPolyMan.GetDummyPosByID(dmyID, 

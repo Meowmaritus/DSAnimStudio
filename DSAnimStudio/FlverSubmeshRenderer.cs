@@ -82,6 +82,8 @@ namespace DSAnimStudio
 
         public bool IsVisible { get; set; } = true;
 
+        public bool UsesRefPose { get; set; } = false;
+
         private string _fullMaterialName;
         public string FullMaterialName
         {
@@ -214,6 +216,8 @@ namespace DSAnimStudio
         {
             bool bufferUsesBoneIndices = false;
             //bool bufferUsesBoneWeights = false;
+
+            UsesRefPose = mesh.Dynamic == 0;
 
             foreach (var buffer in mesh.VertexBuffers)
             {
@@ -982,7 +986,7 @@ namespace DSAnimStudio
                 TexDataDOL2 = TexturePool.FetchTexture2D(TexNameDOL2);
         }
 
-        public void Draw<T>(int lod, bool motionBlur, IGFXShader<T> shader, bool[] mask, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
+        public void Draw<T>(int lod, bool motionBlur, IGFXShader<T> shader, bool[] mask, bool forceNoBackfaceCulling, bool isSkyboxLol, NewAnimSkeleton skeleton)
             where T : Effect
         {
             if (!IsVisible)
@@ -990,6 +994,70 @@ namespace DSAnimStudio
 
             if (mask != null && ModelMaskIndex >= 0 && !mask[ModelMaskIndex])
                 return;
+
+            if (skeleton != null)
+            {
+                if (UsesRefPose)
+                {
+                    GFX.FlverShader.Effect.Bones0 = skeleton.ShaderMatrices0_RefPose;
+
+                    if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray)
+                    {
+                        GFX.FlverShader.Effect.Bones1 = skeleton.ShaderMatrices1_RefPose;
+
+                        if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 2)
+                        {
+                            GFX.FlverShader.Effect.Bones2 = skeleton.ShaderMatrices2_RefPose;
+
+                            if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 3)
+                            {
+                                GFX.FlverShader.Effect.Bones3 = skeleton.ShaderMatrices3_RefPose;
+
+                                if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 4)
+                                {
+                                    GFX.FlverShader.Effect.Bones4 = skeleton.ShaderMatrices4_RefPose;
+
+                                    if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 5)
+                                    {
+                                        GFX.FlverShader.Effect.Bones5 = skeleton.ShaderMatrices5_RefPose;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    GFX.FlverShader.Effect.Bones0 = skeleton.ShaderMatrices0;
+
+                    if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray)
+                    {
+                        GFX.FlverShader.Effect.Bones1 = skeleton.ShaderMatrices1;
+
+                        if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 2)
+                        {
+                            GFX.FlverShader.Effect.Bones2 = skeleton.ShaderMatrices2;
+
+                            if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 3)
+                            {
+                                GFX.FlverShader.Effect.Bones3 = skeleton.ShaderMatrices3;
+
+                                if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 4)
+                                {
+                                    GFX.FlverShader.Effect.Bones4 = skeleton.ShaderMatrices4;
+
+                                    if (skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 5)
+                                    {
+                                        GFX.FlverShader.Effect.Bones5 = skeleton.ShaderMatrices5;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+           
 
             var oldWorldMatrix = ((FlverShader)shader).World;
 
