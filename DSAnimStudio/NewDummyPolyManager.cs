@@ -761,8 +761,13 @@ namespace DSAnimStudio
 
                 foreach (var dmy in DummyPoly)
                 {
-                    if ((GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) && DummyPolyVisibleByRefID[dmy.ReferenceID]) || GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID))
-                        dmy.DrawPrim(MODEL.CurrentTransform.WorldMatrix, GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID));
+                    bool isVis = (GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID)
+                        && (DummyPolyVisibleByRefID[dmy.ReferenceID] ||
+                        dmy.ShowAttack != null || dmy.BulletSpawnIDs.Count > 0 || dmy.MiscSpawnTexts.Count > 0 || dmy.SFXSpawnIDs.Count > 0));
+                    bool isForce = GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID);
+
+                    if (isVis || isForce)
+                        dmy.DrawPrim(MODEL.CurrentTransform.WorldMatrix, isForce);
                 }
             }
 
@@ -774,8 +779,12 @@ namespace DSAnimStudio
             {
                 foreach (var dmy in DummyPoly)
                 {
-                    if ((GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) && DummyPolyVisibleByRefID[dmy.ReferenceID]) || GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID))
-                        dmy.DrawPrimText(MODEL.CurrentTransform.WorldMatrix, GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID), ShowGlobalIDOffset ? GlobalDummyPolyIDOffset : 0);
+                    bool isVis = (GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) 
+                        && (DummyPolyVisibleByRefID[dmy.ReferenceID] ||
+                        dmy.ShowAttack != null || dmy.BulletSpawnIDs.Count > 0 || dmy.MiscSpawnTexts.Count > 0 || dmy.SFXSpawnIDs.Count > 0));
+                    bool isForce = GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID);
+                    if (isVis || isForce)
+                        dmy.DrawPrimText(MODEL.CurrentTransform.WorldMatrix, isForce, ShowGlobalIDOffset ? GlobalDummyPolyIDOffset : 0);
                 }
             }
 

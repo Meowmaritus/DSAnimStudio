@@ -567,6 +567,8 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
+        public int IsDelayLoadConfig = 30;
+
         public TaeComboMenu ComboMenu = null;
 
         public float AnimSwitchRenderCooldown = 0;
@@ -863,12 +865,12 @@ namespace DSAnimStudio.TaeEditor
         private TaeButtonRepeater UndoButton = new TaeButtonRepeater(0.4f, 0.05f);
         private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.4f, 0.05f);
 
-        private float LeftSectionWidth = 236;
+        public float LeftSectionWidth = 236;
         private const float LeftSectionWidthMin = 120;
         private float DividerLeftVisibleStartX => Rect.Left + LeftSectionWidth;
         private float DividerLeftVisibleEndX => Rect.Left + LeftSectionWidth + DividerVisiblePad;
 
-        private float RightSectionWidth = 600;
+        public float RightSectionWidth = 600;
         private const float RightSectionWidthMin = 320;
         private float DividerRightVisibleStartX => Rect.Right - RightSectionWidth - DividerVisiblePad;
         private float DividerRightVisibleEndX => Rect.Right - RightSectionWidth;
@@ -883,7 +885,7 @@ namespace DSAnimStudio.TaeEditor
         private float DividerLeftGrabStartX => DividerLeftCenterX - (DividerHitboxPad / 2);
         private float DividerLeftGrabEndX => DividerLeftCenterX + (DividerHitboxPad / 2);
 
-        private float TopRightPaneHeight = 600;
+        public float TopRightPaneHeight = 600;
         private const float TopRightPaneHeightMinNew = 128;
         private const float BottomRightPaneHeightMinNew = 64;
 
@@ -1050,7 +1052,7 @@ namespace DSAnimStudio.TaeEditor
 
             Config = Newtonsoft.Json.JsonConvert.DeserializeObject<TaeConfigFile>(jsonText);
 
-            Config.AfterLoading();
+            Config.AfterLoading(this);
         }
 
         public void SaveConfig()
@@ -1061,7 +1063,7 @@ namespace DSAnimStudio.TaeEditor
                 Graph.ViewportInteractor.SaveChrAsm();
             }
 
-            Config.BeforeSaving();
+            Config.BeforeSaving(this);
 
             CheckConfigFilePath();
 
@@ -1402,7 +1404,7 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeEditorScreen(System.Windows.Forms.Form gameWindowAsForm)
         {
-            LoadConfig();
+            LoadConfig();   
 
             gameWindowAsForm.FormClosing += GameWindowAsForm_FormClosing;
 
@@ -3440,6 +3442,12 @@ namespace DSAnimStudio.TaeEditor
 
         public void Update()
         {
+            if (IsDelayLoadConfig > 0)
+            {
+                LoadConfig();
+                IsDelayLoadConfig--;
+            }
+
             if (!Input.LeftClickHeld)
             {
                 Graph?.ReleaseCurrentDrag();
@@ -3841,6 +3849,15 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
+            LeftSectionWidth = MathHelper.Max(LeftSectionWidth, LeftSectionWidthMin);
+            LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidthMin - (DividerVisiblePad * 2));
+
+            RightSectionWidth = MathHelper.Max(RightSectionWidth, RightSectionWidthMin);
+            RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidthMin - (DividerVisiblePad * 2));
+
+            TopRightPaneHeight = MathHelper.Max(TopRightPaneHeight, TopRightPaneHeightMinNew);
+            TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
+
             if (!Rect.Contains(Input.MousePositionPoint))
             {
                 MouseHoverKind = ScreenMouseHoverKind.None;
@@ -3986,6 +4003,7 @@ namespace DSAnimStudio.TaeEditor
                 float ratioW = 1.0f * newBounds.Width / oldBounds.Width;
                 float ratioH = 1.0f * newBounds.Height / oldBounds.Height;
 
+                LeftSectionWidth = LeftSectionWidth * ratioW;
                 RightSectionWidth = RightSectionWidth * ratioW;
                 TopRightPaneHeight = TopRightPaneHeight * ratioH;
 
@@ -3994,7 +4012,7 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
-        private void UpdateLayout()
+        public void UpdateLayout()
         {
            
 

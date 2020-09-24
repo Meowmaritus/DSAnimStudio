@@ -128,6 +128,7 @@ namespace DSAnimStudio
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
+
             if (ImGui.IsItemClicked(0))
             {
                 if (CurrentColorEditorOpen == name)
@@ -137,7 +138,9 @@ namespace DSAnimStudio
             }
             else if (ImGui.IsItemClicked(2))
             {
-                setColor.Invoke(Main.Colors, getColor(DefaultColorConfig));
+                color = getColor(DefaultColorConfig);
+                c = new System.Numerics.Vector4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+                setColor.Invoke(Main.Colors, color);
                 //if (DefaultColorValueActions.ContainsKey(name))
                 //    DefaultColorValueActions[name].Invoke();
             }
@@ -148,6 +151,12 @@ namespace DSAnimStudio
             if (CurrentColorEditorOpen == name)
             {
                 ImGui.ColorPicker4(name, ref c);
+                DoTooltip($"Color: {name}", "Allows you to adjust the color in detail." +
+                    "\n" +
+                    "\nThe number boxes are as follows:" +
+                    "\n    [R] [G] [B] [A] (Red/Green/Blue/Alpha)" +
+                    "\n    [H] [S] [V] [A] (Hue/Saturation/Value/Alpha)" +
+                    "\n    [ Hexidecimal ] (Hexidecimal representation of the color)");
                 ImGui.Separator();
             }
 
@@ -169,6 +178,13 @@ namespace DSAnimStudio
 
         public static void Build(float elapsedTime, float offsetX, float offsetY)
         {
+            var mousePos = ImGui.GetMousePos();
+            tooltipHelper.DrawPosition = new Vector2(mousePos.X + offsetX + 16, mousePos.Y + offsetY + 16);
+
+            tooltipHelper.Update(currentHoverIDKey != null, elapsedTime);
+
+            tooltipHelper.UpdateTooltip(Main.WinForm, currentHoverIDKey, desiredTooltipText);
+
             var curModelViewerBounds = Main.TAE_EDITOR.ModelViewerBounds;
 
             if (!IsInit && oldModelViewerBounds != curModelViewerBounds)
@@ -480,46 +496,57 @@ namespace DSAnimStudio
 
                 if (ImGui.TreeNode("[Animation Overlays]"))
                 {
-                    if (Scene.Models.Count >= 1 && Scene.Models[0].AnimContainer != null)
+                    if (Scene.Models.Count >= 1)
                     {
-                        lock (Scene.Models[0].AnimContainer._lock_AdditiveOverlays)
+                        if (Scene.Models[0].AnimContainer != null)
                         {
-                            bool requestReset = false;
-                            foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
+                            lock (Scene.Models[0].AnimContainer._lock_AdditiveOverlays)
                             {
-                                bool selected = overlay.Weight >= 0;
-                                bool prevSelected = selected;
-                                ImGui.Selectable(overlay.Name, ref selected);
-
-                                if (selected)
-                                {
-                                    if (overlay.Weight < 0)
-                                        overlay.Weight = 1;
-
-                                    float weight = overlay.Weight;
-                                    ImGui.SliderFloat(overlay.Name + " Weight", ref weight, 0, 10);
-                                    overlay.Weight = weight;
-                                }
-                                else
-                                {
-                                    overlay.Weight = -1;
-                                    overlay.Reset();
-                                }
-
-                                if (selected != prevSelected)
-                                {
-                                    requestReset = true;
-                                }
-                            }
-
-                            if (requestReset)
-                            {
+                                bool requestReset = false;
                                 foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
                                 {
-                                    overlay.Reset();
+                                    bool selected = overlay.Weight >= 0;
+                                    bool prevSelected = selected;
+                                    ImGui.Selectable(overlay.Name, ref selected);
+
+                                    if (selected)
+                                    {
+                                        if (overlay.Weight < 0)
+                                            overlay.Weight = 1;
+
+                                        float weight = overlay.Weight;
+                                        ImGui.SliderFloat(overlay.Name + " Weight", ref weight, 0, 10);
+                                        overlay.Weight = weight;
+                                    }
+                                    else
+                                    {
+                                        overlay.Weight = -1;
+                                        overlay.Reset();
+                                    }
+
+                                    if (selected != prevSelected)
+                                    {
+                                        requestReset = true;
+                                    }
+                                }
+
+                                if (requestReset)
+                                {
+                                    foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
+                                    {
+                                        overlay.Reset();
+                                    }
                                 }
                             }
                         }
+                        else
+                        {
+                            ImGui.Text("No animation overlays found for this model.");
+                        }
+                    }
+                    else
+                    {
+                        ImGui.Text("No model currently loaded.");
                     }
                     ImGui.TreePop();
                 }
@@ -770,14 +797,12 @@ namespace DSAnimStudio
                         ImGui.LabelText("Light H", "(Disabled)");
 
                         DoTooltip("Light Horizontal Movement", "Turns the light left/right. " +
-                            "\nOnly works if both Auto Light Spin and Light " +
-                            "\nFollows Camera are turned off.");
+                            "\nOnly works if Auto Light Spin is turned off.");
 
                         ImGui.LabelText("Light V", "(Disabled)");
 
                         DoTooltip("Light Vertical Movement", "Turns the light up/down. " +
-                           "\nOnly works if both Auto Light Spin and Light " +
-                           "\nFollows Camera are turned off.");
+                           "\nOnly works if Auto Light Spin is turned off.");
                     }
 
                     
@@ -789,24 +814,31 @@ namespace DSAnimStudio
 
                     
                     ImGui.SliderFloat("Indirect Light Mult", ref Environment.FlverIndirectLightMult, 0, 3);
-                    DoTooltip("Indirect Light Mult", "Multiplies the brightness of environment map lighting reflected.");
+                    DoTooltip("Indirect Light Multiplier", "Multiplies the brightness of environment map lighting reflected.");
 
                     //ImGui.SliderFloat("Ambient Light Mult", ref Environment.AmbientLightMult, 0, 3);
                     ImGui.SliderFloat("Specular Power Mult", ref GFX.SpecularPowerMult, 1, 8);
+                    DoTooltip("Specular Power Multiplier", "Multiplies the specular power of the lighting. " +
+                        "\nHigher makes thing's very glossy. " +
+                        "\nMight make some Bloodborne kin of the cosmos look more accurate.");
+
+
                     ImGui.SliderFloat("Emissive Light Mult", ref Environment.FlverEmissiveMult, 0, 3);
 
                     DoTooltip("Emissive Light Mult", "Multiplies the brightness of light emitted by the model's " +
                         "\nemissive texture map, if applicable.");
 
-                    ImGui.SliderFloat("Skybox Brightness", ref Environment.SkyboxBrightnessMult, 0, 0.5f);
-                    ImGui.SliderFloat("Skybox Motion Blur Strength", ref Environment.MotionBlurStrength, 0, 2);
+                    
+                    //ImGui.SliderFloat("Skybox Motion Blur Strength", ref Environment.MotionBlurStrength, 0, 2);
                     
                     ImGui.Separator();
                     ImGui.Checkbox("Use Tonemap", ref GFX.UseTonemap);
                     ImGui.SliderFloat("Tonemap Brightness", ref Environment.FlverSceneBrightness, 0, 5);
                     ImGui.SliderFloat("Tonemap Contrast", ref Environment.FlverSceneContrast, 0, 1);
 
-                    //ImGui.Separator();
+                    
+
+
 
                     //ImGui.SliderFloat("Bokeh - Brightness", ref GFX.BokehBrightness, 0, 10);
                     //ImGui.SliderFloat("Bokeh - Size", ref GFX.BokehSize, 0, 50);
@@ -840,13 +872,23 @@ namespace DSAnimStudio
 
                     //ImGui.EndGroup();
 
+                    ImGui.Separator();
 
                     ImGui.Checkbox("Show Cubemap As Skybox", ref Environment.DrawCubemap);
+                    ImGui.SliderFloat("Skybox Brightness", ref Environment.SkyboxBrightnessMult, 0, 0.5f);
 
                     DoTooltip("Show Cubemap As Skybox", "Draws the environment map as the sky behind the model.");
 
-                    ImGui.Separator();
-                    ImGui.Button("Reset All");
+                    ImGui.PushItemWidth(DefaultItemWidth * 1.5f);
+
+                    //ImGui.LabelText(" ", " ");
+                    ImGui.ListBox("Cubemap",
+                           ref Environment.CubemapNameIndex, Environment.CubemapNames,
+                           Environment.CubemapNames.Length);
+
+                    ImGui.PopItemWidth();
+
+                    ImGui.Button("Reset Lighting Settings to Default");
                     if (ImGui.IsItemClicked())
                     {
                         GFX.FlverAutoRotateLight = false;
@@ -862,24 +904,14 @@ namespace DSAnimStudio
                         Environment.FlverSceneBrightness = 1;
                         Environment.FlverSceneContrast = 0.6f;
 
-                        Environment.MotionBlurStrength = 1;
+                        //Environment.MotionBlurStrength = 1;
 
                         GFX.LdotNPower = 0.1f;
                         GFX.SpecularPowerMult = 1;
 
                         Environment.DrawCubemap = true;
-
+                        Environment.CubemapNameIndex = 0;
                     }
-                    ImGui.Separator();
-
-                    ImGui.PushItemWidth(DefaultItemWidth * 1.5f);
-
-                    //ImGui.LabelText(" ", " ");
-                    ImGui.ListBox("Cubemap",
-                           ref Environment.CubemapNameIndex, Environment.CubemapNames,
-                           Environment.CubemapNames.Length);
-
-                    ImGui.PopItemWidth();
 
                     ImGui.TreePop();
                 }
@@ -947,7 +979,7 @@ namespace DSAnimStudio
 
                     ImGui.PushItemWidth(AntialiasingWidth);
                     {
-                        if (ImGui.SliderInt("MSAA (SSAA must be off)", ref GFX.MSAA, 1, 8, GFX.MSAA > 1 ? "%dx" : "Off"))
+                        if (ImGui.SliderInt("MSAA (SSAA must be off)", ref GFX.MSAA, 1, 32, GFX.MSAA > 1 ? "%dx" : "Off"))
                             Main.RequestViewportRenderTargetResolutionChange = true;
                         DoTooltip("MSAA", "Multi-sample antialiasing. Only works if SSAA is set to Off " +
                             "\ndue to a bug in MonoGame's RenderTarget causing a crash with both mipmaps " +
@@ -960,6 +992,8 @@ namespace DSAnimStudio
                             "\nHas very high VRAM usage. Disables MSAA due to a bug in MonoGame's " +
                             "\nRenderTarget causing a crash with both mipmaps and MSAA enabled " +
                             "\n(SSAA requires mipmaps).");
+
+                        GFX.ClampAntialiasingOptions();
                     }
                     ImGui.PopItemWidth();
 
@@ -970,6 +1004,7 @@ namespace DSAnimStudio
                     GFX.World.ProjectionVerticalFoV = (float)Math.Round(GFX.World.ProjectionVerticalFoV);
 
                     ImGui.Checkbox("Snap Cam to 45° Angles", ref GFX.World.AngleSnapEnable);
+                    ImGui.Checkbox("Show Cam Pivot Indicator Cube", ref GFX.World.PivotPrimIsEnabled);
 
                     ImGui.SliderFloat("Near Clip Dist", ref GFX.World.ProjectionNearClipDist, 0.001f, 1);
                     DoTooltip("Near Clipping Distance", "Distance for the near clipping plane. " +
@@ -992,6 +1027,7 @@ namespace DSAnimStudio
                         GFX.World.ProjectionNearClipDist = 0.1f;
                         GFX.World.ProjectionFarClipDist = 10000;
                         GFX.World.AngleSnapEnable = false;
+                        GFX.World.PivotPrimIsEnabled = true;
 
                         GFX.Display.Vsync = true;
                         GFX.Display.Width = GFX.Device.Viewport.Width;
@@ -1079,12 +1115,7 @@ namespace DSAnimStudio
                 
             }
 
-            var mousePos = ImGui.GetMousePos();
-            tooltipHelper.DrawPosition = new Vector2(mousePos.X + offsetX + 16, mousePos.Y + offsetY + 16);
-
-            tooltipHelper.Update(currentHoverIDKey != null, elapsedTime);
-
-            tooltipHelper.UpdateTooltip(Main.WinForm, currentHoverIDKey, desiredTooltipText);
+            
 
             prevHoverIDKey = currentHoverIDKey;
 

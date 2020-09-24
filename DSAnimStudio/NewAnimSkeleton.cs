@@ -503,6 +503,7 @@ namespace DSAnimStudio
                 {
                     //BonePrim.Transform = new Transform(Matrix.CreateScale(Length) * CurrentMatrix);
                     //BonePrim.Draw(null, world);
+                    BoundingBoxPrim.OverrideColor = DBG.COLOR_FLVER_BONE_BBOX;
                     BoundingBoxPrim.UpdateTransform(new Transform(CurrentMatrix));
                     BoundingBoxPrim.Draw(null, world);
                 }
@@ -526,6 +527,7 @@ namespace DSAnimStudio
                     float boneLength = (endPoint - boneStart).Length();
 
                     GlobalBonePrim.Transform = new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateScale(boneLength) * hitboxMatrix);
+                    GlobalBonePrim.OverrideColor = DBG.COLOR_FLVER_BONE;
                     GlobalBonePrim.Draw(null, world);
 
                     //using (var tempBone = new DbgPrimWireBone(Name, new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * hitboxMatrix), DBG.COLOR_FLVER_BONE, boneLength, boneLength * 0.2f))

@@ -47,6 +47,8 @@ namespace DSAnimStudio
         public float AngleSnap = MathHelper.PiOver4;
         public bool AngleSnapEnable = false;
 
+        public bool PivotPrimIsEnabled = true;
+
         public IDbgPrim PivotPrim = null;
         public IDbgPrim PivotPrim_DrawOver = null;
         private float pivotPrimDrawoverPulseTimer = 0;
@@ -132,6 +134,8 @@ namespace DSAnimStudio
 
         private void HandleRawMouseMove(int x, int y)
         {
+            OSD.CancelTooltip();
+
             if (!Main.Active)
             {
                 Program.MainInstance.IsMouseVisible = true;
@@ -233,7 +237,7 @@ namespace DSAnimStudio
                     euler.Z = (float)(Math.Round(OrbitCamEuler.Z / AngleSnap) * AngleSnap);
                 }
 
-                OrbitCamEuler = Vector3.Lerp(OrbitCamEuler, euler, 0.15f);
+                OrbitCamEuler = Vector3.Lerp(OrbitCamEuler, euler, 0.25f * (Main.DELTA_UPDATE / 0.0166667f));
             }
 
             
@@ -258,6 +262,12 @@ namespace DSAnimStudio
                 (Vector3.Transform(Vector3.Backward * OrbitCamDistanceInput, rot));
 
             Matrix_World = Matrix.CreateScale(1, 1, -1);
+
+            if (ProjectionVerticalFoV > 179)
+                ProjectionVerticalFoV = 179;
+
+            if (ProjectionVerticalFoV < 1)
+                ProjectionVerticalFoV = 1;
 
             if (ProjectionIsOrthographic)
             {
@@ -300,12 +310,14 @@ namespace DSAnimStudio
 
         public void DrawPrims()
         {
-            PivotPrim.Draw(null, Matrix_World);
+            if (PivotPrimIsEnabled)
+                PivotPrim.Draw(null, Matrix_World);
         }
 
         public void DrawOverPrims()
         {
-            PivotPrim_DrawOver.Draw(null, Matrix_World);
+            if (PivotPrimIsEnabled)
+                PivotPrim_DrawOver.Draw(null, Matrix_World);
         }
 
         public void UpdateInput()
@@ -339,60 +351,8 @@ namespace DSAnimStudio
                         dragType = ViewportDragType.Invalid;
                     }
                 }
-                else
-                {
-                    
 
-                        // Handle mouse wheel zoom.
-                    if (Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.LeftClickDownAnchor) && 
-                        Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.MousePosition))
-                    {
-                        if (Main.Input.MiddleClickHeld)
-                        {
-                            FollowingLockon = true;
-                            MakePivotPrimVisible();
-                            NewRecenter();
-                        }
-                        else
-                        {
-                            float zoomMult = (OrbitCamDistance / 50) * (OrbitCamDistance / 50);
-                            zoomMult = (zoomMult * 0.75f) + 0.25f;
-                            if (Main.Input.ShiftHeld)
-                                zoomMult *= 5;
-                            zoomMult = Math.Min(zoomMult, 50);
-                            zoomMult = Math.Max(zoomMult, 0.25f);
-
-                            float scrollDelta = Main.Input.ScrollDelta;
-
-                            if (Main.Input.CtrlHeld /*&& !Main.Input.ShiftHeld*/ && !Main.Input.AltHeld)
-                            {
-                                if (Main.Input.KeyDown(Keys.OemPlus) || Main.Input.KeyDown(Keys.Add))
-                                {
-                                    scrollDelta += 1;
-                                }
-                                else if (Main.Input.KeyDown(Keys.OemMinus) || Main.Input.KeyDown(Keys.Subtract))
-                                {
-                                    scrollDelta -= 1;
-                                }
-                                else if (Main.Input.KeyDown(Keys.D0) || Main.Input.KeyDown(Keys.NumPad0))
-                                {
-                                    OrbitCamDistanceInput = 5;
-                                    scrollDelta = 0;
-                                }
-                            }
-
-                            OrbitCamDistanceInput -= scrollDelta * zoomMult * ProjectionVerticalFovRatio;
-
-                            if (Main.Input.ScrollDelta != 0)
-                                MakePivotPrimVisible();
-
-                            if (OrbitCamDistanceInput < (0.05f / ProjectionVerticalFovRatio))
-                            {
-                                OrbitCamDistanceInput = (0.05f / ProjectionVerticalFovRatio);
-                            }
-                        }
-                    }
-                }
+                
 
                 Program.MainInstance.IsMouseVisible = true;
             }
@@ -435,7 +395,58 @@ namespace DSAnimStudio
                 }
             }
 
-            
+
+            bool isDragging = (dragType == ViewportDragType.LeftClick || dragType == ViewportDragType.RightClick);
+
+            // Handle mouse wheel zoom.
+            if ((Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.LeftClickDownAnchor) &&
+                Main.TAE_EDITOR.ModelViewerBounds_InputArea.Contains(Main.Input.MousePosition)) || isDragging)
+            {
+                if (Main.Input.MiddleClickHeld && !isDragging)
+                {
+                    FollowingLockon = true;
+                    MakePivotPrimVisible();
+                    NewRecenter();
+                }
+                else
+                {
+                    float zoomMult = (OrbitCamDistance / 50) * (OrbitCamDistance / 50);
+                    zoomMult = (zoomMult * 0.75f) + 0.25f;
+                    if (Main.Input.ShiftHeld)
+                        zoomMult *= 5;
+                    zoomMult = Math.Min(zoomMult, 50);
+                    zoomMult = Math.Max(zoomMult, 0.25f);
+
+                    float scrollDelta = Main.Input.ScrollDelta;
+
+                    if (Main.Input.CtrlHeld /*&& !Main.Input.ShiftHeld*/ && !Main.Input.AltHeld)
+                    {
+                        if (Main.Input.KeyDown(Keys.OemPlus) || Main.Input.KeyDown(Keys.Add))
+                        {
+                            scrollDelta += 1;
+                        }
+                        else if (Main.Input.KeyDown(Keys.OemMinus) || Main.Input.KeyDown(Keys.Subtract))
+                        {
+                            scrollDelta -= 1;
+                        }
+                        else if (Main.Input.KeyDown(Keys.D0) || Main.Input.KeyDown(Keys.NumPad0))
+                        {
+                            OrbitCamDistanceInput = 5;
+                            scrollDelta = 0;
+                        }
+                    }
+
+                    OrbitCamDistanceInput -= scrollDelta * zoomMult * ProjectionVerticalFovRatio;
+
+                    if (Main.Input.ScrollDelta != 0)
+                        MakePivotPrimVisible();
+
+                    if (OrbitCamDistanceInput < (0.05f / ProjectionVerticalFovRatio))
+                    {
+                        OrbitCamDistanceInput = (0.05f / ProjectionVerticalFovRatio);
+                    }
+                }
+            }
 
         }
 

@@ -19,7 +19,7 @@ namespace DSAnimStudio
         public static float FlverSceneContrast = 0.6f;
         public static float FlverEmissiveMult = 1.0f;
 
-        public static float MotionBlurStrength = 1;
+        //public static float MotionBlurStrength = 1;
 
         public static float LightRotationH = -0.75f;
         public static float LightRotationV = -0.75f;

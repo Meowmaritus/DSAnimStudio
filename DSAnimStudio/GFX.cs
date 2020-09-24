@@ -59,6 +59,21 @@ namespace DSAnimStudio
             }
         }
 
+        public static void ClampAntialiasingOptions()
+        {
+            if (SSAA > 4)
+                SSAA = 4;
+
+            if (MSAA > 32)
+                MSAA = 32;
+
+            if (SSAA < 1)
+                SSAA = 1;
+
+            if (MSAA < 1)
+                MSAA = 1;
+        }
+
         public static int SSAA = 1;
 
         public static int EffectiveSSAA = 1;
@@ -86,7 +101,7 @@ namespace DSAnimStudio
             FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
             SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
 
-            SkyboxShader.Effect.NumMotionBlurSamples = 0;
+            //SkyboxShader.Effect.NumMotionBlurSamples = 0;
 
             //GFX.FlverOpacity = 0.15f;
         }
@@ -511,7 +526,7 @@ namespace DSAnimStudio
             //}
             //SkyboxShader_PrevFrameLookDir = curForw;
 
-            SkyboxShader.Effect.MotionBlurVector = Vector3.Transform(Vector3.Right, World.CameraLookDirection) * Environment.MotionBlurStrength;
+            //SkyboxShader.Effect.MotionBlurVector = Vector3.Transform(Vector3.Right, World.CameraLookDirection) * Environment.MotionBlurStrength;
 
             SkyboxShader.Effect.EyePosition = Vector3.Zero;
 
