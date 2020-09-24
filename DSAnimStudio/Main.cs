@@ -28,6 +28,11 @@ namespace DSAnimStudio
             base.Dispose(disposing);
         }
 
+        public static bool IgnoreSizeChanges = false;
+
+        public static Rectangle LastBounds = Rectangle.Empty;
+        private static Rectangle lastActualBounds = Rectangle.Empty;
+
         public static ColorConfig Colors = new ColorConfig();
 
         public static Form WinForm;
@@ -64,7 +69,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.4.1";
+        public const string VERSION = "Version 2.4.2";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -175,19 +180,19 @@ namespace DSAnimStudio
             graphics.IsFullScreen = fullscreen;
             graphics.SynchronizeWithVerticalRetrace = vsync;
 
-            //if (GFX.MSAA > 0)
-            //{
-            //    graphics.PreferMultiSampling = true;
-            //    graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = GFX.MSAA;
-            //}
-            //else
-            //{
-            //    graphics.PreferMultiSampling = false;
-            //    graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
-            //}
+            if (GFX.MSAA > 0)
+            {
+                graphics.PreferMultiSampling = true;
+                graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = GFX.MSAA;
+            }
+            else
+            {
+                graphics.PreferMultiSampling = false;
+                graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
+            }
 
-            graphics.PreferMultiSampling = false;
-            graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
+            //graphics.PreferMultiSampling = false;
+            //graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
 
             graphics.ApplyChanges();
         }
@@ -307,21 +312,27 @@ namespace DSAnimStudio
             UpdateActiveState();
         }
 
-        private Rectangle prevClientBounds = Rectangle.Empty;
         private void Window_ClientSizeChanged(object sender, EventArgs e)
         {
+            if (IgnoreSizeChanges)
+                return;
+
             RequestHideOSD = RequestHideOSD_MAX;
             UpdateActiveState();
 
-            TAE_EDITOR?.HandleWindowResize(prevClientBounds, Window.ClientBounds);
+            TAE_EDITOR?.HandleWindowResize(lastActualBounds, Window.ClientBounds);
 
-            prevClientBounds = Window.ClientBounds;
+            if (Window.ClientBounds.Width > 0 && Window.ClientBounds.Height > 0)
+                LastBounds = Window.ClientBounds;
+            lastActualBounds = Window.ClientBounds;
         }
 
         public void RebuildRenderTarget()
         {
             if (TimeBeforeNextRenderTargetUpdate <= 0)
             {
+                GFX.ClampAntialiasingOptions();
+
                 int msaa = GFX.MSAA;
                 int ssaa = GFX.SSAA;
 
@@ -899,7 +910,7 @@ namespace DSAnimStudio
 
                     GFX.Device.SetRenderTarget(SceneRenderTarget);
 
-                        GFX.Device.Clear(Color.Transparent);
+                        GFX.Device.Clear(Colors.MainColorViewportBackground);
 
                         GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
 

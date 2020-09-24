@@ -42,17 +42,17 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(EyePosition)].SetValue(value);
         }
 
-        public Vector3 MotionBlurVector
-        {
-            get => Parameters[nameof(MotionBlurVector)].GetValueVector3();
-            set => Parameters[nameof(MotionBlurVector)].SetValue(value);
-        }
+        //public Vector3 MotionBlurVector
+        //{
+        //    get => Parameters[nameof(MotionBlurVector)].GetValueVector3();
+        //    set => Parameters[nameof(MotionBlurVector)].SetValue(value);
+        //}
 
-        public int NumMotionBlurSamples
-        {
-            get => Parameters[nameof(NumMotionBlurSamples)].GetValueInt32();
-            set => Parameters[nameof(NumMotionBlurSamples)].SetValue(value);
-        }
+        //public int NumMotionBlurSamples
+        //{
+        //    get => Parameters[nameof(NumMotionBlurSamples)].GetValueInt32();
+        //    set => Parameters[nameof(NumMotionBlurSamples)].SetValue(value);
+        //}
 
         public TextureCube EnvironmentMap
         {

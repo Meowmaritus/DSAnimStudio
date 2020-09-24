@@ -39,6 +39,7 @@ namespace DSAnimStudio.TaeEditor
         //public bool SimulateReferencedEvents { get; set; } = true;
 
         public bool CamAngleSnapEnable { get; set; } = false;
+        public bool ShowCameraPivotCube { get; set; } = true;
 
         public float ViewportStatusTextSize { get; set; } = 100;
         public float ToolboxGuiScale { get; set; } = 100;
@@ -58,6 +59,8 @@ namespace DSAnimStudio.TaeEditor
             = new Dictionary<string, bool>();
 
         public string LastCubemapUsed { get; set; } = "DefaultCubemap";
+        public float SkyboxBrightness { get; set; } = 0.25f;
+        public bool ShowCubemapAsSkybox { get; set; } = true;
 
         public Dictionary<string, bool> CategoryEnableDraw = new Dictionary<string, bool>();
         public Dictionary<string, bool> CategoryEnableDbgLabelDraw = new Dictionary<string, bool>();
@@ -65,7 +68,14 @@ namespace DSAnimStudio.TaeEditor
 
         public bool ShowFullWeaponDummyPolyIDs { get; set; } = true;
 
-        public void BeforeSaving()
+        public float LayoutAnimListWidth { get; set; } = 236;
+        public float LayoutViewportWidth { get; set; } = 600;
+        public float LayoutViewportHeight { get; set; } = 600;
+
+        public int LayoutWindowWidth { get; set; } = 1280;
+        public int LayoutWindowHeight { get; set; } = 720;
+
+        public void BeforeSaving(TaeEditorScreen editor)
         {
             CategoryEnableDraw = DBG.CategoryEnableDraw.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
             CategoryEnableDbgLabelDraw = DBG.CategoryEnableDbgLabelDraw.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value);
@@ -89,9 +99,21 @@ namespace DSAnimStudio.TaeEditor
 
             ToolboxGuiScale = OSD.RenderScale * 100;
             ToolboxItemWidthScale = OSD.WidthScale * 100;
+
+            SkyboxBrightness = Environment.SkyboxBrightnessMult;
+            ShowCubemapAsSkybox = Environment.DrawCubemap;
+
+            ShowCameraPivotCube = GFX.World.PivotPrimIsEnabled;
+
+            LayoutAnimListWidth = editor.LeftSectionWidth;
+            LayoutViewportWidth = editor.RightSectionWidth;
+            LayoutViewportHeight = editor.TopRightPaneHeight;
+
+            LayoutWindowWidth = Main.WinForm.Size.Width;
+            LayoutWindowHeight = Main.WinForm.Size.Height;
         }
 
-        public void AfterLoading()
+        public void AfterLoading(TaeEditorScreen editor)
         {
             DBG.CategoryEnableDraw.Clear();
             DBG.CategoryEnableDbgLabelDraw.Clear();
@@ -143,6 +165,36 @@ namespace DSAnimStudio.TaeEditor
 
             OSD.RenderScale = (OSD.RenderScaleTarget = ToolboxGuiScale) / 100;
             OSD.WidthScale = (OSD.WidthScaleTarget = ToolboxItemWidthScale) / 100;
+
+            Environment.SkyboxBrightnessMult = SkyboxBrightness;
+            Environment.DrawCubemap = ShowCubemapAsSkybox;
+
+            GFX.World.PivotPrimIsEnabled = ShowCameraPivotCube;
+
+            try
+            {
+                Main.IgnoreSizeChanges = true;
+
+                // Set window bounds before restoring pane sizes since it will try to auto correct them.
+                Main.WinForm.Size = new System.Drawing.Size(LayoutWindowWidth, LayoutWindowHeight);
+                //GFX.Display.Width = LayoutWindowWidth;
+                //GFX.Display.Height = LayoutWindowHeight;
+                //GFX.Display.Fullscreen = false;
+                //GFX.Display.Apply();
+                //GFX.Display.Apply();
+
+                editor.UpdateLayout();
+
+                editor.LeftSectionWidth = LayoutAnimListWidth;
+                editor.RightSectionWidth = LayoutViewportWidth;
+                editor.TopRightPaneHeight = LayoutViewportHeight;
+            }
+            finally
+            {
+                Main.IgnoreSizeChanges = false;
+            }
+
+            
         }
 
         public Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }
