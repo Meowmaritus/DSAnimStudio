@@ -986,8 +986,7 @@ namespace DSAnimStudio
                 TexDataDOL2 = TexturePool.FetchTexture2D(TexNameDOL2);
         }
 
-        public void Draw<T>(int lod, bool motionBlur, IGFXShader<T> shader, bool[] mask, bool forceNoBackfaceCulling, bool isSkyboxLol, NewAnimSkeleton skeleton)
-            where T : Effect
+        public void Draw(int lod, bool motionBlur, bool[] mask, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
             if (!IsVisible)
                 return;
@@ -1078,130 +1077,128 @@ namespace DSAnimStudio
             //    ((FlverShader)shader).World = oldWorldMatrix * TaeInterop.ShaderMatrix0[DefaultBoneIndex % FlverShader.NUM_BONES];
             //}
 
-            if (GFX.EnableTextures && shader == GFX.FlverShader)
+            if (TexDataDiffuse == null)
+                TryToLoadTextures();
+
+            GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+            GFX.FlverShader.Effect.ColorMapScale = TexScaleDiffuse;
+
+            GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
+            GFX.FlverShader.Effect.SpecularMapScale = TexScaleSpecular;
+
+            GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
+            GFX.FlverShader.Effect.NormalMapScale = TexScaleNormal;
+
+            GFX.FlverShader.Effect.ShininessMap = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+            GFX.FlverShader.Effect.ShininessMapScale = TexScaleShininess;
+
+            GFX.FlverShader.Effect.EnableBlendMaskMap = TexDataBlendmask != null
+                && TexNameBlendmask != "SYSTEX_DummyBurn_m"; // aa
+
+            //GFX.FlverShader.Effect.DitherTime = (GFX.FlverDitherTime / 10000) * 2;
+
+            GFX.FlverShader.Effect.DisableAlpha = !GFX.FlverEnableTextureAlphas;
+            GFX.FlverShader.Effect.FancyAlpha_Enable = GFX.FlverUseFancyAlpha;
+            //GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = GFX.FlverInvertSimpleTextureAlphas;
+            GFX.FlverShader.Effect.FancyAlpha_EdgeCutoff = GFX.FlverFancyAlphaEdgeCutoff;
+
+            if (IsDS3Veil)
             {
-                if (TexDataDiffuse == null)
-                    TryToLoadTextures();
-
-                GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
-                GFX.FlverShader.Effect.ColorMapScale = TexScaleDiffuse;
-
-                GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
-                GFX.FlverShader.Effect.SpecularMapScale = TexScaleSpecular;
-
-                GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
-                GFX.FlverShader.Effect.NormalMapScale = TexScaleNormal;
-
-                GFX.FlverShader.Effect.ShininessMap = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
-                GFX.FlverShader.Effect.ShininessMapScale = TexScaleShininess;
-
-                GFX.FlverShader.Effect.EnableBlendMaskMap = TexDataBlendmask != null
-                    && TexNameBlendmask != "SYSTEX_DummyBurn_m"; // aa
-
-                //GFX.FlverShader.Effect.DitherTime = (GFX.FlverDitherTime / 10000) * 2;
-
-                GFX.FlverShader.Effect.DisableAlpha = !GFX.FlverEnableTextureAlphas;
-                GFX.FlverShader.Effect.FancyAlpha_Enable = GFX.FlverUseFancyAlpha;
-                //GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = GFX.FlverInvertSimpleTextureAlphas;
-                GFX.FlverShader.Effect.FancyAlpha_EdgeCutoff = GFX.FlverFancyAlphaEdgeCutoff;
-
-                if (IsDS3Veil)
-                {
-                    GFX.FlverShader.Effect.FancyAlpha_EdgeCutoff = -1;
-                    GFX.FlverShader.Effect.FancyAlpha_Enable = false;
-                }
-
-                if (GFX.CurrentStep == GFXDrawStep.AlphaEdge)
-                {
-                    if (/*DrawStep != GFXDrawStep.AlphaEdge ||*/ !GFX.FlverShader.Effect.FancyAlpha_Enable)
-                        return;
-
-                    GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = true;
-
-                }
-                else
-                {
-                    GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = false;
-                }
-
-                if ((GFX.ForcedFlverShadingMode == FlverShadingModes.DEFAULT && 
-                    ShadingMode == FlverShadingModes.CLASSIC_DIFFUSE_PTDE)
-                    || GFX.ForcedFlverShadingMode == FlverShadingModes.CLASSIC_DIFFUSE_PTDE)
-                {
-                    GFX.FlverShader.Effect.PtdeMtdType = PtdeMtdType;
-                }
-
-                if (TexDataDiffuse2 == null)
-                {
-                    GFX.FlverShader.Effect.EnableBlendTextures = false;
-
-                    GFX.FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
-                    GFX.FlverShader.Effect.BlendmaskMapScale = Vector2.One;
-
-                    GFX.FlverShader.Effect.ColorMap2 = Main.DEFAULT_TEXTURE_DIFFUSE;
-                    GFX.FlverShader.Effect.ColorMapScale2 = Vector2.One;
-
-                    GFX.FlverShader.Effect.SpecularMap2 = Main.DEFAULT_TEXTURE_SPECULAR;
-                    GFX.FlverShader.Effect.SpecularMapScale2 = Vector2.One;
-
-                    GFX.FlverShader.Effect.NormalMap2 = Main.DEFAULT_TEXTURE_NORMAL;
-                    GFX.FlverShader.Effect.NormalMapScale2 = Vector2.One;
-
-                    GFX.FlverShader.Effect.ShininessMap2 = Main.DEFAULT_TEXTURE_EMISSIVE;
-                    GFX.FlverShader.Effect.ShininessMapScale2 = Vector2.One;
-                }
-                else
-                {
-                    GFX.FlverShader.Effect.EnableBlendTextures = GFX.FlverEnableTextureBlending;
-
-                    GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
-                    GFX.FlverShader.Effect.ColorMapScale2 = TexScaleDiffuse2;
-
-                    GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
-                    GFX.FlverShader.Effect.SpecularMapScale2 = TexScaleSpecular2;
-
-                    GFX.FlverShader.Effect.NormalMap2 = TexDataNormal2 ?? TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
-                    GFX.FlverShader.Effect.NormalMapScale2 = TexScaleNormal2;
-
-                    GFX.FlverShader.Effect.BlendmaskMap = TexDataBlendmask ?? Main.DEFAULT_TEXTURE_EMISSIVE;
-                    GFX.FlverShader.Effect.BlendmaskMapScale = TexScaleBlendmask;
-
-                    GFX.FlverShader.Effect.ShininessMap2 = TexDataShininess2 ?? TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
-                    GFX.FlverShader.Effect.ShininessMapScale2 = TexScaleShininess2;
-                }
-
-
-                // Hotfix because loading the DS3 character embered effect with the default shader just makes
-                // them have various fixed glowing orange spots
-                if (TexNameEmissive != "systex_dummyburn_em")
-                {
-                    GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
-                    GFX.FlverShader.Effect.EmissiveMapScale = TexScaleEmissive;
-                }
-                else
-                {
-                    GFX.FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
-                    GFX.FlverShader.Effect.EmissiveMapScale = Vector2.One;
-                }
-
-                //GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
-                //GFX.FlverShader.Effect.SpecularMapScaleBB = TexScaleShininess;
-
-                //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
-
-                if (GFX.ForcedFlverShadingMode == FlverShadingModes.DEFAULT)
-                    GFX.FlverShader.Effect.WorkflowType = ShadingMode;
-                else
-                    GFX.FlverShader.Effect.WorkflowType = GFX.ForcedFlverShadingMode;
-
-                GFX.FlverShader.Effect.IsDoubleFaceCloth = IsShaderDoubleFaceCloth;
-
-                if (GFX.FlverShader.Effect.WorkflowType == FlverShadingModes.TEXDEBUG_UVCHECK_0 || 
-                    GFX.FlverShader.Effect.WorkflowType == FlverShadingModes.TEXDEBUG_UVCHECK_1)
-                {
-                    GFX.FlverShader.Effect.UVCheckMap = DBG.UV_CHECK_TEX;
-                }
+                GFX.FlverShader.Effect.FancyAlpha_EdgeCutoff = -1;
+                GFX.FlverShader.Effect.FancyAlpha_Enable = false;
             }
+
+            if (GFX.CurrentStep == GFXDrawStep.AlphaEdge)
+            {
+                if (/*DrawStep != GFXDrawStep.AlphaEdge ||*/ !GFX.FlverShader.Effect.FancyAlpha_Enable)
+                    return;
+
+                GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = true;
+
+            }
+            else
+            {
+                GFX.FlverShader.Effect.FancyAlpha_IsEdgeStep = false;
+            }
+
+            if ((GFX.ForcedFlverShadingMode == FlverShadingModes.DEFAULT && 
+                ShadingMode == FlverShadingModes.CLASSIC_DIFFUSE_PTDE)
+                || GFX.ForcedFlverShadingMode == FlverShadingModes.CLASSIC_DIFFUSE_PTDE)
+            {
+                GFX.FlverShader.Effect.PtdeMtdType = PtdeMtdType;
+            }
+
+            if (TexDataDiffuse2 == null)
+            {
+                GFX.FlverShader.Effect.EnableBlendTextures = false;
+
+                GFX.FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.BlendmaskMapScale = Vector2.One;
+
+                GFX.FlverShader.Effect.ColorMap2 = Main.DEFAULT_TEXTURE_DIFFUSE;
+                GFX.FlverShader.Effect.ColorMapScale2 = Vector2.One;
+
+                GFX.FlverShader.Effect.SpecularMap2 = Main.DEFAULT_TEXTURE_SPECULAR;
+                GFX.FlverShader.Effect.SpecularMapScale2 = Vector2.One;
+
+                GFX.FlverShader.Effect.NormalMap2 = Main.DEFAULT_TEXTURE_NORMAL;
+                GFX.FlverShader.Effect.NormalMapScale2 = Vector2.One;
+
+                GFX.FlverShader.Effect.ShininessMap2 = Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.ShininessMapScale2 = Vector2.One;
+            }
+            else
+            {
+                GFX.FlverShader.Effect.EnableBlendTextures = GFX.FlverEnableTextureBlending;
+
+                GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+                GFX.FlverShader.Effect.ColorMapScale2 = TexScaleDiffuse2;
+
+                GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
+                GFX.FlverShader.Effect.SpecularMapScale2 = TexScaleSpecular2;
+
+                GFX.FlverShader.Effect.NormalMap2 = TexDataNormal2 ?? TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
+                GFX.FlverShader.Effect.NormalMapScale2 = TexScaleNormal2;
+
+                GFX.FlverShader.Effect.BlendmaskMap = TexDataBlendmask ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.BlendmaskMapScale = TexScaleBlendmask;
+
+                GFX.FlverShader.Effect.ShininessMap2 = TexDataShininess2 ?? TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.ShininessMapScale2 = TexScaleShininess2;
+            }
+
+
+            // Hotfix because loading the DS3 character embered effect with the default shader just makes
+            // them have various fixed glowing orange spots
+            if (TexNameEmissive != "systex_dummyburn_em")
+            {
+                GFX.FlverShader.Effect.EmissiveMap = TexDataEmissive ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.EmissiveMapScale = TexScaleEmissive;
+            }
+            else
+            {
+                GFX.FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
+                GFX.FlverShader.Effect.EmissiveMapScale = Vector2.One;
+            }
+
+            //GFX.FlverShader.Effect.SpecularMapBB = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
+            //GFX.FlverShader.Effect.SpecularMapScaleBB = TexScaleShininess;
+
+            //GFX.FlverShader.Effect.LightMap2 = TexDataDOL2 ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+
+            if (GFX.ForcedFlverShadingMode == FlverShadingModes.DEFAULT)
+                GFX.FlverShader.Effect.WorkflowType = ShadingMode;
+            else
+                GFX.FlverShader.Effect.WorkflowType = GFX.ForcedFlverShadingMode;
+
+            GFX.FlverShader.Effect.IsDoubleFaceCloth = IsShaderDoubleFaceCloth;
+
+            if (GFX.FlverShader.Effect.WorkflowType == FlverShadingModes.TEXDEBUG_UVCHECK_0 || 
+                GFX.FlverShader.Effect.WorkflowType == FlverShadingModes.TEXDEBUG_UVCHECK_1)
+            {
+                GFX.FlverShader.Effect.UVCheckMap = DBG.UV_CHECK_TEX;
+            }
+            
 
             // TEMPORARY
             //GFX.FlverShader.Effect.UseSpecularMapBB = false;// TaeInterop.CurrentHkxVariation == HKX.HKXVariation.HKXBloodBorne || TexDataShininess != null;
@@ -1221,7 +1218,7 @@ namespace DSAnimStudio
 
             if (MeshFacesets != null)
             {
-                foreach (EffectPass pass in shader.Effect.CurrentTechnique.Passes)
+                foreach (EffectPass pass in GFX.FlverShader.Effect.CurrentTechnique.Passes)
                 {
                     pass.Apply();
 
@@ -1244,11 +1241,11 @@ namespace DSAnimStudio
 
                     }
                 }
-            }    
+            }
 
-            
 
-            ((FlverShader)shader).World = oldWorldMatrix;
+
+            GFX.FlverShader.Effect.World = oldWorldMatrix;
 
             //}
         }
