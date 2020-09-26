@@ -100,7 +100,7 @@ namespace DSAnimStudio
 
                 foreach (var submesh in Submeshes)
                 {
-                    submesh.Draw(lod, motionBlur, GFX.FlverShader, DrawMask, forceNoBackfaceCulling, isSkyboxLol);
+                    submesh.Draw(lod, motionBlur, DrawMask, forceNoBackfaceCulling, isSkyboxLol);
                 }
             }
         }

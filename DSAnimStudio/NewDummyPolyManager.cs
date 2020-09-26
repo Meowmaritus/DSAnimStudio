@@ -989,6 +989,9 @@ namespace DSAnimStudio
         {
             lock (_lock_everything_monkaS)
             {
+                if (MODEL.IsStatic)
+                    return;
+
                 if (DummyPolyByBoneID_AttachBone.ContainsKey(index))
                 {
                     foreach (var d in DummyPolyByBoneID_AttachBone[index])
