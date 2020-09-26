@@ -77,8 +77,6 @@ namespace DSAnimStudio.TaeEditor
             }
             else if (miniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
             {
-                groupBoxMHStandard.Text = "Mini-Header Type: Import Other Animation";
-
                 textBoxMHDuplicateSourceAnimID.Text = HKXNameFromCompositeID(asImportOtherAnim.ImportFromAnimID);
                 textBoxMHDuplicateUnk.Text = asImportOtherAnim.Unknown.ToString();
             }
@@ -124,7 +122,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 var asImportOtherAnim = new TAE.Animation.AnimMiniHeader.ImportOtherAnim();
 
-                if (string.IsNullOrWhiteSpace(textBoxMHStandardImportHKXFrom.Text))
+                if (string.IsNullOrWhiteSpace(textBoxMHDuplicateSourceAnimID.Text))
                 {
                     asImportOtherAnim.ImportFromAnimID = -1;
                 }
@@ -179,7 +177,7 @@ namespace DSAnimStudio.TaeEditor
                 groupBoxMHDuplicate.Enabled = false;
 
                 textBoxMHDuplicateSourceAnimID.Text = "";
-                textBoxMHDuplicateUnk.Text = "";
+                textBoxMHDuplicateUnk.Text = "0";
 
                 //radioButtonMHStandard.Checked = true;
                 //radioButtonMHImportOtherAnimation.Checked = false;
@@ -356,6 +354,10 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
+                AnimRef.ID = originalID;
+                AnimRef.MiniHeader = originalMiniHeader;
+                AnimRef.AnimFileName = originalDisplayName;
+
                 MessageBox.Show("Changes were not saved due to formatting errors.",
                     "Changes Not Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
