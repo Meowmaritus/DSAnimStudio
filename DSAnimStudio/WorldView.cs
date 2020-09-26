@@ -47,7 +47,7 @@ namespace DSAnimStudio
         public float AngleSnap = MathHelper.PiOver4;
         public bool AngleSnapEnable = false;
 
-        public bool PivotPrimIsEnabled = true;
+        public bool PivotPrimIsEnabled = false;
 
         public IDbgPrim PivotPrim = null;
         public IDbgPrim PivotPrim_DrawOver = null;
