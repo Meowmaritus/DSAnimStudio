@@ -39,7 +39,7 @@ namespace DSAnimStudio.TaeEditor
         //public bool SimulateReferencedEvents { get; set; } = true;
 
         public bool CamAngleSnapEnable { get; set; } = false;
-        public bool ShowCameraPivotCube { get; set; } = true;
+        public bool ShowCameraPivotCube { get; set; } = false;
 
         public float ViewportStatusTextSize { get; set; } = 100;
         public float ToolboxGuiScale { get; set; } = 100;
