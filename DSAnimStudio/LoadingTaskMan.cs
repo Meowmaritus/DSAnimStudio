@@ -21,6 +21,8 @@ namespace DSAnimStudio
             //public double ElapsedSeconds => Timer.Elapsed.TotalSeconds;
             Thread taskThread;
 
+            public bool IsUnimportant = false;
+
             public LoadingTask(string taskKey, string displayString, Action<IProgress<double>> doLoad, 
                 double startingProgressRatio = 0)
             {
@@ -84,7 +86,7 @@ namespace DSAnimStudio
             bool result = false;
             lock (_lock_TaskDictEdit)
             {
-                result = TaskDict.Count > 0;
+                result = TaskDict.Any(t => !t.Value.IsUnimportant);
             }
             return result;
         }
@@ -132,7 +134,8 @@ namespace DSAnimStudio
             int addFluffMilliseconds = 100, 
             bool waitForTaskToComplete = false,
             int synchronousWaitThreadSpinMilliseconds = 250,
-            bool disableProgressBarByDefault = false)
+            bool disableProgressBarByDefault = false,
+            bool isUnimportant = false)
         {
             lock (_lock_TaskDictEdit)
             {
@@ -144,8 +147,12 @@ namespace DSAnimStudio
                     taskDelegate.Invoke(progress);
                     if (addFluffMilliseconds > 0)
                         Thread.Sleep(addFluffMilliseconds);
-                }, disableProgressBarByDefault ? -1 : 0));
-                OSD.RequestCollapse = true;
+                }, disableProgressBarByDefault ? -1 : 0)
+                {
+                    IsUnimportant = isUnimportant,
+                });
+                if (!isUnimportant)
+                    OSD.RequestCollapse = true;
             }
 
             if (waitForTaskToComplete)

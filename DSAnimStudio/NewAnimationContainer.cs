@@ -78,6 +78,39 @@ namespace DSAnimStudio
             }
         }
 
+        public void AddNewAnimation(string name, NewHavokAnimation anim)
+        {
+            lock (_lock_animDict)
+            {
+                if (animHKXsToLoad.ContainsKey(name))
+                    animHKXsToLoad.Remove(name);
+            }
+
+            lock (_lock_AdditiveOverlays)
+            {
+                var overlay = _additiveBlendOverlays.FirstOrDefault(a => a.Name == name);
+                if (overlay != null)
+                    _additiveBlendOverlays.Remove(overlay);
+
+                if (_additiveBlendOverlayNames.Contains(name))
+                    _additiveBlendOverlayNames.Remove(name);
+
+                if (anim.IsAdditiveBlend)
+                {
+                    _additiveBlendOverlayNames.Add(anim.Name);
+                    _additiveBlendOverlays.Add(NewHavokAnimation.Clone(anim));
+                }
+            }
+
+            lock (_lock_animCache)
+            {
+                if (AnimationCache.ContainsKey(name))
+                    AnimationCache.Remove(name);
+
+                AnimationCache.Add(name, anim);
+            }
+        }
+
         public IReadOnlyDictionary<string, byte[]> Animations => animHKXsToLoad;
 
         public List<NewHavokAnimation> AnimationLayers = new List<NewHavokAnimation>();
@@ -246,7 +279,7 @@ namespace DSAnimStudio
                 {
                     
 
-                    if (animHKXsToLoad.ContainsKey(value))
+                    if (animHKXsToLoad.ContainsKey(value) || AnimationCache.ContainsKey(value))
                     {
                         //LoadAnimHKX(animHKXsToLoad[name], name);
 
@@ -269,7 +302,7 @@ namespace DSAnimStudio
                             {
                                 anim = NewHavokAnimation.Clone(cachedAnim);
                             }
-                            else
+                            else if (animHKXsToLoad.ContainsKey(value))
                             {
                                 anim = LoadAnimHKX(animHKXsToLoad[value], value);
                                 lock (_lock_animCache)

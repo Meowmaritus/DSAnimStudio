@@ -618,16 +618,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SFAnimExtensions\SoulsFormats\SoulsFormats\SoulsFormats.csproj">
-      <Project>{22c664bd-877b-44df-8ecf-2808522469a8}</Project>
-      <Name>SoulsFormats</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SoulsAssetPipeline\SoulsAssetPipeline.csproj">
-      <Project>{1597dd92-0efc-4bec-8592-73a071be8048}</Project>
-      <Name>SoulsAssetPipeline</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="NewChrAsmEquipForm.resx">
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -650,7 +640,16 @@
       <DependentUpon>TaeInspectorWinFormsControl.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\SoulsAssetPipeline\SoulsAssetPipeline\SoulsAssetPipeline.csproj">
+      <Project>{1597dd92-0efc-4bec-8592-73a071be8048}</Project>
+      <Name>SoulsAssetPipeline</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SoulsAssetPipeline\SoulsFormats\SoulsFormats\SoulsFormats.csproj">
+      <Project>{22c664bd-877b-44df-8ecf-2808522469a8}</Project>
+      <Name>SoulsFormats</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>md "$(TargetDir)lib"

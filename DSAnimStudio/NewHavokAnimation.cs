@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio
 {
-    public abstract class NewHavokAnimation
+    public class NewHavokAnimation
     {
         public HavokAnimationData data;
 
@@ -28,7 +28,7 @@ namespace DSAnimStudio
             }
             else
             {
-                throw new NotImplementedException();
+                return new NewHavokAnimation(anim.data, anim.Skeleton, anim.ParentContainer);
             }
             
         }
@@ -212,7 +212,7 @@ namespace DSAnimStudio
             
         }
 
-        protected NewHavokAnimation(HavokAnimationData data, NewAnimSkeleton skeleton, NewAnimationContainer container)
+        public NewHavokAnimation(HavokAnimationData data, NewAnimSkeleton skeleton, NewAnimationContainer container)
         {
             this.data = data;
 
