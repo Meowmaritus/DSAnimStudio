@@ -68,7 +68,7 @@ namespace DSAnimStudio
                 };
 
                 var importedAnim = SoulsAssetPipeline.AnimationImporter.ImportFBX(
-                    @"C:\DarkSoulsModding\CUSTOM ANIM\c2570 shield bash test.FBX", importSettings);
+                    @"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx", importSettings);
 
                 //importedFlver.WriteToHavok2010InterleavedUncompressedXML(@"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx.saptest.xml");
 
