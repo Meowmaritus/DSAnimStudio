@@ -1,5 +1,5 @@
 ﻿using SoulsFormats;
-using SFAnimExtensions;
+using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
 using System.Linq;

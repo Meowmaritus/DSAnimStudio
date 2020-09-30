@@ -349,7 +349,16 @@ namespace DSAnimStudio
 
             if (justNowLoadedParamBND || forceReload || GameTypeCurrentLoadedParamsAreFrom != GameDataManager.GameType)
             {
-                LoadStuffFromParamBND();
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+                {
+                    System.Windows.Forms.MessageBox.Show("DS2 Params not supported yet.");
+                    LoadStuffFromParamBND(isClearAll: true);
+                    return true;
+                }
+                else
+                {
+                    LoadStuffFromParamBND();
+                }
             }
 
             return true;

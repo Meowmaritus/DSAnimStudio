@@ -6,8 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
-using SFAnimExtensions;
-using SFAnimExtensions.Havok;
+using SoulsAssetPipeline.Animation;
 
 namespace DSAnimStudio.Havok
 {

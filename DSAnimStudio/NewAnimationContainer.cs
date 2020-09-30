@@ -1,13 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using SoulsFormats;
-using SFAnimExtensions;
+using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SFAnimExtensions.Havok;
 
 namespace DSAnimStudio
 {

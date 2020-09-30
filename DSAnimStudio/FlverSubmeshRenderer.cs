@@ -74,6 +74,7 @@ namespace DSAnimStudio
 
         public bool IsShaderDoubleFaceCloth = false;
         public bool IsDS3Veil = false;
+        public bool IsDS2EmissiveFlow = false;
         public GFXDrawStep DrawStep { get; private set; }
 
         public int VertexCount { get; private set; }
@@ -307,6 +308,7 @@ namespace DSAnimStudio
             }
 
 
+
             IsShaderDoubleFaceCloth = shortMaterialName.Contains("_df_");
             IsDS3Veil = shortMaterialName.Contains("veil");
 
@@ -351,12 +353,14 @@ namespace DSAnimStudio
 
             //bool isDs3FacegenSkin = flvr.Materials[mesh.MaterialIndex].MTD.Contains(@"N:\FDP\data\Material\mtd\parts\Special\P[ChrCustom_Skin]_SSS");
 
+            IsDS2EmissiveFlow = false;
+
             foreach (var matParam in flvr.Materials[mesh.MaterialIndex].Textures)
             {
                 var paramNameCheck = matParam.Type.ToUpper();
                 string shortTexPath = Utils.GetShortIngameFileName(matParam.Path).ToLower();
 
-                Vector2 texScaleVal = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                Vector2 texScaleVal = new Vector2(1 / matParam.Scale.X, 1 / matParam.Scale.Y);
 
                 if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
                 {
@@ -369,6 +373,11 @@ namespace DSAnimStudio
                     {
                         shortTexPath = Utils.GetShortIngameFileName(matParam.Path).ToLower();
                     }
+                }
+
+                if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS && paramNameCheck.Contains("FLOWMAP"))
+                {
+                    IsDS2EmissiveFlow = true;
                 }
 
                 // DS3/BB
@@ -536,6 +545,11 @@ namespace DSAnimStudio
             {
 
                 var vert = mesh.Vertices[i];
+
+                if (vert.Colors.Count == 2 && GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+                {
+                    vert.Colors[0] = new FLVER.VertexColor(vert.Colors[0].A, vert.Colors[1].R, vert.Colors[1].R, vert.Colors[1].R);
+                }
 
                 var ORIG_BONE_WEIGHTS = vert.BoneWeights;
                 var ORIG_BONE_INDICES = vert.BoneIndices;
@@ -986,7 +1000,7 @@ namespace DSAnimStudio
                 TexDataDOL2 = TexturePool.FetchTexture2D(TexNameDOL2);
         }
 
-        public void Draw(int lod, bool motionBlur, bool[] mask, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
+        public void Draw(int lod, bool motionBlur, bool[] mask, bool forceNoBackfaceCulling, NewAnimSkeleton skeleton)
         {
             if (!IsVisible)
                 return;
@@ -1058,7 +1072,7 @@ namespace DSAnimStudio
 
            
 
-            var oldWorldMatrix = ((FlverShader)shader).World;
+            var oldWorldMatrix = GFX.FlverShader.Effect.World;
 
             //if (DefaultBoneIndex >= FlverShader.NUM_BONES * 3)
             //{
@@ -1079,6 +1093,9 @@ namespace DSAnimStudio
 
             if (TexDataDiffuse == null)
                 TryToLoadTextures();
+
+            GFX.FlverShader.Effect.IsDS2NormalMapChannels = GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS;
+            GFX.FlverShader.Effect.IsDS2EmissiveFlow = IsDS2EmissiveFlow;
 
             GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
             GFX.FlverShader.Effect.ColorMapScale = TexScaleDiffuse;

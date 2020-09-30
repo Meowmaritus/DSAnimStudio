@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using SoulsFormats;
-using SFAnimExtensions;
+using SoulsAssetPipeline.Animation;
 using System;
 using System.Linq;
 using System.Text;

@@ -1,6 +1,6 @@
 [submodule "MeowDSIO"]
 	path = MeowDSIO
 	url = https://github.com/Meowmaritus/MeowDSIO
-[submodule "SFAnimExtensions"]
-	path = SFAnimExtensions
-	url = https://github.com/Meowmaritus/SFAnimExtensions.git
+[submodule "SoulsAssetPipeline"]
+	path = SoulsAssetPipeline
+	url = https://github.com/Meowmaritus/SoulsAssetPipeline.git

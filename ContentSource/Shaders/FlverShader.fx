@@ -7,7 +7,7 @@
 	#define PS_SHADERMODEL ps_5_0
 #endif
 
-#define NO_SKINNING
+//#define NO_SKINNING
 
 #define MAXLIGHTS 3
 
@@ -134,6 +134,7 @@ int PtdeMtdType = 0;
 
 // DS2
 bool IsDS2NormalMapChannels = true;
+bool IsDS2EmissiveFlow = true;
 
 // Textures
 texture2D ColorMap;
@@ -508,7 +509,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     float4 blendmaskColor = tex2D(BlendmaskMapSampler, input.TexCoord / BlendmaskMapScale);
 
     float texBlendVal = (input.Color.a * EnableBlendTextures);
-    
+
     [branch]
 	if (IsDoubleFaceCloth)
 	{
@@ -527,6 +528,15 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     }
 
 	float4 color = lerp(tex2D(ColorMapSampler, input.TexCoord / ColorMapScale), tex2D(ColorMap2Sampler, input.TexCoord2 / ColorMapScale2), texBlendVal);
+    float inputDiffuseMapAlpha = color.a;
+    
+    [branch]
+    if (IsDS2NormalMapChannels && IsDS2EmissiveFlow)
+    {
+        color.a = 1;
+    }
+
+
     //color = pow(color, 1.0 / 2.2);
     
     float inputTexAlpha = 1;
@@ -597,12 +607,19 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     {
         return color;
     }
-    
-    float4 specularMapColor = lerp(tex2D(SpecularMapSampler, input.TexCoord / SpecularMapScale), tex2D(SpecularMap2Sampler, input.TexCoord2 / SpecularMapScale2), texBlendVal);
+
+    float4 specularMapColor_Source = lerp(tex2D(SpecularMapSampler, input.TexCoord / SpecularMapScale), tex2D(SpecularMap2Sampler, input.TexCoord2 / SpecularMapScale2), texBlendVal);
+    float4 specularMapColor = specularMapColor_Source;
     float4 emissiveMapColor = tex2D(EmissiveMapSampler, input.TexCoord / EmissiveMapScale);
     
     emissiveMapColor.rgb *= emissiveMapColor.rgb;
     
+    [branch]
+    if (IsDS2NormalMapChannels && IsDS2EmissiveFlow)
+    {
+        emissiveMapColor *= inputDiffuseMapAlpha;
+    }
+
     float4 nmapcol_full = lerp(tex2D(NormalMapSampler, input.TexCoord / NormalMapScale), tex2D(NormalMap2Sampler, input.TexCoord2 / NormalMapScale2), texBlendVal);
     
     float3 nmapcol = nmapcol_full.rgb;
@@ -612,11 +629,17 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     {
         nmapcol.r = nmapcol_full.a;
         nmapcol.g = nmapcol.g;
-        nmapcol.b = specularMapColor.r;
+
+        float _specPower = max(specularMapColor_Source.r * 256, 1);
+        float _specPowerCalc = (_specPower * _specPower * 0.01);
+        _specPowerCalc += _specPowerCalc;
+        _specPowerCalc = max(_specPowerCalc, 1);
+
+        nmapcol.b = clamp(log2(_specPowerCalc) / 13, 0, 1);
 
         color.rgb = color.rgb * 0.75;
 
-        specularMapColor.rgb = clamp(color.rgb * 1.5, 0, 1);
+        specularMapColor.rgb = float3(1,1,1) * specularMapColor_Source.g;
         specularMapColor.a = 1;
     }
 
@@ -730,6 +753,20 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         float specPower = exp2((1 - roughness) * 13.0);
         specPower = max(1.0, specPower / (specPower * 0.01 + 1.0)) * SpecularPowerMult;
+
+        [branch]
+        if (IsDS2NormalMapChannels)
+        {
+            specPower = max(specularMapColor_Source.r * 256, 1);
+            float specPowerCalc = (specPower * specPower * 0.01);
+            specPowerCalc += specPowerCalc;
+            specPowerCalc = max(specPowerCalc, 1);
+
+            roughness = 1 - clamp(log2(specPowerCalc) / 13, 0, 1);
+            //return float4(float3(1,1,1) * (1 - roughness), 1);
+        }
+
+        
         float D = pow(NdotH, specPower) * (specPower * 0.125 + 0.25);
         
         //float V = LdotN * sqrt(alphasquare + ((1.0 - alphasquare) * (NdotV * NdotV ))) +
@@ -744,7 +781,11 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         
         float envMip =  min(6.0, -(1 - roughness) * 6.5 + 6.5);//log2(alpha * float(envWidth));
 
-        
+        [branch]
+        if (IsDS2NormalMapChannels)
+        {
+            envMip = min(4.0, log2(specPower) * -0.7 + 5.6);
+        }
 
         float3 reflectVec = reflect(viewVec, N);
         
@@ -778,9 +819,25 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
         float3 diffuse = finalDiffuse * (1 - F0);
         
         float3 indirectDiffuse = finalDiffuse * ambientDiffuse * (1 - F0);
+
+        [branch]
+        if (IsDS2NormalMapChannels)
+        {
+            indirectDiffuse = indirectDiffuse * nmapcol_full.b * input.Color.r;
+        }
         
         float3 indirectSpecular = ambientSpec * aF;// * iV;
         
+        [branch]
+        if (IsDS2NormalMapChannels)
+        {
+            float AmbFresnelPower = specPower / (specPower + 30);
+            float AmbFresnel = pow(1.0 - saturate(NdotV * 2), AmbFresnelPower * 4 + 1) * AmbFresnelPower;
+            AmbFresnel = AmbFresnel * (1.0 - F0) + F0;
+
+            indirectSpecular = ambientSpec * AmbFresnel * nmapcol_full.b * input.Color.r * 0.25;
+        }
+
         float reflectionThing = saturate(dot(reflectVec, N) + 1.0);
         reflectionThing  *= reflectionThing;
         indirectSpecular *= reflectionThing;

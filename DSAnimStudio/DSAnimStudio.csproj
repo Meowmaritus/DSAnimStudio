@@ -251,6 +251,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="XnaExtensions.cs" />
+    <Compile Include="_QuickDebug.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ImGui.NET">
@@ -617,13 +618,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SFAnimExtensions\SFAnimExtensions\SFAnimExtensions.csproj">
-      <Project>{75032c68-5003-434a-919a-ec7e298c0300}</Project>
-      <Name>SFAnimExtensions</Name>
-    </ProjectReference>
     <ProjectReference Include="..\SFAnimExtensions\SoulsFormats\SoulsFormats\SoulsFormats.csproj">
       <Project>{22c664bd-877b-44df-8ecf-2808522469a8}</Project>
       <Name>SoulsFormats</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SoulsAssetPipeline\SoulsAssetPipeline.csproj">
+      <Project>{1597dd92-0efc-4bec-8592-73a071be8048}</Project>
+      <Name>SoulsAssetPipeline</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

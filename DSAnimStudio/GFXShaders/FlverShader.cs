@@ -14,6 +14,18 @@ namespace DSAnimStudio.GFXShaders
 
         public FlverShader Effect => this;
 
+        public bool IsDS2NormalMapChannels
+        {
+            get => Parameters[nameof(IsDS2NormalMapChannels)].GetValueBoolean();
+            set => Parameters[nameof(IsDS2NormalMapChannels)].SetValue(value);
+        }
+
+        public bool IsDS2EmissiveFlow
+        {
+            get => Parameters[nameof(IsDS2EmissiveFlow)].GetValueBoolean();
+            set => Parameters[nameof(IsDS2EmissiveFlow)].SetValue(value);
+        }
+
         public FlverShadingModes WorkflowType
         {
             get => (FlverShadingModes)Parameters[nameof(WorkflowType)].GetValueInt32();

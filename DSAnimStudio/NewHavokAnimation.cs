@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using SoulsFormats;
-using SFAnimExtensions;
-using SFAnimExtensions.Havok;
+using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
 using System.Linq;

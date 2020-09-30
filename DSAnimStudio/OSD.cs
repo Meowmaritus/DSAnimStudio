@@ -87,15 +87,6 @@ namespace DSAnimStudio
             }
         }
 
-        ////////////////////////////////////////////////////////////////////////////////
-        // DEBUG STUFF
-        ////////////////////////////////////////////////////////////////////////////////
-        
-
-
-        //////////////////////////////////////////////////////////////////////////////// 
-        ////////////////////////////////////////////////////////////////////////////////
-
         private static string CurrentColorEditorOpen = "";
 
         private static ColorConfig DefaultColorConfig = new ColorConfig();
@@ -199,6 +190,11 @@ namespace DSAnimStudio
 
             bool firstTimeWindowCreate = IsInit && !File.Exists("imgui.ini");
 
+            if (EnableDebugMenu && IsInit)
+            {
+                ImGui.SetNextItemOpen(true);
+            }
+
             ImGui.Begin("Toolbox");
 
 
@@ -236,6 +232,39 @@ namespace DSAnimStudio
 
                 ImGui.PushItemWidth(DefaultItemWidth);
 
+                if (EnableDebugMenu)
+                {
+
+
+                    //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value);
+
+                    if (RequestExpandAllTreeNodes || IsInit)
+                        ImGui.SetNextItemOpen(true);
+
+                    if (ImGui.TreeNode("[DSAnimStudio Debug]"))
+                    {
+                        _QuickDebug.BuildDebugMenu();
+
+                        ImGui.Separator();
+
+                        ImGui.Button("Hot Reload FlverShader.xnb");
+                        if (ImGui.IsItemClicked())
+                            GFX.ReloadFlverShader();
+
+                        ImGui.Button("Hot Reload FlverTonemapShader.xnb");
+                        if (ImGui.IsItemClicked())
+                            GFX.ReloadTonemapShader();
+
+                        ImGui.Button("Hot Reload CubemapSkyboxShader.xnb");
+                        if (ImGui.IsItemClicked())
+                            GFX.ReloadCubemapSkyboxShader();
+
+
+                        ImGui.TreePop();
+                    }
+                }
+
+
                 ImGui.SliderFloat($"Toolbox GUI Size", ref RenderScaleTarget, 50, 200, "%.2f%%");
                 ImGui.SliderFloat($"Toolbox Menu Item Width", ref WidthScaleTarget, 25, 200, "%.2f%%");
                 ImGui.Button("Apply New Scaling");
@@ -265,38 +294,6 @@ namespace DSAnimStudio
                     RequestCollapse = false;
                     ImGui.SetWindowCollapsed(true);
                 }
-
-                
-
-                if (EnableDebugMenu)
-                {
-                    
-
-                    //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value);
-
-                    if (RequestExpandAllTreeNodes)
-                        ImGui.SetNextItemOpen(true);
-
-                    if (ImGui.TreeNode("[DSAnimStudio Debug]"))
-                    {
-
-                        ImGui.Button("Hot Reload FlverShader.xnb");
-                        if (ImGui.IsItemClicked())
-                            GFX.ReloadFlverShader();
-
-                        ImGui.Button("Hot Reload FlverTonemapShader.xnb");
-                        if (ImGui.IsItemClicked())
-                            GFX.ReloadTonemapShader();
-
-                        ImGui.Button("Hot Reload CubemapSkyboxShader.xnb");
-                        if (ImGui.IsItemClicked())
-                            GFX.ReloadCubemapSkyboxShader();
-
-
-                        ImGui.TreePop();
-                    }
-                }
-
 
                 if (RequestExpandAllTreeNodes)
                     ImGui.SetNextItemOpen(true);
