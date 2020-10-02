@@ -121,7 +121,7 @@ namespace DSAnimStudio.TaeEditor
             "Loose TimeAct File (*.TAE) |*.TAE|" +
             "All Files|*.*";
 
-        public bool IsBloodborne => GameDataManager.GameType == GameDataManager.GameTypes.BB;
+        public bool IsBloodborne => GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB;
 
         public string GetResaveFilter()
         {
@@ -165,8 +165,8 @@ namespace DSAnimStudio.TaeEditor
 
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {
-            return ((GameDataManager.GameType == GameDataManager.GameTypes.BB || GameDataManager.GameType == GameDataManager.GameTypes.DS3) ? (id / 1000000) : (id / 10000),
-                (GameDataManager.GameType == GameDataManager.GameTypes.BB || GameDataManager.GameType == GameDataManager.GameTypes.DS3) ? (id % 1000000) : (id % 10000));
+            return ((GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3) ? (id / 1000000) : (id / 10000),
+                (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3) ? (id % 1000000) : (id % 10000));
         }
 
         private (long UpperID, TAE.Animation Anim) GetTAEAnim(long compositeId)
@@ -220,7 +220,7 @@ namespace DSAnimStudio.TaeEditor
 
         private long GetCompositeAnimID((long Upper, long Lower) id)
         {
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || GameDataManager.GameType == GameDataManager.GameTypes.BB)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
             {
                 return (id.Upper * 1_000000) + (id.Lower % 1_000000);
             }
@@ -249,31 +249,31 @@ namespace DSAnimStudio.TaeEditor
             string interroot = GameDataManager.GetInterrootFromFilePath(filePath);
             if (check.Contains("FRPG2"))
             {
-                GameDataManager.Init(GameDataManager.GameTypes.DS2SOTFS, interroot);
+                GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS2SOTFS, interroot);
             }
             else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXX64"))
             {
-                GameDataManager.Init(GameDataManager.GameTypes.DS1R, interroot);
+                GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS1R, interroot);
             }
             else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXWIN32"))
             {
-                GameDataManager.Init(GameDataManager.GameTypes.DS1, interroot);
+                GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS1, interroot);
             }
             else if (check.Contains(@"\SPRJ\"))
             {
-                GameDataManager.Init(GameDataManager.GameTypes.BB, interroot);
+                GameDataManager.Init(SoulsAssetPipeline.SoulsGames.BB, interroot);
             }
             else if (check.Contains(@"\FDP\"))
             {
-                GameDataManager.Init(GameDataManager.GameTypes.DS3, interroot);
+                GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS3, interroot);
             }
             else if (check.Contains(@"\DemonsSoul\"))
             {
-                GameDataManager.Init(GameDataManager.GameTypes.DES, interroot);
+                GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DES, interroot);
             }
             else if (check.Contains(@"\NTC\"))
             {
-                GameDataManager.Init(GameDataManager.GameTypes.SDT, interroot);
+                GameDataManager.Init(SoulsAssetPipeline.SoulsGames.SDT, interroot);
             }
         }
 
@@ -310,7 +310,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (t.Format == TAE.TAEFormat.SOTFS)
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.DS2SOTFS,
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS2SOTFS,
                         GameDataManager.GetInterrootFromFilePath(filePath));
                 }
                 else

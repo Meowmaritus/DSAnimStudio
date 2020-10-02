@@ -449,7 +449,7 @@ namespace DSAnimStudio
                     ImGui.TreePop();
                 }
 
-                if (Scene.Models.Count > 0 && Scene.Models[0]?.ChrAsm != null)
+                if (Scene.IsModelLoaded && Scene.MainModel?.ChrAsm != null)
                 {
                     if (RequestExpandAllTreeNodes)
                         ImGui.SetNextItemOpen(true);
@@ -473,14 +473,14 @@ namespace DSAnimStudio
                                 wpnAnimContainer.CurrentAnimationName = curItem >= 0 ? animNames[curItem] : null;
                             }
                         }
-                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel0?.AnimContainer, "R WPN Model 0");
-                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel1?.AnimContainer, "R WPN Model 1");
-                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel2?.AnimContainer, "R WPN Model 2");
-                        DoWeapon(Scene.Models[0].ChrAsm?.RightWeaponModel3?.AnimContainer, "R WPN Model 3");
-                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.AnimContainer, "L WPN Model 0");
-                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.AnimContainer, "L WPN Model 1");
-                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.AnimContainer, "L WPN Model 2");
-                        DoWeapon(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.AnimContainer, "L WPN Model 3");
+                        DoWeapon(Scene.MainModel.ChrAsm?.RightWeaponModel0?.AnimContainer, "R WPN Model 0");
+                        DoWeapon(Scene.MainModel.ChrAsm?.RightWeaponModel1?.AnimContainer, "R WPN Model 1");
+                        DoWeapon(Scene.MainModel.ChrAsm?.RightWeaponModel2?.AnimContainer, "R WPN Model 2");
+                        DoWeapon(Scene.MainModel.ChrAsm?.RightWeaponModel3?.AnimContainer, "R WPN Model 3");
+                        DoWeapon(Scene.MainModel.ChrAsm?.LeftWeaponModel0?.AnimContainer, "L WPN Model 0");
+                        DoWeapon(Scene.MainModel.ChrAsm?.LeftWeaponModel1?.AnimContainer, "L WPN Model 1");
+                        DoWeapon(Scene.MainModel.ChrAsm?.LeftWeaponModel2?.AnimContainer, "L WPN Model 2");
+                        DoWeapon(Scene.MainModel.ChrAsm?.LeftWeaponModel3?.AnimContainer, "L WPN Model 3");
                         ImGui.TreePop();
                     }
                 }
@@ -493,14 +493,14 @@ namespace DSAnimStudio
 
                 if (ImGui.TreeNode("[Animation Overlays]"))
                 {
-                    if (Scene.Models.Count >= 1)
+                    if (Scene.IsModelLoaded)
                     {
-                        if (Scene.Models[0].AnimContainer != null)
+                        if (Scene.MainModel.AnimContainer != null)
                         {
-                            lock (Scene.Models[0].AnimContainer._lock_AdditiveOverlays)
+                            lock (Scene.MainModel.AnimContainer._lock_AdditiveOverlays)
                             {
                                 bool requestReset = false;
-                                foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
+                                foreach (var overlay in Scene.MainModel.AnimContainer.AdditiveBlendOverlays)
                                 {
                                     bool selected = overlay.Weight >= 0;
                                     bool prevSelected = selected;
@@ -529,7 +529,7 @@ namespace DSAnimStudio
 
                                 if (requestReset)
                                 {
-                                    foreach (var overlay in Scene.Models[0].AnimContainer.AdditiveBlendOverlays)
+                                    foreach (var overlay in Scene.MainModel.AnimContainer.AdditiveBlendOverlays)
                                     {
                                         overlay.Reset();
                                     }
@@ -557,7 +557,7 @@ namespace DSAnimStudio
 
                     lock (Scene._lock_ModelLoad_Draw)
                     {
-                        if (Scene.Models.Count > 0 && Scene.Models[0].DummyPolyMan != null)
+                        if (Scene.IsModelLoaded && Scene.MainModel.DummyPolyMan != null)
                         {
                             bool wasAnyDmyForceVis = false;
 
@@ -634,18 +634,18 @@ namespace DSAnimStudio
                                 ImGui.Separator();
                             }
 
-                            DoDummyPolyManager(Scene.Models[0].DummyPolyMan, "Body");
+                            DoDummyPolyManager(Scene.MainModel.DummyPolyMan, "Body");
 
-                            if (Scene.Models[0].ChrAsm != null)
+                            if (Scene.MainModel.ChrAsm != null)
                             {
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan, "Right Weapon Model 0");
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan, "Right Weapon Model 1");
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan, "Right Weapon Model 2");
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan, "Right Weapon Model 3");
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan, "Left Weapon Model 0");
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan, "Left Weapon Model 1");
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan, "Left Weapon Model 2");
-                                DoDummyPolyManager(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan, "Left Weapon Model 3");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.RightWeaponModel0?.DummyPolyMan, "Right Weapon Model 0");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.RightWeaponModel1?.DummyPolyMan, "Right Weapon Model 1");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.RightWeaponModel2?.DummyPolyMan, "Right Weapon Model 2");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.RightWeaponModel3?.DummyPolyMan, "Right Weapon Model 3");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.LeftWeaponModel0?.DummyPolyMan, "Left Weapon Model 0");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.LeftWeaponModel1?.DummyPolyMan, "Left Weapon Model 1");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.LeftWeaponModel2?.DummyPolyMan, "Left Weapon Model 2");
+                                DoDummyPolyManager(Scene.MainModel.ChrAsm?.LeftWeaponModel3?.DummyPolyMan, "Left Weapon Model 3");
                             }
 
                             if (!wasAnyDmyForceVis)
@@ -682,43 +682,43 @@ namespace DSAnimStudio
                             ImGui.Button("Global - Show All");
                             if (ImGui.IsItemClicked())
                             {
-                                DummyOperationShowAll(Scene.Models[0].DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
-                                DummyOperationShowAll(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.RightWeaponModel0?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.RightWeaponModel1?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.RightWeaponModel2?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.RightWeaponModel3?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
+                                DummyOperationShowAll(Scene.MainModel.ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
                             }
 
                             ImGui.Button("Global - Hide All");
                             if (ImGui.IsItemClicked())
                             {
-                                DummyOperationHideAll(Scene.Models[0].DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
-                                DummyOperationHideAll(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.RightWeaponModel0?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.RightWeaponModel1?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.RightWeaponModel2?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.RightWeaponModel3?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
+                                DummyOperationHideAll(Scene.MainModel.ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
                             }
 
                             ImGui.Button("Global - Invert All");
                             if (ImGui.IsItemClicked())
                             {
-                                DummyOperationInvertAll(Scene.Models[0].DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel0?.DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel1?.DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel2?.DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.RightWeaponModel3?.DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
-                                DummyOperationInvertAll(Scene.Models[0].ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.RightWeaponModel0?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.RightWeaponModel1?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.RightWeaponModel2?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.RightWeaponModel3?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.LeftWeaponModel0?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.LeftWeaponModel1?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.LeftWeaponModel2?.DummyPolyMan);
+                                DummyOperationInvertAll(Scene.MainModel.ChrAsm?.LeftWeaponModel3?.DummyPolyMan);
                             }
                         }
                     }

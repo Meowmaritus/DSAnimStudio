@@ -119,6 +119,12 @@
     <Compile Include="PARAMHack\PARAM.cs" />
     <Compile Include="PARAMHack\PARAM.Row.cs" />
     <Compile Include="ParamUtil.cs" />
+    <Compile Include="SapImportFlver2Form.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SapImportFlver2Form.Designer.cs">
+      <DependentUpon>SapImportFlver2Form.cs</DependentUpon>
+    </Compile>
     <Compile Include="TaeEditor\TaeAnimRefChainSolver.cs" />
     <Compile Include="DbgMenus\DbgMenuItemEnum.cs" />
     <Compile Include="DbgMenus\DbgMenuItemGfxDepthStencilStateAdjust.cs" />
@@ -620,6 +626,9 @@
   <ItemGroup>
     <EmbeddedResource Include="NewChrAsmEquipForm.resx">
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SapImportFlver2Form.resx">
+      <DependentUpon>SapImportFlver2Form.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="TaeEditor\TaeComboMenu.resx">
       <DependentUpon>TaeComboMenu.cs</DependentUpon>

@@ -237,19 +237,19 @@ namespace DSAnimStudio
                 }
             }
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 ShadingMode = FlverShadingModes.PBR_GLOSS_DS3;
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
             {
                 ShadingMode = FlverShadingModes.PBR_GLOSS_BB;
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1)
             {
                 ShadingMode = FlverShadingModes.CLASSIC_DIFFUSE_PTDE;
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
             {
                 //TEMP
                 ShadingMode = FlverShadingModes.MESHDEBUG_NORMALS;
@@ -257,7 +257,7 @@ namespace DSAnimStudio
                 //    GFX.FlverShadingModeList.IndexOf(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
                 
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
             {
                 //TEMP
                 //ShadingMode = FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY;
@@ -362,7 +362,7 @@ namespace DSAnimStudio
 
                 Vector2 texScaleVal = new Vector2(1 / matParam.Scale.X, 1 / matParam.Scale.Y);
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     var mtdTex = GameDataManager.LookupMTDTexture(flvr.Materials[mesh.MaterialIndex].MTD, matParam.Type);
                     shortTexPath = Utils.GetShortIngameFileName(mtdTex.Path).ToLower();
@@ -375,7 +375,7 @@ namespace DSAnimStudio
                     }
                 }
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS && paramNameCheck.Contains("FLOWMAP"))
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS && paramNameCheck.Contains("FLOWMAP"))
                 {
                     IsDS2EmissiveFlow = true;
                 }
@@ -546,7 +546,7 @@ namespace DSAnimStudio
 
                 var vert = mesh.Vertices[i];
 
-                if (vert.Colors.Count == 2 && GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+                if (vert.Colors.Count == 2 && GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS)
                 {
                     vert.Colors[0] = new FLVER.VertexColor(vert.Colors[0].A, vert.Colors[1].R, vert.Colors[1].R, vert.Colors[1].R);
                 }
@@ -1094,7 +1094,7 @@ namespace DSAnimStudio
             if (TexDataDiffuse == null)
                 TryToLoadTextures();
 
-            GFX.FlverShader.Effect.IsDS2NormalMapChannels = GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS;
+            GFX.FlverShader.Effect.IsDS2NormalMapChannels = GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS;
             GFX.FlverShader.Effect.IsDS2EmissiveFlow = IsDS2EmissiveFlow;
 
             GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;

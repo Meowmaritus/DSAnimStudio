@@ -250,8 +250,8 @@ namespace DSAnimStudio
             {
                 var start = br.Position;
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     Hits = new Hit[16];
                 }
@@ -279,7 +279,7 @@ namespace DSAnimStudio
                 //[SDT]
                 //f32 Unk01
                 //f32 Unk02
-                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                     br.Position += (4 * 2);
 
                 //s32 spEffectId0
@@ -326,7 +326,7 @@ namespace DSAnimStudio
 
                 br.Position = start + 0x68;
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                     br.Position += (4 * 2);
 
                 ThrowTypeID = br.ReadInt16();
@@ -342,8 +342,8 @@ namespace DSAnimStudio
                 HitSourceType = br.ReadByte();
 
                 //TODO: Read DS3 hit 4-15
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     //u8 hit0_Priority
                     //u8 hit1_Priority
@@ -601,9 +601,9 @@ namespace DSAnimStudio
                 br.Position += 8;
                 TurnVelocity = br.ReadSingle();
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     DrawMask = new bool[32];
                 }
@@ -612,7 +612,7 @@ namespace DSAnimStudio
                     DrawMask = new bool[16];
                 }
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     br.Position = start + 0x14E;
                 }
@@ -628,11 +628,11 @@ namespace DSAnimStudio
                 for (int i = 0; i < 8; i++)
                     DrawMask[8 + i] = ((mask2 & (1 << i)) != 0);
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
-                    GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 || 
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
-                    if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                    if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                     {
                         br.Position = start + 0x152;
                     }
@@ -657,7 +657,7 @@ namespace DSAnimStudio
 
             public override void Read(BinaryReaderEx br)
             {
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 {
                     br.Position += 0x104;
                     GrabityRate = br.ReadSingle();
@@ -718,7 +718,7 @@ namespace DSAnimStudio
 
             public int DS3_GetRightWeaponDummyPoly(NewChrAsm chrAsm, int modelIndex)
             {
-                var ds3OverrideMeme = GameDataManager.GameType == GameDataManager.GameTypes.DS3
+                var ds3OverrideMeme = GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3
                     ? chrAsm.GetDS3PairedWpnMemeKindR(modelIndex) : NewChrAsm.DS3PairedWpnMemeKind.None;
 
                 if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.PositionForFriedeScythe && chrAsm.IsRightWeaponFriedesScythe())
@@ -817,7 +817,7 @@ namespace DSAnimStudio
 
             public int DS3_GetLeftWeaponDummyPoly(NewChrAsm chrAsm, int modelIndex)
             {
-                var ds3OverrideMeme = GameDataManager.GameType == GameDataManager.GameTypes.DS3 
+                var ds3OverrideMeme = GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 
                     ? chrAsm.GetDS3PairedWpnMemeKindL(modelIndex) : NewChrAsm.DS3PairedWpnMemeKind.None;
 
                 // Friede meme value actually does not work on left weapon.
@@ -1018,7 +1018,7 @@ namespace DSAnimStudio
             public short BB_DummyPoly_Model3_LH_FormA = -1;
             public short BB_DummyPoly_Model3_LH_FormB = -1;
 
-            public bool IsPairedWeaponDS3 => GameDataManager.GameType == GameDataManager.GameTypes.DS3 
+            public bool IsPairedWeaponDS3 => GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 
                 && (DS3PairedSpAtkCategories.Contains(SpAtkCategory) || (WepMotionCategory == 42)) // DS3 Fist weapons
                 ;
 
@@ -1032,7 +1032,7 @@ namespace DSAnimStudio
 
             public string GetPartBndName()
             {
-                return $"WP_A_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
+                return $"WP_A_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS1 ? ".dcx" : "")}";
             }
 
             public static readonly int[] DS3PairedSpAtkCategories = new int[]
@@ -1065,13 +1065,13 @@ namespace DSAnimStudio
                 WepMotionCategory = br.ReadByte();
 
                 br.Position = start + 0xEA;
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                     SpAtkCategory = br.ReadInt16();
                 else
                     SpAtkCategory = br.ReadByte();
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                 {
                     br.Position = start + 0x107;
                     BB_SheathType = br.ReadByte();
@@ -1101,8 +1101,8 @@ namespace DSAnimStudio
                     BB_DummyPoly_Model3_LH_FormB = br.ReadInt16();
                 }
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
-                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 || 
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
 
 
@@ -1170,14 +1170,14 @@ namespace DSAnimStudio
                 switch (EquipModelGender)
                 {
                     case EquipModelGenders.Unisex: 
-                        return $"{start}_A_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
+                        return $"{start}_A_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS1 ? ".dcx" : "")}";
                     case EquipModelGenders.MaleOnly:
                     case EquipModelGenders.UseMaleForBoth:
-                        return $"{start}_M_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
+                        return $"{start}_M_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS1 ? ".dcx" : "")}";
                     case EquipModelGenders.FemaleOnly:
-                        return $"{start}_F_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
+                        return $"{start}_F_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS1 ? ".dcx" : "")}";
                     case EquipModelGenders.Both:
-                        return $"{start}_{(isFemale ? "F" : "M")}_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != GameDataManager.GameTypes.DS1 ? ".dcx" : "")}";
+                        return $"{start}_{(isFemale ? "F" : "M")}_{EquipModelID:D4}.partsbnd{(GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS1 ? ".dcx" : "")}";
                 }
 
                 return null;
@@ -1195,9 +1195,9 @@ namespace DSAnimStudio
 
                 br.Position = start + 0xD8;
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                 {
                     var firstBitmask = ReadBitmask(br, 6 + 48);
                     //IsDeposit = firstBitmask[0]
@@ -1212,7 +1212,7 @@ namespace DSAnimStudio
                         InvisibleFlags.Add(firstBitmask[i + 6]);
                     }
 
-                    if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                    if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                     {
                         br.Position = start + 0xFD;
                         var mask48to62 = ReadBitmask(br, 15);
@@ -1220,8 +1220,8 @@ namespace DSAnimStudio
                         InvisibleFlags.AddRange(mask48to62);
                     }
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                    GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     var firstBitmask = ReadBitmask(br, 5);
                     //IsDeposit = firstBitmask[0]

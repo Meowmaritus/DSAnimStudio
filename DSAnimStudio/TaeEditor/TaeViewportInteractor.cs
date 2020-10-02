@@ -58,7 +58,7 @@ namespace DSAnimStudio.TaeEditor
 
         public static float StatusTextScale = 100.0f;
 
-        public Model CurrentModel => Scene.Models.Count > 0 ? Scene.Models[0] : null;
+        public Model CurrentModel => Scene.MainModel;
 
         private void SetEntityType(TaeEntityType entityType)
         {
@@ -442,6 +442,7 @@ namespace DSAnimStudio.TaeEditor
                 }
 
                 EquipForm.Show();
+                Main.CenterForm(EquipForm);
             }
         }
 

@@ -525,7 +525,7 @@ namespace DSAnimStudio.TaeEditor
                             foreach (var evBox in evBoxes)
                             {
                                 if (evBox.MyEvent.Type == 712 && evBox.MyEvent.Template != null && 
-                                    GameDataManager.GameType == GameDataManager.GameTypes.DS3 && MODEL.ChrAsm != null &&
+                                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 && MODEL.ChrAsm != null &&
                                     evBox.PlaybackHighlight)
                                 {
                                     if (MODEL.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHand)
@@ -739,7 +739,7 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     var spEffect = ParamManager.SpEffectParam[spEffectID];
 
-                                    if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                                    if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                                     {
                                         if (spEffect.GrabityRate > 0)
                                             Graph.PlaybackCursor.ModPlaybackSpeed *= spEffect.GrabityRate;
@@ -768,7 +768,7 @@ namespace DSAnimStudio.TaeEditor
                         },
                         SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
                         {
-                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 && evBox.PlaybackHighlight)
+                            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 && evBox.PlaybackHighlight)
                             {
                                 var eventFrames = Convert.ToUInt32(evBox.MyEvent.Parameters["AnimSpeed"]);
                                 Graph.PlaybackCursor.ModPlaybackSpeed = (((evBox.MyEvent.EndTime - evBox.MyEvent.StartTime) * 30.0f) / (float)eventFrames);
@@ -1053,8 +1053,8 @@ namespace DSAnimStudio.TaeEditor
 
                             int maskLength = 32;
 
-                            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
-                                GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
+                                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                                 maskLength = 8;
 
                             if (evBox.MyEvent.Template == null)

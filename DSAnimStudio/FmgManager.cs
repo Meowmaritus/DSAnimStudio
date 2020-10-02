@@ -19,7 +19,7 @@ namespace DSAnimStudio
         public static Dictionary<int, string> ProtectorNames_AM = new Dictionary<int, string>();
         public static Dictionary<int, string> ProtectorNames_LG = new Dictionary<int, string>();
 
-        private static GameDataManager.GameTypes GameTypeCurrentFmgsAreLoadedFrom = GameDataManager.GameTypes.None;
+        private static SoulsAssetPipeline.SoulsGames GameTypeCurrentFmgsAreLoadedFrom = SoulsAssetPipeline.SoulsGames.None;
 
         public static void LoadAllFMG(bool forceReload)
         {
@@ -82,17 +82,17 @@ namespace DSAnimStudio
                 }
             }
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1)
             {
                 TryToLoadFromMSGBND("ENGLISH", "item.msgbnd", 11, 12);
                 TryToLoadFromMSGBND("ENGLISH", "menu.msgbnd", 115, 117); //Patch
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
             {
                 TryToLoadFromMSGBND("ENGLISH", "item.msgbnd.dcx", 11, 12);
                 TryToLoadFromMSGBND("ENGLISH", "item.msgbnd.dcx", 115, 117); //Patch
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 TryToLoadFromMSGBND("engus", "item_dlc1.msgbnd.dcx", 11, 12);
                 TryToLoadFromMSGBND("engus", "item_dlc1.msgbnd.dcx", 211, 212); //DLC1
@@ -101,11 +101,11 @@ namespace DSAnimStudio
                 TryToLoadFromMSGBND("engus", "item_dlc2.msgbnd.dcx", 211, 212); //DLC1
                 TryToLoadFromMSGBND("engus", "item_dlc2.msgbnd.dcx", 251, 252); //DLC2
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
             {
                 TryToLoadFromMSGBND("engus", "item.msgbnd.dcx", 11, 12);
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
             {
                 TryToLoadFromMSGBND("engus", "item.msgbnd.dcx", 11, 12);
             }

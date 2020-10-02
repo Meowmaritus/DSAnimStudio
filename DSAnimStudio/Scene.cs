@@ -10,6 +10,9 @@ namespace DSAnimStudio
 {
     public static class Scene
     {
+        public static bool IsModelLoaded => Models.Count > 0;
+        public static Model MainModel => Models.Count > 0 ? Models[0] : null;
+
         private static bool DO_NOT_DRAW = false;
         private static bool DO_NOT_DRAW2 = false;
         private static object _lock_DO_NOT_DRAW = new object();

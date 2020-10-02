@@ -1,5 +1,6 @@
 ﻿using DSAnimStudio.DebugPrimitives;
 using Microsoft.Xna.Framework;
+using SoulsAssetPipeline.FLVERImporting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,6 +55,9 @@ namespace DSAnimStudio.TaeEditor
 
         public int MSAA = 2;
         public int SSAA = 1;
+
+        public FLVER2Importer.FLVER2ImportSettings LastImportConfig_FLVER2 { get; set; } 
+            = new FLVER2Importer.FLVER2ImportSettings();
 
         public Dictionary<string, bool> EventSimulationsEnabled { get; set; }
             = new Dictionary<string, bool>();
@@ -197,10 +201,10 @@ namespace DSAnimStudio.TaeEditor
             
         }
 
-        public Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }
-        = new Dictionary<GameDataManager.GameTypes, NewChrAsmCfgJson>
+        public Dictionary<SoulsAssetPipeline.SoulsGames, NewChrAsmCfgJson> ChrAsmConfigurations { get; set; }
+        = new Dictionary<SoulsAssetPipeline.SoulsGames, NewChrAsmCfgJson>
         {
-            { GameDataManager.GameTypes.DS1, new NewChrAsmCfgJson()
+            { SoulsAssetPipeline.SoulsGames.DS1, new NewChrAsmCfgJson()
                 {
                     HeadID = 100000,
                     BodyID = 111000,
@@ -217,7 +221,7 @@ namespace DSAnimStudio.TaeEditor
                     WeaponStyle = NewChrAsm.WeaponStyleType.OneHand,
                 }
             },
-            { GameDataManager.GameTypes.DS1R, new NewChrAsmCfgJson()
+            { SoulsAssetPipeline.SoulsGames.DS1R, new NewChrAsmCfgJson()
                 {
                     HeadID = 100000,
                     BodyID = 111000,
@@ -234,7 +238,7 @@ namespace DSAnimStudio.TaeEditor
                     WeaponStyle = NewChrAsm.WeaponStyleType.OneHand,
                 }
             },
-             { GameDataManager.GameTypes.DS3, new NewChrAsmCfgJson()
+             { SoulsAssetPipeline.SoulsGames.DS3, new NewChrAsmCfgJson()
                 {
                     HeadID = 54000000,
                     BodyID = 54001000,
@@ -251,7 +255,7 @@ namespace DSAnimStudio.TaeEditor
                     WeaponStyle = NewChrAsm.WeaponStyleType.TwoHandR,
                 }
             },
-             { GameDataManager.GameTypes.BB, new NewChrAsmCfgJson()
+             { SoulsAssetPipeline.SoulsGames.BB, new NewChrAsmCfgJson()
                 {
                     HeadID = 130000,
                     BodyID = 361000,

@@ -10,11 +10,11 @@ namespace DSAnimStudio
 {
     public static class ParamManager
     {
-        private static Dictionary<GameDataManager.GameTypes, IBinder> ParamBNDs 
-            = new Dictionary<GameDataManager.GameTypes, IBinder>();
+        private static Dictionary<SoulsAssetPipeline.SoulsGames, IBinder> ParamBNDs 
+            = new Dictionary<SoulsAssetPipeline.SoulsGames, IBinder>();
 
-        private static Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM_Hack>> LoadedParams 
-            = new Dictionary<GameDataManager.GameTypes, Dictionary<string, PARAM_Hack>>();
+        private static Dictionary<SoulsAssetPipeline.SoulsGames, Dictionary<string, PARAM_Hack>> LoadedParams 
+            = new Dictionary<SoulsAssetPipeline.SoulsGames, Dictionary<string, PARAM_Hack>>();
 
         public static Dictionary<long, ParamData.BehaviorParam> BehaviorParam_PC 
             = new Dictionary<long, ParamData.BehaviorParam>();
@@ -45,7 +45,7 @@ namespace DSAnimStudio
 
         public static List<long> HitMtrlParamEntries = new List<long>();
 
-        private static GameDataManager.GameTypes GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameTypes.None;
+        private static SoulsAssetPipeline.SoulsGames GameTypeCurrentLoadedParamsAreFrom = SoulsAssetPipeline.SoulsGames.None;
 
         public static PARAM_Hack GetParam(string paramName)
         {
@@ -84,13 +84,13 @@ namespace DSAnimStudio
                 checkId /= 10;
             }
 
-            if (GameDataManager.GameType != GameDataManager.GameTypes.SDT)
+            if (GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.SDT)
             {
                 if ((checkId / 100) == chrId)
                 {
                     return true;
                 }
-                else if (isFirst && GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                else if (isFirst && GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                 {
                     return ((checkId % 1_0000_00) / 100 == chrId);
                 }
@@ -99,7 +99,7 @@ namespace DSAnimStudio
                     return false;
                 }
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
             {
                 return (checkId / 1_0000) == chrId;
             }
@@ -158,7 +158,7 @@ namespace DSAnimStudio
             AddParam(NpcParam, "NpcParam");
             AddParam(EquipParamWeapon, "EquipParamWeapon");
             AddParam(EquipParamProtector, "EquipParamProtector");
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
             AddParam(SpEffectParam, "SpEffectParam");
 
@@ -297,28 +297,28 @@ namespace DSAnimStudio
             {
                 ParamBNDs.Add(GameDataManager.GameType, null);
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS1)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd"))
                         ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd");
                     else
                         return false;
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
                         ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
                     else
                         return false;
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.BB || GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
                         ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
                     else
                         return false;
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
                     {
@@ -333,7 +333,7 @@ namespace DSAnimStudio
                         return false;
                     }
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS)
                 {
                     System.Windows.Forms.MessageBox.Show("DS2 Params not supported yet.");
                     LoadStuffFromParamBND(isClearAll: true);
@@ -349,7 +349,7 @@ namespace DSAnimStudio
 
             if (justNowLoadedParamBND || forceReload || GameTypeCurrentLoadedParamsAreFrom != GameDataManager.GameType)
             {
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS)
                 {
                     System.Windows.Forms.MessageBox.Show("DS2 Params not supported yet.");
                     LoadStuffFromParamBND(isClearAll: true);

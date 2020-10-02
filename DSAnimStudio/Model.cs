@@ -29,7 +29,7 @@ namespace DSAnimStudio
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
 
-        public bool IsStatic => Skeleton?.OriginalHavokSkeleton == null && GameDataManager.GameType != GameDataManager.GameTypes.DS2SOTFS;
+        public bool IsStatic => Skeleton?.OriginalHavokSkeleton == null && GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS2SOTFS;
 
         public float BaseTrackingSpeed = 360;
         public float CurrentTrackingSpeed = 0;
@@ -200,7 +200,7 @@ namespace DSAnimStudio
                     tpfsUsed.Add(TPF.Read(f.Bytes));
                 }
 
-                if ((f.ID % 10) != modelIndex && GameDataManager.GameType != GameDataManager.GameTypes.DS2SOTFS)
+                if ((f.ID % 10) != modelIndex && GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS2SOTFS)
                     continue;
 
                 var nameCheck = f.Name.ToLower();
@@ -414,7 +414,7 @@ namespace DSAnimStudio
             if (IsStatic)
                 Skeleton?.ApplyBakedFlverReferencePose();
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS2SOTFS)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS)
             {
                 Skeleton?.RevertToReferencePose();
                 AfterAnimUpdate(Main.DELTA_UPDATE);

@@ -73,7 +73,7 @@ namespace DSAnimStudio
 
         public DS3PairedWpnMemeKind GetDS3PairedWpnMemeKindR(int modelIndex)
         {
-            int ds3ConditionFlag = GameDataManager.GameType == GameDataManager.GameTypes.DS3
+            int ds3ConditionFlag = GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3
                 ? (RightWeapon?.GetDS3TaeConditionFlag(modelIndex) ?? -1) : -1;
 
             if (modelIndex == 0 && DS3PairedWeaponMemeR0_Flag == ds3ConditionFlag)
@@ -90,7 +90,7 @@ namespace DSAnimStudio
 
         public DS3PairedWpnMemeKind GetDS3PairedWpnMemeKindL(int modelIndex)
         {
-            int ds3ConditionFlag = GameDataManager.GameType == GameDataManager.GameTypes.DS3
+            int ds3ConditionFlag = GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3
                 ? (LeftWeapon?.GetDS3TaeConditionFlag(modelIndex) ?? -1) : -1;
 
             if (modelIndex == 0 && DS3PairedWeaponMemeL0_Flag == ds3ConditionFlag)
@@ -338,7 +338,7 @@ namespace DSAnimStudio
 
         public void UpdateWeaponTransforms(float timeDelta)
         {
-            if (GameDataManager.GameType != GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS3)
             {
                 ClearDS3PairedWeaponMeme();
             }
@@ -352,7 +352,7 @@ namespace DSAnimStudio
                 {
                     Matrix absoluteWeaponTransform = Matrix.Identity;
 
-                    if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                    if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                     {
                         var dummyPolyID = isLeft ? wpn.BB_GetLeftWeaponDummyPoly(this, modelIdx)
                             : wpn.BB_GetRightWeaponDummyPoly(this, modelIdx);
@@ -370,8 +370,8 @@ namespace DSAnimStudio
                                     * Skeleton[defaultBoneIndex];
                         }
                     }
-                    else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || 
-                        GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                    else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 || 
+                        GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                     {
                         var dummyPolyID = isLeft ? wpn.DS3_GetLeftWeaponDummyPoly(this, modelIdx)
                             : wpn.DS3_GetRightWeaponDummyPoly(this, modelIdx);
@@ -384,8 +384,8 @@ namespace DSAnimStudio
                             absoluteWeaponTransform = Matrix.CreateScale(0);
                         }
                     }
-                    else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
-                        GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                    else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
+                        GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                     {
                         // Weapon
                         if (modelIdx == 0)
@@ -451,16 +451,16 @@ namespace DSAnimStudio
                 }
             }
 
-            var rback = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            var rback = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 ? !RightWeaponFlipBackwards : RightWeaponFlipBackwards;
 
-            var rside = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            var rside = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 ? !RightWeaponFlipSideways : !RightWeaponFlipSideways;
 
-            var lback = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            var lback = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 ? !LeftWeaponFlipBackwards : LeftWeaponFlipBackwards;
 
-            var lside = (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            var lside = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 ? LeftWeaponFlipSideways : !LeftWeaponFlipSideways;
 
             DoWPN(RightWeapon, RightWeaponModel0, 0, RightWeaponBoneIndex, isLeft: false, rback, rside);
@@ -736,11 +736,11 @@ namespace DSAnimStudio
 
                 bool renderWpn = true;
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 {
                     renderWpn = (modelIdx == 0);
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3 || GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     var dummyPolyID = isLeft ? wpn.DS3_GetLeftWeaponDummyPoly(this, modelIdx)
                             : wpn.DS3_GetRightWeaponDummyPoly(this, modelIdx);
@@ -750,7 +750,7 @@ namespace DSAnimStudio
                         renderWpn = false;
                     }
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                 {
                     var dummyPolyID = isLeft ? wpn.BB_GetLeftWeaponDummyPoly(this, modelIdx)
                             : wpn.BB_GetRightWeaponDummyPoly(this, modelIdx);
@@ -942,17 +942,17 @@ namespace DSAnimStudio
             {
                 MODEL.ResetDrawMaskToAllVisible();
 
-                if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 {
                     LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
                     LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                 {
                     LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
                     LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
                 }
-                else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_m_0100.partsbnd.dcx"), EquipSlot.Face);
 

@@ -10,19 +10,28 @@ namespace DSAnimStudio
 {
     public static class _QuickDebug
     {
+        
+
         public static void BuildDebugMenu()
         {
             if (DebugButton("SoulsAssetPipeline_Test"))
             {
                 LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_Test", "TEST: SoulsAssetPipeline_Model", prog =>
                 {
-                    var importSettings = new SoulsAssetPipeline.FLVER2Importer.FLVER2ImportSettings()
+                    var importSettings = new SoulsAssetPipeline.FLVERImporting.FLVER2Importer.FLVER2ImportSettings()
                     {
                         SceneScale = 0.01f,
+                        Game = SoulsAssetPipeline.SoulsGames.DS1,
                     };
 
-                    var importedFlver = SoulsAssetPipeline.FLVER2Importer.ImportFBX(
-                        @"C:\DarkSoulsModding_Nightfall\AbyssKnight (2)\AbyssKnight.fbx", importSettings);
+                    SoulsAssetPipeline.FLVERImporting.FLVER2Importer.ImportedFLVER2Model importedFlver = null;
+
+                    using (var importer = new SoulsAssetPipeline.FLVERImporting.FLVER2Importer())
+                    {
+                        importedFlver = importer.ImportFBX(@"C:\DarkSoulsModding_Nightfall\AbyssKnight (2)\AbyssKnight.fbx", importSettings);
+                    }
+
+                    
 
 
                     foreach (var tex in importedFlver.Textures)
@@ -32,18 +41,18 @@ namespace DSAnimStudio
 
                     Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
 
-                    for (int i = 0; i < Scene.Models[0].Skeleton.FlverSkeleton.Count; i++)
+                    for (int i = 0; i < Scene.MainModel.Skeleton.FlverSkeleton.Count; i++)
                     {
-                        if (!boneIndexRemap.ContainsKey(Scene.Models[0].Skeleton.FlverSkeleton[i].Name))
-                            boneIndexRemap.Add(Scene.Models[0].Skeleton.FlverSkeleton[i].Name, i);
+                        if (!boneIndexRemap.ContainsKey(Scene.MainModel.Skeleton.FlverSkeleton[i].Name))
+                            boneIndexRemap.Add(Scene.MainModel.Skeleton.FlverSkeleton[i].Name, i);
                     }
 
-                    var oldMainMesh = Scene.Models[0].MainMesh;
+                    var oldMainMesh = Scene.MainModel.MainMesh;
                     var newMainMesh = new NewMesh(importedFlver.Flver, false, boneIndexRemap);
 
                     lock (Scene._lock_ModelLoad_Draw)
                     {
-                        Scene.Models[0].MainMesh = newMainMesh;
+                        Scene.MainModel.MainMesh = newMainMesh;
                     }
 
                     oldMainMesh?.Dispose();
@@ -57,29 +66,29 @@ namespace DSAnimStudio
 
             if (DebugButton("SoulsAssetPipeline_Anim_Test"))
             {
-                var boneNames = Scene.Models[0].Skeleton.HkxSkeleton.Select(x => x.Name).ToList();
-                var importSettings = new SoulsAssetPipeline.AnimationImporter.AnimationImportSettings
+                var boneNames = Scene.MainModel.Skeleton.HkxSkeleton.Select(x => x.Name).ToList();
+                var importSettings = new SoulsAssetPipeline.AnimationImporting.AnimationImporter.AnimationImportSettings
                 {
                     SceneScale = 0.01f,
                     ExistingBoneNameList = boneNames,
-                    ExistingHavokAnimationTemplate = Scene.Models[0].AnimContainer.CurrentAnimation.data,
+                    ExistingHavokAnimationTemplate = Scene.MainModel.AnimContainer.CurrentAnimation.data,
                     ResampleToFramerate = 60,
                     RootMotionNodeName = "root"
                 };
 
-                var importedAnim = SoulsAssetPipeline.AnimationImporter.ImportFBX(
+                var importedAnim = SoulsAssetPipeline.AnimationImporting.AnimationImporter.ImportFBX(
                     @"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx", importSettings);
 
                 //importedFlver.WriteToHavok2010InterleavedUncompressedXML(@"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx.saptest.xml");
 
                 lock (Scene._lock_ModelLoad_Draw)
                 {
-                    var anim = new NewHavokAnimation(importedAnim, Scene.Models[0].Skeleton, Scene.Models[0].AnimContainer);
-                    string animName = Scene.Models[0].AnimContainer.CurrentAnimationName;
-                    Scene.Models[0].AnimContainer.AddNewAnimation(animName, anim);
-                    Scene.Models[0].AnimContainer.CurrentAnimationName = null;
-                    Scene.Models[0].AnimContainer.CurrentAnimationName = animName;
-                    Scene.Models[0].AnimContainer.ResetAll();
+                    var anim = new NewHavokAnimation(importedAnim, Scene.MainModel.Skeleton, Scene.MainModel.AnimContainer);
+                    string animName = Scene.MainModel.AnimContainer.CurrentAnimationName;
+                    Scene.MainModel.AnimContainer.AddNewAnimation(animName, anim);
+                    Scene.MainModel.AnimContainer.CurrentAnimationName = null;
+                    Scene.MainModel.AnimContainer.CurrentAnimationName = animName;
+                    Scene.MainModel.AnimContainer.ResetAll();
                     Main.TAE_EDITOR?.HardReset();
                 }
                 Console.WriteLine("fatcat");

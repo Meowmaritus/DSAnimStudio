@@ -21,6 +21,8 @@ namespace DSAnimStudio
 
         public bool TextureReloadQueued = false;
 
+        public FLVER2.FLVERHeader FlverHeader = null;
+
         public void DefaultAllMaskValues()
         {
             for (int i = 0; i < Model.DRAW_MASK_LENGTH; i++)
@@ -57,6 +59,8 @@ namespace DSAnimStudio
         private void LoadFLVER2(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null, 
             bool ignoreStaticTransforms = false)
         {
+            FlverHeader = flver.Header;
+
             lock (_lock_submeshes)
             {
                 Submeshes = new List<FlverSubmeshRenderer>();

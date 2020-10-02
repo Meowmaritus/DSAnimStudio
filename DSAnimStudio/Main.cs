@@ -21,6 +21,13 @@ namespace DSAnimStudio
     /// </summary>
     public class Main : Game
     {
+        public static void CenterForm(Form form)
+        {
+            var x = Main.WinForm.Location.X + (Main.WinForm.Width - form.Width) / 2;
+            var y = Main.WinForm.Location.Y + (Main.WinForm.Height - form.Height) / 2;
+            form.Location = new System.Drawing.Point(Math.Max(x, 0), Math.Max(y, 0));
+        }
+
         protected override void Dispose(bool disposing)
         {
             WindowsMouseHook.Unhook();
@@ -90,6 +97,7 @@ namespace DSAnimStudio
         public static bool Active { get; private set; }
         public static bool prevActive { get; private set; }
 
+        public static bool IsFirstUpdateLoop { get; private set; } = true;
         public static bool IsFirstFrameActive { get; private set; } = false;
 
         public static bool Minimized { get; private set; }
@@ -259,6 +267,11 @@ namespace DSAnimStudio
             Window.AllowUserResizing = true;
 
             Window.ClientSizeChanged += Window_ClientSizeChanged;
+
+            WinForm.Shown += (o, e) =>
+            {
+                FmodManager.InitTest();
+            };
 
             this.Activated += Main_Activated;
             this.Deactivated += Main_Deactivated;
@@ -444,67 +457,102 @@ namespace DSAnimStudio
 
             //TAE_EDITOR.
 
-            LoadingTaskMan.DoLoadingTask("LoadingDroppedModel", "Loading dropped model(s)...", prog =>
+            if (modelFiles.Length == 1)
             {
-                foreach (var file in modelFiles)
+                string f = modelFiles[0].ToLower();
+
+                if (f.EndsWith(".fbx"))
                 {
-                    if (file.ToUpper().EndsWith(".FLVER"))
+                    TAE_EDITOR.Config.LastImportConfig_FLVER2.AssetPath = f;
+                    TAE_EDITOR.BringUpImporter_FLVER2();
+                    TAE_EDITOR.Config.LastImportConfig_FLVER2.AssetPath = f;
+                    TAE_EDITOR.ImporterWindow_FLVER2.LoadValuesFromConfig();
+                }
+            }
+            else
+            {
+
+                LoadingTaskMan.DoLoadingTask("LoadingDroppedModel", "Loading dropped model(s)...", prog =>
+                {
+                    foreach (var file in modelFiles)
                     {
+                        if (file.ToUpper().EndsWith(".FLVER"))
+                        {
                         //currModelAddOffset.X += 3;
                         var m = new Model(FLVER2.Read(file), false);
-                        m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                        Scene.ClearSceneAndAddModel(m);
-                    }
-                    else if (file.ToUpper().EndsWith(".CHRBND") || file.ToUpper().EndsWith(".CHRBND.DCX"))
-                    {
-                        Scene.ClearScene();
+                            m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                            Scene.ClearSceneAndAddModel(m);
+                        }
+                        else if (file.ToUpper().EndsWith(".CHRBND") || file.ToUpper().EndsWith(".CHRBND.DCX"))
+                        {
+                            Scene.ClearScene();
                         //currModelAddOffset.X += 3;
                         GameDataManager.InitializeFromBND(file);
-                        var m = GameDataManager.LoadCharacter(Utils.GetShortIngameFileName(file));
-                        m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                        m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
-                        m.AnimContainer.ForcePlayAnim = true;
-                        m.UpdateAnimation();
+                            var m = GameDataManager.LoadCharacter(Utils.GetShortIngameFileName(file));
+                            m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                            m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
+                            m.AnimContainer.ForcePlayAnim = true;
+                            m.UpdateAnimation();
                         //Scene.ClearSceneAndAddModel(m);
                     }
-                    else if (file.ToUpper().EndsWith(".OBJBND") || file.ToUpper().EndsWith(".OBJBND.DCX"))
-                    {
-                        Scene.ClearScene();
+                        else if (file.ToUpper().EndsWith(".OBJBND") || file.ToUpper().EndsWith(".OBJBND.DCX"))
+                        {
+                            Scene.ClearScene();
                         //currModelAddOffset.X += 3;
                         GameDataManager.InitializeFromBND(file);
-                        var m = GameDataManager.LoadObject(Utils.GetShortIngameFileName(file));
-                        m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                        m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
-                        m.AnimContainer.ForcePlayAnim = true;
-                        m.UpdateAnimation();
+                            var m = GameDataManager.LoadObject(Utils.GetShortIngameFileName(file));
+                            m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                            m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
+                            m.AnimContainer.ForcePlayAnim = true;
+                            m.UpdateAnimation();
                         //Scene.ClearSceneAndAddModel(m);
                     }
-                    else if (file.ToUpper().EndsWith(".HKX"))
-                    {
-                        var anim = KeyboardInput.Show("Enter Anim ID", "Enter name to save the dragged and dropped HKX file to e.g. a01_3000.");
-                        string name = anim.Result;
-                        byte[] animData = File.ReadAllBytes(file);
-                        TAE_EDITOR.FileContainer.AddNewHKX(name, animData, out byte[] dataForAnimContainer);
-                        TAE_EDITOR.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(name + ".hkx", dataForAnimContainer);
+                        else if (file.ToUpper().EndsWith(".HKX"))
+                        {
+                            var anim = KeyboardInput.Show("Enter Anim ID", "Enter name to save the dragged and dropped HKX file to e.g. a01_3000.");
+                            string name = anim.Result;
+                            byte[] animData = File.ReadAllBytes(file);
+                            TAE_EDITOR.FileContainer.AddNewHKX(name, animData, out byte[] dataForAnimContainer);
+                            TAE_EDITOR.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(name + ".hkx", dataForAnimContainer);
+                        }
                     }
-                }
 
-            }, disableProgressBarByDefault: true);
-            
+                }, disableProgressBarByDefault: true);
+            }
 
             //LoadDragDroppedFiles(modelFiles.ToDictionary(f => f, f => File.ReadAllBytes(f)));
         }
 
+        static bool IsValidDragDropModelFile(string f)
+        {
+            return (BND3.Is(f) || BND4.Is(f) || FLVER2.Is(f));
+        }
+
         private void GameWindowForm_DragEnter(object sender, DragEventArgs e)
         {
+            bool isValid = false;
+
             if (e.Data.GetDataPresent(DataFormats.FileDrop) && !LoadingTaskMan.AnyTasksRunning())
             {
-                e.Effect = DragDropEffects.All;
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+                
+
+                if (files.Length == 1)
+                {
+                    string f = files[0].ToLower();
+
+                    if (f.EndsWith(".fbx"))
+                        isValid = Scene.IsModelLoaded;
+                }
+                // If multiple files are dragged they must all be regularly 
+                // loadable rather than the specific case ones above
+                else if (files.All(f => IsValidDragDropModelFile(f)))
+                    isValid = true;
+
+
             }
-            else
-            {
-                e.Effect = DragDropEffects.None;
-            }
+
+            e.Effect = isValid ? DragDropEffects.Link : DragDropEffects.None;
         }
 
         protected override void LoadContent()
@@ -575,8 +623,6 @@ namespace DSAnimStudio
             ImGuiDraw.RebuildFontAtlas();
 
             TAE_EDITOR.LoadContent(Content);
-
-            FmodManager.InitTest();
 
             UpdateDpiStuff();
         }
@@ -698,6 +744,7 @@ namespace DSAnimStudio
             try
             {
 #endif
+
                 UpdateActiveState();
 
                 if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
@@ -843,6 +890,7 @@ namespace DSAnimStudio
                 ErrorLog.HandleException(ex, "Fatal error encountered during update loop");
             }
 #endif
+            IsFirstUpdateLoop = false;
         }
 
         private void InitTonemapShader()

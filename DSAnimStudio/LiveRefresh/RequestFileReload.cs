@@ -10,7 +10,7 @@ namespace DSAnimStudio.LiveRefresh
     {
         internal static long GetReloadPtr()
         {
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 var GetReloadPtr_ = IntPtr.Add(Memory.BaseAddress, 0x4768E78);
                 GetReloadPtr_ = new IntPtr(Memory.ReadInt64(GetReloadPtr_));
@@ -28,7 +28,7 @@ namespace DSAnimStudio.LiveRefresh
         {
             var PartsPtr = (IntPtr)GetReloadPtr();
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 try
                 {
@@ -66,7 +66,7 @@ namespace DSAnimStudio.LiveRefresh
         {
             byte[] chrNameBytes = Encoding.Unicode.GetBytes(chrName);
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 try
                 {
@@ -93,7 +93,7 @@ namespace DSAnimStudio.LiveRefresh
                     Memory.CloseHandle();
                 }
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
             {
                 try
                 {
@@ -129,7 +129,7 @@ namespace DSAnimStudio.LiveRefresh
         {
             byte[] objNameBytes = Encoding.Unicode.GetBytes(objName);
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 try
                 {

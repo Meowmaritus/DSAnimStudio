@@ -13,7 +13,7 @@ namespace DSAnimStudio.TaeEditor
         private List<(TAE tae, TAE.Animation anim)> RefChain = new List<(TAE tae, TAE.Animation anim)>();
         private IReadOnlyDictionary<string, TAE> TaeDict = null;
         private IReadOnlyDictionary<string, byte[]> HKXDict = null;
-        private GameDataManager.GameTypes Game => GameDataManager.GameType;
+        private SoulsAssetPipeline.SoulsGames Game => GameDataManager.GameType;
         public bool StackLimitHit = false;
 
         public TaeAnimRefChainSolver(IReadOnlyDictionary<string, TAE> taeDict, IReadOnlyDictionary<string, byte[]> hkxDict)
@@ -22,9 +22,9 @@ namespace DSAnimStudio.TaeEditor
             HKXDict = hkxDict;
         }
 
-        bool IsGameLongAnimNames => (Game == GameDataManager.GameTypes.BB || 
-            Game == GameDataManager.GameTypes.DS3 || 
-            Game == GameDataManager.GameTypes.SDT);
+        bool IsGameLongAnimNames => (Game == SoulsAssetPipeline.SoulsGames.BB || 
+            Game == SoulsAssetPipeline.SoulsGames.DS3 || 
+            Game == SoulsAssetPipeline.SoulsGames.SDT);
 
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {

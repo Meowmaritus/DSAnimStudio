@@ -22,7 +22,7 @@ namespace DSAnimStudio
         public List<int> ParamID_WPR = new List<int>();
         public List<int> ParamID_WPL = new List<int>();
 
-        public GameDataManager.GameTypes GameTypesParamsAndFmgsWereLoadedFrom = GameDataManager.GameTypes.None;
+        public SoulsAssetPipeline.SoulsGames GameTypesParamsAndFmgsWereLoadedFrom = SoulsAssetPipeline.SoulsGames.None;
 
         public NewChrAsmEquipForm()
         {

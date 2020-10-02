@@ -40,11 +40,11 @@ namespace DSAnimStudio.TaeEditor
 
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {
-            return ((GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            return ((GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 ? (id / 1000000) : (id / 10000),
-                (GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+                (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 ? (id % 1000000) : (id % 10000));
         }
 
@@ -55,8 +55,8 @@ namespace DSAnimStudio.TaeEditor
 
             var splitID = GetSplitAnimID(compositeID);
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 return $"a{splitID.Upper:D3}_{splitID.Lower:D6}";
             }
@@ -86,8 +86,8 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private string CurFormattingString() => (GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS3) ? "aXXX_YYYYY" : "aXX_YYYY";
+        private string CurFormattingString() => (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3) ? "aXXX_YYYYY" : "aXX_YYYY";
 
         private TAE.Animation.AnimMiniHeader MiniHeaderSaveValuesFromGUI()
         {
@@ -225,8 +225,8 @@ namespace DSAnimStudio.TaeEditor
 
         private string HKXSubIDDispNameFromInt_NoPrefix(long subID)
         {
-            if (GameDataManager.GameType == GameDataManager.GameTypes.BB ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 return $"{subID:D6}";
             }

@@ -238,11 +238,11 @@ namespace DSAnimStudio
             }
 
             string[] defsFile = null;
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
             {
                 defsFile = File.ReadAllLines(Utils.Frankenpath(Main.Directory, @"RES\HitMtrlParamNames.DS1.txt"));
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 defsFile = File.ReadAllLines(Utils.Frankenpath(Main.Directory, @"RES\HitMtrlParamNames.DS3.txt"));
             }
@@ -391,14 +391,14 @@ namespace DSAnimStudio
         /// <returns></returns>
         private static string GetFevPathFromInterroot(string name, bool isDs1Dlc = false)
         {
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 return GameDataManager.GetInterrootPath($@"sound\{(isDs1Dlc ? "fdlc" : "frpg")}_{name}.fev");
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 return GameDataManager.GetInterrootPath($@"sound\fdp_{name}.fev");
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
                 return GameDataManager.GetInterrootPath($@"sound_win\sprj_{name}.fev");
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 return GameDataManager.GetInterrootPath($@"sound\{name}.fev");
             else return null;
         }
@@ -418,8 +418,8 @@ namespace DSAnimStudio
 
             string path = GetFevPathFromInterroot(name);
             if (!File.Exists(path) && 
-                (GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
-                GameDataManager.GameType == GameDataManager.GameTypes.DS1R))
+                (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R))
             {
                 path = GetFevPathFromInterroot(name, isDs1Dlc: true);
             }
@@ -431,15 +431,15 @@ namespace DSAnimStudio
             if (!initialised)
                 return;
 
-            if (GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-                GameDataManager.GameType == GameDataManager.GameTypes.DS1R)
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
             {
                 LoadInterrootFEV("main");
                 var dlc = GetFevPathFromInterroot("main", isDs1Dlc: true);
                 if (File.Exists(dlc))
                     LoadFEV(dlc);
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.DS3)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 LoadInterrootFEV("main");
 
@@ -452,11 +452,11 @@ namespace DSAnimStudio
                 if (File.Exists(dlc2))
                     LoadFEV(dlc2);
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.SDT)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
             {
                 LoadInterrootFEV("main");
             }
-            else if (GameDataManager.GameType == GameDataManager.GameTypes.BB)
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
             {
                 LoadInterrootFEV("main");
             }
@@ -542,7 +542,9 @@ namespace DSAnimStudio
 
         public static void InitTest()
         {
-            initialised = false;
+            if (initialised)
+                return;
+
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = FMOD.Event_Factory.EventSystem_Create(ref _eventSystem));
@@ -585,7 +587,7 @@ namespace DSAnimStudio
             Main.WinForm.Invoke(new Action(() =>
             {
                 ERRCHECK(result = _eventSystem.setMediaPath(GetDirWithBackslash(
-                Utils.Frankenpath(GameDataManager.InterrootPath, GameDataManager.GameType == GameDataManager.GameTypes.BB ? "sound_win" : "sound"))));
+                Utils.Frankenpath(GameDataManager.InterrootPath, GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ? "sound_win" : "sound"))));
             }));
         }
 

@@ -503,15 +503,15 @@ namespace DSAnimStudio
 
         public void UpdateDummyPolyFollowRefPoint(bool isFirstTime)
         {
-            if (Scene.Models.Count > 0)
+            if (Scene.IsModelLoaded)
             {
                 bool CheckCenterDummyPoly(int dmyID)
                 {
-                    if (Scene.Models[0] == null)
+                    if (Scene.MainModel == null)
                         return false;
-                    if (Scene.Models[0].DummyPolyMan.DummyPolyByRefID.ContainsKey(dmyID))
+                    if (Scene.MainModel.DummyPolyMan.DummyPolyByRefID.ContainsKey(dmyID))
                     {
-                        var lockonPoint1 = Scene.Models[0].DummyPolyMan.GetDummyPosByID(dmyID, 
+                        var lockonPoint1 = Scene.MainModel.DummyPolyMan.GetDummyPosByID(dmyID, 
                             Matrix.Identity, ignoreModelTransform: true);
                         if (lockonPoint1.Count > 0)
                         {

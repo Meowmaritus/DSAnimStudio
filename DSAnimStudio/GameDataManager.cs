@@ -7,23 +7,24 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using Microsoft.Xna.Framework;
+using SoulsAssetPipeline;
 
 namespace DSAnimStudio
 {
     public static class GameDataManager
     {
-        public enum GameTypes
-        {
-            None,
-            DES,
-            DS1,
-            DS1R,
-            //DS2,
-            DS2SOTFS,
-            DS3,
-            BB,
-            SDT,
-        }
+        //public enum SoulsGames
+        //{
+        //    None,
+        //    DES,
+        //    DS1,
+        //    DS1R,
+        //    //DS2,
+        //    DS2SOTFS,
+        //    DS3,
+        //    BB,
+        //    SDT,
+        //}
 
         public enum AnimIDFormattingType
         {
@@ -32,25 +33,25 @@ namespace DSAnimStudio
             a00_00_0000,
         }
 
-        public static readonly Dictionary<GameTypes, string> GameTypeNames =
-            new Dictionary<GameTypes, string>
+        public static readonly Dictionary<SoulsGames, string> GameTypeNames =
+            new Dictionary<SoulsGames, string>
         {
-            { GameTypes.None, "<NONE>" },
-            { GameTypes.DES, "Demon's Souls" },
-            { GameTypes.DS1, "Dark Souls: Prepare to Die Edition" },
-            { GameTypes.DS1R, "Dark Souls Remastered" },
+            { SoulsGames.None, "<NONE>" },
+            { SoulsGames.DES, "Demon's Souls" },
+            { SoulsGames.DS1, "Dark Souls: Prepare to Die Edition" },
+            { SoulsGames.DS1R, "Dark Souls Remastered" },
             //{ GameTypes.DS2, "Dark Souls II" },
-            { GameTypes.DS2SOTFS, "Dark Souls II: Scholar of the First Sin" },
-            { GameTypes.DS3, "Dark Souls III" },
-            { GameTypes.BB, "Bloodborne" },
-            { GameTypes.SDT, "Sekiro: Shadows Die Twice" },
+            { SoulsGames.DS2SOTFS, "Dark Souls II: Scholar of the First Sin" },
+            { SoulsGames.DS3, "Dark Souls III" },
+            { SoulsGames.BB, "Bloodborne" },
+            { SoulsGames.SDT, "Sekiro: Shadows Die Twice" },
         };
 
-        public static bool CheckGameTypeParamIDCompatibility(GameTypes a, GameTypes b)
+        public static bool CheckGameTypeParamIDCompatibility(SoulsGames a, SoulsGames b)
         {
-            if (a == GameTypes.DS1 && b == GameTypes.DS1R)
+            if (a == SoulsGames.DS1 && b == SoulsGames.DS1R)
                 return true;
-            else if (a == GameTypes.DS1R && b == GameTypes.DS1)
+            else if (a == SoulsGames.DS1R && b == SoulsGames.DS1)
                 return true;
             // TODO: Check if these DS2 ones would be a good idea with 
             // Forlorn set only being in sotfs etc.
@@ -62,8 +63,8 @@ namespace DSAnimStudio
                 return a == b;
         }
 
-        private static GameTypes lastGameType = GameTypes.None;
-        public static GameTypes GameType { get; private set; } = GameTypes.None;
+        private static SoulsGames lastGameType = SoulsGames.None;
+        public static SoulsGames GameType { get; private set; } = SoulsGames.None;
 
         public static bool GameTypeHasLongAnimIDs => CurrentAnimIDFormatType == AnimIDFormattingType.a000_000000 ||
             CurrentAnimIDFormatType == AnimIDFormattingType.a00_00_0000;
@@ -74,15 +75,15 @@ namespace DSAnimStudio
             {
                 switch (GameType)
                 {
-                    case GameTypes.DS1:
-                    case GameTypes.DS1R:
-                    case GameTypes.DES:
+                    case SoulsGames.DS1:
+                    case SoulsGames.DS1R:
+                    case SoulsGames.DES:
                         return AnimIDFormattingType.a00_0000;
-                    case GameTypes.BB:
-                    case GameTypes.DS3:
-                    case GameTypes.SDT:
+                    case SoulsGames.BB:
+                    case SoulsGames.DS3:
+                    case SoulsGames.SDT:
                         return AnimIDFormattingType.a000_000000;
-                    case GameTypes.DS2SOTFS:
+                    case SoulsGames.DS2SOTFS:
                         return AnimIDFormattingType.a00_00_0000;
                     default:
                         return AnimIDFormattingType.a000_000000;
@@ -91,19 +92,19 @@ namespace DSAnimStudio
         }
 
         public static bool GameTypeIsHavokTagfile =>
-            (GameType == GameTypes.DS1R || GameType == GameTypes.SDT);
+            (GameType == SoulsGames.DS1R || GameType == SoulsGames.SDT);
 
         public static HKX.HKXVariation GetCurrentLegacyHKXType()
         {
-            if (GameType == GameTypes.DES)
+            if (GameType == SoulsGames.DES)
                 return HKX.HKXVariation.HKXDeS;
-            else if (GameType == GameTypes.DS1 || GameType == GameTypes.DS1R)
+            else if (GameType == SoulsGames.DS1 || GameType == SoulsGames.DS1R)
                 return HKX.HKXVariation.HKXDS1;
-            else if (GameType == GameTypes.DS3)
+            else if (GameType == SoulsGames.DS3)
                 return HKX.HKXVariation.HKXDS3;
-            else if (GameType == GameTypes.BB)
+            else if (GameType == SoulsGames.BB)
                 return HKX.HKXVariation.HKXBloodBorne;
-            else if (GameType == GameTypes.SDT)
+            else if (GameType == SoulsGames.SDT)
                 return HKX.HKXVariation.HKXDS1;
 
             return HKX.HKXVariation.Invalid;
@@ -155,7 +156,7 @@ namespace DSAnimStudio
             MtdDict.Clear();
             MTDBND = null;
 
-            if (GameType == GameTypes.SDT)
+            if (GameType == SoulsGames.SDT)
             {
                 MTDBND = BND4.Read(GetInterrootPath($@"mtd\allmaterialbnd.mtdbnd.dcx"));
                 
@@ -184,37 +185,37 @@ namespace DSAnimStudio
                 string interroot = GameDataManager.GetInterrootFromFilePath(bndPath);
                 if (check.Contains("FRPG2"))
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.DS2SOTFS, interroot);
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS2SOTFS, interroot);
                     return true;
                 }
                 else if (check.Contains(@"\FRPG\") && check.Contains(@"INTERROOT_X64"))
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.DS1R, interroot);
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS1R, interroot);
                     return true;
                 }
                 else if (check.Contains(@"\FRPG\") && check.Contains(@"INTERROOT_WIN32"))
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.DS1, interroot);
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS1, interroot);
                     return true;
                 }
                 else if (check.Contains(@"\SPRJ\"))
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.BB, interroot);
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.BB, interroot);
                     return true;
                 }
                 else if (check.Contains(@"\FDP\"))
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.DS3, interroot);
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS3, interroot);
                     return true;
                 }
                 else if (check.Contains(@"\DemonsSoul\"))
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.DES, interroot);
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DES, interroot);
                     return true;
                 }
                 else if (check.Contains(@"\NTC\"))
                 {
-                    GameDataManager.Init(GameDataManager.GameTypes.SDT, interroot);
+                    GameDataManager.Init(SoulsAssetPipeline.SoulsGames.SDT, interroot);
                     return true;
                 }
             }
@@ -232,7 +233,7 @@ namespace DSAnimStudio
             return folder.Substring(0, lastSlashInFolder);
         }
 
-        public static void Init(GameTypes gameType, string interroot, bool forceReload = false)
+        public static void Init(SoulsGames gameType, string interroot, bool forceReload = false)
         {
             GameType = gameType;
             InterrootPath = interroot;
@@ -332,7 +333,7 @@ namespace DSAnimStudio
         {
             LoadingTaskMan.DoLoadingTask("LoadSystex", "Loading SYSTEX textures...", progress =>
             {
-                if (GameType == GameTypes.DS1)
+                if (GameType == SoulsGames.DS1)
                 {
                     TexturePool.AddTpfsFromPaths(new List<string>
                     {
@@ -341,7 +342,7 @@ namespace DSAnimStudio
                         GetInterrootPath($@"other\lensflare.tpf"),
                     }, progress);
                 }
-                else if (GameType == GameTypes.DS1R)
+                else if (GameType == SoulsGames.DS1R)
                 {
                     TexturePool.AddTpfsFromPaths(new List<string>
                     {
@@ -350,7 +351,7 @@ namespace DSAnimStudio
                         GetInterrootPath($@"other\lensflare.tpf.dcx"),
                     }, progress);
                 }
-                else if (GameType == GameTypes.DS3)
+                else if (GameType == SoulsGames.DS3)
                 {
                     TexturePool.AddTpfsFromPaths(new List<string>
                     {
@@ -361,7 +362,7 @@ namespace DSAnimStudio
                         GetInterrootPath($@"parts\common_body.tpf.dcx"),
                     }, progress);
                 }
-                else if (GameType == GameTypes.BB)
+                else if (GameType == SoulsGames.BB)
                 {
                     // TODO: completely confirm these because I just
                     // copied them from a BB network test file list.
@@ -372,7 +373,7 @@ namespace DSAnimStudio
                         GetInterrootPath($@"other\bloodTex.tpf.dcx"),
                     }, progress);
                 }
-                else if (GameType == GameTypes.SDT)
+                else if (GameType == SoulsGames.SDT)
                 {
                     TexturePool.AddTpfsFromPaths(new List<string>
                     {
@@ -397,19 +398,19 @@ namespace DSAnimStudio
             LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_OBJ_{id}", $"Loading object {id}...", progress =>
             {
                 
-                    if (GameType == GameTypes.DS3 || GameType == GameTypes.BB || GameType == GameTypes.SDT)
+                    if (GameType == SoulsGames.DS3 || GameType == SoulsGames.BB || GameType == SoulsGames.SDT)
                     {
                         var chrbnd = BND4.Read(GetInterrootPath($@"obj\{id}.objbnd.dcx"));
 
                         obj = new Model(progress, id, chrbnd, 0, null, null);
                     }
-                    else if (GameType == GameTypes.DS1)
+                    else if (GameType == SoulsGames.DS1)
                     {
                         var chrbnd = BND3.Read(GetInterrootPath($@"obj\{id}.objbnd"));
 
                         obj = new Model(progress, id, chrbnd, 0, null, null);
                     }
-                    else if (GameType == GameTypes.DS1R)
+                    else if (GameType == SoulsGames.DS1R)
                     {
                         var chrbnd = BND3.Read(GetInterrootPath($@"obj\{id}.objbnd.dcx"));
 
@@ -427,14 +428,14 @@ namespace DSAnimStudio
                         LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_OBJ_{id}_TEX",
                             "Loading additional object textures...", innerProgress =>
                             {
-                                if (GameType == GameTypes.DS1)
+                                if (GameType == SoulsGames.DS1)
                                 {
                                     foreach (var tex in texturesToLoad)
                                     {
                                         TexturePool.AddTpfFromPath(GetInterrootPath($@"map\tx\{tex}.tpf"));
                                     }
                                 }
-                                else if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT || GameType == GameTypes.BB)
+                                else if (GameType == SoulsGames.DS3 || GameType == SoulsGames.SDT || GameType == SoulsGames.BB)
                                 {
                                     int objGroup = int.Parse(id.Substring(1)) / 1_0000;
                                     string mapDirName = GetInterrootPath($@"map\m{objGroup:D2}");
@@ -469,7 +470,7 @@ namespace DSAnimStudio
 
                 LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_CHR_{id}", $"Loading character {id}...", progress =>
                 {
-                    if (GameType == GameTypes.DS3 || GameType == GameTypes.SDT)
+                    if (GameType == SoulsGames.DS3 || GameType == SoulsGames.SDT)
                     {
                         var chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
                         IBinder texbnd = null;
@@ -482,7 +483,7 @@ namespace DSAnimStudio
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx")))
                             extraTexbnd = BND4.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx"));
 
-                        if (GameType == GameTypes.SDT)
+                        if (GameType == SoulsGames.SDT)
                         {
                             if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010")))
                                 anibnd = BND4.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010"));
@@ -496,7 +497,7 @@ namespace DSAnimStudio
                         chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
                             ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                     }
-                    else if (GameType == GameTypes.DS1)
+                    else if (GameType == SoulsGames.DS1)
                     {
                         var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd"));
                         IBinder anibnd = null;
@@ -523,7 +524,7 @@ namespace DSAnimStudio
                             possibleLooseTpfFolder: $@"chr\{id}\",
                             ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                     }
-                    else if (GameType == GameTypes.DS1R)
+                    else if (GameType == SoulsGames.DS1R)
                     {
                         var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
                         IBinder anibnd = null;
@@ -552,7 +553,7 @@ namespace DSAnimStudio
                             possibleLooseTpfFolder: $@"chr\{id}\",
                             ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                     }
-                    else if (GameType == GameTypes.BB)
+                    else if (GameType == SoulsGames.BB)
                     {
                         var chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
                         IBinder anibnd = null;
@@ -569,7 +570,7 @@ namespace DSAnimStudio
                             possibleLooseTpfFolder: $@"chr\{id}\",
                             ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
                     }
-                    else if (GameType == GameTypes.DS2SOTFS)
+                    else if (GameType == SoulsGames.DS2SOTFS)
                     {
                         var chrbnd = BND4.Read(GetInterrootPath($@"model\chr\{id}.bnd"));
                         IBinder texbnd = null;
@@ -594,7 +595,7 @@ namespace DSAnimStudio
                         "Loading additional player ANIBNDs...", progress =>
                     {
                         string[] anibnds = GameDataManager.GetInterrootFiles($@"chr",
-                            GameType == GameTypes.DS1 ? "c0000_*.anibnd" : "c0000_*.anibnd.dcx")
+                            GameType == SoulsGames.DS1 ? "c0000_*.anibnd" : "c0000_*.anibnd.dcx")
                         .OrderBy(fn =>
                         {
                             var fnCheck = fn.ToLower();
@@ -614,7 +615,7 @@ namespace DSAnimStudio
 
                             string anibndName = anibnds[i];
 
-                            if ((GameType == GameTypes.SDT || GameType == GameTypes.DS1R) && System.IO.File.Exists(anibnds[i] + ".2010"))
+                            if ((GameType == SoulsGames.SDT || GameType == SoulsGames.DS1R) && System.IO.File.Exists(anibnds[i] + ".2010"))
                             {
                                 anibndName = anibnds[i] + ".2010";
                             }
@@ -626,7 +627,7 @@ namespace DSAnimStudio
 
                             string anibndCheck = Path.GetFileNameWithoutExtension(anibndName).ToLower();
 
-                            bool isFirstPlayerAnibnd = anibndCheck.Contains(GameType == GameTypes.SDT ? "c0000_a000_lo" : "c0000_a00_lo");
+                            bool isFirstPlayerAnibnd = anibndCheck.Contains(GameType == SoulsGames.SDT ? "c0000_a000_lo" : "c0000_a00_lo");
 
                             chr.AnimContainer.LoadAdditionalANIBND(anibnd, null, scanAnims: isFirstPlayerAnibnd);
 
@@ -653,7 +654,7 @@ namespace DSAnimStudio
 
                                 string anibndName = additionalAnibnds[i];
 
-                                if ((GameType == GameTypes.SDT || GameType == GameTypes.DS1R) && System.IO.File.Exists(additionalAnibnds[i] + ".2010"))
+                                if ((GameType == SoulsGames.SDT || GameType == SoulsGames.DS1R) && System.IO.File.Exists(additionalAnibnds[i] + ".2010"))
                                 {
                                     anibndName = additionalAnibnds[i] + ".2010";
                                 }

@@ -8,7 +8,7 @@ namespace DSAnimStudio
 {
     public class NewChrAsmCfgJson
     {
-        public GameDataManager.GameTypes GameType;
+        public SoulsAssetPipeline.SoulsGames GameType;
         public int HeadID = -1;
         public int BodyID = -1;
         public int ArmsID = -1;

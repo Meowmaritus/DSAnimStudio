@@ -694,8 +694,8 @@ namespace DSAnimStudio
             HKX hkx = null;
             try
             {
-                hkx = HKX.Read(hkxBytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == GameDataManager.GameTypes.DS1R
-                || GameDataManager.GameType == GameDataManager.GameTypes.SDT));
+                hkx = HKX.Read(hkxBytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R
+                || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT));
             }
             catch
             {
@@ -888,7 +888,7 @@ namespace DSAnimStudio
                         || shortName == "skeleton_2.hkx"
                         || shortName == "skeleton_3.hkx")
                     {
-                        skeletonHKX = HKX.Read(f.Bytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == GameDataManager.GameTypes.DS1R));
+                        skeletonHKX = HKX.Read(f.Bytes, hkxVariation, isDS1RAnimHotfix: (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R));
                     }
                     else if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
                     {
