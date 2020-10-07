@@ -23,6 +23,15 @@ namespace DSAnimStudio
 
             public bool IsUnimportant = false;
 
+            public void UpdateKillCheck()
+            {
+                if (IsBeingKilledManually)
+                {
+                    Kill();
+                    IsComplete = true;
+                }
+            }
+
             public LoadingTask(string taskKey, string displayString, Action<IProgress<double>> doLoad, 
                 double startingProgressRatio = 0)
             {
@@ -33,11 +42,7 @@ namespace DSAnimStudio
                 IProgress<double> prog = new Progress<double>(x =>
                 {
                     ProgressRatio = x;
-                    if (IsBeingKilledManually)
-                    {
-                        Kill();
-                        IsComplete = true;
-                    }
+                    CheckOnTask(TaskKey);
                 });
 
                 ProgressRatio = startingProgressRatio;
@@ -48,6 +53,7 @@ namespace DSAnimStudio
                     try
                     {
                         doLoad.Invoke(prog);
+                        prog.Report(1.0);
                     }
                     catch (Exception ex)
                     {
@@ -55,6 +61,7 @@ namespace DSAnimStudio
                     }
 #else
                     doLoad.Invoke(prog);
+                    prog.Report(1.0);
 #endif
 
 
@@ -64,7 +71,11 @@ namespace DSAnimStudio
                     // entire universe. Instead, it's only considered done 
                     // after the entire doLoad is complete.
                     IsComplete = true;
+
+                    CheckOnTask(TaskKey);
                 });
+
+                taskThread.SetApartmentState(ApartmentState.STA);
 
                 taskThread.IsBackground = true;
                 taskThread.Start();
@@ -80,6 +91,21 @@ namespace DSAnimStudio
         internal static object _lock_TaskDictEdit = new object();
 
         public static Dictionary<string, LoadingTask> TaskDict = new Dictionary<string, LoadingTask>();
+
+        public static void CheckOnTask(string taskKey)
+        {
+            lock (_lock_TaskDictEdit)
+            {
+                if (TaskDict.ContainsKey(taskKey))
+                {
+                    TaskDict[taskKey].UpdateKillCheck();
+
+                    if (TaskDict[taskKey].IsComplete)
+                        TaskDict.Remove(taskKey);
+                }
+            }
+            
+        }
 
         public static bool AnyTasksRunning()
         {
@@ -131,9 +157,9 @@ namespace DSAnimStudio
         public static bool DoLoadingTask(string taskKey, 
             string displayString, 
             Action<IProgress<double>> taskDelegate, 
-            int addFluffMilliseconds = 100, 
+            int addFluffMilliseconds = 0,//100, 
             bool waitForTaskToComplete = false,
-            int synchronousWaitThreadSpinMilliseconds = 250,
+            int synchronousWaitThreadSpinMilliseconds = 16,//250,
             bool disableProgressBarByDefault = false,
             bool isUnimportant = false)
         {
@@ -164,7 +190,16 @@ namespace DSAnimStudio
                     // a dictionary which is being modified :fatcat:
                     lock (_lock_TaskDictEdit)
                     {
-                        isTaskDone = !TaskDict.ContainsKey(taskKey);
+                        if (TaskDict.ContainsKey(taskKey))
+                        {
+                            isTaskDone = TaskDict[taskKey].IsComplete;
+                            if (TaskDict[taskKey].IsComplete)
+                                TaskDict.Remove(taskKey);
+                        }
+                        else
+                        {
+                            isTaskDone = true;
+                        }
                     }
 
                     Thread.Sleep(synchronousWaitThreadSpinMilliseconds);

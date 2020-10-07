@@ -166,8 +166,8 @@ namespace DSAnimStudio
 
         public static void AddTextureBnd(IBinder bnd, IProgress<double> prog)
         {
-            var tpfs = bnd.Files.Where(file => file.Name.ToLower().EndsWith(".tpf") || file.Name.ToLower().EndsWith(".tpf.dcx")).ToList();
-            var tbnds = bnd.Files.Where(file => file.Name.ToLower().EndsWith(".tbnd")).ToList();
+            var tpfs = bnd.Files.Where(file => file.Name != null && (file.Name.ToLower().EndsWith(".tpf") || file.Name.ToLower().EndsWith(".tpf.dcx"))).ToList();
+            var tbnds = bnd.Files.Where(file => file.Name != null && file.Name.ToLower().EndsWith(".tbnd")).ToList();
 
             double total = tpfs.Count + tbnds.Count;
             double tpfFraction = 0;

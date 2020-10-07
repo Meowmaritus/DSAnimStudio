@@ -102,6 +102,8 @@
     <Compile Include="HavokDowngrade.cs" />
     <Compile Include="HavokRecorder.cs" />
     <Compile Include="Havok\HKAnimRetarget.cs" />
+    <Compile Include="HysteresisBool.cs" />
+    <Compile Include="ImguiOSD\OSD.Tools.cs" />
     <Compile Include="ImGuiRenderer.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
     <Compile Include="NewChrAsmEquipForm.cs">
@@ -115,10 +117,11 @@
     <Compile Include="NoPaddingButton.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="OSD.cs" />
+    <Compile Include="ImguiOSD\OSD.cs" />
     <Compile Include="PARAMHack\PARAM.cs" />
     <Compile Include="PARAMHack\PARAM.Row.cs" />
     <Compile Include="ParamUtil.cs" />
+    <Compile Include="SapImportConfigs.cs" />
     <Compile Include="SapImportFlver2Form.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -317,6 +320,9 @@
     <Reference Include="System.AppContext, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.AppContext.4.3.0\lib\net463\System.AppContext.dll</HintPath>
     </Reference>
+    <Reference Include="System.Buffers, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.4.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
+    </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Console, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Console.4.3.0\lib\net46\System.Console.dll</HintPath>
@@ -370,7 +376,9 @@
     <Reference Include="System.Runtime, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
     </Reference>
-    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.5.0.0-rc.1.20451.14\lib\net45\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
     <Reference Include="System.Runtime.Extensions, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.Extensions.4.3.0\lib\net462\System.Runtime.Extensions.dll</HintPath>
     </Reference>
@@ -588,6 +596,9 @@
     <None Include="Content\Fonts\NotoSansCJKjp-Medium.otf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\Fonts\ProggyTinySZ.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Content\Fonts\TaeEditorFont.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -621,6 +632,7 @@
     <None Include="Content\UVCHECK.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Compile Include="ImguiOSD\OSD.MenuBar.cs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

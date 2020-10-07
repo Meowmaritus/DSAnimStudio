@@ -93,8 +93,8 @@ namespace DSAnimStudio
         public static IServiceProvider ContentServiceProvider = null;
 
         private bool prevFrameWasLoadingTaskRunning = false;
-
         public static bool Active { get; private set; }
+        public static HysteresisBool ActiveHyst = new HysteresisBool(0, 5);
         public static bool prevActive { get; private set; }
 
         public static bool IsFirstUpdateLoop { get; private set; } = true;
@@ -137,6 +137,7 @@ namespace DSAnimStudio
         //public static TimeSpan MeasuredElapsedTime = TimeSpan.Zero;
 
         public bool IsLoadingTaskRunning = false;
+        public HysteresisBool IsLoadingTaskRunningHyst = new HysteresisBool(0, 5);
 
         public static ContentManager CM = null;
 
@@ -322,6 +323,7 @@ namespace DSAnimStudio
 
         private void Main_Activated(object sender, EventArgs e)
         {
+            IsFirstFrameActive = true;
             UpdateActiveState();
         }
 
@@ -463,9 +465,9 @@ namespace DSAnimStudio
 
                 if (f.EndsWith(".fbx"))
                 {
-                    TAE_EDITOR.Config.LastImportConfig_FLVER2.AssetPath = f;
+                    TAE_EDITOR.Config.LastUsedImportConfig_FLVER2.AssetPath = f;
                     TAE_EDITOR.BringUpImporter_FLVER2();
-                    TAE_EDITOR.Config.LastImportConfig_FLVER2.AssetPath = f;
+                    TAE_EDITOR.Config.LastUsedImportConfig_FLVER2.AssetPath = f;
                     TAE_EDITOR.ImporterWindow_FLVER2.LoadValuesFromConfig();
                 }
             }
@@ -530,6 +532,8 @@ namespace DSAnimStudio
 
         private void GameWindowForm_DragEnter(object sender, DragEventArgs e)
         {
+            IsFirstFrameActive = true;
+
             bool isValid = false;
 
             if (e.Data.GetDataPresent(DataFormats.FileDrop) && !LoadingTaskMan.AnyTasksRunning())
@@ -614,7 +618,8 @@ namespace DSAnimStudio
                     cfg.GlyphMinAdvanceX = 5.0f;
                     cfg.OversampleH = 5;
                     cfg.OversampleV = 5;
-                    var f = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length, 16.0f, cfg, fonts.GetGlyphRangesDefault());
+                    var f = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length, 
+                        16.0f, cfg, fonts.GetGlyphRangesDefault());
                 }
             }
 
@@ -704,7 +709,9 @@ namespace DSAnimStudio
 
             Active = !Minimized && IsActive && ApplicationIsActivated();
 
-            TargetElapsedTime = (Active || LoadingTaskMan.AnyTasksRunning()) ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
+            ActiveHyst.Update(Active);
+
+            TargetElapsedTime = (ActiveHyst || LoadingTaskMan.AnyTasksRunning()) ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
 
             if (!prevActive && Active)
             {
@@ -740,14 +747,17 @@ namespace DSAnimStudio
 
         protected override void Update(GameTime gameTime)
         {
+            IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
+            IsLoadingTaskRunningHyst.Update(IsLoadingTaskRunning);
+
 #if !DEBUG
             try
             {
 #endif
 
-                UpdateActiveState();
+            UpdateActiveState();
 
-                if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
+                if (ActiveHyst || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
                 {
                     if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
                     {
@@ -774,8 +784,6 @@ namespace DSAnimStudio
                     {
                         DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
                     }
-
-                    IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
 
                     Scene.UpdateAnimation();
 
@@ -904,7 +912,7 @@ namespace DSAnimStudio
             try
             {
 #endif
-                if (Active || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
+                if ((ActiveHyst || IsLoadingTaskRunningHyst) || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
                 {
                     Input.Update(new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height).DpiScaled());
 

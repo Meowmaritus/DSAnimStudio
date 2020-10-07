@@ -746,9 +746,12 @@ namespace DSAnimStudio
 
         public void DrawAllHitPrims()
         {
+            if (GlobalForceDummyPolyIDVisible < -1)
+                return;
+
             lock (_lock_everything_monkaS)
             {
-                if (GlobalForceDummyPolyIDVisible < 0)
+                if (GlobalForceDummyPolyIDVisible == -1)
                 {
                     foreach (var kvp in HitPrims)
                     {
@@ -761,7 +764,7 @@ namespace DSAnimStudio
 
                 foreach (var dmy in DummyPoly)
                 {
-                    bool isVis = (GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID)
+                    bool isVis = (GlobalForceDummyPolyIDVisible == -1 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID)
                         && (DummyPolyVisibleByRefID[dmy.ReferenceID] ||
                         dmy.ShowAttack != null || dmy.BulletSpawnIDs.Count > 0 || dmy.MiscSpawnTexts.Count > 0 || dmy.SFXSpawnIDs.Count > 0));
                     bool isForce = GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID);
@@ -775,6 +778,9 @@ namespace DSAnimStudio
 
         public void DrawAllHitPrimTexts()
         {
+            if (GlobalForceDummyPolyIDVisible < -1)
+                return;
+
             lock (_lock_everything_monkaS)
             {
                 foreach (var dmy in DummyPoly)
@@ -939,6 +945,8 @@ namespace DSAnimStudio
             
         }
 
+        // -1 = Show all normally
+        // -2 or lower = show none
         public static int GlobalForceDummyPolyIDVisible = -1;
         public static bool ShowGlobalIDOffset = true;
 

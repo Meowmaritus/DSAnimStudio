@@ -62,7 +62,7 @@ namespace DSAnimStudio.TaeEditor
                 }
                 RecreateAnimList();
                 //System.Windows.Forms.MessageBox.Show(sb.ToString());
-            }, startDisabled: false);
+            }, startDisabled: false, getEnabled: () => Scene.IsModelLoaded);
 
             MenuBar.AddSeparator("Tools");
 #endif
@@ -286,7 +286,8 @@ namespace DSAnimStudio.TaeEditor
                 ImporterWindow_FLVER2 = null;
             }
             ImporterWindow_FLVER2 = new SapImportFlver2Form();
-            ImporterWindow_FLVER2.ImportConfig = Config.LastImportConfig_FLVER2;
+            ImporterWindow_FLVER2.ImportConfig = Config.LastUsedImportConfig_FLVER2;
+            ImporterWindow_FLVER2.MainScreen = this;
             ImporterWindow_FLVER2.Show();
             // The CenterParent stuff just doesn't work for some reason, heck it.
 
@@ -666,6 +667,8 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeFileContainer FileContainer;
 
+        public bool IsFileOpen => FileContainer != null;
+
         public TAE SelectedTae { get; private set; }
 
         public TAE.Animation SelectedTaeAnim { get; private set; }
@@ -715,6 +718,8 @@ namespace DSAnimStudio.TaeEditor
         {
             inspectorWinFormsControl.Focus();
         }
+
+        public bool SingleEventBoxSelected => SelectedEventBox != null && MultiSelectedEventBoxes.Count == 0;
 
         public TaeEditAnimEventBox PrevHoveringOverEventBox = null;
 
@@ -950,6 +955,9 @@ namespace DSAnimStudio.TaeEditor
 
         public void SaveCurrentFile(Action afterSaveAction = null, string saveMessage = "Saving ANIBND...")
         {
+            if (!IsFileOpen)
+                return;
+
             if (IsReadOnlyFileMode)
             {
                 System.Windows.Forms.MessageBox.Show("Read-only mode is" +
@@ -1072,7 +1080,7 @@ namespace DSAnimStudio.TaeEditor
             HasntSelectedAnAnimYetAfterBuildingAnimList = true;
         }
 
-        public void AddNewAnimation()
+        public void DuplicateCurrentAnimation()
         {
             TAE.Animation.AnimMiniHeader header = null;
 
@@ -1919,6 +1927,14 @@ namespace DSAnimStudio.TaeEditor
             UpdateLayout();
         }
 
+        public void SetAllTAESectionsCollapsed(bool collapsed)
+        {
+            foreach (var kvp in AnimationListScreen.AnimTaeSections.Values)
+            {
+                kvp.Collapsed = collapsed;
+            }
+        }
+
         public void LoadContent(ContentManager c)
         {
             Transport.LoadContent(c);
@@ -1960,7 +1976,7 @@ namespace DSAnimStudio.TaeEditor
             //gridReference.Refresh();
         }
 
-        private void LiveRefresh()
+        public void LiveRefresh()
         {
             var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower();
 
@@ -2222,7 +2238,7 @@ namespace DSAnimStudio.TaeEditor
             Input.CursorType = MouseCursorType.Arrow;
         }
 
-        private void DirectOpenFile(string fileName)
+        public void DirectOpenFile(string fileName)
         {
             
             void DoActualFileOpen()
@@ -2475,7 +2491,7 @@ namespace DSAnimStudio.TaeEditor
             return null;
         }
 
-        private void File_SaveAs()
+        public void File_SaveAs()
         {
             var browseDlg = new System.Windows.Forms.SaveFileDialog()
             {
@@ -2499,7 +2515,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void ChangeTypeOfSelectedEvent()
+        public void ChangeTypeOfSelectedEvent()
         {
             if (SelectedEventBox == null)
                 return;
@@ -3182,6 +3198,11 @@ namespace DSAnimStudio.TaeEditor
             Graph.ScrollToPlaybackCursor(1);
         }
 
+        public void ReselectCurrentAnimation()
+        {
+            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+        }
+
         public void HardReset()
         {
             if (Graph == null)
@@ -3280,6 +3301,10 @@ namespace DSAnimStudio.TaeEditor
                 Graph.ViewportInteractor?.GeneralUpdate();
             }
 
+            if (OSD.Focused)
+            {
+                PauseUpdate = true;
+            }
             
 
             if (PauseUpdate)

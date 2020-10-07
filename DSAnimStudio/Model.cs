@@ -7,12 +7,15 @@ using System.Linq;
 using System.IO;
 using DSAnimStudio.GFXShaders;
 using FMOD;
+using SoulsAssetPipeline;
 
 namespace DSAnimStudio
 {
     public class Model : IDisposable
     {
         public string Name { get; set; } = "Model";
+
+        public FLVER2 FlverFileForDebug = null;
 
         public bool IsVisible { get; set; } = true;
         public void SetIsVisible(bool isVisible)
@@ -37,6 +40,10 @@ namespace DSAnimStudio
         public float CharacterTrackingRotation = 0;
 
         public float TrackingTestInput = 0;
+
+        public float DebugAnimWeight_Deprecated = 1;
+
+        public bool EnableSkinning = true;
 
         public void UpdateTrackingTest(float elapsedTime)
         {
@@ -173,7 +180,9 @@ namespace DSAnimStudio
         public Model(IProgress<double> loadingProgress, string name, IBinder chrbnd, int modelIndex, 
             IBinder anibnd, IBinder texbnd = null, List<string> additionalTpfNames = null, 
             string possibleLooseTpfFolder = null, int baseDmyPolyID = 0, 
-            bool ignoreStaticTransforms = false, IBinder additionalTexbnd = null)
+            bool ignoreStaticTransforms = false, IBinder additionalTexbnd = null,
+            SoulsAssetPipeline.FLVERImporting.FLVER2Importer.ImportedFLVER2Model modelToImportDuringLoad = null,
+            SapImportConfigs.ImportConfigFlver2 modelImportConfig = null)
             : this()
         {
             AnimContainer = new NewAnimationContainer(this);
@@ -197,7 +206,17 @@ namespace DSAnimStudio
             {
                 if (TPF.Is(f.Bytes))
                 {
-                    tpfsUsed.Add(TPF.Read(f.Bytes));
+                    var t = TPF.Read(f.Bytes);
+                    if (modelToImportDuringLoad != null)
+                    {
+                        t.Textures.Clear();
+                        foreach (var tx in modelToImportDuringLoad.Textures)
+                        {
+                            t.Textures.Add(tx);
+                        }
+                        f.Bytes = t.Write();
+                    }
+                    tpfsUsed.Add(t);
                 }
 
                 if ((f.ID % 10) != modelIndex && GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS2SOTFS)
@@ -208,6 +227,89 @@ namespace DSAnimStudio
                 {
                     //if (nameCheck.EndsWith($"_{modelIndex}.flver") || modelIndex == 0)
                     flver = FLVER2.Read(f.Bytes);
+
+                   
+
+                    if (modelToImportDuringLoad != null)
+                    {
+                        if (modelImportConfig.KeepOriginalDummyPoly)
+                        {
+                            modelToImportDuringLoad.Flver.Dummies.Clear();
+
+                            List<string> existingDummyPolyParentBoneNames = new List<string>();
+                            List<string> existingDummyPolyAttachBoneNames = new List<string>();
+                            for (int i = 0; i < flver.Dummies.Count; i++)
+                            {
+                                var dmy = flver.Dummies[i];
+
+                                // Clamp original value (presumably) how the game does.
+                                if (dmy.ParentBoneIndex < 0 || dmy.ParentBoneIndex > flver.Bones.Count)
+                                    dmy.ParentBoneIndex = 0;
+
+                                if (dmy.AttachBoneIndex < 0 || dmy.AttachBoneIndex > flver.Bones.Count)
+                                    dmy.AttachBoneIndex = 0;
+
+                                // Remap bone indices.
+                                dmy.ParentBoneIndex = (short)modelToImportDuringLoad.Flver.Bones.FindIndex(b => b.Name == flver.Bones[dmy.ParentBoneIndex].Name);
+                                dmy.AttachBoneIndex = (short)modelToImportDuringLoad.Flver.Bones.FindIndex(b => b.Name == flver.Bones[dmy.AttachBoneIndex].Name);
+
+                                modelToImportDuringLoad.Flver.Dummies.Add(dmy);
+                            }
+                        }
+
+
+#if DEBUG
+                        //DEBUGREMOVE
+
+                        //Console.WriteLine("SAP DEBUG - REIMPORTED SKELETON CHECK - ROTATION - START");
+                        //SapDebugUtil.Flver2ImportDebug.AssertReimportedSkeletonMatch(flver, modelToImportDuringLoad.Flver, (a, b) =>
+                        //{
+                        //    if (a.Unk3C != 0)
+                        //        return;
+
+                        //    var quatA = Quaternion.CreateFromRotationMatrix(
+                        //        Matrix.CreateRotationX(a.Rotation.X)
+                        //        * Matrix.CreateRotationZ(a.Rotation.Z)
+                        //        * Matrix.CreateRotationY(a.Rotation.Y));
+                        //    var quatB = Quaternion.CreateFromRotationMatrix(
+                        //        Matrix.CreateRotationX(b.Rotation.X)
+                        //        * Matrix.CreateRotationZ(b.Rotation.Z)
+                        //        * Matrix.CreateRotationY(b.Rotation.Y));
+                        //    var diffQuat = new Quaternion(Math.Abs(quatB.X - quatA.X),
+                        //        Math.Abs(quatB.Y - quatA.Y),
+                        //        Math.Abs(quatB.Z - quatA.Z),
+                        //        Math.Abs(quatB.W - quatA.W));
+
+                        //    if (diffQuat.X > 0.01f || diffQuat.Y > 0.01f || diffQuat.Z > 0.01f || diffQuat.W > 0.01f)
+                        //    {
+                        //        Console.WriteLine($"    <{diffQuat.X:0.0000}, {diffQuat.Y:0.0000}, {diffQuat.Z:0.0000}, {diffQuat.W:0.0000}> '{a.Name}'");
+                        //    }
+                        //}, assertOnBoneNotExisting: false);
+                        //Console.WriteLine("SAP DEBUG - REIMPORTED SKELETON CHECK - ROTATION - END");
+
+                        //Console.WriteLine("SAP DEBUG - REIMPORTED SKELETON CHECK - TRANSLATION - START");
+                        //SapDebugUtil.Flver2ImportDebug.AssertReimportedSkeletonMatch(flver, modelToImportDuringLoad.Flver, (a, b) =>
+                        //{
+                        //    if (a.Unk3C != 0)
+                        //        return;
+
+                        //    var diffQuat = new Vector3(Math.Abs(a.Translation.X - b.Translation.X),
+                        //        Math.Abs(a.Translation.Y - b.Translation.Y),
+                        //        Math.Abs(a.Translation.Z - b.Translation.Z));
+
+                        //    if (diffQuat.X > 0.01f || diffQuat.Y > 0.01f || diffQuat.Z > 0.01f)
+                        //    {
+                        //        Console.WriteLine($"    <{diffQuat.X:0.0000}, {diffQuat.Y:0.0000}, {diffQuat.Z:0.0000}> '{a.Name}'");
+                        //    }
+                        //}, assertOnBoneNotExisting: false);
+                        //Console.WriteLine("SAP DEBUG - REIMPORTED SKELETON CHECK - TRANSLATION - END");
+                        ///////////////
+#endif
+                        flver = modelToImportDuringLoad.Flver;
+                        
+
+                        f.Bytes = flver.Write();
+                    }
                 }
                 else if (anibnd == null && nameCheck.EndsWith(".anibnd"))
                 {
@@ -244,8 +346,9 @@ namespace DSAnimStudio
                         }
                         catch
                         {
-                            System.Windows.Forms.MessageBox.Show("Failed to load animations.", "Error",
-                                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                            OSD.Tools.Notice("Failed to load animations.");
+                            //System.Windows.Forms.MessageBox.Show("Failed to load animations.", "Error",
+                            //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                         }
                     });
                
@@ -321,6 +424,8 @@ namespace DSAnimStudio
 
         private void LoadFLVER2(FLVER2 flver, bool useSecondUV, int baseDmyPolyID = 0, bool ignoreStaticTransforms = false)
         {
+            FlverFileForDebug = flver;
+
             //Type = ModelType.ModelTypeFlver;
 
             Skeleton = new NewAnimSkeleton(this, flver.Bones);
@@ -558,7 +663,11 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.Bones5 = NewAnimSkeleton.IDENTITY_MATRICES;
             }
 
-            if (IsVisible)
+            GFX.FlverShader.Effect.EnableSkinning = EnableSkinning;
+
+            GFX.FlverShader.Effect.DebugAnimWeight = DebugAnimWeight_Deprecated;
+
+            if (IsVisible && MainMesh != null)
             {
                 MainMesh.DrawMask = DrawMask;
                 MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, Skeleton);

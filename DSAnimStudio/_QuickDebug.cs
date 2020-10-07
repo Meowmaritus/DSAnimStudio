@@ -14,57 +14,22 @@ namespace DSAnimStudio
 
         public static void BuildDebugMenu()
         {
-            if (DebugButton("SoulsAssetPipeline_Test"))
+            if (Scene.MainModel?.AnimContainer != null)
             {
-                LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_Test", "TEST: SoulsAssetPipeline_Model", prog =>
-                {
-                    var importSettings = new SoulsAssetPipeline.FLVERImporting.FLVER2Importer.FLVER2ImportSettings()
-                    {
-                        SceneScale = 0.01f,
-                        Game = SoulsAssetPipeline.SoulsGames.DS1,
-                    };
+                float animWeight = Scene.MainModel.AnimContainer.DebugAnimWeight;
+                ImGui.SliderFloat("HKX Skel -> HKX Anim Weight", ref animWeight, 0, 1);
+                Scene.MainModel.AnimContainer.DebugAnimWeight = animWeight;
 
-                    SoulsAssetPipeline.FLVERImporting.FLVER2Importer.ImportedFLVER2Model importedFlver = null;
+                float animWeight2 = Scene.MainModel.DebugAnimWeight_Deprecated;
+                ImGui.SliderFloat("FLVER Skel -> HKX Skel Weight", ref animWeight2, 0, 1);
+                Scene.MainModel.DebugAnimWeight_Deprecated = animWeight2;
 
-                    using (var importer = new SoulsAssetPipeline.FLVERImporting.FLVER2Importer())
-                    {
-                        importedFlver = importer.ImportFBX(@"C:\DarkSoulsModding_Nightfall\AbyssKnight (2)\AbyssKnight.fbx", importSettings);
-                    }
-
-                    
-
-
-                    foreach (var tex in importedFlver.Textures)
-                    {
-                        TexturePool.AddFetchDDS(tex.Value, tex.Key);
-                    }
-
-                    Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
-
-                    for (int i = 0; i < Scene.MainModel.Skeleton.FlverSkeleton.Count; i++)
-                    {
-                        if (!boneIndexRemap.ContainsKey(Scene.MainModel.Skeleton.FlverSkeleton[i].Name))
-                            boneIndexRemap.Add(Scene.MainModel.Skeleton.FlverSkeleton[i].Name, i);
-                    }
-
-                    var oldMainMesh = Scene.MainModel.MainMesh;
-                    var newMainMesh = new NewMesh(importedFlver.Flver, false, boneIndexRemap);
-
-                    lock (Scene._lock_ModelLoad_Draw)
-                    {
-                        Scene.MainModel.MainMesh = newMainMesh;
-                    }
-
-                    oldMainMesh?.Dispose();
-
-                    Scene.ForceTextureReloadImmediate();
-
-                }, disableProgressBarByDefault: true, isUnimportant: true);
-
-               
+                bool bind = Scene.MainModel.EnableSkinning;
+                ImGui.Checkbox("Enable FLVER Skel -> HKX Skel", ref bind);
+                Scene.MainModel.EnableSkinning = bind;
             }
 
-            if (DebugButton("SoulsAssetPipeline_Anim_Test"))
+            if (false && DebugButton("SoulsAssetPipeline_Anim_Test"))
             {
                 var boneNames = Scene.MainModel.Skeleton.HkxSkeleton.Select(x => x.Name).ToList();
                 var importSettings = new SoulsAssetPipeline.AnimationImporting.AnimationImporter.AnimationImportSettings
@@ -91,7 +56,7 @@ namespace DSAnimStudio
                     Scene.MainModel.AnimContainer.ResetAll();
                     Main.TAE_EDITOR?.HardReset();
                 }
-                Console.WriteLine("fatcat");
+                //Console.WriteLine("fatcat");
             }
         }
 

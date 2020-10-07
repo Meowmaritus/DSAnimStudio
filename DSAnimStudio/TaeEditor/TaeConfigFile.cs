@@ -56,8 +56,8 @@ namespace DSAnimStudio.TaeEditor
         public int MSAA = 2;
         public int SSAA = 1;
 
-        public FLVER2Importer.FLVER2ImportSettings LastImportConfig_FLVER2 { get; set; } 
-            = new FLVER2Importer.FLVER2ImportSettings();
+        public SapImportConfigs.ImportConfigFlver2 LastUsedImportConfig_FLVER2 { get; set; } 
+            = new SapImportConfigs.ImportConfigFlver2();
 
         public Dictionary<string, bool> EventSimulationsEnabled { get; set; }
             = new Dictionary<string, bool>();

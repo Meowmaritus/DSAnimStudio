@@ -24,6 +24,9 @@ namespace DSAnimStudio
 
         public MouseCursorType CursorType;
 
+        public bool ClickStartedOutsideWindow = false;
+        public bool IsIgnoringMouseButtonsUntilAllAreUp = false;
+
         public bool LeftClickDown;
         public bool LeftClickUp;
         public bool LeftClickHeld;
@@ -147,6 +150,11 @@ namespace DSAnimStudio
             }
         }
 
+        private bool IsMouseLocationInWindow(Vector2 location)
+        {
+            return (location.X >= 0 && location.Y >= 0 && location.X < Main.WinForm.Width && location.Y < Main.WinForm.Height);
+        }
+
         private void UpdateMouse(Rectangle mouseCursorUpdateRect)
         {
             Mouse = GlobalInputState.Mouse;
@@ -162,6 +170,21 @@ namespace DSAnimStudio
             LeftClickHeld = Mouse.LeftButton == ButtonState.Pressed;
             RightClickHeld = Mouse.RightButton == ButtonState.Pressed;
             MiddleClickHeld = Mouse.MiddleButton == ButtonState.Pressed;
+
+            if (Main.IsFirstFrameActive || OSD.Focused)
+            {
+                IsIgnoringMouseButtonsUntilAllAreUp = true;
+            }
+            else if (IsIgnoringMouseButtonsUntilAllAreUp)
+            {
+                if (!LeftClickHeld && !MiddleClickHeld && !RightClickHeld)
+                    IsIgnoringMouseButtonsUntilAllAreUp = false;
+
+                LeftClickHeld = false;
+                MiddleClickHeld = false;
+                RightClickHeld = false;
+            }
+
             AccumulatedScroll = Mouse.ScrollWheelValue / 150f;
             MousePosition = new Vector2(Mouse.X / Main.DPIX, Mouse.Y / Main.DPIY);
             MousePositionPoint = new Point((int)Math.Round(Mouse.Position.X / Main.DPIX), (int)Math.Round(Mouse.Position.Y / Main.DPIY));
@@ -250,6 +273,20 @@ namespace DSAnimStudio
 
             if (MiddleClickHeld)
                 MiddleClickDownOffset = MousePosition - MiddleClickDownAnchor;
+
+            ClickStartedOutsideWindow = (LeftClickHeld && !IsMouseLocationInWindow(LeftClickDownAnchor * Main.DPIVector))
+                || (MiddleClickHeld && !IsMouseLocationInWindow(MiddleClickDownAnchor * Main.DPIVector))
+                || (RightClickHeld && !IsMouseLocationInWindow(RightClickDownAnchor * Main.DPIVector));
+
+            if (ClickStartedOutsideWindow)
+            {
+                LeftClickHeld = false;
+                LeftClickDown = false;
+                MiddleClickHeld = false;
+                MiddleClickDown = false;
+                RightClickHeld = false;
+                RightClickDown = false;
+            }
 
             ////////////////////////////////////////////////////////////////////////////////
             // Store current state for getting the next delta state.

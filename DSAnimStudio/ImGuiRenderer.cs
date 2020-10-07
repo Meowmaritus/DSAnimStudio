@@ -222,7 +222,8 @@ namespace DSAnimStudio
             var io = ImGui.GetIO();
 
             // MonoGame-specific //////////////////////
-            var offset = .5f;
+            //var offset = .5f;
+            var offset = 0f;
             ///////////////////////////////////////////
 
             // FNA-specific ///////////////////////////

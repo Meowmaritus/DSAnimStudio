@@ -1,9 +1,13 @@
-﻿using SoulsAssetPipeline.FLVERImporting;
+﻿using DSAnimStudio.TaeEditor;
+using SoulsAssetPipeline;
+using SoulsAssetPipeline.FLVERImporting;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,19 +17,25 @@ namespace DSAnimStudio
 {
     public partial class SapImportFlver2Form : Form
     {
+        List<Action> DoSaveImport;
+
         public SapImportFlver2Form()
         {
             InitializeComponent();
         }
 
-        public FLVER2Importer.FLVER2ImportSettings ImportConfig 
-            = new FLVER2Importer.FLVER2ImportSettings();
+
+
+        public SapImportConfigs.ImportConfigFlver2 ImportConfig = new SapImportConfigs.ImportConfigFlver2();
+
+        public TaeEditorScreen MainScreen;
 
         public void LoadValuesFromConfig()
         {
             textBoxFBX.Text = ImportConfig.AssetPath;
-            flver2_numericUpDownScale.Value = (decimal)(ImportConfig.SceneScale * 100);
+            flver2_numericUpDownScale.Value = (decimal)(ImportConfig.SceneScale * 100.0);
             flver2_checkBoxConvertFromZUp.Checked = ImportConfig.ConvertFromZUp;
+            flver2_checkBoxKeepExistingDummyPoly.Checked = ImportConfig.KeepOriginalDummyPoly;
         }
 
         public void SaveValuesToConfig()
@@ -33,6 +43,7 @@ namespace DSAnimStudio
             ImportConfig.AssetPath = textBoxFBX.Text;
             ImportConfig.ConvertFromZUp = flver2_checkBoxConvertFromZUp.Checked;
             ImportConfig.SceneScale = (float)((double)flver2_numericUpDownScale.Value / 100.0);
+            ImportConfig.KeepOriginalDummyPoly = flver2_checkBoxKeepExistingDummyPoly.Checked;
         }
 
         private bool _lockState = false;
@@ -42,8 +53,11 @@ namespace DSAnimStudio
             {
                 textBoxFBX.Enabled = !isLocked;
                 buttonImport.Enabled = !isLocked;
+                buttonSaveImportedData.Enabled = !isLocked;
+                buttonRestoreBackups.Enabled = !isLocked;
                 flver2_checkBoxConvertFromZUp.Enabled = !isLocked;
                 flver2_numericUpDownScale.Enabled = !isLocked;
+                flver2_checkBoxKeepExistingDummyPoly.Enabled = !isLocked;
 
                 _lockState = isLocked;
             }
@@ -51,51 +65,91 @@ namespace DSAnimStudio
 
         public void UpdateGuiLockout()
         {
-            SetGuiLock(LoadingTaskMan.IsTaskRunning("SoulsAssetPipeline_FLVER2Import"));
+            SetGuiLock(LoadingTaskMan.AnyTasksRunning());
         }
 
         private void buttonImport_Click(object sender, EventArgs e)
         {
-
             LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_FLVER2Import", "Importing Model...", prog =>
             {
                 SaveValuesToConfig();
 
-                ImportConfig.Game = GameDataManager.GameType;
-                ImportConfig.FlverHeader = Scene.MainModel.MainMesh.FlverHeader;
+                MainScreen.SaveConfig();
+
+                var cfg = new FLVER2Importer.FLVER2ImportSettings();
+
+                cfg.Game = GameDataManager.GameType;
+                cfg.FlverHeader = Scene.MainModel.MainMesh.FlverHeader;
+
+                cfg.AssetPath = ImportConfig.AssetPath;
+                cfg.ConvertFromZUp = ImportConfig.ConvertFromZUp;
+                cfg.SceneScale = ImportConfig.SceneScale;
 
                 SoulsAssetPipeline.FLVERImporting.FLVER2Importer.ImportedFLVER2Model importedFlver = null;
 
                 using (var importer = new SoulsAssetPipeline.FLVERImporting.FLVER2Importer())
                 {
-                    importedFlver = importer.ImportFBX(textBoxFBX.Text, ImportConfig);
+                    importedFlver = importer.ImportFBX(textBoxFBX.Text, cfg);
                 }
 
+                List<Action> doImport = new List<Action>();
 
+#if DEBUG
+                byte[] flver = importedFlver.Flver.Write();
+                File.WriteAllBytes($"{Scene.MainModel.Name}.flver", flver);
+#endif
 
+                var importedAnimStudioModel = GameDataManager.LoadCharacter(Scene.MainModel.Name, importedFlver, doImport, ImportConfig);
 
-                foreach (var tex in importedFlver.Textures)
-                {
-                    TexturePool.AddFetchDDS(tex.Value, tex.Key);
-                }
+                DoSaveImport = doImport;
 
-                Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
-
-                for (int i = 0; i < Scene.MainModel.Skeleton.FlverSkeleton.Count; i++)
-                {
-                    if (!boneIndexRemap.ContainsKey(Scene.MainModel.Skeleton.FlverSkeleton[i].Name))
-                        boneIndexRemap.Add(Scene.MainModel.Skeleton.FlverSkeleton[i].Name, i);
-                }
-
-                var oldMainMesh = Scene.MainModel.MainMesh;
-                var newMainMesh = new NewMesh(importedFlver.Flver, false, boneIndexRemap);
+                
+                var oldMainModel = Scene.MainModel;
 
                 lock (Scene._lock_ModelLoad_Draw)
                 {
-                    Scene.MainModel.MainMesh = newMainMesh;
+                    importedAnimStudioModel.NpcParam = oldMainModel.NpcParam;
+                    importedAnimStudioModel.DefaultDrawMask = oldMainModel.DefaultDrawMask;
+                    importedAnimStudioModel.DrawMask = oldMainModel.DrawMask;
+                    importedAnimStudioModel.NpcParam.ApplyToNpcModel(importedAnimStudioModel);
+
+
+                    Scene.Models.Remove(oldMainModel);
+                    oldMainModel?.Dispose();
+                    importedAnimStudioModel.AnimContainer.CurrentAnimationName = null;
                 }
 
-                oldMainMesh?.Dispose();
+                Main.TAE_EDITOR.Graph.ViewportInteractor.InitializeForCurrentModel();
+                Main.TAE_EDITOR.ReselectCurrentAnimation();
+                Main.TAE_EDITOR.HardReset();
+
+                Invoke(new Action(() =>
+                {
+                    buttonSaveImportedData.Enabled = true;
+                }));
+
+                //foreach (var tex in importedFlver.Textures)
+                //{
+                //    TexturePool.AddFetchDDS(tex.Value, tex.Key);
+                //}
+
+                //Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
+
+                //for (int i = 0; i < Scene.MainModel.Skeleton.FlverSkeleton.Count; i++)
+                //{
+                //    if (!boneIndexRemap.ContainsKey(Scene.MainModel.Skeleton.FlverSkeleton[i].Name))
+                //        boneIndexRemap.Add(Scene.MainModel.Skeleton.FlverSkeleton[i].Name, i);
+                //}
+
+                //var oldMainMesh = Scene.MainModel.MainMesh;
+                //var newMainMesh = new NewMesh(importedFlver.Flver, false, boneIndexRemap);
+
+                //lock (Scene._lock_ModelLoad_Draw)
+                //{
+                //    Scene.MainModel.MainMesh = newMainMesh;
+                //}
+
+                //oldMainMesh?.Dispose();
 
                 Scene.ForceTextureReloadImmediate();
 
@@ -130,6 +184,62 @@ namespace DSAnimStudio
                     SaveValuesToConfig();
                 }
             }
+        }
+
+        private void buttonBrowseFBX_Click(object sender, EventArgs e)
+        {
+            var dlg = new OpenFileDialog()
+            {
+                Filter = "Autodesk FBX Scene (*.FBX)|*.FBX",
+                Title = "Open FBX Model File",
+            };
+
+            if (!string.IsNullOrWhiteSpace(ImportConfig.AssetPath))
+            {
+                dlg.InitialDirectory = Path.GetDirectoryName(ImportConfig.AssetPath);
+            }
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                textBoxFBX.Text = dlg.FileName;
+                SaveValuesToConfig();
+            }
+        }
+
+        private void buttonSaveImportedData_Click(object sender, EventArgs e)
+        {
+            if (DoSaveImport == null)
+            {
+                System.Windows.Forms.MessageBox.Show("Nothing to save.");
+            }
+            else
+            {
+
+                GameDataManager.CreateCharacterModelBackup(Scene.MainModel.Name);
+
+                LoadingTaskMan.DoLoadingTask("SapFlver2SaveImportedData", "Saving imported model and textures...", prog =>
+                {
+                    for (int i = 0; i < DoSaveImport.Count; i++)
+                    {
+                        DoSaveImport[i]?.Invoke();
+                        prog?.Report(1.0 * (i + 1) / DoSaveImport.Count);
+                    }
+
+                    System.Windows.Forms.MessageBox.Show("Saved file.");
+                }, isUnimportant: true);
+
+                
+            }
+        }
+
+        private void SapImportFlver2Form_Load(object sender, EventArgs e)
+        {
+            buttonSaveImportedData.Enabled = false;
+        }
+
+        private void buttonRestoreBackups_Click(object sender, EventArgs e)
+        {
+            GameDataManager.RestoreCharacterModelBackup(Scene.MainModel.Name, isAsync: true);
         }
     }
 }

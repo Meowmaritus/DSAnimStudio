@@ -321,6 +321,15 @@ namespace DSAnimStudio.TaeEditor
                 throw new NotImplementedException("REMO NOT SUPPORTED YET");
             }
 
+            InitializeForCurrentModel();
+
+            Scene.EnableModelDrawing();
+            if (!CurrentModel.IS_PLAYER)
+                Scene.EnableModelDrawing2();
+        }
+
+        public void InitializeForCurrentModel()
+        {
             if (CurrentModel?.Skeleton != null)
                 CurrentComboRecorder = new HavokRecorder(CurrentModel.Skeleton.HkxSkeleton);
 
@@ -338,10 +347,6 @@ namespace DSAnimStudio.TaeEditor
                 if (GFX.World.OrbitCamDistanceInput < 0.5f)
                     GFX.World.OrbitCamDistanceInput = 5;
             }
-
-            Scene.EnableModelDrawing();
-            if (!CurrentModel.IS_PLAYER)
-                Scene.EnableModelDrawing2();
         }
 
         private void ChrAsm_EquipmentModelsUpdated(object sender, EventArgs e)
@@ -545,18 +550,22 @@ namespace DSAnimStudio.TaeEditor
 
             var timeDelta = forceCustomTimeDelta ?? (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
-            //V2.0
-            //CurrentModel.AnimContainer.IsPlaying = false;
-            CurrentModel.AnimContainer.ScrubRelative(timeDelta);
-
-            CurrentModel.AfterAnimUpdate(timeDelta);
-
-            if (CurrentComboIndex >= 0 && IsComboRecording)
+            //TODO: Check if this is going to deadlock
+            lock (Scene._lock_ModelLoad_Draw)
             {
-                if (UpdateCombo())
-                    return;
-            }
 
+                //V2.0
+                //CurrentModel.AnimContainer.IsPlaying = false;
+                CurrentModel.AnimContainer.ScrubRelative(timeDelta);
+
+                CurrentModel.AfterAnimUpdate(timeDelta);
+
+                if (CurrentComboIndex >= 0 && IsComboRecording)
+                {
+                    if (UpdateCombo())
+                        return;
+                }
+            }
             //V2.0
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 

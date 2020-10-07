@@ -248,7 +248,7 @@ namespace DSAnimStudio
                         WalkTree(c, currentMatrix, currentScale);
                 }
 
-                foreach (var root in Skeleton.RootBoneIndices)
+                foreach (var root in Skeleton.TopLevelHkxBoneIndices)
                     WalkTree(root, Matrix.Identity, Vector3.One);
             }
         }

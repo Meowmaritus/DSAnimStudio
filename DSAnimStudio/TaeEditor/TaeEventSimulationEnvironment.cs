@@ -313,6 +313,24 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
+        private static Dictionary<string, string> _allEntryDisplayNames;
+        public static IReadOnlyDictionary<string, string> AllEntryDisplayNames
+        {
+            get
+            {
+                if (_allEntryDisplayNames == null)
+                {
+                    _allEntryDisplayNames = new Dictionary<string, string>();
+                    var meme = new TaeEventSimulationEnvironment(null, null);
+                    foreach (var e in meme.entries)
+                    {
+                        _allEntryDisplayNames.Add(e.Key, e.Value.MenuOptionName);
+                    }
+                }
+                return _allEntryDisplayNames;
+            }
+        }
+
         private void InitAllEntries()
         {
             entries = new Dictionary<string, EventSimEntry>

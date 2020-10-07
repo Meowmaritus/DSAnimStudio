@@ -14,6 +14,18 @@ namespace DSAnimStudio.GFXShaders
 
         public FlverShader Effect => this;
 
+        public float DebugAnimWeight
+        {
+            get => Parameters[nameof(DebugAnimWeight)].GetValueSingle();
+            set => Parameters[nameof(DebugAnimWeight)].SetValue(value);
+        }
+
+        public bool EnableSkinning
+        {
+            get => Parameters[nameof(EnableSkinning)].GetValueBoolean();
+            set => Parameters[nameof(EnableSkinning)].SetValue(value);
+        }
+
         public bool IsDS2NormalMapChannels
         {
             get => Parameters[nameof(IsDS2NormalMapChannels)].GetValueBoolean();

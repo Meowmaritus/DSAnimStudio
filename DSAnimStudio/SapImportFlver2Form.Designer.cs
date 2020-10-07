@@ -35,7 +35,10 @@
             this.flver2_numericUpDownScale = new System.Windows.Forms.NumericUpDown();
             this.label2 = new System.Windows.Forms.Label();
             this.groupBoxSettings = new System.Windows.Forms.GroupBox();
+            this.flver2_checkBoxKeepExistingDummyPoly = new System.Windows.Forms.CheckBox();
             this.flver2_checkBoxConvertFromZUp = new System.Windows.Forms.CheckBox();
+            this.buttonSaveImportedData = new System.Windows.Forms.Button();
+            this.buttonRestoreBackups = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.flver2_numericUpDownScale)).BeginInit();
             this.groupBoxSettings.SuspendLayout();
             this.SuspendLayout();
@@ -44,11 +47,11 @@
             // 
             this.buttonImport.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonImport.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonImport.Location = new System.Drawing.Point(286, 166);
+            this.buttonImport.Location = new System.Drawing.Point(68, 169);
             this.buttonImport.Name = "buttonImport";
-            this.buttonImport.Size = new System.Drawing.Size(143, 42);
+            this.buttonImport.Size = new System.Drawing.Size(123, 42);
             this.buttonImport.TabIndex = 0;
-            this.buttonImport.Text = "IMPORT";
+            this.buttonImport.Text = "IMPORT FBX TO DS ANIM STUDIO";
             this.buttonImport.UseVisualStyleBackColor = true;
             this.buttonImport.Click += new System.EventHandler(this.buttonImport_Click);
             this.buttonImport.DragEnter += new System.Windows.Forms.DragEventHandler(this.buttonImport_DragEnter);
@@ -68,18 +71,19 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxFBX.Location = new System.Drawing.Point(67, 14);
             this.textBoxFBX.Name = "textBoxFBX";
-            this.textBoxFBX.Size = new System.Drawing.Size(281, 20);
+            this.textBoxFBX.Size = new System.Drawing.Size(480, 20);
             this.textBoxFBX.TabIndex = 2;
             // 
             // buttonBrowseFBX
             // 
             this.buttonBrowseFBX.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonBrowseFBX.Location = new System.Drawing.Point(354, 13);
+            this.buttonBrowseFBX.Location = new System.Drawing.Point(553, 13);
             this.buttonBrowseFBX.Name = "buttonBrowseFBX";
             this.buttonBrowseFBX.Size = new System.Drawing.Size(75, 23);
             this.buttonBrowseFBX.TabIndex = 3;
             this.buttonBrowseFBX.Text = "Browse...";
             this.buttonBrowseFBX.UseVisualStyleBackColor = true;
+            this.buttonBrowseFBX.Click += new System.EventHandler(this.buttonBrowseFBX_Click);
             // 
             // flver2_numericUpDownScale
             // 
@@ -118,15 +122,26 @@
             this.groupBoxSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBoxSettings.Controls.Add(this.flver2_checkBoxKeepExistingDummyPoly);
             this.groupBoxSettings.Controls.Add(this.flver2_checkBoxConvertFromZUp);
             this.groupBoxSettings.Controls.Add(this.flver2_numericUpDownScale);
             this.groupBoxSettings.Controls.Add(this.label2);
             this.groupBoxSettings.Location = new System.Drawing.Point(15, 40);
             this.groupBoxSettings.Name = "groupBoxSettings";
-            this.groupBoxSettings.Size = new System.Drawing.Size(414, 120);
+            this.groupBoxSettings.Size = new System.Drawing.Size(613, 123);
             this.groupBoxSettings.TabIndex = 6;
             this.groupBoxSettings.TabStop = false;
             this.groupBoxSettings.Text = "Import Settings";
+            // 
+            // flver2_checkBoxKeepExistingDummyPoly
+            // 
+            this.flver2_checkBoxKeepExistingDummyPoly.AutoSize = true;
+            this.flver2_checkBoxKeepExistingDummyPoly.Location = new System.Drawing.Point(183, 76);
+            this.flver2_checkBoxKeepExistingDummyPoly.Name = "flver2_checkBoxKeepExistingDummyPoly";
+            this.flver2_checkBoxKeepExistingDummyPoly.Size = new System.Drawing.Size(147, 17);
+            this.flver2_checkBoxKeepExistingDummyPoly.TabIndex = 7;
+            this.flver2_checkBoxKeepExistingDummyPoly.Text = "Keep existing DummyPoly";
+            this.flver2_checkBoxKeepExistingDummyPoly.UseVisualStyleBackColor = true;
             // 
             // flver2_checkBoxConvertFromZUp
             // 
@@ -138,19 +153,50 @@
             this.flver2_checkBoxConvertFromZUp.Text = "Convert from Z-Up to Y-Up";
             this.flver2_checkBoxConvertFromZUp.UseVisualStyleBackColor = true;
             // 
+            // buttonSaveImportedData
+            // 
+            this.buttonSaveImportedData.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonSaveImportedData.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonSaveImportedData.Location = new System.Drawing.Point(197, 169);
+            this.buttonSaveImportedData.Name = "buttonSaveImportedData";
+            this.buttonSaveImportedData.Size = new System.Drawing.Size(256, 42);
+            this.buttonSaveImportedData.TabIndex = 7;
+            this.buttonSaveImportedData.Text = "SAVE IMPORTED FBX TO GAME DATA (and save *.dsibak backups)";
+            this.buttonSaveImportedData.UseVisualStyleBackColor = true;
+            this.buttonSaveImportedData.Click += new System.EventHandler(this.buttonSaveImportedData_Click);
+            // 
+            // buttonRestoreBackups
+            // 
+            this.buttonRestoreBackups.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonRestoreBackups.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonRestoreBackups.Location = new System.Drawing.Point(459, 169);
+            this.buttonRestoreBackups.Name = "buttonRestoreBackups";
+            this.buttonRestoreBackups.Size = new System.Drawing.Size(169, 42);
+            this.buttonRestoreBackups.TabIndex = 8;
+            this.buttonRestoreBackups.Text = "RESTORE BACKUPS (*.dsibak)";
+            this.buttonRestoreBackups.UseVisualStyleBackColor = true;
+            this.buttonRestoreBackups.Click += new System.EventHandler(this.buttonRestoreBackups_Click);
+            // 
             // SapImportFlver2Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(441, 220);
+            this.ClientSize = new System.Drawing.Size(640, 223);
+            this.Controls.Add(this.buttonRestoreBackups);
+            this.Controls.Add(this.buttonSaveImportedData);
             this.Controls.Add(this.groupBoxSettings);
             this.Controls.Add(this.buttonBrowseFBX);
             this.Controls.Add(this.textBoxFBX);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.buttonImport);
+            this.MinimumSize = new System.Drawing.Size(600, 250);
             this.Name = "SapImportFlver2Form";
+            this.ShowIcon = false;
+            this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Import Character Model From FBX";
+            this.TopMost = true;
+            this.Load += new System.EventHandler(this.SapImportFlver2Form_Load);
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.SapImportFlver2Form_DragDrop);
             ((System.ComponentModel.ISupportInitialize)(this.flver2_numericUpDownScale)).EndInit();
             this.groupBoxSettings.ResumeLayout(false);
@@ -170,5 +216,8 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.GroupBox groupBoxSettings;
         private System.Windows.Forms.CheckBox flver2_checkBoxConvertFromZUp;
+        private System.Windows.Forms.Button buttonSaveImportedData;
+        private System.Windows.Forms.CheckBox flver2_checkBoxKeepExistingDummyPoly;
+        private System.Windows.Forms.Button buttonRestoreBackups;
     }
 }

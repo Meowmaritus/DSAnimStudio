@@ -26,6 +26,8 @@ namespace DSAnimStudio
         //    SDT,
         //}
 
+        public const string ModelImportBackupExtension = ".mdibak";
+
         public enum AnimIDFormattingType
         {
             a00_0000,
@@ -124,7 +126,7 @@ namespace DSAnimStudio
             }
             else
             {
-                ErrorLog.LogWarning($@"Unable to find the file '<Data Root>\{path}' in the main data root directory ('{InterrootPath}') or the directory in which that one is located.");
+                ErrorLog.LogWarning($@"Unable to find the path '<Data Root>\{path}' in the main data root directory ('{InterrootPath}') or the directory in which that one is located.");
                 return $@"{InterrootPath}\..\{path}";
             }
         }
@@ -460,7 +462,71 @@ namespace DSAnimStudio
 
         }
 
-        public static Model LoadCharacter(string id)
+        public static List<string> GetModelFilesOfChr(string name)
+        {
+            List<string> result = new List<string>();
+
+            string chrFolder = GetInterrootPath((GameType == SoulsGames.DS2 || GameType == SoulsGames.DS2SOTFS) ? @"model\chr" : "");
+            string[] filesRelatedToThisChr = Directory.GetFiles(chrFolder, $"*{name}*");
+            foreach (var f in filesRelatedToThisChr)
+            {
+                string file = f.ToLower();
+                if (file.EndsWith(".bak") || file.EndsWith(".dsasbak") || file.Contains("anibnd") || file.Contains(".2010"))
+                    continue;
+
+                result.Add(f);
+            }
+
+            if (GameType == SoulsGames.DS1)
+            {
+                string looseTexFolder = Path.Combine(InterrootPath, $@"chr\{name}");
+                if (Directory.Exists(looseTexFolder))
+                {
+                    foreach (var tpf in Directory.GetFiles(looseTexFolder, "*.tpf"))
+                    {
+                        result.Add(tpf);
+                    }
+                }
+
+                var memeOverrideTextureFiles = GetModelFilesOfChr(name.Substring(0, 4)/*cXXX*/ + "9");
+                result.AddRange(memeOverrideTextureFiles);
+            }
+
+            return result;
+        }
+
+        public static void CreateCharacterModelBackup(string name, bool isAsync = false)
+        {
+            LoadingTaskMan.DoLoadingTask($"GameDataManagerCreateCharacterModelBackup_{name}", $"Creating backup of character model '{name}'", prog =>
+            {
+                var chrModelFiles = GetModelFilesOfChr(name);
+                foreach (var f in chrModelFiles)
+                {
+                    string bakPath = f + ModelImportBackupExtension;
+                    if (!File.Exists(bakPath))
+                        File.Copy(f, bakPath);
+                }
+            }, isUnimportant: true, waitForTaskToComplete: !isAsync);
+        }
+
+        public static void RestoreCharacterModelBackup(string name, bool isAsync = false)
+        {
+            LoadingTaskMan.DoLoadingTask($"GameDataManagerRestoreCharacterModelBackup_{name}", $"Restoring backup of character model '{name}'", prog =>
+            {
+                var chrModelFiles = GetModelFilesOfChr(name);
+                foreach (var f in chrModelFiles)
+                {
+                    string bakPath = f + ModelImportBackupExtension;
+                    if (File.Exists(bakPath))
+                        File.Copy(bakPath, f, overwrite: true);
+                }
+            }, isUnimportant: true, waitForTaskToComplete: !isAsync);
+            
+        }
+
+        public static Model LoadCharacter(string id, 
+            SoulsAssetPipeline.FLVERImporting.FLVER2Importer.ImportedFLVER2Model modelToImportDuringLoad = null,
+            List<Action> doImportActionList = null, SapImportConfigs.ImportConfigFlver2 importConfig = null)
         {
             Model chr = null;
 
@@ -483,6 +549,19 @@ namespace DSAnimStudio
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx")))
                             extraTexbnd = BND4.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.texbnd.dcx"));
 
+                        if (texbnd != null && modelToImportDuringLoad != null)
+                        {
+                            texbnd.Files.Clear();
+                            foreach (var t in modelToImportDuringLoad.Textures)
+                            {
+                                var tpf = new TPF();
+                                tpf.Textures.Add(t);
+                                texbnd.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbnd.Files.Count, tpf.Write()));
+                            }
+                        }
+
+
+
                         if (GameType == SoulsGames.SDT)
                         {
                             if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010")))
@@ -495,41 +574,156 @@ namespace DSAnimStudio
                         }
 
                         chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
-                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd, 
+                            modelToImportDuringLoad: modelToImportDuringLoad, 
+                            modelImportConfig: importConfig);
+
+                        if (doImportActionList != null)
+                        {
+                            if (texbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (texbnd as BND4).Write(GetInterrootPath($@"chr\{id}.texbnd.dcx"));
+                                });
+
+                            if (chrbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (chrbnd as BND4).Write(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                                });
+                        }
                     }
                     else if (GameType == SoulsGames.DS1)
                     {
                         var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd"));
                         IBinder anibnd = null;
-                        IBinder texbnd = null;
-                        IBinder extraTexbnd = null;
+                        IBinder texbxf = null;
+                        IBinder extraTexChrbnd = null;
+                        IBinder extraTexbxf = null;
 
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd")))
                             anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd"));
 
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd")))
-                            extraTexbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
+                            extraTexChrbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
+
+                        BinderFile chrtpfbhd = null;
 
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.chrtpfbdt")))
                         {
-                            var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
+                            chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
 
                             if (chrtpfbhd != null)
                             {
-                                texbnd = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
+                                texbxf = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
+
+                                if (modelToImportDuringLoad != null)
+                                {
+                                    texbxf.Files.Clear();
+                                    foreach (var t in modelToImportDuringLoad.Textures)
+                                    {
+                                        var tpf = new TPF();
+                                        tpf.Textures.Add(t);
+                                        texbxf.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbxf.Files.Count, tpf.Write()));
+                                    }
+                                }
                             }
                         }
 
-                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
+                        BinderFile extraChrtpfbhd = null;
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt")))
+                        {
+                            extraChrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
+
+                            if (extraChrtpfbhd != null)
+                            {
+                                extraTexbxf = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt"));
+
+                                if (modelToImportDuringLoad != null)
+                                {
+                                    //We don't wanna mess with other vanilla files that are sharing with this cXXX9
+                                    //texbnd.Files.Clear();
+                                    foreach (var t in modelToImportDuringLoad.Textures)
+                                    {
+                                        var tpf = new TPF();
+                                        tpf.Textures.Add(t);
+
+                                        string innerTpfName = t.Name + ".tpf";
+
+                                        var matchingInnerTpf = extraTexChrbnd.Files.FirstOrDefault(ff => ff.Name.ToLower() == innerTpfName.ToLower());
+
+                                        if (matchingInnerTpf != null)
+                                        {
+                                            // Update existing TPF in chrtpfbdt
+                                            matchingInnerTpf.Bytes = tpf.Write();
+                                        }
+                                        else
+                                        {
+                                            // Add new TPF to chrtpfbdt
+                                            texbxf.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbxf.Files.Count, innerTpfName, tpf.Write()));
+                                        }
+
+
+                                    }
+                                }
+                            }
+                        }
+
+                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbxf,
                             possibleLooseTpfFolder: $@"chr\{id}\",
-                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexChrbnd, 
+                            modelToImportDuringLoad: modelToImportDuringLoad,
+                            modelImportConfig: importConfig);
+
+                        if (doImportActionList != null)
+                        {
+                            if (texbxf != null)
+                            {
+                                doImportActionList.Add(() =>
+                                {
+                                    (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
+                                    chrtpfbhd.Bytes = customBhd;
+                                    File.WriteAllBytes(GetInterrootPath($@"chr\{id}.chrtpfbdt"), customBdt);
+                                    (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd"));
+                                });
+                            }
+
+                            if (extraTexbxf != null)
+                            {
+                                doImportActionList.Add(() =>
+                                {
+                                    (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
+                                    extraChrtpfbhd.Bytes = customBhd;
+                                    File.WriteAllBytes(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt"), customBdt);
+                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
+                                });
+                            }
+
+                            if (chrbnd != null)
+                            {
+                                doImportActionList.Add(() =>
+                                {
+                                    (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd"));
+                                });
+                            }
+
+                            if (extraTexChrbnd != null)
+                            {
+                                doImportActionList.Add(() =>
+                                {
+                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd"));
+                                });
+                            }
+                        }
                     }
                     else if (GameType == SoulsGames.DS1R)
                     {
                         var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
                         IBinder anibnd = null;
-                        IBinder texbnd = null;
-                        IBinder extraTexbnd = null;
+                        IBinder texbxf = null;
+                        IBinder extraTexChrbnd = null;
+                        IBinder extraTexbxf = null;
 
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010")))
                             anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx.2010"));
@@ -537,25 +731,117 @@ namespace DSAnimStudio
                             anibnd = BND3.Read(GetInterrootPath($@"chr\{id}.anibnd.dcx"));
 
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx")))
-                            extraTexbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
+                            extraTexChrbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
+
+                        BinderFile chrtpfbhd = null;
 
                         if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}.chrtpfbdt")))
                         {
-                            var chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
+                            chrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
 
                             if (chrtpfbhd != null)
                             {
-                                texbnd = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
+                                texbxf = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id}.chrtpfbdt"));
+
+                                if (modelToImportDuringLoad != null)
+                                {
+                                    texbxf.Files.Clear();
+                                    foreach (var t in modelToImportDuringLoad.Textures)
+                                    {
+                                        var tpf = new TPF();
+                                        tpf.Textures.Add(t);
+                                        texbxf.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbxf.Files.Count, tpf.Write()));
+                                    }
+                                }
                             }
                         }
 
-                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd,
+                        BinderFile extraChrtpfbhd = null;
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt")))
+                        {
+                            extraChrtpfbhd = chrbnd.Files.FirstOrDefault(fi => fi.Name.ToLower().EndsWith(".chrtpfbhd"));
+
+                            if (extraChrtpfbhd != null)
+                            {
+                                extraTexbxf = BXF3.Read(chrtpfbhd.Bytes, GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt"));
+
+                                if (modelToImportDuringLoad != null)
+                                {
+                                    //We don't wanna mess with other vanilla files that are sharing with this cXXX9
+                                    //texbnd.Files.Clear();
+                                    foreach (var t in modelToImportDuringLoad.Textures)
+                                    {
+                                        var tpf = new TPF();
+                                        tpf.Textures.Add(t);
+
+                                        string innerTpfName = t.Name + ".tpf";
+
+                                        var matchingInnerTpf = extraTexChrbnd.Files.FirstOrDefault(ff => ff.Name.ToLower() == innerTpfName.ToLower());
+
+                                        if (matchingInnerTpf != null)
+                                        {
+                                            // Update existing TPF in chrtpfbdt
+                                            matchingInnerTpf.Bytes = tpf.Write();
+                                        }
+                                        else
+                                        {
+                                            // Add new TPF to chrtpfbdt
+                                            texbxf.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbxf.Files.Count, innerTpfName, tpf.Write()));
+                                        }
+
+                                       
+                                    }
+                                }
+                            }
+                        }
+
+                        chr = new Model(progress, id, chrbnd, 0, anibnd, texbxf,
                             possibleLooseTpfFolder: $@"chr\{id}\",
-                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexChrbnd,
+                            modelToImportDuringLoad: modelToImportDuringLoad,
+                            modelImportConfig: importConfig);
+
+                        if (doImportActionList != null)
+                        {
+                            if (texbxf != null)
+                            {
+                                doImportActionList.Add(() =>
+                                {
+                                    (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
+                                    chrtpfbhd.Bytes = customBhd;
+                                    File.WriteAllBytes(GetInterrootPath($@"chr\{id}.chrtpfbdt"), customBdt);
+                                    (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                                });
+                            }
+
+                            if (extraTexbxf != null)
+                            {
+                                doImportActionList.Add(() =>
+                                {
+                                    (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
+                                    extraChrtpfbhd.Bytes = customBhd;
+                                    File.WriteAllBytes(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt"), customBdt);
+                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
+                                });
+                            }
+
+                            if (chrbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                                });
+
+                            if (extraTexChrbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx"));
+                                });
+                        }
                     }
                     else if (GameType == SoulsGames.BB)
                     {
-                        var chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                        IBinder chrbnd = BND4.Read(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
                         IBinder anibnd = null;
                         IBinder extraTexbnd = null;
 
@@ -568,20 +854,59 @@ namespace DSAnimStudio
                         chr = new Model(progress, id, chrbnd, 0, anibnd, texbnd: null,
                             additionalTpfNames: new List<string> { GetInterrootPath($@"chr\{id}_2.tpf.dcx") },
                             possibleLooseTpfFolder: $@"chr\{id}\",
-                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd);
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexbnd,
+                            modelToImportDuringLoad: modelToImportDuringLoad,
+                            modelImportConfig: importConfig);
+
+                        if (doImportActionList != null)
+                        {
+                            if (chrbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (chrbnd as BND4).Write(GetInterrootPath($@"chr\{id}.chrbnd.dcx"));
+                                });
+                        }
                     }
                     else if (GameType == SoulsGames.DS2SOTFS)
                     {
-                        var chrbnd = BND4.Read(GetInterrootPath($@"model\chr\{id}.bnd"));
+                        IBinder chrbnd = BND4.Read(GetInterrootPath($@"model\chr\{id}.bnd"));
                         IBinder texbnd = null;
 
                         if (System.IO.File.Exists(GetInterrootPath($@"model\chr\{id}.texbnd")))
                             texbnd = BND4.Read(GetInterrootPath($@"model\chr\{id}.texbnd"));
 
+                        if (texbnd != null && modelToImportDuringLoad != null)
+                        {
+                            texbnd.Files.Clear();
+                            foreach (var t in modelToImportDuringLoad.Textures)
+                            {
+                                var tpf = new TPF();
+                                tpf.Textures.Add(t);
+                                texbnd.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbnd.Files.Count, tpf.Write()));
+                            }
+                        }
+
                         chr = new Model(progress, id, chrbnd, 0, anibnd: null, texbnd,
                             additionalTpfNames: null,
                             possibleLooseTpfFolder: null,
-                            ignoreStaticTransforms: true, additionalTexbnd: null);
+                            ignoreStaticTransforms: true, additionalTexbnd: null,
+                            modelToImportDuringLoad: modelToImportDuringLoad,
+                            modelImportConfig: importConfig);
+
+                        if (doImportActionList != null)
+                        {
+                            if (texbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (texbnd as BND4).Write(GetInterrootPath($@"model\chr\{id}.bnd"));
+                                });
+
+                            if (chrbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (chrbnd as BND4).Write(GetInterrootPath($@"model\chr\{id}.texbnd"));
+                                });
+                        }
                     }
 
                     Scene.AddModel(chr, doLock: false);

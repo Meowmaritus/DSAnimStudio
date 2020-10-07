@@ -33,6 +33,11 @@ namespace DSAnimStudio
             return ((start * (float)Math.Cos(theta)) + (RelativeVec * (float)Math.Sin(theta)));
         }
 
+        public static System.Numerics.Vector4 ToNVector4(this Color c)
+        {
+            return new System.Numerics.Vector4(c.R / 255f, c.G / 255f, c.B / 255f, c.A / 255f);
+        }
+
         public static Rectangle DpiScaled(this Rectangle rect)
         {
             return new Rectangle(

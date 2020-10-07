@@ -268,7 +268,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Insert))
             {
-                MainScreen.AddNewAnimation();
+                MainScreen.DuplicateCurrentAnimation();
             }
         }
 
@@ -281,7 +281,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (MainScreen.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Insert))
             {
-                MainScreen.AddNewAnimation();
+                MainScreen.DuplicateCurrentAnimation();
             }
         }
 

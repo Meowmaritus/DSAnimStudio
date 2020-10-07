@@ -9,6 +9,8 @@
 
 //#define NO_SKINNING
 
+float DebugAnimWeight;
+
 #define MAXLIGHTS 3
 
 #define WORKFLOW_HIGHLIGHT -2
@@ -75,6 +77,7 @@ float4x4 View;
 float4x4 Projection;
 float4x4 FlipSkybox;
 bool IsSkybox = false;
+bool EnableSkinning = true;
 
 //Highlight
 float3 HighlightColor;
@@ -284,7 +287,7 @@ struct VertexShaderOutput
 float4 SkinVert(VertexShaderInput input, float4 v)
 {
     [branch]
-    if (IsSkybox)
+    if (IsSkybox || !EnableSkinning)
     {
         return v;
     }
@@ -417,7 +420,7 @@ float4 SkinVert(VertexShaderInput input, float4 v)
         return v;
     }
     
-    return ((posA + posB + posC + posD) / (input.BoneWeights.x + input.BoneWeights.y + input.BoneWeights.z + input.BoneWeights.w));
+    return lerp(v, ((posA + posB + posC + posD) / (input.BoneWeights.x + input.BoneWeights.y + input.BoneWeights.z + input.BoneWeights.w)), DebugAnimWeight);
     #else
     return v;
     #endif

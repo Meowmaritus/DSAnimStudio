@@ -31,6 +31,8 @@ namespace DSAnimStudio
 
         public bool ForcePlayAnim = false;
 
+        public float DebugAnimWeight = 1;
+
         public bool IsAnimLoaded(string name)
         {
             return AnimationCache.ContainsKey(name);
@@ -482,6 +484,8 @@ namespace DSAnimStudio
                     {
                         var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
 
+                        a = Vector4.Lerp(Vector4.Zero, a, DebugAnimWeight);
+
                         var deltaMatrix = Matrix.CreateTranslation(new Vector3(a.X, a.Y, a.Z));
                         MODEL.CurrentRootMotionTranslation *= deltaMatrix;
                         MODEL.CurrentDirection += a.W;
@@ -493,6 +497,8 @@ namespace DSAnimStudio
                         var b = RotateDeltaToCurrentDirectionMat(AnimationLayers[1].RootMotionDeltaOfLastScrub, AnimationLayers[1].RotMatrixAtStartOfAnim);
 
                         var blended = Vector4.Lerp(a, b, AnimationLayers[1].Weight);
+
+                        blended = Vector4.Lerp(Vector4.Zero, blended, DebugAnimWeight);
 
                         var deltaMatrix = Matrix.CreateTranslation(new Vector3(blended.X, blended.Y, blended.Z));
                         MODEL.CurrentRootMotionTranslation *= deltaMatrix;
@@ -543,15 +549,17 @@ namespace DSAnimStudio
 
         public void ScrubRelative(float timeDelta, bool doNotCheckRootMotionRotation = false)
         {
+            ForcePlayAnim = false;
+
             //if (stopPlaying)
             //    IsPlaying = false;
 
             //CurrentAnimation?.Scrub(newTime, false, forceUpdate, loopCount, forceAbsoluteRootMotion);
 
-            MODEL.Skeleton.ClearHkxBoneMatrices();
+            if (MODEL.Skeleton == null)
+                return;
 
-            var transA = new List<NewBlendableTransform>();
-            var transB = new List<NewBlendableTransform>();
+            MODEL.Skeleton.ClearHkxBoneMatrices();
 
             float totalWeight = 0;
 
@@ -560,41 +568,33 @@ namespace DSAnimStudio
                 for (int i = 0; i < AnimationLayers.Count; i++)
                 {
                     AnimationLayers[i].ScrubRelative(timeDelta, doNotCheckRootMotionRotation);
-                    totalWeight += AnimationLayers[i].Weight;
-                    //AnimationLayers[i].ApplyWeightedMotionToSkeleton(finalizeHkxMatrices: i == AnimationLayers.Count - 1, 1 - totalWeight);
-                    //AnimationLayers[i].CalculateCurrentFrame();
-
-                    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
-                    {
-                        var curTransform = AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t);
-                        if (i == 0)
-                        {
-                            transA.Add(curTransform);
-                            if (AnimationLayers.Count == 1)
-                                MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = curTransform;
-                        }
-                        else if (i == 1)
-                        {
-                            transB.Add(curTransform);
-                            if (AnimationLayers.Count == 2)
-                                MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(transA[t], transB[t], AnimationLayers[1].Weight);
-                        }
-                    }
                 }
 
-                //if (AnimationLayers.Count == 2)
-                //{
-                //    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
-                //    {
+                for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
+                {
+                    var tr = NewBlendableTransform.Identity;
+                    float weight = 0;
+                    for (int i = 0; i < AnimationLayers.Count; i++)
+                    {
+                        if (AnimationLayers[i].Weight * DebugAnimWeight <= 0)
+                            continue;
 
-                //    }
-                //        MODEL.Skeleton.SetHkxBoneMatrix(t, (NewBlendableTransform.Lerp(transA[t], transB[t], AnimationLayers[1].Weight)).GetMatrix().ToXna());
-                //}
-                //else if (AnimationLayers.Count == 1)
-                //{
-                //    for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
-                //        MODEL.Skeleton.SetHkxBoneMatrix(t, transA[t].GetMatrix().ToXna());
-                //}
+                        var frame = AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t);
+
+
+
+                        if (AnimationLayers[i].IsAdditiveBlend)
+                        {
+                            frame = MODEL.Skeleton.HkxSkeleton[t].RelativeReferenceTransform * frame;
+                        }
+
+                        weight += AnimationLayers[i].Weight;
+                        tr = NewBlendableTransform.Lerp(tr, frame, AnimationLayers[i].Weight / weight);
+
+
+                    }
+                    MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(MODEL.Skeleton.HkxSkeleton[t].RelativeReferenceTransform, tr, DebugAnimWeight);
+                }
 
                 void WalkTree(int i, Matrix currentMatrix, Matrix scaleMatrix)
                 {
@@ -603,14 +603,12 @@ namespace DSAnimStudio
                         var parentTransformation = currentMatrix;
                         var parentScaleMatrix = scaleMatrix;
 
-                        currentMatrix = AnimationLayers[1].IsAdditiveBlend ? transB[i].GetMatrix().ToXna() :
-                            NewBlendableTransform.Lerp(transA[i], transB[i], AnimationLayers[1].Weight).GetMatrix().ToXna();
+                        currentMatrix = MODEL.Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrix().ToXna();
 
-                        scaleMatrix = AnimationLayers[1].IsAdditiveBlend ? transB[i].GetMatrixScale().ToXna() :
-                            NewBlendableTransform.Lerp(transA[i], transB[i], AnimationLayers[1].Weight).GetMatrixScale().ToXna();
+                        scaleMatrix = MODEL.Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrixScale().ToXna();
 
-                        if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
-                            currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
+                        //if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
+                        //    currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
 
                         lock (_lock_AdditiveOverlays)
                         {
@@ -629,12 +627,12 @@ namespace DSAnimStudio
                         var parentTransformation = currentMatrix;
                         var parentScaleMatrix = scaleMatrix;
 
-                        currentMatrix = transA[i].GetMatrix().ToXna();
+                        currentMatrix = MODEL.Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrix().ToXna();
 
-                        scaleMatrix = transA[i].GetMatrixScale().ToXna();
+                        scaleMatrix = MODEL.Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrixScale().ToXna();
 
-                        if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
-                            currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
+                        //if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
+                        //    currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
 
                         lock (_lock_AdditiveOverlays)
                         {
@@ -657,7 +655,7 @@ namespace DSAnimStudio
 
                 if (AnimationLayers.Count > 0)
                 {
-                    foreach (var root in MODEL.Skeleton.RootBoneIndices)
+                    foreach (var root in MODEL.Skeleton.TopLevelHkxBoneIndices)
                         WalkTree(root, Matrix.Identity, Matrix.Identity);
                 }
 
