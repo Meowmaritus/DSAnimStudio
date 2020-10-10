@@ -167,7 +167,7 @@ namespace DSAnimStudio.TaeEditor
 
             TaeViewportInteractor.StatusTextScale = ViewportStatusTextSize;
 
-            OSD.RenderScale = (OSD.RenderScaleTarget = ToolboxGuiScale) / 100;
+            OSD.RenderScale = Main.DPICustomMultX = Main.DPICustomMultY = (OSD.RenderScaleTarget = ToolboxGuiScale) / 100;
             OSD.WidthScale = (OSD.WidthScaleTarget = ToolboxItemWidthScale) / 100;
 
             Environment.SkyboxBrightnessMult = SkyboxBrightness;

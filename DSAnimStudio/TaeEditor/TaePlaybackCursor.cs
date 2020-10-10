@@ -144,6 +144,8 @@ namespace DSAnimStudio.TaeEditor
 
         public double CurrentSnapInterval => SnapInterval ?? SnapInterval_Default;
 
+        public double CurrentSnapFPS => 1 / CurrentSnapInterval;
+
         public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate
             ? (Math.Floor(CurrentTime / CurrentSnapInterval))
             : (CurrentTime / CurrentSnapInterval);
@@ -166,7 +168,8 @@ namespace DSAnimStudio.TaeEditor
         public bool Scrubbing = false;
         public bool prevScrubbing = false;
 
-        public float BasePlaybackSpeed = 1.0f;
+        public static float GlobalBasePlaybackSpeed = 1.0f;
+        public float BasePlaybackSpeed => GlobalBasePlaybackSpeed;
         public float ModPlaybackSpeed = 1.0f;
 
         public bool IsStepping = false;

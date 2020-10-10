@@ -18,264 +18,229 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditorScreen
     {
+        public object _lock_AllUpdating = new object();
+
         public const string BackupExtension = ".dsasbak";
 
         private ContentManager DebugReloadContentManager = null;
 
-        private void BuildDebugMenuBar()
+        public void Tools_ScanForUnusedAnimations()
         {
-
-            MenuBar.AddTopItem("Tools");
-
-            MenuBar.AddItem("Tools", "Combo Viewer|F8", () =>
+            List<string> usedAnims = new List<string>();
+            List<string> unusedAnims = new List<string>();
+            foreach (var anim in SelectedTae.Animations)
             {
-                ShowComboMenu();
-            }, startDisabled: true);
-#if DEBUG
-            MenuBar.AddItem("Tools", "Scan for Unused Animations", () =>
+                string hkx = Graph.ViewportInteractor.GetFinalAnimFileName(SelectedTae, anim);
+                if (!usedAnims.Contains(hkx))
+                    usedAnims.Add(hkx);
+            }
+            foreach (var anim in Graph.ViewportInteractor.CurrentModel.AnimContainer.Animations.Keys)
             {
-                List<string> usedAnims = new List<string>();
-                List<string> unusedAnims = new List<string>();
-                foreach (var anim in SelectedTae.Animations)
+                if (!usedAnims.Contains(anim) && !Graph.ViewportInteractor.CurrentModel.AnimContainer.AdditiveBlendOverlayNames.Contains(anim)
+                && !unusedAnims.Contains(anim))
+                    unusedAnims.Add(anim);
+            }
+            //var sb = new StringBuilder();
+            foreach (var anim in unusedAnims)
+            {
+                //sb.AppendLine(anim);
+                int id = int.Parse(anim.Replace(".hkx", "").Replace("_", "").Replace("a", ""));
+                var newAnim = new TAE.Animation(9_000_000000 + id, new TAE.Animation.AnimMiniHeader.Standard()
                 {
-                    string hkx = Graph.ViewportInteractor.GetFinalAnimFileName(SelectedTae, anim);
-                    if (!usedAnims.Contains(hkx))
-                        usedAnims.Add(hkx);
-                }
-                foreach (var anim in Graph.ViewportInteractor.CurrentModel.AnimContainer.Animations.Keys)
+                    ImportHKXSourceAnimID = id,
+                    ImportsHKX = true,
+                }, $"UNUSED:{anim.Replace(".hkx", "")}");
+                SelectedTae.Animations.Add(newAnim);
+            }
+            RecreateAnimList();
+        }
+
+        public void Tools_DowngradeSekiroAnibnds()
+        {
+            Main.WinForm.Invoke(new Action(() =>
+            {
+                var browseDlg = new System.Windows.Forms.OpenFileDialog()
                 {
-                    if (!usedAnims.Contains(anim) && !Graph.ViewportInteractor.CurrentModel.AnimContainer.AdditiveBlendOverlayNames.Contains(anim) 
-                    && !unusedAnims.Contains(anim))
-                        unusedAnims.Add(anim);
-                }
-                //var sb = new StringBuilder();
-                foreach (var anim in unusedAnims)
+                    Filter = "*.ANIBND.DCX|*.ANIBND.DCX",
+                    ValidateNames = true,
+                    CheckFileExists = true,
+                    CheckPathExists = true,
+                    //ShowReadOnly = true,
+                    Title = "Choose *.ANIBND.DCX file(s) to downgrade to Havok 2010.",
+                    Multiselect = true,
+                };
+
+                var decision = browseDlg.ShowDialog();
+
+                if (decision == System.Windows.Forms.DialogResult.OK)
                 {
-                    //sb.AppendLine(anim);
-                    int id = int.Parse(anim.Replace(".hkx", "").Replace("_", "").Replace("a", ""));
-                    var newAnim = new TAE.Animation(9_000_000000 + id, new TAE.Animation.AnimMiniHeader.Standard()
+                    //if (System.IO.File.Exists(browseDlg.FileName + ".2010"))
+                    //{
+                    //    var nextDecision = System.Windows.Forms.MessageBox.Show("A '*.anibnd.dcx.2010' version of the selected file already exists. Would you like to downgrade all animations and overwrite this file anyways?", "Convert Again?", System.Windows.Forms.MessageBoxButtons.YesNo);
+
+                    //    if (nextDecision == System.Windows.Forms.DialogResult.No)
+                    //        return;
+                    //}
+
+                    LoadingTaskMan.DoLoadingTask("PreprocessSekiroAnimations_Multi", "Downgrading all selected ANIBNDs...", prog =>
                     {
-                        ImportHKXSourceAnimID = id,
-                        ImportsHKX = true,
-                    }, $"UNUSED:{anim.Replace(".hkx", "")}");
-                    SelectedTae.Animations.Add(newAnim);
-                }
-                RecreateAnimList();
-                //System.Windows.Forms.MessageBox.Show(sb.ToString());
-            }, startDisabled: false, getEnabled: () => Scene.IsModelLoaded);
-
-            MenuBar.AddSeparator("Tools");
-#endif
-
-            MenuBar.AddItem("Tools", "Import Character Model from FBX...", () =>
-            {
-                BringUpImporter_FLVER2();
-            }, getEnabled: () => Scene.IsModelLoaded);
-
-            MenuBar.AddSeparator("Tools");
-
-            MenuBar.AddItem("Tools", "Downgrade Sekiro/DS1R ANIBND(s)...", () =>
-            {
-
-                Main.WinForm.Invoke(new Action(() =>
-                {
-                    var browseDlg = new System.Windows.Forms.OpenFileDialog()
-                    {
-                        Filter = "*.ANIBND.DCX|*.ANIBND.DCX",
-                        ValidateNames = true,
-                        CheckFileExists = true,
-                        CheckPathExists = true,
-                        //ShowReadOnly = true,
-                        Title = "Choose *.ANIBND.DCX file(s) to downgrade to Havok 2010.",
-                        Multiselect = true,
-                    };
-
-                    var decision = browseDlg.ShowDialog();
-
-                    if (decision == System.Windows.Forms.DialogResult.OK)
-                    {
-                        //if (System.IO.File.Exists(browseDlg.FileName + ".2010"))
-                        //{
-                        //    var nextDecision = System.Windows.Forms.MessageBox.Show("A '*.anibnd.dcx.2010' version of the selected file already exists. Would you like to downgrade all animations and overwrite this file anyways?", "Convert Again?", System.Windows.Forms.MessageBoxButtons.YesNo);
-
-                        //    if (nextDecision == System.Windows.Forms.DialogResult.No)
-                        //        return;
-                        //}
-
-                        LoadingTaskMan.DoLoadingTask("PreprocessSekiroAnimations_Multi", "Downgrading all selected ANIBNDs...", prog =>
+                        int numNames = browseDlg.FileNames.Length;
+                        for (int i = 0; i < numNames; i++)
                         {
-                            int numNames = browseDlg.FileNames.Length;
-                            for (int i = 0; i < numNames; i++)
-                            {
-                                string curName = browseDlg.FileNames[i];
+                            string curName = browseDlg.FileNames[i];
 
-                                LoadingTaskMan.DoLoadingTaskSynchronous($"PreprocessSekiroAnimations_{curName}", $"Downgrading {Utils.GetShortIngameFileName(curName)}...", prog2 =>
+                            LoadingTaskMan.DoLoadingTaskSynchronous($"PreprocessSekiroAnimations_{curName}", $"Downgrading {Utils.GetShortIngameFileName(curName)}...", prog2 =>
+                            {
+
+                                try
                                 {
 
-                                    try
+                                    string debug_testConvert_filename = curName;
+
+                                    if (string.IsNullOrWhiteSpace(debug_testConvert_filename))
+                                        throw new Exception("WHAT THE FUCKING FUCK GOD FUCKING DAMMIT");
+
+                                    string folder = new System.IO.FileInfo(debug_testConvert_filename).DirectoryName;
+
+                                    int lastSlashInFolder = folder.LastIndexOf("\\");
+
+                                    string interroot = folder.Substring(0, lastSlashInFolder);
+
+                                    string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
+
+                                    string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
+
+                                    // modengine check
+                                    if (!File.Exists(oodleSource))
                                     {
-
-                                        string debug_testConvert_filename = curName;
-
-                                        if (string.IsNullOrWhiteSpace(debug_testConvert_filename))
-                                            throw new Exception("WHAT THE FUCKING FUCK GOD FUCKING DAMMIT");
-
-                                        string folder = new System.IO.FileInfo(debug_testConvert_filename).DirectoryName;
-
-                                        int lastSlashInFolder = folder.LastIndexOf("\\");
-
-                                        string interroot = folder.Substring(0, lastSlashInFolder);
-
-                                        string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
-
-                                        string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
-
-                                        // modengine check
-                                        if (!File.Exists(oodleSource))
-                                        {
-                                            oodleSource = Utils.Frankenpath(interroot, @"..\oo2core_6_win64.dll");
-                                        }
-
-                                        if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
-                                        {
-                                            System.IO.File.Copy(oodleSource, oodleTarget, true);
-
-                                            System.Windows.Forms.MessageBox.Show("Oodle compression library was automatically copied from game directory " +
-                                                "to editor's '/lib' directory and Sekiro files will load.\n\n", "Required Library Copied",
-                                                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-                                        }
-
-
-                                        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-
-                                        HavokDowngrade.DowngradeAnibnd(debug_testConvert_filename, prog2);
-                                        stopwatch.Stop();
-                                        int minutes = (int)(stopwatch.Elapsed.TotalSeconds / 60);
-                                        int seconds = (int)(Math.Round(stopwatch.Elapsed.TotalSeconds % 60));
-
-                                        //if (minutes > 0)
-                                        //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {minutes}m{seconds}s", "Animation Downgrading Complete");
-                                        //else
-                                        //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {seconds}s", "Animation Downgrading Complete");
-
+                                        oodleSource = Utils.Frankenpath(interroot, @"..\oo2core_6_win64.dll");
                                     }
-                                    catch (DllNotFoundException)
+
+                                    if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
                                     {
-                                        System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
-                                            "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
-                                            "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
+                                        System.IO.File.Copy(oodleSource, oodleTarget, true);
+
+                                        System.Windows.Forms.MessageBox.Show("Oodle compression library was automatically copied from game directory " +
+                                            "to editor's '/lib' directory and Sekiro files will load.\n\n", "Required Library Copied",
                                             System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
                                     }
 
-                                });
 
-                                prog.Report(1.0 * (i + 1) / browseDlg.FileNames.Length);
-                                //LoadingTaskMan.DoLoadingTaskSynchronous($"PreprocessSekiroAnimations_Multi_{i}",
-                                //    $"Downgrading anim {(i + 1)} of {browseDlg.FileNames.Length}...", prog2 =>
-                                //    {
-                                //        DoAnimDowngrade(browseDlg.FileNames[i]);
-                                //        prog.Report(1.0 * (i + 1) / browseDlg.FileNames.Length);
-
-                                //    });
-                            }
-                        });
+                                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
 
+                                    HavokDowngrade.DowngradeAnibnd(debug_testConvert_filename, prog2);
+                                    stopwatch.Stop();
+                                    int minutes = (int)(stopwatch.Elapsed.TotalSeconds / 60);
+                                    int seconds = (int)(Math.Round(stopwatch.Elapsed.TotalSeconds % 60));
 
+                                    //if (minutes > 0)
+                                    //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {minutes}m{seconds}s", "Animation Downgrading Complete");
+                                    //else
+                                    //    System.Windows.Forms.MessageBox.Show($"Created downgraded file (\"*.anibnd.dcx.2010\").\nElapsed Time: {seconds}s", "Animation Downgrading Complete");
+
+                                }
+                                catch (DllNotFoundException)
+                                {
+                                    System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
+                                        "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
+                                        "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
+                                        System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+                                }
+
+                            });
+
+                            prog.Report(1.0 * (i + 1) / browseDlg.FileNames.Length);
+                            //LoadingTaskMan.DoLoadingTaskSynchronous($"PreprocessSekiroAnimations_Multi_{i}",
+                            //    $"Downgrading anim {(i + 1)} of {browseDlg.FileNames.Length}...", prog2 =>
+                            //    {
+                            //        DoAnimDowngrade(browseDlg.FileNames[i]);
+                            //        prog.Report(1.0 * (i + 1) / browseDlg.FileNames.Length);
+
+                            //    });
+                        }
+                    });
+
+
+
+                }
+
+            }));
+        }
+
+        public void Tools_ImportAllPTDEAnibndToDS1R()
+        {
+            var browseDlgPTDE = new System.Windows.Forms.OpenFileDialog()
+            {
+                Filter = "*.EXE|*.EXE",
+                ValidateNames = true,
+                CheckFileExists = true,
+                CheckPathExists = true,
+                //ShowReadOnly = true,
+                Title = "Select your PTDE DARKSOULS.EXE...",
+                Multiselect = false,
+            };
+
+            var browseDlgDS1R = new System.Windows.Forms.OpenFileDialog()
+            {
+                Filter = "*.EXE|*.EXE",
+                ValidateNames = true,
+                CheckFileExists = true,
+                CheckPathExists = true,
+                //ShowReadOnly = true,
+                Title = "Select your DS1R DarkSoulsRemastered.EXE...",
+                Multiselect = false,
+            };
+
+            if (browseDlgPTDE.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                if (browseDlgDS1R.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    string folderPTDE = Utils.Frankenpath(new System.IO.FileInfo(browseDlgPTDE.FileName).DirectoryName, "chr\\");
+                    string folderDS1R = Utils.Frankenpath(new System.IO.FileInfo(browseDlgDS1R.FileName).DirectoryName, "chr\\");
+
+                    foreach (var file in System.IO.Directory.GetFiles(folderPTDE, "*.anibnd"))
+                    {
+                        string nickname = Utils.GetShortIngameFileName(file);
+                        System.IO.File.Copy(file, Utils.Frankenpath(folderDS1R, $"{nickname}.anibnd.dcx.2010"), true);
                     }
 
-                }));
+                    System.Windows.Forms.MessageBox.Show("Imported all from PTDE.");
+                }
+            }
+        }
 
-
-
-
-
-
-            });
-
-
-            MenuBar.AddItem("Tools", "Import All PTDE ANIBNDs to DS1R...", () =>
+        public void Tools_ExportCurrentTAE()
+        {
+            Main.WinForm.Invoke(new Action(() =>
             {
-                var browseDlgPTDE = new System.Windows.Forms.OpenFileDialog()
+                var browseDlg = new System.Windows.Forms.SaveFileDialog()
                 {
-                    Filter = "*.EXE|*.EXE",
+                    Filter = "TAE Files (*.tae)|*.tae",
                     ValidateNames = true,
-                    CheckFileExists = true,
                     CheckPathExists = true,
                     //ShowReadOnly = true,
-                    Title = "Select your PTDE DARKSOULS.EXE...",
-                    Multiselect = false,
+                    Title = "Choose where to save loose TAE file.",
+
                 };
 
-                var browseDlgDS1R = new System.Windows.Forms.OpenFileDialog()
-                {
-                    Filter = "*.EXE|*.EXE",
-                    ValidateNames = true,
-                    CheckFileExists = true,
-                    CheckPathExists = true,
-                    //ShowReadOnly = true,
-                    Title = "Select your DS1R DarkSoulsRemastered.EXE...",
-                    Multiselect = false,
-                };
+                var decision = browseDlg.ShowDialog();
 
-                if (browseDlgPTDE.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                if (decision == System.Windows.Forms.DialogResult.OK)
                 {
-                    if (browseDlgDS1R.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    try
                     {
-                        string folderPTDE = Utils.Frankenpath(new System.IO.FileInfo(browseDlgPTDE.FileName).DirectoryName, "chr\\");
-                        string folderDS1R = Utils.Frankenpath(new System.IO.FileInfo(browseDlgDS1R.FileName).DirectoryName, "chr\\");
-
-                        foreach (var file in System.IO.Directory.GetFiles(folderPTDE, "*.anibnd"))
-                        {
-                            string nickname = Utils.GetShortIngameFileName(file);
-                            System.IO.File.Copy(file, Utils.Frankenpath(folderDS1R, $"{nickname}.anibnd.dcx.2010"), true);
-                        }
-
-                        System.Windows.Forms.MessageBox.Show("Imported all from PTDE.");
+                        SelectedTae.Write(browseDlg.FileName);
+                        System.Windows.Forms.MessageBox.Show("TAE saved successfully.", "Saved");
+                    }
+                    catch (Exception exc)
+                    {
+                        System.Windows.Forms.MessageBox.Show($"Error saving TAE file:\n\n{exc}", "Failed to Save",
+                            System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     }
                 }
-            });
 
-            MenuBar.AddItem("Tools", "Export Current TAE...", () =>
-            {
-
-                Main.WinForm.Invoke(new Action(() =>
-                {
-                    var browseDlg = new System.Windows.Forms.SaveFileDialog()
-                    {
-                        Filter = "TAE Files (*.tae)|*.tae",
-                        ValidateNames = true,
-                        CheckPathExists = true,
-                        //ShowReadOnly = true,
-                        Title = "Choose where to save loose TAE file.",
-
-                    };
-
-                    var decision = browseDlg.ShowDialog();
-
-                    if (decision == System.Windows.Forms.DialogResult.OK)
-                    {
-                        try
-                        {
-                            SelectedTae.Write(browseDlg.FileName);
-                            System.Windows.Forms.MessageBox.Show("TAE saved successfully.", "Saved");
-                        }
-                        catch (Exception exc)
-                        {
-                            System.Windows.Forms.MessageBox.Show($"Error saving TAE file:\n\n{exc}", "Failed to Save",
-                                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                        }
-                    }
-
-                }));
-
-
-
-
-
-
-            }, startDisabled: true, closeOnClick: true, getEnabled: () => SelectedTae != null);
+            }));
         }
 
         public void BringUpImporter_FLVER2()
@@ -300,7 +265,7 @@ namespace DSAnimStudio.TaeEditor
         {
             GameWindowAsForm.Invoke(new Action(() =>
             {
-                if (!MenuBar["Tools\\Combo Viewer"].Enabled)
+                if (!IsFileOpen)
                     return;
 
                 if (ComboMenu == null || ComboMenu.IsDisposed)
@@ -392,7 +357,8 @@ namespace DSAnimStudio.TaeEditor
 
         private const int RECENT_FILES_MAX = 32;
 
-        private int TopMenuBarMargin => (int)Math.Round(WinFormsMenuStrip.Size.Height / Main.DPIY);
+        //TODO: CHECK THIS
+        private int TopMenuBarMargin => 21;
 
         private int TopOfGraphAnimInfoMargin = 20;
 
@@ -433,7 +399,7 @@ namespace DSAnimStudio.TaeEditor
         //public bool ShiftHeld;
         //public bool AltHeld;
 
-        const string HELP_TEXT =
+        public const string HELP_TEXT =
             "Left Click + Drag on Timeline:\n" +
             "    Scrub animation frame.\n" +
             "Left Click + Hold Shift + Drag on Timeline:\n" +
@@ -517,11 +483,12 @@ namespace DSAnimStudio.TaeEditor
         {
             get
             {
+                if (SelectedTaeAnim == null)
+                    return null;
+
                 if (!UndoManDictionary.ContainsKey(SelectedTaeAnim))
                 {
                     var newUndoMan = new TaeUndoMan(this);
-                    newUndoMan.CanUndoMaybeChanged += UndoMan_CanUndoMaybeChanged;
-                    newUndoMan.CanRedoMaybeChanged += UndoMan_CanRedoMaybeChanged;
                     UndoManDictionary.Add(SelectedTaeAnim, newUndoMan);
                 }
                 return UndoManDictionary[SelectedTaeAnim];
@@ -543,17 +510,6 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
         }
-            
-
-        public void UpdateIsModifiedStuff()
-        {
-            GameWindowAsForm.Invoke(new Action(() =>
-            {
-                MenuBar["File\\Save"].Enabled = IsModified;
-            }));
-        }
-
-        public TaeMenuBarBuilder MenuBar { get; private set; }
 
         private void PushNewRecentFile(string fileName)
         {
@@ -566,52 +522,6 @@ namespace DSAnimStudio.TaeEditor
             Config.RecentFilesList.Insert(0, fileName);
 
             SaveConfig();
-
-            CreateRecentFilesList();
-        }
-
-        private void CreateRecentFilesList()
-        {
-            GameWindowAsForm.Invoke(new Action(() =>
-            {
-                MenuBar["File\\Recent Files"].DropDownItems.Clear();
-                var toolStripFileRecentClear = new System.Windows.Forms.ToolStripMenuItem("Clear All Recent Files...");
-                toolStripFileRecentClear.Click += (s, e) =>
-                {
-                    var askYesNoResult = System.Windows.Forms.MessageBox.Show(
-                        "Are you sure you wish to remove all recent files?",
-                        "Remove All Recent Files?",
-                        System.Windows.Forms.MessageBoxButtons.YesNo);
-
-                    if (askYesNoResult == System.Windows.Forms.DialogResult.Yes)
-                    {
-                        Config.RecentFilesList.Clear();
-                        SaveConfig();
-                        CreateRecentFilesList();
-                    }
-                };
-                MenuBar["File\\Recent Files"].DropDownItems.Add(toolStripFileRecentClear);
-                MenuBar["File\\Recent Files"].DropDownItems.Add(new System.Windows.Forms.ToolStripSeparator());
-                foreach (var f in Config.RecentFilesList)
-                {
-                    var thisRecentFileEntry = new System.Windows.Forms.ToolStripMenuItem(f);
-                    thisRecentFileEntry.Click += (s, e) =>
-                    {
-                        DirectOpenFile(f);
-                    };
-                    MenuBar["File\\Recent Files"].DropDownItems.Add(thisRecentFileEntry);
-                }
-            }));
-        }
-
-        private void UndoMan_CanRedoMaybeChanged(object sender, EventArgs e)
-        {
-            MenuBar["Edit\\Redo"].Enabled = UndoMan.CanRedo;
-        }
-
-        private void UndoMan_CanUndoMaybeChanged(object sender, EventArgs e)
-        {
-            MenuBar["Edit\\Undo"].Enabled = UndoMan.CanUndo;
         }
 
 
@@ -775,8 +685,6 @@ namespace DSAnimStudio.TaeEditor
 
         public FancyInputHandler Input => Main.Input;
 
-        public System.Windows.Forms.MenuStrip WinFormsMenuStrip;
-
         public string FileContainerName = "";
         public string FileContainerName_2010 => FileContainerName + ".2010";
 
@@ -833,8 +741,6 @@ namespace DSAnimStudio.TaeEditor
 
         public bool? LoadCurrentFile()
         {
-            Graph?.ViewportInteractor?.CloseEquipForm();
-
             IsCurrentlyLoadingGraph = true;
             Scene.DisableModelDrawing();
             Scene.DisableModelDrawing2();
@@ -914,13 +820,6 @@ namespace DSAnimStudio.TaeEditor
                 }
 
                 LoadTaeFileContainer(FileContainer);
-
-                GameWindowAsForm.Invoke(new Action(() =>
-                {
-                    MenuBar["File\\Save As..."].Enabled = !IsReadOnlyFileMode;
-                    MenuBar["File\\Force Ingame Character Reload Now (DS3/DS1R Only)"].Enabled = !IsReadOnlyFileMode;
-                    MenuBar["File\\Reload GameParam"].Enabled = true;
-                }));
 
                 //if (templateName != null)
                 //{
@@ -1048,14 +947,6 @@ namespace DSAnimStudio.TaeEditor
                 ButtonGotoEventSource.Enabled = false;
                 ButtonGotoEventSource.Visible = false;
                 //MenuBar["Edit\\Find First Event of Type..."].Enabled = true;
-                MenuBar["Edit\\Find Value..."].Enabled = true;
-                MenuBar["Edit\\Go To Animation ID..."].Enabled = true;
-                MenuBar["Edit\\Go To Animation Section ID..."].Enabled = true;
-                MenuBar["Edit\\Collapse All TAE Sections"].Enabled = true;
-                MenuBar["Edit\\Expand All TAE Sections"].Enabled = true;
-                MenuBar["Edit\\Set Animation Name..."].Enabled = true;
-                MenuBar["Animation\\Set Playback Speed..."].Enabled = true;
-                MenuBar["Tools\\Combo Viewer"].Enabled = true;
                 LastFindInfo = null;
             }));
         }
@@ -1204,674 +1095,7 @@ namespace DSAnimStudio.TaeEditor
 
             GameWindowAsForm.Controls.Add(inspectorWinFormsControl);
 
-            WinFormsMenuStrip = new System.Windows.Forms.MenuStrip();
-
-            WinFormsMenuStrip.BackColor = inspectorWinFormsControl.BackColor;
-            WinFormsMenuStrip.ForeColor = inspectorWinFormsControl.ForeColor;
-
-            WinFormsMenuStrip.MouseEnter += (o, e) =>
-            {
-                Input.CursorType = MouseCursorType.Arrow;
-            };
-
-            MenuBar = new TaeMenuBarBuilder(WinFormsMenuStrip);
-
-            //////////
-            // File //
-            //////////
-
-            MenuBar.AddItem("File", "Open...", () => File_Open());
-            MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Load Custom TAE Data Template XML...", () =>
-            {
-                var selectedTemplate = BrowseForXMLTemplate();
-                if (selectedTemplate != null)
-                    LoadTAETemplate(selectedTemplate);
-            });
-            MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Recent Files");
-            CreateRecentFilesList();
-            MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Reload GameParam", () =>
-            {
-                LoadingTaskMan.DoLoadingTask("FileReloadGameParam", "Reloading GameParam...", prog =>
-                {
-                    GameDataManager.ReloadParams();
-                    //var curTime = Graph.PlaybackCursor.CurrentTime;
-                    //SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
-                    //Graph.PlaybackCursor.CurrentTime = curTime;
-                    Graph.ViewportInteractor.OnScrubFrameChange();
-                }, disableProgressBarByDefault: true);
-            }, startDisabled: true);
-            //MenuBar.AddItem("File", "Reload Text", () =>
-            //{
-            //    LoadingTaskMan.DoLoadingTask("FileReloadMSG", "Reloading Text...", prog =>
-            //    {
-            //        GameDataManager.ReloadFmgs();
-            //        SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
-            //    }, disableProgressBarByDefault: true);
-            //}, startDisabled: true);
-            MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Save", () => SaveCurrentFile(), startDisabled: true);
-            MenuBar.AddItem("File", "Save As...", () => File_SaveAs(), startDisabled: true);
-            MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Force Ingame Character Reload Now (DS3/DS1R Only)|F5", () => LiveRefresh(), startDisabled: true);
-            MenuBar.AddItem("File", "Force Ingame Character Reload When Saving (DS3/DS1R Only)", () => Config.LiveRefreshOnSave, b => Config.LiveRefreshOnSave = b);
-            MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Manually Save Config", () =>
-            {
-                SaveConfig();
-                System.Windows.Forms.MessageBox.Show("Configuration saved.", "Save Complete");
-            });
-            MenuBar.AddSeparator("File");
-            MenuBar.AddItem("File", "Exit", () => GameWindowAsForm.Close());
-
-            /////////////////////
-            // Entity Settings //
-            /////////////////////
-
-            void BrowseForMoreTextures()
-            {
-                List<string> texturesToLoad = new List<string>();
-                lock (Scene._lock_ModelLoad_Draw)
-                {
-                    foreach (var m in Scene.Models)
-                    {
-                        texturesToLoad.AddRange(m.MainMesh.GetAllTexNamesToLoad());
-                    }
-                }
-                    
-
-                var browseDlg = new System.Windows.Forms.OpenFileDialog()
-                {
-                    //Filter = "TPF[.DCX]/TFPBHD|*.TPF*",
-                    Multiselect = true,
-                    Title = "Load textures from CHRBND(s), TEXBND(s), TPF(s), and/or TPFBHD(s)..."
-                };
-                if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                {
-                    var texFileNames = browseDlg.FileNames;
-                    List<string> bxfDupeCheck = new List<string>();
-                    LoadingTaskMan.DoLoadingTask("BrowseForEntityTextures", "Scanning files for relevant textures...", progress =>
-                    {
-                        double i = 0;
-                        foreach (var tfn in texFileNames)
-                        {
-                            var shortName = Utils.GetShortIngameFileName(tfn);
-                            if (!bxfDupeCheck.Contains(shortName))
-                            {
-                                if (TPF.Is(tfn))
-                                {
-                                    TexturePool.AddTpfFromPath(tfn);
-                                }
-                                else
-                                {
-                                    TexturePool.AddSpecificTexturesFromBinder(tfn, texturesToLoad);
-                                }
-                                
-                                bxfDupeCheck.Add(shortName);
-                            }
-                            progress.Report(++i / texFileNames.Length);
-                        }
-                        Scene.RequestTextureLoad();
-                        progress.Report(1);
-                    });
-                    
-                    
-                }
-
-
-            }
-
-            MenuBar.AddTopItem("NPC Settings");
-            MenuBar["NPC Settings"].Enabled = false;
-            MenuBar["NPC Settings"].Visible = false;
-            MenuBar["NPC Settings"].Font = 
-                new System.Drawing.Font(MenuBar["NPC Settings"].Font, 
-                System.Drawing.FontStyle.Bold);
-            MenuBar["NPC Settings"].ForeColor = System.Drawing.Color.Cyan;
-            MenuBar.AddItem("NPC Settings", "Load Additional Texture File(s)...", () => BrowseForMoreTextures());
-
-
-            MenuBar.AddTopItem("Player Settings");
-            MenuBar["Player Settings"].Enabled = false;
-            MenuBar["Player Settings"].Visible = false;
-            MenuBar["Player Settings"].Font = 
-                new System.Drawing.Font(MenuBar["Player Settings"].Font, 
-                System.Drawing.FontStyle.Bold);
-            MenuBar["Player Settings"].ForeColor = System.Drawing.Color.Cyan;
-
-            MenuBar.AddItem("Player Settings", "Show Equip Change Menu", () => Graph?.ViewportInteractor?.BringUpEquipForm());
-
-            MenuBar.AddSeparator("Player Settings");
-
-            MenuBar.AddItem($"Player Settings", "Behavior / Hitbox Source", new Dictionary<string, Action>
-            {
-                { "Body", () =>
-                    {
-                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.Body;
-                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Graph.ViewportInteractor.OnScrubFrameChange();
-                        
-                    } 
-                },
-                { "Right Weapon", () =>
-                    {
-                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.RightWeapon0;
-                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Graph.ViewportInteractor.OnScrubFrameChange();
-                    }
-                },
-                { "Left Weapon", () =>
-                    {
-                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Config.HitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.LeftWeapon0;
-                        Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                        Graph.ViewportInteractor.OnScrubFrameChange();
-                        
-                    }
-                },
-            }, () =>
-            {
-                if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.Body)
-                    return "Body";
-                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.RightWeapon0)
-                    return "Right Weapon";
-                else if (Config.HitViewDummyPolySource == ParamData.AtkParam.DummyPolySource.LeftWeapon0)
-                    return "Left Weapon";
-                else
-                    return "None";
-            });
-
-            MenuBar.AddSeparator("Player Settings");
-
-            //MenuBar.AddItem("Player Settings\\Select Right Weapon Anim", "Weapon has no animations.");
-            //MenuBar.AddItem("Player Settings\\Select Left Weapon Anim", "Weapon has no animations.");
-
-            MenuBar.AddTopItem("Object Settings");
-            MenuBar["Object Settings"].Enabled = false;
-            MenuBar["Object Settings"].Visible = false;
-            MenuBar["Object Settings"].Font = 
-                new System.Drawing.Font(MenuBar["Object Settings"].Font, 
-                System.Drawing.FontStyle.Bold);
-            MenuBar["Object Settings"].ForeColor = System.Drawing.Color.Cyan;
-            MenuBar.AddItem("Object Settings", "Load Additional Texture File(s)...", () => BrowseForMoreTextures());
-
-            MenuBar.AddTopItem("Animated Equipment Settings");
-            MenuBar["Animated Equipment Settings"].Enabled = false;
-            MenuBar["Animated Equipment Settings"].Visible = false;
-            MenuBar["Animated Equipment Settings"].Font =
-                new System.Drawing.Font(MenuBar["Animated Equipment Settings"].Font,
-                System.Drawing.FontStyle.Bold);
-            MenuBar["Animated Equipment Settings"].ForeColor = System.Drawing.Color.Cyan;
-
-            MenuBar.AddTopItem("Cutscene Settings");
-            MenuBar["Cutscene Settings"].Enabled = false;
-            MenuBar["Cutscene Settings"].Visible = false;
-            MenuBar["Cutscene Settings"].Font =
-                new System.Drawing.Font(MenuBar["Cutscene Settings"].Font,
-                System.Drawing.FontStyle.Bold);
-            MenuBar["Cutscene Settings"].ForeColor = System.Drawing.Color.Cyan;
-            MenuBar.AddItem("Cutscene Settings", "Load Additional Texture File(s)...", () => BrowseForMoreTextures());
-
-            //////////
-            // Edit //
-            //////////
-
-            MenuBar.AddItem("Edit", "Undo|Ctrl+Z", () => UndoMan.Undo(), startDisabled: true);
-            MenuBar.AddItem("Edit", "Redo|Ctrl+Y", () => UndoMan.Redo(), startDisabled: true);
-            MenuBar.AddSeparator("Edit");
-            MenuBar.AddItem("Edit", "Collapse All TAE Sections", () =>
-            {
-                foreach (var kvp in AnimationListScreen.AnimTaeSections.Values)
-                {
-                    kvp.Collapsed = true;
-                }
-            }, startDisabled: true);
-            MenuBar.AddItem("Edit", "Expand All TAE Sections", () =>
-            {
-                foreach (var kvp in AnimationListScreen.AnimTaeSections.Values)
-                {
-                    kvp.Collapsed = false;
-                }
-            }, startDisabled: true);
-            MenuBar.AddSeparator("Edit");
-            //MenuBar.AddItem("Edit", "Find First Event of Type...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
-            MenuBar.AddItem("Edit", "Find Value...|Ctrl+F", () => ShowDialogFind(), startDisabled: true);
-            MenuBar.AddItem("Edit", "Go To Animation ID...|Ctrl+G", () => ShowDialogGotoAnimID(), startDisabled: true);
-            MenuBar.AddItem("Edit", "Go To Animation Section ID...|Ctrl+H", () => ShowDialogGotoAnimSectionID(), startDisabled: true);
-            MenuBar.AddItem("Edit", "Set Animation Name...|F2", () => ShowDialogChangeAnimName(), startDisabled: true);
-
-            /////////////////
-            // Event Graph //
-            /////////////////
-
-            //MenuBar.AddItem("Event Graph", "Snap To 30 Hz Increments", () => Config.EnableSnapTo30FPSIncrements, b => Config.EnableSnapTo30FPSIncrements = b);
-
-            MenuBar.AddItem("Event Graph", "Snap Events To Framerate", new Dictionary<string, Action>
-            {
-                { "None" , () => Config.EventSnapType = TaeConfigFile.EventSnapTypes.None },
-                { "30 FPS (used by FromSoft)" , () => Config.EventSnapType = TaeConfigFile.EventSnapTypes.FPS30 },
-                { "60 FPS" , () => Config.EventSnapType = TaeConfigFile.EventSnapTypes.FPS60 },
-            }, () =>
-            {
-                if (Config.EventSnapType == TaeConfigFile.EventSnapTypes.None)
-                    return "None";
-                else if (Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
-                    return "30 FPS (used by FromSoft)";
-                else
-                    return "60 FPS";
-            });
-
-            //MenuBar.AddItem("Event Graph", "High Contrast Mode", () => Config.EnableColorBlindMode, b => Config.EnableColorBlindMode = b);
-            MenuBar.AddSeparator("Event Graph");
-            MenuBar.AddItem("Event Graph", "Use New Graph Design", () => Config.IsNewGraphVisiMode, b => Config.IsNewGraphVisiMode = b);
-            MenuBar.AddItem("Event Graph", "Use Fancy Text Scrolling", () => Config.EnableFancyScrollingStrings, b => Config.EnableFancyScrollingStrings = b);
-            MenuBar.AddItem("Event Graph", "Fancy Text Scroll Speed", new Dictionary<string, Action>
-                {
-                    { "Extremely Slow (4 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 4 },
-                    { "Very Slow (8 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 8 },
-                    { "Slow (16 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 16 },
-                    { "Medium Speed (32 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 32 },
-                    { "Fast (64 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 64 },
-                    { "Very Fast (128 px/s)",  () => Config.FancyScrollingStringsScrollSpeed = 128 },
-                    {  "Extremely Fast (256 px/s)", () => Config.FancyScrollingStringsScrollSpeed = 256 },
-                },
-                defaultChoice: "Fast (64 px/s)");
-            MenuBar.AddSeparator("Event Graph");
-            MenuBar.AddItem("Event Graph", "Start with all TAE sections collapsed", 
-                () => Config.AutoCollapseAllTaeSections, b => Config.AutoCollapseAllTaeSections = b);
-            MenuBar.AddSeparator("Event Graph");
-            MenuBar.AddItem("Event Graph", "Auto-scroll During Anim Playback", 
-                () => Config.AutoScrollDuringAnimPlayback, b => Config.AutoScrollDuringAnimPlayback = b);
-            MenuBar.AddSeparator("Event Graph");
-            MenuBar.AddItem("Event Graph", "Solo Highlight Event on Hover",
-                () => Config.SoloHighlightEventOnHover, b => Config.SoloHighlightEventOnHover = b);
-            MenuBar.AddItem("Event Graph", "Show Event Info Popup When Hovering Over Event",
-                () => Config.ShowEventHoverInfo, b => Config.ShowEventHoverInfo = b);
-
-            //MenuBar.AddSeparator("Event Graph");
-
-            //MenuBar.AddItem("Event Graph", "Show SFX Spawn Events With Cyan Markers", () => TaeInterop.ShowSFXSpawnWithCyanMarkers, b => TaeInterop.ShowSFXSpawnWithCyanMarkers = b);
-            //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Sound Events", () => TaeInterop.PlaySoundEffectOnSoundEvents, b => TaeInterop.PlaySoundEffectOnSoundEvents = b);
-            //MenuBar.AddItem("Event Graph", "Beep Upon Hitting Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents, b => TaeInterop.PlaySoundEffectOnHighlightedEvents = b);
-            //MenuBar.AddItem("Event Graph", "Sustain Sound Effect Loop For Duration Of Highlighted Event(s)", () => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop, b => TaeInterop.PlaySoundEffectOnHighlightedEvents_Loop = b);
-
-            ////////////////
-            // Simulation //
-            ////////////////
-
-            MenuBar.AddTopItem("Simulation");
-            MenuBar["Simulation"].Enabled = false;
-            MenuBar["Simulation"].Visible = false;
-
-            ///////////
-            // Scene //
-            ///////////
-
-            MenuBar.AddItem("Scene", "Render Meshes", () => !GFX.HideFLVERs,
-                    b => GFX.HideFLVERs = !b);
-
-            // Okay, look, I know this entire next part is hyper ultra stupid, but,
-            // I spent like multiple hours trying to get other less stupid ways
-            // to work and the UI just never updated correctly.
-            MenuBar.AddItem("Scene", "Models", menu =>
-            {
-                foreach (var m in Scene.Models)
-                {
-                    var maskDict = m.GetMaterialNamesPerMask();
-
-                    foreach (var kvp in maskDict.OrderBy(k => k.Key))
-                    {
-                        if (kvp.Key >= 0 && kvp.Key < m.DrawMask.Length)
-                        {
-                            menu.AddItem($"Scene\\Models\\{m.Name}", $"Mask {(kvp.Key)}",
-                            () => m.DefaultDrawMask[kvp.Key], 
-                            b =>
-                            {
-                                m.DrawMask[kvp.Key] = m.DefaultDrawMask[kvp.Key] = b;
-
-                                for (int j = 0; j < m.MainMesh.Submeshes.Count; j++)
-                                {
-                                    if (m.MainMesh.Submeshes[j].ModelMaskIndex >= 0)
-                                    {
-                                        var mi2 = MenuBar[$"Scene\\Models\\{m.Name}\\Mesh {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
-                                        if (mi2 is System.Windows.Forms.ToolStripMenuItem tsmi2)
-                                        {
-                                            // Note: Tag is used as like a flag for the render code I'm sorry.
-                                            //       See CoolDarkToolStripRenderer.OnRenderItemText
-                                            //       
-                                            //       Makes text grayed out like it's disabled, but it's not.
-                                            mi2.Tag = !m.DefaultDrawMask[m.MainMesh.Submeshes[j].ModelMaskIndex];
-                                            mi2.Invalidate();
-                                        }
-                                    }
-                                }
-
-                                //var miName = $"Scene\\Models\\{m.Name}\\Mask {(kvp.Key)}";
-
-                                //var mi = MenuBar[miName];
-                                //if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
-                                //{
-                                //    WinFormsMenuStrip.Focus();
-                                //    tsmi.Owner?.Focus();
-                                //}
-                            });
-                        }
-                    }
-
-                    menu.AddSeparator($"Scene\\Models\\{m.Name}");
-
-                    menu.AddItem($"Scene\\Models\\{m.Name}", $"Hide All Meshes", () =>
-                    {
-                        for (int j = 0; j < m.MainMesh.Submeshes.Count; j++)
-                        {
-                            m.MainMesh.Submeshes[j].IsVisible = false;
-
-                            var miName = $"Scene\\Models\\{m.Name}\\Mesh {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}";
-
-                            var mi = MenuBar[miName];
-                            if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
-                            {
-                                tsmi.Checked = false;
-
-                                // On last one, proc weird update
-                                //if (j >= m.MainMesh.Submeshes.Count - 1)
-                                //{
-                                //    WinFormsMenuStrip.Focus();
-                                //    tsmi.Owner.Focus();
-                                //}
-                            }
-                        }
-                    }, closeOnClick: false);
-                    menu.AddItem($"Scene\\Models\\{m.Name}", $"Show All Meshes", () =>
-                    {
-                        for (int j = 0; j < m.MainMesh.Submeshes.Count; j++)
-                        {
-                            m.MainMesh.Submeshes[j].IsVisible = true;
-
-                            var mi = MenuBar[$"Scene\\Models\\{m.Name}\\Mesh {(j + 1)}: {m.MainMesh.Submeshes[j].FullMaterialName}"];
-                            if (mi is System.Windows.Forms.ToolStripMenuItem tsmi)
-                            {
-                                tsmi.Checked = true;
-
-                                // On last one, proc weird update
-                                //if (j >= m.MainMesh.Submeshes.Count - 1)
-                                //{
-                                //    WinFormsMenuStrip.Focus();
-                                //    tsmi.Owner.Focus();
-                                //}
-                            }
-                        }
-                    }, closeOnClick: false);
-                    menu.AddSeparator($"Scene\\Models\\{m.Name}");
-
-                    int i = 1;
-                    foreach (var sm in m.MainMesh.Submeshes)
-                    {
-                        menu.AddItem($"Scene\\Models\\{m.Name}", $"Mesh {(i++)}: {sm.FullMaterialName}" +
-                            (sm.ModelMaskIndex >= 0 && maskDict.ContainsKey(sm.ModelMaskIndex) 
-                            ? $"|[Mask {sm.ModelMaskIndex}]" : ""), 
-                            checkState: () => sm.IsVisible, b => sm.IsVisible = b, 
-                            getEnabled: () => true,
-                            getMemeTag: () => !(sm.ModelMaskIndex < 0 || m.MainMesh.DrawMask[sm.ModelMaskIndex]));
-                    }
-                }
-            });
-
-            MenuBar.AddSeparator("Scene");
-
-            //MenuBar.AddItem("Scene", $"Render HKX Skeleton ({DBG.COLOR_HKX_BONE_NAME})",
-            //    () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone],
-            //        b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone] = b);
-
-            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton", 
-                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] = b);
-
-            MenuBar.AddItem("Scene", $"Helper: FLVER Skeleton Boxes", 
-                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
-                b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] = b);
-
-            MenuBar.AddItem("Scene", $"Helper: DummyPoly", 
-                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                    b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
-
-            MenuBar.AddItem("Scene", $"Helper: DummyPoly IDs",
-                () => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                   b => DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] = b);
-
-            MenuBar.AddItem("Scene", "Show c0000 Weapon Global DummyPoly ID Values (10000+)", () => NewDummyPolyManager.ShowGlobalIDOffset,
-                    b => NewDummyPolyManager.ShowGlobalIDOffset = b);
-
-            MenuBar.AddItem("Scene", $"Helper: Sound Event Locations",
-                () => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent],
-                   b => DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent] = b);
-
-            MenuBar.AddSeparator("Scene");
-
-            MenuBar.AddItem("Scene", "Helper X-Ray Mode", () => Config.DbgPrimXRay,
-                    b => Config.DbgPrimXRay = b);
-
-            ///////////////
-            // Animation //
-            ///////////////
-
-            MenuBar.AddItem("Animation", "Lock to Frame Rate Defined in HKX",
-                () => Config.LockFramerateToOriginalAnimFramerate,
-                b => Config.LockFramerateToOriginalAnimFramerate = b);
-
-            MenuBar.AddItem("Animation", "Set Playback Speed...", () =>
-            {
-                PauseUpdate = true;
-                var speed = KeyboardInput.Show("Set Playback Speed", "Set animation playback speed.", PlaybackCursor.BasePlaybackSpeed.ToString("0.00"));
-                speed.Wait();
-                if (speed.IsCompleted && !speed.IsCanceled)
-                {
-                    if (speed.Result != null)
-                    {
-                        if (float.TryParse(speed.Result, out float newSpeed))
-                        {
-                            PlaybackCursor.BasePlaybackSpeed = newSpeed;
-                            MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.BasePlaybackSpeed:0.00})";
-                        }
-                        else
-                        {
-                            System.Windows.Forms.MessageBox.Show("Not a valid number.");
-                        }
-                    }
-                }
-
-                PauseUpdate = false;
-            }, startDisabled: true);
-
-            MenuBar.AddSeparator("Animation");
-
-            MenuBar.AddItem("Animation", "Enable Root Motion",
-                () => Config.EnableAnimRootMotion,
-                b => Config.EnableAnimRootMotion = b);
-
-            MenuBar.AddItem("Animation", "Camera Follows Root Motion Translation",
-                () => Config.CameraFollowsRootMotion,
-                b => Config.CameraFollowsRootMotion = b);
-
-            MenuBar.AddItem("Animation", "Camera Follows Root Motion Rotation",
-                () => Config.CameraFollowsRootMotionRotation,
-                b => Config.CameraFollowsRootMotionRotation = b);
-
-            MenuBar.AddItem("Animation", "Prevent Root Motion From Reaching End Of Grid",
-                () => Config.WrapRootMotion,
-                b => Config.WrapRootMotion = b);
-
-            //MenuBar.AddItem("Animation", "Accumulate Root Motion",
-            //    () => Config.AccumulateRootMotion,
-            //    b => Config.AccumulateRootMotion = b);
-
-            MenuBar["Animation"].DropDownOpening += (o, e) =>
-            {
-                if (PlaybackCursor != null)
-                    MenuBar["Animation\\Set Playback Speed..."].ShortcutKeyDisplayString = $"({PlaybackCursor.BasePlaybackSpeed:0.00})";
-            };
-
-
-            //////////////
-            // Viewport //
-            //////////////
-
-            //MenuBar.AddItem("3D Viewport", "Vsync", () => GFX.Display.Vsync, b =>
-            //{
-            //    GFX.Display.Vsync = b;
-            //    GFX.Display.Width = GFX.Device.Viewport.Width;
-            //    GFX.Display.Height = GFX.Device.Viewport.Height;
-            //    GFX.Display.Fullscreen = false;
-            //    GFX.Display.Apply();
-            //});
-
-            //MenuBar.AddItem("3D Viewport", "Slow Light Spin (overrides below option)", () => GFX.FlverAutoRotateLight, b => GFX.FlverAutoRotateLight = b);
-            //MenuBar.AddItem("3D Viewport", "Light Follows Camera", () => GFX.FlverLightFollowsCamera, b => GFX.FlverLightFollowsCamera = b);
-
-            //Dictionary<string, Action> shadingModeChoicesDict = new Dictionary<string, Action>();
-
-            //void AddShadingModeChoice(FlverShadingMode mode)
-            //{
-            //    shadingModeChoicesDict.Add(GFX.FlverShadingModeNames[mode], () => GFX.ForcedFlverShadingMode = mode);
-            //}
-
-            //shadingModeChoicesDict.Add("Do Not Override", () => GFX.ForcedFlverShadingMode = null);
-
-            //shadingModeChoicesDict.Add("SEPARATOR:0", null);
-
-            //AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_DS3);
-            //AddShadingModeChoice(FlverShadingMode.PBR_GLOSS_BB);
-            //AddShadingModeChoice(FlverShadingMode.CLASSIC_DIFFUSE_PTDE);
-            //AddShadingModeChoice(FlverShadingMode.LEGACY);
-
-            //shadingModeChoicesDict.Add("SEPARATOR:1", null);
-
-            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_DIFFUSEMAP);
-            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SPECULARMAP);
-            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP);
-            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_EMISSIVEMAP);
-            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_BLENDMASKMAP);
-            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_SHININESSMAP);
-            //AddShadingModeChoice(FlverShadingMode.TEXDEBUG_NORMALMAP_BLUE);
-
-            //shadingModeChoicesDict.Add("SEPARATOR:2", null);
-
-            //AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS);
-            //AddShadingModeChoice(FlverShadingMode.MESHDEBUG_NORMALS_MESH_ONLY);
-            //AddShadingModeChoice(FlverShadingMode.MESHDEBUG_VERTEX_COLOR_ALPHA);
-
-            //MenuBar.AddSeparator("3D Viewport");
-
-            //MenuBar.AddItem("3D Viewport", "Disable Texture Alphas", () => GFX.FlverShader.Effect.DisableAlpha, b => GFX.FlverShader.Effect.DisableAlpha = b);
-            //MenuBar.AddItem("3D Viewport", "Disable Texture Blending", () => GFX.FlverDisableTextureBlending, b => GFX.FlverDisableTextureBlending = b);
-
-            //MenuBar.AddItem("3D Viewport", "Override FLVER Shading Mode", shadingModeChoicesDict, () =>
-            //{
-            //    if (GFX.ForcedFlverShadingMode == null)
-            //    {
-            //        return "Do Not Override";
-            //    }
-            //    else
-            //    {
-            //        return GFX.FlverShadingModeNames[GFX.ForcedFlverShadingMode.Value];
-            //    }
-
-            //});
-
-            //MenuBar.AddItem("3D Viewport", $@"Reload FLVER Shader (./Content/Shaders/FlverShader.xnb)", () =>
-            //{
-            //    if (DebugReloadContentManager != null)
-            //    {
-            //        DebugReloadContentManager.Unload();
-            //        DebugReloadContentManager.Dispose();
-            //    }
-
-            //    using (DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider))
-            //    {
-            //        GFX.FlverShader.Effect.Dispose();
-            //        GFX.FlverShader = null;
-            //        GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>(GFX.FlverShader__Name));
-            //    }
-
-            //    GFX.InitShaders();
-            //});
-
-            //MenuBar.AddSeparator("3D Viewport");
-
-            //if (Environment.Cubemaps.ContainsKey(Config.LastCubemapUsed))
-            //{
-            //    Environment.CubemapNameIndex = 
-            //        Environment.Cubemaps.Keys.ToList().IndexOf(Config.LastCubemapUsed);
-            //}
-
-            //MenuBar.AddItem("3D Viewport", "Cubemap", () =>
-            //{
-            //    var result = new Dictionary<string, Action>();
-            //    foreach (var kvp in Environment.Cubemaps)
-            //    {
-            //        result.Add(kvp.Key, () =>
-            //        {
-            //            Environment.CubemapNameIndex = Environment.Cubemaps.Keys.ToList().IndexOf(kvp.Key);
-            //            Config.LastCubemapUsed = kvp.Key;
-            //        });
-            //    }
-            //    return result;
-            //},
-            //() => Environment.CurrentCubemapName);
-
-            //MenuBar.AddItem("3D Viewport", "Resolution Multiplier", new Dictionary<string, Action>
-            //{
-            //    { "1x", () => GFX.SSAA = 1 },
-            //    { "2x", () => GFX.SSAA = 2 },
-            //    { "3x", () => GFX.SSAA = 3 },
-            //    { "4x", () => GFX.SSAA = 4 },
-            //    //{ "5x", () => GFX.SSAA = 5 },
-            //    //{ "6x", () => GFX.SSAA = 6 },
-            //    //{ "7x", () => GFX.SSAA = 7 },
-            //    //{ "8x", () => GFX.SSAA = 8 },
-            //    //{ "16x", () => GFX.SSAA = 16 },
-            //    //{ "32x", () => GFX.SSAA = 32 },
-            //}, () => $"{GFX.SSAA}x");
-
-            MenuBar.AddTopItem("Sound");
-
-            MenuBar.AddItem("Help", "Basic Controls", () => System.Windows.Forms.MessageBox.Show(HELP_TEXT, "DS Anim Studio Help - Basic Controls",
-                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information));
-
-            BuildDebugMenuBar();
-
-            MenuBar.AddTopItem("Support Meowmaritus");
-
-
-            MenuBar["Support Meowmaritus"].Tag = System.Drawing.Color.Lime;
-
-            MenuBar.AddItem("Support Meowmaritus", "Patreon", () =>
-            {
-                Process.Start("https://www.patreon.com/Meowmaritus");
-            });
-
-            MenuBar.AddItem("Support Meowmaritus", "PayPal", () =>
-            {
-                Process.Start("https://paypal.me/Meowmaritus");
-            });
-
-            MenuBar.AddItem("Support Meowmaritus", "Ko-fi", () =>
-            {
-                Process.Start("https://ko-fi.com/meowmaritus");
-            });
-
-            MenuBar["Support Meowmaritus\\Patreon"].Tag = System.Drawing.Color.Lime;
-            MenuBar["Support Meowmaritus\\PayPal"].Tag = System.Drawing.Color.Lime;
-            MenuBar["Support Meowmaritus\\Ko-fi"].Tag = System.Drawing.Color.Lime;
-
-            WinFormsMenuStrip.MenuActivate += WinFormsMenuStrip_MenuActivate;
-            WinFormsMenuStrip.MenuDeactivate += WinFormsMenuStrip_MenuDeactivate;
-
-            GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
+            //GameWindowAsForm.Controls.Add(WinFormsMenuStrip);
 
             ButtonEditCurrentAnimInfo = new NoPaddingButton();
             ButtonEditCurrentAnimInfo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -2258,28 +1482,7 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else if (loadFileResult == null)
                     {
-                        System.Windows.Forms.ToolStripMenuItem matchingRecentFileItem = null;
-
-                        foreach (var x in MenuBar["File\\Recent Files"].DropDownItems)
-                        {
-                            if (x is System.Windows.Forms.ToolStripMenuItem item)
-                            {
-                                if (item.Text == fileName)
-                                {
-                                    matchingRecentFileItem = item;
-                                }
-                            }
-                        }
-
-                        if (matchingRecentFileItem == null)
-                        {
-                            System.Windows.Forms.MessageBox.Show(
-                                $"File '{fileName}' no longer exists.",
-                                "File Does Not Exist",
-                                System.Windows.Forms.MessageBoxButtons.OK,
-                                System.Windows.Forms.MessageBoxIcon.Warning);
-                        }
-                        else
+                        if (Config.RecentFilesList.Contains(fileName))
                         {
                             var ask = System.Windows.Forms.MessageBox.Show(
                                 $"File '{fileName}' no longer exists. Would you like to " +
@@ -2291,12 +1494,6 @@ namespace DSAnimStudio.TaeEditor
 
                             if (ask)
                             {
-                                GameWindowAsForm.Invoke(new Action(() =>
-                                {
-                                    if (MenuBar["File\\Recent Files"].DropDownItems.Contains(matchingRecentFileItem))
-                                        MenuBar["File\\Recent Files"].DropDownItems.Remove(matchingRecentFileItem);
-                                }));
-
                                 if (Config.RecentFilesList.Contains(fileName))
                                     Config.RecentFilesList.Remove(fileName);
                             }
@@ -2490,6 +1687,60 @@ namespace DSAnimStudio.TaeEditor
 
             return null;
         }
+
+        public void BrowseForMoreTextures()
+        {
+            List<string> texturesToLoad = new List<string>();
+            lock (Scene._lock_ModelLoad_Draw)
+            {
+                foreach (var m in Scene.Models)
+                {
+                    texturesToLoad.AddRange(m.MainMesh.GetAllTexNamesToLoad());
+                }
+            }
+
+
+            var browseDlg = new System.Windows.Forms.OpenFileDialog()
+            {
+                //Filter = "TPF[.DCX]/TFPBHD|*.TPF*",
+                Multiselect = true,
+                Title = "Load textures from CHRBND(s), TEXBND(s), TPF(s), and/or TPFBHD(s)..."
+            };
+            if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var texFileNames = browseDlg.FileNames;
+                List<string> bxfDupeCheck = new List<string>();
+                LoadingTaskMan.DoLoadingTask("BrowseForEntityTextures", "Scanning files for relevant textures...", progress =>
+                {
+                    double i = 0;
+                    foreach (var tfn in texFileNames)
+                    {
+                        var shortName = Utils.GetShortIngameFileName(tfn);
+                        if (!bxfDupeCheck.Contains(shortName))
+                        {
+                            if (TPF.Is(tfn))
+                            {
+                                TexturePool.AddTpfFromPath(tfn);
+                            }
+                            else
+                            {
+                                TexturePool.AddSpecificTexturesFromBinder(tfn, texturesToLoad);
+                            }
+
+                            bxfDupeCheck.Add(shortName);
+                        }
+                        progress.Report(++i / texFileNames.Length);
+                    }
+                    Scene.RequestTextureLoad();
+                    progress.Report(1);
+                });
+
+
+            }
+
+
+        }
+
 
         public void File_SaveAs()
         {
@@ -2737,12 +1988,6 @@ namespace DSAnimStudio.TaeEditor
 
             if (SelectedTaeAnim != null)
             {
-                GameWindowAsForm.Invoke(new Action(() =>
-                {
-                    MenuBar["Edit\\Undo"].Enabled = UndoMan.CanUndo;
-                    MenuBar["Edit\\Redo"].Enabled = UndoMan.CanRedo;
-                }));
-
                 SelectedEventBox = null;
 
                 //bool wasFirstAnimSelected = false;
@@ -2789,12 +2034,6 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                GameWindowAsForm.Invoke(new Action(() =>
-                {
-                    MenuBar["Edit\\Undo"].Enabled = false;
-                    MenuBar["Edit\\Redo"].Enabled = false;
-                }));
-                
                 SelectedEventBox = null;
 
                 Graph = null;
@@ -2872,52 +2111,52 @@ namespace DSAnimStudio.TaeEditor
         {
             if (FileContainer == null || SelectedTae == null)
                 return;
-            PauseUpdate = true;
-            var anim = KeyboardInput.Show("Goto Anim Section", "Goes to the animation section with the ID\n" +
-                "entered, if applicable.");
 
-            if (!anim.IsCanceled && anim.Result != null)
-            {
-                if (int.TryParse(anim.Result.Replace("a", "").Replace("_", ""), out int id))
+            OSD.Tools.AskForInputString("Go To Animation Section ID", $"Enter the animation section number (The X part of {GameDataManager.CurrentAnimIDFormatType})\n" +
+                "to jump to the first animation in that section.",
+                $"", result =>
                 {
-                    if (!GotoAnimSectionID(id, scrollOnCenter: true))
+                    lock (_lock_AllUpdating)
                     {
-                        MessageBox.Show("Goto Failed", $"Unable to find anim section {id}.", new[] { "OK" });
+                        if (int.TryParse(result.Replace("a", "").Replace("_", ""), out int id))
+                        {
+                            if (!GotoAnimSectionID(id, scrollOnCenter: true))
+                            {
+                                OSD.Tools.DialogOK("Goto Failed", $"Unable to find anim section {id}.");
+                            }
+                        }
+                        else
+                        {
+                            OSD.Tools.DialogOK("Goto Failed", $"\"{result}\" is not a valid integer.");
+                        }
                     }
-                }
-                else
-                {
-                    MessageBox.Show("Goto Failed", $"\"{anim.Result}\" is not a valid integer.", new[] { "OK" });
-                }
-            }
-
-            PauseUpdate = false;
+                }, canBeCancelled: true);
         }
 
         public void ShowDialogGotoAnimID()
         {
             if (FileContainer == null || SelectedTae == null)
                 return;
-            PauseUpdate = true;
-            var anim = KeyboardInput.Show("Goto Anim", "Goes to the animation with the ID\n" +
-                "entered, if applicable.");
 
-            if (!anim.IsCanceled && anim.Result != null)
-            {
-                if (int.TryParse(anim.Result.Replace("a", "").Replace("_", ""), out int id))
+            OSD.Tools.AskForInputString("Go To Animation ID", "Enter the animation ID to jump to.\n" +
+                "Accepts the full string with prefix or just the ID as a number.",
+                GameDataManager.CurrentAnimIDFormatType.ToString(), result =>
                 {
-                    if (!GotoAnimID(id, scrollOnCenter: true))
+                    lock (_lock_AllUpdating)
                     {
-                        MessageBox.Show("Goto Failed", $"Unable to find anim {id}.", new[] { "OK" });
+                        if (int.TryParse(result.Replace("a", "").Replace("_", ""), out int id))
+                        {
+                            if (!GotoAnimID(id, scrollOnCenter: true))
+                            {
+                                OSD.Tools.DialogOK("Goto Failed", $"Unable to find anim {id}.");
+                            }
+                        }
+                        else
+                        {
+                            OSD.Tools.DialogOK("Goto Failed", $"\"{result}\" is not a valid animation ID.");
+                        }
                     }
-                }
-                else
-                {
-                    MessageBox.Show("Goto Failed", $"\"{anim.Result}\" is not a valid integer.", new[] { "OK" });
-                }
-            }
-            
-            PauseUpdate = false;
+                }, canBeCancelled: true);
         }
 
         private void NextAnim(bool shiftPressed, bool ctrlPressed)
@@ -3226,569 +2465,572 @@ namespace DSAnimStudio.TaeEditor
 
         public void Update()
         {
-            if (ImporterWindow_FLVER2 == null || ImporterWindow_FLVER2.IsDisposed || !ImporterWindow_FLVER2.Visible)
+            lock (_lock_AllUpdating)
             {
-                ImporterWindow_FLVER2?.Dispose();
-                ImporterWindow_FLVER2 = null;
-            }
-            ImporterWindow_FLVER2?.UpdateGuiLockout();
-
-            if (IsDelayLoadConfig > 0)
-            {
-                LoadConfig();
-                IsDelayLoadConfig--;
-            }
-
-            if (!Input.LeftClickHeld)
-            {
-                Graph?.ReleaseCurrentDrag();
-            }
-
-            if (!Main.Active)
-            {
-                FmodManager.StopAllSounds();
-                MenuBar.CloseAll();
-            }
-
-            PauseUpdate = MenuBar.BlockInput;
-
-            if (!PauseUpdate)
-            {
-                //bad hotfix warning
-                if (Graph != null &&
-                    !Graph.ScrollViewer.DisableVerticalScroll &&
-                    Input.MousePosition.X >=
-                      Graph.Rect.Right -
-                      Graph.ScrollViewer.ScrollBarThickness &&
-                    Input.MousePosition.X < DividerRightGrabStartX &&
-                    Input.MousePosition.Y >= Graph.Rect.Top &&
-                    Input.MousePosition.Y < Graph.Rect.Bottom)
+                if (ImporterWindow_FLVER2 == null || ImporterWindow_FLVER2.IsDisposed || !ImporterWindow_FLVER2.Visible)
                 {
-                    Input.CursorType = MouseCursorType.Arrow;
+                    ImporterWindow_FLVER2?.Dispose();
+                    ImporterWindow_FLVER2 = null;
                 }
+                ImporterWindow_FLVER2?.UpdateGuiLockout();
 
-                // Another bad hotfix
-                Rectangle killCursorRect = new Rectangle(
-                      (int)(DividerLeftGrabEndX),
-                      0,
-                      (int)(DividerRightGrabStartX - DividerLeftGrabEndX),
-                      TopOfGraphAnimInfoMargin + Rect.Top + TopMenuBarMargin);
-
-                if (killCursorRect.Contains(Input.MousePositionPoint))
+                if (IsDelayLoadConfig > 0)
                 {
-                    Input.CursorType = MouseCursorType.Arrow;
+                    LoadConfig();
+                    IsDelayLoadConfig--;
                 }
 
                 if (!Input.LeftClickHeld)
-                    Graph?.MouseReleaseStuff();
-            }
+                {
+                    Graph?.ReleaseCurrentDrag();
+                }
 
-            //if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
-            //{
-            //    if (Config.UseGamesMenuSounds)
-            //        FmodManager.PlaySE("f000000000");
-            //}
-
-            multiSelectedEventBoxesCountLastFrame = MultiSelectedEventBoxes.Count;
-
-            // Always update playback regardless of GUI memes.
-            // Still only allow hitting spacebar to play/pause
-            // if the window is in focus.
-            // Also for Interactor
-            if (Graph != null)
-            {
-                Graph.UpdatePlaybackCursor(allowPlayPauseInput: Main.Active);
-                Graph.ViewportInteractor?.GeneralUpdate();
-            }
-
-            if (OSD.Focused)
-            {
-                PauseUpdate = true;
-            }
-            
-
-            if (PauseUpdate)
-            {
-                return;
-            }
-
-            Transport.Update(Main.DELTA_UPDATE);
-
-            bool isOtherPaneFocused = ModelViewerBounds.Contains((int)Input.LeftClickDownAnchor.X, (int)Input.LeftClickDownAnchor.Y) ||
-                inspectorWinFormsControl.Bounds.Contains(Input.LeftClickDownAnchor.ToDrawingPoint());
-
-            if (Main.Active)
-            {
-                if (Input.KeyDown(Keys.Escape))
+                if (!Main.Active)
+                {
                     FmodManager.StopAllSounds();
-
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
-                    ChangeTypeOfSelectedEvent();
-
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F2))
-                    ShowDialogChangeAnimName();
-
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F3))
-                    ShowDialogEditCurrentAnimInfo();
-
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F4))
-                    GoToEventSource();
-
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F5))
-                    LiveRefresh();
-
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F8))
-                    ShowComboMenu();
-
-                var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
-                var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
-
-                if (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld)
-                {
-                    if ((Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add)) && !isOtherPaneFocused)
-                    {
-                        Graph?.ZoomInOneNotch(
-                            (float)(
-                            (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
-                            - Graph.ScrollViewer.Scroll.X));
-                    }
-                    else if ((Input.KeyDown(Keys.OemMinus) || Input.KeyDown(Keys.Subtract)) && !isOtherPaneFocused)
-                    {
-                        Graph?.ZoomOutOneNotch(
-                            (float)(
-                            (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
-                            - Graph.ScrollViewer.Scroll.X));
-                    }
-                    else if ((Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0)) && !isOtherPaneFocused)
-                    {
-                        Graph?.ResetZoom(0);
-                    }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && 
-                        WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
-                    {
-                        Graph?.DoCopy();
-                    }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && 
-                        WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
-                    {
-                        Graph?.DoCut();
-                    }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && 
-                        WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
-                    {
-                        Graph?.DoPaste(isAbsoluteLocation: false);
-                    }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A) && !isOtherPaneFocused)
-                    {
-                        if (Graph != null && Graph.currentDrag.DragType == BoxDragType.None)
-                        {
-                            SelectedEventBox = null;
-                            MultiSelectedEventBoxes.Clear();
-                            foreach (var box in Graph.EventBoxes)
-                            {
-                                MultiSelectedEventBoxes.Add(box);
-                            }
-                            UpdateInspectorToSelection();
-                        }
-                    }
-                    else if (Input.KeyDown(Keys.F))
-                    {
-                        ShowDialogFind();
-                    }
-                    else if (Input.KeyDown(Keys.G))
-                    {
-                        ShowDialogGotoAnimID();
-                    }
-                    else if (Input.KeyDown(Keys.H))
-                    {
-                        ShowDialogGotoAnimSectionID();
-                    }
-                    else if (Input.KeyDown(Keys.S))
-                    {
-                        SaveCurrentFile();
-                    }
-                    else if (Graph != null && Input.KeyDown(Keys.R))
-                    {
-                        HardReset();
-                    }
                 }
 
-                if (Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
+                //TODO: CHECK THIS
+                PauseUpdate = OSD.Focused;
+
+                if (!PauseUpdate)
                 {
-                    if (Input.KeyDown(Keys.V) && !isOtherPaneFocused)
-                    {
-                        Graph.DoPaste(isAbsoluteLocation: true);
-                    }
-                    else if (Input.KeyDown(Keys.S))
-                    {
-                        File_SaveAs();
-                    }
-                }
-
-                if (!Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
-                {
-                    if (Input.KeyDown(Keys.D))
-                    {
-                        if (SelectedEventBox != null)
-                            SelectedEventBox = null;
-                        if (MultiSelectedEventBoxes.Count > 0)
-                            MultiSelectedEventBoxes.Clear();
-                    }
-                }
-
-                if (Input.KeyDown(Keys.Delete) && !isOtherPaneFocused)
-                {
-                    Graph.DeleteSelectedEvent();
-                }
-
-                //if (Graph != null && Input.KeyDown(Keys.Home) && !Graph.PlaybackCursor.Scrubbing)
-                //{
-                //    if (CtrlHeld)
-                //        Graph.PlaybackCursor.IsPlaying = false;
-
-                //    Graph.PlaybackCursor.CurrentTime = ShiftHeld ? 0 : Graph.PlaybackCursor.StartTime;
-                //    Graph.ViewportInteractor.ResetRootMotion(0);
-
-                //    Graph.ScrollToPlaybackCursor(1);
-                //}
-
-                
-
-                //if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
-                //{
-                //    if (CtrlHeld)
-                //        Graph.PlaybackCursor.IsPlaying = false;
-
-                //    Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime;
-                //    Graph.ViewportInteractor.ResetRootMotion((float)Graph.PlaybackCursor.MaxFrame);
-
-                //    Graph.ScrollToPlaybackCursor(1);
-                //}
-
-                NextAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Down) && !Input.KeyHeld(Keys.Up));
-
-                if (NextAnimRepeaterButton.State)
-                {
-                    Graph?.ViewportInteractor?.CancelCombo();
-                    NextAnim(Input.ShiftHeld, Input.CtrlHeld);
-                }
-
-                PrevAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Up) && !Input.KeyHeld(Keys.Down));
-
-                if (PrevAnimRepeaterButton.State)
-                {
-                    Graph?.ViewportInteractor?.CancelCombo();
-                    PrevAnim(Input.ShiftHeld, Input.CtrlHeld);
-                }
-
-                if (PlaybackCursor != null)
-                {
-                    NextFrameRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Right));
-
-                    if (NextFrameRepeaterButton.State)
-                    {
-                        TransportNextFrame();
-                    }
-
-                    PrevFrameRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Left));
-
-                    if (PrevFrameRepeaterButton.State)
-                    {
-                        TransportPreviousFrame();
-                    }
-                }
-
-                if (Input.KeyDown(Keys.Space) && Input.CtrlHeld && !Input.AltHeld)
-                {
-                    if (SelectedTae != null)
-                    {
-                        if (SelectedTaeAnim != null)
-                        {
-                            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
-                            if (Input.ShiftHeld)
-                            {
-                                Graph?.ViewportInteractor?.RemoveTransition();
-                            }
-                        }
-                    }
-                }
-
-                if (Input.KeyDown(Keys.Back) && !isOtherPaneFocused)
-                {
-                    Graph?.ViewportInteractor?.RemoveTransition();
-                }
-
-                if (UndoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (zHeld && !yHeld)) && !isOtherPaneFocused)
-                {
-                    UndoMan.Undo();
-                }
-
-                if (RedoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (!zHeld && yHeld)) && !isOtherPaneFocused)
-                {
-                    UndoMan.Redo();
-                }
-            }
-
-            if (!Input.LeftClickHeld)
-                WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-
-
-            if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.None)
-            {
-                if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
-                    && Input.MousePosition.X >= DividerLeftGrabStartX && Input.MousePosition.X <= DividerLeftGrabEndX)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
-                    //Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
-                    {
-                        CurrentDividerDragMode = DividerDragMode.LeftVertical;
-                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
-                    }
-                }
-                else if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
-                    && Input.MousePosition.X >= DividerRightGrabStartX && Input.MousePosition.X <= DividerRightGrabEndX)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    //Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
-                    {
-                        CurrentDividerDragMode = DividerDragMode.RightVertical;
-                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    }
-                }
-                else if (Input.MousePosition.X >= RightSectionStartX && Input.MousePosition.X <= Rect.Right 
-                    && Input.MousePosition.Y >= DividerRightPaneHorizontalGrabStartY && Input.MousePosition.Y <= DividerRightPaneHorizontalGrabEndY)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.DividerRightPaneHorizontal;
-                    //Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
-                    {
-                        CurrentDividerDragMode = DividerDragMode.RightPaneHorizontal;
-                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerRightPaneHorizontal;
-                    }
-                }
-                else if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                    || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
-                    || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-                }
-            }
-
-            if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane 
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane 
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
-            {
-                Input.CursorType = MouseCursorType.DragX;
-            }
-            else if (MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal 
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
-            {
-                Input.CursorType = MouseCursorType.DragY;
-            }
-
-            if (CurrentDividerDragMode == DividerDragMode.LeftVertical)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    //Input.CursorType = MouseCursorType.DragX;
-                    LeftSectionWidth = MathHelper.Max((Input.MousePosition.X - Rect.X) - (DividerVisiblePad / 2), LeftSectionWidthMin);
-                    LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidth - (DividerVisiblePad * 2));
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-                else
-                {
-                    //Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-                }
-            }
-            else if (CurrentDividerDragMode == DividerDragMode.RightVertical)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    //Input.CursorType = MouseCursorType.DragX;
-                    RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerVisiblePad / 2), RightSectionWidthMin);
-                    RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidth - (DividerVisiblePad * 2));
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-                else
-                {
-                    //Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-                }
-            }
-            else if (CurrentDividerDragMode == DividerDragMode.RightPaneHorizontal)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    //Input.CursorType = MouseCursorType.DragY;
-                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin - TransportHeight) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
-                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-                else
-                {
-                    //Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-                }
-            }
-
-            LeftSectionWidth = MathHelper.Max(LeftSectionWidth, LeftSectionWidthMin);
-            LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidthMin - (DividerVisiblePad * 2));
-
-            RightSectionWidth = MathHelper.Max(RightSectionWidth, RightSectionWidthMin);
-            RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidthMin - (DividerVisiblePad * 2));
-
-            TopRightPaneHeight = MathHelper.Max(TopRightPaneHeight, TopRightPaneHeightMinNew);
-            TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
-
-            if (!Rect.Contains(Input.MousePositionPoint))
-            {
-                MouseHoverKind = ScreenMouseHoverKind.None;
-            }
-
-            // Very specific edge case to handle before you load an anibnd so that
-            // it won't have the resize cursor randomly. This box spans all the way
-            // from left of screen to the hitbox of the right vertical divider and
-            // just immediately clears the resize cursor in that entire huge region.
-            if (AnimationListScreen == null && Graph == null
-                    && new Rectangle(Rect.Left, Rect.Top, (int)(DividerRightGrabStartX - Rect.Left), Rect.Height).Contains(Input.MousePositionPoint))
-            {
-                MouseHoverKind = ScreenMouseHoverKind.None;
-                Input.CursorType = MouseCursorType.Arrow;
-            }
-
-            // Check if currently dragging to resize panes.
-            if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
-            {
-                Input.CursorType = MouseCursorType.DragX;
-                GFX.World.DisableAllInput = true;
-                return;
-            }
-            else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
-            {
-                Input.CursorType = MouseCursorType.DragY;
-                GFX.World.DisableAllInput = true;
-                return;
-            }
-            else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ShaderAdjuster)
-            {
-                GFX.World.DisableAllInput = true;
-                return;
-            }
-            else if (!(MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
-                || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal))
-            {
-                if (AnimationListScreen != null && AnimationListScreen.Rect.Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.AnimList;
-                else if (Graph != null && Graph.Rect.Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.EventGraph;
-                else if (
-                    new Rectangle(
-                        inspectorWinFormsControl.Bounds.Left,
-                        inspectorWinFormsControl.Bounds.Top,
-                        inspectorWinFormsControl.Bounds.Width,
-                        inspectorWinFormsControl.Bounds.Height
-                        ).InverseDpiScaled()
-                        .Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.Inspector;
-                //else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
-                //    MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
-                else if (
-                    ModelViewerBounds_InputArea.Contains(Input.MousePositionPoint))
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
-                }
-                else
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-
-                if (Input.LeftClickDown)
-                {
-                    WhereCurrentMouseClickStarted = MouseHoverKind;
-                }
-
-                if (AnimationListScreen != null)
-                {
-
-                    if (MouseHoverKind == ScreenMouseHoverKind.AnimList || 
-                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
+                    //bad hotfix warning
+                    if (Graph != null &&
+                        !Graph.ScrollViewer.DisableVerticalScroll &&
+                        Input.MousePosition.X >=
+                          Graph.Rect.Right -
+                          Graph.ScrollViewer.ScrollBarThickness &&
+                        Input.MousePosition.X < DividerRightGrabStartX &&
+                        Input.MousePosition.Y >= Graph.Rect.Top &&
+                        Input.MousePosition.Y < Graph.Rect.Bottom)
                     {
                         Input.CursorType = MouseCursorType.Arrow;
-                        AnimationListScreen.Update(Main.DELTA_UPDATE, 
-                            allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
                     }
-                    else
+
+                    // Another bad hotfix
+                    Rectangle killCursorRect = new Rectangle(
+                          (int)(DividerLeftGrabEndX),
+                          0,
+                          (int)(DividerRightGrabStartX - DividerLeftGrabEndX),
+                          TopOfGraphAnimInfoMargin + Rect.Top + TopMenuBarMargin);
+
+                    if (killCursorRect.Contains(Input.MousePositionPoint))
                     {
-                        AnimationListScreen.UpdateMouseOutsideRect(Main.DELTA_UPDATE, 
-                            allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        Input.CursorType = MouseCursorType.Arrow;
                     }
+
+                    if (!Input.LeftClickHeld)
+                        Graph?.MouseReleaseStuff();
                 }
 
+                //if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
+                //{
+                //    if (Config.UseGamesMenuSounds)
+                //        FmodManager.PlaySE("f000000000");
+                //}
+
+                multiSelectedEventBoxesCountLastFrame = MultiSelectedEventBoxes.Count;
+
+                // Always update playback regardless of GUI memes.
+                // Still only allow hitting spacebar to play/pause
+                // if the window is in focus.
+                // Also for Interactor
                 if (Graph != null)
                 {
-                    Graph.UpdateMiddleClickPan();
+                    Graph.UpdatePlaybackCursor(allowPlayPauseInput: Main.Active);
+                    Graph.ViewportInteractor?.GeneralUpdate();
+                }
 
-                    if (!Graph.Rect.Contains(Input.MousePositionPoint))
+                if (OSD.Focused)
+                {
+                    PauseUpdate = true;
+                }
+
+
+                if (PauseUpdate)
+                {
+                    return;
+                }
+
+                Transport.Update(Main.DELTA_UPDATE);
+
+                bool isOtherPaneFocused = ModelViewerBounds.Contains((int)Input.LeftClickDownAnchor.X, (int)Input.LeftClickDownAnchor.Y) ||
+                    inspectorWinFormsControl.Bounds.Contains(Input.LeftClickDownAnchor.ToDrawingPoint());
+
+                if (Main.Active)
+                {
+                    if (Input.KeyDown(Keys.Escape))
+                        FmodManager.StopAllSounds();
+
+                    if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
+                        ChangeTypeOfSelectedEvent();
+
+                    if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F2))
+                        ShowDialogChangeAnimName();
+
+                    if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F3))
+                        ShowDialogEditCurrentAnimInfo();
+
+                    if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F4))
+                        GoToEventSource();
+
+                    if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F5))
+                        LiveRefresh();
+
+                    if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F8))
+                        ShowComboMenu();
+
+                    var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
+                    var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
+
+                    if (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld)
                     {
-                        HoveringOverEventBox = null;
+                        if ((Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add)) && !isOtherPaneFocused)
+                        {
+                            Graph?.ZoomInOneNotch(
+                                (float)(
+                                (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
+                                - Graph.ScrollViewer.Scroll.X));
+                        }
+                        else if ((Input.KeyDown(Keys.OemMinus) || Input.KeyDown(Keys.Subtract)) && !isOtherPaneFocused)
+                        {
+                            Graph?.ZoomOutOneNotch(
+                                (float)(
+                                (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
+                                - Graph.ScrollViewer.Scroll.X));
+                        }
+                        else if ((Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0)) && !isOtherPaneFocused)
+                        {
+                            Graph?.ResetZoom(0);
+                        }
+                        else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) &&
+                            WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
+                        {
+                            Graph?.DoCopy();
+                        }
+                        else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) &&
+                            WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
+                        {
+                            Graph?.DoCut();
+                        }
+                        else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) &&
+                            WhereCurrentMouseClickStarted != ScreenMouseHoverKind.Inspector && !isOtherPaneFocused)
+                        {
+                            Graph?.DoPaste(isAbsoluteLocation: false);
+                        }
+                        else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A) && !isOtherPaneFocused)
+                        {
+                            if (Graph != null && Graph.currentDrag.DragType == BoxDragType.None)
+                            {
+                                SelectedEventBox = null;
+                                MultiSelectedEventBoxes.Clear();
+                                foreach (var box in Graph.EventBoxes)
+                                {
+                                    MultiSelectedEventBoxes.Add(box);
+                                }
+                                UpdateInspectorToSelection();
+                            }
+                        }
+                        else if (Input.KeyDown(Keys.F))
+                        {
+                            ShowDialogFind();
+                        }
+                        else if (Input.KeyDown(Keys.G))
+                        {
+                            ShowDialogGotoAnimID();
+                        }
+                        else if (Input.KeyDown(Keys.H))
+                        {
+                            ShowDialogGotoAnimSectionID();
+                        }
+                        else if (Input.KeyDown(Keys.S))
+                        {
+                            SaveCurrentFile();
+                        }
+                        else if (Graph != null && Input.KeyDown(Keys.R))
+                        {
+                            HardReset();
+                        }
                     }
 
-                    if (MouseHoverKind == ScreenMouseHoverKind.EventGraph || 
-                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
+                    if (Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
                     {
-                        Graph.Update(allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        if (Input.KeyDown(Keys.V) && !isOtherPaneFocused)
+                        {
+                            Graph.DoPaste(isAbsoluteLocation: true);
+                        }
+                        else if (Input.KeyDown(Keys.S))
+                        {
+                            File_SaveAs();
+                        }
+                    }
+
+                    if (!Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
+                    {
+                        if (Input.KeyDown(Keys.D))
+                        {
+                            if (SelectedEventBox != null)
+                                SelectedEventBox = null;
+                            if (MultiSelectedEventBoxes.Count > 0)
+                                MultiSelectedEventBoxes.Clear();
+                        }
+                    }
+
+                    if (Input.KeyDown(Keys.Delete) && !isOtherPaneFocused)
+                    {
+                        Graph.DeleteSelectedEvent();
+                    }
+
+                    //if (Graph != null && Input.KeyDown(Keys.Home) && !Graph.PlaybackCursor.Scrubbing)
+                    //{
+                    //    if (CtrlHeld)
+                    //        Graph.PlaybackCursor.IsPlaying = false;
+
+                    //    Graph.PlaybackCursor.CurrentTime = ShiftHeld ? 0 : Graph.PlaybackCursor.StartTime;
+                    //    Graph.ViewportInteractor.ResetRootMotion(0);
+
+                    //    Graph.ScrollToPlaybackCursor(1);
+                    //}
+
+
+
+                    //if (Graph != null && Input.KeyDown(Keys.End) && !Graph.PlaybackCursor.Scrubbing)
+                    //{
+                    //    if (CtrlHeld)
+                    //        Graph.PlaybackCursor.IsPlaying = false;
+
+                    //    Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime;
+                    //    Graph.ViewportInteractor.ResetRootMotion((float)Graph.PlaybackCursor.MaxFrame);
+
+                    //    Graph.ScrollToPlaybackCursor(1);
+                    //}
+
+                    NextAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Down) && !Input.KeyHeld(Keys.Up));
+
+                    if (NextAnimRepeaterButton.State)
+                    {
+                        Graph?.ViewportInteractor?.CancelCombo();
+                        NextAnim(Input.ShiftHeld, Input.CtrlHeld);
+                    }
+
+                    PrevAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Up) && !Input.KeyHeld(Keys.Down));
+
+                    if (PrevAnimRepeaterButton.State)
+                    {
+                        Graph?.ViewportInteractor?.CancelCombo();
+                        PrevAnim(Input.ShiftHeld, Input.CtrlHeld);
+                    }
+
+                    if (PlaybackCursor != null)
+                    {
+                        NextFrameRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Right));
+
+                        if (NextFrameRepeaterButton.State)
+                        {
+                            TransportNextFrame();
+                        }
+
+                        PrevFrameRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Left));
+
+                        if (PrevFrameRepeaterButton.State)
+                        {
+                            TransportPreviousFrame();
+                        }
+                    }
+
+                    if (Input.KeyDown(Keys.Space) && Input.CtrlHeld && !Input.AltHeld)
+                    {
+                        if (SelectedTae != null)
+                        {
+                            if (SelectedTaeAnim != null)
+                            {
+                                SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+                                if (Input.ShiftHeld)
+                                {
+                                    Graph?.ViewportInteractor?.RemoveTransition();
+                                }
+                            }
+                        }
+                    }
+
+                    if (Input.KeyDown(Keys.Back) && !isOtherPaneFocused)
+                    {
+                        Graph?.ViewportInteractor?.RemoveTransition();
+                    }
+
+                    if (UndoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (zHeld && !yHeld)) && !isOtherPaneFocused)
+                    {
+                        UndoMan.Undo();
+                    }
+
+                    if (RedoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (!zHeld && yHeld)) && !isOtherPaneFocused)
+                    {
+                        UndoMan.Redo();
+                    }
+                }
+
+                if (!Input.LeftClickHeld)
+                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
+
+
+                if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.None)
+                {
+                    if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
+                        && Input.MousePosition.X >= DividerLeftGrabStartX && Input.MousePosition.X <= DividerLeftGrabEndX)
+                    {
+                        MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
+                        //Input.CursorType = MouseCursorType.DragX;
+                        if (Input.LeftClickDown)
+                        {
+                            CurrentDividerDragMode = DividerDragMode.LeftVertical;
+                            WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
+                        }
+                    }
+                    else if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
+                        && Input.MousePosition.X >= DividerRightGrabStartX && Input.MousePosition.X <= DividerRightGrabEndX)
+                    {
+                        MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                        //Input.CursorType = MouseCursorType.DragX;
+                        if (Input.LeftClickDown)
+                        {
+                            CurrentDividerDragMode = DividerDragMode.RightVertical;
+                            WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                        }
+                    }
+                    else if (Input.MousePosition.X >= RightSectionStartX && Input.MousePosition.X <= Rect.Right
+                        && Input.MousePosition.Y >= DividerRightPaneHorizontalGrabStartY && Input.MousePosition.Y <= DividerRightPaneHorizontalGrabEndY)
+                    {
+                        MouseHoverKind = ScreenMouseHoverKind.DividerRightPaneHorizontal;
+                        //Input.CursorType = MouseCursorType.DragX;
+                        if (Input.LeftClickDown)
+                        {
+                            CurrentDividerDragMode = DividerDragMode.RightPaneHorizontal;
+                            WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerRightPaneHorizontal;
+                        }
+                    }
+                    else if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                        || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
+                        || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal)
+                    {
+                        MouseHoverKind = ScreenMouseHoverKind.None;
+                    }
+                }
+
+                if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                    || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                    || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
+                    || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
+                {
+                    Input.CursorType = MouseCursorType.DragX;
+                }
+                else if (MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal
+                    || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
+                {
+                    Input.CursorType = MouseCursorType.DragY;
+                }
+
+                if (CurrentDividerDragMode == DividerDragMode.LeftVertical)
+                {
+                    if (Input.LeftClickHeld)
+                    {
+                        //Input.CursorType = MouseCursorType.DragX;
+                        LeftSectionWidth = MathHelper.Max((Input.MousePosition.X - Rect.X) - (DividerVisiblePad / 2), LeftSectionWidthMin);
+                        LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidth - (DividerVisiblePad * 2));
+                        MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
+                        Main.RequestViewportRenderTargetResolutionChange = true;
+                        Main.RequestHideOSD = Main.RequestHideOSD_MAX;
                     }
                     else
                     {
-                        Graph.UpdateMouseOutsideRect(Main.DELTA_UPDATE, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        //Input.CursorType = MouseCursorType.Arrow;
+                        CurrentDividerDragMode = DividerDragMode.None;
+                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
+                    }
+                }
+                else if (CurrentDividerDragMode == DividerDragMode.RightVertical)
+                {
+                    if (Input.LeftClickHeld)
+                    {
+                        //Input.CursorType = MouseCursorType.DragX;
+                        RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerVisiblePad / 2), RightSectionWidthMin);
+                        RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidth - (DividerVisiblePad * 2));
+                        MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                        Main.RequestViewportRenderTargetResolutionChange = true;
+                        Main.RequestHideOSD = Main.RequestHideOSD_MAX;
+                    }
+                    else
+                    {
+                        //Input.CursorType = MouseCursorType.Arrow;
+                        CurrentDividerDragMode = DividerDragMode.None;
+                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
+                    }
+                }
+                else if (CurrentDividerDragMode == DividerDragMode.RightPaneHorizontal)
+                {
+                    if (Input.LeftClickHeld)
+                    {
+                        //Input.CursorType = MouseCursorType.DragY;
+                        TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin - TransportHeight) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
+                        TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
+                        MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
+                        Main.RequestViewportRenderTargetResolutionChange = true;
+                        Main.RequestHideOSD = Main.RequestHideOSD_MAX;
+                    }
+                    else
+                    {
+                        //Input.CursorType = MouseCursorType.Arrow;
+                        CurrentDividerDragMode = DividerDragMode.None;
+                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
                     }
                 }
 
-                if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer || 
-                    WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
+                LeftSectionWidth = MathHelper.Max(LeftSectionWidth, LeftSectionWidthMin);
+                LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidthMin - (DividerVisiblePad * 2));
+
+                RightSectionWidth = MathHelper.Max(RightSectionWidth, RightSectionWidthMin);
+                RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidthMin - (DividerVisiblePad * 2));
+
+                TopRightPaneHeight = MathHelper.Max(TopRightPaneHeight, TopRightPaneHeightMinNew);
+                TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
+
+                if (!Rect.Contains(Input.MousePositionPoint))
                 {
-                    Input.CursorType = MouseCursorType.Arrow;
-                    GFX.World.DisableAllInput = false;
-                }
-                else
-                {
-                    //GFX.World.DisableAllInput = true;
+                    MouseHoverKind = ScreenMouseHoverKind.None;
                 }
 
-                if (MouseHoverKind == ScreenMouseHoverKind.Inspector || 
-                    WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
+                // Very specific edge case to handle before you load an anibnd so that
+                // it won't have the resize cursor randomly. This box spans all the way
+                // from left of screen to the hitbox of the right vertical divider and
+                // just immediately clears the resize cursor in that entire huge region.
+                if (AnimationListScreen == null && Graph == null
+                        && new Rectangle(Rect.Left, Rect.Top, (int)(DividerRightGrabStartX - Rect.Left), Rect.Height).Contains(Input.MousePositionPoint))
                 {
+                    MouseHoverKind = ScreenMouseHoverKind.None;
                     Input.CursorType = MouseCursorType.Arrow;
                 }
+
+                // Check if currently dragging to resize panes.
+                if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                    || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
+                {
+                    Input.CursorType = MouseCursorType.DragX;
+                    GFX.World.DisableAllInput = true;
+                    return;
+                }
+                else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
+                {
+                    Input.CursorType = MouseCursorType.DragY;
+                    GFX.World.DisableAllInput = true;
+                    return;
+                }
+                else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ShaderAdjuster)
+                {
+                    GFX.World.DisableAllInput = true;
+                    return;
+                }
+                else if (!(MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
+                    || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
+                    || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal))
+                {
+                    if (AnimationListScreen != null && AnimationListScreen.Rect.Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.AnimList;
+                    else if (Graph != null && Graph.Rect.Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.EventGraph;
+                    else if (
+                        new Rectangle(
+                            inspectorWinFormsControl.Bounds.Left,
+                            inspectorWinFormsControl.Bounds.Top,
+                            inspectorWinFormsControl.Bounds.Width,
+                            inspectorWinFormsControl.Bounds.Height
+                            ).InverseDpiScaled()
+                            .Contains(Input.MousePositionPoint))
+                        MouseHoverKind = ScreenMouseHoverKind.Inspector;
+                    //else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
+                    //    MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
+                    else if (
+                        ModelViewerBounds_InputArea.Contains(Input.MousePositionPoint))
+                    {
+                        MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
+                    }
+                    else
+                        MouseHoverKind = ScreenMouseHoverKind.None;
+
+                    if (Input.LeftClickDown)
+                    {
+                        WhereCurrentMouseClickStarted = MouseHoverKind;
+                    }
+
+                    if (AnimationListScreen != null)
+                    {
+
+                        if (MouseHoverKind == ScreenMouseHoverKind.AnimList ||
+                            WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
+                        {
+                            Input.CursorType = MouseCursorType.Arrow;
+                            AnimationListScreen.Update(Main.DELTA_UPDATE,
+                                allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        }
+                        else
+                        {
+                            AnimationListScreen.UpdateMouseOutsideRect(Main.DELTA_UPDATE,
+                                allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        }
+                    }
+
+                    if (Graph != null)
+                    {
+                        Graph.UpdateMiddleClickPan();
+
+                        if (!Graph.Rect.Contains(Input.MousePositionPoint))
+                        {
+                            HoveringOverEventBox = null;
+                        }
+
+                        if (MouseHoverKind == ScreenMouseHoverKind.EventGraph ||
+                            WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
+                        {
+                            Graph.Update(allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        }
+                        else
+                        {
+                            Graph.UpdateMouseOutsideRect(Main.DELTA_UPDATE, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        }
+                    }
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer ||
+                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
+                    {
+                        Input.CursorType = MouseCursorType.Arrow;
+                        GFX.World.DisableAllInput = false;
+                    }
+                    else
+                    {
+                        //GFX.World.DisableAllInput = true;
+                    }
+
+                    if (MouseHoverKind == ScreenMouseHoverKind.Inspector ||
+                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
+                    {
+                        Input.CursorType = MouseCursorType.Arrow;
+                    }
+                }
+
+                //else
+                //{
+                //    Input.CursorType = MouseCursorType.Arrow;
+                //}
+
+                //if (MouseHoverKind == ScreenMouseHoverKind.Inspector)
+                //    Input.CursorType = MouseCursorType.StopUpdating;
+
+                //if (editScreenGraphInspector.Rect.Contains(Input.MousePositionPoint))
+                //    editScreenGraphInspector.Update(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                //else
+                //    editScreenGraphInspector.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+
+                oldMouseHoverKind = MouseHoverKind;
             }
-
-            //else
-            //{
-            //    Input.CursorType = MouseCursorType.Arrow;
-            //}
-
-            //if (MouseHoverKind == ScreenMouseHoverKind.Inspector)
-            //    Input.CursorType = MouseCursorType.StopUpdating;
-
-            //if (editScreenGraphInspector.Rect.Contains(Input.MousePositionPoint))
-            //    editScreenGraphInspector.Update(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-            //else
-            //    editScreenGraphInspector.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-
-            oldMouseHoverKind = MouseHoverKind;
         }
 
         public void HandleWindowResize(Rectangle oldBounds, Rectangle newBounds)
@@ -3958,129 +3200,132 @@ namespace DSAnimStudio.TaeEditor
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
             SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex)
         {
-            sb.Begin();
-            try
+            lock (_lock_AllUpdating)
             {
-                sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height).DpiScaled(), Main.Colors.MainColorBackground);
-
-                // Draw model viewer background lel
-                //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
-
-            }
-            finally { sb.End(); }
-
-
-
-            //throw new Exception("TaeUndoMan");
-
-            //throw new Exception("Make left/right edges of events line up to same vertical lines so the rounding doesnt make them 1 pixel off");
-            //throw new Exception("Make dragging edges of scrollbar box do zoom");
-            //throw new Exception("make ctrl+scroll zoom centered on mouse cursor pos");
-
-            UpdateLayout();
-
-            if (AnimationListScreen != null)
-            {
-                AnimationListScreen.Draw(gd, sb, boxTex, font, scrollbarArrowTex);
-
-                Rectangle curAnimInfoTextRect = new Rectangle(
-                    (int)(MiddleSectionStartX),
-                    Rect.Top + TopMenuBarMargin,
-                    (int)(MiddleSectionWidth - ButtonEditCurrentAnimInfoWidth),
-                    TopOfGraphAnimInfoMargin);
-
                 sb.Begin();
                 try
                 {
-                    if (Config.EnableFancyScrollingStrings)
-                    {
-                        SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Main.DPIMatrix, curAnimInfoTextRect, font, elapsedSeconds, Main.GlobalTaeEditorFontOffset);
-                    }
-                    else
-                    {
-                        var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
+                    sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height).DpiScaled(), Main.Colors.MainColorBackground);
 
-                        sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset, Color.Black);
-                        sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2) + Main.GlobalTaeEditorFontOffset, Color.Black);
-                        sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Main.GlobalTaeEditorFontOffset, Color.White);
-                    }
+                    // Draw model viewer background lel
+                    //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
 
-                    //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + Vector2.One, Color.Black);
-                    //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
-                    //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos, Color.White);
                 }
                 finally { sb.End(); }
 
 
 
+                //throw new Exception("TaeUndoMan");
+
+                //throw new Exception("Make left/right edges of events line up to same vertical lines so the rounding doesnt make them 1 pixel off");
+                //throw new Exception("Make dragging edges of scrollbar box do zoom");
+                //throw new Exception("make ctrl+scroll zoom centered on mouse cursor pos");
+
+                UpdateLayout();
+
+                if (AnimationListScreen != null)
+                {
+                    AnimationListScreen.Draw(gd, sb, boxTex, font, scrollbarArrowTex);
+
+                    Rectangle curAnimInfoTextRect = new Rectangle(
+                        (int)(MiddleSectionStartX),
+                        Rect.Top + TopMenuBarMargin,
+                        (int)(MiddleSectionWidth - ButtonEditCurrentAnimInfoWidth),
+                        TopOfGraphAnimInfoMargin);
+
+                    sb.Begin();
+                    try
+                    {
+                        if (Config.EnableFancyScrollingStrings)
+                        {
+                            SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Main.DPIMatrix, curAnimInfoTextRect, font, elapsedSeconds, Main.GlobalTaeEditorFontOffset);
+                        }
+                        else
+                        {
+                            var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
+
+                            sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset, Color.Black);
+                            sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2) + Main.GlobalTaeEditorFontOffset, Color.Black);
+                            sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Main.GlobalTaeEditorFontOffset, Color.White);
+                        }
+
+                        //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + Vector2.One, Color.Black);
+                        //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
+                        //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos, Color.White);
+                    }
+                    finally { sb.End(); }
+
+
+
+                }
+
+                if (Graph != null)
+                {
+                    Graph.Draw(gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex);
+
+
+                }
+                else
+                {
+                    // Draws a very, very blank graph is none is loaded:
+
+                    //var graphRect = new Rectangle(
+                    //        (int)MiddleSectionStartX,
+                    //        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
+                    //        (int)MiddleSectionWidth,
+                    //        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
+
+                    //sb.Begin();
+                    //sb.Draw(texture: boxTex,
+                    //    position: new Vector2(graphRect.X, graphRect.Y),
+                    //    sourceRectangle: null,
+                    //    color: new Color(120, 120, 120, 255),
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: new Vector2(graphRect.Width, graphRect.Height),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
+
+                    //sb.Draw(texture: boxTex,
+                    //    position: new Vector2(graphRect.X, graphRect.Y),
+                    //    sourceRectangle: null,
+                    //    color: new Color(64, 64, 64, 255),
+                    //    rotation: 0,
+                    //    origin: Vector2.Zero,
+                    //    scale: new Vector2(graphRect.Width, TaeEditAnimEventGraph.TimeLineHeight),
+                    //    effects: SpriteEffects.None,
+                    //    layerDepth: 0
+                    //    );
+                    //sb.End();
+                }
+
+                Transport.Draw(gd, sb, boxTex, smallFont);
+
+                if (AnimSwitchRenderCooldown > 0)
+                {
+                    AnimSwitchRenderCooldown -= Main.DELTA_UPDATE;
+
+                    //float ratio = Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, AnimSwitchRenderCooldown / AnimSwitchRenderCooldownFadeLength)));
+                    //sb.Begin();
+                    //sb.Draw(boxTex, graphRect, AnimSwitchRenderCooldownColor * ratio);
+                    //sb.End();
+                }
+
+                //editScreenGraphInspector.Draw(gd, sb, boxTex, font);
+
+                //var oldViewport = gd.Viewport;
+                //gd.Viewport = new Viewport(Rect.X, Rect.Y, Rect.Width, TopMargin);
+                //{
+                //    sb.Begin();
+
+                //    sb.DrawString(font, $"{TaeFileName}", new Vector2(4, 4) + Vector2.One, Color.Black);
+                //    sb.DrawString(font, $"{TaeFileName}", new Vector2(4, 4), Color.White);
+
+                //    sb.End();
+                //}
+                //gd.Viewport = oldViewport;
             }
-
-            if (Graph != null)
-            {
-                Graph.Draw(gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollbarArrowTex);
-
-                
-            }
-            else
-            {
-                // Draws a very, very blank graph is none is loaded:
-
-                //var graphRect = new Rectangle(
-                //        (int)MiddleSectionStartX,
-                //        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
-                //        (int)MiddleSectionWidth,
-                //        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin);
-
-                //sb.Begin();
-                //sb.Draw(texture: boxTex,
-                //    position: new Vector2(graphRect.X, graphRect.Y),
-                //    sourceRectangle: null,
-                //    color: new Color(120, 120, 120, 255),
-                //    rotation: 0,
-                //    origin: Vector2.Zero,
-                //    scale: new Vector2(graphRect.Width, graphRect.Height),
-                //    effects: SpriteEffects.None,
-                //    layerDepth: 0
-                //    );
-                
-                //sb.Draw(texture: boxTex,
-                //    position: new Vector2(graphRect.X, graphRect.Y),
-                //    sourceRectangle: null,
-                //    color: new Color(64, 64, 64, 255),
-                //    rotation: 0,
-                //    origin: Vector2.Zero,
-                //    scale: new Vector2(graphRect.Width, TaeEditAnimEventGraph.TimeLineHeight),
-                //    effects: SpriteEffects.None,
-                //    layerDepth: 0
-                //    );
-                //sb.End();
-            }
-
-            Transport.Draw(gd, sb, boxTex, smallFont);
-
-            if (AnimSwitchRenderCooldown > 0)
-            {
-                AnimSwitchRenderCooldown -= Main.DELTA_UPDATE;
-
-                //float ratio = Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, AnimSwitchRenderCooldown / AnimSwitchRenderCooldownFadeLength)));
-                //sb.Begin();
-                //sb.Draw(boxTex, graphRect, AnimSwitchRenderCooldownColor * ratio);
-                //sb.End();
-            }
-
-            //editScreenGraphInspector.Draw(gd, sb, boxTex, font);
-
-            //var oldViewport = gd.Viewport;
-            //gd.Viewport = new Viewport(Rect.X, Rect.Y, Rect.Width, TopMargin);
-            //{
-            //    sb.Begin();
-
-            //    sb.DrawString(font, $"{TaeFileName}", new Vector2(4, 4) + Vector2.One, Color.Black);
-            //    sb.DrawString(font, $"{TaeFileName}", new Vector2(4, 4), Color.White);
-
-            //    sb.End();
-            //}
-            //gd.Viewport = oldViewport;
         }
     }
 }

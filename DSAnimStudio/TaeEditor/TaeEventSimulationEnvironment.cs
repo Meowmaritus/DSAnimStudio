@@ -1239,29 +1239,6 @@ namespace DSAnimStudio.TaeEditor
             };
         }
 
-        public void BuildEventSimMenuBar(TaeMenuBarBuilder menu)
-        {
-            if (menu["Simulation"] != null)
-            {
-                menu.ClearItem("Simulation");
-                menu["Simulation"].Visible = true;
-                menu["Simulation"].Enabled = true;
-            }
-
-            foreach (var kvp in Entries)
-            {
-                if (kvp.Value.MenuOptionName != null)
-                    menu.AddItem("Simulation", kvp.Value.MenuOptionName, 
-                        () => GetSimEnabled(kvp.Key), b =>
-                        {
-                            OnNewAnimSelected(Graph.EventBoxes);
-                            SetSimEnabled(kvp.Key, b);
-                            OnNewAnimSelected(Graph.EventBoxes);
-                            Graph.ViewportInteractor.OnScrubFrameChange();
-                        });
-            }
-        }
-
         public bool GetSimEnabled(string simName)
         {
             if (simName == null)

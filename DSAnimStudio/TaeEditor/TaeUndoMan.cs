@@ -18,15 +18,6 @@ namespace DSAnimStudio.TaeEditor
             public Action Undo;
         }
 
-        public event EventHandler CanUndoMaybeChanged;
-        public event EventHandler CanRedoMaybeChanged;
-
-        private void FireEvents()
-        {
-            CanUndoMaybeChanged?.Invoke(this, EventArgs.Empty);
-            CanRedoMaybeChanged?.Invoke(this, EventArgs.Empty);
-        }
-
         private Stack<TaeUndoableAction> UndoStack = new Stack<TaeUndoableAction>();
         private Stack<TaeUndoableAction> RedoStack = new Stack<TaeUndoableAction>();
 
@@ -43,7 +34,6 @@ namespace DSAnimStudio.TaeEditor
             };
             newAction.Do();
             UndoStack.Push(newAction);
-            FireEvents();
         }
 
         public void Redo()
@@ -56,7 +46,6 @@ namespace DSAnimStudio.TaeEditor
                 action.Do();
                 UndoStack.Push(action);
             }
-            FireEvents();
 
             MainScreen.Graph?.ViewportInteractor?.EventSim?.ClearBoxStuff();
         }
@@ -71,7 +60,6 @@ namespace DSAnimStudio.TaeEditor
                 lastAction.Undo();
                 RedoStack.Push(lastAction);
             }
-            FireEvents();
 
             MainScreen.Graph?.ViewportInteractor?.EventSim?.ClearBoxStuff();
         }

@@ -72,15 +72,7 @@ namespace DSAnimStudio.TaeEditor
                 if (!isModified_Anim.ContainsKey(ev))
                     isModified_Anim.Add(ev, false);
 
-                //if (v)
-                //{
-                //    Console.WriteLine("REEE");
-                //}
-
                 isModified_Anim[ev] = v;
-
-                if (updateGui)
-                    Main.TAE_EDITOR.UpdateIsModifiedStuff();
             }
                 
         }
@@ -92,15 +84,7 @@ namespace DSAnimStudio.TaeEditor
                 if (!isModified_TAE.ContainsKey(tae))
                     isModified_TAE.Add(tae, false);
 
-                //if (v)
-                //{
-                //    Console.WriteLine("REEE");
-                //}
-
                 isModified_TAE[tae] = v;
-
-                if (updateGui)
-                    Main.TAE_EDITOR.UpdateIsModifiedStuff();
             }
                 
         }

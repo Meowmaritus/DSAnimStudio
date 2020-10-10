@@ -317,16 +317,19 @@ namespace DSAnimStudio
 
                 if (i == DebugDrawTransformOfFlverBoneIndex || (FlverSkeleton[i].EnablePrimDraw && DebugDrawTransformOfFlverBoneIndex < 0))
                 {
-                    DebugDrawTransformOfFlverBonePrim.Transform = new Transform(
+                    if (DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone])
+                    {
+                        DebugDrawTransformOfFlverBonePrim.Transform = new Transform(
                     Matrix.CreateRotationY(MathHelper.Pi) *
                     Matrix.CreateScale(0.1f, 0.1f, 0.1f) * FlverSkeleton[i].CurrentMatrix);
 
-                    if (DebugDrawTransformOfFlverBoneIndex == i)
-                        DebugDrawTransformOfFlverBonePrim.OverrideColor = Main.Colors.ColorHelperFlverBone;
-                    else
-                        DebugDrawTransformOfFlverBonePrim.OverrideColor = new Color(Main.Colors.ColorHelperFlverBone.R,
-                            Main.Colors.ColorHelperFlverBone.G, Main.Colors.ColorHelperFlverBone.B, (byte)(255 / 4));
-                    DebugDrawTransformOfFlverBonePrim.Draw(null, MODEL.CurrentTransform.WorldMatrix);
+                        if (DebugDrawTransformOfFlverBoneIndex == i)
+                            DebugDrawTransformOfFlverBonePrim.OverrideColor = Main.Colors.ColorHelperFlverBone;
+                        else
+                            DebugDrawTransformOfFlverBonePrim.OverrideColor = new Color(Main.Colors.ColorHelperFlverBone.R,
+                                Main.Colors.ColorHelperFlverBone.G, Main.Colors.ColorHelperFlverBone.B, (byte)(255 / 4));
+                        DebugDrawTransformOfFlverBonePrim.Draw(null, MODEL.CurrentTransform.WorldMatrix);
+                    }
 
                     if (i == DebugDrawTransformOfFlverBoneIndex || DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.FlverBone])
                     {

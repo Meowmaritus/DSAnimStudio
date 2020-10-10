@@ -1,5 +1,6 @@
 ﻿using DSAnimStudio.DbgMenus;
 using DSAnimStudio.GFXShaders;
+using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -603,6 +604,15 @@ namespace DSAnimStudio
 
             MainFlverTonemapShader = new FlverTonemapShader(Content.Load<Effect>($@"Content\Shaders\FlverTonemapShader"));
 
+            BuildImguiFonts();
+
+            TAE_EDITOR.LoadContent(Content);
+
+            UpdateDpiStuff();
+        }
+
+        private static void BuildImguiFonts()
+        {
             var fonts = ImGuiNET.ImGui.GetIO().Fonts;
 
             var fontFile = File.ReadAllBytes($@"{Directory}\Content\Fonts\NotoSansCJKjp-Medium.otf");
@@ -618,7 +628,7 @@ namespace DSAnimStudio
                     cfg.GlyphMinAdvanceX = 5.0f;
                     cfg.OversampleH = 5;
                     cfg.OversampleV = 5;
-                    var f = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length, 
+                    var f = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length,
                         16.0f, cfg, fonts.GetGlyphRangesDefault());
                 }
             }
@@ -626,10 +636,6 @@ namespace DSAnimStudio
             fonts.Build();
 
             ImGuiDraw.RebuildFontAtlas();
-
-            TAE_EDITOR.LoadContent(Content);
-
-            UpdateDpiStuff();
         }
 
         private static void DrawImGui(GameTime gameTime, int x, int y, int w, int h)
@@ -1125,12 +1131,10 @@ namespace DSAnimStudio
                         TAE_EDITOR.DrawDimmingRect(GraphicsDevice, TaeEditorSpriteBatch, TAE_EDITOR_BLANK_TEX);
                     }
 
-                    //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-                    var imguiRect = TAE_EDITOR.ModelViewerBounds.DpiScaled();
-                    DrawImGui(gameTime, imguiRect.X + TAE_EDITOR.Rect.X, imguiRect.Y + TAE_EDITOR.Rect.Y, imguiRect.Width, imguiRect.Height);
-
                     GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
-                }
+
+                    DrawImGui(gameTime, 0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+            }
                 //else
                 //{
                 //    // TESTING

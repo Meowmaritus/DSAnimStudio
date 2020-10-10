@@ -19,6 +19,9 @@ namespace DSAnimStudio
     {
         private static object _lock_MediaRoot = new object();
 
+        public static bool IsInitialized => initialised;
+
+        private static bool eventSystemCreated = false;
         private static bool initialised = false;
         private static bool eventstart = false;
         private static bool exit = false;
@@ -33,6 +36,8 @@ namespace DSAnimStudio
 
         public static float BaseSoundVolume = 0.5f;
         public static float AdjustSoundVolume = 100;
+
+        public static string MediaPath = null;
 
         public static string StatusString = "FMOD: (Not Running)";
 
@@ -260,58 +265,6 @@ namespace DSAnimStudio
                         FloorMaterialNames[id] = name;
                 }
             }
-
-            BuildSoundMenuBar();
-        }
-
-        public static void BuildSoundMenuBar()
-        {
-            // Ghetto-ness warning
-            Main.WinForm.Invoke(new Action(() =>
-            {
-                //Main.TAE_EDITOR.MenuBar.AddTopItem("Sound");
-
-                Main.TAE_EDITOR.MenuBar.ClearItem("Sound");
-
-                //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-                //{
-                //    return;
-                //}
-
-                Main.TAE_EDITOR.MenuBar.AddItem("Sound", "[STOP ALL]", () =>
-                {
-                    StopAllSounds();
-                });
-
-                Main.TAE_EDITOR.MenuBar.AddSeparator("Sound");
-
-                Main.TAE_EDITOR.MenuBar.AddItem("Sound", "Player Armor Material", new Dictionary<string, Action>
-                {
-                    { nameof(ArmorMaterialType.Plates), () => ArmorMaterial = ArmorMaterialType.Plates },
-                    { nameof(ArmorMaterialType.Chains), () => ArmorMaterial = ArmorMaterialType.Chains },
-                    { nameof(ArmorMaterialType.Cloth), () => ArmorMaterial = ArmorMaterialType.Cloth },
-                    { nameof(ArmorMaterialType.None), () => ArmorMaterial = ArmorMaterialType.None },
-                }, () => ArmorMaterial.ToString());
-
-                Dictionary<string, Action> floorMatMenuItems = new Dictionary<string, Action>();
-
-                foreach (var kvp in FloorMaterialNames)
-                {
-                    floorMatMenuItems.Add($"{kvp.Key:D2}: {kvp.Value}", () =>
-                    {
-                        FloorMaterial = kvp.Key;
-                    });
-                }
-
-                Main.TAE_EDITOR.MenuBar.AddItem(@"Sound", "Floor Material", floorMatMenuItems, 
-                    () => $"{FloorMaterial:D2}: {FloorMaterialNames[FloorMaterial]}");
-            }));
-
-           
-
         }
 
         public static ArmorMaterialType ArmorMaterial = ArmorMaterialType.Plates;
@@ -547,13 +500,29 @@ namespace DSAnimStudio
 
             Main.WinForm.Invoke(new Action(() =>
             {
-                ERRCHECK(result = FMOD.Event_Factory.EventSystem_Create(ref _eventSystem));
+                if (eventSystemCreated)
+                {
+                    Shutdown();
+                }
+
+                result = FMOD.Event_Factory.EventSystem_Create(ref _eventSystem);
+
+                if (result == RESULT.OK)
+                {
+                    eventSystemCreated = true;
+                }
+                else
+                {
+                    ERRCHECK(result);
+                }
+
                 result = _eventSystem.init(MAX_CHANNELS, FMOD.INITFLAGS.NORMAL, (IntPtr)null, FMOD.EVENT_INITFLAGS.NORMAL);
                 if (result == RESULT.ERR_OUTPUT_INIT)
                 {
-                    System.Windows.Forms.MessageBox.Show("Failed to initialize FMOD audio output. " +
-                        "Make sure you have an audio device connected and working and that no other app is taking exclusive control of the device.",
-                        "Failed to Initialize Audio Device", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    OSD.Tools.Notice("Failed to initialize FMOD audio output. " +
+                        "Make sure you have an audio device connected and working and " +
+                        "that no other app is taking exclusive control of the device.\n\n" +
+                        "Once you free the device, select FMOD Sound -> Retry Initialization");
                     initialised = false;
                 }
                 else if (result == RESULT.OK)
@@ -586,8 +555,18 @@ namespace DSAnimStudio
 
             Main.WinForm.Invoke(new Action(() =>
             {
-                ERRCHECK(result = _eventSystem.setMediaPath(GetDirWithBackslash(
-                Utils.Frankenpath(GameDataManager.InterrootPath, GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ? "sound_win" : "sound"))));
+                string possiblePath = GetDirWithBackslash(
+                Utils.Frankenpath(GameDataManager.InterrootPath, GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ? "sound_win" : "sound"));
+                result = _eventSystem.setMediaPath(possiblePath);
+                if (result == RESULT.OK)
+                {
+                    MediaPath = possiblePath;
+                }
+                else
+                {
+                    ERRCHECK(result);
+                    MediaPath = null;
+                }
             }));
         }
 
@@ -598,7 +577,16 @@ namespace DSAnimStudio
 
             Main.WinForm.Invoke(new Action(() =>
             {
-                ERRCHECK(result = _eventSystem.setMediaPath(GetDirWithBackslash(mediaRoot)));
+                result = _eventSystem.setMediaPath(GetDirWithBackslash(mediaRoot));
+                if (result == RESULT.OK)
+                {
+                    MediaPath = mediaRoot;
+                }
+                else
+                {
+                    ERRCHECK(result);
+                    MediaPath = null;
+                }
             }));
         }
 
@@ -711,7 +699,7 @@ namespace DSAnimStudio
 
                 lock (_lock_MediaRoot)
                 {
-                    UpdateMediaRoot(Path.GetDirectoryName(newEvent_FullFevPath));
+                    UpdateMediaRoot(newEvent_FullFevPath);
 
                     ERRCHECK(newEvent.setVolume(BaseSoundVolume * (AdjustSoundVolume / 100)));
 

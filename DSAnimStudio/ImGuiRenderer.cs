@@ -68,6 +68,7 @@ namespace DSAnimStudio
         public ImGuiRenderer(Game game)
         {
             var context = ImGui.CreateContext();
+
             ImGui.SetCurrentContext(context);
 
             _game = game ?? throw new ArgumentNullException(nameof(game));

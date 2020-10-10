@@ -30,9 +30,9 @@ namespace DSAnimStudio
 
         public enum AnimIDFormattingType
         {
-            a00_0000,
-            a000_000000,
-            a00_00_0000,
+            aXX_YYYY,
+            aXXX_YYYYYY,
+            aXX_YY_ZZZZ,
         }
 
         public static readonly Dictionary<SoulsGames, string> GameTypeNames =
@@ -68,8 +68,8 @@ namespace DSAnimStudio
         private static SoulsGames lastGameType = SoulsGames.None;
         public static SoulsGames GameType { get; private set; } = SoulsGames.None;
 
-        public static bool GameTypeHasLongAnimIDs => CurrentAnimIDFormatType == AnimIDFormattingType.a000_000000 ||
-            CurrentAnimIDFormatType == AnimIDFormattingType.a00_00_0000;
+        public static bool GameTypeHasLongAnimIDs => CurrentAnimIDFormatType == AnimIDFormattingType.aXXX_YYYYYY ||
+            CurrentAnimIDFormatType == AnimIDFormattingType.aXX_YY_ZZZZ;
 
         public static AnimIDFormattingType CurrentAnimIDFormatType
         {
@@ -80,15 +80,15 @@ namespace DSAnimStudio
                     case SoulsGames.DS1:
                     case SoulsGames.DS1R:
                     case SoulsGames.DES:
-                        return AnimIDFormattingType.a00_0000;
+                        return AnimIDFormattingType.aXX_YYYY;
                     case SoulsGames.BB:
                     case SoulsGames.DS3:
                     case SoulsGames.SDT:
-                        return AnimIDFormattingType.a000_000000;
+                        return AnimIDFormattingType.aXXX_YYYYYY;
                     case SoulsGames.DS2SOTFS:
-                        return AnimIDFormattingType.a00_00_0000;
+                        return AnimIDFormattingType.aXX_YY_ZZZZ;
                     default:
-                        return AnimIDFormattingType.a000_000000;
+                        return AnimIDFormattingType.aXXX_YYYYYY;
                 }
             }
         }
@@ -114,13 +114,13 @@ namespace DSAnimStudio
 
         public static string InterrootPath { get; set; } = null;
 
-        public static string GetInterrootPath(string path)
+        public static string GetInterrootPath(string path, bool isDirectory = false)
         {
-            if (File.Exists($@"{InterrootPath}\{path}"))
+            if (isDirectory ? Directory.Exists($@"{InterrootPath}\{path}") : File.Exists($@"{InterrootPath}\{path}"))
             {
                 return $@"{InterrootPath}\{path}";
             }
-            else if (File.Exists($@"{InterrootPath}\..\{path}"))
+            else if (isDirectory ? Directory.Exists($@"{InterrootPath}\..\{path}") : File.Exists($@"{InterrootPath}\..\{path}"))
             {
                 return $@"{InterrootPath}\..\{path}";
             }
@@ -466,12 +466,15 @@ namespace DSAnimStudio
         {
             List<string> result = new List<string>();
 
-            string chrFolder = GetInterrootPath((GameType == SoulsGames.DS2 || GameType == SoulsGames.DS2SOTFS) ? @"model\chr" : "");
+            string chrFolder = GetInterrootPath(
+                (GameType == SoulsGames.DS2 || GameType == SoulsGames.DS2SOTFS) ? @"model\chr" : "chr",
+                isDirectory: true);
             string[] filesRelatedToThisChr = Directory.GetFiles(chrFolder, $"*{name}*");
             foreach (var f in filesRelatedToThisChr)
             {
                 string file = f.ToLower();
-                if (file.EndsWith(".bak") || file.EndsWith(".dsasbak") || file.Contains("anibnd") || file.Contains(".2010"))
+                if (file.EndsWith(".bak") || file.EndsWith(".dsasbak") || file.Contains("anibnd") || file.Contains(".2010")
+                    || file.EndsWith(ModelImportBackupExtension))
                     continue;
 
                 result.Add(f);
@@ -488,8 +491,11 @@ namespace DSAnimStudio
                     }
                 }
 
-                var memeOverrideTextureFiles = GetModelFilesOfChr(name.Substring(0, 4)/*cXXX*/ + "9");
-                result.AddRange(memeOverrideTextureFiles);
+                if (name[4] != '9') //lol
+                {
+                    var memeOverrideTextureFiles = GetModelFilesOfChr(name.Substring(0, 4)/*cXXX*/ + "9");
+                    result.AddRange(memeOverrideTextureFiles);
+                }
             }
 
             return result;

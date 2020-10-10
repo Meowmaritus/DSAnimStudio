@@ -533,8 +533,6 @@ namespace DSAnimStudio.TaeEditor
             }
 
             IsModified = false;
-
-            Main.TAE_EDITOR.UpdateIsModifiedStuff();
         }
     }
 }

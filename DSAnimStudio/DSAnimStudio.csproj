@@ -228,7 +228,6 @@
       <DependentUpon>TaeInspectorWinFormsControl.cs</DependentUpon>
     </Compile>
     <Compile Include="TaeEditor\TaeLiveRefresh.cs" />
-    <Compile Include="TaeEditor\TaeMenuBarBuilder.cs" />
     <Compile Include="TaeEditor\TaeMiscUtils.cs" />
     <Compile Include="TaeEditor\TaePlaybackCursor.cs" />
     <Compile Include="TaeEditor\TaeScrollingString.cs" />
@@ -633,6 +632,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <Compile Include="ImguiOSD\OSD.MenuBar.cs" />
+    <Compile Include="ImguiOSD\OSD.ImGuiEx.cs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

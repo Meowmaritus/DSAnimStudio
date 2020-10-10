@@ -31,11 +31,12 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeEntityType EntityType { get; private set; } = TaeEntityType.NONE;
 
-        public NewChrAsmEquipForm EquipForm = null;
-
         public TaeEventSimulationEnvironment EventSim { get; private set; }
 
         public List<ParamData.NpcParam> PossibleNpcParams = new List<ParamData.NpcParam>();
+        public Dictionary<int, string> NpcMaterialNamesPerMask = new Dictionary<int, string>();
+        public List<int> NpcMasksEnabledOnAllNpcParams = new List<int>();
+
         private int _selectedNpcParamIndex = -1;
         public int SelectedNpcParamIndex
         {
@@ -72,33 +73,26 @@ namespace DSAnimStudio.TaeEditor
 
             if (entityType != TaeEntityType.PC)
             {
-                EquipForm?.Close();
-                EquipForm?.Dispose();
-                EquipForm = null;
+                OSD.IsWindowOpen_PlayerEquip = false;
             }
-
-            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-            {
-                Graph.MainScreen.MenuBar["NPC Settings"].Enabled = entityType == TaeEntityType.NPC;
-                Graph.MainScreen.MenuBar["NPC Settings"].Visible = entityType == TaeEntityType.NPC;
-
-                Graph.MainScreen.MenuBar["Player Settings"].Enabled = entityType == TaeEntityType.PC;
-                Graph.MainScreen.MenuBar["Player Settings"].Visible = entityType == TaeEntityType.PC;
-
-                Graph.MainScreen.MenuBar["Object Settings"].Enabled = entityType == TaeEntityType.OBJ;
-                Graph.MainScreen.MenuBar["Object Settings"].Visible = entityType == TaeEntityType.OBJ;
-
-                Graph.MainScreen.MenuBar["Animated Equipment Settings"].Enabled = entityType == TaeEntityType.PARTS;
-                Graph.MainScreen.MenuBar["Animated Equipment Settings"].Visible = entityType == TaeEntityType.PARTS;
-
-                Graph.MainScreen.MenuBar["Cutscene Settings"].Enabled = entityType == TaeEntityType.REMO;
-                Graph.MainScreen.MenuBar["Cutscene Settings"].Visible = entityType == TaeEntityType.REMO;
-            }));
           
+        }
+
+        public void RescanNpcParams()
+        {
+            PossibleNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
+            PossibleNpcParams.AddRange(ParamManager.FindNpcParams(CurrentModel.Name, matchCXXX0: true));
+
+            if (PossibleNpcParams.Count > 0)
+                SelectedNpcParamIndex = 0;
+            else
+                SelectedNpcParamIndex = -1;
         }
 
         public TaeViewportInteractor(TaeEditAnimEventGraph graph)
         {
+            OSD.IsWindowOpen_PlayerEquip = false;
+
             Graph = graph;
             Graph.PlaybackCursor.PlaybackStarted += PlaybackCursor_PlaybackStarted;
             Graph.PlaybackCursor.PlaybackFrameChange += PlaybackCursor_PlaybackFrameChange;
@@ -145,127 +139,31 @@ namespace DSAnimStudio.TaeEditor
                     CurrentModel.ChrAsm.UpdateModels(isAsync: true);
 
                     SetEntityType(TaeEntityType.PC);
-
-                    Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-                    {
-                        EquipForm?.Dispose();
-                        EquipForm = null;
-
-                        EquipForm = new NewChrAsmEquipForm();
-                        EquipForm.Owner = Graph.MainScreen.GameWindowAsForm;
-                        EquipForm.Hidden += EquipForm_Hidden;
-                        //EquipForm.FormClosing += EquipForm_FormClosing;
-                    }));
                 }
                 else
                 {
-                    PossibleNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
-
-                    
-
-                    if (PossibleNpcParams.Count == 0)
-                    {
-                        var cname = CurrentModel.Name;
-                        var cname0 = CurrentModel.Name.Substring(0, 4) + "0";
-                        var dlgres = System.Windows.Forms.MessageBox.Show(
-                            $"No NpcParams matched for {cname}.\nWould you like to try to use NpcParams matching {cname0}?",
-                            "No NpcParams Matched", System.Windows.Forms.MessageBoxButtons.YesNo, System.Windows.Forms.MessageBoxIcon.Warning);
-                        if (dlgres == System.Windows.Forms.DialogResult.Yes)
-                        {
-                            PossibleNpcParams = ParamManager.FindNpcParams(CurrentModel.Name, matchCXXX0: true);
-                        }
-                    }
-
-                    if (PossibleNpcParams.Count > 0)
-                        SelectedNpcParamIndex = 0;
-                    else
-                        SelectedNpcParamIndex = -1;
+                    RescanNpcParams();
 
                     SetEntityType(TaeEntityType.NPC);
 
-                    var validNpcParams = PossibleNpcParams;
+                    NpcMaterialNamesPerMask = CurrentModel.GetMaterialNamesPerMask();
 
-                    var materialsPerMask = CurrentModel.GetMaterialNamesPerMask();
-
-                    var masksEnabledOnAllNpcParams = materialsPerMask.Select(kvp => kvp.Key).ToList();
-                    foreach (var kvp in materialsPerMask)
+                    NpcMasksEnabledOnAllNpcParams = NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
+                    foreach (var kvp in NpcMaterialNamesPerMask)
                     {
                         if (kvp.Key < 0)
                             continue;
 
-                        foreach (var npcParam in validNpcParams)
+                        foreach (var npcParam in PossibleNpcParams)
                         {
                             if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
                             {
-                                if (masksEnabledOnAllNpcParams.Contains(kvp.Key))
-                                    masksEnabledOnAllNpcParams.Remove(kvp.Key);
+                                if (NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                    NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
 
                                 break;
                             }
                         }
-                    }
-
-                    var behaviorVariationChoicesDict = new Dictionary<string, Action>();
-
-                    foreach (var npc in validNpcParams)
-                    {
-                        behaviorVariationChoicesDict.Add($"{npc.GetDisplayName()}|" +
-                            npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
-                            $"\nBehaviorVariationID: {npc.BehaviorVariationID}",
-                            () =>
-                            {
-                                CurrentModel.NpcParam = npc;
-                                CurrentModel.NpcParam.ApplyToNpcModel(CurrentModel);
-                            });
-                    }
-
-                    Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-                    {
-                        EquipForm?.Dispose();
-                        OnEquipFormClose();
-                        EquipForm = null;
-
-                        var menuItemLoadTextures = Graph.MainScreen.MenuBar["NPC Settings\\Load Additional Texture File(s)..."];
-
-                        Graph.MainScreen.MenuBar.ClearItem("NPC Settings");
-
-                        Graph.MainScreen.MenuBar.AddItem("NPC Settings", menuItemLoadTextures);
-
-                        Graph.MainScreen.MenuBar.AddSeparator("NPC Settings");
-
-                        
-                        if (CurrentModel.NpcParam != null)
-                        {
-                            Graph.MainScreen.MenuBar.AddItem("NPC Settings", "NpcParam", behaviorVariationChoicesDict,
-                            () => $"{CurrentModel.NpcParam.GetDisplayName()}|" +
-                            CurrentModel.NpcParam.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams) +
-                            $"\nBehaviorVariationID: {CurrentModel.NpcParam.BehaviorVariationID}");
-                        }
-                        else
-                        {
-                            Graph.MainScreen.MenuBar.AddItem("NPC Settings", "NpcParam (None Found)");
-                        }
-
-                        Graph.MainScreen.MenuBar.AddItem("NPC Settings\\Override Draw Mask", "Show All", () =>
-                        {
-                            for (int i = 0; i < CurrentModel.DrawMask.Length; i++)
-                            {
-                                CurrentModel.DrawMask[i] = true;
-                            }
-                        }, closeOnClick: false);
-
-                    }));
-
-                    foreach (var npc in validNpcParams)
-                    {
-                        Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-                        {
-                            Graph.MainScreen.MenuBar.AddItem("NPC Settings\\Override Draw Mask",
-                                $"{npc.GetDisplayName()}|{npc.GetMaskString(materialsPerMask, masksEnabledOnAllNpcParams)}", () =>
-                                {
-                                    npc.ApplyToNpcModel(CurrentModel);
-                                }, closeOnClick: false);
-                        }));
                     }
 
                     //foreach (var npc in validNpcParams)
@@ -287,9 +185,7 @@ namespace DSAnimStudio.TaeEditor
                 };
                 GFX.World.NewRecenter();
 
-                FmodManager.Purge();
-                FmodManager.LoadMainFEVs();
-                FmodManager.LoadInterrootFEV(CurrentModel.Name);
+                LoadSoundsForCurrentModel();
             }
             else if (shortFileName.StartsWith("o"))
             {
@@ -303,8 +199,7 @@ namespace DSAnimStudio.TaeEditor
                 };
                 GFX.World.NewRecenter();
 
-                FmodManager.Purge();
-                FmodManager.LoadMainFEVs();
+                LoadSoundsForCurrentModel();
 
                 //throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
             }
@@ -328,71 +223,57 @@ namespace DSAnimStudio.TaeEditor
                 Scene.EnableModelDrawing2();
         }
 
+        public void LoadSoundsForCurrentModel(bool fresh = true)
+        {
+            if (fresh)
+                FmodManager.Purge();
+            FmodManager.LoadMainFEVs();
+            FmodManager.LoadInterrootFEV(CurrentModel.Name);
+        }
+
         public void InitializeForCurrentModel()
         {
-            if (CurrentModel?.Skeleton != null)
-                CurrentComboRecorder = new HavokRecorder(CurrentModel.Skeleton.HkxSkeleton);
-
-            CurrentModel.OnRootMotionWrap = (wrap) =>
-            {
-                GeneralUpdate(allowPlaybackManipulation: false);
-                GFX.World.Update(0);
-                FmodManager.Update();
-            };
-
-
             if (CurrentModel != null)
             {
+                if (CurrentModel?.Skeleton != null)
+                    CurrentComboRecorder = new HavokRecorder(CurrentModel.Skeleton.HkxSkeleton);
+
+                CurrentModel.OnRootMotionWrap = (wrap) =>
+                {
+                    GeneralUpdate(allowPlaybackManipulation: false);
+                    GFX.World.Update(0);
+                    FmodManager.Update();
+                };
+
                 GFX.World.OrbitCamDistanceInput = (CurrentModel.Bounds.Max - CurrentModel.Bounds.Min).Length() * 2f;
                 if (GFX.World.OrbitCamDistanceInput < 0.5f)
                     GFX.World.OrbitCamDistanceInput = 5;
+
+                NpcMaterialNamesPerMask = CurrentModel.GetMaterialNamesPerMask();
+
+                NpcMasksEnabledOnAllNpcParams = NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
+                foreach (var kvp in NpcMaterialNamesPerMask)
+                {
+                    if (kvp.Key < 0)
+                        continue;
+
+                    foreach (var npcParam in PossibleNpcParams)
+                    {
+                        if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
+                        {
+                            if (NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
+
+                            break;
+                        }
+                    }
+                }
             }
         }
 
         private void ChrAsm_EquipmentModelsUpdated(object sender, EventArgs e)
         {
-            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-            {
-                void DoWPNAnims(string menuChoiceName, Model wpnMdl)
-                {
-                    Graph.MainScreen.MenuBar.CompletelyDestroyItem("Player Settings", menuChoiceName);
-
-                    if (wpnMdl == null)
-                        return;
-
-                    var anims = wpnMdl.AnimContainer?.Animations;
-                    if (anims != null && anims.Count > 0)
-                    {
-                        var choicesDict = new Dictionary<string, Action>();
-                        foreach (var a in anims.Keys)
-                        {
-                            choicesDict.Add(a, () => wpnMdl.AnimContainer.CurrentAnimationName = a);
-                        }
-
-                        Graph.MainScreen.MenuBar.AddItem(
-                               "Player Settings",
-                               menuChoiceName,
-                               choicesDict,
-                               () => wpnMdl.AnimContainer.CurrentAnimationName);
-                    }
-                    else
-                    {
-                        Graph.MainScreen.MenuBar.AddItem($"Player Settings\\{menuChoiceName}", "Weapon model is not animated.");
-                    }
-                }
-
-                DoWPNAnims("Right WPN Model 0 Anim", CurrentModel?.ChrAsm?.RightWeaponModel0);
-                DoWPNAnims("Right WPN Model 1 Anim", CurrentModel?.ChrAsm?.RightWeaponModel1);
-                DoWPNAnims("Right WPN Model 2 Anim", CurrentModel?.ChrAsm?.RightWeaponModel2);
-                DoWPNAnims("Right WPN Model 3 Anim", CurrentModel?.ChrAsm?.RightWeaponModel3);
-
-                DoWPNAnims("Left WPN Model 0 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel0);
-                DoWPNAnims("Left WPN Model 1 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel1);
-                DoWPNAnims("Left WPN Model 2 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel2);
-                DoWPNAnims("Left WPN Model 3 Anim", CurrentModel?.ChrAsm?.LeftWeaponModel3);
-
-                Graph.MainScreen.SelectNewAnimRef(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
-            }));
+            Graph.MainScreen.SelectNewAnimRef(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
 
             //V2.0: Scrub weapon anims to the current frame.
 
@@ -413,56 +294,6 @@ namespace DSAnimStudio.TaeEditor
         //{
         //    throw new NotImplementedException();
         //}
-
-        public void CloseEquipForm()
-        {
-            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-            {
-                EquipForm?.Close();
-                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = false;
-            }));
-        }
-
-        public void BringUpEquipForm()
-        {
-            if (EquipForm == null)
-            {
-                throw new Exception("ERROR: Equip menu failed to initialize (please report).");
-            }
-
-            if (Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked)
-            {
-                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = false;
-
-                EquipForm.Close();
-            }
-            else
-            {
-                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = true;
-
-                if (EquipForm.ChrAsm != CurrentModel.ChrAsm)
-                {
-                    EquipForm.ChrAsm = CurrentModel.ChrAsm;
-                    EquipForm.WriteChrAsmToGUI();
-                }
-
-                EquipForm.Show();
-                Main.CenterForm(EquipForm);
-            }
-        }
-
-        private void OnEquipFormClose()
-        {
-            Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-            {
-                Graph.MainScreen.MenuBar["Player Settings\\Show Equip Change Menu"].Checked = false;
-            }));
-        }
-
-        private void EquipForm_Hidden(object sender, EventArgs e)
-        {
-            OnEquipFormClose();
-        }
 
         public void SaveChrAsm()
         {
@@ -512,10 +343,6 @@ namespace DSAnimStudio.TaeEditor
             if (EventSim == null || EventSim.MODEL != CurrentModel)
             {
                 EventSim = new TaeEventSimulationEnvironment(Graph, CurrentModel);
-                Graph.MainScreen.GameWindowAsForm.Invoke(new Action(() =>
-                {
-                    EventSim.BuildEventSimMenuBar(Graph.MainScreen.MenuBar);
-                }));
             }
         }
 
@@ -565,12 +392,15 @@ namespace DSAnimStudio.TaeEditor
                     if (UpdateCombo())
                         return;
                 }
+
+                //TODO: Check if putting this inside the lock() fixes.
+                CheckSimEnvironment();
+                EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTimeMod);
             }
             //V2.0
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
-            CheckSimEnvironment();
-            EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTimeMod);
+            
 
             
         }

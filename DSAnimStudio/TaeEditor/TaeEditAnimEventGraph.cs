@@ -1059,7 +1059,7 @@ namespace DSAnimStudio.TaeEditor
             }
 
             if ((ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y))
-                || MainScreen.Input.LeftClickHeld) && !MainScreen.MenuBar.BlockInput)
+                || MainScreen.Input.LeftClickHeld))
             {
                 if (currentUnselectedMouseDragType == UnselectedMouseDragType.None)
                 {
@@ -3150,7 +3150,7 @@ namespace DSAnimStudio.TaeEditor
                     }
 
                     bool cancelTooltipCompletely = (MainScreen.Input.LeftClickHeld || MainScreen.Input.MiddleClickHeld ||
-                        MainScreen.Input.RightClickHeld || !Rect.Contains(MainScreen.Input.MousePositionPoint)) || MainScreen.MenuBar.BlockInput;
+                        MainScreen.Input.RightClickHeld || !Rect.Contains(MainScreen.Input.MousePositionPoint));
 
                     if (cancelTooltipCompletely)
                     {
