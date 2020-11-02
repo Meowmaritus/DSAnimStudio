@@ -1,5 +1,6 @@
 ﻿using DSAnimStudio.DebugPrimitives;
 using DSAnimStudio.GFXShaders;
+using DSAnimStudio.ImguiOSD;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -134,7 +135,7 @@ namespace DSAnimStudio
 
         private void HandleRawMouseMove(int x, int y)
         {
-            OSD.CancelTooltip();
+            TooltipManager.CancelTooltip();
 
             if (!Main.Active)
             {
@@ -322,7 +323,7 @@ namespace DSAnimStudio
 
         public void UpdateInput()
         {
-            if (DisableAllInput || OSD.Focused)
+            if (DisableAllInput || OSD.Focused || OSD.Hovered)
                 return;
 
 

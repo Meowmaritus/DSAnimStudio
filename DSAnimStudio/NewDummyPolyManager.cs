@@ -450,9 +450,6 @@ namespace DSAnimStudio
                     Category = DbgPrimCategory.DummyPolySpawnArrow,
                     OverrideColor = Color.Cyan,
                 };
-
-                SpawnPrinter.Font = DBG.DEBUG_FONT_SMALL;
-                SpawnPrinter.FullyOutlined = true;
             }
 
             public static Color ColorSpawnSFX = Color.Cyan;
@@ -997,7 +994,7 @@ namespace DSAnimStudio
         {
             lock (_lock_everything_monkaS)
             {
-                if (MODEL.IsStatic)
+                if (MODEL.ApplyBindPose)
                     return;
 
                 if (DummyPolyByBoneID_AttachBone.ContainsKey(index))

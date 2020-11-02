@@ -81,6 +81,8 @@
   <ItemGroup>
     <Compile Include="AutoCompleteExt.cs" />
     <Compile Include="ColorConfig.cs" />
+    <Compile Include="DarkSouls2\CryptographyUtility.cs" />
+    <Compile Include="DarkSouls2\DS2GameParamUtil.cs" />
     <Compile Include="DebugPrimitives\DbgPrimGeometryData.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidBox.cs" />
     <Compile Include="DebugPrimitives\DbgPrimSolidArrow.cs" />
@@ -103,7 +105,21 @@
     <Compile Include="HavokRecorder.cs" />
     <Compile Include="Havok\HKAnimRetarget.cs" />
     <Compile Include="HysteresisBool.cs" />
-    <Compile Include="ImguiOSD\OSD.Tools.cs" />
+    <Compile Include="ImGuiDebugDrawer.cs" />
+    <Compile Include="ImguiOSD\Dialog.TaeAnimPropertiesEdit.cs" />
+    <Compile Include="ImguiOSD\Dialog.TextInput.cs" />
+    <Compile Include="ImguiOSD\Dialog.MultiChoice.cs" />
+    <Compile Include="ImguiOSD\Dialog.cs" />
+    <Compile Include="ImguiOSD\DialogManager.cs" />
+    <Compile Include="ImguiOSD\Tools.cs" />
+    <Compile Include="ImguiOSD\TooltipManager.cs" />
+    <Compile Include="ImguiOSD\Window.cs" />
+    <Compile Include="ImguiOSD\Window.EventInspector.cs" />
+    <Compile Include="ImguiOSD\Window.SceneManager.cs" />
+    <Compile Include="ImguiOSD\Window.Debug.cs" />
+    <Compile Include="ImguiOSD\Window.EditPlayerEquip.cs" />
+    <Compile Include="ImguiOSD\Window.Help.cs" />
+    <Compile Include="ImguiOSD\Window.Toolbox.cs" />
     <Compile Include="ImGuiRenderer.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
     <Compile Include="NewChrAsmEquipForm.cs">
@@ -118,6 +134,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ImguiOSD\OSD.cs" />
+    <Compile Include="ParamDataDS2.cs" />
     <Compile Include="PARAMHack\PARAM.cs" />
     <Compile Include="PARAMHack\PARAM.Row.cs" />
     <Compile Include="ParamUtil.cs" />
@@ -262,6 +279,9 @@
     <Compile Include="_QuickDebug.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.6.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
+      <HintPath>..\packages\BouncyCastle.1.8.6.1\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
     <Reference Include="ImGui.NET">
       <HintPath>..\Lib\ImGui.NET.dll</HintPath>
     </Reference>
@@ -411,6 +431,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\Cubemaps\DefaultCubemap.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Fonts\DS1_DEBUG_FONT.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="fmodex64.dll">
@@ -580,6 +603,12 @@
     <None Include="Content\Cubemaps\debug_cube.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\Fonts\dbgfont14h_ds3.ccm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Fonts\DS1_DEBUG_FONT.ccm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Content\Fonts\DbgMenuFont.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -631,8 +660,8 @@
     <None Include="Content\UVCHECK.xnb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Compile Include="ImguiOSD\OSD.MenuBar.cs" />
-    <Compile Include="ImguiOSD\OSD.ImGuiEx.cs" />
+    <Compile Include="ImguiOSD\MenuBar.cs" />
+    <Compile Include="ImguiOSD\ImGuiEx.cs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

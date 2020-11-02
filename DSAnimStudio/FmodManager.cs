@@ -1,4 +1,5 @@
-﻿using DSAnimStudio.TaeEditor;
+﻿using DSAnimStudio.ImguiOSD;
+using DSAnimStudio.TaeEditor;
 using FMOD;
 using Microsoft.Xna.Framework;
 using SharpDX.XInput;
@@ -519,7 +520,7 @@ namespace DSAnimStudio
                 result = _eventSystem.init(MAX_CHANNELS, FMOD.INITFLAGS.NORMAL, (IntPtr)null, FMOD.EVENT_INITFLAGS.NORMAL);
                 if (result == RESULT.ERR_OUTPUT_INIT)
                 {
-                    OSD.Tools.Notice("Failed to initialize FMOD audio output. " +
+                    DialogManager.DialogOK(null, "Failed to initialize FMOD audio output. " +
                         "Make sure you have an audio device connected and working and " +
                         "that no other app is taking exclusive control of the device.\n\n" +
                         "Once you free the device, select FMOD Sound -> Retry Initialization");

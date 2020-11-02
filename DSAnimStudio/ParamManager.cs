@@ -43,6 +43,14 @@ namespace DSAnimStudio
         public static Dictionary<long, ParamData.WepAbsorpPosParam> WepAbsorpPosParam
            = new Dictionary<long, ParamData.WepAbsorpPosParam>();
 
+        public static Dictionary<long, ParamDataDS2.WeaponParam> DS2WeaponParam
+            = new Dictionary<long, ParamDataDS2.WeaponParam>();
+
+        public static Dictionary<long, ParamDataDS2.ArmorParam> DS2ArmorParam
+             = new Dictionary<long, ParamDataDS2.ArmorParam>();
+
+
+
         public static List<long> HitMtrlParamEntries = new List<long>();
 
         private static SoulsAssetPipeline.SoulsGames GameTypeCurrentLoadedParamsAreFrom = SoulsAssetPipeline.SoulsGames.None;
@@ -123,14 +131,12 @@ namespace DSAnimStudio
             return npcParams;
         }
         
-        private static void LoadStuffFromParamBND(bool isClearAll = false)
+        private static void LoadStuffFromParamBND(bool isDS2)
         {
             void AddParam<T>(Dictionary<long, T> paramDict, string paramName)
                 where T : ParamData, new()
             {
                 paramDict.Clear();
-                if (isClearAll)
-                    return;
                 var param = GetParam(paramName);
                 foreach (var row in param.Rows)
                 {
@@ -151,19 +157,39 @@ namespace DSAnimStudio
                 }
             }
 
-            AddParam(BehaviorParam, "BehaviorParam");
-            AddParam(BehaviorParam_PC, "BehaviorParam_PC");
-            AddParam(AtkParam_Pc, "AtkParam_Pc");
-            AddParam(AtkParam_Npc, "AtkParam_Npc");
-            AddParam(NpcParam, "NpcParam");
-            AddParam(EquipParamWeapon, "EquipParamWeapon");
-            AddParam(EquipParamProtector, "EquipParamProtector");
-            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
-                AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
-            AddParam(SpEffectParam, "SpEffectParam");
+            BehaviorParam.Clear();
+            BehaviorParam_PC.Clear();
+            AtkParam_Pc.Clear();
+            AtkParam_Npc.Clear();
+            NpcParam.Clear();
+            EquipParamWeapon.Clear();
+            EquipParamProtector.Clear();
+            WepAbsorpPosParam.Clear();
+            SpEffectParam.Clear();
 
-            if (!isClearAll)
+            HitMtrlParamEntries.Clear();
+
+            DS2WeaponParam.Clear();
+            DS2ArmorParam.Clear();
+
+            if (isDS2)
             {
+                AddParam(DS2WeaponParam, "WeaponParam");
+                AddParam(DS2ArmorParam, "ArmorParam");
+            }
+            else
+            {
+                AddParam(BehaviorParam, "BehaviorParam");
+                AddParam(BehaviorParam_PC, "BehaviorParam_PC");
+                AddParam(AtkParam_Pc, "AtkParam_Pc");
+                AddParam(AtkParam_Npc, "AtkParam_Npc");
+                AddParam(NpcParam, "NpcParam");
+                AddParam(EquipParamWeapon, "EquipParamWeapon");
+                AddParam(EquipParamProtector, "EquipParamProtector");
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+                    AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
+                AddParam(SpEffectParam, "SpEffectParam");
+
                 var hitMtrlParam = GetParam("HitMtrlParam");
                 foreach (var row in hitMtrlParam.Rows)
                 {
@@ -172,14 +198,6 @@ namespace DSAnimStudio
                 }
                 HitMtrlParamEntries = HitMtrlParamEntries.OrderBy(x => x).ToList();
             }
-            else
-            {
-                HitMtrlParamEntries.Clear();
-            }
-
-           
-
-            
 
             GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameType;
         }
@@ -311,7 +329,8 @@ namespace DSAnimStudio
                     else
                         return false;
                 }
-                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || 
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
                         ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
@@ -320,7 +339,8 @@ namespace DSAnimStudio
                 }
                 else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 {
-                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
+                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && 
+                        File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
                     {
                         ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
                     }
@@ -335,9 +355,13 @@ namespace DSAnimStudio
                 }
                 else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS)
                 {
-                    System.Windows.Forms.MessageBox.Show("DS2 Params not supported yet.");
-                    LoadStuffFromParamBND(isClearAll: true);
-                    return true;
+                    if (File.Exists($"{interroot}\\enc_regulation.bnd.dcx"))
+                        ParamBNDs[GameDataManager.GameType] = DarkSouls2.DS2GameParamUtil.DecryptDS2Regulation($"{interroot}\\enc_regulation.bnd.dcx");
+                    else
+                        return false;
+                    //System.Windows.Forms.MessageBox.Show("DS2 Params not supported yet.");
+                    //LoadStuffFromParamBND(isClearAll: true);
+                    //return true;
                 }
                 else
                 {
@@ -349,16 +373,7 @@ namespace DSAnimStudio
 
             if (justNowLoadedParamBND || forceReload || GameTypeCurrentLoadedParamsAreFrom != GameDataManager.GameType)
             {
-                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS)
-                {
-                    System.Windows.Forms.MessageBox.Show("DS2 Params not supported yet.");
-                    LoadStuffFromParamBND(isClearAll: true);
-                    return true;
-                }
-                else
-                {
-                    LoadStuffFromParamBND();
-                }
+                LoadStuffFromParamBND(isDS2: GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS);
             }
 
             return true;

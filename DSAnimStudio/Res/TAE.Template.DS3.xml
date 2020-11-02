@@ -2,41 +2,43 @@
 <event_template game="DS3">
   <!-- Bank 21: Characters -->
   <bank id="21" name="Characters">
+    <!-- NOTE: THIS EVENT TEMPLATE HAS HARDCODED EDITOR BEHAVIOR WITH THE ARGS. BE CAREFUL. -->
     <event id="0" name="JumpTable">
       <s32 name="JumpTableID">
-        <entry value="1"   name="1: InvokeAnimCancelStart_R1_R2_LightKick_HeavyKick"/>
+        <entry value="0" name="0: Do Nothing"/>
+        <entry value="1"   name="1: Cancel Possible - RH Attack"/>
         <!-- ArgB - BehaviorJudgeID -->
-        <entry value="3"   name="3: InvokeShieldBlock(ArgB)"/>
-        <entry value="4"   name="4: End If RH Attack Queued"/>
+        <entry value="3"   name="3: Set Guard Type|ArgB:Guard BehaviorJudgeID"/>
+        <entry value="4"   name="4: Cancel - RH Attack"/>
         <!-- ArgC = 6 = 1011,7 = 1012, 8 = 1013 -->
-        <entry value="5"   name="5: InvokeParriedState(ArgC)"/>
+        <entry value="5"   name="5: Get-Parried Window|ArgC:Unknown"/>
         <entry value="6"   name="6: InvokeAnimCancelEndWithKeyboardKey"/>
         <entry value="7"   name="7: Disable Turning"/>
         <entry value="8"   name="8: Flag As Dodging"/>
-        <entry value="9"   name="9: InvokeAnimCancelStart_L1_L2"/>
-        <entry value="10"  name="10: InvokeAnimCancelStart_MagicR_MagicL"/>
-        <entry value="11"  name="11: End If LS Move Queued"/>
-        <entry value="12"  name="12: InvokeDeath"/>
+        <entry value="9"   name="9: Cancel Possible - LH Attack"/>
+        <entry value="10"  name="10: Cancel Possible - RH Magic"/>
+        <entry value="11"  name="11: Cancel - LS Movement"/>
+        <entry value="12"  name="12: Kill Character"/>
         <entry value="14"  name="14: SetUnkBool"/>
         <entry value="15"  name="15: SetUnkFlags"/>
         <entry value="16"  name="16: End If LH Attack Queued"/>
         <!-- 0x141B95B40 -->
         <entry value="17"  name="17: SetIsStartbit8"/>
         <entry value="18"  name="18: SetIsStartbit3"/>
-        <entry value="19"  name="19: DisableMapHit"/>
+        <entry value="19"  name="19: Disable Map Hit"/>
         <entry value="20"  name="20: Set_0x78_10"/>
-        <entry value="21"  name="21: InvokeAnimCancelStart_Guard"/>
-        <entry value="22"  name="22: End If Guard Queued"/>
-        <entry value="23"  name="23: End If AI ComboAttack Queued"/>
+        <entry value="21"  name="21: Cancel Possible - Guard"/>
+        <entry value="22"  name="22: Cancel - Guard"/>
+        <entry value="23"  name="23: Cancel - AI ComboAttack"/>
         <entry value="24"  name="24: Set_0x78_16"/>
-        <entry value="25"  name="25: InvokeAnimCancelStart_SpMove_Backstep_Rolling_Jump"/>
-        <entry value="26"  name="26: End If Dodge Queued"/>
-        <entry value="27"  name="27: SetNoGravity"/>
+        <entry value="25"  name="25: Cancel Possible - Dodge"/>
+        <entry value="26"  name="26: Cancel - Dodge"/>
+        <entry value="27"  name="27: Disable Gravity"/>
         <entry value="28"  name="28: InvokeIsLadder"/>
         <entry value="29"  name="29: InvokeAction_AndTAEDebuggingClass"/>
-        <entry value="30"  name="30: InvokeAnimCancelStart_UseItem"/>
-        <entry value="31"  name="31: InvokeAnimCancelEnd_UseItem"/>
-        <entry value="32"  name="32: End If Weapon Switch Queued"/>
+        <entry value="30"  name="30: Cancel - Estus"/>
+        <entry value="31"  name="31: Cancel - Goods"/>
+        <entry value="32"  name="32: Cancel - Weapon Switch"/>
         <entry value="34"  name="34: InvokeAnimCancelEnd_General"/>
         <entry value="35"  name="35: Set0x1EB_Bool"/>
         <entry value="36"  name="36: Set0xEF_Bool"/>
@@ -88,8 +90,8 @@
         <entry value="74"  name="74: SetBool32_0x7C_11"/>
         <entry value="75"  name="75: SetBool32_0x7C_13_ItemPickUp_RememberInput"/>
         <entry value="76"  name="76: InvokeCultPromtCheck2"/>
-        <entry value="78"  name="78: End If AI Move Queued"/>
-        <entry value="79"  name="79: End If AI Step Queued"/>
+        <entry value="78"  name="78: Cancel - AI Move"/>
+        <entry value="79"  name="79: Cancel - AI Step"/>
         <entry value="80"  name="80: SetBool32_0x7C_14_ItemPickUp_Default"/>
         <!-- 0x140702154 -->
         <entry value="81"  name="81: SetBool32_0x7C_15_ActionButton4400"/>
@@ -148,11 +150,12 @@
         <!-- 0x14085A763 -->
         <entry value="124"  name="124: InvokeLockOnAutoSearch"/>
       </s32>
-      <f32 name="KnockbackValue_Jump72"/>
-      <s32 name="ShieldBlockId_Jump4"/>
+      <!-- THE ARGS BELOW ARE MATCHED TO KEYWORDS IN THE ENUM VALUES ABOVE DO NOT CHANGE LOL -->
+      <f32 name="ArgA"/>
+      <s32 name="ArgB"/>
       <u8 name="ArgC"/>
       <u8 name="ArgD"/>
-      <s16 name="StateInfo"/>
+      <s16 name="ArgE"/>
     </event>
     <event id="1" name="InvokeAttackBehavior">
       <s32 name="AttackType">

@@ -481,9 +481,15 @@ namespace DSAnimStudio
                 if (wpnMdl == null)
                     return;
 
+                if (wpnMdl.Skeleton?.OriginalHavokSkeleton == null)
+                {
+                    wpnMdl.Skeleton?.RevertToReferencePose();
+                }
+
+
                 if (wpnMdl != null && wpnMdl.AnimContainer != null)
                 {
-                    if (!wpnMdl.IsStatic)
+                    if (!wpnMdl.ApplyBindPose)
                     {
                         //V2.0
                         //RightWeaponModel.AnimContainer.IsLoop = false;
@@ -519,10 +525,10 @@ namespace DSAnimStudio
                             wpnMdl.AnimContainer.ScrubRelative(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
                         }
                     }
-                    else
-                    {
-                        wpnMdl?.Skeleton?.ApplyBakedFlverReferencePose();
-                    }
+                    //else
+                    //{
+                    //    wpnMdl?.Skeleton?.RevertToReferencePose();
+                    //}
                 }
             }
 
@@ -606,36 +612,37 @@ namespace DSAnimStudio
 
         public void LoadArmorPartsbnd(IBinder partsbnd, EquipSlot slot)
         {
+            NewMesh oldMesh = null;
+
             if (slot == EquipSlot.Head)
-            {
-                HeadMesh?.Dispose();
-                HeadMesh = LoadArmorMesh(partsbnd);
-            }
+                oldMesh = HeadMesh;
             else if (slot == EquipSlot.Body)
-            {
-                BodyMesh?.Dispose();
-                BodyMesh = LoadArmorMesh(partsbnd);
-            }
+                oldMesh = BodyMesh;
             else if (slot == EquipSlot.Arms)
-            {
-                ArmsMesh?.Dispose();
-                ArmsMesh = LoadArmorMesh(partsbnd);
-            }
+                oldMesh = ArmsMesh;
             else if (slot == EquipSlot.Legs)
-            {
-                LegsMesh?.Dispose();
-                LegsMesh = LoadArmorMesh(partsbnd);
-            }
+                oldMesh = LegsMesh;
             else if (slot == EquipSlot.Face)
-            {
-                FaceMesh?.Dispose();
-                FaceMesh = LoadArmorMesh(partsbnd);
-            }
+                oldMesh = FaceMesh;
             else if (slot == EquipSlot.Facegen)
-            {
-                FacegenMesh?.Dispose();
-                FacegenMesh = LoadArmorMesh(partsbnd);
-            }
+                oldMesh = FacegenMesh;
+
+            NewMesh newMesh = LoadArmorMesh(partsbnd);
+
+            if (slot == EquipSlot.Head)
+                HeadMesh = newMesh;
+            else if (slot == EquipSlot.Body)
+                BodyMesh = newMesh;
+            else if (slot == EquipSlot.Arms)
+                ArmsMesh = newMesh;
+            else if (slot == EquipSlot.Legs)
+                LegsMesh = newMesh;
+            else if (slot == EquipSlot.Face)
+                FaceMesh = newMesh;
+            else if (slot == EquipSlot.Facegen)
+                FacegenMesh = newMesh;
+
+            oldMesh?.Dispose();
         }
 
         public void LoadArmorPartsbnd(string partsbndPath, EquipSlot slot)
@@ -655,33 +662,39 @@ namespace DSAnimStudio
             {
                 if (slot == EquipSlot.Head)
                 {
-                    HeadMesh?.Dispose();
+                    var oldMdl = HeadMesh;
                     HeadMesh = null;
+                    oldMdl?.Dispose();
                 }
                 else if (slot == EquipSlot.Body)
                 {
-                    BodyMesh?.Dispose();
+                    var oldMdl = BodyMesh;
                     BodyMesh = null;
+                    oldMdl?.Dispose();
                 }
                 else if (slot == EquipSlot.Arms)
                 {
-                    ArmsMesh?.Dispose();
+                    var oldMdl = ArmsMesh;
                     ArmsMesh = null;
+                    oldMdl?.Dispose();
                 }
                 else if (slot == EquipSlot.Legs)
                 {
-                    LegsMesh?.Dispose();
+                    var oldMdl = LegsMesh;
                     LegsMesh = null;
+                    oldMdl?.Dispose();
                 }
                 else if (slot == EquipSlot.Face)
                 {
-                    FaceMesh?.Dispose();
+                    var oldMdl = FaceMesh;
                     FaceMesh = null;
+                    oldMdl?.Dispose();
                 }
                 else if (slot == EquipSlot.Facegen)
                 {
-                    FacegenMesh?.Dispose();
+                    var oldMdl = FacegenMesh;
                     FacegenMesh = null;
+                    oldMdl?.Dispose();
                 }
             }
            
@@ -936,29 +949,46 @@ namespace DSAnimStudio
             => ParamManager.EquipParamWeapon.ContainsKey(LeftWeaponID)
             ? ParamManager.EquipParamWeapon[LeftWeaponID] : null;
 
-        public void UpdateModels(bool isAsync = false, Action onCompleteAction = null)
+        public void UpdateMasks()
+        {
+            MODEL.ResetDrawMaskToAllVisible();
+
+            if (Head != null)
+                MODEL.DefaultDrawMask = Head.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            if (Body != null)
+                MODEL.DefaultDrawMask = Body.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            if (Arms != null)
+                MODEL.DefaultDrawMask = Arms.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            if (Legs != null)
+                MODEL.DefaultDrawMask = Legs.ApplyInvisFlagsToMask(MODEL.DrawMask);
+
+            MODEL.ResetDrawMaskToDefault();
+        }
+
+        public void UpdateModels(bool isAsync = false, Action onCompleteAction = null, bool updateFaceAndBody = true)
         {
             LoadingTaskMan.DoLoadingTask("ChrAsm_UpdateModels", "Updating c0000 models...", progress =>
             {
-                MODEL.ResetDrawMaskToAllVisible();
-
-                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+                if (updateFaceAndBody)
                 {
-                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
-                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
-                }
-                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
-                {
-                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
-                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
-                }
-                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
-                {
-                    LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_m_0100.partsbnd.dcx"), EquipSlot.Face);
+                    if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+                    {
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
+                    }
+                    else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
+                    {
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
+                    }
+                    else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
+                    {
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_m_0100.partsbnd.dcx"), EquipSlot.Face);
 
-                    FacegenMesh?.Dispose();
-                    FacegenMesh = null;
-
+                        var oldMesh = FacegenMesh;
+                        FacegenMesh = null;
+                        oldMesh?.Dispose();
+                    }
                 }
 
                 if (HeadID != lastHeadLoaded)
@@ -970,8 +1000,9 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        HeadMesh?.Dispose();
+                        var oldMesh = HeadMesh;
                         HeadMesh = null;
+                        oldMesh?.Dispose();
                     }
                 }
 
@@ -986,8 +1017,9 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        BodyMesh?.Dispose();
+                        var oldMesh = BodyMesh;
                         BodyMesh = null;
+                        oldMesh?.Dispose();
                     }
                 }
 
@@ -1002,8 +1034,9 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        ArmsMesh?.Dispose();
+                        var oldMesh = ArmsMesh;
                         ArmsMesh = null;
+                        oldMesh?.Dispose();
                     }
                 }
 
@@ -1018,8 +1051,9 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        LegsMesh?.Dispose();
+                        var oldMesh = LegsMesh;
                         LegsMesh = null;
+                        oldMesh?.Dispose();
                     }
                 }
 
@@ -1029,99 +1063,138 @@ namespace DSAnimStudio
                 {
                     if (RightWeapon != null)
                     {
-                        lastRightWeaponLoaded = RightWeaponID;
+                        
                         //TODO
-                        LoadingTaskMan.DoLoadingTaskSynchronous("ChrAsm_RightWeapon", "Loading c0000 right weapon...", wpProgress =>
+                        try
                         {
-                            try
-                            {
-                                var weaponName = RightWeapon.GetFullPartBndPath();
-                                var shortWeaponName = RightWeapon.GetPartBndName();
-                                IBinder weaponBnd = null;
+                            var weaponName = RightWeapon.GetFullPartBndPath();
+                            var shortWeaponName = RightWeapon.GetPartBndName();
+                            IBinder weaponBnd = null;
 
-                                if (System.IO.File.Exists(weaponName))
+                            if (System.IO.File.Exists(weaponName))
+                            {
+                                if (BND3.Is(weaponName))
+                                    weaponBnd = BND3.Read(weaponName);
+                                else
+                                    weaponBnd = BND4.Read(weaponName);
+
+                                var newRightWeaponModel0 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 0, null, ignoreStaticTransforms: true);
+                                if (newRightWeaponModel0.AnimContainer == null)
                                 {
-                                    if (BND3.Is(weaponName))
-                                        weaponBnd = BND3.Read(weaponName);
-                                    else
-                                        weaponBnd = BND4.Read(weaponName);
-
-                                    RightWeaponModel0 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 0, null, ignoreStaticTransforms: true);
-                                    if (RightWeaponModel0.AnimContainer == null)
-                                    {
-                                        RightWeaponModel0?.Dispose();
-                                        RightWeaponModel0 = null;
-                                    }
-                                    else
-                                    {
-                                        RightWeaponModel0.IS_PLAYER = true;
-                                        RightWeaponModel0.IS_PLAYER_WEAPON = true;
-                                        RightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 10000;
-                                        RightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 0 - ";
-                                    }
-
-                                    RightWeaponModel1 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
-                                    if (RightWeaponModel1.AnimContainer == null)
-                                    {
-                                        RightWeaponModel1?.Dispose();
-                                        RightWeaponModel1 = null;
-                                    }
-                                    else
-                                    {
-                                        RightWeaponModel1.IS_PLAYER = true;
-                                        RightWeaponModel1.IS_PLAYER_WEAPON = true;
-                                        RightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 11000;
-                                        RightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 1 - ";
-                                    }
-
-                                    RightWeaponModel2 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
-                                    if (RightWeaponModel2.AnimContainer == null)
-                                    {
-                                        RightWeaponModel2?.Dispose();
-                                        RightWeaponModel2 = null;
-                                    }
-                                    else
-                                    {
-                                        RightWeaponModel2.IS_PLAYER = true;
-                                        RightWeaponModel2.IS_PLAYER_WEAPON = true;
-                                        RightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 12000;
-                                        RightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 2 - ";
-                                    }
-
-                                    RightWeaponModel3 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
-                                    if (RightWeaponModel3.AnimContainer == null)
-                                    {
-                                        RightWeaponModel3?.Dispose();
-                                        RightWeaponModel3 = null;
-                                    }
-                                    else
-                                    {
-                                        RightWeaponModel3.IS_PLAYER = true;
-                                        RightWeaponModel3.IS_PLAYER_WEAPON = true;
-                                        RightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 13000;
-                                        RightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 3 - ";
-                                    }
-
+                                    newRightWeaponModel0?.Dispose();
+                                    newRightWeaponModel0 = null;
                                 }
+                                else
+                                {
+                                    newRightWeaponModel0.IS_PLAYER = true;
+                                    newRightWeaponModel0.IS_PLAYER_WEAPON = true;
+                                    newRightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 10000;
+                                    newRightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 0 - ";
+                                }
+                                    
+                                var newRightWeaponModel1 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
+                                if (newRightWeaponModel1.AnimContainer == null)
+                                {
+                                    newRightWeaponModel1?.Dispose();
+                                    newRightWeaponModel1 = null;
+                                }
+                                else
+                                {
+                                    newRightWeaponModel1.IS_PLAYER = true;
+                                    newRightWeaponModel1.IS_PLAYER_WEAPON = true;
+                                    newRightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 11000;
+                                    newRightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 1 - ";
+                                }
+
+                                var newRightWeaponModel2 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
+                                if (newRightWeaponModel2.AnimContainer == null)
+                                {
+                                    newRightWeaponModel2?.Dispose();
+                                    newRightWeaponModel2 = null;
+                                }
+                                else
+                                {
+                                    newRightWeaponModel2.IS_PLAYER = true;
+                                    newRightWeaponModel2.IS_PLAYER_WEAPON = true;
+                                    newRightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 12000;
+                                    newRightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 2 - ";
+                                }
+
+                                var newRightWeaponModel3 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
+                                if (newRightWeaponModel3.AnimContainer == null)
+                                {
+                                    newRightWeaponModel3?.Dispose();
+                                    newRightWeaponModel3 = null;
+                                }
+                                else
+                                {
+                                    newRightWeaponModel3.IS_PLAYER = true;
+                                    newRightWeaponModel3.IS_PLAYER_WEAPON = true;
+                                    newRightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 13000;
+                                    newRightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 3 - ";
+                                }
+
+                                var oldRightWeaponModel0 = RightWeaponModel0;
+                                var oldRightWeaponModel1 = RightWeaponModel1;
+                                var oldRightWeaponModel2 = RightWeaponModel2;
+                                var oldRightWeaponModel3 = RightWeaponModel3;
+
+                                RightWeaponModel0 = newRightWeaponModel0;
+                                RightWeaponModel1 = newRightWeaponModel1;
+                                RightWeaponModel2 = newRightWeaponModel2;
+                                RightWeaponModel3 = newRightWeaponModel3;
+
+                                oldRightWeaponModel0?.Dispose();
+                                oldRightWeaponModel1?.Dispose();
+                                oldRightWeaponModel2?.Dispose();
+                                oldRightWeaponModel3?.Dispose();
                             }
-                            catch (Exception ex)
-                            {
-                                lastRightWeaponLoaded = -1;
-                                RightWeaponModel0?.Dispose();
-                                RightWeaponModel0 = null;
-                                RightWeaponModel1?.Dispose();
-                                RightWeaponModel1 = null;
-                                RightWeaponModel2?.Dispose();
-                                RightWeaponModel2 = null;
-                                RightWeaponModel3?.Dispose();
-                                RightWeaponModel3 = null;
-                                System.Windows.Forms.MessageBox.Show(
-                                    $"Failed to load right-hand weapon model:\n\n{ex}",
-                                    "Failed To Load RH Weapon Model",
-                                    System.Windows.Forms.MessageBoxButtons.OK,
-                                    System.Windows.Forms.MessageBoxIcon.Error);
-                            }
-                        });
+                        }
+                        catch (Exception ex)
+                        {
+                            lastRightWeaponLoaded = -1;
+
+                            var oldRightWeaponModel0 = RightWeaponModel0;
+                            var oldRightWeaponModel1 = RightWeaponModel1;
+                            var oldRightWeaponModel2 = RightWeaponModel2;
+                            var oldRightWeaponModel3 = RightWeaponModel3;
+
+                            RightWeaponModel0 = null;
+                            RightWeaponModel1 = null;
+                            RightWeaponModel2 = null;
+                            RightWeaponModel3 = null;
+
+                            oldRightWeaponModel0?.Dispose();
+                            oldRightWeaponModel1?.Dispose();
+                            oldRightWeaponModel2?.Dispose();
+                            oldRightWeaponModel3?.Dispose();
+
+                            System.Windows.Forms.MessageBox.Show(
+                                $"Failed to load right-hand weapon model:\n\n{ex}",
+                                "Failed To Load RH Weapon Model",
+                                System.Windows.Forms.MessageBoxButtons.OK,
+                                System.Windows.Forms.MessageBoxIcon.Error);
+                        }
+                        lastRightWeaponLoaded = RightWeaponID;
+                    }
+                    else
+                    {
+                        lastRightWeaponLoaded = -1;
+
+                        var oldRightWeaponModel0 = RightWeaponModel0;
+                        var oldRightWeaponModel1 = RightWeaponModel1;
+                        var oldRightWeaponModel2 = RightWeaponModel2;
+                        var oldRightWeaponModel3 = RightWeaponModel3;
+
+                        RightWeaponModel0 = null;
+                        RightWeaponModel1 = null;
+                        RightWeaponModel2 = null;
+                        RightWeaponModel3 = null;
+
+                        oldRightWeaponModel0?.Dispose();
+                        oldRightWeaponModel1?.Dispose();
+                        oldRightWeaponModel2?.Dispose();
+                        oldRightWeaponModel3?.Dispose();
                     }
                 }
 
@@ -1131,132 +1204,148 @@ namespace DSAnimStudio
                 {
                     if (LeftWeapon != null)
                     {
-                        lastLeftWeaponLoaded = LeftWeaponID;
+                        
                         //TODO
-                        LoadingTaskMan.DoLoadingTaskSynchronous("ChrAsm_LeftWeapon", "Loading c0000 right weapon...", wpProgress =>
+                        try
                         {
-                            try
-                            {
-                                var weaponName = LeftWeapon.GetFullPartBndPath();
-                                var shortWeaponName = LeftWeapon.GetPartBndName();
-                                IBinder weaponBnd = null;
+                            var weaponName = LeftWeapon.GetFullPartBndPath();
+                            var shortWeaponName = LeftWeapon.GetPartBndName();
+                            IBinder weaponBnd = null;
 
-                                if (System.IO.File.Exists(weaponName))
+                            if (System.IO.File.Exists(weaponName))
+                            {
+                                if (BND3.Is(weaponName))
+                                    weaponBnd = BND3.Read(weaponName);
+                                else
+                                    weaponBnd = BND4.Read(weaponName);
+
+                                var newLeftWeaponModel0 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 0, null, ignoreStaticTransforms: true);
+                                if (newLeftWeaponModel0.AnimContainer == null)
                                 {
-                                    if (BND3.Is(weaponName))
-                                        weaponBnd = BND3.Read(weaponName);
-                                    else
-                                        weaponBnd = BND4.Read(weaponName);
-
-                                    LeftWeaponModel0 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 0, null, ignoreStaticTransforms: true);
-                                    if (LeftWeaponModel0.AnimContainer == null)
-                                    {
-                                        LeftWeaponModel0?.Dispose();
-                                        LeftWeaponModel0 = null;
-                                    }
-                                    else
-                                    {
-                                        LeftWeaponModel0.IS_PLAYER = true;
-                                        LeftWeaponModel0.IS_PLAYER_WEAPON = true;
-                                        LeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 20000;
-                                        LeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 0 - ";
-                                    }
-
-                                    LeftWeaponModel1 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
-                                    if (LeftWeaponModel1.AnimContainer == null)
-                                    {
-                                        LeftWeaponModel1?.Dispose();
-                                        LeftWeaponModel1 = null;
-                                    }
-                                    else
-                                    {
-                                        LeftWeaponModel1.IS_PLAYER = true;
-                                        LeftWeaponModel1.IS_PLAYER_WEAPON = true;
-                                        LeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 21000;
-                                        LeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 1 - ";
-                                    }
-
-                                    LeftWeaponModel2 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
-                                    if (LeftWeaponModel2.AnimContainer == null)
-                                    {
-                                        LeftWeaponModel2?.Dispose();
-                                        LeftWeaponModel2 = null;
-                                    }
-                                    else
-                                    {
-                                        LeftWeaponModel2.IS_PLAYER = true;
-                                        LeftWeaponModel2.IS_PLAYER_WEAPON = true;
-                                        LeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 22000;
-                                        LeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 2 - ";
-                                    }
-
-                                    LeftWeaponModel3 = new Model(wpProgress, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
-                                    if (LeftWeaponModel3.AnimContainer == null)
-                                    {
-                                        LeftWeaponModel3?.Dispose();
-                                        LeftWeaponModel3 = null;
-                                    }
-                                    else
-                                    {
-                                        LeftWeaponModel3.IS_PLAYER = true;
-                                        LeftWeaponModel3.IS_PLAYER_WEAPON = true;
-                                        LeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 23000;
-                                        LeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 3 - ";
-                                    }
-
+                                    newLeftWeaponModel0?.Dispose();
+                                    newLeftWeaponModel0 = null;
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                lastLeftWeaponLoaded = -1;
-                                LeftWeaponModel0?.Dispose();
-                                LeftWeaponModel0 = null;
-                                LeftWeaponModel1?.Dispose();
-                                LeftWeaponModel1 = null;
-                                LeftWeaponModel2?.Dispose();
-                                LeftWeaponModel2 = null;
-                                LeftWeaponModel3?.Dispose();
-                                LeftWeaponModel3 = null;
-                                System.Windows.Forms.MessageBox.Show(
-                                    $"Failed to load left-hand weapon model:\n\n{ex}",
-                                    "Failed To Load LH Weapon Model",
-                                    System.Windows.Forms.MessageBoxButtons.OK,
-                                    System.Windows.Forms.MessageBoxIcon.Error);
-                            }
+                                else
+                                {
+                                    newLeftWeaponModel0.IS_PLAYER = true;
+                                    newLeftWeaponModel0.IS_PLAYER_WEAPON = true;
+                                    newLeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 20000;
+                                    newLeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 0 - ";
+                                }
 
+                                var newLeftWeaponModel1 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
+                                if (newLeftWeaponModel1.AnimContainer == null)
+                                {
+                                    newLeftWeaponModel1?.Dispose();
+                                    newLeftWeaponModel1 = null;
+                                }
+                                else
+                                {
+                                    newLeftWeaponModel1.IS_PLAYER = true;
+                                    newLeftWeaponModel1.IS_PLAYER_WEAPON = true;
+                                    newLeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 21000;
+                                    newLeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 1 - ";
+                                }
 
-                        });
+                                var newLeftWeaponModel2 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
+                                if (newLeftWeaponModel2.AnimContainer == null)
+                                {
+                                    newLeftWeaponModel2?.Dispose();
+                                    newLeftWeaponModel2 = null;
+                                }
+                                else
+                                {
+                                    newLeftWeaponModel2.IS_PLAYER = true;
+                                    newLeftWeaponModel2.IS_PLAYER_WEAPON = true;
+                                    newLeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 22000;
+                                    newLeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 2 - ";
+                                }
+
+                                var newLeftWeaponModel3 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
+                                if (newLeftWeaponModel3.AnimContainer == null)
+                                {
+                                    newLeftWeaponModel3?.Dispose();
+                                    newLeftWeaponModel3 = null;
+                                }
+                                else
+                                {
+                                    newLeftWeaponModel3.IS_PLAYER = true;
+                                    newLeftWeaponModel3.IS_PLAYER_WEAPON = true;
+                                    newLeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 23000;
+                                    newLeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 3 - ";
+                                }
+
+                                var oldLeftWeaponModel0 = LeftWeaponModel0;
+                                var oldLeftWeaponModel1 = LeftWeaponModel1;
+                                var oldLeftWeaponModel2 = LeftWeaponModel2;
+                                var oldLeftWeaponModel3 = LeftWeaponModel3;
+
+                                LeftWeaponModel0 = newLeftWeaponModel0;
+                                LeftWeaponModel1 = newLeftWeaponModel1;
+                                LeftWeaponModel2 = newLeftWeaponModel2;
+                                LeftWeaponModel3 = newLeftWeaponModel3;
+
+                                oldLeftWeaponModel0?.Dispose();
+                                oldLeftWeaponModel1?.Dispose();
+                                oldLeftWeaponModel2?.Dispose();
+                                oldLeftWeaponModel3?.Dispose();
+
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            lastLeftWeaponLoaded = -1;
+
+                            var oldLeftWeaponModel0 = LeftWeaponModel0;
+                            var oldLeftWeaponModel1 = LeftWeaponModel1;
+                            var oldLeftWeaponModel2 = LeftWeaponModel2;
+                            var oldLeftWeaponModel3 = LeftWeaponModel3;
+
+                            LeftWeaponModel0 = null;
+                            LeftWeaponModel1 = null;
+                            LeftWeaponModel2 = null;
+                            LeftWeaponModel3 = null;
+
+                            oldLeftWeaponModel0?.Dispose();
+                            oldLeftWeaponModel1?.Dispose();
+                            oldLeftWeaponModel2?.Dispose();
+                            oldLeftWeaponModel3?.Dispose();
+
+                            System.Windows.Forms.MessageBox.Show(
+                                $"Failed to load left-hand weapon model:\n\n{ex}",
+                                "Failed To Load LH Weapon Model",
+                                System.Windows.Forms.MessageBoxButtons.OK,
+                                System.Windows.Forms.MessageBoxIcon.Error);
+                        }
+                        lastLeftWeaponLoaded = LeftWeaponID;
                     }
                     else
                     {
                         lastLeftWeaponLoaded = -1;
-                        LeftWeaponModel0?.Dispose();
+                        var oldLeftWeaponModel0 = LeftWeaponModel0;
+                        var oldLeftWeaponModel1 = LeftWeaponModel1;
+                        var oldLeftWeaponModel2 = LeftWeaponModel2;
+                        var oldLeftWeaponModel3 = LeftWeaponModel3;
+
                         LeftWeaponModel0 = null;
-                        LeftWeaponModel1?.Dispose();
                         LeftWeaponModel1 = null;
-                        LeftWeaponModel2?.Dispose();
                         LeftWeaponModel2 = null;
-                        LeftWeaponModel3?.Dispose();
                         LeftWeaponModel3 = null;
+
+                        oldLeftWeaponModel0?.Dispose();
+                        oldLeftWeaponModel1?.Dispose();
+                        oldLeftWeaponModel2?.Dispose();
+                        oldLeftWeaponModel3?.Dispose();
                     }
 
                 }
 
-                if (Head != null)
-                    MODEL.DefaultDrawMask = Head.ApplyInvisFlagsToMask(MODEL.DrawMask);
-                if (Body != null)
-                    MODEL.DefaultDrawMask = Body.ApplyInvisFlagsToMask(MODEL.DrawMask);
-                if (Arms != null)
-                    MODEL.DefaultDrawMask = Arms.ApplyInvisFlagsToMask(MODEL.DrawMask);
-                if (Legs != null)
-                    MODEL.DefaultDrawMask = Legs.ApplyInvisFlagsToMask(MODEL.DrawMask);
-
-                MODEL.ResetDrawMaskToDefault();
+                UpdateMasks();
 
                 progress.Report(6.0 / 6.0);
                 onCompleteAction?.Invoke();
                 OnEquipmentModelsUpdated();
-            }, waitForTaskToComplete: !isAsync);
+            }, waitForTaskToComplete: !isAsync, isUnimportant: true);
                 
         }
 

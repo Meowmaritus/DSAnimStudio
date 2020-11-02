@@ -12,6 +12,17 @@ namespace DSAnimStudio
     public class FmgManager
     {
 
+        public static string[] EquipmentNamesHD;
+        public static string[] EquipmentNamesBD;
+        public static string[] EquipmentNamesAM;
+        public static string[] EquipmentNamesLG;
+        public static string[] EquipmentNamesWP;
+
+        public static int[] EquipmentIDsHD;
+        public static int[] EquipmentIDsBD;
+        public static int[] EquipmentIDsAM;
+        public static int[] EquipmentIDsLG;
+        public static int[] EquipmentIDsWP;
 
         public static Dictionary<int, string> WeaponNames = new Dictionary<int, string>();
         public static Dictionary<int, string> ProtectorNames_HD = new Dictionary<int, string>();
@@ -193,19 +204,19 @@ namespace DSAnimStudio
             {
                 if (protector.Value.HeadEquip && !ProtectorNames_HD.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_HD.Add((int)protector.Key, $"<{protector.Key}>");
+                    ProtectorNames_HD.Add((int)protector.Key, $"<{protector.Key}> {protector.Value.Name ?? ""}");
                 }
                 else if (protector.Value.BodyEquip && !ProtectorNames_BD.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_BD.Add((int)protector.Key, $"<{protector.Key}>");
+                    ProtectorNames_BD.Add((int)protector.Key, $"<{protector.Key}> {protector.Value.Name ?? ""}");
                 }
                 else if (protector.Value.ArmEquip && !ProtectorNames_AM.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_AM.Add((int)protector.Key, $"<{protector.Key}>");
+                    ProtectorNames_AM.Add((int)protector.Key, $"<{protector.Key}> {protector.Value.Name ?? ""}");
                 }
                 else if (protector.Value.LegEquip && !ProtectorNames_LG.ContainsKey((int)protector.Key))
                 {
-                    ProtectorNames_LG.Add((int)protector.Key, $"<{protector.Key}>");
+                    ProtectorNames_LG.Add((int)protector.Key, $"<{protector.Key}> {protector.Value.Name ?? ""}");
                 }
             }
 
@@ -213,7 +224,7 @@ namespace DSAnimStudio
             {
                 if (!WeaponNames.ContainsKey((int)weapon.Key))
                 {
-                    WeaponNames.Add((int)weapon.Key, $"<{weapon.Key}>");
+                    WeaponNames.Add((int)weapon.Key, $"<{weapon.Key}> {weapon.Value.Name ?? ""}");
                 }
             }
 
@@ -222,6 +233,21 @@ namespace DSAnimStudio
             ProtectorNames_AM = ProtectorNames_AM.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             ProtectorNames_LG = ProtectorNames_LG.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             WeaponNames = WeaponNames.OrderBy(kvp => kvp.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            EquipmentNamesHD = ProtectorNames_HD.Select(kvp => kvp.Value).ToArray();
+            EquipmentIDsHD = ProtectorNames_HD.Select(kvp => kvp.Key).ToArray();
+
+            EquipmentNamesBD = ProtectorNames_BD.Select(kvp => kvp.Value).ToArray();
+            EquipmentIDsBD = ProtectorNames_BD.Select(kvp => kvp.Key).ToArray();
+
+            EquipmentNamesAM = ProtectorNames_AM.Select(kvp => kvp.Value).ToArray();
+            EquipmentIDsAM = ProtectorNames_AM.Select(kvp => kvp.Key).ToArray();
+
+            EquipmentNamesLG = ProtectorNames_LG.Select(kvp => kvp.Value).ToArray();
+            EquipmentIDsLG = ProtectorNames_LG.Select(kvp => kvp.Key).ToArray();
+
+            EquipmentNamesWP = WeaponNames.Select(kvp => kvp.Value).ToArray();
+            EquipmentIDsWP = WeaponNames.Select(kvp => kvp.Key).ToArray();
 
             GameTypeCurrentFmgsAreLoadedFrom = GameDataManager.GameType;
         }

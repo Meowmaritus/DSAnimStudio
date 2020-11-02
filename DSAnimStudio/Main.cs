@@ -1,5 +1,6 @@
 ﻿using DSAnimStudio.DbgMenus;
 using DSAnimStudio.GFXShaders;
+using DSAnimStudio.ImguiOSD;
 using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -77,7 +78,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 2.5 Private Dev Build";
+        public const string VERSION = "Version 3.0 Private Dev Build";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -103,8 +104,6 @@ namespace DSAnimStudio
 
         public static bool Minimized { get; private set; }
 
-        public static int JustStartedLayoutForceUpdateFrameAmountLeft { get; private set; } = 10;
-
         public static bool DISABLE_DRAW_ERROR_HANDLE = false;
 
         private static float MemoryUsageCheckTimer = 0;
@@ -118,7 +117,9 @@ namespace DSAnimStudio
         public static Texture2D WHITE_TEXTURE;
         public static Texture2D DEFAULT_TEXTURE_DIFFUSE;
         public static Texture2D DEFAULT_TEXTURE_SPECULAR;
+        public static Texture2D DEFAULT_TEXTURE_SPECULAR_DS2;
         public static Texture2D DEFAULT_TEXTURE_NORMAL;
+        public static Texture2D DEFAULT_TEXTURE_NORMAL_DS2;
         public static Texture2D DEFAULT_TEXTURE_MISSING;
         public static TextureCube DEFAULT_TEXTURE_MISSING_CUBE;
         public static Texture2D DEFAULT_TEXTURE_EMISSIVE;
@@ -152,6 +153,8 @@ namespace DSAnimStudio
         public static bool RequestViewportRenderTargetResolutionChange = false;
         private const float TimeBeforeNextRenderTargetUpdate_Max = 0.5f;
         private static float TimeBeforeNextRenderTargetUpdate = 0;
+
+        public static ImFontPtr ImGuiFontPointer;
 
         public Rectangle TAEScreenBounds
         {
@@ -295,16 +298,6 @@ namespace DSAnimStudio
             float newDpi = WinForm.DeviceDpi / 96f;
             BaseDPIX = BaseDPIY = newDpi;
 
-            // Really shitty hotfix I know
-            TAE_EDITOR.inspectorWinFormsControl.dataGridView1.RowTemplate.Height = (int)Math.Round(22 * BaseDPIY);
-            foreach (DataGridViewRow row in TAE_EDITOR.inspectorWinFormsControl.dataGridView1.Rows)
-            {
-                row.Height = (int)Math.Round(22 * BaseDPIY);
-            }
-            TAE_EDITOR.ButtonEditCurrentAnimInfo.Font = new System.Drawing.Font(System.Drawing.FontFamily.GenericSansSerif, 8.5f * Math.Min(DPIX, DPIY));
-            TAE_EDITOR.ButtonGotoEventSource.Font = new System.Drawing.Font(System.Drawing.FontFamily.GenericSansSerif, 8.5f * Math.Min(DPIX, DPIY));
-            TAE_EDITOR.ButtonEditCurrentTaeHeader.Font = new System.Drawing.Font(System.Drawing.FontFamily.GenericSansSerif, 8.5f * Math.Min(DPIX, DPIY));
-
             RequestViewportRenderTargetResolutionChange = true;
         }
 
@@ -421,8 +414,14 @@ namespace DSAnimStudio
                 DEFAULT_TEXTURE_SPECULAR = new Texture2D(GraphicsDevice, 1, 1);
                 DEFAULT_TEXTURE_SPECULAR.SetData(new Color[] { new Color(0.5f, 0.5f, 0.5f) });
 
+                DEFAULT_TEXTURE_SPECULAR_DS2 = new Texture2D(GraphicsDevice, 1, 1);
+                DEFAULT_TEXTURE_SPECULAR_DS2.SetData(new Color[] { new Color(0.5f, 0.5f, 0.5f) });
+
                 DEFAULT_TEXTURE_NORMAL = new Texture2D(GraphicsDevice, 1, 1);
                 DEFAULT_TEXTURE_NORMAL.SetData(new Color[] { new Color(0.5f, 0.5f, 0.0f) });
+
+                DEFAULT_TEXTURE_NORMAL_DS2 = new Texture2D(GraphicsDevice, 1, 1);
+                DEFAULT_TEXTURE_NORMAL_DS2.SetData(new Color[] { new Color(0.5f, 0.5f, 0.5f, 0.5f) });
 
                 DEFAULT_TEXTURE_EMISSIVE = new Texture2D(GraphicsDevice, 1, 1);
                 DEFAULT_TEXTURE_EMISSIVE.SetData(new Color[] { Color.Black });
@@ -614,37 +613,30 @@ namespace DSAnimStudio
         private static void BuildImguiFonts()
         {
             var fonts = ImGuiNET.ImGui.GetIO().Fonts;
-
             var fontFile = File.ReadAllBytes($@"{Directory}\Content\Fonts\NotoSansCJKjp-Medium.otf");
-
             fonts.Clear();
-
             unsafe
             {
                 fixed (byte* p = fontFile)
                 {
+                    ImVector ranges;
+                    ImFontGlyphRangesBuilder* rawPtr = ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
+                    var builder = new ImFontGlyphRangesBuilderPtr(rawPtr);
+                    var ccm = CCM.Read($@"{Directory}\Content\Fonts\dbgfont14h_ds3.ccm");
+                    foreach (var g in ccm.Glyphs)
+                        builder.AddChar((ushort)g.Key);
+                    builder.BuildRanges(out ranges);
                     var ptr = ImGuiNET.ImGuiNative.ImFontConfig_ImFontConfig();
                     var cfg = new ImGuiNET.ImFontConfigPtr(ptr);
                     cfg.GlyphMinAdvanceX = 5.0f;
                     cfg.OversampleH = 5;
                     cfg.OversampleV = 5;
-                    var f = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length,
-                        16.0f, cfg, fonts.GetGlyphRangesDefault());
+                    cfg.PixelSnapH = true;
+                    ImGuiFontPointer = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length, 18, cfg, ranges.Data);
                 }
             }
-
             fonts.Build();
-
             ImGuiDraw.RebuildFontAtlas();
-        }
-
-        private static void DrawImGui(GameTime gameTime, int x, int y, int w, int h)
-        {
-            ImGuiDraw.BeforeLayout(gameTime, x, y, w, h, 0);
-
-            OSD.Build(Main.DELTA_DRAW, x, y);
-
-            ImGuiDraw.AfterLayout(x, y, w, h, 0);
         }
 
         private void InterrootLoader_OnLoadError(string contentName, string error)
@@ -763,18 +755,8 @@ namespace DSAnimStudio
 
             UpdateActiveState();
 
-                if (ActiveHyst || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
+                if (ActiveHyst || LoadingTaskMan.AnyTasksRunning())
                 {
-                    if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
-                    {
-                        if (JustStartedLayoutForceUpdateFrameAmountLeft == 1)
-                        {
-                            TAE_EDITOR.SetInspectorVisibility(true);
-                        }
-
-                        JustStartedLayoutForceUpdateFrameAmountLeft--;
-                    }
-
                     GlobalInputState.Update();
 
                     DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
@@ -838,11 +820,6 @@ namespace DSAnimStudio
                             foreach (Control c in TAE_EDITOR.GameWindowAsForm.Controls)
                             {
                                 c.Enabled = !IsLoadingTaskRunning;
-                            }
-
-                            if (!IsLoadingTaskRunning)
-                            {
-                                TAE_EDITOR.RefocusInspectorToPreventBeepWhenYouHitSpace();
                             }
 
 
@@ -918,24 +895,23 @@ namespace DSAnimStudio
             try
             {
 #endif
-                if ((ActiveHyst || IsLoadingTaskRunningHyst) || JustStartedLayoutForceUpdateFrameAmountLeft > 0 || LoadingTaskMan.AnyTasksRunning())
+                if ((ActiveHyst || IsLoadingTaskRunningHyst) || LoadingTaskMan.AnyTasksRunning())
                 {
                     Input.Update(new Rectangle(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height).DpiScaled());
 
                     Colors.ReadColorsFromConfig();
 
-                    // Still initializing just blank out screen while layout freaks out lol
-                    if (JustStartedLayoutForceUpdateFrameAmountLeft > 0)
-                    {
-                        GFX.Device.Clear(Colors.MainColorBackground);
-                        return;
-                    }
-
                     DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
 
                     GFX.Device.Clear(Colors.MainColorBackground);
 
-                    if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+                ImGuiDraw.BeforeLayout(gameTime, 0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
+                
+                OSD.Build(Main.DELTA_DRAW, 0, 0);
+                ImGuiDebugDrawer.Begin();
+
+
+                if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
                     {
                         // Only update input if debug menu isnt fully open.
                         GFX.World.UpdateInput();
@@ -1017,7 +993,9 @@ namespace DSAnimStudio
                         if (DBG.DbgPrimXRay)
                             GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
 
+                        ImGuiDebugDrawer.ViewportOffset = TAE_EDITOR.ModelViewerBounds.DpiScaled().TopLeftCorner();
                         GFX.DrawSceneOver3D();
+                        ImGuiDebugDrawer.ViewportOffset = Vector2.Zero;
 
                     GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
 
@@ -1133,7 +1111,12 @@ namespace DSAnimStudio
 
                     GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
 
-                    DrawImGui(gameTime, 0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+                ImGuiDebugDrawer.DrawTtest();
+
+                ImGuiDebugDrawer.End();
+                ImGuiDraw.AfterLayout(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
+
+                //DrawImGui(gameTime, 0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
             }
                 //else
                 //{

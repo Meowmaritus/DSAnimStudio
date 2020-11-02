@@ -1300,33 +1300,49 @@ namespace DSAnimStudio.TaeEditor
         {
             var enabledEntries = entries.Keys.ToList();
 
-            foreach (var kvp in entries)
+            try
             {
-                if (GetSimEnabled(kvp.Key))
+                foreach (var kvp in entries)
                 {
-                    kvp.Value.SimulationFrameChangePreBoxesAction?.Invoke(kvp.Value, evBoxes, time);
-                }
-                else
-                {
-                    kvp.Value.SimulationFrameChangeDisabledAction?.Invoke(kvp.Value, evBoxes, time);
-                    enabledEntries.Remove(kvp.Key);
-                    continue;
-                }
-            }
-
-            var orderedBoxes = evBoxes.OrderBy(evb => evb.MyEvent.StartTime).ToList();
-
-            foreach (var evBox in orderedBoxes)
-            {
-                foreach (var entryName in enabledEntries)
-                {
-                    entries[entryName].SimulationFrameChangePerBoxAction?.Invoke(entries[entryName], evBoxes, evBox, time);
-
-                    if (evBox.PlaybackHighlight && entries[entryName].DoesEventMatch(evBox))
+                    if (GetSimEnabled(kvp.Key))
                     {
-                        entries[entryName].SimulationFrameChangePerMatchingBoxAction?.Invoke(entries[entryName], evBoxes, evBox, time);
+                        kvp.Value.SimulationFrameChangePreBoxesAction?.Invoke(kvp.Value, evBoxes, time);
+                    }
+                    else
+                    {
+                        kvp.Value.SimulationFrameChangeDisabledAction?.Invoke(kvp.Value, evBoxes, time);
+                        enabledEntries.Remove(kvp.Key);
+                        continue;
                     }
                 }
+            }
+            catch
+
+            {
+
+            }
+
+            try
+            {
+
+                var orderedBoxes = evBoxes.OrderBy(evb => evb.MyEvent.StartTime).ToList();
+
+                foreach (var evBox in orderedBoxes)
+                {
+                    foreach (var entryName in enabledEntries)
+                    {
+                        entries[entryName].SimulationFrameChangePerBoxAction?.Invoke(entries[entryName], evBoxes, evBox, time);
+
+                        if (evBox.PlaybackHighlight && entries[entryName].DoesEventMatch(evBox))
+                        {
+                            entries[entryName].SimulationFrameChangePerMatchingBoxAction?.Invoke(entries[entryName], evBoxes, evBox, time);
+                        }
+                    }
+                }
+            }
+            catch (Exception exc)
+            {
+                ErrorLog.HandleException(exc, "Error occurred while simulating events");
             }
         }
 

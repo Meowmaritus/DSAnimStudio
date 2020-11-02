@@ -572,28 +572,37 @@ namespace DSAnimStudio
 
                 for (int t = 0; t < MODEL.Skeleton.HkxSkeleton.Count; t++)
                 {
-                    var tr = NewBlendableTransform.Identity;
-                    float weight = 0;
-                    for (int i = 0; i < AnimationLayers.Count; i++)
+                    if (AnimationLayers.Count == 0)
                     {
-                        if (AnimationLayers[i].Weight * DebugAnimWeight <= 0)
-                            continue;
-
-                        var frame = AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t);
-
-
-
-                        if (AnimationLayers[i].IsAdditiveBlend)
-                        {
-                            frame = MODEL.Skeleton.HkxSkeleton[t].RelativeReferenceTransform * frame;
-                        }
-
-                        weight += AnimationLayers[i].Weight;
-                        tr = NewBlendableTransform.Lerp(tr, frame, AnimationLayers[i].Weight / weight);
-
-
+                        MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = MODEL.Skeleton.HkxSkeleton[t].RelativeReferenceTransform;
                     }
-                    MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(MODEL.Skeleton.HkxSkeleton[t].RelativeReferenceTransform, tr, DebugAnimWeight);
+                    else
+                    {
+                        var tr = NewBlendableTransform.Identity;
+                        float weight = 0;
+                        for (int i = 0; i < AnimationLayers.Count; i++)
+                        {
+                            if (AnimationLayers[i].Weight * DebugAnimWeight <= 0)
+                                continue;
+
+                            var frame = AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t);
+
+
+
+                            if (AnimationLayers[i].IsAdditiveBlend)
+                            {
+                                frame = MODEL.Skeleton.HkxSkeleton[t].RelativeReferenceTransform * frame;
+                            }
+
+                            weight += AnimationLayers[i].Weight;
+                            tr = NewBlendableTransform.Lerp(tr, frame, AnimationLayers[i].Weight / weight);
+
+
+                        }
+                        MODEL.Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(MODEL.Skeleton.HkxSkeleton[t].RelativeReferenceTransform, tr, DebugAnimWeight);
+                    }
+
+                    
                 }
 
                 void WalkTree(int i, Matrix currentMatrix, Matrix scaleMatrix)
@@ -670,9 +679,14 @@ namespace DSAnimStudio
         {
             //V2.0 TODO: If this is ever gonna be used, actually implement this, using .Scrub
             //           to simulate the old behavior of .Play
-            if (ForcePlayAnim && CurrentAnimation != null)
+            if (CurrentAnimation != null)
             {
-                ScrubRelative(Main.DELTA_UPDATE);
+                if (ForcePlayAnim)
+                    ScrubRelative(Main.DELTA_UPDATE);
+            }
+            else
+            {
+                MODEL.Skeleton.RevertToReferencePose();
             }
             lock (_lock_AdditiveOverlays)
             {

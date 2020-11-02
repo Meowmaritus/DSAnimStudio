@@ -207,77 +207,26 @@ namespace DSAnimStudio.TaeEditor
             return GetCompositeAnimID((upper, lower));
         }
 
-        private long GetReferencedAnimCompositeID(TAE tae, TAE.Animation anim, bool ignoreMultiTAE)
+        private long GetReferencedAnimCompositeID(TAE tae, TAE.Animation anim, bool ignoreMultiTAE, bool enableReferences)
         {
-            RefChain.Add((tae, anim));
-
-            if (RefChain.Count >= 2 /*turns out it doesnt even chain and too lazy to remove this system lol*/)
-            {
-                StackLimitHit = true;
-                if (TaeDict.Count > 1)
-                {
-                    var taeid = GetTAEID(tae);
-                    return GetCompositeAnimID((taeid, anim.ID));
-                }
-                else
-                {
-                    return anim.ID;
-                }
-            }
-
-            //if (anim.RefVerDirectReferenceID == 256)
-            //{
-            //    if (DoesAnimExist(anim.SubID))
-            //        return anim.SubID;
-            //    else
-            //    {
-            //        if (TaeDict.Count > 1 && !ignoreMultiTAE)
-            //        {
-            //            var animRef2 = CheckForRef2(GetTAEID(tae), anim);
-            //            if (animRef2.Anim != null)
-            //                return GetReferencedAnimCompositeID(GetTAE(animRef2.UpperID), animRef2.Anim, ignoreMultiTAE);
-            //        }
-            //        else
-            //        {
-            //            var animRef2 = CheckForRef2(GetSplitAnimID(anim.ID).Upper, anim);
-            //            if (animRef2.Anim != null)
-            //                return GetReferencedAnimCompositeID(tae, animRef2.Anim, ignoreMultiTAE);
-            //        }
-            //    }
-            //}
-
             if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
             {
                 var importAnim = GetTAEAnim(asImportOtherAnim.ImportFromAnimID);
 
-                if (importAnim.Anim != null)
+                if (importAnim.Anim != null && enableReferences)
                 {
-                    return GetReferencedAnimCompositeID(GetTAE(importAnim.UpperID), importAnim.Anim, ignoreMultiTAE);
+                    return GetReferencedAnimCompositeID(GetTAE(importAnim.UpperID), importAnim.Anim, ignoreMultiTAE, true);
                 }
             }
             else if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
             {
                 if (asStandard.ImportsHKX)
                 {
-                    if (asStandard.ImportHKXSourceAnimID > 0)
-                    {
-                        var importAnim = GetTAEAnim(asStandard.ImportHKXSourceAnimID);
-
-                        if (importAnim.Anim != null)
-                        {
-                            return GetReferencedAnimCompositeID(GetTAE(importAnim.UpperID), importAnim.Anim, ignoreMultiTAE);
-                        }
-                        else
-                        {
-                            return asStandard.ImportHKXSourceAnimID;
-                        }
-                    }
-                    else
-                    {
-                        return asStandard.ImportHKXSourceAnimID;
-                    }
+                    return asStandard.ImportHKXSourceAnimID;
                 }
             }
+
+            return GetCompositeAnimIDOfAnimInTAE(tae, anim);
 
             //if (TaeDict.Count > 1 && !ignoreMultiTAE)
             //{
@@ -321,7 +270,7 @@ namespace DSAnimStudio.TaeEditor
         {
             try
             {
-                var id = GetReferencedAnimCompositeID(tae, anim, ignoreMultiTAE);
+                var id = GetReferencedAnimCompositeID(tae, anim, ignoreMultiTAE, true);
                 return HKXNameFromCompositeID(id);
             }
             catch

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using DSAnimStudio.ImguiOSD;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -163,6 +164,8 @@ namespace DSAnimStudio
             bool disableProgressBarByDefault = false,
             bool isUnimportant = false)
         {
+            taskKey = taskKey ?? (System.Guid.NewGuid().ToString());
+
             lock (_lock_TaskDictEdit)
             {
                 if (TaskDict.ContainsKey(taskKey))

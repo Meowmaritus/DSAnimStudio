@@ -53,7 +53,7 @@ namespace DSAnimStudio
             {
                 Category = DbgPrimCategory.AlwaysDraw,
             };
-            DebugDrawTransformOfFlverBoneTextDrawer = new StatusPrinter(null, Color.White, DBG.DEBUG_FONT_SMALL);
+            DebugDrawTransformOfFlverBoneTextDrawer = new StatusPrinter(null, Color.White);
         }
 
         public List<FlverBoneInfo> FlverSkeleton = new List<FlverBoneInfo>();
@@ -423,15 +423,6 @@ namespace DSAnimStudio
                 }
 
                 MODEL.DummyPolyMan.UpdateFlverBone(boneIndex, value);
-            }
-        }
-
-        public void ApplyBakedFlverReferencePose()
-        {
-            for (int i = 0; i < FlverSkeleton.Count; i++)
-            {
-                this[i] = FlverSkeleton[i].ReferenceMatrix;
-                FlverSkeleton[i].CurrentMatrix = FlverSkeleton[i].ReferenceMatrix;
             }
         }
 

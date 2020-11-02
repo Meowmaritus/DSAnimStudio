@@ -163,7 +163,7 @@ namespace DSAnimStudio.TaeEditor
 
         
 
-        private (long Upper, long Lower) GetSplitAnimID(long id)
+        public (long Upper, long Lower) GetSplitAnimID(long id)
         {
             return ((GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3) ? (id / 1000000) : (id / 10000),
                 (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3) ? (id % 1000000) : (id % 10000));
@@ -193,7 +193,7 @@ namespace DSAnimStudio.TaeEditor
             return (0, null);
         }
 
-        private TAE GetTAE(long id)
+        public TAE GetTAE(long id)
         {
             if (AllTAEDict.Count == 1)
                 return AllTAEDict.FirstOrDefault().Value;
@@ -208,7 +208,7 @@ namespace DSAnimStudio.TaeEditor
             return null;
         }
 
-        private TAE.Animation GetAnimInTAE(TAE tae, long id)
+        public TAE.Animation GetAnimInTAE(TAE tae, long id)
         {
             foreach (var a in tae.Animations)
             {

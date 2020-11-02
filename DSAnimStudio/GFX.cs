@@ -557,7 +557,8 @@ namespace DSAnimStudio
 
             //FlverShader.Effect.LightDirection = World.CameraTransform.RotationMatrix;
             FlverShader.Effect.ColorMap = Main.DEFAULT_TEXTURE_DIFFUSE;
-            FlverShader.Effect.NormalMap = Main.DEFAULT_TEXTURE_NORMAL;
+            FlverShader.Effect.NormalMap = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.DEFAULT_TEXTURE_NORMAL_DS2 : Main.DEFAULT_TEXTURE_NORMAL);
             FlverShader.Effect.SpecularMap = Main.DEFAULT_TEXTURE_SPECULAR;
             FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
             FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;

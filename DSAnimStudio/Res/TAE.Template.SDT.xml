@@ -2,8 +2,10 @@
 <event_template game="SDT">
   <!-- Bank 14: Characters -->
   <bank id="14" name="Characters">
+    <!-- NOTE: THIS EVENT TEMPLATE HAS HARDCODED EDITOR BEHAVIOR WITH THE ARGS. BE CAREFUL. -->
 	  <event id="0" name="JumpTable">
 		  <s32 name="JumpTableID">
+        <entry value="0" name="0: Do Nothing"/>
 			  <entry value="1"   name="1: InvokeAnimCancelStart_R1_R2_LightKick_HeavyKick"/>
 			  <!-- ArgB - BehaviorJudgeID -->
 			  <entry value="3"   name="3: InvokeShieldBlock(ArgB)"/>
@@ -148,10 +150,11 @@
 			  <!-- 0x14085A763 -->
 			  <entry value="124"  name="124: InvokeLockOnAutoSearch"/>
 		  </s32>
-		  <f32 name="KnockbackValue_Jump72"/>
-		  <s32 name="ShieldBlockId_Jump4"/>
-		  <u8 name="ArgC"/>
-		  <u8 name="ArgD"/>
+      <!-- THE ARGS BELOW ARE MATCHED TO KEYWORDS IN THE ENUM VALUES ABOVE DO NOT CHANGE LOL -->
+		  <f32 name="ArgA" requires_activation="true"/>
+		  <s32 name="ArgB" requires_activation="true"/>
+		  <u8 name="ArgC" requires_activation="true"/>
+		  <u8 name="ArgD" requires_activation="true"/>
 		  <s16 name="StateInfo"/>
 	</event>
     <event id="1" name="InvokeAttackBehavior">

@@ -8,6 +8,7 @@ using System.IO;
 using DSAnimStudio.GFXShaders;
 using FMOD;
 using SoulsAssetPipeline;
+using DSAnimStudio.ImguiOSD;
 
 namespace DSAnimStudio
 {
@@ -32,7 +33,7 @@ namespace DSAnimStudio
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
 
-        public bool IsStatic => Skeleton?.OriginalHavokSkeleton == null && GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DS2SOTFS;
+        public bool ApplyBindPose = false;
 
         public float BaseTrackingSpeed = 360;
         public float CurrentTrackingSpeed = 0;
@@ -333,7 +334,7 @@ namespace DSAnimStudio
 
             LoadFLVER2(flver, useSecondUV: false, baseDmyPolyID, ignoreStaticTransforms);
 
-            loadingProgress.Report(1.0 / 4.0);
+            loadingProgress?.Report(1.0 / 4.0);
 
             if (anibnd != null)
             {
@@ -346,7 +347,7 @@ namespace DSAnimStudio
                         }
                         catch
                         {
-                            OSD.Tools.Notice("Failed to load animations.");
+                            DialogManager.DialogOK(null, "Failed to load animations.");
                             //System.Windows.Forms.MessageBox.Show("Failed to load animations.", "Error",
                             //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                         }
@@ -360,7 +361,7 @@ namespace DSAnimStudio
                 //Skeleton.ApplyBakedFlverReferencePose();
             }
 
-            loadingProgress.Report(2.0 / 3.0);
+            loadingProgress?.Report(2.0 / 3.0);
 
             if (tpfsUsed.Count > 0)
             {
@@ -377,7 +378,7 @@ namespace DSAnimStudio
 
             }
 
-            loadingProgress.Report(3.0 / 4.0);
+            loadingProgress?.Report(3.0 / 4.0);
 
             if (texbnd != null)
             {
@@ -388,7 +389,7 @@ namespace DSAnimStudio
                 });
             }
 
-            loadingProgress.Report(3.5 / 4.0);
+            loadingProgress?.Report(3.5 / 4.0);
 
             if (additionalTexbnd != null)
             {
@@ -400,7 +401,7 @@ namespace DSAnimStudio
                 });
             }
 
-            loadingProgress.Report(3.9 / 4.0);
+            loadingProgress?.Report(3.9 / 4.0);
             if (possibleLooseTpfFolder != null)
             {
                 TexturePool.AddInterrootTPFFolder(possibleLooseTpfFolder);
@@ -409,7 +410,7 @@ namespace DSAnimStudio
 
             MainMesh.TextureReloadQueued = true;
 
-            loadingProgress.Report(1.0);
+            loadingProgress?.Report(1.0);
         }
 
         public void CreateChrAsm()
@@ -516,14 +517,8 @@ namespace DSAnimStudio
 
         public void UpdateAnimation()
         {
-            if (IsStatic)
-                Skeleton?.ApplyBakedFlverReferencePose();
-
-            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS)
-            {
+            if (Skeleton.OriginalHavokSkeleton == null || AnimContainer == null)
                 Skeleton?.RevertToReferencePose();
-                AfterAnimUpdate(Main.DELTA_UPDATE);
-            }
 
             AnimContainer?.Update();
             UpdateTrackingTest(Main.DELTA_UPDATE);

@@ -12,7 +12,6 @@ namespace DSAnimStudio
     {
         public class StatusLine
         {
-            public SpriteFont Font;
             public Color? Color;
             public string Text;
         }
@@ -20,19 +19,15 @@ namespace DSAnimStudio
         public Vector2? Position;
         public Vector3 Position3D = Vector3.Zero;
         public Color? Color;
-        public SpriteFont Font;
 
         public float BaseScale = 1.0f;
 
         public bool ScaleByEffectiveSSAA = false;
 
-        public bool FullyOutlined = false;
-
-        public StatusPrinter(Vector2? pos, Color? color = null, SpriteFont font = null)
+        public StatusPrinter(Vector2? pos, Color? color = null)
         {
             Position = pos;
             Color = color;
-            Font = font;
         }
 
         private List<StatusLine> statusLines = new List<StatusLine>();
@@ -42,13 +37,12 @@ namespace DSAnimStudio
             AppendLine("");
         }
 
-        public void AppendLine(string text, Color? color = null, SpriteFont font = null)
+        public void AppendLine(string text, Color? color = null)
         {
             statusLines.Add(new StatusLine()
             {
                 Text = text,
                 Color = color,
-                Font = font
             });
         }
 
@@ -93,57 +87,18 @@ namespace DSAnimStudio
 
             foreach (var line in statusLines)
             {
-                var font = line.Font ?? Font ?? DBG.DEBUG_FONT_SMALL;
 
                 if (string.IsNullOrWhiteSpace(line.Text))
                 {
-                    currentPos.Y += font.LineSpacing / 2;
+                    currentPos.Y += (ImGuiDebugDrawer.BaseFontSize * scale) / 2;
                     continue;
                 }
 
                
                 var color = line.Color ?? Color ?? Microsoft.Xna.Framework.Color.Cyan;
-                var textSize = font.MeasureString(line.Text) * scale;
+                ImGuiDebugDrawer.DrawText(line.Text, currentPos, color, fontSize: ImGuiDebugDrawer.BaseFontSize * scale);
 
-                //SE
-                GFX.SpriteBatch.DrawString(font, line.Text, currentPos + Vector2.One * scale, 
-                    Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-
-                if (FullyOutlined)
-                {
-                    //E
-                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(1, 0) * scale,
-                       Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-
-                    //NE
-                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(1, -1) * scale,
-                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-
-                    //N
-                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(0, -1) * scale,
-                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-
-                    //NW
-                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(-1, -1) * scale,
-                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-
-                    //W
-                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(-1, 0) * scale,
-                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-
-                    //SW
-                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(-1, 1) * scale,
-                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-
-                    //S
-                    GFX.SpriteBatch.DrawString(font, line.Text, currentPos + new Vector2(0, 1) * scale,
-                        Microsoft.Xna.Framework.Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0.01f);
-                }
-
-                GFX.SpriteBatch.DrawString(font, line.Text, currentPos, color, 0, 
-                    Vector2.Zero, scale, SpriteEffects.None, 0);
-
-                currentPos.Y += textSize.Y;
+                currentPos.Y += ImGuiDebugDrawer.BaseFontSize * scale;
             }
         }
     }

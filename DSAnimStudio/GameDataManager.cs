@@ -235,6 +235,12 @@ namespace DSAnimStudio
             return folder.Substring(0, lastSlashInFolder);
         }
 
+        public static void SoftInit(SoulsGames gameType)
+        {
+            GameType = gameType;
+            lastGameType = SoulsGames.None;
+        }
+
         public static void Init(SoulsGames gameType, string interroot, bool forceReload = false)
         {
             GameType = gameType;

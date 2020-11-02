@@ -2,39 +2,40 @@
 <event_template game="DS1">
   <!-- DS1 doesn't have banks :fatcat: -->
   <bank id="0" name="Default">
+    <!-- NOTE: THIS EVENT TEMPLATE HAS HARDCODED EDITOR BEHAVIOR WITH THE ARGS. BE CAREFUL. -->
     <event id="0" name="JumpTable">
-      <s32 name="JumpTableID" default="1: ?">
-        <entry value="0" name="0: ?"/>
-        <entry value="1" name="1: ?"/>
-        <entry value="3" name="3: Set Guard Type [ArgB]"/>
+      <s32 name="JumpTableID">
+        <entry value="0" name="0: Do Nothing"/>
+        <entry value="1" name="1: Cancel Possible - RH Attack"/>
+        <entry value="3" name="3: Set Guard Type|ArgB:Guard BehaviorJudgeID"/>
         <entry value="4" name="4: End If RH Attack Queued"/>
-        <entry value="5" name="5: Get-Parried Window [ArgC]"/>
+        <entry value="5" name="5: Get-Parried Window|ArgC:Unknown"/>
         <entry value="6" name="6: Disable Movement?"/>
         <entry value="7" name="7: Disable Turning"/>
         <entry value="8" name="8: Flag As Dodging"/>
         <entry value="9" name="9: ?"/>
         <entry value="10" name="10: ?"/>
-        <entry value="11" name="11: End If LS Move Queued"/>
+        <entry value="11" name="11: Cancel - LS Move"/>
         <entry value="12" name="12: Kill Character"/>
         <entry value="13" name="13: ?"/>
         <entry value="14" name="14: Set Some Bool?"/>
         <entry value="15" name="15: Set Something?"/>
-        <entry value="16" name="16: End If LH Attack Queued"/>
+        <entry value="16" name="16: Cancel - LH Attack"/>
         <entry value="18" name="18: ?"/>
         <entry value="19" name="19: Disable Map Hit"/>
         <entry value="20" name="20: ?"/>
-        <entry value="21" name="21: ?"/>
-        <entry value="22" name="22: End If Guard Queued"/>
-        <entry value="23" name="23: End If AI ComboAttack Queued"/>
+        <entry value="21" name="21: Cancel Possible - Guard"/>
+        <entry value="22" name="22: Cancel - Guard"/>
+        <entry value="23" name="23: Cancel - AI ComboAttack"/>
         <entry value="24" name="24: ?"/>
-        <entry value="25" name="25: ?"/>
-        <entry value="26" name="26: End If Dodge Queued"/>
+        <entry value="25" name="25: Cancel Possible - Dodge?"/>
+        <entry value="26" name="26: Cancel - Dodge"/>
         <entry value="27" name="27: Set Gravity"/>
         <entry value="28" name="28: ?"/>
         <entry value="29" name="29: ?"/>
-        <entry value="30" name="30: End If Estus Queued?"/>
-        <entry value="31" name="31: End If Goods Queued"/>
-        <entry value="32" name="32: End If Weapon Switch Queued"/>
+        <entry value="30" name="30: Cancel - Estus"/>
+        <entry value="31" name="31: Cancel - Goods"/>
+        <entry value="32" name="32: Cancel - Weapon Switch"/>
         <entry value="37" name="37: ?"/>
         <entry value="38" name="38: ?"/>
         <entry value="39" name="39: ?"/>
@@ -66,7 +67,7 @@
         <entry value="69" name="69: Transition To Throw Death Anim?"/>
         <entry value="70" name="70: Some Throw Related Flag?"/>
         <entry value="71" name="71: Flag As Knockback?"/>
-        <entry value="72" name="72: Set Something? [ArgA]"/>
+        <entry value="72" name="72: Set Knockback?|ArgA:Value"/>
         <entry value="73" name="73: Set Some Bool?"/>
         <entry value="74" name="74: Disable Hit"/>
         <entry value="75" name="75: Flag As Picking Up Item?"/>
@@ -88,8 +89,9 @@
         <entry value="92" name="92: Flag As Something?"/>
         <entry value="94" name="94: ?"/>
         <entry value="95" name="95: Disable Shadow"/>
-        <entry value="97" name="97: Flag As GeneralAnimEnd?"/>
+        <entry value="97" name="97: Non-Attack Input Queue Window - All"/>
       </s32>
+      <!-- THE ARGS BELOW ARE MATCHED TO KEYWORDS IN THE ENUM VALUES ABOVE DO NOT CHANGE LOL -->
       <f32 name="ArgA"/>
       <s32 name="ArgB"/>
       <u8 name="ArgC"/>

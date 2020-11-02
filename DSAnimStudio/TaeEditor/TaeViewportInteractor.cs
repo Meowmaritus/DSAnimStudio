@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ImGuiNET;
+using DSAnimStudio.ImguiOSD;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -73,7 +74,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (entityType != TaeEntityType.PC)
             {
-                OSD.IsWindowOpen_PlayerEquip = false;
+                OSD.WindowEditPlayerEquip.IsOpen = false;
             }
           
         }
@@ -91,7 +92,7 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeViewportInteractor(TaeEditAnimEventGraph graph)
         {
-            OSD.IsWindowOpen_PlayerEquip = false;
+            OSD.WindowEditPlayerEquip.IsOpen = false;
 
             Graph = graph;
             Graph.PlaybackCursor.PlaybackStarted += PlaybackCursor_PlaybackStarted;
@@ -380,22 +381,28 @@ namespace DSAnimStudio.TaeEditor
             //TODO: Check if this is going to deadlock
             lock (Scene._lock_ModelLoad_Draw)
             {
-
-                //V2.0
-                //CurrentModel.AnimContainer.IsPlaying = false;
-                CurrentModel.AnimContainer.ScrubRelative(timeDelta);
-
-                CurrentModel.AfterAnimUpdate(timeDelta);
-
-                if (CurrentComboIndex >= 0 && IsComboRecording)
+                try
                 {
-                    if (UpdateCombo())
-                        return;
-                }
+                    //V2.0
+                    //CurrentModel.AnimContainer.IsPlaying = false;
+                    CurrentModel.AnimContainer.ScrubRelative(timeDelta);
 
-                //TODO: Check if putting this inside the lock() fixes.
-                CheckSimEnvironment();
-                EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTimeMod);
+                    CurrentModel.AfterAnimUpdate(timeDelta);
+
+                    if (CurrentComboIndex >= 0 && IsComboRecording)
+                    {
+                        if (UpdateCombo())
+                            return;
+                    }
+
+                    //TODO: Check if putting this inside the lock() fixes.
+                    CheckSimEnvironment();
+                    EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTimeMod);
+                }
+                catch
+                {
+
+                }
             }
             //V2.0
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);

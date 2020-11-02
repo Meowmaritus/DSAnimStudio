@@ -51,7 +51,8 @@ namespace DSAnimStudio
         public static SpriteFont DEBUG_FONT_SIMPLE { get; private set; }
         static string DEBUG_FONT_SIMPLE_NAME => $@"{Main.Directory}\Content\Fonts\DbgMenuFontSimple";
 
-
+        public static SpriteFont TRUE_DEBUG_FONT { get; private set; }
+        public static SoulsFormats.CCM TrueDebugFontCCM = null;
 
         //private static VertexPositionColor[] DebugLinePositionBuffer = new VertexPositionColor[2];
         //private static VertexBuffer DebugLineVertexBuffer;
@@ -331,7 +332,13 @@ namespace DSAnimStudio
             }
         }
 
-
+        public static void LoadDebugFontCCM()
+        {
+            if (TrueDebugFontCCM == null)
+            {
+                TrueDebugFontCCM = SoulsFormats.CCM.Read($@"{Main.Directory}\Content\Fonts\DS1_DEBUG_FONT.ccm");
+            }
+        }
 
         public static void LoadContent(ContentManager c)
         {
@@ -364,6 +371,74 @@ namespace DSAnimStudio
                 TextureEnabled = true,
                 VertexColorEnabled = true,
             };
+
+            //var trueDebugFontTex = new TextureFetchRequest(
+            //    File.ReadAllBytes($@"{Main.Directory}\Content\Fonts\DS1_DEBUG_FONT.dds"), "TRUE_DEBUG_FONT").Fetch2D();
+
+            //LoadDebugFontCCM();
+
+            //var tdfGlyphBounds = new List<Rectangle>();
+            //var tdfCropping = new List<Rectangle>();
+            //var tdfChars = new List<char>();
+            //int tdfLineSpacing = 20;
+            //float tdfSpacing = 1;
+            //var tdfKerning = new List<Vector3>();
+            //char tdfDefaultChar = '?';
+
+            //var ccm = TrueDebugFontCCM;
+
+            //foreach (var g in ccm.Glyphs)
+            //{
+            //    var rect = new Rectangle(
+            //        (int)Math.Round(g.Value.UV1.X * ccm.TexWidth),
+            //        (int)Math.Round(g.Value.UV1.Y * ccm.TexHeight),
+            //        (int)Math.Round((g.Value.UV2.X - g.Value.UV1.X) * ccm.TexWidth),
+            //        (int)Math.Round((g.Value.UV2.Y - g.Value.UV1.Y) * ccm.TexHeight));
+
+            //    if (g.Value.TexIndex == 1)
+            //    {
+            //        rect.X += 512;
+            //    }
+            //    else if (g.Value.TexIndex == 2)
+            //    {
+            //        rect.X += 1024;
+            //    }
+            //    else if (g.Value.TexIndex == 3)
+            //    {
+            //        rect.Y += 512;
+            //    }
+            //    else if (g.Value.TexIndex == 4)
+            //    {
+            //        rect.Y += 512;
+            //        rect.X += 512;
+            //    }
+            //    else if (g.Value.TexIndex == 5)
+            //    {
+            //        rect.Y += 512;
+            //        rect.X += 1024;
+            //    }
+            //    else if (g.Value.TexIndex == 6)
+            //    {
+            //        rect.Y += 1024;
+            //    }
+            //    else if (g.Value.TexIndex == 7)
+            //    {
+            //        rect.Y += 1024;
+            //        rect.X += 512;
+            //    }
+            //    else if (g.Value.TexIndex == 8)
+            //    {
+            //        rect.Y += 1024;
+            //        rect.X += 1024;
+            //    }
+
+            //    tdfGlyphBounds.Add(rect);
+            //    tdfCropping.Add(new Rectangle(0, 0, rect.Width, rect.Height));
+            //    tdfChars.Add((char)g.Key);
+            //    tdfKerning.Add(new Vector3(g.Value.PreSpace, 0, g.Value.Advance));
+            //}
+
+            //DEBUG_FONT_SMALL = new SpriteFont(trueDebugFontTex, tdfGlyphBounds, tdfCropping, tdfChars, tdfLineSpacing, tdfSpacing, tdfKerning, tdfDefaultChar);
         }
 
         //public static void Draw3DBillboard(string text, Transform t, Color c)
@@ -735,11 +810,13 @@ namespace DSAnimStudio
                 GFX.SpriteBatchBeginForText();
 
             // Top, Bottom, Left, Right
-            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(1, 0), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
-            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(-1, 0), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
-            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(0, 1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
-            GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(0, -1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
-
+            if (font != DEBUG_FONT_SMALL)
+            {
+                GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(1, 0), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+                GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(-1, 0), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+                GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(0, 1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+                GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(0, -1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
+            }
             // Top-Left, Top-Right, Bottom-Left, Bottom-Right
             //GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(-1, 1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);
             //GFX.SpriteBatch.DrawString(font ?? DEBUG_FONT, text, pos + new Vector2(-1, -1), Color.Black, 0, scaleOrigin, Vector2.One * scale, SpriteEffects.None, depth + 0.000001f);

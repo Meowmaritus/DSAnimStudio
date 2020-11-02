@@ -293,64 +293,70 @@ namespace DSAnimStudio.TaeEditor
                 if (!HkxAnimationLength.HasValue)
                     MaxTime = 0;
 
-                foreach (var box in eventBoxes)
+                try
                 {
-                    if (!HkxAnimationLength.HasValue)
+                    foreach (var box in eventBoxes)
                     {
-                        if (box.MyEvent.EndTime > MaxTime)
-                            MaxTime = box.MyEvent.EndTime;
-                    }
+                        if (!HkxAnimationLength.HasValue)
+                        {
+                            if (box.MyEvent.EndTime > MaxTime)
+                                MaxTime = box.MyEvent.EndTime;
+                        }
 
-                    //bool currentlyInEvent = false;
-                    //bool prevFrameInEvent = false;
+                        //bool currentlyInEvent = false;
+                        //bool prevFrameInEvent = false;
 
-                    //if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
-                    //{
-                    //    int currentFrame = (int)Math.Floor((GUICurrentTime % MaxTime) / SnapIntervalHz);
-                    //    int prevFrame = (int)Math.Floor((oldGUICurrentTime % MaxTime) / SnapIntervalHz);
-                    //    int eventStartFrame = (int)Math.Floor(box.MyEvent.StartTime / SnapIntervalHz);
-                    //    int eventEndFrame = (int)Math.Floor(box.MyEvent.EndTime / SnapIntervalHz);
-
-                    //    currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
-                    //    prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
-                    //}
-                    //else
-                    //{
-                    //    currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
-                    //    prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
-                    //}
-
-                    if (box.WasJustEnteredDuringPlayback)
-                    {
-                        OnEventBoxEnter(box);
-                        
-
-                        ////Also check if we looped playback
-                        //if (!prevFrameInEvent || isFirstFrameAfterLooping)
+                        //if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
                         //{
+                        //    int currentFrame = (int)Math.Floor((GUICurrentTime % MaxTime) / SnapIntervalHz);
+                        //    int prevFrame = (int)Math.Floor((oldGUICurrentTime % MaxTime) / SnapIntervalHz);
+                        //    int eventStartFrame = (int)Math.Floor(box.MyEvent.StartTime / SnapIntervalHz);
+                        //    int eventEndFrame = (int)Math.Floor(box.MyEvent.EndTime / SnapIntervalHz);
 
+                        //    currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
+                        //    prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
+                        //}
+                        //else
+                        //{
+                        //    currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
+                        //    prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
                         //}
 
-                        
-                    }
-                    else if (box.PlaybackHighlight)
-                    {
-                        OnEventBoxMidst(box);
-                    }
-                    else if (box.PrevCyclePlaybackHighlight)
-                    {
-                        OnEventBoxExit(box);
-                    }
+                        if (box.WasJustEnteredDuringPlayback)
+                        {
+                            OnEventBoxEnter(box);
 
-                    
 
-                    //if (IsPlaying && justReachedAnimEnd)
-                    //{
-                    //    box.PlaybackHighlight = false;
-                    //}
+                            ////Also check if we looped playback
+                            //if (!prevFrameInEvent || isFirstFrameAfterLooping)
+                            //{
+
+                            //}
+
+
+                        }
+                        else if (box.PlaybackHighlight)
+                        {
+                            OnEventBoxMidst(box);
+                        }
+                        else if (box.PrevCyclePlaybackHighlight)
+                        {
+                            OnEventBoxExit(box);
+                        }
+
+
+
+                        //if (IsPlaying && justReachedAnimEnd)
+                        //{
+                        //    box.PlaybackHighlight = false;
+                        //}
+
+                    }
+                }
+                catch
+                {
 
                 }
-
                 if (IsPlaying)
                 {
 

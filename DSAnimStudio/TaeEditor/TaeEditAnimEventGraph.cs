@@ -361,37 +361,34 @@ namespace DSAnimStudio.TaeEditor
         {
             MainScreen.GameWindowAsForm.Invoke(new Action(() =>
             {
-                MainScreen.ButtonGotoEventSource.Enabled = false;
-                MainScreen.ButtonGotoEventSource.Visible = false;
                 if (!IsGhostEventGraph)
                 {
-                    if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim && asImportOtherAnim.ImportFromAnimID != -1)
+                    TAE.Animation getRecursiveAnimRef(TAE.Animation anim, bool isTopLevel)
                     {
-                        var animRef = MainScreen.FileContainer.GetAnimRef(asImportOtherAnim.ImportFromAnimID);
-
-                        GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
-                        GhostEventGraph.PlaybackCursor = PlaybackCursor;
-
-                        MainScreen.ButtonGotoEventSource.Enabled = true;
-                        MainScreen.ButtonGotoEventSource.Visible = true;
-                    }
-                    else if (AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
-                    {
-                        if (asStandard.AllowDelayLoad && asStandard.ImportHKXSourceAnimID != -1)
+                        if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim && asImportOtherAnim.ImportFromAnimID != -1)
                         {
-                            var animRef = MainScreen.FileContainer.GetAnimRef(asStandard.ImportHKXSourceAnimID);
+                            var animRef = MainScreen.FileContainer.GetAnimRef(asImportOtherAnim.ImportFromAnimID);
 
-                            GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, animRef);
-                            GhostEventGraph.PlaybackCursor = PlaybackCursor;
-
-                            MainScreen.ButtonGotoEventSource.Enabled = true;
-                            MainScreen.ButtonGotoEventSource.Visible = true;
+                            if (animRef != null && animRef != anim)
+                                return getRecursiveAnimRef(animRef, false);
                         }
+
+                        return isTopLevel ? null : anim;
+                    }
+
+                    var recAnimRef = getRecursiveAnimRef(AnimRef, true);
+
+                    if (recAnimRef != null)
+                    {
+                        GhostEventGraph = new TaeEditAnimEventGraph(MainScreen, true, recAnimRef);
+                        GhostEventGraph.PlaybackCursor = PlaybackCursor;
                     }
                     else
                     {
                         GhostEventGraph = null;
                     }
+                   
+
                 }
                 else
                 {
@@ -1318,9 +1315,7 @@ namespace DSAnimStudio.TaeEditor
                                         {
                                             MainScreen.MultiSelectedEventBoxes.Clear();
                                             MainScreen.SelectedEventBox = box;
-                                            MainScreen.UpdateInspectorToSelection();
                                         }
-                                        MainScreen.UpdateInspectorToSelection();
                                     }
                                 }
                             }
@@ -1369,8 +1364,6 @@ namespace DSAnimStudio.TaeEditor
                                 MainScreen.MultiSelectedEventBoxes.Clear();
                             }
 
-                            MainScreen.UpdateInspectorToSelection();
-
                             break;
                         }
 
@@ -1410,7 +1403,6 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                            MainScreen.UpdateInspectorToSelection();
                             //currentDrag.Box.DragLeftSide(MainScreen.Input.MousePositionDelta.X);
                         }
                         else if (currentDrag.DragType == BoxDragType.RightOfEventBox && currentDrag.Box != null)
@@ -1418,7 +1410,6 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragX;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                            MainScreen.UpdateInspectorToSelection();
                             //currentDrag.Box.DragRightSide(MainScreen.Input.MousePositionDelta.X);
                         }
                         else if (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.Box != null)
@@ -1426,7 +1417,6 @@ namespace DSAnimStudio.TaeEditor
                             MainScreen.Input.CursorType = MouseCursorType.DragXY;
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
-                            MainScreen.UpdateInspectorToSelection();
                             //currentDrag.Box.DragMiddle(MainScreen.Input.MousePositionDelta.X);
                             currentDrag.ShiftBoxRow(MouseRow);
                         }
@@ -1446,8 +1436,6 @@ namespace DSAnimStudio.TaeEditor
                                 bool isModified = multiDrag.DragBoxToMouseAndCheckIsModified(actualMousePoint);
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
                             }
-
-                            MainScreen.UpdateInspectorToSelection();
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox)
                         {
@@ -1461,8 +1449,6 @@ namespace DSAnimStudio.TaeEditor
                                 bool isModified = multiDrag.DragBoxToMouseAndCheckIsModified(actualMousePoint);
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
                             }
-
-                            MainScreen.UpdateInspectorToSelection();
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
                         {
@@ -1483,8 +1469,6 @@ namespace DSAnimStudio.TaeEditor
                             }
 
                             MainScreen.Input.CursorType = MouseCursorType.DragXY;
-
-                            MainScreen.UpdateInspectorToSelection();
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle
                             || currentDrag.DragType == BoxDragType.MultiSelectionRectangleADD
@@ -1536,7 +1520,6 @@ namespace DSAnimStudio.TaeEditor
                                 }
                             }
                             MainScreen.SelectedEventBox = null;
-                            MainScreen.UpdateInspectorToSelection();
                         }
                         
                     }
@@ -1597,7 +1580,6 @@ namespace DSAnimStudio.TaeEditor
                                 }
                             }
                             MainScreen.SelectedEventBox = null;
-                            MainScreen.UpdateInspectorToSelection();
                         }
 
                     }

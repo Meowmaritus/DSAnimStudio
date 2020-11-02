@@ -171,7 +171,7 @@ namespace DSAnimStudio
             RightClickHeld = Mouse.RightButton == ButtonState.Pressed;
             MiddleClickHeld = Mouse.MiddleButton == ButtonState.Pressed;
 
-            if (Main.IsFirstFrameActive || OSD.Focused)
+            if (Main.IsFirstFrameActive || ImguiOSD.OSD.Hovered)
             {
                 IsIgnoringMouseButtonsUntilAllAreUp = true;
             }

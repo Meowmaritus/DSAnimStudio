@@ -268,7 +268,7 @@ namespace DSAnimStudio
             }
             else
             {
-                ShadingMode = FlverShadingModes.TEXDEBUG_DIFFUSEMAP;
+                ShadingMode = FlverShadingModes.PBR_GLOSS_DS3;
             }
 
             Parent = parent;
@@ -1097,13 +1097,16 @@ namespace DSAnimStudio
             GFX.FlverShader.Effect.IsDS2NormalMapChannels = GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS;
             GFX.FlverShader.Effect.IsDS2EmissiveFlow = IsDS2EmissiveFlow;
 
-            GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+            GFX.FlverShader.Effect.ColorMap = TexDataDiffuse ?? (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.WHITE_TEXTURE : Main.DEFAULT_TEXTURE_DIFFUSE);
             GFX.FlverShader.Effect.ColorMapScale = TexScaleDiffuse;
 
-            GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
+            GFX.FlverShader.Effect.SpecularMap = TexDataSpecular ?? (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.DEFAULT_TEXTURE_SPECULAR_DS2 : Main.DEFAULT_TEXTURE_SPECULAR);
             GFX.FlverShader.Effect.SpecularMapScale = TexScaleSpecular;
 
-            GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
+            GFX.FlverShader.Effect.NormalMap = TexDataNormal ?? (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ? 
+                Main.DEFAULT_TEXTURE_NORMAL_DS2 : Main.DEFAULT_TEXTURE_NORMAL);
             GFX.FlverShader.Effect.NormalMapScale = TexScaleNormal;
 
             GFX.FlverShader.Effect.ShininessMap = TexDataShininess ?? Main.DEFAULT_TEXTURE_EMISSIVE;
@@ -1152,13 +1155,16 @@ namespace DSAnimStudio
                 GFX.FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
                 GFX.FlverShader.Effect.BlendmaskMapScale = Vector2.One;
 
-                GFX.FlverShader.Effect.ColorMap2 = Main.DEFAULT_TEXTURE_DIFFUSE;
+                GFX.FlverShader.Effect.ColorMap2 = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.WHITE_TEXTURE : Main.DEFAULT_TEXTURE_DIFFUSE);
                 GFX.FlverShader.Effect.ColorMapScale2 = Vector2.One;
 
-                GFX.FlverShader.Effect.SpecularMap2 = Main.DEFAULT_TEXTURE_SPECULAR;
+                GFX.FlverShader.Effect.SpecularMap2 = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.DEFAULT_TEXTURE_SPECULAR_DS2 : Main.DEFAULT_TEXTURE_SPECULAR);
                 GFX.FlverShader.Effect.SpecularMapScale2 = Vector2.One;
 
-                GFX.FlverShader.Effect.NormalMap2 = Main.DEFAULT_TEXTURE_NORMAL;
+                GFX.FlverShader.Effect.NormalMap2 = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.DEFAULT_TEXTURE_NORMAL_DS2 : Main.DEFAULT_TEXTURE_NORMAL);
                 GFX.FlverShader.Effect.NormalMapScale2 = Vector2.One;
 
                 GFX.FlverShader.Effect.ShininessMap2 = Main.DEFAULT_TEXTURE_EMISSIVE;
@@ -1168,13 +1174,16 @@ namespace DSAnimStudio
             {
                 GFX.FlverShader.Effect.EnableBlendTextures = GFX.FlverEnableTextureBlending;
 
-                GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? TexDataDiffuse ?? Main.DEFAULT_TEXTURE_DIFFUSE;
+                GFX.FlverShader.Effect.ColorMap2 = TexDataDiffuse2 ?? TexDataDiffuse ?? (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.WHITE_TEXTURE : Main.DEFAULT_TEXTURE_DIFFUSE);
                 GFX.FlverShader.Effect.ColorMapScale2 = TexScaleDiffuse2;
 
-                GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? TexDataSpecular ?? Main.DEFAULT_TEXTURE_SPECULAR;
+                GFX.FlverShader.Effect.SpecularMap2 = TexDataSpecular2 ?? TexDataSpecular ?? (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.DEFAULT_TEXTURE_SPECULAR_DS2 : Main.DEFAULT_TEXTURE_SPECULAR);
                 GFX.FlverShader.Effect.SpecularMapScale2 = TexScaleSpecular2;
 
-                GFX.FlverShader.Effect.NormalMap2 = TexDataNormal2 ?? TexDataNormal ?? Main.DEFAULT_TEXTURE_NORMAL;
+                GFX.FlverShader.Effect.NormalMap2 = TexDataNormal2 ?? TexDataNormal ?? (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+                Main.DEFAULT_TEXTURE_NORMAL_DS2 : Main.DEFAULT_TEXTURE_NORMAL);
                 GFX.FlverShader.Effect.NormalMapScale2 = TexScaleNormal2;
 
                 GFX.FlverShader.Effect.BlendmaskMap = TexDataBlendmask ?? Main.DEFAULT_TEXTURE_EMISSIVE;
