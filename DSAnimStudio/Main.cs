@@ -34,6 +34,8 @@ namespace DSAnimStudio
         {
             WindowsMouseHook.Unhook();
 
+            RemoManager.DisposeAllModels();
+
             base.Dispose(disposing);
         }
 
@@ -773,7 +775,8 @@ namespace DSAnimStudio
                         DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
                     }
 
-                    Scene.UpdateAnimation();
+                    if (!LoadingTaskMan.AnyTasksRunning())
+                        Scene.UpdateAnimation();
 
                     float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -793,7 +796,7 @@ namespace DSAnimStudio
                     //    GFX.World.UpdateInput(this, gameTime);
                     //}
 
-                    GFX.World.Update(DELTA_UPDATE);
+                    
 
                     if (REQUEST_EXIT)
                         Exit();
@@ -869,6 +872,8 @@ namespace DSAnimStudio
                     prevFrameWasLoadingTaskRunning = IsLoadingTaskRunning;
 
                     IsFirstFrameActive = false;
+
+                    GFX.World.Update(DELTA_UPDATE);
 
                     FmodManager.Update();
 

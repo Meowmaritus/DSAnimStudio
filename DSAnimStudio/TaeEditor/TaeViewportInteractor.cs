@@ -34,60 +34,91 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeEventSimulationEnvironment EventSim { get; private set; }
 
-        public List<ParamData.NpcParam> PossibleNpcParams = new List<ParamData.NpcParam>();
-        public Dictionary<int, string> NpcMaterialNamesPerMask = new Dictionary<int, string>();
-        public List<int> NpcMasksEnabledOnAllNpcParams = new List<int>();
-
-        private int _selectedNpcParamIndex = -1;
-        public int SelectedNpcParamIndex
-        {
-            get => _selectedNpcParamIndex;
-            set
-            {
-                if (CurrentModel != null)
-                {
-                    CurrentModel.NpcParam = (value >= 0 && value < PossibleNpcParams.Count)
-                        ? PossibleNpcParams[value] : null;
-                    _selectedNpcParamIndex = value;
-                    if (CurrentModel.NpcParam != null)
-                    {
-                        //CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
-                        CurrentModel.NpcParam.ApplyToNpcModel(CurrentModel);
-                    }
-                }
-            }
-        }
+        
 
         public static float StatusTextScale = 100.0f;
 
         public Model CurrentModel => Scene.MainModel;
 
-        private void SetEntityType(TaeEntityType entityType)
+        public void SetEntityType(TaeEntityType entityType)
         {
             EntityType = entityType;
 
-            if (entityType != TaeEntityType.NPC)
+            if (entityType != TaeEntityType.NPC && CurrentModel != null)
             {
-                PossibleNpcParams.Clear();
-                SelectedNpcParamIndex = -1;
+                CurrentModel?.PossibleNpcParams?.Clear();
+                CurrentModel.SelectedNpcParamIndex = -1;
             }
 
-            if (entityType != TaeEntityType.PC)
+            if (!(entityType == TaeEntityType.PC || entityType == TaeEntityType.REMO))
             {
                 OSD.WindowEditPlayerEquip.IsOpen = false;
             }
           
         }
 
-        public void RescanNpcParams()
-        {
-            PossibleNpcParams = ParamManager.FindNpcParams(CurrentModel.Name);
-            PossibleNpcParams.AddRange(ParamManager.FindNpcParams(CurrentModel.Name, matchCXXX0: true));
+        
 
-            if (PossibleNpcParams.Count > 0)
-                SelectedNpcParamIndex = 0;
+        public void InitializeCharacterModel(Model mdl, bool isRemo)
+        {
+            if (mdl.IS_PLAYER)
+            {
+                mdl.PossibleNpcParams.Clear();
+                mdl.SelectedNpcParamIndex = -1;
+
+                mdl.CreateChrAsm();
+
+                mdl.ChrAsm.EquipmentModelsUpdated += ChrAsm_EquipmentModelsUpdated;
+
+                if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(GameDataManager.GameType))
+                {
+                    Graph.MainScreen.Config.ChrAsmConfigurations.Add
+                        (GameDataManager.GameType, new NewChrAsmCfgJson());
+                }
+
+                Graph.MainScreen.Config.ChrAsmConfigurations[GameDataManager.GameType]
+                    .WriteToChrAsm(mdl.ChrAsm);
+
+                mdl.ChrAsm.UpdateModels(isAsync: true);
+
+                SetEntityType(isRemo ? TaeEntityType.REMO : TaeEntityType.PC);
+            }
             else
-                SelectedNpcParamIndex = -1;
+            {
+                mdl.RescanNpcParams();
+
+                SetEntityType(isRemo ? TaeEntityType.REMO : TaeEntityType.NPC);
+
+                mdl.NpcMaterialNamesPerMask = mdl.GetMaterialNamesPerMask();
+
+                mdl.NpcMasksEnabledOnAllNpcParams = mdl.NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
+                foreach (var kvp in mdl.NpcMaterialNamesPerMask)
+                {
+                    if (kvp.Key < 0)
+                        continue;
+
+                    foreach (var npcParam in mdl.PossibleNpcParams)
+                    {
+                        if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
+                        {
+                            if (mdl.NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                mdl.NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
+
+                            break;
+                        }
+                    }
+                }
+
+                //foreach (var npc in validNpcParams)
+                //{
+                //    Graph.MainScreen.MenuBar.AddItem("Behavior Variation ID", $"Apply Behavior Variation ID " +
+                //        $"from NpcParam {npc.ID} {npc.Name}", () =>
+                //    {
+                //        npc.ApplyMaskToModel(CurrentModel);
+                //    });
+                //}
+
+            }
         }
 
         public TaeViewportInteractor(TaeEditAnimEventGraph graph)
@@ -119,64 +150,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 GameDataManager.LoadCharacter(shortFileName.Substring(0, 5));
 
-                if (CurrentModel.IS_PLAYER)
-                {
-                    PossibleNpcParams.Clear();
-                    SelectedNpcParamIndex = -1;
-
-                    CurrentModel.CreateChrAsm();
-
-                    CurrentModel.ChrAsm.EquipmentModelsUpdated += ChrAsm_EquipmentModelsUpdated;
-
-                    if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(GameDataManager.GameType))
-                    {
-                        Graph.MainScreen.Config.ChrAsmConfigurations.Add
-                            (GameDataManager.GameType, new NewChrAsmCfgJson());
-                    }
-
-                    Graph.MainScreen.Config.ChrAsmConfigurations[GameDataManager.GameType]
-                        .WriteToChrAsm(CurrentModel.ChrAsm);
-
-                    CurrentModel.ChrAsm.UpdateModels(isAsync: true);
-
-                    SetEntityType(TaeEntityType.PC);
-                }
-                else
-                {
-                    RescanNpcParams();
-
-                    SetEntityType(TaeEntityType.NPC);
-
-                    NpcMaterialNamesPerMask = CurrentModel.GetMaterialNamesPerMask();
-
-                    NpcMasksEnabledOnAllNpcParams = NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
-                    foreach (var kvp in NpcMaterialNamesPerMask)
-                    {
-                        if (kvp.Key < 0)
-                            continue;
-
-                        foreach (var npcParam in PossibleNpcParams)
-                        {
-                            if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
-                            {
-                                if (NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
-                                    NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
-
-                                break;
-                            }
-                        }
-                    }
-
-                    //foreach (var npc in validNpcParams)
-                    //{
-                    //    Graph.MainScreen.MenuBar.AddItem("Behavior Variation ID", $"Apply Behavior Variation ID " +
-                    //        $"from NpcParam {npc.ID} {npc.Name}", () =>
-                    //    {
-                    //        npc.ApplyMaskToModel(CurrentModel);
-                    //    });
-                    //}
-                    
-                }
+                InitializeCharacterModel(CurrentModel, isRemo: false);
 
                 CurrentModel.AfterAnimUpdate(timeDelta: 0);
 
@@ -214,7 +188,53 @@ namespace DSAnimStudio.TaeEditor
             {
                 SetEntityType(TaeEntityType.REMO);
 
-                throw new NotImplementedException("REMO NOT SUPPORTED YET");
+                Scene.DisableModelDrawing();
+
+                RemoManager.ViewportInteractor = this;
+
+                RemoManager.DisposeAllModels();
+                RemoManager.RemoName = Utils.GetShortIngameFileName(Graph.MainScreen.FileContainerName);
+
+
+
+                FmodManager.Purge();
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                {
+                    FmodManager.LoadInterrootFEV("main");
+                    var dlc = FmodManager.GetFevPathFromInterroot("main", isDs1Dlc: true);
+                    if (System.IO.File.Exists(dlc))
+                        FmodManager.LoadFEV(dlc);
+
+                    FmodManager.LoadInterrootFEV("smain");
+                    dlc = FmodManager.GetFevPathFromInterroot("smain", isDs1Dlc: true);
+                    if (System.IO.File.Exists(dlc))
+                        FmodManager.LoadFEV(dlc);
+
+                    FmodManager.LoadInterrootFEV($"m{RemoManager.AreaInt:D2}");
+                    dlc = FmodManager.GetFevPathFromInterroot($"m{RemoManager.AreaInt:D2}", isDs1Dlc: true);
+                    if (System.IO.File.Exists(dlc))
+                        FmodManager.LoadFEV(dlc);
+
+                    FmodManager.LoadInterrootFEV($"sm{RemoManager.AreaInt:D2}");
+                    dlc = FmodManager.GetFevPathFromInterroot($"sm{RemoManager.AreaInt:D2}", isDs1Dlc: true);
+                    if (System.IO.File.Exists(dlc))
+                        FmodManager.LoadFEV(dlc);
+
+                    FmodManager.LoadInterrootFEV($"p{RemoManager.RemoName.Substring(3)}");
+                    dlc = FmodManager.GetFevPathFromInterroot($"p{RemoManager.RemoName.Substring(3)}", isDs1Dlc: true);
+                    if (System.IO.File.Exists(dlc))
+                        FmodManager.LoadFEV(dlc);
+                }
+                
+                RemoManager.LoadRemoDict(Graph.MainScreen.FileContainer);
+
+                if (Scene.Models.Count == 0)
+                    GameDataManager.LoadCharacter("c0000");
+
+                Scene.Models = Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
+
+                //throw new NotImplementedException("REMO NOT SUPPORTED YET");
             }
 
             InitializeForCurrentModel();
@@ -236,10 +256,10 @@ namespace DSAnimStudio.TaeEditor
         {
             if (CurrentModel != null)
             {
-                if (CurrentModel?.Skeleton != null)
-                    CurrentComboRecorder = new HavokRecorder(CurrentModel.Skeleton.HkxSkeleton);
+                if (CurrentModel?.AnimContainer.Skeleton != null)
+                    CurrentComboRecorder = new HavokRecorder(CurrentModel.AnimContainer.Skeleton.HkxSkeleton);
 
-                CurrentModel.OnRootMotionWrap = (wrap) =>
+                CurrentModel.AnimContainer.Skeleton.OnRootMotionWrap = (wrap) =>
                 {
                     GeneralUpdate(allowPlaybackManipulation: false);
                     GFX.World.Update(0);
@@ -250,20 +270,20 @@ namespace DSAnimStudio.TaeEditor
                 if (GFX.World.OrbitCamDistanceInput < 0.5f)
                     GFX.World.OrbitCamDistanceInput = 5;
 
-                NpcMaterialNamesPerMask = CurrentModel.GetMaterialNamesPerMask();
+                CurrentModel.NpcMaterialNamesPerMask = CurrentModel.GetMaterialNamesPerMask();
 
-                NpcMasksEnabledOnAllNpcParams = NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
-                foreach (var kvp in NpcMaterialNamesPerMask)
+                CurrentModel.NpcMasksEnabledOnAllNpcParams = CurrentModel.NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
+                foreach (var kvp in CurrentModel.NpcMaterialNamesPerMask)
                 {
                     if (kvp.Key < 0)
                         continue;
 
-                    foreach (var npcParam in PossibleNpcParams)
+                    foreach (var npcParam in CurrentModel.PossibleNpcParams)
                     {
                         if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
                         {
-                            if (NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
-                                NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
+                            if (CurrentModel.NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                CurrentModel.NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
 
                             break;
                         }
@@ -274,18 +294,21 @@ namespace DSAnimStudio.TaeEditor
 
         private void ChrAsm_EquipmentModelsUpdated(object sender, EventArgs e)
         {
+            if (Graph == null || Graph.PlaybackCursor == null || Graph.MainScreen.PlaybackCursor == null)
+                return;
+
             Graph.MainScreen.SelectNewAnimRef(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
 
             //V2.0: Scrub weapon anims to the current frame.
 
-            CurrentModel.ChrAsm.RightWeaponModel0?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm.RightWeaponModel1?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm.RightWeaponModel2?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm.RightWeaponModel3?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm.LeftWeaponModel0?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm.LeftWeaponModel1?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm.LeftWeaponModel2?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm.LeftWeaponModel3?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer.ScrubRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
 
             //V2.0: Update stuff probably
             CurrentModel.AfterAnimUpdate(0);
@@ -337,6 +360,7 @@ namespace DSAnimStudio.TaeEditor
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTimeMod);
 
+            GFX.World.Update(0);
         }
 
         private void CheckSimEnvironment()
@@ -379,8 +403,7 @@ namespace DSAnimStudio.TaeEditor
             var timeDelta = forceCustomTimeDelta ?? (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
             //TODO: Check if this is going to deadlock
-            lock (Scene._lock_ModelLoad_Draw)
-            {
+          
                 try
                 {
                     //V2.0
@@ -403,13 +426,13 @@ namespace DSAnimStudio.TaeEditor
                 {
 
                 }
-            }
+            
             //V2.0
             //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
 
-            
 
-            
+
+            GFX.World.Update(0);
         }
 
         public void StartCombo(bool isLoop, bool isRecord, TaeComboEntry[] entries)
@@ -545,9 +568,9 @@ namespace DSAnimStudio.TaeEditor
         private void RecordCurrentComboFrame()
         {
             Vector3 curModelPosition = Vector3.Transform(Vector3.Zero, CurrentModel.CurrentTransform.WorldMatrix);
-            Vector4 curRootMotionLocation = new Vector4(curModelPosition, CurrentModel.CurrentDirection);
+            Vector4 curRootMotionLocation = new Vector4(curModelPosition, CurrentModel.AnimContainer.Skeleton.CurrentDirection);
             Vector4 rootMotionDelta = curRootMotionLocation - CurrentComboRecordLastRootMotion;
-            CurrentComboRecorder.AddFrame(rootMotionDelta, CurrentModel.Skeleton.HkxSkeleton);
+            CurrentComboRecorder.AddFrame(rootMotionDelta, CurrentModel.AnimContainer.Skeleton.HkxSkeleton);
             CurrentComboRecordLastRootMotion = curRootMotionLocation;
         }
 
@@ -793,23 +816,28 @@ namespace DSAnimStudio.TaeEditor
             if (CurrentModel != null)
             {
                 //CurrentModel.AnimContainer.ResetRootMotion();
-                CurrentModel.CurrentRootMotionTranslation = Matrix.Identity;
+                CurrentModel.AnimContainer.Skeleton.CurrentRootMotionTranslation = Matrix.Identity;
                 //CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
 
-                CurrentModel.ChrAsm?.RightWeaponModel0?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.RightWeaponModel1?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.RightWeaponModel2?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.RightWeaponModel3?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
 
-                CurrentModel.ChrAsm?.LeftWeaponModel0?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.LeftWeaponModel1?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.LeftWeaponModel2?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.LeftWeaponModel3?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
             }
         }
 
         public string GetFinalAnimFileName(TAE tae, TAE.Animation anim)
         {
+            if (EntityType == TaeEntityType.REMO)
+            {
+                return $"a{anim.ID:D4}.hkx";
+            }
+
             if (CurrentModel == null || CurrentModel?.AnimContainer == null || Graph == null || Graph?.MainScreen?.FileContainer?.AllTAEDict == null)
                 return null;
 
@@ -822,7 +850,13 @@ namespace DSAnimStudio.TaeEditor
 
         public void OnNewAnimSelected()
         {
-            if (CurrentModel != null)
+            if (EntityType == TaeEntityType.REMO)
+            {
+                RemoManager.LoadRemoCut($"a{ Graph.MainScreen.SelectedTaeAnim.ID:D4}.hkx");
+                RemoManager.AnimContainer.ScrubRelative(0);
+                GFX.World.Update(0);
+            }
+            else if (CurrentModel != null)
             {
                 var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
                 var mainChrAnimName = mainChrSolver.GetHKXName(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
@@ -870,7 +904,7 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else
                 {
-                    CurrentModel.Skeleton.RevertToReferencePose();
+                    CurrentModel.SkeletonFlver.RevertToReferencePose();
                 }
             }
             
@@ -878,7 +912,15 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsAnimLoaded(string name)
         {
-            return CurrentModel?.AnimContainer?.IsAnimLoaded(name) ?? false;
+            if (EntityType == TaeEntityType.REMO)
+            {
+                return RemoManager.RemoCutLoaded(name);
+            }
+            else
+            {
+                return CurrentModel?.AnimContainer?.IsAnimLoaded(name) ?? false;
+            }
+           
         }
 
         float modelDirectionLastFrame = 0;
@@ -907,7 +949,7 @@ namespace DSAnimStudio.TaeEditor
                 if (Graph.MainScreen.Config.CameraFollowsRootMotion)
                 {
                     GFX.World.RootMotionFollow_Translation = 
-                        Vector3.Transform(Vector3.Zero, CurrentModel.CurrentRootMotionTranslation);
+                        Vector3.Transform(Vector3.Zero, CurrentModel.AnimContainer.Skeleton.CurrentRootMotionTranslation);
                 }
                 else
                 {
@@ -916,7 +958,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
                 {
-                    GFX.World.RootMotionFollow_Rotation = CurrentModel.CurrentDirection;
+                    GFX.World.RootMotionFollow_Rotation = CurrentModel.AnimContainer.Skeleton.CurrentDirection;
                 }
                 else
                 {
@@ -992,7 +1034,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (CurrentModel != null && CurrentModel.AnimContainer != null)
             {
-                if (CurrentModel.Skeleton.BoneLimitExceeded)
+                if (CurrentModel.SkeletonFlver.BoneLimitExceeded)
                 {
                     printer.AppendLine($"Warning: Model exceeds max bone count.", Main.Colors.GuiColorViewportStatusMaxBoneCountExceeded);
                 }

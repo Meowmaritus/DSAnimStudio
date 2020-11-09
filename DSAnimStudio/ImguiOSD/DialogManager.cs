@@ -55,6 +55,7 @@ namespace DSAnimStudio.ImguiOSD
                     anim.MiniHeader = dlg.TaeAnimHeader;
                     anim.ID = dlg.TaeAnimID;
                     anim.AnimFileName = dlg.TaeAnimName;
+                    anim.SetIsModified(true);
                     Tae.RecreateAnimList();
                     Tae.UpdateSelectedTaeAnimInfoText();
                 }

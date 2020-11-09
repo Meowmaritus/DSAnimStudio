@@ -144,12 +144,12 @@ namespace DSAnimStudio
             if (!CheckIfDrawing())
                 return;
 
-            lock (_lock_ModelLoad_Draw)
+            var mdls = Models.ToList();
+            foreach (var mdl in mdls)
             {
-                foreach (var mdl in Models)
-                {
-                    mdl?.UpdateAnimation();
-                }
+                mdl?.UpdateAnimation();
+                if (!CheckIfDrawing())
+                    return;
             }
         }
 
@@ -191,9 +191,21 @@ namespace DSAnimStudio
                 //    }
                 //}
 
-                foreach (var mdl in Models)
+                var mdls = Models.ToList();
+                foreach (var mdl in mdls)
+                {
+                    mdl.UpdateSkeleton();
+                    if (!CheckIfDrawing())
+                        return;
+                }
+
+                GFX.World.Update(0);
+
+                foreach (var mdl in mdls)
                 {
                     mdl.Draw();
+                    if (!CheckIfDrawing())
+                        return;
                 }
 
             }

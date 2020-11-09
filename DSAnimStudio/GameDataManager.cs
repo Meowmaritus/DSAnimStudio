@@ -536,6 +536,57 @@ namespace DSAnimStudio
             
         }
 
+        public static Model LoadMapPiece(int area, int block, int x, int y, int pieceID)
+        {
+
+            Model chr = null;
+
+            Scene.DisableModelDrawing();
+            Scene.DisableModelDrawing2();
+
+
+            if (GameType == SoulsGames.DS1 || GameType == SoulsGames.DS1R)
+            {
+                string fullMapID = $"m{area:D2}_{block:D2}_{x:D2}_{y:D2}";
+                string mapPieceName = $"m{pieceID:D4}B{block}A{area}";
+                string mapPieceFileName = GetInterrootPath($@"map\{fullMapID}\{mapPieceName}.flver");
+
+                if (GameType == SoulsGames.DS1R)
+                    mapPieceFileName += ".dcx";
+
+                LoadingTaskMan.DoLoadingTaskSynchronous($"LOAD_MAPPIECE_{fullMapID}_{mapPieceName}", $"Loading map piece {mapPieceName} from map {fullMapID}...", progress =>
+                {
+                    var flver = FLVER2.Read(mapPieceFileName);
+                    chr = new Model(flver, false);
+
+                    List<string> texturesUsed = new List<string>();
+                    foreach (var mat in flver.Materials)
+                    {
+                        foreach (var tex in mat.Textures)
+                        {
+                            if (string.IsNullOrWhiteSpace(tex.Path))
+                                continue;
+                            var texName = Utils.GetShortIngameFileName(tex.Path);
+                            texturesUsed.Add(texName);
+                        }
+                    }
+
+                    TexturePool.AddMapTextures(area, texturesUsed);
+                });
+            }
+            else
+            {
+                throw new NotImplementedException("ONLY FOR DS1(R)");
+            }
+
+           
+
+            Scene.EnableModelDrawing();
+            Scene.EnableModelDrawing2();
+
+            return chr;
+        }
+
         public static Model LoadCharacter(string id, 
             SoulsAssetPipeline.FLVERImporting.FLVER2Importer.ImportedFLVER2Model modelToImportDuringLoad = null,
             List<Action> doImportActionList = null, SapImportConfigs.ImportConfigFlver2 importConfig = null)
@@ -924,10 +975,8 @@ namespace DSAnimStudio
                     Scene.AddModel(chr, doLock: false);
                 });
 
-                if (id == "c0000")
+                if (id == "c0000" || id == "c0000_0000")
                 {
-                    chr.IS_PLAYER = true;
-
                     LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBNDs",
                         "Loading additional player ANIBNDs...", progress =>
                     {

@@ -257,6 +257,13 @@ namespace DSAnimStudio.TaeEditor
 
             Func<Vector3> getPosFunc = null;
 
+            var soundPlaybackModel = MODEL;
+
+            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
+            {
+                soundPlaybackModel = RemoManager.LookupModelOfEventGroup(evBox.MyEventGroup) ?? MODEL;
+            }
+
             if (evBox.MyEvent.Template.ContainsKey("DummyPolyID"))
             {
                 int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
@@ -265,23 +272,23 @@ namespace DSAnimStudio.TaeEditor
                 {
                     if (dummyPolyID == -1)
                     {
-                        return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.OrbitCamCenter_DummyPolyFollowRefPoint.Y, 0);
+                        return soundPlaybackModel.GetLockonPoint() ?? soundPlaybackModel.CurrentTransformPosition;
                     }
 
-                    if (MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
+                    if (soundPlaybackModel.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
                     {
                         return Vector3.Transform(Vector3.Zero, 
                             MODEL.DummyPolyMan.DummyPolyByRefID[dummyPolyID][0].CurrentMatrix 
                             * MODEL.CurrentTransform.WorldMatrix);
                     }
 
-                    return Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.OrbitCamCenter_DummyPolyFollowRefPoint.Y, 0);
+                    return soundPlaybackModel.GetLockonPoint() ?? soundPlaybackModel.CurrentTransformPosition;
                 };
 
             }
             else
             {
-                getPosFunc = () => Vector3.Transform(Vector3.Zero, MODEL.CurrentTransform.WorldMatrix) + new Vector3(0, GFX.World.OrbitCamCenter_DummyPolyFollowRefPoint.Y, 0);
+                getPosFunc = () => soundPlaybackModel.GetLockonPoint() ?? soundPlaybackModel.CurrentTransformPosition;
             }
 
             if (stateInfoSlot != null && stateInfoSlot.Value >= 0 && FmodManager.IsStateInfoAlreadyPlaying(stateInfoSlot.Value))
@@ -289,6 +296,17 @@ namespace DSAnimStudio.TaeEditor
                 //FmodManager.StopSE(stateInfoSlot.Value, true);
                 return;
             }
+
+            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
+            {
+                //getPosFunc = () => GFX.World.CameraLocationInWorld_CloserForSound.Position * new Vector3(1, 1, -1);
+
+                if (soundType == 9) // Armor material dependant
+                {
+                    soundID -= (int)FmodManager.ArmorMaterialType.Plates;
+                }
+            }
+
             FmodManager.PlaySE(soundType, soundID, getPosFunc, stateInfoSlot == -1 ? null : stateInfoSlot);
         }
 
@@ -416,6 +434,37 @@ namespace DSAnimStudio.TaeEditor
 
                             if (Graph.ViewportInteractor.CurrentComboIndex < 0)
                                 MODEL.ChrAsm.WeaponStyle = MODEL.ChrAsm.StartWeaponStyle;
+                        },
+                    }
+                },
+                {
+                    "EventSimCutsceneAdvance",
+                    new EventSimEntry("Simulate Cutscene Playback Flow", true)
+                    {
+                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
+                        {
+                        },
+                        SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
+                        {
+                        },
+                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
+                        {
+                            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                            && Graph.PlaybackCursor.IsPlaying && !Graph.PlaybackCursor.Scrubbing)
+                            {
+                                if (Graph.PlaybackCursor.CurrentTime >= 
+                                (RemoManager.AnimContainer?.CurrentAnimation?.Duration ?? Graph.PlaybackCursor.MaxTime))
+                                {
+                                    Graph.MainScreen.NextAnim(false, false);
+                                    if (Graph.MainScreen.SelectedTaeAnim?.ID > 1_0000)
+                                    {
+                                        Graph.PlaybackCursor.IsPlaying = false;
+                                        Graph.MainScreen.HardReset();
+                                    }
+                                        
+                                }
+                            }
+                            
                         },
                     }
                 },

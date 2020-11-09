@@ -44,7 +44,7 @@ namespace DSAnimStudio
             return $"{Name} [{Math.Round(1 / FrameDuration)} FPS]";
         }
 
-        public readonly NewAnimSkeleton Skeleton;
+        public readonly NewAnimSkeleton_HKX Skeleton;
 
         private object _lock_boneMatrixStuff = new object();
 
@@ -82,7 +82,7 @@ namespace DSAnimStudio
             oldRootMotionVector = Vector4.Zero;
             RootMotionDeltaOfLastScrub = Vector4.Zero;
 
-            RotMatrixAtStartOfAnim = ParentContainer.MODEL.CurrentRootMotionRotation;
+            RotMatrixAtStartOfAnim = ParentContainer.Skeleton.CurrentRootMotionRotation;
 
             StartingRootMotionsPerLoop.Clear();
             StartingRootMotionsPerLoop.Add(0, RotMatrixAtStartOfAnim);
@@ -143,7 +143,7 @@ namespace DSAnimStudio
                     var deltaTimeToGoToStartOfThisLoop = (loopCount * Duration) - CurrentTime;
                     ParentContainer.ScrubRelative(deltaTimeToGoToStartOfThisLoop, doNotCheckRootMotionRotation: true);
                     // Grab the rotation there at start of this loop
-                    var newRotMatrix = ParentContainer.MODEL.CurrentRootMotionRotation;
+                    var newRotMatrix = ParentContainer.Skeleton.CurrentRootMotionRotation;
                     // Go back to current time
                     ParentContainer.ScrubRelative(-deltaTimeToGoToStartOfThisLoop, doNotCheckRootMotionRotation: true);
                     // Set the grabbed rotation
@@ -212,7 +212,7 @@ namespace DSAnimStudio
             
         }
 
-        public NewHavokAnimation(HavokAnimationData data, NewAnimSkeleton skeleton, NewAnimationContainer container)
+        public NewHavokAnimation(HavokAnimationData data, NewAnimSkeleton_HKX skeleton, NewAnimationContainer container)
         {
             this.data = data;
 
@@ -224,7 +224,7 @@ namespace DSAnimStudio
                 blendableTransforms = new NewBlendableTransform[skeleton.HkxSkeleton.Count];
             }
 
-            RotMatrixAtStartOfAnim = ParentContainer.MODEL.CurrentRootMotionRotation;
+            RotMatrixAtStartOfAnim = ParentContainer.Skeleton.CurrentRootMotionRotation;
         }
 
         public void CalculateCurrentFrame()

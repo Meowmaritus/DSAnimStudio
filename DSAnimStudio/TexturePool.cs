@@ -280,6 +280,36 @@ namespace DSAnimStudio
             }
         }
 
+        public static void AddMapTextures(int area, List<string> textureNames)
+        {
+            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1)
+            {
+                foreach (var t in textureNames)
+                {
+                    if (fetches.ContainsKey(t))
+                        continue;
+                    string tpfPath = GameDataManager.GetInterrootPath($@"map\tx\{t}.tpf");
+                    if (File.Exists(tpfPath))
+                        AddTpfFromPath(tpfPath);
+                }
+            }
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+            {
+                var bxfs = Directory.GetFiles(GameDataManager.GetInterrootPath($@"map\m{area:D2}", isDirectory: true), "*.tpfbhd");
+                foreach (var b in bxfs)
+                {
+                    AddSpecificTexturesFromBXF3(b, textureNames);
+                }
+            }
+            else
+            {
+                throw new NotImplementedException("ONLY FOR DS1(R)");
+            }
+            
+
+            
+        }
+
         public static void AddSpecificTexturesFromBXF3(string name, List<string> textures)
         {
             var bxf = BXF3.Read(name, name.Substring(0, name.Length - 7) + ".tpfbdt");

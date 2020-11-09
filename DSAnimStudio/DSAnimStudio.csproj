@@ -121,6 +121,7 @@
     <Compile Include="ImguiOSD\Window.Help.cs" />
     <Compile Include="ImguiOSD\Window.Toolbox.cs" />
     <Compile Include="ImGuiRenderer.cs" />
+    <Compile Include="NewAnimSkeleton_HKX.cs" />
     <Compile Include="NewChrAsmCfgJson.cs" />
     <Compile Include="NewChrAsmEquipForm.cs">
       <SubType>Form</SubType>
@@ -138,6 +139,7 @@
     <Compile Include="PARAMHack\PARAM.cs" />
     <Compile Include="PARAMHack\PARAM.Row.cs" />
     <Compile Include="ParamUtil.cs" />
+    <Compile Include="RemoManager.cs" />
     <Compile Include="SapImportConfigs.cs" />
     <Compile Include="SapImportFlver2Form.cs">
       <SubType>Form</SubType>
@@ -174,7 +176,7 @@
     <Compile Include="Environment.cs" />
     <Compile Include="GameDataManager.cs" />
     <Compile Include="NewAnimationContainer.cs" />
-    <Compile Include="NewAnimSkeleton.cs" />
+    <Compile Include="NewAnimSkeleton_FLVER.cs" />
     <Compile Include="NewChrAsm.cs" />
     <Compile Include="NewHavokAnimation_SplineCompressed.cs" />
     <Compile Include="NewMesh.cs" />
@@ -446,6 +448,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\HitMtrlParamNames.DS1.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\TAE.Template.DS1.REMO.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TAE.Template.SOTFS.xml">

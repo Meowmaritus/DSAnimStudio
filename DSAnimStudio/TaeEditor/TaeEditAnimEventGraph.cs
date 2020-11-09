@@ -241,7 +241,8 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsNewGraphVisiMode => MainScreen.Config.IsNewGraphVisiMode;
 
-        public float RowHeight => IsNewGraphVisiMode ? 20 : 24;
+        public float RowHeight => (IsNewGraphVisiMode ? 20 : 24) 
+            * (ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO ? 1.5f : 1);
 
         private Dictionary<int, List<TaeEditAnimEventBox>> sortedByRow = new Dictionary<int, List<TaeEditAnimEventBox>>();
 
@@ -276,7 +277,7 @@ namespace DSAnimStudio.TaeEditor
 
             EventBoxes.Clear();
             GhostEventGraph = null;
-            
+
             sortedByRow.Clear();
             AnimRef = newAnimRef;
 
@@ -291,12 +292,22 @@ namespace DSAnimStudio.TaeEditor
                     sortedByRow.Add(row, new List<TaeEditAnimEventBox> { box });
             }
 
-            bool legacyRowMode = !(AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0);
+            bool legacyRowMode = true;// !(AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0);
 
             int currentRow = 0;
             float farthestRightOnCurrentRow = 0;
             int eventIndex = 0;
-            foreach (var ev in AnimRef.Events)
+
+            var orderedEvents = AnimRef.Events;
+
+            if (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0)
+            {
+                orderedEvents = newAnimRef.Events.OrderBy(x => newAnimRef.EventGroups.FindIndex(g => g.Indices.Contains(newAnimRef.Events.IndexOf(x)))).ToList();
+            }
+
+            
+
+            foreach (var ev in orderedEvents)
             {
                 int groupIndex = legacyRowMode ? -1 : AnimRef.EventGroups.IndexOf(AnimRef.EventGroups.FirstOrDefault(eg => eg.Indices.Contains(eventIndex)));
 
@@ -330,7 +341,11 @@ namespace DSAnimStudio.TaeEditor
                         if (groupIndex >= 0)
                             newBox.Row = currentRow = groupIndex;
                         else
-                            newBox.Row = currentRow = 20;
+                        {
+                            if (currentRow < AnimRef.EventGroups.Count)
+                                currentRow = AnimRef.EventGroups.Count;
+                            newBox.Row = currentRow;
+                        }
                     }
                     
                 }
@@ -495,15 +510,15 @@ namespace DSAnimStudio.TaeEditor
                     if (MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Count > 0)
                     {
                         if (!MainScreen.SelectedTaeAnim.EventGroups[i].Indices
-                            .Any(index => MainScreen.SelectedTaeAnim.EventGroups[i].EventType 
+                            .Any(index => MainScreen.SelectedTaeAnim.EventGroups[i].GroupType 
                             == MainScreen.SelectedTaeAnim.Events[index].Type))
                         {
-                            MainScreen.SelectedTaeAnim.EventGroups[i].EventType
+                            MainScreen.SelectedTaeAnim.EventGroups[i].GroupType
                                 = MainScreen.SelectedTaeAnim.Events[
                                     MainScreen.SelectedTaeAnim.EventGroups[i].Indices[0]].Type;
                         }
 
-                        if (MainScreen.SelectedTaeAnim.EventGroups[i].EventType !=
+                        if (MainScreen.SelectedTaeAnim.EventGroups[i].GroupType !=
                             MainScreen.SelectedTaeAnim.Events[MainScreen.SelectedTaeAnim.EventGroups[i].Indices[0]].Type)
                         {
 
@@ -528,7 +543,7 @@ namespace DSAnimStudio.TaeEditor
                 sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
             if (!sortedByRow[box.Row].Contains(box))
                 sortedByRow[box.Row].Add(box);
-
+            RemoveEventBoxFromGroups(box);
             AddBoxToEventGroups(box);
         }
 
@@ -1001,6 +1016,8 @@ namespace DSAnimStudio.TaeEditor
 
             if (currentUnselectedMouseDragType == UnselectedMouseDragType.PlaybackCursorScrub)
             {
+                PlaybackCursor.Scrubbing = true;
+
                 ScrollViewer.ClampScroll();
 
                 float desiredTime = Math.Max(((MainScreen.Input.MousePosition.X - Rect.X) + ScrollViewer.Scroll.X) / SecondsPixelSize, 0);
@@ -1983,12 +2000,15 @@ namespace DSAnimStudio.TaeEditor
 
             var fontToUse = (IsNewGraphVisiMode || !(MainScreen.Config.EnableFancyScrollingStrings && boxRect.Width >= TinyTextBoxWidth)) ? smallFont : font;
 
-            var namePos = new Vector2((float)MathHelper.Max((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round(pos.X - (IsNewGraphVisiMode ? 0 : 1))), 
-                (float)Math.Round(pos.Y + (RowHeight / 2.0) - (fontToUse.LineSpacing / 2.0) - (IsNewGraphVisiMode ? 1 : 1.5))) + fontOffsetToUse;
+            
 
             string fullTextWithPrefix = $"{(eventStartsBeforeScreen ? fixedPrefix : "")}{box.EventText.Text}";
 
             var nameSize = fontToUse.MeasureString(fullTextWithPrefix);
+
+            var namePos = new Vector2((float)MathHelper.Max((float)Math.Round(ScrollViewer.Scroll.X), (float)Math.Round(pos.X - (IsNewGraphVisiMode ? 0 : 1))), 
+                (float)Math.Round(pos.Y + 4)) + fontOffsetToUse;
+
 
             void DrawActualBox()
             {

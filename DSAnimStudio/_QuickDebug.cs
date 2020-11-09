@@ -14,8 +14,6 @@ namespace DSAnimStudio
 {
     public static class _QuickDebug
     {
-        
-
         public static void BuildDebugMenu()
         {
             if (Scene.MainModel?.AnimContainer != null)
@@ -33,36 +31,48 @@ namespace DSAnimStudio
                 Scene.MainModel.EnableSkinning = bind;
             }
 
-            if (DebugButton("SoulsAssetPipeline_Anim_Test"))
+
+            if (DebugButton("REMO HKX TEST"))
             {
-                var boneNames = Scene.MainModel.Skeleton.HkxSkeleton.Select(x => x.Name).ToList();
-                var importSettings = new SoulsAssetPipeline.AnimationImporting.AnimationImporter.AnimationImportSettings
+                var hkxTestPath = @"E:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\remo\scn180000-remobnd\cut0030\hkxwin32\a0030.hkx";
+                HKX.HKAAnimationBinding hk_binding = null;
+                HKX.HKASplineCompressedAnimation hk_anim = null;
+                HKX.HKASkeleton hk_skeleton = null;
+
+                var hkx = HKX.Read(hkxTestPath, HKX.HKXVariation.HKXDS1, false);
+
+                foreach (var o in hkx.DataSection.Objects)
                 {
-                    SceneScale = 100f,
-                    ExistingBoneNameList = boneNames,
-                    ExistingHavokAnimationTemplate = Scene.MainModel.AnimContainer.CurrentAnimation.data,
-                    ResampleToFramerate = 60,
-                    RootMotionNodeName = "root",
-                    FlipQuaternionHandedness = true,
-                };
-
-                var importedAnim = SoulsAssetPipeline.AnimationImporting.AnimationImporter.ImportFBX(
-                    @"C:\DarkSoulsModding\_FBX_ANIM\muffin2.fbx", importSettings);
-
-                //importedFlver.WriteToHavok2010InterleavedUncompressedXML(@"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx.saptest.xml");
-
-                lock (Scene._lock_ModelLoad_Draw)
-                {
-                    var anim = new NewHavokAnimation(importedAnim, Scene.MainModel.Skeleton, Scene.MainModel.AnimContainer);
-                    string animName = Scene.MainModel.AnimContainer.CurrentAnimationName;
-                    Scene.MainModel.AnimContainer.AddNewAnimation(animName, anim);
-                    Scene.MainModel.AnimContainer.CurrentAnimationName = null;
-                    Scene.MainModel.AnimContainer.CurrentAnimationName = animName;
-                    Scene.MainModel.AnimContainer.ResetAll();
-                    Main.TAE_EDITOR?.HardReset();
+                    if (o is HKX.HKASkeleton asSkeleton)
+                        hk_skeleton = asSkeleton;
+                    else if (o is HKX.HKAAnimationBinding asBinding)
+                        hk_binding = asBinding;
+                    else if (o is HKX.HKASplineCompressedAnimation asAnim)
+                        hk_anim = asAnim;
                 }
-                //Console.WriteLine("fatcat");
+
+                Scene.MainModel.AnimContainer.ClearAnimations();
+
+                Scene.MainModel.AnimContainer.Skeleton.LoadHKXSkeleton(hk_skeleton);
+
+                var testIdleAnimThing = new NewHavokAnimation_SplineCompressed("a00_0000.hkx",
+                    Scene.MainModel.AnimContainer.Skeleton, null, hk_binding, hk_anim, Scene.MainModel.AnimContainer);
+
+                Scene.MainModel.AnimContainer.AddNewAnimation("a00_0000.hkx", testIdleAnimThing);
+
+                Scene.MainModel.AnimContainer.CurrentAnimationName = "a00_0000.hkx";
+
+                Scene.MainModel.IsRemoModel = true;
+                Scene.MainModel.Name = "c0000_0000";
+
+                Scene.MainModel.AnimContainer.ForcePlayAnim = true;
+
+                Scene.MainModel.SkeletonFlver.RevertToReferencePose();
+
+                Scene.MainModel.SkeletonFlver.MapToSkeleton(Scene.MainModel.AnimContainer.Skeleton, isRemo: true);
             }
+            
+
 
             if (DebugButton("DS2 IMPORT TEST"))
             {
@@ -70,12 +80,12 @@ namespace DSAnimStudio
                 {
                     GameDataManager.SoftInit(SoulsAssetPipeline.SoulsGames.DS2SOTFS);
 
-                    var bndPath_ORIG = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls II Scholar of the First Sin\Game\model\parts\body\bd_1030_m.bnd";
+                    var bndPath_ORIG = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls II Scholar of the First Sin\Game\model\parts\head\hd_2021_m.bnd";
                     var bnd_ORIG = BND4.Read(bndPath_ORIG);
 
                     
 
-                    var bndPath = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls II Scholar of the First Sin\Game\sap_test\model\parts\body\bd_2520_m.bnd";
+                    var bndPath = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls II Scholar of the First Sin\Game\sap_test\model\parts\head\hd_2021_m.bnd";
 
                     var bndPath_BaseChr = @"C:\Program Files (x86)\Steam\steamapps\common\Dark Souls II Scholar of the First Sin\Game\model\chr\c0001.bnd";
 
@@ -90,16 +100,16 @@ namespace DSAnimStudio
 
                     
 
-                    var fbx = @"C:\DarkSoulsModding\_FBX\Project-Stone.FBX";
+                    var fbx = @"E:\DarkSoulsModding\_FBX\DS2HelmDangel.FBX";
                     var settings = new FLVER2Importer.FLVER2ImportSettings()
                     {
                         AssetPath = fbx,
-                        ConvertFromZUp = false,
-                        SceneScale = 1,
+                        ConvertFromZUp = true,
+                        SceneScale = 100,
                         FlverHeader = flver_orig.Header,
                         Game = SoulsAssetPipeline.SoulsGames.DS2,
-                        RootNodeName = "Character",
-                        //SkeletonTransformsOverride = flver_BaseChr.Bones,
+                        RootNodeName = "Root",
+                        SkeletonTransformsOverride = flver_orig.Bones,
                         //SceneCorrectMatrix = System.Numerics.Matrix4x4.CreateRotationY(SoulsAssetPipeline.SapMath.Pi),
                         //BoneNameRemapper = new Dictionary<string, string>
                         //{
@@ -140,8 +150,8 @@ namespace DSAnimStudio
                         //});
                     }
 
-                    AddMemeBone($"{Path.GetFileNameWithoutExtension(bndPath).ToUpper()}");
-                    AddMemeBone($"{Path.GetFileNameWithoutExtension(bndPath).ToUpper()}_A");
+                    //AddMemeBone($"{Path.GetFileNameWithoutExtension(bndPath).ToUpper()}");
+                    //AddMemeBone($"{Path.GetFileNameWithoutExtension(bndPath).ToUpper()}_A");
 
                     //foreach (var m in imp.Flver.Materials)
                     //{
@@ -175,6 +185,16 @@ namespace DSAnimStudio
                         bnd_ORIG.Files.Add(new BinderFile(Binder.FileFlags.Flag1, bnd_ORIG.Files.Count, t.Name, tpf.Write()));
                     }
 
+                    ////TESTING
+                    //foreach (var m in imp.Flver.Meshes)
+                    //{
+                    //    foreach (var fs in m.FaceSets)
+                    //    {
+                    //        fs.Indices = fs.Indices.Select(x => x >= 65535 ? 0xFFFF : x).Take(65535).ToList();
+                    //    }
+                    //    m.Vertices = m.Vertices.Take(65535).ToList();
+                    //}
+
                     bnd_ORIG.Files.Add(new BinderFile(Binder.FileFlags.Flag1, bnd_ORIG.Files.Count, $"{Path.GetFileNameWithoutExtension(bndPath)}.flv", imp.Flver.Write()));
                     //bnd_ORIG.Files.Add(new BinderFile(Binder.FileFlags.Flag1, bnd_ORIG.Files.Count, $"{Path.GetFileNameWithoutExtension(bndPath)}.acb", acb_orig.Write()));
 
@@ -187,7 +207,7 @@ namespace DSAnimStudio
 
 
 
-                    var hkxTestPath = @"C:\DarkSoulsModding\_DS2ANIM\DS2_PLAYER_TEST_ANIM.hkx";
+                    var hkxTestPath = @"E:\DarkSoulsModding\_DS2ANIM\DS2_PLAYER_TEST_ANIM.hkx";
                     HKX.HKAAnimationBinding hk_binding = null;
                     HKX.HKAInterleavedUncompressedAnimation hk_anim = null;
                     HKX.HKASkeleton hk_skeleton = null;
@@ -204,10 +224,10 @@ namespace DSAnimStudio
                             hk_anim = asAnim;
                     }
 
-                    Scene.MainModel.Skeleton.LoadHKXSkeleton(hk_skeleton);
+                    Scene.MainModel.AnimContainer.Skeleton.LoadHKXSkeleton(hk_skeleton);
 
                     var testIdleAnimThing = new NewHavokAnimation_InterleavedUncompressed("a00_00_0000.hkx",
-                        Scene.MainModel.Skeleton, null, hk_binding, hk_anim, Scene.MainModel.AnimContainer);
+                        Scene.MainModel.AnimContainer.Skeleton, null, hk_binding, hk_anim, Scene.MainModel.AnimContainer);
 
                     Scene.MainModel.AnimContainer.AddNewAnimation("a00_00_0000.hkx", testIdleAnimThing);
 
@@ -217,6 +237,43 @@ namespace DSAnimStudio
                 }, disableProgressBarByDefault: true, isUnimportant: true);
 
                 
+            }
+
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+
+            if (DebugButton("SoulsAssetPipeline_Anim_Test"))
+            {
+                var boneNames = Scene.MainModel.AnimContainer.Skeleton.HkxSkeleton.Select(x => x.Name).ToList();
+                var importSettings = new SoulsAssetPipeline.AnimationImporting.AnimationImporter.AnimationImportSettings
+                {
+                    SceneScale = 100f,
+                    ExistingBoneNameList = boneNames,
+                    ExistingHavokAnimationTemplate = Scene.MainModel.AnimContainer.CurrentAnimation.data,
+                    ResampleToFramerate = 60,
+                    RootMotionNodeName = "root",
+                    FlipQuaternionHandedness = true,
+                };
+
+                var importedAnim = SoulsAssetPipeline.AnimationImporting.AnimationImporter.ImportFBX(
+                    @"C:\DarkSoulsModding\_FBX_ANIM\muffin2.fbx", importSettings);
+
+                //importedFlver.WriteToHavok2010InterleavedUncompressedXML(@"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx.saptest.xml");
+
+                lock (Scene._lock_ModelLoad_Draw)
+                {
+                    var anim = new NewHavokAnimation(importedAnim, Scene.MainModel.AnimContainer.Skeleton, Scene.MainModel.AnimContainer);
+                    string animName = Scene.MainModel.AnimContainer.CurrentAnimationName;
+                    Scene.MainModel.AnimContainer.AddNewAnimation(animName, anim);
+                    Scene.MainModel.AnimContainer.CurrentAnimationName = null;
+                    Scene.MainModel.AnimContainer.CurrentAnimationName = animName;
+                    Scene.MainModel.AnimContainer.ResetAll();
+                    Main.TAE_EDITOR?.HardReset();
+                }
+                //Console.WriteLine("fatcat");
             }
         }
 

@@ -9,6 +9,7 @@ using DSAnimStudio.GFXShaders;
 using FMOD;
 using SoulsAssetPipeline;
 using DSAnimStudio.ImguiOSD;
+using DSAnimStudio.DebugPrimitives;
 
 namespace DSAnimStudio
 {
@@ -24,14 +25,59 @@ namespace DSAnimStudio
             IsVisible = isVisible;
         }
 
+        public Vector3? GetLockonPoint()
+        {
+            var possible = DummyPolyMan.GetDummyPosByID(220,
+                            Matrix.Identity, ignoreModelTransform: true);
+            if (possible.Any())
+                return possible.First();
+            else
+                return null;
+        }
+
         public NewMesh MainMesh;
 
-        public NewAnimSkeleton Skeleton;
+        public NewAnimSkeleton_FLVER SkeletonFlver;
         public NewAnimationContainer AnimContainer;
+
+        public bool IsRemoModel = false;
+
         public NewDummyPolyManager DummyPolyMan;
         public DBG.DbgPrimDrawer DbgPrimDrawer;
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
+
+        public List<ParamData.NpcParam> PossibleNpcParams = new List<ParamData.NpcParam>();
+        public Dictionary<int, string> NpcMaterialNamesPerMask = new Dictionary<int, string>();
+        public List<int> NpcMasksEnabledOnAllNpcParams = new List<int>();
+
+        private int _selectedNpcParamIndex = -1;
+        public int SelectedNpcParamIndex
+        {
+            get => _selectedNpcParamIndex;
+            set
+            {
+                NpcParam = (value >= 0 && value < PossibleNpcParams.Count)
+                        ? PossibleNpcParams[value] : null;
+                _selectedNpcParamIndex = value;
+                if (NpcParam != null)
+                {
+                    //CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
+                    NpcParam.ApplyToNpcModel(this);
+                }
+            }
+        }
+
+        public void RescanNpcParams()
+        {
+            PossibleNpcParams = ParamManager.FindNpcParams(Name);
+            PossibleNpcParams.AddRange(ParamManager.FindNpcParams(Name, matchCXXX0: true));
+
+            if (PossibleNpcParams.Count > 0)
+                SelectedNpcParamIndex = 0;
+            else
+                SelectedNpcParamIndex = -1;
+        }
 
         public bool ApplyBindPose = false;
 
@@ -53,7 +99,7 @@ namespace DSAnimStudio
                 TrackingTestInput = MathHelper.Clamp(TrackingTestInput, -1, 1);
                 float delta = (MathHelper.ToRadians(CurrentTrackingSpeed)) * elapsedTime * TrackingTestInput;
                 CharacterTrackingRotation += delta;
-                CurrentDirection += delta;
+                AnimContainer.Skeleton.CurrentDirection += delta;
                 if (AnimContainer != null)
                 {
                     lock (Scene._lock_ModelLoad_Draw)
@@ -90,37 +136,27 @@ namespace DSAnimStudio
 
         public Transform StartTransform = Transform.Default;
 
-        public Matrix CurrentRootMotionTranslation = Matrix.Identity;
-
-        public void ResetRootMotionTranslation()
-        {
-            CurrentRootMotionTranslation = Matrix.Identity;
-        }
-
-        public Matrix CurrentRootMotionRotation => Matrix.CreateRotationY(CurrentDirection);
-
-        public float CurrentDirection;
-
-        public void ResetCurrentDirection()
-        {
-            CurrentDirection = 0;
-        }
+        
 
         public Transform CurrentTransform = Transform.Default;
 
-        public Action<Vector3> OnRootMotionWrap = null;
+        public Vector3 CurrentTransformPosition => Vector3.Transform(Vector3.Zero, CurrentTransform.WorldMatrix);
 
         /// <summary>
         /// This is needed to make weapon hitboxes work.
         /// </summary>
-        public bool IS_PLAYER = false;
+        public bool IS_PLAYER => Name == "c0000" || Name == "c0000_0000";
+
+        public bool IS_REMO_DUMMY = false;
+        public DbgPrimWireArrow RemoDummyTransformPrim = null;
+        public StatusPrinter RemoDummyTransformTextPrint = null;
 
         public bool IS_PLAYER_WEAPON = false;
 
 
-        private Model()
+        public Model()
         {
-            AnimContainer = new NewAnimationContainer(this);
+            AnimContainer = new NewAnimationContainer();
 
             DummyPolyMan = new NewDummyPolyManager(this);
             DbgPrimDrawer = new DBG.DbgPrimDrawer(this);
@@ -186,7 +222,7 @@ namespace DSAnimStudio
             SapImportConfigs.ImportConfigFlver2 modelImportConfig = null)
             : this()
         {
-            AnimContainer = new NewAnimationContainer(this);
+            AnimContainer = new NewAnimationContainer();
 
             Name = name;
             List<BinderFile> flverFileEntries = new List<BinderFile>();
@@ -344,6 +380,7 @@ namespace DSAnimStudio
                         try
                         {
                             AnimContainer.LoadBaseANIBND(anibnd, innerProg);
+                            //SkeletonFlver.MapToSkeleton(AnimContainer.Skeleton, false);
                         }
                         catch
                         {
@@ -416,7 +453,7 @@ namespace DSAnimStudio
         public void CreateChrAsm()
         {
             ChrAsm = new NewChrAsm(this);
-            ChrAsm.InitSkeleton(Skeleton);
+            ChrAsm.InitSkeleton(SkeletonFlver);
 
             MainMesh.Bounds = new BoundingBox(
                 new Vector3(-0.5f, 0, -0.5f) * 1.75f, 
@@ -429,7 +466,8 @@ namespace DSAnimStudio
 
             //Type = ModelType.ModelTypeFlver;
 
-            Skeleton = new NewAnimSkeleton(this, flver.Bones);
+            SkeletonFlver = new NewAnimSkeleton_FLVER(this, flver.Bones);
+
 
             MainMesh = new NewMesh(flver, useSecondUV, null, ignoreStaticTransforms);
 
@@ -451,7 +489,7 @@ namespace DSAnimStudio
         public Model(FLVER2 flver, bool useSecondUV)
             : this()
         {
-            AnimContainer = new NewAnimationContainer(this);
+            AnimContainer = new NewAnimationContainer();
             LoadFLVER2(flver, useSecondUV);
         }
 
@@ -459,38 +497,7 @@ namespace DSAnimStudio
 
         public void AfterAnimUpdate(float timeDelta, bool ignorePosWrap = false)
         {
-            if (AnimContainer?.EnableRootMotion == false)
-            {
-                CurrentDirection = 0;
-                CurrentRootMotionTranslation = Matrix.Identity;
-            }
-
-            var newTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionRotation * CurrentRootMotionTranslation);
-
-
-
-            // TEST: modulo world pos
-            Vector3 locationWithNewTransform = Vector3.Transform(Vector3.Zero, newTransform.WorldMatrix);
-
-            bool justWrapped = false;
-
-            Vector3 translationDeltaToGetToMod = Vector3.Zero;
-
-            if (!ignorePosWrap && AnimContainer?.EnableRootMotionWrap == true && (locationWithNewTransform.LengthSquared() > 100))
-            {
-                Vector3 locationWithNewTransform_Mod = new Vector3(locationWithNewTransform.X % 1, locationWithNewTransform.Y, locationWithNewTransform.Z % 1);
-                translationDeltaToGetToMod = locationWithNewTransform_Mod - locationWithNewTransform;
-                CurrentRootMotionTranslation *= Matrix.CreateTranslation(translationDeltaToGetToMod);
-
-                justWrapped = true;
-                
-            }
-
-
-            //newTransform = new Transform(newTransform.WorldMatrix * );
-            ////////
-
-            CurrentTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionRotation * CurrentRootMotionTranslation);
+            CurrentTransform = new Transform(StartTransform.WorldMatrix * (AnimContainer?.Skeleton?.CurrentTransform.WorldMatrix ?? Matrix.Identity));
 
             if (ChrAsm != null)
             {
@@ -511,14 +518,12 @@ namespace DSAnimStudio
                 ChrAsm.LeftWeaponModel2?.DummyPolyMan.UpdateAllHitPrims();
                 ChrAsm.LeftWeaponModel3?.DummyPolyMan.UpdateAllHitPrims();
             }
-
-            OnRootMotionWrap?.Invoke(translationDeltaToGetToMod);
         }
 
         public void UpdateAnimation()
         {
-            if (Skeleton.OriginalHavokSkeleton == null || AnimContainer == null)
-                Skeleton?.RevertToReferencePose();
+            if (AnimContainer.Skeleton.OriginalHavokSkeleton == null || AnimContainer == null)
+                SkeletonFlver?.RevertToReferencePose();
 
             AnimContainer?.Update();
             UpdateTrackingTest(Main.DELTA_UPDATE);
@@ -549,38 +554,41 @@ namespace DSAnimStudio
             {
                 ChrAsm.RightWeaponModel0?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel0?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.RightWeaponModel0?.Skeleton?.DrawPrimitives();
+                ChrAsm.RightWeaponModel0?.SkeletonFlver?.DrawPrimitives();
 
                 ChrAsm.RightWeaponModel1?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel1?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.RightWeaponModel1?.Skeleton?.DrawPrimitives();
+                ChrAsm.RightWeaponModel1?.SkeletonFlver?.DrawPrimitives();
 
                 ChrAsm.RightWeaponModel2?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel2?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.RightWeaponModel2?.Skeleton?.DrawPrimitives();
+                ChrAsm.RightWeaponModel2?.SkeletonFlver?.DrawPrimitives();
 
                 ChrAsm.RightWeaponModel3?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.RightWeaponModel3?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.RightWeaponModel3?.Skeleton?.DrawPrimitives();
+                ChrAsm.RightWeaponModel3?.SkeletonFlver?.DrawPrimitives();
 
                 ChrAsm.LeftWeaponModel0?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel0?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.LeftWeaponModel0?.Skeleton?.DrawPrimitives();
+                ChrAsm.LeftWeaponModel0?.SkeletonFlver?.DrawPrimitives();
 
                 ChrAsm.LeftWeaponModel1?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel1?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.LeftWeaponModel1?.Skeleton?.DrawPrimitives();
+                ChrAsm.LeftWeaponModel1?.SkeletonFlver?.DrawPrimitives();
 
                 ChrAsm.LeftWeaponModel2?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel2?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.LeftWeaponModel2?.Skeleton?.DrawPrimitives();
+                ChrAsm.LeftWeaponModel2?.SkeletonFlver?.DrawPrimitives();
 
                 ChrAsm.LeftWeaponModel3?.DummyPolyMan.DrawAllHitPrims();
                 ChrAsm.LeftWeaponModel3?.DbgPrimDrawer.DrawPrimitives();
-                ChrAsm.LeftWeaponModel3?.Skeleton?.DrawPrimitives();
+                ChrAsm.LeftWeaponModel3?.SkeletonFlver?.DrawPrimitives();
             }
 
-            Skeleton?.DrawPrimitives();
+            SkeletonFlver?.DrawPrimitives();
+
+            if (DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone])
+                AnimContainer?.Skeleton?.DrawPrimitives();
         }
 
         public void DrawAllPrimitiveTexts()
@@ -603,8 +611,45 @@ namespace DSAnimStudio
             }
         }
 
+        public void UpdateSkeleton()
+        {
+            if (IS_REMO_DUMMY)
+            {
+                CurrentTransform = new Transform(SkeletonFlver.HavokSkeletonThisIsMappedTo.HkxSkeleton.FirstOrDefault(b => b.Name == Name)?.CurrentHavokTransform.GetMatrix().ToXna() ?? Matrix.Identity);
+                return;
+            }
+
+            if (AnimContainer != null && AnimContainer.Skeleton != null && AnimContainer.Skeleton.HkxSkeleton.Count > 0 && !IsRemoModel)
+            {
+                if (SkeletonFlver.HavokSkeletonThisIsMappedTo == null)
+                    SkeletonFlver.MapToSkeleton(AnimContainer.Skeleton, IsRemoModel);
+            }
+
+            SkeletonFlver.CopyFromHavokSkeleton();
+        }
+
+        
+        public void DrawRemoPrims()
+        {
+            if (IS_REMO_DUMMY)
+            {
+                RemoDummyTransformPrim.Transform = CurrentTransform;
+                RemoDummyTransformPrim.Name = Name;
+                RemoDummyTransformPrim.Draw(null, Matrix.Identity);
+                //RemoDummyTransformTextPrint.Clear();
+                //RemoDummyTransformTextPrint.AppendLine(Name);
+                RemoDummyTransformTextPrint.Position3D = CurrentTransformPosition;
+                RemoDummyTransformTextPrint.Draw();
+            }
+        }
+
         public void Draw(int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
+            if (IS_REMO_DUMMY)
+            {
+                return;
+            }
+
             GFX.World.ApplyViewToShader(GFX.FlverShader, CurrentTransform);
 
             if (isSkyboxLol)
@@ -612,31 +657,33 @@ namespace DSAnimStudio
                 //((FlverShader)shader).Bones0 = new Matrix[] { Matrix.Identity };
                 GFX.FlverShader.Effect.IsSkybox = true;
             }
-            else if (Skeleton != null)
+            else if (SkeletonFlver != null)
             {
+                
+
                 if (ChrAsm != null)
                 {
-                    GFX.FlverShader.Effect.Bones0 = Skeleton.ShaderMatrices0;
+                    GFX.FlverShader.Effect.Bones0 = SkeletonFlver.ShaderMatrices0;
 
-                    if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray)
+                    if (SkeletonFlver.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray)
                     {
-                        GFX.FlverShader.Effect.Bones1 = Skeleton.ShaderMatrices1;
+                        GFX.FlverShader.Effect.Bones1 = SkeletonFlver.ShaderMatrices1;
 
-                        if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 2)
+                        if (SkeletonFlver.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 2)
                         {
-                            GFX.FlverShader.Effect.Bones2 = Skeleton.ShaderMatrices2;
+                            GFX.FlverShader.Effect.Bones2 = SkeletonFlver.ShaderMatrices2;
 
-                            if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 3)
+                            if (SkeletonFlver.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 3)
                             {
-                                GFX.FlverShader.Effect.Bones3 = Skeleton.ShaderMatrices3;
+                                GFX.FlverShader.Effect.Bones3 = SkeletonFlver.ShaderMatrices3;
 
-                                if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 4)
+                                if (SkeletonFlver.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 4)
                                 {
-                                    GFX.FlverShader.Effect.Bones4 = Skeleton.ShaderMatrices4;
+                                    GFX.FlverShader.Effect.Bones4 = SkeletonFlver.ShaderMatrices4;
 
-                                    if (Skeleton.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 5)
+                                    if (SkeletonFlver.FlverSkeleton.Count >= FlverShader.MaxBonePerMatrixArray * 5)
                                     {
-                                        GFX.FlverShader.Effect.Bones5 = Skeleton.ShaderMatrices5;
+                                        GFX.FlverShader.Effect.Bones5 = SkeletonFlver.ShaderMatrices5;
                                     }
                                 }
                             }
@@ -650,12 +697,12 @@ namespace DSAnimStudio
             }
             else
             {
-                GFX.FlverShader.Effect.Bones0 = NewAnimSkeleton.IDENTITY_MATRICES;
-                GFX.FlverShader.Effect.Bones1 = NewAnimSkeleton.IDENTITY_MATRICES;
-                GFX.FlverShader.Effect.Bones2 = NewAnimSkeleton.IDENTITY_MATRICES;
-                GFX.FlverShader.Effect.Bones3 = NewAnimSkeleton.IDENTITY_MATRICES;
-                GFX.FlverShader.Effect.Bones4 = NewAnimSkeleton.IDENTITY_MATRICES;
-                GFX.FlverShader.Effect.Bones5 = NewAnimSkeleton.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones0 = NewAnimSkeleton_FLVER.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones1 = NewAnimSkeleton_FLVER.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones2 = NewAnimSkeleton_FLVER.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones3 = NewAnimSkeleton_FLVER.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones4 = NewAnimSkeleton_FLVER.IDENTITY_MATRICES;
+                GFX.FlverShader.Effect.Bones5 = NewAnimSkeleton_FLVER.IDENTITY_MATRICES;
             }
 
             GFX.FlverShader.Effect.EnableSkinning = EnableSkinning;
@@ -665,7 +712,7 @@ namespace DSAnimStudio
             if (IsVisible && MainMesh != null)
             {
                 MainMesh.DrawMask = DrawMask;
-                MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, Skeleton);
+                MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, SkeletonFlver);
             }
             
             if (ChrAsm != null)
@@ -678,7 +725,7 @@ namespace DSAnimStudio
         {
             DbgPrimDrawer?.Dispose();
             ChrAsm?.Dispose();
-            Skeleton = null;
+            SkeletonFlver = null;
             AnimContainer = null;
             MainMesh?.Dispose();
             // Do not need to dispose DummyPolyMan because it goes 

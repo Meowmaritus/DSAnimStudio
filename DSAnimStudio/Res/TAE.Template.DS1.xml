@@ -323,7 +323,7 @@
       <s32 name="DummyPolyID"/>
       <s32 name="SlotNumber"/>
     </event>
-    <event id="130" name="PlaySound_ByDummyPolyEX">
+    <event id="130" name="PlaySound_ByDummyPoly_PlayerVoice">
       <s32 name="SoundType">
         <entry value="0" name="0: (a) Environment"/>
         <entry value="1" name="1: (c) Character"/>

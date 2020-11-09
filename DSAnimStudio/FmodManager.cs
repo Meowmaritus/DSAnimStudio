@@ -282,7 +282,7 @@ namespace DSAnimStudio
         
         public static IReadOnlyList<string> LoadedFEVs => _loadedFEVs;
 
-        private static bool LoadFEV(string fullFevPath)
+        public static bool LoadFEV(string fullFevPath)
         {
             if (!initialised)
                 return false;
@@ -343,7 +343,7 @@ namespace DSAnimStudio
         /// </summary>
         /// <param name="fevNameAfterPrefix"></param>
         /// <returns></returns>
-        private static string GetFevPathFromInterroot(string name, bool isDs1Dlc = false)
+        public static string GetFevPathFromInterroot(string name, bool isDs1Dlc = false)
         {
             if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
                 GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)

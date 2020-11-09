@@ -22,7 +22,7 @@ namespace DSAnimStudio
 
         private int[] TransformTrackIndexToHkxBoneMap => data_interleaved.TransformTrackIndexToHkxBoneMap;
 
-        public NewHavokAnimation_InterleavedUncompressed(string name, NewAnimSkeleton skeleton, 
+        public NewHavokAnimation_InterleavedUncompressed(string name, NewAnimSkeleton_HKX skeleton, 
             HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding, HKX.HKAInterleavedUncompressedAnimation anim, NewAnimationContainer container)
             : base(new HavokAnimationData_InterleavedUncompressed(name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), skeleton, container)
         {

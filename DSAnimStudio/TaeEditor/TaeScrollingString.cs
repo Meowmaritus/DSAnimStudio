@@ -115,7 +115,7 @@ namespace DSAnimStudio.TaeEditor
 
 
             Vector2 textPos = new Vector2(ScrollingSnapsToPixels ? (float)Math.Round(-Scroll) : -Scroll,
-                    (float)Math.Round(((rect.Height / Main.DPIY) / 2f) - font.LineSpacing / 2f + 1));
+                    5);
 
             sb.End(); // not in finally {} because it is a restart so it has finally { sb.Begin(...) }
             try

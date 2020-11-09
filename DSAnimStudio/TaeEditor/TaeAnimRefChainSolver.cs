@@ -201,6 +201,9 @@ namespace DSAnimStudio.TaeEditor
 
         public long GetCompositeAnimIDOfAnimInTAE(TAE tae, TAE.Animation anim)
         {
+            if (TaeDict.Count == 1)
+                return anim.ID;
+
             var upper = GetTAEID(tae);
             var lower = anim.ID;
 
@@ -215,7 +218,7 @@ namespace DSAnimStudio.TaeEditor
 
                 if (importAnim.Anim != null && enableReferences)
                 {
-                    return GetReferencedAnimCompositeID(GetTAE(importAnim.UpperID), importAnim.Anim, ignoreMultiTAE, true);
+                    return GetReferencedAnimCompositeID(TaeDict.Count == 1 ? TaeDict.First().Value : GetTAE(importAnim.UpperID), importAnim.Anim, ignoreMultiTAE, true);
                 }
             }
             else if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)

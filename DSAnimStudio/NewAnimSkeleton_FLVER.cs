@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio
 {
-    public class NewAnimSkeleton
+    public class NewAnimSkeleton_FLVER
     {
         public bool BoneLimitExceeded => FlverSkeleton.Count > MaxBoneCount;
 
@@ -41,7 +41,7 @@ namespace DSAnimStudio
 
         public static Matrix[] IDENTITY_MATRICES = new Matrix[GFXShaders.FlverShader.MaxBonePerMatrixArray];
 
-        static NewAnimSkeleton()
+        static NewAnimSkeleton_FLVER()
         {
             for (int i = 0; i < GFXShaders.FlverShader.MaxBonePerMatrixArray; i++)
             {
@@ -57,12 +57,8 @@ namespace DSAnimStudio
         }
 
         public List<FlverBoneInfo> FlverSkeleton = new List<FlverBoneInfo>();
-        public List<HkxBoneInfo> HkxSkeleton = new List<HkxBoneInfo>();
 
-        public List<int> TopLevelHkxBoneIndices = new List<int>();
         public List<int> TopLevelFlverBoneIndices = new List<int>();
-
-        public HKX.HKASkeleton OriginalHavokSkeleton = null;
 
         public readonly Model MODEL;
 
@@ -72,7 +68,9 @@ namespace DSAnimStudio
         private static DbgPrimWireArrow DebugDrawTransformOfFlverBonePrim;
         private static StatusPrinter DebugDrawTransformOfFlverBoneTextDrawer;
 
-        public NewAnimSkeleton(Model mdl, List<FLVER.Bone> flverBones)
+        public NewAnimSkeleton_HKX HavokSkeletonThisIsMappedTo { get; private set; } = null;
+
+        public NewAnimSkeleton_FLVER(Model mdl, List<FLVER.Bone> flverBones)
         {
             MODEL = mdl;
 
@@ -139,161 +137,6 @@ namespace DSAnimStudio
                 ShaderMatrices3_RefPose[i] = Matrix.Identity;
                 ShaderMatrices4_RefPose[i] = Matrix.Identity;
                 ShaderMatrices5_RefPose[i] = Matrix.Identity;
-            }
-        }
-
-        public void LoadHKXSkeleton(HKX.HKASkeleton skeleton)
-        {
-            OriginalHavokSkeleton = skeleton;
-            HkxSkeleton.Clear();
-            TopLevelHkxBoneIndices.Clear();
-            for (int i = 0; i < skeleton.Bones.Size; i++)
-            {
-                var newHkxBone = new HkxBoneInfo();
-                newHkxBone.Name = skeleton.Bones[i].Name.GetString();
-                newHkxBone.ParentIndex = skeleton.ParentIndices[i].data;
-
-                newHkxBone.RelativeReferenceTransform = new NewBlendableTransform()
-                {
-                    Translation = new System.Numerics.Vector3(
-                        skeleton.Transforms[i].Position.Vector.X,
-                        skeleton.Transforms[i].Position.Vector.Y,
-                        skeleton.Transforms[i].Position.Vector.Z),
-                    Rotation = new System.Numerics.Quaternion(
-                        skeleton.Transforms[i].Rotation.Vector.X,
-                        skeleton.Transforms[i].Rotation.Vector.Y,
-                        skeleton.Transforms[i].Rotation.Vector.Z,
-                        skeleton.Transforms[i].Rotation.Vector.W),
-                    Scale = new System.Numerics.Vector3(
-                        skeleton.Transforms[i].Scale.Vector.X,
-                        skeleton.Transforms[i].Scale.Vector.Y,
-                        skeleton.Transforms[i].Scale.Vector.Z),
-                };
-
-                newHkxBone.RelativeReferenceMatrix =
-                    Matrix.CreateScale(new Vector3(
-                        skeleton.Transforms[i].Scale.Vector.X,
-                        skeleton.Transforms[i].Scale.Vector.Y,
-                        skeleton.Transforms[i].Scale.Vector.Z))
-                    * Matrix.CreateFromQuaternion(new Quaternion(
-                        skeleton.Transforms[i].Rotation.Vector.X,
-                        skeleton.Transforms[i].Rotation.Vector.Y,
-                        skeleton.Transforms[i].Rotation.Vector.Z,
-                        skeleton.Transforms[i].Rotation.Vector.W))
-                    * Matrix.CreateTranslation(new Vector3(
-                        skeleton.Transforms[i].Position.Vector.X,
-                        skeleton.Transforms[i].Position.Vector.Y,
-                        skeleton.Transforms[i].Position.Vector.Z));
-
-                for (int j = 0; j < FlverSkeleton.Count; j++)
-                {
-                    if (FlverSkeleton[j].Name == newHkxBone.Name)
-                    {
-                        FlverSkeleton[j].HkxBoneIndex = i;
-                        newHkxBone.FlverBoneIndex = j;
-                        break;
-                    }
-                }
-
-                HkxSkeleton.Add(newHkxBone);
-            }
-
-            Matrix GetAbsoluteReferenceMatrix(int i)
-            {
-                Matrix result = Matrix.Identity;
-
-                do
-                {
-                    result *= HkxSkeleton[i].RelativeReferenceMatrix;
-                    i = HkxSkeleton[i].ParentIndex;
-                }
-                while (i >= 0);
-
-                return result;
-            }
-
-            var flverDeadBonesToApplyHkxChildrenTo = new Dictionary<int, int>();
-
-            for (int i = 0; i < HkxSkeleton.Count; i++)
-            {
-                HkxSkeleton[i].ReferenceMatrix = GetAbsoluteReferenceMatrix(i);
-                for (int j = 0; j < HkxSkeleton.Count; j++)
-                {
-                    if (HkxSkeleton[j].ParentIndex == i)
-                    {
-                        HkxSkeleton[i].ChildIndices.Add(j);
-                    }
-                }
-                if (HkxSkeleton[i].ParentIndex < 0)
-                    TopLevelHkxBoneIndices.Add(i);
-
-                if (HkxSkeleton[i].FlverBoneIndex == -1)
-                {
-                    HkxSkeleton[i].FlverBoneIndex = FlverSkeleton.Count;
-                    var newFlverBone = new FlverBoneInfo(HkxSkeleton[i], HkxSkeleton, FlverSkeleton);
-                    FlverSkeleton.Add(newFlverBone);
-                    if (!flverDeadBonesToApplyHkxChildrenTo.ContainsKey(HkxSkeleton[i].FlverBoneIndex))
-                    {
-                        flverDeadBonesToApplyHkxChildrenTo.Add(HkxSkeleton[i].FlverBoneIndex, i);
-                    }
-                }
-                else if (FlverSkeleton[HkxSkeleton[i].FlverBoneIndex].IsNub)
-                {
-                    FlverSkeleton[HkxSkeleton[i].FlverBoneIndex].ApplyHkxBoneProperties(HkxSkeleton[i], HkxSkeleton, FlverSkeleton);
-                    if (!flverDeadBonesToApplyHkxChildrenTo.ContainsKey(HkxSkeleton[i].FlverBoneIndex))
-                    {
-                        flverDeadBonesToApplyHkxChildrenTo.Add(HkxSkeleton[i].FlverBoneIndex, i);
-                    }
-                }
-
-                foreach (var kvp in flverDeadBonesToApplyHkxChildrenTo)
-                {
-                    FlverSkeleton[kvp.Key].ChildBones.Clear();
-                    var copyFromHkx = HkxSkeleton[kvp.Value];
-                    foreach (var ci in copyFromHkx.ChildIndices)
-                    {
-                        if (ci >= 0 && ci < HkxSkeleton.Count)
-                        {
-                            var matchingFlverChildBone = FlverSkeleton.FirstOrDefault(b => b.Name == HkxSkeleton[ci].Name);
-                            if (matchingFlverChildBone != null && !FlverSkeleton[kvp.Key].ChildBones.Contains(matchingFlverChildBone))
-                            {
-                                FlverSkeleton[kvp.Key].ChildBones.Add(matchingFlverChildBone);
-                            }
-                        }
-                    }
-
-                    if (HkxSkeleton[kvp.Value].ParentIndex >= 0 && HkxSkeleton[kvp.Value].ParentIndex < HkxSkeleton.Count)
-                    {
-                        var matchingFlverParentBone = FlverSkeleton.FirstOrDefault(b => b.Name == HkxSkeleton[HkxSkeleton[kvp.Value].ParentIndex].Name);
-                        if (matchingFlverParentBone != null && !matchingFlverParentBone.ChildBones.Contains(FlverSkeleton[kvp.Key]))
-                        {
-                            matchingFlverParentBone.ChildBones.Add(FlverSkeleton[kvp.Key]);
-                        }
-                    }
-
-                    
-
-                }
-            }
-        }
-
-        public void ClearHkxBoneMatrices()
-        {
-            foreach (var h in HkxSkeleton)
-            {
-                if (h.FlverBoneIndex >= 0)
-                {
-                    this[h.FlverBoneIndex] = Matrix.Identity;
-                }
-            }
-        }
-
-        public void SetHkxBoneMatrix(int hkxBoneIndex, Matrix m)
-        {
-            int flverBoneIndex = HkxSkeleton[hkxBoneIndex].FlverBoneIndex;
-            if (flverBoneIndex >= 0)
-            {
-                this[flverBoneIndex] = Matrix.Invert(FlverSkeleton[flverBoneIndex].ReferenceMatrix) * m;
             }
         }
 
@@ -434,6 +277,38 @@ namespace DSAnimStudio
             }
         }
 
+        public void MapToSkeleton(NewAnimSkeleton_HKX skel, bool isRemo)
+        {
+            //if (MODEL.Name.StartsWith("o"))
+            //{
+            //    Console.WriteLine("test");
+            //}
+
+            for (int i = 0; i < FlverSkeleton.Count; i++)
+            {
+                var bone = FlverSkeleton[i];
+                string hkxBoneName = isRemo ? ((bone.Name.ToUpper() == "MASTER" || i == 0) ? MODEL.Name : $"{MODEL.Name}_{bone.Name}") : bone.Name;
+                int boneIndex = skel.HkxSkeleton.FindIndex(b => b.Name == hkxBoneName);
+                bone.HkxBoneIndex = boneIndex;
+            }
+            HavokSkeletonThisIsMappedTo = skel;
+        }
+
+        public void CopyFromHavokSkeleton()
+        {
+            if (HavokSkeletonThisIsMappedTo == null)
+                return;
+
+            for (int i = 0; i < FlverSkeleton.Count; i++)
+            {
+                int hkxBoneIndex = FlverSkeleton[i].HkxBoneIndex;
+                if (hkxBoneIndex >= 0 && hkxBoneIndex < HavokSkeletonThisIsMappedTo.HkxSkeleton.Count)
+                {
+                    this[i] = Matrix.Invert(FlverSkeleton[i].ReferenceMatrix) * HavokSkeletonThisIsMappedTo.HkxSkeleton[hkxBoneIndex].CurrentMatrix;
+                }
+            }
+        }
+
         public class FlverBoneInfo
         {
             public string Name;
@@ -459,7 +334,7 @@ namespace DSAnimStudio
 
             public bool EnablePrimDraw = true;
 
-            public void ApplyHkxBoneProperties(HkxBoneInfo copyFromHkx, List<HkxBoneInfo> hkxBoneList, List<FlverBoneInfo> flverBoneList)
+            public void ApplyHkxBoneProperties(NewAnimSkeleton_HKX.HkxBoneInfo copyFromHkx, List<NewAnimSkeleton_HKX.HkxBoneInfo> hkxBoneList, List<FlverBoneInfo> flverBoneList)
             {
                 Name = copyFromHkx.Name;
                 ParentReferenceMatrix = copyFromHkx.ReferenceMatrix * Matrix.Invert(copyFromHkx.RelativeReferenceMatrix);
@@ -482,7 +357,7 @@ namespace DSAnimStudio
                 }
             }
 
-            public FlverBoneInfo(HkxBoneInfo copyFromHkx, List<HkxBoneInfo> hkxBoneList, List<FlverBoneInfo> flverBoneList)
+            public FlverBoneInfo(NewAnimSkeleton_HKX.HkxBoneInfo copyFromHkx, List<NewAnimSkeleton_HKX.HkxBoneInfo> hkxBoneList, List<FlverBoneInfo> flverBoneList)
             {
                 ApplyHkxBoneProperties(copyFromHkx, hkxBoneList, flverBoneList);
 
@@ -636,16 +511,6 @@ namespace DSAnimStudio
             }
         }
 
-        public class HkxBoneInfo
-        {
-            public string Name;
-            public short ParentIndex = -1;
-            public Matrix RelativeReferenceMatrix = Matrix.Identity;
-            public NewBlendableTransform RelativeReferenceTransform = NewBlendableTransform.Identity;
-            public Matrix ReferenceMatrix = Matrix.Identity;
-            public int FlverBoneIndex = -1;
-            public List<int> ChildIndices = new List<int>();
-            public NewBlendableTransform CurrentHavokTransform = NewBlendableTransform.Identity;
-        }
+        
     }
 }

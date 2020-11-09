@@ -76,7 +76,7 @@ namespace DSAnimStudio
                     if (DmyPoly1 == -1)
                         return new List<Matrix>() { Matrix.Identity };
 
-                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.CurrentRootMotionRotation * mdl.CurrentRootMotionTranslation);
+                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.AnimContainer.Skeleton.CurrentRootMotionRotation * mdl.AnimContainer.Skeleton.CurrentRootMotionTranslation);
 
                     if (mdl.ChrAsm == null)
                         return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly1, modMatrix) ?? new List<Matrix>() { modMatrix };
@@ -97,7 +97,7 @@ namespace DSAnimStudio
                     if (DmyPoly2 == -1)
                         return new List<Matrix>() { Matrix.Identity };
 
-                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.CurrentRootMotionRotation * mdl.CurrentRootMotionTranslation);
+                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.AnimContainer.Skeleton.CurrentRootMotionRotation * mdl.AnimContainer.Skeleton.CurrentRootMotionTranslation);
 
                     if (mdl.ChrAsm == null)
                         return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly2, modMatrix) ?? new List<Matrix>() { modMatrix };

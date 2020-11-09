@@ -183,7 +183,11 @@ namespace DSAnimStudio.TaeEditor
                     {
                         GetName = () =>
                         {
-                            if (GameDataManager.GameTypeHasLongAnimIDs)
+                            if (MainScreen.Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
+                            {
+                                return anim.ID < 1_0000 ? $"a{anim.ID:D4}" : $"[{anim.ID}]";
+                            }
+                            else if (GameDataManager.GameTypeHasLongAnimIDs)
                             {
                                 bool ds2Meme = GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YY_ZZZZ;
                                 string res = ds2Meme ? $"a{(animID_Upper):D2}_{animID_Lower:D6}" : 

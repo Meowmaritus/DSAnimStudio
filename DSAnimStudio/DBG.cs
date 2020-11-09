@@ -303,6 +303,12 @@ namespace DSAnimStudio
                 //FmodManager.DbgPrimCamPos.Draw(null, Matrix.Identity);
             }
 
+            var mdls = Scene.Models.ToList();
+            foreach (var m in mdls)
+            {
+                m.DrawRemoPrims();
+            }
+
             //GFX.SpriteBatchBeginForText();
 
                 //GFX.World.DbgPrintA.Draw();

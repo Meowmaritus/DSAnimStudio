@@ -145,7 +145,7 @@ namespace DSAnimStudio
         public NewMesh FaceMesh = null;
         public NewMesh FacegenMesh = null;
 
-        public NewAnimSkeleton Skeleton { get; private set; } = null;
+        public NewAnimSkeleton_FLVER Skeleton { get; private set; } = null;
 
         public int RightWeaponBoneIndex = -1;
         private Model _rightWeaponModel0 = null;
@@ -443,9 +443,9 @@ namespace DSAnimStudio
                             (backward ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                             * (sideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
                             * absoluteWeaponTransform
-                            * ((MODEL.AnimContainer?.EnableRootMotion == true) ? (MODEL.CurrentRootMotionRotation * MODEL.CurrentRootMotionTranslation) : Matrix.Identity));
+                            * ((MODEL.AnimContainer?.EnableRootMotion == true) ? (MODEL.AnimContainer.Skeleton.CurrentRootMotionRotation * MODEL.AnimContainer.Skeleton.CurrentRootMotionTranslation) : Matrix.Identity));
 
-                    wpnMdl.CurrentRootMotionTranslation = Matrix.Identity;
+                    wpnMdl.AnimContainer.Skeleton.CurrentRootMotionTranslation = Matrix.Identity;
 
                     wpnMdl.AfterAnimUpdate(timeDelta, ignorePosWrap: true);
                 }
@@ -481,9 +481,9 @@ namespace DSAnimStudio
                 if (wpnMdl == null)
                     return;
 
-                if (wpnMdl.Skeleton?.OriginalHavokSkeleton == null)
+                if (wpnMdl.AnimContainer.Skeleton?.OriginalHavokSkeleton == null)
                 {
-                    wpnMdl.Skeleton?.RevertToReferencePose();
+                    wpnMdl.SkeletonFlver?.RevertToReferencePose();
                 }
 
 
@@ -543,7 +543,7 @@ namespace DSAnimStudio
             DoWPN(LeftWeaponModel3);
         }
 
-        public void InitSkeleton(NewAnimSkeleton skeleton)
+        public void InitSkeleton(NewAnimSkeleton_FLVER skeleton)
         {
             Skeleton = skeleton;
             boneIndexRemap = new Dictionary<string, int>();
@@ -1086,7 +1086,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newRightWeaponModel0.IS_PLAYER = true;
                                     newRightWeaponModel0.IS_PLAYER_WEAPON = true;
                                     newRightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 10000;
                                     newRightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 0 - ";
@@ -1100,7 +1099,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newRightWeaponModel1.IS_PLAYER = true;
                                     newRightWeaponModel1.IS_PLAYER_WEAPON = true;
                                     newRightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 11000;
                                     newRightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 1 - ";
@@ -1114,7 +1112,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newRightWeaponModel2.IS_PLAYER = true;
                                     newRightWeaponModel2.IS_PLAYER_WEAPON = true;
                                     newRightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 12000;
                                     newRightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 2 - ";
@@ -1128,7 +1125,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newRightWeaponModel3.IS_PLAYER = true;
                                     newRightWeaponModel3.IS_PLAYER_WEAPON = true;
                                     newRightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 13000;
                                     newRightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 3 - ";
@@ -1227,7 +1223,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newLeftWeaponModel0.IS_PLAYER = true;
                                     newLeftWeaponModel0.IS_PLAYER_WEAPON = true;
                                     newLeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 20000;
                                     newLeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 0 - ";
@@ -1241,7 +1236,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newLeftWeaponModel1.IS_PLAYER = true;
                                     newLeftWeaponModel1.IS_PLAYER_WEAPON = true;
                                     newLeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 21000;
                                     newLeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 1 - ";
@@ -1255,7 +1249,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newLeftWeaponModel2.IS_PLAYER = true;
                                     newLeftWeaponModel2.IS_PLAYER_WEAPON = true;
                                     newLeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 22000;
                                     newLeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 2 - ";
@@ -1269,7 +1262,6 @@ namespace DSAnimStudio
                                 }
                                 else
                                 {
-                                    newLeftWeaponModel3.IS_PLAYER = true;
                                     newLeftWeaponModel3.IS_PLAYER_WEAPON = true;
                                     newLeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 23000;
                                     newLeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 3 - ";

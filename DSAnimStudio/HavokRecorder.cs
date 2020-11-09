@@ -27,7 +27,7 @@ namespace DSAnimStudio
         public double FrameRate = 60;
         public double DeltaTime => 1.0 / FrameRate;
 
-        public HavokRecorder(List<NewAnimSkeleton.HkxBoneInfo> boneTransforms)
+        public HavokRecorder(List<NewAnimSkeleton_HKX.HkxBoneInfo> boneTransforms)
         {
             foreach (var transform in boneTransforms)
             {
@@ -40,7 +40,7 @@ namespace DSAnimStudio
             Frames.Clear();
         }
 
-        public void AddFrame(Vector4 rootMotionDelta, List<NewAnimSkeleton.HkxBoneInfo> boneTransforms)
+        public void AddFrame(Vector4 rootMotionDelta, List<NewAnimSkeleton_HKX.HkxBoneInfo> boneTransforms)
         {
             var frame = new HavokFrame();
             frame.RootMotion = (Frames.Count > 0 ? Frames[Frames.Count - 1].RootMotion : Vector4.Zero) + rootMotionDelta;

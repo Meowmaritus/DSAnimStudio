@@ -3,6 +3,7 @@ using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -12,7 +13,8 @@ namespace DSAnimStudio.TaeEditor
         {
             TAE,
             ANIBND,
-            OBJBND
+            OBJBND,
+            REMOBND
         }
 
         private string filePath;
@@ -117,6 +119,7 @@ namespace DSAnimStudio.TaeEditor
 
         public static readonly string DefaultSaveFilter = 
             "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
+            "Cutscene Container (*.REMOBND[.DCX]) |*.REMOBND*|" +
             "Object Container (*.OBJBND[.DCX]) |*.OBJBND*|" +
             "Loose TimeAct File (*.TAE) |*.TAE|" +
             "All Files|*.*";
@@ -243,7 +246,7 @@ namespace DSAnimStudio.TaeEditor
             return (tae, anim.Anim);
         }
 
-        private void CheckGameVersionForTaeInterop(string internalFilePath)
+        private void CheckGameVersionForTaeInterop(string internalFilePath, bool isRemo)
         {
             var check = internalFilePath.ToUpper();
             string interroot = GameDataManager.GetInterrootFromFilePath(filePath);
@@ -251,11 +254,11 @@ namespace DSAnimStudio.TaeEditor
             {
                 GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS2SOTFS, interroot);
             }
-            else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXX64"))
+            else if ((check.Contains(@"\FRPG\") && check.Contains(@"HKXX64")) || (check.Contains(@"TAENEW\X64") && isRemo))
             {
                 GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS1R, interroot);
             }
-            else if (check.Contains(@"\FRPG\") && check.Contains(@"HKXWIN32"))
+            else if ((check.Contains(@"\FRPG\") && check.Contains(@"HKXWIN32")) || (check.Contains(@"TAENEW\WIN32") && isRemo))
             {
                 GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS1, interroot);
             }
@@ -283,6 +286,9 @@ namespace DSAnimStudio.TaeEditor
 
             filePath = file;
 
+            string fileTypeCheck = Path.GetFileName(filePath).ToUpper();
+            bool isRemo = fileTypeCheck.Contains(".REMOBND");
+
             containerANIBND = null;
             containerANIBND_2010 = null;
             containerANIBND_2010_IsModified = false;
@@ -302,7 +308,7 @@ namespace DSAnimStudio.TaeEditor
             }
             else if (TAE.Is(file))
             {
-                CheckGameVersionForTaeInterop(file);
+                CheckGameVersionForTaeInterop(file, false);
 
                 ContainerType = TaeFileContainerType.TAE;
                 var t = TAE.Read(file);
@@ -363,7 +369,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         innerProgress.Report(++i / containerANIBND.Files.Count);
 
-                        CheckGameVersionForTaeInterop(f.Name);
+                        CheckGameVersionForTaeInterop(f.Name, isRemo);
                         if (BND3.Is(f.Bytes))
                         {
                             ContainerType = TaeFileContainerType.OBJBND;
@@ -404,7 +410,7 @@ namespace DSAnimStudio.TaeEditor
                         {
                             innerProgress.Report(++i / containerANIBND.Files.Count);
 
-                            CheckGameVersionForTaeInterop(f.Name);
+                            CheckGameVersionForTaeInterop(f.Name, isRemo);
                             if (TAE.Is(f.Bytes))
                             {
                                 if (!taeInBND.ContainsKey(f.Name))

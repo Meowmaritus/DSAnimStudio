@@ -95,7 +95,7 @@ namespace DSAnimStudio.ImguiOSD
                             {
                                 GameDataManager.ReloadParams();
                                 GameDataManager.ReloadFmgs();
-                                Tae.Graph.ViewportInteractor.RescanNpcParams();
+                                Tae.Graph.ViewportInteractor.CurrentModel.RescanNpcParams();
                                 Tae.Graph.ViewportInteractor.OnScrubFrameChange();
                             }, disableProgressBarByDefault: true);
                     }
@@ -148,11 +148,11 @@ namespace DSAnimStudio.ImguiOSD
                         {
                             if (ImGui.BeginMenu("Select NpcParam"))
                             {
-                                foreach (var npc in Tae.Graph.ViewportInteractor.PossibleNpcParams)
+                                foreach (var npc in Tae.Graph.ViewportInteractor.CurrentModel.PossibleNpcParams)
                                 {
                                     if (ClickItem(npc.GetDisplayName(), shortcut: npc.GetMaskString(
-                                        Tae.Graph.ViewportInteractor.NpcMaterialNamesPerMask,
-                                        Tae.Graph.ViewportInteractor.NpcMasksEnabledOnAllNpcParams)))
+                                        Tae.Graph.ViewportInteractor.CurrentModel.NpcMaterialNamesPerMask,
+                                        Tae.Graph.ViewportInteractor.CurrentModel.NpcMasksEnabledOnAllNpcParams)))
                                     {
                                         Tae.Graph.ViewportInteractor.CurrentModel.NpcParam = npc;
                                         npc.ApplyToNpcModel(Tae.Graph.ViewportInteractor.CurrentModel);
@@ -188,6 +188,7 @@ namespace DSAnimStudio.ImguiOSD
                     }
                     break;
                 case TaeEditor.TaeViewportInteractor.TaeEntityType.PC:
+                case TaeEditor.TaeViewportInteractor.TaeEntityType.REMO:
                     ImGui.PushStyleColor(ImGuiCol.Text, Color.Cyan.ToNVector4());
                     bool pcSettings = ImGui.BeginMenu("Player Settings");
                     ImGui.PopStyleColor();
@@ -610,7 +611,8 @@ namespace DSAnimStudio.ImguiOSD
                 if (char.IsDigit(c))
                     sb.Append(c);
             }
-            return int.Parse(sb.ToString());
+            string final = sb.ToString();
+            return string.IsNullOrWhiteSpace(final) ? -1 : int.Parse(sb.ToString());
         }
 
         public static bool Checkbox(string text, bool currentValue, bool enabled = true,

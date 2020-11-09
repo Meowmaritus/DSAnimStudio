@@ -505,11 +505,11 @@ namespace DSAnimStudio.ImguiOSD
 
                     if (ImGui.TreeNode("[Skeleton]"))
                     {
-                        if (Scene.IsModelLoaded && Scene.MainModel.Skeleton != null)
+                        if (Scene.IsModelLoaded && Scene.MainModel.SkeletonFlver != null)
                         {
 
 
-                            void DoBone(NewAnimSkeleton skeleton, NewAnimSkeleton.FlverBoneInfo bone)
+                            void DoBone(NewAnimSkeleton_FLVER skeleton, NewAnimSkeleton_FLVER.FlverBoneInfo bone)
                             {
                                 int boneIndex = skeleton.FlverSkeleton.IndexOf(bone);
 
@@ -518,7 +518,7 @@ namespace DSAnimStudio.ImguiOSD
                                 if (OSD.RequestExpandAllTreeNodes)
                                     ImGui.SetNextItemOpen(true);
 
-                                bool thisBoneHighlighted = NewAnimSkeleton.DebugDrawTransformOfFlverBoneIndex == boneIndex;
+                                bool thisBoneHighlighted = NewAnimSkeleton_FLVER.DebugDrawTransformOfFlverBoneIndex == boneIndex;
 
                                 if (thisBoneHighlighted)
                                     ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0, 1, 1, 1));
@@ -536,7 +536,7 @@ namespace DSAnimStudio.ImguiOSD
 
                                 if (ImGui.IsItemHovered())
                                 {
-                                    NewAnimSkeleton.DebugDrawTransformOfFlverBoneIndex = boneIndex;
+                                    NewAnimSkeleton_FLVER.DebugDrawTransformOfFlverBoneIndex = boneIndex;
                                     thisFrameHover_Bone = true;
                                 }
 
@@ -569,25 +569,25 @@ namespace DSAnimStudio.ImguiOSD
 
                             ImGui.Button("Show All");
                             if (ImGui.IsItemClicked())
-                                foreach (var b in Scene.MainModel.Skeleton.FlverSkeleton)
+                                foreach (var b in Scene.MainModel.SkeletonFlver.FlverSkeleton)
                                     b.EnablePrimDraw = true;
 
                             ImGui.Button("Hide All");
                             if (ImGui.IsItemClicked())
-                                foreach (var b in Scene.MainModel.Skeleton.FlverSkeleton)
+                                foreach (var b in Scene.MainModel.SkeletonFlver.FlverSkeleton)
                                     b.EnablePrimDraw = false;
 
                             ImGui.Button("Invert All");
                             if (ImGui.IsItemClicked())
-                                foreach (var b in Scene.MainModel.Skeleton.FlverSkeleton)
+                                foreach (var b in Scene.MainModel.SkeletonFlver.FlverSkeleton)
                                     b.EnablePrimDraw = !b.EnablePrimDraw;
 
-                            foreach (var rootIndex in Scene.MainModel.Skeleton.TopLevelFlverBoneIndices)
-                                DoBone(Scene.MainModel.Skeleton, Scene.MainModel.Skeleton.FlverSkeleton[rootIndex]);
+                            foreach (var rootIndex in Scene.MainModel.SkeletonFlver.TopLevelFlverBoneIndices)
+                                DoBone(Scene.MainModel.SkeletonFlver, Scene.MainModel.SkeletonFlver.FlverSkeleton[rootIndex]);
 
 
                             if (!thisFrameHover_Bone)
-                                NewAnimSkeleton.DebugDrawTransformOfFlverBoneIndex = -1;
+                                NewAnimSkeleton_FLVER.DebugDrawTransformOfFlverBoneIndex = -1;
                         }
 
 
@@ -599,7 +599,7 @@ namespace DSAnimStudio.ImguiOSD
                         NewDummyPolyManager.GlobalForceDummyPolyIDVisible = -2;
 
                     if (thisFrameHover_DummyPoly)
-                        NewAnimSkeleton.DebugDrawTransformOfFlverBoneIndex = -2;
+                        NewAnimSkeleton_FLVER.DebugDrawTransformOfFlverBoneIndex = -2;
                 }
 
 

@@ -430,7 +430,7 @@ namespace DSAnimStudio
                     * refBoneMatrix;
             }
 
-            public DummyPolyInfo(FLVER.Dummy dmy, NewAnimSkeleton skeleton)
+            public DummyPolyInfo(FLVER.Dummy dmy, NewAnimSkeleton_FLVER skeleton)
             {
                 dummy = dmy;
                 ReferenceID = dmy.ReferenceID;
@@ -1027,7 +1027,7 @@ namespace DSAnimStudio
         {
             lock (_lock_everything_monkaS)
             {
-                var di = new DummyPolyInfo(dmy, MODEL.Skeleton);
+                var di = new DummyPolyInfo(dmy, MODEL.SkeletonFlver);
                 DummyPoly.Add(di);
 
                 if (!_dummyPolyByRefID.ContainsKey(dmy.ReferenceID))

@@ -89,7 +89,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void Draw(int lod, bool motionBlur, bool forceNoBackfaceCulling, bool isSkyboxLol, NewAnimSkeleton skeleton = null)
+        public void Draw(int lod, bool motionBlur, bool forceNoBackfaceCulling, bool isSkyboxLol, NewAnimSkeleton_FLVER skeleton = null)
         {
             if (TextureReloadQueued)
             {

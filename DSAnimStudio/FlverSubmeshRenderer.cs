@@ -1000,7 +1000,7 @@ namespace DSAnimStudio
                 TexDataDOL2 = TexturePool.FetchTexture2D(TexNameDOL2);
         }
 
-        public void Draw(int lod, bool motionBlur, bool[] mask, bool forceNoBackfaceCulling, NewAnimSkeleton skeleton)
+        public void Draw(int lod, bool motionBlur, bool[] mask, bool forceNoBackfaceCulling, NewAnimSkeleton_FLVER skeleton)
         {
             if (!IsVisible)
                 return;

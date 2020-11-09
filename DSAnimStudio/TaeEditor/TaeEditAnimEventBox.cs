@@ -16,6 +16,9 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsActive => OwnerPane != null && OwnerPane.AnimRef == AnimMyEventIsFor;
 
+        public TAE.EventGroup MyEventGroup => AnimMyEventIsFor.EventGroups.FirstOrDefault(
+                    gr => gr.Indices.Contains(AnimMyEventIsFor.Events.IndexOf(MyEvent)));
+
 
         public event EventHandler<int> RowChanged;
         private void RaiseRowChanged(int oldRow)
@@ -297,7 +300,7 @@ namespace DSAnimStudio.TaeEditor
             RaiseRowChanged(e);
         }
 
-        public string DispEventName => $"{(MyEvent.TypeName ?? "")}[{MyEvent.Type}]";
+        public string DispEventName => $"{(MyEvent.TypeName ?? "")}[{MyEvent.Type}]\n{GetGroupText()}";
 
         public string GetPopupTitle()
         {
@@ -365,11 +368,45 @@ namespace DSAnimStudio.TaeEditor
             return sb.ToString();
         }
 
+        private string GetGroupText()
+        {
+            var sb = new StringBuilder();
+            var group = MyEventGroup;
+            if (group != null)
+            {
+                int groupIndex = AnimMyEventIsFor.EventGroups.IndexOf(MyEventGroup);
+                sb.Append($"Group{groupIndex}[Type{group.GroupType}] ");
+
+                if (group.GroupData is TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity entitySpecifier)
+                {
+                    if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Character)
+                        sb.Append($"c{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Object)
+                        sb.Append($"o{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.DummyNode)
+                        sb.Append($"d{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.MapPiece)
+                    {
+                        if (entitySpecifier.Block >= 0)
+                            sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{entitySpecifier.Block}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                        else
+                            sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                    }
+
+                    if (entitySpecifier.Block >= 0 || entitySpecifier.Area >= 0)
+                    {
+                        sb.Append($" (from m{entitySpecifier.Area:D2}_{entitySpecifier.Block:D2})");
+                    }
+                }
+            }
+            return sb.ToString();
+        }
+
         public void UpdateEventText()
         {
             if (MyEvent.Template != null)
             {
-                var sb = new StringBuilder($"{DispEventName}(");
+                var sb = new StringBuilder($"{(MyEvent.TypeName ?? "") }[{MyEvent.Type}](");
                 bool first = true;
                 foreach (var kvp in MyEvent.Parameters.Template)
                 {
@@ -384,11 +421,15 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
                 sb.Append(")");
+                sb.AppendLine();
+
+                sb.Append(GetGroupText());
+               
                 EventText.SetText(sb.ToString());
             }
             else
             {
-                EventText.SetText($"{DispEventName}({string.Join(" ", MyEvent.GetParameterBytes(false).Select(b => b.ToString("X2")))})");
+                EventText.SetText($"{(MyEvent.TypeName ?? "") }[{MyEvent.Type}]({string.Join(" ", MyEvent.GetParameterBytes(false).Select(b => b.ToString("X2")))})");
             }
         }
 

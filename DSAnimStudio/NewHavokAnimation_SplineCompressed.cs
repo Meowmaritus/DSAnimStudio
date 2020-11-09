@@ -26,7 +26,7 @@ namespace DSAnimStudio
 
         int CurrentBlock => data_compressed.GetBlock(CurrentFrame);
 
-        public NewHavokAnimation_SplineCompressed(string name, NewAnimSkeleton skeleton, 
+        public NewHavokAnimation_SplineCompressed(string name, NewAnimSkeleton_HKX skeleton, 
             HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding, HKX.HKASplineCompressedAnimation anim, NewAnimationContainer container)
             : base(new HavokAnimationData_SplineCompressed(name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), skeleton, container)
         {
