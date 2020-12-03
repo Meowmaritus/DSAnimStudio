@@ -126,6 +126,9 @@ namespace DSAnimStudio
                     //    TPFReference = null;
                     //}
 
+                    if (TPFReference.Platform == TPF.TPFPlatform.PS3)
+                        tex.Bytes = tex.Headerize();
+
                     return new TextureInfo()
                     {
                         DDSBytes = tex.Bytes,
@@ -353,6 +356,9 @@ namespace DSAnimStudio
             uint fourCC = FourCCDX10;
             int arraySize = texInfo.Texture?.Header?.TextureCount ?? 1;
 
+            if (arraySize < 1)
+                arraySize = 1;
+
             DDS ppDdsHeader_ForDebug = null;
 
             bool hasFullCubeDDSCaps2 = false;
@@ -486,7 +492,7 @@ namespace DSAnimStudio
             bool mipmaps = mipmapCount > 0;
 
             // apply memes
-            if (texInfo.Platform == TPF.TPFPlatform.PC)
+            if (texInfo.Platform == TPF.TPFPlatform.PC || texInfo.Platform == TPF.TPFPlatform.PS3)
             {
                 width = IsCompressedFormat(surfaceFormat) ? ((width + 3) & ~0x3) : width;
                 height = IsCompressedFormat(surfaceFormat) ? ((height + 3) & ~0x3) : height;
@@ -497,10 +503,10 @@ namespace DSAnimStudio
                 width = (int)(Math.Ceiling(width / 4f) * 4f);
                 height = (int)(Math.Ceiling(height / 4f) * 4f);
             }
-            else if (texInfo.Platform == TPF.TPFPlatform.PS3)
-            {
-                throw new NotImplementedException();
-            }
+            //else if (texInfo.Platform == TPF.TPFPlatform.PS3)
+            //{
+            //    throw new NotImplementedException();
+            //}
             else
             {
                 throw new NotImplementedException();
@@ -527,7 +533,7 @@ namespace DSAnimStudio
                     arraySize);
             }
 
-            if (texInfo.Platform == TPF.TPFPlatform.PC)
+            if (texInfo.Platform == TPF.TPFPlatform.PC || texInfo.Platform == TPF.TPFPlatform.PS3)
             {
                 for (int i = 0; i < arraySize; i++)
                 {

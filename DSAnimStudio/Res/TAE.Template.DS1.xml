@@ -99,8 +99,14 @@
       <s16 name="ArgE"/>
     </event>
     <event id="1" name="InvokeAttackBehavior">
-      <s32/>
-      <s32/>
+      <s32 name="AttackType">
+        <entry value="0" name="Standard"/>
+        <entry value="1" name="Unknown_InfestedGhoulJumpSlashDS1"/>
+        <entry value="2" name="ForwardR1"/>
+        <entry value="62" name="PlungingAttack"/>
+        <entry value="64" name="Parry"/>
+      </s32>
+      <s32 name="AttackIndex"/>
       <s32 name="BehaviorJudgeID"/>
     </event>
     <event id="2" name="InvokeBulletBehavior">
@@ -116,10 +122,14 @@
       <s32 name="BehaviorJudgeID"/>
     </event>
     <event id="16" name="Blend"/>
-    <event id="24" name="AnimationQueue">
-      <s32/>
-      <s32/>
-      <s32/>
+    <event id="24" name="QueueTransitionAnimation">
+      <s32 name="Playback Type">
+        <entry value="0" name="0: Wait For Anim End"/>
+        <entry value="1" name="1: Match Playback Time"/>
+        <entry value="2" name="2: Immediate"/>
+      </s32>
+      <s32 name="Destination Anim ID"/>
+      <s32 name="Transition Anim ID"/>
       <s32/>
     </event>
     <!-- For c0000 -->
@@ -453,6 +463,9 @@
       <f32 name="Parameter2"/>
       <s16/>
       <s16 name="StateInfo"/>
+    </event>
+    <event id="301" name="Event301">
+      <s32/>
     </event>
     <event id="302" name="AddSpEffect_DragonForm">
       <s32 name="SpEffectID"/>

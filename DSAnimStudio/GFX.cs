@@ -180,7 +180,7 @@ namespace DSAnimStudio
 
         public static bool UseTonemap = true;
 
-        public static float FlverOpacity = 1.0f;
+        //public static float FlverOpacity = 1.0f;
 
         public static float LdotNPower = 0.1f;
         public static float SpecularPowerMult = 1;
@@ -572,7 +572,7 @@ namespace DSAnimStudio
             FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
             FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
             FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
-            FlverShader.Effect.Opacity = FlverOpacity;
+            FlverShader.Effect.Opacity = 1;
             FlverShader.Effect.Parameters["SpecularPowerMult"].SetValue(SpecularPowerMult);
             FlverShader.Effect.Parameters["LdotNPower"].SetValue(LdotNPower);
 
@@ -643,12 +643,13 @@ namespace DSAnimStudio
                     if (SpriteBatchHasBegun)
                         SpriteBatchEnd();
 
-                    SpriteBatchBeginForText();
+                    //SpriteBatchBeginForText();
 
-                    DBG.DrawOutlinedText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), 
-                        Color.Yellow, DBG.DEBUG_FONT_SIMPLE, 0, new Vector2(hScale, GFX.EffectiveSSAA), Vector2.Zero);
+                    //DBG.DrawOutlinedText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), 
+                    //    Color.Yellow, DBG.DEBUG_FONT_SIMPLE, 0, new Vector2(hScale, GFX.EffectiveSSAA), Vector2.Zero);
 
-                    SpriteBatchEnd();
+                    //SpriteBatchEnd();
+                    ImGuiDebugDrawer.DrawText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), Color.Red, fontSize: 8);
                 }
             }
         }

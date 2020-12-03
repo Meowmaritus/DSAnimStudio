@@ -183,7 +183,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         GetName = () =>
                         {
-                            if (MainScreen.Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
+                            if (MainScreen?.Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
                             {
                                 return anim.ID < 1_0000 ? $"a{anim.ID:D4}" : $"[{anim.ID}]";
                             }

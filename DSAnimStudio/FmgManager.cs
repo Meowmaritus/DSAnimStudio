@@ -98,6 +98,10 @@ namespace DSAnimStudio
                 TryToLoadFromMSGBND("ENGLISH", "item.msgbnd", 11, 12);
                 TryToLoadFromMSGBND("ENGLISH", "menu.msgbnd", 115, 117); //Patch
             }
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+            {
+                TryToLoadFromMSGBND("na_english", "item.msgbnd", 11, 12);
+            }
             else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
             {
                 TryToLoadFromMSGBND("ENGLISH", "item.msgbnd.dcx", 11, 12);

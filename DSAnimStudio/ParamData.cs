@@ -273,6 +273,27 @@ namespace DSAnimStudio
                     Hits[i].Radius = br.ReadSingle();
                 }
 
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                {
+                    br.Position = start + 0x7F;
+                    HitSourceType = br.ReadByte();
+
+                    br.Position = start + 0x80;
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        br.Position = start + 0x80 + (0x10 * i);
+
+                        Hits[i].DmyPoly1 = br.ReadInt16();
+                        Hits[i].DmyPoly2 = br.ReadInt16();
+                        Hits[i].Radius = br.ReadSingle();
+                        Hits[i].HitType = br.ReadEnum8<HitTypes>();
+                    }
+
+                    return;
+                }
+
+
                 //f32 knockbackDist
                 //f32 hitStopTime
 
@@ -513,17 +534,45 @@ namespace DSAnimStudio
 
             public override void Read(BinaryReaderEx br)
             {
+                var start = br.Position; 
+
                 VariationID = br.ReadInt32();
                 BehaviorJudgeID = br.ReadInt32();
                 EzStateBehaviorType_Old = br.ReadByte();
                 RefType = br.ReadEnum8<RefTypes>();
                 br.Position += 2; //dummy8 pad0[2]
-                RefID = br.ReadInt32();
-                SFXVariationID = br.ReadInt32();
-                Stamina = br.ReadInt32();
-                MP = br.ReadInt32();
-                Category = br.ReadByte();
-                HeroPoint = br.ReadByte();
+
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                {
+                    var idAtk = br.ReadInt32();
+                    var idBullet = br.ReadInt32();
+                    var idSpEffect = br.ReadInt32();
+                    if (RefType == RefTypes.Attack)
+                        RefID = idAtk;
+                    else if (RefType == RefTypes.Bullet)
+                        RefID = idBullet;
+                    else if (RefType == RefTypes.SpEffect)
+                        RefID = idSpEffect;
+
+                    SFXVariationID = br.ReadInt32();
+                    Category = br.ReadByte();
+
+                    br.Position = start + 0x2C;
+                    Stamina = br.ReadInt32();
+                    MP = br.ReadInt32();
+                }
+                else
+                {
+                    RefID = br.ReadInt32();
+                    SFXVariationID = br.ReadInt32();
+                    Stamina = br.ReadInt32();
+                    MP = br.ReadInt32();
+                    Category = br.ReadByte();
+                    HeroPoint = br.ReadByte();
+                }
+
+                
+               
             }
         }
 
@@ -657,7 +706,8 @@ namespace DSAnimStudio
 
             public override void Read(BinaryReaderEx br)
             {
-                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R 
+                    || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES) //TODO_DES
                 {
                     br.Position += 0x104;
                     GrabityRate = br.ReadSingle();
@@ -1191,13 +1241,15 @@ namespace DSAnimStudio
                 EquipModelID = br.ReadInt16();
 
                 br.Position = start + 0xD1;
-                EquipModelGender = br.ReadEnum8<EquipModelGenders>();
+
+                EquipModelGender = (EquipModelGenders)br.ReadByte();
 
                 br.Position = start + 0xD8;
 
                 if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
                     GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R ||
-                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB)
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES) //TODO_DES
                 {
                     var firstBitmask = ReadBitmask(br, 6 + 48);
                     //IsDeposit = firstBitmask[0]

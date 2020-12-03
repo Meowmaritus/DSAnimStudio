@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using Microsoft.Xna.Framework;
 using SoulsAssetPipeline.Animation;
+using SoulsAssetPipeline.Animation.SIBCAM;
 using SoulsAssetPipeline.FLVERImporting;
 using SoulsFormats;
 using System;
@@ -31,6 +32,58 @@ namespace DSAnimStudio
                 Scene.MainModel.EnableSkinning = bind;
             }
 
+
+            if (DebugButton("DEMONS SOULS TAE"))
+            {
+                var tae = TAE.Read(@"C:\RPCS3\dev_hdd0\disc\BLUS30443\PS3_GAME\USRDIR\chr\c0000\c0000-anibnd\Model\chr\c0000\tae\a00.tae");
+
+                Console.WriteLine("FATCAT");
+            }
+
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+
+            if (DebugButton("EXPORT CURRENT ANIMATION\n\n[ASSIMP TEST]"))
+            {
+                var a = Scene.MainModel?.AnimContainer?.CurrentAnimation?.data;
+
+                if (a != null)
+                {
+                    SoulsAssetPipeline.AnimationExporting.AnimationExporter.ExportToFile(a, @"C:\Users\Green\OneDrive\Documents\SAP_ANIM_EXPORT_TEST.fbx", "fbx");
+                }
+                else
+                {
+                    ImguiOSD.DialogManager.DialogOK("CURRENT ANIMATION IS NULL", "CURRENT ANIMATION IS NULL");
+                }
+
+                Console.WriteLine("DFSDF");
+            }
+
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+
+            if (DebugButton("SIBCAM TEST"))
+            {
+                var s = SIBCAM.Read(@"E:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\remo\scn150000-remobnd\cut0060\camera_win32.sibcam");
+
+                Console.WriteLine("DFSDF");
+            }
 
             if (DebugButton("REMO HKX TEST"))
             {
@@ -247,30 +300,41 @@ namespace DSAnimStudio
 
             if (DebugButton("SoulsAssetPipeline_Anim_Test"))
             {
-                var boneNames = Scene.MainModel.AnimContainer.Skeleton.HkxSkeleton.Select(x => x.Name).ToList();
+                var boneDefaultTransforms = Scene.MainModel.AnimContainer.Skeleton.HkxSkeleton.ToDictionary(x => x.Name, x => x.RelativeReferenceTransform);
                 var importSettings = new SoulsAssetPipeline.AnimationImporting.AnimationImporter.AnimationImportSettings
                 {
-                    SceneScale = 100f,
-                    ExistingBoneNameList = boneNames,
+                    SceneScale = 1,
+                    ExistingBoneDefaults = boneDefaultTransforms,
                     ExistingHavokAnimationTemplate = Scene.MainModel.AnimContainer.CurrentAnimation.data,
-                    ResampleToFramerate = 60,
+                    ResampleToFramerate = 120,
                     RootMotionNodeName = "root",
-                    FlipQuaternionHandedness = true,
+                    FlipQuaternionHandedness = false,
+                    //ConvertFromZUp = true,
                 };
 
                 var importedAnim = SoulsAssetPipeline.AnimationImporting.AnimationImporter.ImportFBX(
-                    @"C:\DarkSoulsModding\_FBX_ANIM\muffin2.fbx", importSettings);
+                    @"E:\DarkSoulsModding\_FBX_ANIM\meow_test.fbx", importSettings);
+
+                string filePath_uncompressedXml = @"E:\DarkSoulsModding\_FBX_ANIM\meow_test.fbx.dsasimport.xml";
+                string filePath_compressedHkx = @"E:\DarkSoulsModding\_FBX_ANIM\meow_test.fbx.dsasimport.hkx";
+
+                var compressedHkx = importedAnim.WriteToSplineCompressedHKX2010Bytes(SplineCompressedAnimation.RotationQuantizationType.THREECOMP40, 0.001f);
+
+                //byte[] animData = File.ReadAllBytes(filePath_compressedHkx);
+                Main.TAE_EDITOR.FileContainer.AddNewHKX(Utils.GetFileNameWithoutAnyExtensions(Scene.MainModel.AnimContainer.CurrentAnimationName), compressedHkx, out byte[] dataForAnimContainer);
+                Main.TAE_EDITOR.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(Scene.MainModel.AnimContainer.CurrentAnimationName, dataForAnimContainer);
 
                 //importedFlver.WriteToHavok2010InterleavedUncompressedXML(@"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx.saptest.xml");
 
                 lock (Scene._lock_ModelLoad_Draw)
                 {
-                    var anim = new NewHavokAnimation(importedAnim, Scene.MainModel.AnimContainer.Skeleton, Scene.MainModel.AnimContainer);
-                    string animName = Scene.MainModel.AnimContainer.CurrentAnimationName;
-                    Scene.MainModel.AnimContainer.AddNewAnimation(animName, anim);
-                    Scene.MainModel.AnimContainer.CurrentAnimationName = null;
-                    Scene.MainModel.AnimContainer.CurrentAnimationName = animName;
-                    Scene.MainModel.AnimContainer.ResetAll();
+                    Main.TAE_EDITOR.SelectNewAnimRef(Main.TAE_EDITOR.SelectedTae, Main.TAE_EDITOR.SelectedTaeAnim);
+                    //var anim = new NewHavokAnimation(importedAnim, Scene.MainModel.AnimContainer.Skeleton, Scene.MainModel.AnimContainer);
+                    //string animName = Scene.MainModel.AnimContainer.CurrentAnimationName;
+                    //Scene.MainModel.AnimContainer.AddNewAnimation(animName, anim);
+                    //Scene.MainModel.AnimContainer.CurrentAnimationName = null;
+                    //Scene.MainModel.AnimContainer.CurrentAnimationName = animName;
+                    //Scene.MainModel.AnimContainer.ResetAll();
                     Main.TAE_EDITOR?.HardReset();
                 }
                 //Console.WriteLine("fatcat");

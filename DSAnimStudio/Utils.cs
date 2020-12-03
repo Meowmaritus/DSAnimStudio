@@ -25,6 +25,14 @@ namespace DSAnimStudio
             return num;
         }
 
+        public static Quaternion EulerToQuaternion(Vector3 euler)
+        {
+            var qy = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), euler.Y);
+            var qz = Quaternion.CreateFromAxisAngle(new Vector3(0, 0, 1), euler.Z);
+            var qx = Quaternion.CreateFromAxisAngle(new Vector3(1, 0, 0), euler.X);
+            return qy * qz * qx;
+        }
+
         public static float MapRange(double s, double a1, double a2, double b1, double b2) => (float)(b1 + (s - a1) * (b2 - b1) / (a2 - a1));
 
         private static double GetTemp2(float H, float S, float L)

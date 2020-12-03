@@ -240,6 +240,18 @@ namespace DSAnimStudio.TaeEditor
         //    return null;
         //}
 
+        public Model GetModelOfBox(TaeEditAnimEventBox evBox)
+        {
+            var mdl = MODEL;
+
+            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
+            {
+                mdl = RemoManager.LookupModelOfEventGroup(evBox.MyEvent.Group) ?? MODEL;
+            }
+
+            return mdl;
+        }
+
         public void PlaySoundEffectOfBox(TaeEditAnimEventBox evBox)
         {
             if (evBox.MyEvent.TypeName == null || !evBox.MyEvent.TypeName.StartsWith("PlaySound"))
@@ -261,7 +273,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
             {
-                soundPlaybackModel = RemoManager.LookupModelOfEventGroup(evBox.MyEventGroup) ?? MODEL;
+                soundPlaybackModel = RemoManager.LookupModelOfEventGroup(evBox.MyEvent.Group) ?? MODEL;
             }
 
             if (evBox.MyEvent.Template.ContainsKey("DummyPolyID"))
@@ -358,6 +370,7 @@ namespace DSAnimStudio.TaeEditor
                     "EventSimSE",
                     new EventSimEntry("Simulate Sound Effects", true)
                     {
+                        AllowDuringRemo = true,
                         SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
                         {
                             var thisBoxEntered = evBox.WasJustEnteredDuringPlayback;
@@ -438,37 +451,6 @@ namespace DSAnimStudio.TaeEditor
                     }
                 },
                 {
-                    "EventSimCutsceneAdvance",
-                    new EventSimEntry("Simulate Cutscene Playback Flow", true)
-                    {
-                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
-                        {
-                        },
-                        SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
-                        {
-                        },
-                        SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
-                        {
-                            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
-                            && Graph.PlaybackCursor.IsPlaying && !Graph.PlaybackCursor.Scrubbing)
-                            {
-                                if (Graph.PlaybackCursor.CurrentTime >= 
-                                (RemoManager.AnimContainer?.CurrentAnimation?.Duration ?? Graph.PlaybackCursor.MaxTime))
-                                {
-                                    Graph.MainScreen.NextAnim(false, false);
-                                    if (Graph.MainScreen.SelectedTaeAnim?.ID > 1_0000)
-                                    {
-                                        Graph.PlaybackCursor.IsPlaying = false;
-                                        Graph.MainScreen.HardReset();
-                                    }
-                                        
-                                }
-                            }
-                            
-                        },
-                    }
-                },
-                {
                     "EventSimTracking",
                     new EventSimEntry("Simulate Character Tracking (A/D Keys)", true)
                     {
@@ -479,6 +461,7 @@ namespace DSAnimStudio.TaeEditor
                         },
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
+
                             float activeTrackingSpeedThisFrame = MODEL.BaseTrackingSpeed;
                             foreach (var evBox in evBoxes)
                             {
@@ -724,8 +707,11 @@ namespace DSAnimStudio.TaeEditor
                     {
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
-                            MODEL.DummyPolyMan.HideAllHitboxes();
-                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.HideAllHitboxes());
+                            Scene.ForeachModel(mdl =>
+                            {
+                                mdl.DummyPolyMan.HideAllHitboxes();
+                                mdl.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.HideAllHitboxes());
+                            });
 
                             //if (MODEL.ChrAsm?.RightWeaponModel != null)
                             //    MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.HideAllHitboxes();
@@ -735,9 +721,11 @@ namespace DSAnimStudio.TaeEditor
                         },
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
-                            MODEL.DummyPolyMan.HideAllHitboxes();
-                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.HideAllHitboxes());
-
+                            Scene.ForeachModel(mdl =>
+                            {
+                                mdl.DummyPolyMan.HideAllHitboxes();
+                                mdl.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.HideAllHitboxes());
+                            });
                             //if (MODEL.ChrAsm?.RightWeaponModel != null)
                             //    MODEL.ChrAsm?.RightWeaponModel.DummyPolyMan.HideAllHitboxes();
 
@@ -746,6 +734,8 @@ namespace DSAnimStudio.TaeEditor
                         },
                         SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
                         {
+                            var mdl = GetModelOfBox(evBox);
+
                             if (!evBox.PlaybackHighlight)
                                 return;
 
@@ -770,7 +760,7 @@ namespace DSAnimStudio.TaeEditor
 
                             if (atkParam != null)
                             {
-                                MODEL.DummyPolyMan.SetAttackVisibility(atkParam, true, MODEL.ChrAsm, -1 /*dummyPolyOverride*/, dmyPolySrcToUse);
+                                mdl.DummyPolyMan.SetAttackVisibility(atkParam, true, mdl.ChrAsm, -1 /*dummyPolyOverride*/, dmyPolySrcToUse);
                             }
                         },
                     }
@@ -851,13 +841,19 @@ namespace DSAnimStudio.TaeEditor
                     {
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
-                            MODEL.DummyPolyMan.ClearAllBulletSpawns();
-                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllBulletSpawns());
+                            Scene.ForeachModel(mdl =>
+                            {
+                                mdl.DummyPolyMan.ClearAllBulletSpawns();
+                                mdl.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllBulletSpawns());
+                            });
                         },
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
-                            MODEL.DummyPolyMan.ClearAllBulletSpawns();
-                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllBulletSpawns());
+                            Scene.ForeachModel(mdl =>
+                            {
+                                mdl.DummyPolyMan.ClearAllBulletSpawns();
+                                mdl.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllBulletSpawns());
+                            });
                         },
                         SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
                         {
@@ -866,16 +862,16 @@ namespace DSAnimStudio.TaeEditor
 
                             if (evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolyID"))
                             {
-
+                                var mdl = GetModelOfBox(evBox);
                                 var bulletParamID = GetBulletParamIDFromEvBox(evBox);
                                 int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
 
                                 if (bulletParamID >= 0)
                                 {
-                                    var asmSrc = MODEL.ChrAsm?.GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource.Body, dummyPolyID);
-                                    if (asmSrc == null || asmSrc == MODEL.DummyPolyMan)
+                                    var asmSrc = mdl.ChrAsm?.GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource.Body, dummyPolyID);
+                                    if (asmSrc == null || asmSrc == mdl.DummyPolyMan)
                                     {
-                                        MODEL.DummyPolyMan.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID);
+                                        mdl.DummyPolyMan.SpawnBulletOnDummyPoly(bulletParamID, dummyPolyID);
                                     }
                                     else
                                     {
@@ -893,15 +889,30 @@ namespace DSAnimStudio.TaeEditor
                     new EventSimEntry("Simulate SFX Spawns", isEnabledByDefault: true,
                         "N/A")
                     {
+                        AllowDuringRemo = true,
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
-                            MODEL.DummyPolyMan.ClearAllSFXSpawns();
-                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllSFXSpawns());
+                            Scene.ForeachModel(mdl =>
+                            {
+                                mdl.DummyPolyMan.ClearAllSFXSpawns();
+                                mdl.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllSFXSpawns());
+                            });
+                        },
+                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
+                        {
+                            Scene.ForeachModel(mdl =>
+                            {
+                                mdl.DummyPolyMan.ClearAllSFXSpawns();
+                                mdl.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllSFXSpawns());
+                            });
                         },
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
-                            MODEL.DummyPolyMan.ClearAllSFXSpawns();
-                            MODEL.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllSFXSpawns());
+                            Scene.ForeachModel(mdl =>
+                            {
+                                mdl.DummyPolyMan.ClearAllSFXSpawns();
+                                mdl.ChrAsm?.ForeachWeaponModel(m => m.DummyPolyMan.ClearAllSFXSpawns());
+                            });
                         },
                         SimulationFrameChangePerBoxAction = (entry, evBoxes, evBox, time) =>
                         {
@@ -918,7 +929,9 @@ namespace DSAnimStudio.TaeEditor
                                 // value types.
                                 int ffxid = Convert.ToInt32(evBox.MyEvent.Parameters["FFXID"]);
                                 int dummyPolyID = Convert.ToInt32(evBox.MyEvent.Parameters["DummyPolyID"]);
-                                
+
+
+                                var mdl = GetModelOfBox(evBox);
 
                                 if (evBox.MyEvent.Parameters.Template.ContainsKey("DummyPolySource"))
                                 {
@@ -931,8 +944,8 @@ namespace DSAnimStudio.TaeEditor
                                     }
                                     else if (dplsVal == 1)
                                     {
-                                        if (MODEL.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHandTransformedL ||
-                                        MODEL.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandL)
+                                        if (mdl.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHandTransformedL ||
+                                        mdl.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandL)
                                         {
                                              dummyPolySrc = ParamData.AtkParam.DummyPolySource.LeftWeapon2;
                                         }
@@ -944,8 +957,8 @@ namespace DSAnimStudio.TaeEditor
                                     }
                                     else if (dplsVal == 2)
                                     {
-                                        if (MODEL.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHandTransformedR ||
-                                        MODEL.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandR)
+                                        if (mdl.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHandTransformedR ||
+                                        mdl.ChrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandR)
                                         {
                                              dummyPolySrc = ParamData.AtkParam.DummyPolySource.RightWeapon2;
                                         }
@@ -956,7 +969,7 @@ namespace DSAnimStudio.TaeEditor
 
                                     }
 
-                                    var asmSrc = MODEL.ChrAsm?.GetDummyManager(dummyPolySrc);
+                                    var asmSrc = mdl.ChrAsm?.GetDummyManager(dummyPolySrc);
 
                                     if (asmSrc != null)
                                     {
@@ -964,16 +977,16 @@ namespace DSAnimStudio.TaeEditor
                                     }
                                     else
                                     {
-                                        MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
+                                        mdl.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
                                     }
                                 }
 
                                 else
                                 {
-                                    var asmSrc = MODEL.ChrAsm?.GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource.Body, dummyPolyID);
-                                    if (asmSrc == null || asmSrc == MODEL.DummyPolyMan)
+                                    var asmSrc = mdl.ChrAsm?.GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource.Body, dummyPolyID);
+                                    if (asmSrc == null || asmSrc == mdl.DummyPolyMan)
                                     {
-                                        MODEL.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
+                                        mdl.DummyPolyMan.SpawnSFXOnDummyPoly(ffxid, dummyPolyID);
                                     }
                                     else
                                     {
@@ -1045,11 +1058,15 @@ namespace DSAnimStudio.TaeEditor
                 {
                     "EventSimOpacity",
                     new EventSimEntry("Simulate Opacity Change Events", isEnabledByDefault: true,
-                        "SetOpacityKeyframe")
+                        "SetOpacityKeyframe", "RemoSetOpacityKeyframe")
                     {
+                        AllowDuringRemo = true,
                         NewAnimSelectedAction = (entry, evBoxes) =>
                         {
-                            GFX.FlverOpacity = 1.0f;
+                            Scene.ForeachModel(m =>
+                            {
+                                m.Opacity = 1;
+                            });
                         },
                         //SimulationStartAction = (entry, evBoxes) =>
                         //{
@@ -1057,7 +1074,10 @@ namespace DSAnimStudio.TaeEditor
                         //},
                         SimulationFrameChangePreBoxesAction = (entry, evBoxes, time) =>
                         {
-                            GFX.FlverOpacity = 1;
+                            Scene.ForeachModel(m =>
+                            {
+                                m.Opacity = 1;
+                            });
                         },
                         SimulationFrameChangePerMatchingBoxAction = (entry, evBoxes, evBox, time) =>
                         {
@@ -1066,10 +1086,19 @@ namespace DSAnimStudio.TaeEditor
 
                             float fadeDuration = evBox.MyEvent.EndTime - evBox.MyEvent.StartTime;
                             float timeSinceFadeStart = time - evBox.MyEvent.StartTime;
-                            float fadeStartOpacity = (float)evBox.MyEvent.Parameters["OpacityAtEventStart"];
-                            float fadeEndOpacity = (float)evBox.MyEvent.Parameters["OpacityAtEventEnd"];
 
-                            GFX.FlverOpacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
+                            float fadeStartOpacity = evBox.MyEvent.TypeName == "RemoSetOpacityKeyframe" ? 
+                            ((byte)evBox.MyEvent.Parameters["OpacityByteAtEventStart"] / 255f) : 
+                            (float)evBox.MyEvent.Parameters["OpacityAtEventStart"];
+
+                            float fadeEndOpacity = evBox.MyEvent.TypeName == "RemoSetOpacityKeyframe" ?
+                            ((byte)evBox.MyEvent.Parameters["OpacityByteAtEventEnd"] / 255f) :
+                            (float)evBox.MyEvent.Parameters["OpacityAtEventEnd"];
+
+                            var mdl = GetModelOfBox(evBox);
+
+                            if (mdl != null)
+                                mdl.Opacity = MathHelper.Lerp(fadeStartOpacity, fadeEndOpacity, timeSinceFadeStart / fadeDuration);
                         },
                         //DuringAction = (entry, evBox) =>
                         //{
@@ -1314,6 +1343,10 @@ namespace DSAnimStudio.TaeEditor
                 if (!GetSimEnabled(kvp.Key))
                     continue;
 
+                if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                    && !kvp.Value.AllowDuringRemo)
+                    continue;
+
                 kvp.Value.NewAnimSelectedAction?.Invoke(kvp.Value, evBoxes);
             }
         }
@@ -1330,6 +1363,10 @@ namespace DSAnimStudio.TaeEditor
                 if (!GetSimEnabled(kvp.Key))
                     continue;
 
+                if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                    && !kvp.Value.AllowDuringRemo)
+                    continue;
+
                 kvp.Value.SimulationStartAction?.Invoke(kvp.Value, evBoxes);
             }
         }
@@ -1339,6 +1376,10 @@ namespace DSAnimStudio.TaeEditor
             foreach (var kvp in entries)
             {
                 if (!GetSimEnabled(kvp.Key))
+                    continue;
+
+                if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                    && !kvp.Value.AllowDuringRemo)
                     continue;
 
                 kvp.Value.SimulationEndAction?.Invoke(kvp.Value, evBoxes);
@@ -1353,7 +1394,10 @@ namespace DSAnimStudio.TaeEditor
             {
                 foreach (var kvp in entries)
                 {
-                    if (GetSimEnabled(kvp.Key))
+                    bool skipDuringRemo = (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                    && !kvp.Value.AllowDuringRemo);
+
+                    if (GetSimEnabled(kvp.Key) && !skipDuringRemo)
                     {
                         kvp.Value.SimulationFrameChangePreBoxesAction?.Invoke(kvp.Value, evBoxes, time);
                     }
@@ -1365,10 +1409,9 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
             }
-            catch
-
+            catch (Exception exc)
             {
-
+                ErrorLog.HandleException(exc, "Error occurred while simulating events");
             }
 
             try
@@ -1402,6 +1445,10 @@ namespace DSAnimStudio.TaeEditor
             if (!GetSimEnabled(matchingSim))
                 return;
 
+            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                    && !entries[matchingSim]?.AllowDuringRemo == true)
+                return;
+
             if (entries[matchingSim] != null)
                 entries[matchingSim].EnterAction?.Invoke(entries[matchingSim], evBox);
         }
@@ -1413,6 +1460,10 @@ namespace DSAnimStudio.TaeEditor
             if (!GetSimEnabled(matchingSim))
                 return;
 
+            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                    && !entries[matchingSim]?.AllowDuringRemo == true)
+                return;
+
             if (entries[matchingSim] != null)
                 entries[matchingSim].DuringAction?.Invoke(entries[matchingSim], evBox);
         }
@@ -1422,6 +1473,10 @@ namespace DSAnimStudio.TaeEditor
             var matchingSim = GetSimEntryForEventBox(evBox);
 
             if (!GetSimEnabled(matchingSim))
+                return;
+
+            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
+                    && !entries[matchingSim]?.AllowDuringRemo == true)
                 return;
 
             if (entries[matchingSim] != null)
@@ -1458,6 +1513,8 @@ namespace DSAnimStudio.TaeEditor
 
         public class EventSimEntry
         {
+            public bool AllowDuringRemo = false;
+
             public List<string> EventTypes = new List<string>();
 
             public Action<EventSimEntry, List<TaeEditAnimEventBox>> NewAnimSelectedAction;

@@ -21,7 +21,7 @@ namespace DSAnimStudio
 
         public bool TextureReloadQueued = false;
 
-        public FLVER2.FLVERHeader FlverHeader = null;
+        public FLVER2.FLVERHeader Flver2Header = null;
 
         public void DefaultAllMaskValues()
         {
@@ -50,22 +50,61 @@ namespace DSAnimStudio
             return result;
         }
 
-        public NewMesh(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null, 
+        public NewMesh(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
             LoadFLVER2(flver, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
         }
 
-        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null, 
+        public NewMesh(FLVER0 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
-            FlverHeader = flver.Header;
+            LoadFLVER0(flver, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
+        }
+
+        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
+            bool ignoreStaticTransforms = false)
+        {
+            Flver2Header = flver.Header;
 
             lock (_lock_submeshes)
             {
                 Submeshes = new List<FlverSubmeshRenderer>();
             }
-            
+
+            foreach (var submesh in flver.Meshes)
+            {
+                // Blacklist some materials that don't have good shaders and just make the viewer look like a mess
+                MTD mtd = null;// InterrootLoader.GetMTD(Path.GetFileName(flver.Materials[submesh.MaterialIndex].MTD));
+                if (mtd != null)
+                {
+                    if (mtd.ShaderPath.Contains("FRPG_Water_Env"))
+                        continue;
+                    if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
+                        continue;
+                }
+                var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
+
+                Bounds = new BoundingBox();
+
+                lock (_lock_submeshes)
+                {
+                    Submeshes.Add(smm);
+                    Bounds = BoundingBox.CreateMerged(Bounds, smm.Bounds);
+                }
+            }
+        }
+
+        private void LoadFLVER0(FLVER0 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
+            bool ignoreStaticTransforms = false)
+        {
+            Flver2Header = null;
+
+            lock (_lock_submeshes)
+            {
+                Submeshes = new List<FlverSubmeshRenderer>();
+            }
+
             foreach (var submesh in flver.Meshes)
             {
                 // Blacklist some materials that don't have good shaders and just make the viewer look like a mess

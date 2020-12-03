@@ -4,6 +4,7 @@ using DSAnimStudio.ImguiOSD;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,17 @@ namespace DSAnimStudio
 {
     public class WorldView
     {
+        public struct CustomCameraView
+        {
+            public Matrix Location;
+            public float VerticalFovMult;
+            public static CustomCameraView Default => new CustomCameraView()
+            {
+                Location = Matrix.Identity,
+                VerticalFovMult = 1,
+            };
+        }
+
         public Transform CameraLocationInWorld = Transform.Default;
         public Transform CameraLocationInWorld_CloserForSound = Transform.Default;
 
@@ -24,6 +36,41 @@ namespace DSAnimStudio
         public Vector3 CameraOrbitOrigin = new Vector3(0, 1, 0);
         public Quaternion CameraLookDirection = Quaternion.Identity;
         public Vector3 OrbitCamEuler = Vector3.Zero;
+
+        public NewBlendableTransform? CUSTOM_VIEW_OVERRIDE_LOCATION = null;
+        public float? CUSTOM_VIEW_OVERRIDE_FOV = null;
+
+        /// <summary>
+        /// TODO: rumblecam simulation lol. Call <see cref="ClearCustomCameraView_Additive"/> first, 
+        /// then add any currently playing ones, taking into account the falloff distance thing for the weight pog
+        /// </summary>
+        public CustomCameraView CUSTOM_VIEW_MULTIPLY = CustomCameraView.Default;
+
+        public void ClearCustomCameraView_Override()
+        {
+            CUSTOM_VIEW_OVERRIDE_LOCATION = null;
+            CUSTOM_VIEW_OVERRIDE_FOV = null;
+        }
+
+        public void SetCustomCameraView_Override(NewBlendableTransform view, float fovMult)
+        {
+            CUSTOM_VIEW_OVERRIDE_LOCATION = view;
+            CUSTOM_VIEW_OVERRIDE_FOV = fovMult;
+        }
+
+        public void ClearCustomCameraView_Additive()
+        {
+            CUSTOM_VIEW_MULTIPLY = CustomCameraView.Default;
+        }
+        public void SetCustomCameraView_Additive(NewBlendableTransform view, float fovMult, float weight)
+        {
+            NewBlendableTransform viewMod = NewBlendableTransform.Lerp(NewBlendableTransform.Identity, view, weight);
+            CUSTOM_VIEW_MULTIPLY = new CustomCameraView()
+            {
+                Location = CUSTOM_VIEW_MULTIPLY.Location * ((view.GetMatrixScale() * view.GetMatrix()).ToXna()),
+                VerticalFovMult = CUSTOM_VIEW_MULTIPLY.VerticalFovMult * (MathHelper.Lerp(1, fovMult, weight)),
+            };
+        }
 
         public float OrbitCamDistanceInput = 8;
         public float OrbitCamDistance => OrbitCamDistanceInput / (ProjectionVerticalFoV / 43);
@@ -241,36 +288,49 @@ namespace DSAnimStudio
                 OrbitCamEuler = Vector3.Lerp(OrbitCamEuler, euler, 0.25f * (Main.DELTA_UPDATE / 0.0166667f));
             }
 
-            
+            if (CUSTOM_VIEW_OVERRIDE_LOCATION == null)
+            {
+                CameraLookDirection = Quaternion.CreateFromYawPitchRoll(OrbitCamEuler.Y, OrbitCamEuler.X, OrbitCamEuler.Z);
 
-            CameraLookDirection = Quaternion.CreateFromYawPitchRoll(OrbitCamEuler.Y, OrbitCamEuler.X, OrbitCamEuler.Z);
+                    Quaternion rot = CameraLookDirection;
+                    rot = Quaternion.CreateFromYawPitchRoll(-RootMotionFollow_Rotation, 0, 0) * rot;
 
-            //NewCameraOrbitOrigin = OrbitCamCenter_DummyPolyFollowRefPoint;
+                    CameraLocationInWorld.Rotation = rot;
 
-            Quaternion rot = CameraLookDirection;
-            rot = Quaternion.CreateFromYawPitchRoll(-RootMotionFollow_Rotation, 0, 0) * rot;
+                CameraLocationInWorld_CloserForSound.Rotation = CameraLocationInWorld.Rotation;
 
-            
-
-            CameraLocationInWorld.Rotation = rot;
-
-            CameraLocationInWorld_CloserForSound.Rotation = CameraLocationInWorld.Rotation;
-
-            CameraLocationInWorld.Position = CameraOrbitOrigin + Vector3.Transform(RootMotionFollow_Translation, Matrix_World) +
+                CameraLocationInWorld.Position = CameraOrbitOrigin + Vector3.Transform(RootMotionFollow_Translation, Matrix_World) +
                 (Vector3.Transform(Vector3.Backward * OrbitCamDistance, rot));
 
-            CameraLocationInWorld_CloserForSound.Position = CameraOrbitOrigin + Vector3.Transform(RootMotionFollow_Translation, Matrix_World) +
-                (Vector3.Transform(Vector3.Backward * OrbitCamDistanceInput, rot));
+                CameraLocationInWorld_CloserForSound.Position = CameraOrbitOrigin + Vector3.Transform(RootMotionFollow_Translation, Matrix_World) +
+                    (Vector3.Transform(Vector3.Backward * OrbitCamDistanceInput, rot));
+            }
+            else
+            {
+                CameraLocationInWorld.Position = CUSTOM_VIEW_OVERRIDE_LOCATION.Value.Translation.ToXna();
+                CameraLocationInWorld.Rotation = CUSTOM_VIEW_OVERRIDE_LOCATION.Value.Rotation.ToXna();
+                CameraLocationInWorld.Scale = CUSTOM_VIEW_OVERRIDE_LOCATION.Value.Scale.ToXna();
+
+                CameraLookDirection = CUSTOM_VIEW_OVERRIDE_LOCATION.Value.Rotation.ToXna();
+
+                CameraLocationInWorld_CloserForSound = CameraLocationInWorld;
+            }
+
+            
 
             Matrix_World = Matrix.CreateScale(1, 1, -1);
 
-            if (ProjectionVerticalFoV > 179)
-                ProjectionVerticalFoV = 179;
+            var finalFov = ProjectionVerticalFoV
+                    * (CUSTOM_VIEW_OVERRIDE_FOV ?? 1)
+                    * CUSTOM_VIEW_MULTIPLY.VerticalFovMult;
 
-            if (ProjectionVerticalFoV < 1)
-                ProjectionVerticalFoV = 1;
+            if (finalFov > 179)
+                finalFov = 179;
 
-            if (ProjectionIsOrthographic)
+            if (finalFov < 1)
+                finalFov = 1;
+
+            if (ProjectionIsOrthographic && CUSTOM_VIEW_OVERRIDE_FOV == null)
             {
                 Matrix_Projection = Matrix.CreateOrthographic(
                     (OrbitCamDistanceInput * GFX.LastViewport.Width / GFX.LastViewport.Height) * 0.75f,
@@ -279,7 +339,8 @@ namespace DSAnimStudio
             }
             else
             {
-                Matrix_Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(ProjectionVerticalFoV),
+                Matrix_Projection = Matrix.CreatePerspectiveFieldOfView(
+                    MathHelper.ToRadians(finalFov),
                    1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height,
                    ProjectionNearClipDist / ProjectionVerticalFovRatio, ProjectionFarClipDist);
             }
@@ -290,8 +351,12 @@ namespace DSAnimStudio
                    1.0f * GFX.LastViewport.Width / GFX.LastViewport.Height,
                    ProjectionNearClipDist, ProjectionFarClipDist);
 
+
             Matrix_View = Matrix.CreateTranslation(-CameraLocationInWorld.Position)
-                * Matrix.CreateFromQuaternion(Quaternion.Inverse(CameraLocationInWorld.Rotation));
+                * Matrix.CreateFromQuaternion(Quaternion.Inverse(CameraLocationInWorld.Rotation))
+                * CUSTOM_VIEW_MULTIPLY.Location;
+
+
 
             Matrix_View_Skybox = Matrix.CreateFromQuaternion(Quaternion.Inverse(CameraLocationInWorld.Rotation));
 

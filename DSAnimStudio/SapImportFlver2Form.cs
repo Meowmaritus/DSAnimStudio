@@ -79,7 +79,7 @@ namespace DSAnimStudio
                 var cfg = new FLVER2Importer.FLVER2ImportSettings();
 
                 cfg.Game = GameDataManager.GameType;
-                cfg.FlverHeader = Scene.MainModel.MainMesh.FlverHeader;
+                cfg.FlverHeader = Scene.MainModel.MainMesh.Flver2Header;
 
                 cfg.AssetPath = ImportConfig.AssetPath;
                 cfg.ConvertFromZUp = ImportConfig.ConvertFromZUp;

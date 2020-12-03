@@ -20,6 +20,7 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditorScreen
     {
+        public bool REMO_HOTFIX_REQUEST_CUT_ADVANCE = false;
 
         public const string BackupExtension = ".dsasbak";
 
@@ -262,6 +263,24 @@ namespace DSAnimStudio.TaeEditor
             ImporterWindow_FLVER2.LoadValuesFromConfig();
         }
 
+        public void BringUpImporter_FBXAnim()
+        {
+            if (ImporterWindow_FBXAnim == null || ImporterWindow_FBXAnim.IsDisposed || !ImporterWindow_FBXAnim.Visible)
+            {
+                ImporterWindow_FBXAnim?.Dispose();
+                ImporterWindow_FBXAnim = null;
+            }
+            ImporterWindow_FBXAnim = new SapImportFbxAnimForm();
+            ImporterWindow_FBXAnim.ImportConfig = Config.LastUsedImportConfig_AnimFBX;
+            ImporterWindow_FBXAnim.MainScreen = this;
+            ImporterWindow_FBXAnim.Show();
+            // The CenterParent stuff just doesn't work for some reason, heck it.
+
+            Main.CenterForm(ImporterWindow_FBXAnim);
+
+            ImporterWindow_FBXAnim.LoadValuesFromConfig();
+        }
+
         public void ShowComboMenu()
         {
             GameWindowAsForm.Invoke(new Action(() =>
@@ -342,6 +361,7 @@ namespace DSAnimStudio.TaeEditor
         }
 
         public SapImportFlver2Form ImporterWindow_FLVER2 = null;
+        public SapImportFbxAnimForm ImporterWindow_FBXAnim = null;
 
         public FindInfoKeep LastFindInfo = null;
         public TaeFindValueDialog FindValueDialog = null;
@@ -1100,6 +1120,20 @@ namespace DSAnimStudio.TaeEditor
             return false;
         }
 
+        public TAE.Animation SelectAnimByFullID(long fullID)
+        {
+            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
+            {
+                var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == fullID);
+                if (matchedAnims.Any())
+                {
+                    var anim = matchedAnims.First().Value.Ref;
+                    return anim;
+                }
+            }
+            return null;
+        }
+
         public bool GotoAnimID(long id, bool scrollOnCenter)
         {
             foreach (var s in AnimationListScreen.AnimTaeSections.Values)
@@ -1807,6 +1841,8 @@ namespace DSAnimStudio.TaeEditor
                 Graph.PlaybackCursor.ResetAll();
                 Graph.PlaybackCursor.RestartFromBeginning();
 
+                Graph.ViewportInteractor.OnScrubFrameChange(0);
+
                 if (!isBlend)
                 {
                     Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
@@ -1954,6 +1990,113 @@ namespace DSAnimStudio.TaeEditor
                 }, canBeCancelled: true);
         }
 
+        public void ShowDialogImportFromAnimID()
+        {
+            if (FileContainer == null || SelectedTae == null)
+                return;
+
+            DialogManager.AskForInputString("Import From Animation ID", "Enter the animation ID to import from. This will replace animation and all events with those of the specified animation.\n" +
+                "Accepts the full string with prefix or just the ID as a number.",
+                GameDataManager.CurrentAnimIDFormatType.ToString(), result =>
+                {
+                    Main.WinForm.Invoke(new Action(() =>
+                    {
+                        if (int.TryParse(result.Replace("a", "").Replace("_", ""), out int id))
+                        {
+                            var animRefToImportFrom = SelectAnimByFullID(id);
+
+                            if (animRefToImportFrom == null)
+                            {
+                                DialogManager.DialogOK("Import Failed", $"Unable to find anim {id}.");
+                            }
+                            else if (animRefToImportFrom == SelectedTaeAnim)
+                            {
+                                DialogManager.DialogOK("Import Failed", $"Anim with ID {id} is the current animation.");
+                            }
+
+                            void DoAnimRefThing(TAE.Animation anim, int animID)
+                            {
+
+                                if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+                                {
+                                    var header = new TAE.Animation.AnimMiniHeader.Standard();
+                                    header.ImportsHKX = true;
+
+                                    if (asStandard.ImportsHKX)
+                                    {
+                                        header.ImportHKXSourceAnimID = asStandard.ImportHKXSourceAnimID;
+                                        if (header.ImportHKXSourceAnimID == animID) // somehow lol
+                                        {
+                                            header.ImportHKXSourceAnimID = -1;
+                                            header.ImportsHKX = false;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        header.ImportHKXSourceAnimID = animID;
+                                    }
+
+                                    SelectedTaeAnim.Events.Clear();
+                                    SelectedTaeAnim.EventGroups.Clear();
+                                    foreach (var ev in anim.Events)
+                                        SelectedTaeAnim.Events.Add(ev);
+                                    foreach (var evg in anim.EventGroups)
+                                        SelectedTaeAnim.EventGroups.Add(evg);
+                                    SelectedTaeAnim.MiniHeader = header;
+                                    SelectedTaeAnim.SetIsModified(true);
+                                    SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+                                    HardReset();
+                                }
+                                else if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOther)
+                                {
+                                    if (asImportOther.ImportFromAnimID >= 0)
+                                    {
+                                        var referencedAnim = SelectAnimByFullID(asImportOther.ImportFromAnimID);
+
+                                        if (referencedAnim != null)
+                                        {
+                                            DoAnimRefThing(referencedAnim, asImportOther.ImportFromAnimID);
+                                        }
+                                        else
+                                        {
+
+                                            // BROKEN REFERENCE, GARBEGE
+
+                                            var header = new TAE.Animation.AnimMiniHeader.Standard();
+                                            header.ImportsHKX = false;
+                                            header.ImportHKXSourceAnimID = -1;
+
+
+
+                                            SelectedTaeAnim.Events.Clear();
+                                            SelectedTaeAnim.EventGroups.Clear();
+                                            foreach (var ev in anim.Events)
+                                                SelectedTaeAnim.Events.Add(ev);
+                                            foreach (var evg in anim.EventGroups)
+                                                SelectedTaeAnim.EventGroups.Add(evg);
+                                            SelectedTaeAnim.MiniHeader = header;
+                                            SelectedTaeAnim.SetIsModified(true);
+                                            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+                                            HardReset();
+
+                                            DialogManager.DialogOK("Import Warning", $"Anim with ID {id} didn't resolve to a valid HKX so only event data was imported.");
+                                        }
+                                    }
+                                }
+                            }
+
+                            DoAnimRefThing(animRefToImportFrom, (int)id);
+
+                            
+                        }
+                        else
+                        {
+                            DialogManager.DialogOK("Import Failed", $"\"{result}\" is not a valid animation ID.");
+                        }
+                    }));
+                }, canBeCancelled: true);
+        }
+
         public void NextAnim(bool shiftPressed, bool ctrlPressed)
         {
             try
@@ -2077,7 +2220,7 @@ namespace DSAnimStudio.TaeEditor
             }
             catch// (Exception ex)
             {
-                //Console.WriteLine("Fatcat");
+                Console.WriteLine("Fatcat");
             }
         }
 
@@ -2450,6 +2593,10 @@ namespace DSAnimStudio.TaeEditor
                     {
                         ShowDialogGotoAnimSectionID();
                     }
+                    else if (Input.KeyDown(Keys.I))
+                    {
+                        ShowDialogImportFromAnimID();
+                    }
                     else if (Input.KeyDown(Keys.S))
                     {
                         SaveCurrentFile();
@@ -2514,11 +2661,19 @@ namespace DSAnimStudio.TaeEditor
 
                 NextAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Down) && !Input.KeyHeld(Keys.Up));
 
-                if (NextAnimRepeaterButton.State)
+                if (NextAnimRepeaterButton.State || REMO_HOTFIX_REQUEST_CUT_ADVANCE)
                 {
                     Graph?.ViewportInteractor?.CancelCombo();
                     NextAnim(Input.ShiftHeld, Input.CtrlHeld);
+
+                    if (REMO_HOTFIX_REQUEST_CUT_ADVANCE)
+                    {
+                        if (SelectedTaeAnim.ID <= 9999)
+                            Graph.PlaybackCursor.IsPlaying = true;
+                    }
                 }
+
+                REMO_HOTFIX_REQUEST_CUT_ADVANCE = false;
 
                 PrevAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Up) && !Input.KeyHeld(Keys.Down));
 

@@ -218,8 +218,8 @@ namespace DSAnimStudio
                         //LoadAnimHKX(animHKXsToLoad[name], name);
 
 
-                        try
-                        {
+                        //try
+                        //{
 
                             NewHavokAnimation anim = null;
                             NewHavokAnimation cachedAnim = null;
@@ -280,14 +280,14 @@ namespace DSAnimStudio
                         //{
                         //    layer.Weight = (float)(1.0 / AnimationLayers.Count);
                         //}
-                    }
-                    catch
-                    {
-                        lock (_lock_animDict)
-                        {
-                            animHKXsToLoad.Remove(value);
-                        }
-                    }
+                    //}
+                    //catch
+                    //{
+                    //    lock (_lock_animDict)
+                    //    {
+                    //        animHKXsToLoad.Remove(value);
+                    //    }
+                    //}
 
                     }
                     else
@@ -503,16 +503,20 @@ namespace DSAnimStudio
 
             float totalWeight = 0;
 
+            List<NewHavokAnimation> animLayersCopy = null;
+
             lock (_lock_AnimationLayers)
             {
-                for (int i = 0; i < AnimationLayers.Count; i++)
+                animLayersCopy = AnimationLayers.ToList();
+            }
+                for (int i = 0; i < animLayersCopy.Count; i++)
                 {
-                    AnimationLayers[i].ScrubRelative(timeDelta, doNotCheckRootMotionRotation);
+                animLayersCopy[i].ScrubRelative(timeDelta, doNotCheckRootMotionRotation);
                 }
 
                 for (int t = 0; t < Skeleton.HkxSkeleton.Count; t++)
                 {
-                    if (AnimationLayers.Count == 0)
+                    if (animLayersCopy.Count == 0)
                     {
                         Skeleton.HkxSkeleton[t].CurrentHavokTransform = Skeleton.HkxSkeleton[t].RelativeReferenceTransform;
                     }
@@ -520,23 +524,23 @@ namespace DSAnimStudio
                     {
                         var tr = NewBlendableTransform.Identity;
                         float weight = 0;
-                        for (int i = 0; i < AnimationLayers.Count; i++)
+                        for (int i = 0; i < animLayersCopy.Count; i++)
                         {
-                            if (AnimationLayers[i].Weight * DebugAnimWeight <= 0)
+                            if (animLayersCopy[i].Weight * DebugAnimWeight <= 0)
                                 continue;
 
-                            var frame = AnimationLayers[i].GetBlendableTransformOnCurrentFrame(t);
+                            var frame = animLayersCopy[i].GetBlendableTransformOnCurrentFrame(t);
 
 
 
-                            if (AnimationLayers[i].IsAdditiveBlend)
+                            if (animLayersCopy[i].IsAdditiveBlend)
                             {
                                 frame = Skeleton.HkxSkeleton[t].RelativeReferenceTransform * frame;
                             }
 
-                            weight += AnimationLayers[i].Weight;
-                            if (AnimationLayers.Count > 1)
-                                tr = NewBlendableTransform.Lerp(tr, frame, AnimationLayers[i].Weight / weight);
+                            weight += animLayersCopy[i].Weight;
+                            if (animLayersCopy.Count > 1)
+                                tr = NewBlendableTransform.Lerp(tr, frame, animLayersCopy[i].Weight / weight);
                             else
                                 tr = frame;
 
@@ -578,7 +582,7 @@ namespace DSAnimStudio
                         WalkTree(c, currentMatrix, scaleMatrix);
                 }
 
-                if (AnimationLayers.Count > 0)
+                if (animLayersCopy.Count > 0)
                 {
                     foreach (var root in Skeleton.TopLevelHkxBoneIndices)
                         WalkTree(root, Matrix.Identity, Matrix.Identity);
@@ -590,7 +594,7 @@ namespace DSAnimStudio
                     OnScrubUpdateAnimLayersRootMotion();
 
                 Skeleton.UpdateTransform(EnableRootMotion, EnableRootMotionWrap, false);
-            }
+            
         }
 
         public void Update()
@@ -740,7 +744,8 @@ namespace DSAnimStudio
                     string shortName = new FileInfo(f.Name).Name.ToLower();
                     if (shortName.StartsWith("a") && shortName.EndsWith(".hkx"))
                     {
-                        animHKXs.Add(shortName, f.Bytes);
+                        if (!animHKXs.ContainsKey(shortName))
+                            animHKXs.Add(shortName, f.Bytes);
                     }
                     else if (shortName.EndsWith(".tae") || TAE.Is(f.Bytes))
                     {

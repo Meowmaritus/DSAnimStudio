@@ -97,7 +97,7 @@ namespace DSAnimStudio
 
         public NewBlendableTransform GetBlendableTransformOnCurrentFrame(int hkxBoneIndex)
         {
-            return data.GetBlendableTransformOnFrame(hkxBoneIndex, CurrentFrame);
+            return data.GetTransformOnFrameByBone(hkxBoneIndex, CurrentFrame);
         }
 
         //public void ApplyWeightedMotionToSkeleton(bool finalizeHkxMatrices, float unusedWeight)

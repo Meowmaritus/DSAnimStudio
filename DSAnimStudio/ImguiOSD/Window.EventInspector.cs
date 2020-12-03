@@ -19,6 +19,8 @@ namespace DSAnimStudio.ImguiOSD
                 ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoTitleBar |
                 ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoResize;
 
+            string CurrentUnmappedEventHex = "";
+
             protected override void PreUpdate()
             {
                 IsOpen = true;
@@ -26,8 +28,8 @@ namespace DSAnimStudio.ImguiOSD
 
             protected override void BuildContents()
             {
-                ImGui.SetWindowPos(Tae.ImGuiEventInspectorPos);
-                ImGui.SetWindowSize(Tae.ImGuiEventInspectorSize);
+                ImGui.SetWindowPos((Tae.ImGuiEventInspectorPos + new System.Numerics.Vector2(0, 12)) * Main.DPIVectorN);
+                ImGui.SetWindowSize((Tae.ImGuiEventInspectorSize - new System.Numerics.Vector2(0, 12)) * Main.DPIVectorN);
 
                 if (Tae.SingleEventBoxSelected)
                 {
@@ -48,12 +50,16 @@ namespace DSAnimStudio.ImguiOSD
 
                     if (ev.MyEvent.TypeName != null)
                     {
+                        CurrentUnmappedEventHex = "";
+
                         Dictionary<string, string> event0ParameterMap = null;
                         if (ev.MyEvent.Type == 0)
                             event0ParameterMap = new Dictionary<string, string>();
 
                         foreach (var p in ev.MyEvent.Parameters.Template)
                         {
+                            string parameterName = $"{p.Value.Type} {p.Key}";
+
                             if (p.Value.ValueToAssert != null)
                                 continue;
 
@@ -95,7 +101,7 @@ namespace DSAnimStudio.ImguiOSD
                                             dispItems[i] = items[i];
                                         }
                                     }
-                                    ImGui.Combo(p.Key, ref currentItemIndex, dispItems, items.Length);
+                                    ImGui.Combo(parameterName, ref currentItemIndex, dispItems, items.Length);
                                     if (currentItemIndex >= 0 && currentItemIndex < items.Length)
                                         currentVal = Convert.ToInt32(p.Value.EnumEntries[items[currentItemIndex]]);
                                     else
@@ -103,7 +109,7 @@ namespace DSAnimStudio.ImguiOSD
                                 }
                                 else
                                 {
-                                    string dispName = p.Key;
+                                    string dispName = parameterName;
                                     bool grayedOut = false;
                                     if (ev.MyEvent.Type == 0)
                                     {
@@ -151,7 +157,7 @@ namespace DSAnimStudio.ImguiOSD
                             }
                             else if (p.Value.Type == TaeParamType.f32)
                             {
-                                string dispName = p.Key;
+                                string dispName = parameterName;
                                 bool grayedOut = false;
                                 if (ev.MyEvent.Type == 0)
                                 {
@@ -183,7 +189,7 @@ namespace DSAnimStudio.ImguiOSD
                             {
                                 bool current = Convert.ToBoolean(ev.MyEvent.Parameters[p.Key]);
                                 bool prevValue = current;
-                                ImGui.Checkbox(p.Key, ref current);
+                                ImGui.Checkbox(parameterName, ref current);
                                 ev.MyEvent.Parameters[p.Key] = current;
                                 if (current != prevValue)
                                     Tae.SelectedTaeAnim?.SetIsModified(true);
@@ -193,7 +199,7 @@ namespace DSAnimStudio.ImguiOSD
                                 byte[] buf = (byte[])(ev.MyEvent.Parameters[p.Key]);
                                 byte[] newBuf = new byte[buf.Length];
                                 string current = string.Join("", buf.Select(bb => bb.ToString("X2")));
-                                ImGui.InputText($"{p.Key}[{p.Value.AobLength}]", ref current, (uint)((p.Value.AobLength * 2) - 0), ImGuiInputTextFlags.CharsHexadecimal |
+                                ImGui.InputText($"{parameterName}[{p.Value.AobLength}]", ref current, (uint)((p.Value.AobLength * 2) - 0), ImGuiInputTextFlags.CharsHexadecimal |
                                     ImGuiInputTextFlags.CharsUppercase);
                                 //current = current.Replace(" ", "");
                                 if (current.Length < p.Value.AobLength * 2)
@@ -209,6 +215,16 @@ namespace DSAnimStudio.ImguiOSD
                                 if (wasModified)
                                     Tae.SelectedTaeAnim?.SetIsModified(true);
                             }
+                        }
+                    }
+                    else
+                    {
+                        CurrentUnmappedEventHex = ""; // temp idk when i'm gonna bother
+
+                        ImGui.Button("Copy to clipboard");
+                        if (ImGui.IsItemClicked())
+                        {
+                            System.Windows.Forms.Clipboard.SetText(string.Join(" ", ev.MyEvent.GetParameterBytes(GameDataManager.IsBigEndianGame).Select(xx => xx.ToString("X2"))));
                         }
                     }
 

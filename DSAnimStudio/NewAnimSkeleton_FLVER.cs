@@ -312,6 +312,7 @@ namespace DSAnimStudio
         public class FlverBoneInfo
         {
             public string Name;
+            public int ParentIndex;
             public Matrix ParentReferenceMatrix = Matrix.Identity;
             public Matrix ReferenceMatrix = Matrix.Identity;
             public int HkxBoneIndex = -1;
@@ -374,6 +375,8 @@ namespace DSAnimStudio
 
             public FlverBoneInfo(FLVER.Bone bone, List<FLVER.Bone> boneList)
             {
+                ParentIndex = bone.ParentIndex;
+
                 if (GlobalBonePrim == null)
                 {
                     GlobalBonePrim = new DbgPrimWireBone("(BONE)", new Transform(Matrix.Identity), DBG.COLOR_FLVER_BONE)

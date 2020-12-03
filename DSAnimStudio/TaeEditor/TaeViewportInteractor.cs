@@ -123,6 +123,10 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeViewportInteractor(TaeEditAnimEventGraph graph)
         {
+            
+            RemoManager.NukeEntireRemoSystemAndGoBackToNormalDSAnimStudio();
+            
+
             OSD.WindowEditPlayerEquip.IsOpen = false;
 
             Graph = graph;
@@ -237,6 +241,8 @@ namespace DSAnimStudio.TaeEditor
                 //throw new NotImplementedException("REMO NOT SUPPORTED YET");
             }
 
+            
+
             InitializeForCurrentModel();
 
             Scene.EnableModelDrawing();
@@ -340,6 +346,12 @@ namespace DSAnimStudio.TaeEditor
 
 
             var timeDelta = (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
+            if (EntityType == TaeEntityType.REMO)
+            {
+                bool remoCutAdv = RemoManager.UpdateCutAdvance();
+                if (remoCutAdv)
+                    return;
+            }
 
             //V2.0
             //CurrentModel.AnimContainer.IsPlaying = false;
@@ -359,6 +371,11 @@ namespace DSAnimStudio.TaeEditor
 
             CheckSimEnvironment();
             EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTimeMod);
+
+            if (EntityType == TaeEntityType.REMO)
+            {
+                RemoManager.UpdateRemoTime((float)Graph.PlaybackCursor.GUICurrentTimeMod);
+            }
 
             GFX.World.Update(0);
         }
@@ -433,6 +450,11 @@ namespace DSAnimStudio.TaeEditor
 
 
             GFX.World.Update(0);
+
+            if (EntityType == TaeEntityType.REMO)
+            {
+                RemoManager.UpdateRemoTime((float)Graph.PlaybackCursor.GUICurrentTimeMod);
+            }
         }
 
         public void StartCombo(bool isLoop, bool isRecord, TaeComboEntry[] entries)

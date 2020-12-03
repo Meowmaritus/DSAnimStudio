@@ -118,6 +118,8 @@ namespace DSAnimStudio.ImguiOSD
                             asStandard.ImportHKXSourceAnimID = MenuBar.IntItem("Import HKX From ID", asStandard.ImportHKXSourceAnimID);
                         else
                             asStandard.ImportHKXSourceAnimID = -1;
+                        asStandard.AllowDelayLoad = MenuBar.CheckboxBig("Allow loading from DelayLoad ANIBNDs", asStandard.AllowDelayLoad);
+                        asStandard.IsLoopByDefault = MenuBar.CheckboxBig("Enable Looping", asStandard.IsLoopByDefault);
                     }
                     ImGui.Unindent();
                 }

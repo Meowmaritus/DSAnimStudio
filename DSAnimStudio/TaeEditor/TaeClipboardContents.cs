@@ -16,9 +16,10 @@ namespace DSAnimStudio.TaeEditor
             public float EventEndTime { get; set; }
             public int EventRow { get; set; }
             public byte[] EventParamBytes { get; set; }
+            public TAE.EventGroup EventGroup { get; set; }
         }
 
-        public IEnumerable<Clip> EventClips { get; set; }
+        public List<Clip> EventClips { get; set; }
         public int StartRow { get; set; } = 0;
         public float StartTime { get; set; } = 0;
         public bool IsBigEndian { get; set; }
@@ -35,7 +36,7 @@ namespace DSAnimStudio.TaeEditor
         {
             StartRow = startRow;
             StartTime = startTime;
-            EventClips = events.Select(x => EventToClip(x, isBigEndian));
+            EventClips = events.Select(x => EventToClip(x, isBigEndian)).ToList();
             IsBigEndian = isBigEndian;
         }
 
@@ -53,6 +54,7 @@ namespace DSAnimStudio.TaeEditor
             clip.EventEndTime = ev.MyEvent.EndTime;
             clip.EventRow = ev.Row;
             clip.EventParamBytes = ev.MyEvent.GetParameterBytes(isBigEndian);
+            clip.EventGroup = ev.MyEvent.Group;
             return clip;
         }
 
@@ -60,6 +62,7 @@ namespace DSAnimStudio.TaeEditor
         {
             var newEvent = new TAE.Event(c.EventStartTime, c.EventEndTime, c.EventType, c.EventUnk04, c.EventParamBytes, isBigEndian);
             var newEventBox = new TaeEditAnimEventBox(graph, newEvent, graph.AnimRef);
+            newEventBox.MyEvent.Group = c.EventGroup;
             newEventBox.Row = c.EventRow;
             return newEventBox;
         }

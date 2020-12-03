@@ -150,6 +150,21 @@ namespace DSAnimStudio
             
         //}
 
+        public static byte[] UpgradeHkx2010to2015(byte[] hkx2010)
+        {
+            byte[] resultBytes = null;
+            var newGuid = Guid.NewGuid().ToString();
+            var proc = GetDowngradeHkxProcess(newGuid + ".2010.hkx", hkx2010, false, 0, (convertProc, result, j) =>
+            {
+                resultBytes = result;
+            }, isUpgrade: true);
+
+            proc.Start();
+            proc.WaitForExit();
+
+            return resultBytes;
+        }
+
         public static byte[] DowngradeSingleFileInANIBND(IBinder anibnd, BinderFile file, bool isUpgrade)
         {
             byte[] resultBytes = null;

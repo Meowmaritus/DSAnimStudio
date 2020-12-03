@@ -60,6 +60,9 @@ namespace DSAnimStudio.TaeEditor
         public SapImportConfigs.ImportConfigFlver2 LastUsedImportConfig_FLVER2 { get; set; } 
             = new SapImportConfigs.ImportConfigFlver2();
 
+        public SapImportConfigs.ImportConfigAnimFBX LastUsedImportConfig_AnimFBX { get; set; } 
+            = new SapImportConfigs.ImportConfigAnimFBX();
+
         public Dictionary<string, bool> EventSimulationsEnabled { get; set; }
             = new Dictionary<string, bool>();
 

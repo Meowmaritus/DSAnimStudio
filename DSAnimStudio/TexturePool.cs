@@ -76,7 +76,8 @@ namespace DSAnimStudio
                 fetches.Clear();
                 Failures.Clear();
             }
-            GameDataManager.LoadSystex();
+            if (GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.None)
+                GameDataManager.LoadSystex();
         }
 
         public static void AddFetchTPF(TPF tpf, string texName)

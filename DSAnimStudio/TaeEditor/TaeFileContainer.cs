@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Diagnostics;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -31,6 +32,7 @@ namespace DSAnimStudio.TaeEditor
 
         private Dictionary<string, TAE> taeInBND = new Dictionary<string, TAE>();
         private Dictionary<string, byte[]> hkxInBND = new Dictionary<string, byte[]>();
+        private Dictionary<string, byte[]> sibcamInBND = new Dictionary<string, byte[]>();
 
         private void DeleteAnimHKX(string name)
         {
@@ -38,7 +40,7 @@ namespace DSAnimStudio.TaeEditor
                 throw new NotImplementedException("Not supported for anything other than ANIBND right now.");
 
             BinderFile existingFile = containerANIBND.Files.FirstOrDefault(ff => ff.Name.Contains(name));
-            BinderFile existingFile_2010 = containerANIBND_2010.Files.FirstOrDefault(ff => ff.Name.Contains(name));
+            BinderFile existingFile_2010 = containerANIBND_2010?.Files.FirstOrDefault(ff => ff.Name.Contains(name));
 
             if (existingFile != null)
                 containerANIBND.Files.Remove(existingFile);
@@ -142,10 +144,23 @@ namespace DSAnimStudio.TaeEditor
         {
             get
             {
-                Dictionary<string, byte[]> result = null; 
+                Dictionary<string, byte[]> result = null;
                 lock (_lock_loading)
                 {
                     result = hkxInBND;
+                }
+                return result;
+            }
+        }
+
+        public IReadOnlyDictionary<string, byte[]> AllSibcamDict
+        {
+            get
+            {
+                Dictionary<string, byte[]> result = null;
+                lock (_lock_loading)
+                {
+                    result = sibcamInBND;
                 }
                 return result;
             }
@@ -270,14 +285,88 @@ namespace DSAnimStudio.TaeEditor
             {
                 GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DS3, interroot);
             }
-            else if (check.Contains(@"\DemonsSoul\"))
+            else if (check.Contains(@"\DEMONSSOUL\"))
             {
+                interroot = GameDataManager.GetInterrootFromDirectoryPath(interroot);
                 GameDataManager.Init(SoulsAssetPipeline.SoulsGames.DES, interroot);
             }
             else if (check.Contains(@"\NTC\"))
             {
                 GameDataManager.Init(SoulsAssetPipeline.SoulsGames.SDT, interroot);
             }
+        }
+
+        private static byte[] ConvertDeSAnimation(byte[] inputBytes)
+        {
+            string dir = $@"{Main.Directory}\Res\DesAnims";
+            string bigEndianInput = $@"{dir}\Input.hkx";
+            string littleEndianOutput = $@"{dir}\le\Input.hkx";
+            string uncompressedOutput = $@"{dir}\Input_Uncompressed.hkx";
+
+            File.WriteAllBytes(bigEndianInput, inputBytes);
+
+            var procStart = new ProcessStartInfo($@"{Main.Directory}\Res\DesAnims\EndianFlip.exe",
+                $"\"{bigEndianInput}\"");
+            procStart.CreateNoWindow = true;
+            procStart.WindowStyle = ProcessWindowStyle.Hidden;
+            procStart.UseShellExecute = false;
+            procStart.RedirectStandardOutput = true;
+            procStart.RedirectStandardError = true;
+            procStart.WorkingDirectory = dir;
+            var proc = new Process();
+            proc.StartInfo = procStart;
+            proc.Start();
+            proc.WaitForExit();
+
+
+
+            procStart = new ProcessStartInfo($@"{Main.Directory}\Res\DesAnims\despacito.exe",
+                $"\"{littleEndianOutput}\" \"{uncompressedOutput}\"");
+            procStart.CreateNoWindow = true;
+            procStart.WindowStyle = ProcessWindowStyle.Hidden;
+            procStart.UseShellExecute = false;
+            procStart.RedirectStandardOutput = true;
+            procStart.RedirectStandardError = true;
+            procStart.WorkingDirectory = dir;
+            proc = new Process();
+            proc.StartInfo = procStart;
+            proc.Start();
+            proc.WaitForExit();
+
+            byte[] result = File.ReadAllBytes(uncompressedOutput);
+
+            return result;
+        }
+
+        public static IBinder GenerateDemonsSoulsConvertedAnibnd(string origFilePath)
+        {
+            IBinder containerANIBND_2010 = null;
+            if (!System.IO.File.Exists(origFilePath + ".2010"))
+            {
+                LoadingTaskMan.DoLoadingTaskSynchronous(null, "Converting Demon's Souls Animations", innerProgress =>
+                {
+                    File.Copy(origFilePath, origFilePath + ".2010", overwrite: true);
+
+                    containerANIBND_2010 = BND3.Read(origFilePath + ".2010");
+
+                    int i = 0;
+                    foreach (var f in containerANIBND_2010.Files)
+                    {
+                        if (f.Name.ToLower().EndsWith(".hkx"))
+                        {
+                            f.Bytes = ConvertDeSAnimation(f.Bytes);
+                        }
+
+                        innerProgress.Report(1.0 * (++i) / containerANIBND_2010.Files.Count);
+                    }
+
+                    ((BND3)containerANIBND_2010).Write(origFilePath + ".2010");
+
+                    innerProgress.Report(1.0);
+                });
+            }
+
+            return containerANIBND_2010;
         }
 
         public void LoadFromPath(string file)
@@ -295,6 +384,7 @@ namespace DSAnimStudio.TaeEditor
 
             taeInBND.Clear();
             hkxInBND.Clear();
+            sibcamInBND.Clear();
 
             if (BND3.Is(file))
             {
@@ -332,7 +422,17 @@ namespace DSAnimStudio.TaeEditor
 
             if (ContainerType == TaeFileContainerType.ANIBND)
             {
+                foreach (var f in containerANIBND.Files)
+                {
+                    CheckGameVersionForTaeInterop(f.Name, isRemo);
+                }
+
                 bool isSekiroMeme = false;
+
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                {
+                    containerANIBND_2010 = GenerateDemonsSoulsConvertedAnibnd(filePath);
+                }
 
                 if (System.IO.File.Exists(filePath + ".2010"))
                 {
@@ -349,7 +449,7 @@ namespace DSAnimStudio.TaeEditor
 
                     if (containerANIBND_2010 != null)
                     {
-                        foreach (var f in containerANIBND.Files)
+                        foreach (var f in containerANIBND_2010.Files)
                         {
                             if (f.Name.ToUpper().EndsWith(".HKX"))
                             {
@@ -357,6 +457,15 @@ namespace DSAnimStudio.TaeEditor
                                     hkxInBND.Add(f.Name, f.Bytes);
                                 else
                                     hkxInBND[f.Name] = f.Bytes;
+
+                                var matchingSibcam = containerANIBND_2010.Files.FirstOrDefault(s => s.Name.ToLower().EndsWith("camera_win32.sibcam") && s.ID == f.ID - 1);
+                                if (matchingSibcam != null)
+                                {
+                                    if (!sibcamInBND.ContainsKey(f.Name))
+                                        sibcamInBND.Add(f.Name, matchingSibcam.Bytes);
+                                    else
+                                        sibcamInBND[f.Name] = matchingSibcam.Bytes;
+                                }
                             }
                         }
                     }
@@ -399,6 +508,15 @@ namespace DSAnimStudio.TaeEditor
                                 hkxInBND.Add(f.Name, f.Bytes);
                             else
                                 hkxInBND[f.Name] = f.Bytes;
+
+                            var matchingSibcam = containerANIBND.Files.FirstOrDefault(s => s.Name.ToLower().EndsWith("camera_win32.sibcam") && s.ID == f.ID - 1);
+                            if (matchingSibcam != null)
+                            {
+                                if (!sibcamInBND.ContainsKey(f.Name))
+                                    sibcamInBND.Add(f.Name, matchingSibcam.Bytes);
+                                else
+                                    sibcamInBND[f.Name] = matchingSibcam.Bytes;
+                            }
                         }
                     }
                     innerProgress.Report(1);
@@ -424,6 +542,15 @@ namespace DSAnimStudio.TaeEditor
                                     hkxInBND.Add(f.Name, f.Bytes);
                                 else
                                     hkxInBND[f.Name] = f.Bytes;
+
+                                var matchingSibcam = containerANIBND.Files.FirstOrDefault(s => s.Name.ToLower().EndsWith("camera_win32.sibcam") && s.ID == f.ID - 1);
+                                if (matchingSibcam != null)
+                                {
+                                    if (!sibcamInBND.ContainsKey(f.Name))
+                                        sibcamInBND.Add(f.Name, matchingSibcam.Bytes);
+                                    else
+                                        sibcamInBND[f.Name] = matchingSibcam.Bytes;
+                                }
                             }
                         }
                         innerProgress.Report(1);

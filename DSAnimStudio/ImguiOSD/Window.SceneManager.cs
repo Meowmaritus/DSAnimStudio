@@ -124,6 +124,11 @@ namespace DSAnimStudio.ImguiOSD
                             DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent],
                             enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperSoundEvent);
 
+                        RemoManager.EnableDummyPrims =
+                            MenuBar.Checkbox("Cutscene Dummies",
+                            RemoManager.EnableDummyPrims,
+                            enabled: true, shortcut: "(This Color)", shortcutColor: Microsoft.Xna.Framework.Color.Lime);
+
                         ImGui.Separator();
 
                         Tae.Config.DbgPrimXRay = MenuBar.Checkbox("Helper X-Ray Mode", Tae.Config.DbgPrimXRay);

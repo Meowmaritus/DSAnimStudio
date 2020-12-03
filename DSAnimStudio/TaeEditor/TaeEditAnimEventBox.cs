@@ -14,10 +14,9 @@ namespace DSAnimStudio.TaeEditor
         public TAE.Event MyEvent;
         public TAE.Animation AnimMyEventIsFor;
 
-        public bool IsActive => OwnerPane != null && OwnerPane.AnimRef == AnimMyEventIsFor;
+        public TaeEventGroupRegion CurrentGroupRegion = null;
 
-        public TAE.EventGroup MyEventGroup => AnimMyEventIsFor.EventGroups.FirstOrDefault(
-                    gr => gr.Indices.Contains(AnimMyEventIsFor.Events.IndexOf(MyEvent)));
+        public bool IsActive => OwnerPane != null && OwnerPane.AnimRef == AnimMyEventIsFor;
 
 
         public event EventHandler<int> RowChanged;
@@ -54,6 +53,11 @@ namespace DSAnimStudio.TaeEditor
                     RaiseRowChanged(oldRow);
                 }
             }
+        }
+
+        public void SetRowSilently(int newRow)
+        {
+            _row = newRow;
         }
 
         public Rectangle GetTextRect(int outlineThickness, bool smallMode)
@@ -281,16 +285,18 @@ namespace DSAnimStudio.TaeEditor
             OwnerPane = owner;
             MyEvent = myEvent;
             AnimMyEventIsFor = animEventIsFor;
+
             UpdateEventText();
         }
 
         public void ChangeEvent(TAE.Event newEvent, TAE.Animation animNewEventIsFor)
         {
-            var oldBytes = MyEvent.GetParameterBytes(bigEndian: false);
-            var newBytes = newEvent.GetParameterBytes(bigEndian: false);
+            newEvent.Group = MyEvent.Group;
+            var oldBytes = MyEvent.GetParameterBytes(bigEndian: GameDataManager.IsBigEndianGame);
+            var newBytes = newEvent.GetParameterBytes(bigEndian: GameDataManager.IsBigEndianGame);
             MyEvent = newEvent;
             Array.Resize(ref oldBytes, newBytes.Length);
-            MyEvent.SetParameterBytes(bigEndian: false, oldBytes);
+            MyEvent.SetParameterBytes(bigEndian: GameDataManager.IsBigEndianGame, oldBytes);
             AnimMyEventIsFor = animNewEventIsFor;
             UpdateEventText();
         }
@@ -300,7 +306,7 @@ namespace DSAnimStudio.TaeEditor
             RaiseRowChanged(e);
         }
 
-        public string DispEventName => $"{(MyEvent.TypeName ?? "")}[{MyEvent.Type}]\n{GetGroupText()}";
+        public string DispEventName => $"{(MyEvent.TypeName ?? "")}[{MyEvent.Type}]";
 
         public string GetPopupTitle()
         {
@@ -313,7 +319,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (MyEvent.Template == null)
             {
-                var paramBytes = MyEvent.GetParameterBytes(OwnerPane.MainScreen.SelectedTae.BigEndian/*lol*/);
+                var paramBytes = MyEvent.GetParameterBytes(GameDataManager.IsBigEndianGame);
                 int bytesOnCurrentLine = 0;
 
                 for (int i = 0; i < paramBytes.Length; i++)
@@ -368,40 +374,6 @@ namespace DSAnimStudio.TaeEditor
             return sb.ToString();
         }
 
-        private string GetGroupText()
-        {
-            var sb = new StringBuilder();
-            var group = MyEventGroup;
-            if (group != null)
-            {
-                int groupIndex = AnimMyEventIsFor.EventGroups.IndexOf(MyEventGroup);
-                sb.Append($"Group{groupIndex}[Type{group.GroupType}] ");
-
-                if (group.GroupData is TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity entitySpecifier)
-                {
-                    if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Character)
-                        sb.Append($"c{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Object)
-                        sb.Append($"o{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.DummyNode)
-                        sb.Append($"d{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.MapPiece)
-                    {
-                        if (entitySpecifier.Block >= 0)
-                            sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{entitySpecifier.Block}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                        else
-                            sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                    }
-
-                    if (entitySpecifier.Block >= 0 || entitySpecifier.Area >= 0)
-                    {
-                        sb.Append($" (from m{entitySpecifier.Area:D2}_{entitySpecifier.Block:D2})");
-                    }
-                }
-            }
-            return sb.ToString();
-        }
-
         public void UpdateEventText()
         {
             if (MyEvent.Template != null)
@@ -421,15 +393,12 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
                 sb.Append(")");
-                sb.AppendLine();
-
-                sb.Append(GetGroupText());
                
                 EventText.SetText(sb.ToString());
             }
             else
             {
-                EventText.SetText($"{(MyEvent.TypeName ?? "") }[{MyEvent.Type}]({string.Join(" ", MyEvent.GetParameterBytes(false).Select(b => b.ToString("X2")))})");
+                EventText.SetText($"{(MyEvent.TypeName ?? "") }[{MyEvent.Type}]({string.Join(" ", MyEvent.GetParameterBytes(GameDataManager.IsBigEndianGame).Select(b => b.ToString("X2")))})");
             }
         }
 

@@ -222,6 +222,28 @@ namespace DSAnimStudio.ImguiOSD
 
                         ImGui.EndMenu();
                     }
+
+                    if (entityTypeLoaded == TaeEditor.TaeViewportInteractor.TaeEntityType.REMO)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, Color.Cyan.ToNVector4());
+                        bool cutsceneSettings = ImGui.BeginMenu("Cutscene Settings");
+                        ImGui.PopStyleColor();
+                        if (cutsceneSettings)
+                        {
+                            isAnyMenuExpanded = true;
+
+                            RemoManager.EnableRemoCameraInViewport = Checkbox("Show Cutscene Camera View", RemoManager.EnableRemoCameraInViewport);
+                            RemoManager.EnableDummyPrims = Checkbox("Enable Dummy Node Helpers", RemoManager.EnableDummyPrims);
+
+                            if (ClickItem("Preview Full Cutscene With Streamed Audio"))
+                            {
+                                RemoManager.StartFullPreview();
+                            }
+
+                            ImGui.EndMenu();
+                        }
+                    }
+
                     break;
                     //TODO: OTHERS
             }
@@ -254,6 +276,9 @@ namespace DSAnimStudio.ImguiOSD
 
                 if (ClickItem("Go To Animation Section ID...", Tae.IsFileOpen, "Ctrl+H"))
                     Tae.ShowDialogGotoAnimSectionID();
+
+                if (ClickItem("Import From Animation ID...", Tae.IsFileOpen, "Ctrl+I"))
+                    Tae.ShowDialogImportFromAnimID();
 
                 ImGui.Separator();
 
@@ -433,6 +458,12 @@ namespace DSAnimStudio.ImguiOSD
                 if (ClickItem("Import all DS1:PTDE ANIBNDs to DS1R...", shortcut: "Much faster than above option,\n" +
                     "but requires an unpacked copy of both games.", shortcutColor: Color.Magenta))
                     Tae.Tools_ImportAllPTDEAnibndToDS1R();
+
+
+                ImGui.Separator();
+
+                if (ClickItem("Open Animation Importer"))
+                    Tae.BringUpImporter_FBXAnim();
 
                 ImGui.EndMenu();
             }

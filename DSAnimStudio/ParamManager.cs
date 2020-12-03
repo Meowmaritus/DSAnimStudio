@@ -180,7 +180,10 @@ namespace DSAnimStudio
             else
             {
                 AddParam(BehaviorParam, "BehaviorParam");
-                AddParam(BehaviorParam_PC, "BehaviorParam_PC");
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                    BehaviorParam_PC = BehaviorParam;
+                else
+                    AddParam(BehaviorParam_PC, "BehaviorParam_PC");
                 AddParam(AtkParam_Pc, "AtkParam_Pc");
                 AddParam(AtkParam_Npc, "AtkParam_Npc");
                 AddParam(NpcParam, "NpcParam");
@@ -189,14 +192,16 @@ namespace DSAnimStudio
                 if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                     AddParam(WepAbsorpPosParam, "WepAbsorpPosParam");
                 AddParam(SpEffectParam, "SpEffectParam");
-
-                var hitMtrlParam = GetParam("HitMtrlParam");
-                foreach (var row in hitMtrlParam.Rows)
+                if (GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DES)
                 {
-                    if (!HitMtrlParamEntries.Contains(row.ID))
-                        HitMtrlParamEntries.Add(row.ID);
+                    var hitMtrlParam = GetParam("HitMtrlParam");
+                    foreach (var row in hitMtrlParam.Rows)
+                    {
+                        if (!HitMtrlParamEntries.Contains(row.ID))
+                            HitMtrlParamEntries.Add(row.ID);
+                    }
+                    HitMtrlParamEntries = HitMtrlParamEntries.OrderBy(x => x).ToList();
                 }
-                HitMtrlParamEntries = HitMtrlParamEntries.OrderBy(x => x).ToList();
             }
 
             GameTypeCurrentLoadedParamsAreFrom = GameDataManager.GameType;
@@ -329,17 +334,28 @@ namespace DSAnimStudio
                     else
                         return false;
                 }
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                {
+                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParamNA.parambnd.dcx"))
+                        ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParamNA.parambnd.dcx");
+                    else if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
+                        ParamBNDs[GameDataManager.GameType] = BND3.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
+                    else
+                        return false;
+                }
                 else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB || 
                     GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     if (Directory.Exists($"{interroot}\\param\\GameParam\\") && File.Exists($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx"))
                         ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam.parambnd.dcx");
+                    else if (Directory.Exists($"{interroot}\\..\\param\\GameParam\\") && File.Exists($"{interroot}\\..\\param\\GameParam\\GameParam.parambnd.dcx"))
+                        ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\..\\param\\GameParam\\GameParam.parambnd.dcx");
                     else
                         return false;
                 }
                 else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 {
-                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") && 
+                    if (Directory.Exists($"{interroot}\\param\\GameParam\\") &&
                         File.Exists($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
                     {
                         ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
@@ -347,6 +363,15 @@ namespace DSAnimStudio
                     else if (File.Exists($"{interroot}\\Data0.bdt"))
                     {
                         ParamBNDs[GameDataManager.GameType] = SFUtil.DecryptDS3Regulation($"{interroot}\\Data0.bdt");
+                    }
+                    else if (Directory.Exists($"{interroot}\\..\\param\\GameParam\\") &&
+                        File.Exists($"{interroot}\\..\\param\\GameParam\\GameParam_dlc2.parambnd.dcx"))
+                    {
+                        ParamBNDs[GameDataManager.GameType] = BND4.Read($"{interroot}\\..\\param\\GameParam\\GameParam_dlc2.parambnd.dcx");
+                    }
+                    else if (File.Exists($"{interroot}\\..\\Data0.bdt"))
+                    {
+                        ParamBNDs[GameDataManager.GameType] = SFUtil.DecryptDS3Regulation($"{interroot}\\..\\Data0.bdt");
                     }
                     else
                     {

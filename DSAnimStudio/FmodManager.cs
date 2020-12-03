@@ -416,10 +416,10 @@ namespace DSAnimStudio
             }
         }
 
-        public static bool PlaySE(int category, int id, Func<Vector3> getPosFunc, int? stateInfo)
+        public static FmodEventUpdater PlaySE(int category, int id, Func<Vector3> getPosFunc, int? stateInfo)
         {
             if (!initialised)
-                return false;
+                return null;
 
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
             //    GameDataManager.GameType == GameDataManager.GameTypes.DS1R || 
@@ -459,7 +459,7 @@ namespace DSAnimStudio
                 soundName = $"g{id:D9}";
 
             if (soundName == null)
-                return false;
+                return null;
 
             return PlaySE(soundName, getPosFunc, stateInfo);
         }
@@ -484,14 +484,9 @@ namespace DSAnimStudio
         }
 
 
-        public static bool PlaySE(string seEventName, Func<Vector3> getPosFunc, int? stateInfo)
+        public static FmodEventUpdater PlaySE(string seEventName, Func<Vector3> getPosFunc, int? stateInfo)
         {
-            if (PlayEvent(seEventName, getPosFunc, stateInfo))
-            {
-                return true;
-            }
-
-            return false;
+            return PlayEvent(seEventName, getPosFunc, stateInfo);
         }
 
         public static void InitTest()
@@ -612,10 +607,10 @@ namespace DSAnimStudio
             }));
         }
 
-        private static bool PlayEvent(string eventName, Func<Vector3> getPosFunc, int? stateInfo)
+        private static FmodEventUpdater PlayEvent(string eventName, Func<Vector3> getPosFunc, int? stateInfo)
         {
             if (!initialised)
-                return false;
+                return null;
 
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
@@ -625,7 +620,7 @@ namespace DSAnimStudio
             //    return false;
             //}
 
-            bool result = false;
+            FmodEventUpdater result = null;
             Main.WinForm.Invoke(new Action(() =>
             {
                 FMOD.EventProject evProject = null;
@@ -694,7 +689,8 @@ namespace DSAnimStudio
 
                 if (!foundEvent)
                 {
-                    result = false;
+                    result = null;
+                    // Return from delegate fatcat
                     return;
                 }
 
@@ -708,12 +704,12 @@ namespace DSAnimStudio
                     {
                         lock (_lock_eventsToUpdate)
                         {
-                            _eventsToUpdate.Add(new FmodEventUpdater(newEvent, getPosFunc, eventName, stateInfo));
+                            result = new FmodEventUpdater(newEvent, getPosFunc, eventName, stateInfo);
+                            _eventsToUpdate.Add(result);
                         }
                     }
 
                     ERRCHECK(newEvent.start());
-                    result = true;
                 }
                 
             }));

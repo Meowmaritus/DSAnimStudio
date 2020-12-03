@@ -13,6 +13,7 @@ namespace DSAnimStudio
 {
     public static class GameDataManager
     {
+        public static bool IsBigEndianGame => GameType == SoulsAssetPipeline.SoulsGames.DES;
         //public enum SoulsGames
         //{
         //    None,
@@ -114,8 +115,13 @@ namespace DSAnimStudio
 
         public static string InterrootPath { get; set; } = null;
 
-        public static string GetInterrootPath(string path, bool isDirectory = false)
+        public static string GetInterrootPath(string path, bool isDirectory = false, bool doNotCheckIfExists = false)
         {
+            if (doNotCheckIfExists)
+            {
+                return $@"{InterrootPath}\{path}";
+            }
+
             if (isDirectory ? Directory.Exists($@"{InterrootPath}\{path}") : File.Exists($@"{InterrootPath}\{path}"))
             {
                 return $@"{InterrootPath}\{path}";
@@ -126,8 +132,9 @@ namespace DSAnimStudio
             }
             else
             {
-                ErrorLog.LogWarning($@"Unable to find the path '<Data Root>\{path}' in the main data root directory ('{InterrootPath}') or the directory in which that one is located.");
-                return $@"{InterrootPath}\..\{path}";
+                ErrorLog.LogWarning($@"Unable to find the path '.\{path}' in the main data root directory ('{InterrootPath}') or the directory in which that one is located (for ModEngine).");
+
+                return $@"{InterrootPath}\{path}";
             }
         }
 
@@ -233,6 +240,13 @@ namespace DSAnimStudio
             var lastSlashInFolder = folder.LastIndexOf("\\");
 
             return folder.Substring(0, lastSlashInFolder);
+        }
+
+        public static string GetInterrootFromDirectoryPath(string directoryPath)
+        {
+            var lastSlashInFolder = directoryPath.LastIndexOf("\\");
+
+            return directoryPath.Substring(0, lastSlashInFolder);
         }
 
         public static void SoftInit(SoulsGames gameType)
@@ -341,7 +355,7 @@ namespace DSAnimStudio
         {
             LoadingTaskMan.DoLoadingTask("LoadSystex", "Loading SYSTEX textures...", progress =>
             {
-                if (GameType == SoulsGames.DS1)
+                if (GameType == SoulsGames.DS1 || GameType == SoulsGames.DES)
                 {
                     TexturePool.AddTpfsFromPaths(new List<string>
                     {
@@ -391,6 +405,10 @@ namespace DSAnimStudio
                         GetInterrootPath($@"parts\common_body.tpf.dcx"),
                     }, progress);
                 }
+                //else
+                //{
+                //    throw new NotImplementedException($"Not implemented for GameType {GameType}.");
+                //}
             });
 
            
@@ -424,8 +442,12 @@ namespace DSAnimStudio
 
                         obj = new Model(progress, id, chrbnd, 0, null, null);
                     }
+                    else
+                    {
+                        throw new NotImplementedException($"Not implemented for GameType {GameType}.");
+                    }
 
-                    Scene.AddModel(obj, doLock: false);
+                Scene.AddModel(obj, doLock: false);
 
 
 
@@ -733,40 +755,123 @@ namespace DSAnimStudio
                             }
                         }
 
+
+                        var tpfsUsedForPtdeMemoryStuff = new List<TPF>();
                         chr = new Model(progress, id, chrbnd, 0, anibnd, texbxf,
                             possibleLooseTpfFolder: $@"chr\{id}\",
                             ignoreStaticTransforms: true, additionalTexbnd: extraTexChrbnd, 
                             modelToImportDuringLoad: modelToImportDuringLoad,
-                            modelImportConfig: importConfig);
+                            modelImportConfig: importConfig, tpfsUsed: tpfsUsedForPtdeMemoryStuff);
 
                         if (doImportActionList != null)
                         {
-                            if (texbxf != null)
+                            doImportActionList.Add(() =>
                             {
-                                doImportActionList.Add(() =>
-                                {
-                                    (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
-                                    chrtpfbhd.Bytes = customBhd;
-                                    File.WriteAllBytes(GetInterrootPath($@"chr\{id}.chrtpfbdt"), customBdt);
-                                    (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd"));
-                                });
-                            }
+                                Dictionary<string, TPF.Texture> allUsedTexturesForPtdeMemory = new Dictionary<string, TPF.Texture>();
 
-                            if (extraTexbxf != null)
-                            {
-                                doImportActionList.Add(() =>
+                                foreach (var tpfused in tpfsUsedForPtdeMemoryStuff)
                                 {
-                                    (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
-                                    extraChrtpfbhd.Bytes = customBhd;
-                                    File.WriteAllBytes(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt"), customBdt);
-                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
-                                });
-                            }
+                                    foreach (var t in tpfused.Textures)
+                                    {
+                                        var targetTpfName = Utils.GetShortIngameFileName(t.Name).ToLower();
+                                        if (!allUsedTexturesForPtdeMemory.ContainsKey(targetTpfName))
+                                        {
+                                            allUsedTexturesForPtdeMemory.Add(targetTpfName, t);
+                                        }
+                                        else
+                                        {
+                                            allUsedTexturesForPtdeMemory[targetTpfName] = t;
+                                        }
+                                    }
+                                }
+
+                                string existingExtraTexChrName = GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd");
+
+                                string ptdeMemoryLooseTexFolderName = GetInterrootPath($@"chr\{id}", isDirectory: true, doNotCheckIfExists: true);
+
+                                if (File.Exists(existingExtraTexChrName))
+                                {
+                                    var existingExtraTexChrTpfs = BND3.Read(existingExtraTexChrName).Files
+                                    .Where(bf => bf.Name.ToLower().EndsWith(".tpf"))
+                                    .Select(bff => TPF.Read(bff.Bytes))
+                                    .ToList();
+                                    foreach (var ect in existingExtraTexChrTpfs)
+                                    {
+                                        foreach (var t in ect.Textures)
+                                        {
+                                            var targetTpfName = Utils.GetShortIngameFileName(t.Name).ToLower();
+                                            if (!allUsedTexturesForPtdeMemory.ContainsKey(targetTpfName))
+                                            {
+                                                allUsedTexturesForPtdeMemory.Add(targetTpfName, t);
+                                            }
+                                            else
+                                            {
+                                                allUsedTexturesForPtdeMemory[targetTpfName] = t;
+                                            }
+                                        }
+                                    }
+
+                                    ptdeMemoryLooseTexFolderName = GetInterrootPath($@"chr\{id.Substring(0, 4)}9", isDirectory: true, doNotCheckIfExists: true);
+                                }
+
+                                if (!Directory.Exists(ptdeMemoryLooseTexFolderName))
+                                {
+                                    Directory.CreateDirectory(ptdeMemoryLooseTexFolderName);
+                                }
+
+                                var delegateCaptureEnsure_allUsedTexturesForPtdeMemory = allUsedTexturesForPtdeMemory;
+
+
+                                foreach (var tx in delegateCaptureEnsure_allUsedTexturesForPtdeMemory)
+                                {
+                                    string fullTpfPath = $@"{ptdeMemoryLooseTexFolderName}\{Utils.GetShortIngameFileName(tx.Value.Name)}.tpf";
+                                    var newTpf = new TPF()
+                                    {
+                                        Platform = TPF.TPFPlatform.PC,
+                                        Encoding = 0x2,
+                                        Flag2 = 0x3,
+                                    };
+                                    newTpf.Textures.Add(tx.Value);
+                                    if (File.Exists(fullTpfPath) && !File.Exists(fullTpfPath + ".bak"))
+                                        File.Copy(fullTpfPath, fullTpfPath + ".bak");
+                                    newTpf.Write(fullTpfPath);
+                                }
+
+                            });
+
+
+
+
+
+                            //if (texbxf != null)
+                            //{
+                            //    doImportActionList.Add(() =>
+                            //    {
+                            //        (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
+                            //        chrtpfbhd.Bytes = customBhd;
+                            //        File.WriteAllBytes(GetInterrootPath($@"chr\{id}.chrtpfbdt"), customBdt);
+                            //        (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd"));
+                            //    });
+                            //}
+
+                            //if (extraTexbxf != null)
+                            //{
+                            //    doImportActionList.Add(() =>
+                            //    {
+                            //        (texbxf as BXF3).Write(out byte[] customBhd, out byte[] customBdt);
+                            //        extraChrtpfbhd.Bytes = customBhd;
+                            //        File.WriteAllBytes(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrtpfbdt"), customBdt);
+                            //        (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
+                            //    });
+                            //}
 
                             if (chrbnd != null)
                             {
                                 doImportActionList.Add(() =>
                                 {
+                                    // PTDE MEMORY ISSUES; USE BXF TEXTURES (LOOSE FOLDER WITH UDSFM)
+                                    (chrbnd as BND3).Files.RemoveAll(f => f.Name.ToLower().EndsWith(".tpf"));
+
                                     (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd"));
                                 });
                             }
@@ -775,7 +880,10 @@ namespace DSAnimStudio
                             {
                                 doImportActionList.Add(() =>
                                 {
-                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id}.chrbnd"));
+                                    // PTDE MEMORY ISSUES; USE BXF TEXTURES (LOOSE FOLDER WITH UDSFM)
+                                    (extraTexChrbnd as BND3).Files.RemoveAll(f => f.Name.ToLower().EndsWith(".tpf"));
+
+                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd"));
                                 });
                             }
                         }
@@ -858,15 +966,100 @@ namespace DSAnimStudio
                                 }
                             }
                         }
-
+                        var tpfsUsedForPtdeMemoryStuff = new List<TPF>();
                         chr = new Model(progress, id, chrbnd, 0, anibnd, texbxf,
                             possibleLooseTpfFolder: $@"chr\{id}\",
                             ignoreStaticTransforms: true, additionalTexbnd: extraTexChrbnd,
                             modelToImportDuringLoad: modelToImportDuringLoad,
-                            modelImportConfig: importConfig);
+                            modelImportConfig: importConfig, tpfsUsed: tpfsUsedForPtdeMemoryStuff);
 
                         if (doImportActionList != null)
                         {
+                            doImportActionList.Add(() =>
+                            {
+                                Dictionary<string, TPF.Texture> allUsedTexturesForPtdeMemory = new Dictionary<string, TPF.Texture>();
+
+                                foreach (var tpfused in tpfsUsedForPtdeMemoryStuff)
+                                {
+                                    foreach (var t in tpfused.Textures)
+                                    {
+                                        var targetTpfName = Utils.GetShortIngameFileName(t.Name).ToLower();
+                                        if (!allUsedTexturesForPtdeMemory.ContainsKey(targetTpfName))
+                                        {
+                                            allUsedTexturesForPtdeMemory.Add(targetTpfName, t);
+                                        }
+                                        else
+                                        {
+                                            allUsedTexturesForPtdeMemory[targetTpfName] = t;
+                                        }
+                                    }
+                                }
+
+                                string existingExtraTexChrName = GetInterrootPath($@"chr\{id.Substring(0, 4)}9.chrbnd.dcx");
+
+                                if (File.Exists(existingExtraTexChrName))
+                                {
+                                    var existingExtraTexChrTpfs = BND3.Read(existingExtraTexChrName).Files
+                                    .Where(bf => bf.Name.ToLower().EndsWith(".tpf"))
+                                    .Select(bff => TPF.Read(bff.Bytes))
+                                    .ToList();
+                                    foreach (var ect in existingExtraTexChrTpfs)
+                                    {
+                                        foreach (var t in ect.Textures)
+                                        {
+                                            var targetTpfName = Utils.GetShortIngameFileName(t.Name).ToLower();
+                                            if (!allUsedTexturesForPtdeMemory.ContainsKey(targetTpfName))
+                                            {
+                                                allUsedTexturesForPtdeMemory.Add(targetTpfName, t);
+                                            }
+                                            else
+                                            {
+                                                allUsedTexturesForPtdeMemory[targetTpfName] = t;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                var delegateCaptureEnsure_allUsedTexturesForPtdeMemory = allUsedTexturesForPtdeMemory;
+
+                                var fakeTexBhf = new BXF3();
+
+                                foreach (var tx in delegateCaptureEnsure_allUsedTexturesForPtdeMemory)
+                                {
+                                    string fullTpfPath = $@"{Utils.GetShortIngameFileName(tx.Value.Name)}.tpf";
+                                    var newTpf = new TPF()
+                                    {
+                                        Platform = TPF.TPFPlatform.PC,
+                                        Encoding = 0x2,
+                                        Flag2 = 0x3,
+                                    };
+                                    newTpf.Textures.Add(tx.Value);
+
+                                    if (texbxf != null)
+                                    {
+                                        var existingBinderFile = texbxf.Files.LastOrDefault(bff => bff.Name.ToLower() == fullTpfPath.ToLower());
+                                        if (existingBinderFile != null)
+                                            existingBinderFile.Bytes = newTpf.Write();
+                                        else
+                                            texbxf.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbxf.Files.Count, fullTpfPath, newTpf.Write()));
+                                    }
+
+                                    if (extraTexbxf != null)
+                                    {
+                                        var existingBinderFile = extraTexbxf.Files.LastOrDefault(bff => bff.Name.ToLower() == fullTpfPath.ToLower());
+                                        if (existingBinderFile != null)
+                                            existingBinderFile.Bytes = newTpf.Write();
+                                        else
+                                            extraTexbxf.Files.Add(new BinderFile(Binder.FileFlags.Flag1, texbxf.Files.Count, fullTpfPath, newTpf.Write()));
+                                    }
+                                }
+
+                                
+
+                            });
+
+
+
                             if (texbxf != null)
                             {
                                 doImportActionList.Add(() =>
@@ -971,6 +1164,117 @@ namespace DSAnimStudio
                                 });
                         }
                     }
+                    else if (GameType == SoulsGames.DES)
+                    {
+                        var chrbnd = BND3.Read(GetInterrootPath($@"chr\{id}\{id}.chrbnd.dcx"));
+                        IBinder anibnd = null;
+                        IBinder extraTexChrbnd = null;
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}\{id}.anibnd.dcx.2010")))
+                            anibnd = BND3.Read(GetInterrootPath($@"chr\{id}\{id}.anibnd.dcx.2010"));
+                        else if (System.IO.File.Exists(GetInterrootPath($@"chr\{id}\{id}.anibnd.dcx")))
+                            anibnd = BND3.Read(GetInterrootPath($@"chr\{id}\{id}.anibnd.dcx"));
+
+                        if (System.IO.File.Exists(GetInterrootPath($@"chr\{id.Substring(0, 4)}9\{id.Substring(0, 4)}9.chrbnd.dcx")))
+                            extraTexChrbnd = BND3.Read(GetInterrootPath($@"chr\{id.Substring(0, 4)}9\{id.Substring(0, 4)}9.chrbnd.dcx"));
+
+                        var tpfsUsedForPtdeMemoryStuff = new List<TPF>();
+                        chr = new Model(progress, id, chrbnd, 0, anibnd, null,
+                            possibleLooseTpfFolder: $@"chr\{id}\",
+                            ignoreStaticTransforms: true, additionalTexbnd: extraTexChrbnd,
+                            modelToImportDuringLoad: modelToImportDuringLoad,
+                            modelImportConfig: importConfig, tpfsUsed: tpfsUsedForPtdeMemoryStuff);
+
+                        if (doImportActionList != null)
+                        {
+                            doImportActionList.Add(() =>
+                            {
+                                Dictionary<string, TPF.Texture> allUsedTexturesForPtdeMemory = new Dictionary<string, TPF.Texture>();
+
+                                foreach (var tpfused in tpfsUsedForPtdeMemoryStuff)
+                                {
+                                    foreach (var t in tpfused.Textures)
+                                    {
+                                        var targetTpfName = Utils.GetShortIngameFileName(t.Name).ToLower();
+                                        if (!allUsedTexturesForPtdeMemory.ContainsKey(targetTpfName))
+                                        {
+                                            allUsedTexturesForPtdeMemory.Add(targetTpfName, t);
+                                        }
+                                        else
+                                        {
+                                            allUsedTexturesForPtdeMemory[targetTpfName] = t;
+                                        }
+                                    }
+                                }
+
+                                string existingExtraTexChrName = GetInterrootPath($@"chr\{id.Substring(0, 4)}9\{id.Substring(0, 4)}9.chrbnd.dcx");
+
+                                if (File.Exists(existingExtraTexChrName))
+                                {
+                                    var existingExtraTexChrTpfs = BND3.Read(existingExtraTexChrName).Files
+                                    .Where(bf => bf.Name.ToLower().EndsWith(".tpf"))
+                                    .Select(bff => TPF.Read(bff.Bytes))
+                                    .ToList();
+                                    foreach (var ect in existingExtraTexChrTpfs)
+                                    {
+                                        foreach (var t in ect.Textures)
+                                        {
+                                            var targetTpfName = Utils.GetShortIngameFileName(t.Name).ToLower();
+                                            if (!allUsedTexturesForPtdeMemory.ContainsKey(targetTpfName))
+                                            {
+                                                allUsedTexturesForPtdeMemory.Add(targetTpfName, t);
+                                            }
+                                            else
+                                            {
+                                                allUsedTexturesForPtdeMemory[targetTpfName] = t;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                var delegateCaptureEnsure_allUsedTexturesForPtdeMemory = allUsedTexturesForPtdeMemory;
+
+                                var fakeTexBhf = new BXF3();
+
+                                foreach (var tx in delegateCaptureEnsure_allUsedTexturesForPtdeMemory)
+                                {
+                                    string fullTpfPath = $@"{Utils.GetShortIngameFileName(tx.Value.Name)}.tpf";
+                                    var newTpf = new TPF()
+                                    {
+                                        Platform = TPF.TPFPlatform.PC,
+                                        Encoding = 0x2,
+                                        Flag2 = 0x3,
+                                    };
+                                    newTpf.Textures.Add(tx.Value);
+
+                                    
+                                }
+
+
+
+                            });
+
+
+
+                           
+
+                            if (chrbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (chrbnd as BND3).Write(GetInterrootPath($@"chr\{id}\{id}.chrbnd.dcx"));
+                                });
+
+                            if (extraTexChrbnd != null)
+                                doImportActionList.Add(() =>
+                                {
+                                    (extraTexChrbnd as BND3).Write(GetInterrootPath($@"chr\{id.Substring(0, 4)}9\{id.Substring(0, 4)}9.chrbnd.dcx"));
+                                });
+                        }
+                    }
+                    else
+                    {
+                        throw new NotImplementedException($"Not implemented for GameType {GameType}.");
+                    }
 
                     Scene.AddModel(chr, doLock: false);
                 });
@@ -980,7 +1284,7 @@ namespace DSAnimStudio
                     LoadingTaskMan.DoLoadingTaskSynchronous("c0000_ANIBNDs",
                         "Loading additional player ANIBNDs...", progress =>
                     {
-                        string[] anibnds = GameDataManager.GetInterrootFiles($@"chr",
+                        string[] anibnds = GameDataManager.GetInterrootFiles((GameType == SoulsGames.DES ? $@"chr\{id}" : $@"chr"),
                             GameType == SoulsGames.DS1 ? "c0000_*.anibnd" : "c0000_*.anibnd.dcx")
                         .OrderBy(fn =>
                         {
@@ -1001,7 +1305,12 @@ namespace DSAnimStudio
 
                             string anibndName = anibnds[i];
 
-                            if ((GameType == SoulsGames.SDT || GameType == SoulsGames.DS1R) && System.IO.File.Exists(anibnds[i] + ".2010"))
+                            if (GameType == SoulsGames.DES)
+                            {
+                                anibnd = TaeEditor.TaeFileContainer.GenerateDemonsSoulsConvertedAnibnd(anibnds[i]);
+                            }
+
+                            if ((GameType == SoulsGames.SDT || GameType == SoulsGames.DS1R || GameType == SoulsGames.DES) && System.IO.File.Exists(anibnds[i] + ".2010"))
                             {
                                 anibndName = anibnds[i] + ".2010";
                             }
@@ -1040,7 +1349,12 @@ namespace DSAnimStudio
 
                                 string anibndName = additionalAnibnds[i];
 
-                                if ((GameType == SoulsGames.SDT || GameType == SoulsGames.DS1R) && System.IO.File.Exists(additionalAnibnds[i] + ".2010"))
+                                if (GameType == SoulsGames.DES)
+                                {
+                                    anibnd = TaeEditor.TaeFileContainer.GenerateDemonsSoulsConvertedAnibnd(additionalAnibnds[i]);
+                                }
+
+                                if ((GameType == SoulsGames.SDT || GameType == SoulsGames.DS1R || GameType == SoulsGames.DES) && System.IO.File.Exists(additionalAnibnds[i] + ".2010"))
                                 {
                                     anibndName = additionalAnibnds[i] + ".2010";
                                 }

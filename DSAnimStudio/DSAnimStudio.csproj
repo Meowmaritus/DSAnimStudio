@@ -139,8 +139,15 @@
     <Compile Include="PARAMHack\PARAM.cs" />
     <Compile Include="PARAMHack\PARAM.Row.cs" />
     <Compile Include="ParamUtil.cs" />
+    <Compile Include="RemoEventSim.cs" />
     <Compile Include="RemoManager.cs" />
     <Compile Include="SapImportConfigs.cs" />
+    <Compile Include="SapImportFbxAnimForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SapImportFbxAnimForm.Designer.cs">
+      <DependentUpon>SapImportFbxAnimForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="SapImportFlver2Form.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -187,6 +194,7 @@
     <Compile Include="TaeEditor\TaeComboMenu.Designer.cs">
       <DependentUpon>TaeComboMenu.cs</DependentUpon>
     </Compile>
+    <Compile Include="TaeEditor\TaeEventGroupRegion.cs" />
     <Compile Include="TaeEditor\TaeTransport.cs" />
     <Compile Include="TaeEditor\WinformsTooltipHelper.cs" />
     <Compile Include="TaeEditor\TaeHoverInfoBox.cs" />
@@ -447,7 +455,16 @@
     <Content Include="fmod_event_net64.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Res\DesAnims\despacito.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\DesAnims\EndianFlip.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Res\HitMtrlParamNames.DS1.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\TAE.Template.DES.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Res\TAE.Template.DS1.REMO.xml">
@@ -672,6 +689,9 @@
   <ItemGroup>
     <EmbeddedResource Include="NewChrAsmEquipForm.resx">
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SapImportFbxAnimForm.resx">
+      <DependentUpon>SapImportFbxAnimForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="SapImportFlver2Form.resx">
       <DependentUpon>SapImportFlver2Form.cs</DependentUpon>

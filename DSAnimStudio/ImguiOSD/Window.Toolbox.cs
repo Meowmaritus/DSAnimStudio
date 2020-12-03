@@ -503,7 +503,7 @@ namespace DSAnimStudio.ImguiOSD
                         ImGui.TreePop();
                     }
 
-                    if (ImGui.TreeNode("[Skeleton]"))
+                    if (ImGui.TreeNode("[FLVER Skeleton]"))
                     {
                         if (Scene.IsModelLoaded && Scene.MainModel.SkeletonFlver != null)
                         {
@@ -591,6 +591,60 @@ namespace DSAnimStudio.ImguiOSD
                         }
 
 
+
+                        ImGui.TreePop();
+                    }
+
+                    if (ImGui.TreeNode("[HKX Skeleton]"))
+                    {
+                        if (Scene.IsModelLoaded && Scene.MainModel.AnimContainer.Skeleton != null)
+                        {
+
+
+                            void DoBone(NewAnimSkeleton_HKX skeleton, NewAnimSkeleton_HKX.HkxBoneInfo bone)
+                            {
+                                int boneIndex = skeleton.HkxSkeleton.IndexOf(bone);
+
+                                if (OSD.RequestExpandAllTreeNodes)
+                                    ImGui.SetNextItemOpen(true);
+
+                                bool thisBoneHighlighted = NewAnimSkeleton_HKX.DebugDrawTransformOfFlverBoneIndex == boneIndex;
+
+                                if (thisBoneHighlighted)
+                                    ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0, 1, 1, 1));
+
+
+
+                                //bool boneNodeOpen = (ImGui.TreeNode(bone.Name));
+                                bool boneDrawEnabled = false;
+                                ImGui.Selectable(bone.Name, ref boneDrawEnabled);
+
+                                if (thisBoneHighlighted)
+                                    ImGui.PopStyleColor();
+
+                                if (ImGui.IsItemHovered())
+                                {
+                                    NewAnimSkeleton_HKX.DebugDrawTransformOfFlverBoneIndex = boneIndex;
+                                    thisFrameHover_Bone = true;
+                                }
+
+                                foreach (var c in bone.ChildIndices.Select(ci => skeleton.HkxSkeleton[ci]))
+                                {
+                                    ImGui.Indent();
+                                    DoBone(skeleton, c);
+                                    ImGui.Unindent();
+                                }
+                            }
+
+                            foreach (var rootIndex in Scene.MainModel.AnimContainer.Skeleton.TopLevelHkxBoneIndices)
+                                DoBone(Scene.MainModel.AnimContainer.Skeleton, Scene.MainModel.AnimContainer.Skeleton.HkxSkeleton[rootIndex]);
+
+
+                            if (!thisFrameHover_Bone)
+                                NewAnimSkeleton_HKX.DebugDrawTransformOfFlverBoneIndex = -1;
+                        }
+
+                        
 
                         ImGui.TreePop();
                     }

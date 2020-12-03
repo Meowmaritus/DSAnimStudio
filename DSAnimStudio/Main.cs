@@ -80,7 +80,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 3.0 Private Dev Build";
+        public const string VERSION = "Version 3.0-Test002 [Private Build]";
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -106,7 +106,7 @@ namespace DSAnimStudio
 
         public static bool Minimized { get; private set; }
 
-        public static bool DISABLE_DRAW_ERROR_HANDLE = false;
+        public static bool DISABLE_DRAW_ERROR_HANDLE = true;
 
         private static float MemoryUsageCheckTimer = 0;
         private static long MemoryUsage_Unmanaged = 0;
@@ -1023,10 +1023,22 @@ namespace DSAnimStudio
                             MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
                         }
 
-                    
+
 
                     GFX.SpriteBatch.Draw(SceneRenderTarget,
                             new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+
+                    if (RemoEventSim.CurrentFadeColor.HasValue)
+                    {
+                        GFX.SpriteBatchEnd();
+
+                        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+                        GFX.SpriteBatchBegin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
+
+                        GFX.SpriteBatch.Draw(TAE_EDITOR_BLANK_TEX,
+                                new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width,
+                                TAE_EDITOR.ModelViewerBounds.Height), RemoEventSim.CurrentFadeColor.Value);
+                    }
 
                     GFX.SpriteBatchEnd();
 

@@ -17,6 +17,15 @@ namespace DSAnimStudio
         private static bool DO_NOT_DRAW2 = false;
         private static object _lock_DO_NOT_DRAW = new object();
 
+        public static void ForeachModel(Action<Model> doStuff)
+        {
+            List<Model> mdls = null;
+            lock (_lock_ModelLoad_Draw)
+                mdls = Models.ToList();
+            foreach (var m in mdls)
+                doStuff(m);
+        }
+
         public static bool CheckIfDrawing()
         {
             var doNotDraw = false;
