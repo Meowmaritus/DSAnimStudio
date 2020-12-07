@@ -210,6 +210,7 @@ namespace DSAnimStudio.TaeEditor
         {
             { SoulsAssetPipeline.SoulsGames.DS1, new NewChrAsmCfgJson()
                 {
+                    IsFemale = false,
                     HeadID = 100000,
                     BodyID = 111000,
                     ArmsID = 292000,
@@ -227,6 +228,7 @@ namespace DSAnimStudio.TaeEditor
             },
             { SoulsAssetPipeline.SoulsGames.DS1R, new NewChrAsmCfgJson()
                 {
+                    IsFemale = false,
                     HeadID = 100000,
                     BodyID = 111000,
                     ArmsID = 292000,
@@ -242,8 +244,9 @@ namespace DSAnimStudio.TaeEditor
                     WeaponStyle = NewChrAsm.WeaponStyleType.OneHand,
                 }
             },
-             { SoulsAssetPipeline.SoulsGames.DS3, new NewChrAsmCfgJson()
+            { SoulsAssetPipeline.SoulsGames.DS3, new NewChrAsmCfgJson()
                 {
+                    IsFemale = false,
                     HeadID = 54000000,
                     BodyID = 54001000,
                     ArmsID = 54002000,
@@ -259,8 +262,9 @@ namespace DSAnimStudio.TaeEditor
                     WeaponStyle = NewChrAsm.WeaponStyleType.TwoHandR,
                 }
             },
-             { SoulsAssetPipeline.SoulsGames.BB, new NewChrAsmCfgJson()
+            { SoulsAssetPipeline.SoulsGames.BB, new NewChrAsmCfgJson()
                 {
+                    IsFemale = false,
                     HeadID = 130000,
                     BodyID = 361000,
                     ArmsID = 402000,
@@ -268,6 +272,24 @@ namespace DSAnimStudio.TaeEditor
                     RightWeaponID = 24000000,
                     //RightWeaponModelIndex = 0,
                     LeftWeaponID = 14000000,
+                    //LeftWeaponModelIndex = 0,
+                    LeftWeaponFlipBackwards = false,
+                    LeftWeaponFlipSideways = false,
+                    RightWeaponFlipBackwards = false,
+                    RightWeaponFlipSideways = false,
+                    WeaponStyle = NewChrAsm.WeaponStyleType.OneHand,
+                }
+            },
+            { SoulsAssetPipeline.SoulsGames.DES, new NewChrAsmCfgJson()
+                {
+                    IsFemale = false,
+                    HeadID = 100700,
+                    BodyID = 200700,
+                    ArmsID = 300700,
+                    LegsID = 400700,
+                    RightWeaponID = 20200,
+                    //RightWeaponModelIndex = 0,
+                    LeftWeaponID = 150800,
                     //LeftWeaponModelIndex = 0,
                     LeftWeaponFlipBackwards = false,
                     LeftWeaponFlipSideways = false,

@@ -41,6 +41,13 @@ namespace DSAnimStudio
             //}
         }
 
+        public static void DrawText3D(string text, Vector3 pos, Color? color = null, Color? shadowColor = null,
+            float fontSize = BaseFontSize)
+        {
+            Vector2 calculatedPos = GFX.World.Project3DPosToScreen(pos);
+            DrawText(text, calculatedPos, color, shadowColor, fontSize);
+        }
+
         public static void DrawText(string text, Vector2 pos, Color? color = null, Color? shadowColor = null,
             float fontSize = BaseFontSize)
         {

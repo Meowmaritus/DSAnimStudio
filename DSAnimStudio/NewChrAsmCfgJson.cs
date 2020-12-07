@@ -9,6 +9,7 @@ namespace DSAnimStudio
     public class NewChrAsmCfgJson
     {
         public SoulsAssetPipeline.SoulsGames GameType;
+        public bool IsFemale;
         public int HeadID = -1;
         public int BodyID = -1;
         public int ArmsID = -1;
@@ -25,6 +26,7 @@ namespace DSAnimStudio
 
         public void WriteToChrAsm(NewChrAsm chrAsm)
         {
+            chrAsm.IsFemale = IsFemale;
             chrAsm.HeadID = HeadID;
             chrAsm.BodyID = BodyID;
             chrAsm.ArmsID = ArmsID;
@@ -44,6 +46,7 @@ namespace DSAnimStudio
         public void CopyFromChrAsm(NewChrAsm chrAsm)
         {
             GameType = GameDataManager.GameType;
+            IsFemale = chrAsm.IsFemale;
             HeadID = chrAsm.HeadID;
             BodyID = chrAsm.BodyID;
             ArmsID = chrAsm.ArmsID;

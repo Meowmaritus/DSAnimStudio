@@ -999,7 +999,10 @@ namespace DSAnimStudio
                             GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
 
                         ImGuiDebugDrawer.ViewportOffset = TAE_EDITOR.ModelViewerBounds.DpiScaled().TopLeftCorner();
-                        GFX.DrawSceneOver3D();
+
+                        TAE_EDITOR?.Graph?.ViewportInteractor?.GeneralUpdate_BeforePrimsDraw();
+
+                    GFX.DrawSceneOver3D();
                         ImGuiDebugDrawer.ViewportOffset = Vector2.Zero;
 
                     GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);

@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ImGuiNET;
 using DSAnimStudio.ImguiOSD;
+using DSAnimStudio.DebugPrimitives;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -34,7 +35,148 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeEventSimulationEnvironment EventSim { get; private set; }
 
-        
+        public static DebugPrimitives.DbgPrimWireArrow DbgPrim_RootMotionStartPoint = null;
+        public static DebugPrimitives.DbgPrimWireArrow DbgPrim_RootMotionMidstPoint = null;
+        public static DebugPrimitives.DbgPrimWireBone GlobalBonePrim;
+
+        public Matrix DbgPrim_RootMotionStartPoint_Matrix = Matrix.Identity;
+
+        public Queue<Transform> DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue = new Queue<Transform>();
+        public int DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_Max = 200;
+        public float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold = (1f / 30f);
+        public float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
+
+        private void CreateRootMotionPoints()
+        {
+            if (DbgPrim_RootMotionStartPoint == null)
+                DbgPrim_RootMotionStartPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Start", new Transform(Matrix.CreateScale(0.25f)), Color.White)
+                {
+                    Category = DebugPrimitives.DbgPrimCategory.AlwaysDraw,
+                    OverrideColor = Color.Red,
+                };
+
+            if (DbgPrim_RootMotionMidstPoint == null)
+                DbgPrim_RootMotionMidstPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Midst", new Transform(Matrix.CreateScale(0.005f)), Color.White)
+                {
+                    Category = DebugPrimitives.DbgPrimCategory.AlwaysDraw,
+                    OverrideColor = Color.Yellow * 0.5f
+                };
+
+            if (GlobalBonePrim == null)
+            {
+                GlobalBonePrim = new DbgPrimWireBone("Root Motion Midst Connector", new Transform(Matrix.Identity), Color.Yellow)
+                {
+                    Category = DbgPrimCategory.AlwaysDraw,
+                };
+            }
+        }
+
+        private object _lock_UpdateAndDrawRootMotionPoints = new object();
+
+        public void UpdateAndDrawRootMotionPoints(NewBlendableTransform absoluteRootMotionLocation, bool doDraw, float deltaTime = 0)
+        {
+            lock (_lock_UpdateAndDrawRootMotionPoints)
+            {
+                CreateRootMotionPoints();
+
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime += Math.Abs(deltaTime);
+
+                if (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime >= DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold)
+                {
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Enqueue(new Transform(Matrix.CreateScale(0.15f) * absoluteRootMotionLocation.GetMatrix().ToXna()));
+                    while (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Count > DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_Max)
+                        DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Dequeue();
+
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
+                }
+
+                var rootMotionDispLocation = absoluteRootMotionLocation;
+
+                if (Graph.MainScreen.Config.WrapRootMotion)
+                {
+                    rootMotionDispLocation.Translation.X = rootMotionDispLocation.Translation.X % 1;
+                    rootMotionDispLocation.Translation.Z = rootMotionDispLocation.Translation.Z % 1;
+                }
+
+                Vector3 globalTranslationOffset = (rootMotionDispLocation.Translation - absoluteRootMotionLocation.Translation).ToXna();
+
+                if (doDraw)
+                {
+                    //DbgPrim_RootMotionStartPoint.Transform = new Transform(absoluteRootMotionLocation.GetMatrix().ToXna());
+                    DbgPrim_RootMotionStartPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                }
+
+                var asList = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.ToList();
+
+                for (int i = 0; i < asList.Count; i++)
+                {
+                    DbgPrim_RootMotionMidstPoint.Transform = asList[i];
+                    if (doDraw)
+                    {
+                        
+                        DbgPrim_RootMotionMidstPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                        if (i < asList.Count - 1)
+                        {
+                            var next = asList[i + 1];
+                            var curPos = Vector3.Transform(Vector3.Zero, asList[i].WorldMatrix);
+                            var nextPos = Vector3.Transform(Vector3.Zero, asList[i + 1].WorldMatrix);
+                            float length = (nextPos - curPos).Length();
+                            GlobalBonePrim.Transform = new Transform(Matrix.CreateScale(length) *
+                                Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                Matrix.CreateWorld(curPos, nextPos - curPos, Vector3.Up));
+                            GlobalBonePrim.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                        }
+                    }
+                }
+
+                if (!doDraw)
+                {
+
+                    if (Graph.MainScreen.Config.CameraFollowsRootMotion)
+                    {
+                        GFX.World.RootMotionFollow_Translation = rootMotionDispLocation.Translation.ToXna();
+                    }
+                    else
+                    {
+                        if (GFX.World.RootMotionFollow_Translation.LengthSquared() != 0)
+                        {
+                            GFX.World.CameraOrbitOrigin += GFX.World.RootMotionFollow_Translation;
+                        }
+
+                        GFX.World.RootMotionFollow_Translation = Vector3.Zero;
+                    }
+
+                    if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
+                    {
+                        GFX.World.RootMotionFollow_Rotation = rootMotionDispLocation.GetWrappedYawAngle();
+                    }
+                    else
+                    {
+                        if (GFX.World.RootMotionFollow_Rotation != 0)
+                        {
+                            GFX.World.CameraLookDirection *= Quaternion.CreateFromYawPitchRoll(GFX.World.RootMotionFollow_Rotation, 0, 0);
+                        }
+
+                        GFX.World.RootMotionFollow_Rotation = 0;
+                    }
+
+                    CurrentModel.StartTransform = CurrentModel.CurrentTransform = new Transform(rootMotionDispLocation.GetMatrix().ToXna());
+
+                    //GFX.World.UpdateDummyPolyFollowRefPoint(isFirstTime: false);
+                    GFX.World.Update(0);
+                }
+            }
+        }
+
+        public void MarkRootMotionStart(NewBlendableTransform absoluteRootMotionLocation)
+        {
+            CreateRootMotionPoints();
+
+            DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
+
+            DbgPrim_RootMotionStartPoint.Transform = new Transform(absoluteRootMotionLocation.GetMatrix().ToXna());
+        }
+
 
         public static float StatusTextScale = 100.0f;
 
@@ -265,13 +407,6 @@ namespace DSAnimStudio.TaeEditor
                 if (CurrentModel?.AnimContainer.Skeleton != null)
                     CurrentComboRecorder = new HavokRecorder(CurrentModel.AnimContainer.Skeleton.HkxSkeleton);
 
-                CurrentModel.AnimContainer.Skeleton.OnRootMotionWrap = (wrap) =>
-                {
-                    GeneralUpdate(allowPlaybackManipulation: false);
-                    GFX.World.Update(0);
-                    FmodManager.Update();
-                };
-
                 GFX.World.OrbitCamDistanceInput = (CurrentModel.Bounds.Max - CurrentModel.Bounds.Min).Length() * 2f;
                 if (GFX.World.OrbitCamDistanceInput < 0.5f)
                     GFX.World.OrbitCamDistanceInput = 5;
@@ -357,7 +492,7 @@ namespace DSAnimStudio.TaeEditor
             //CurrentModel.AnimContainer.IsPlaying = false;
             CurrentModel.AnimContainer.ScrubRelative(timeDelta);
 
-            CurrentModel.AfterAnimUpdate(timeDelta);
+            
 
             
 
@@ -378,6 +513,9 @@ namespace DSAnimStudio.TaeEditor
             }
 
             GFX.World.Update(0);
+
+            UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, timeDelta);
+            CurrentModel.AfterAnimUpdate(timeDelta);
         }
 
         private void CheckSimEnvironment()
@@ -427,9 +565,13 @@ namespace DSAnimStudio.TaeEditor
                     //CurrentModel.AnimContainer.IsPlaying = false;
                     CurrentModel.AnimContainer.ScrubRelative(timeDelta);
 
-                    CurrentModel.AfterAnimUpdate(timeDelta);
+                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, timeDelta);
 
-                    if (CurrentComboIndex >= 0 && IsComboRecording)
+                CurrentModel.AfterAnimUpdate(timeDelta);
+
+                
+
+                if (CurrentComboIndex >= 0 && IsComboRecording)
                     {
                         if (UpdateCombo())
                             return;
@@ -590,7 +732,9 @@ namespace DSAnimStudio.TaeEditor
         private void RecordCurrentComboFrame()
         {
             Vector3 curModelPosition = Vector3.Transform(Vector3.Zero, CurrentModel.CurrentTransform.WorldMatrix);
-            Vector4 curRootMotionLocation = new Vector4(curModelPosition, CurrentModel.AnimContainer.Skeleton.CurrentDirection);
+
+            throw new NotImplementedException();
+            Vector4 curRootMotionLocation = new Vector4(curModelPosition, 0/*CurrentModel.AnimContainer.Skeleton.CurrentDirection*/);
             Vector4 rootMotionDelta = curRootMotionLocation - CurrentComboRecordLastRootMotion;
             CurrentComboRecorder.AddFrame(rootMotionDelta, CurrentModel.AnimContainer.Skeleton.HkxSkeleton);
             CurrentComboRecordLastRootMotion = curRootMotionLocation;
@@ -796,6 +940,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 CurrentModel.AnimContainer.ResetRootMotion();
             }
+            MarkRootMotionStart(NewBlendableTransform.Identity);
         }
 
         public void RemoveTransition()
@@ -838,18 +983,18 @@ namespace DSAnimStudio.TaeEditor
             if (CurrentModel != null)
             {
                 //CurrentModel.AnimContainer.ResetRootMotion();
-                CurrentModel.AnimContainer.Skeleton.CurrentRootMotionTranslation = Matrix.Identity;
+                CurrentModel.AnimContainer.ResetRootMotion();
                 //CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
 
-                CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.ResetRootMotion();
+                CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.ResetRootMotion();
+                CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.ResetRootMotion();
+                CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.ResetRootMotion();
 
-                CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
-                CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.Skeleton?.ResetRootMotionTranslation();
+                CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.ResetRootMotion();
+                CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.ResetRootMotion();
+                CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.ResetRootMotion();
+                CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.ResetRootMotion();
             }
         }
 
@@ -890,16 +1035,20 @@ namespace DSAnimStudio.TaeEditor
 
                 CurrentModel.AnimContainer.CurrentAnimationName = mainChrAnimName;
 
-                lock (CurrentModel.AnimContainer._lock_AnimationLayers)
-                {
-                    if ((CurrentModel.AnimContainer.AnimationLayers.Count == 1 && CurrentModel.AnimContainer.AnimationLayers[0].IsAdditiveBlend) ||
-                      (CurrentModel.AnimContainer.AnimationLayers.Count == 2 && (CurrentModel.AnimContainer.AnimationLayers[0].IsAdditiveBlend || CurrentModel.AnimContainer.AnimationLayers[1].IsAdditiveBlend)))
-                    {
-                        RemoveTransition();
-                    }
-                }
+                prevRootMotionLoopCount = 0;
+                MarkRootMotionStart(CurrentModel.AnimContainer.RootMotionTransform);
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
 
-               
+                //lock (CurrentModel.AnimContainer._lock_AnimationLayers)
+                //{
+                //    if ((CurrentModel.AnimContainer.AnimationLayers.Count == 1 && CurrentModel.AnimContainer.AnimationLayers[0].IsAdditiveBlend) ||
+                //      (CurrentModel.AnimContainer.AnimationLayers.Count == 2 && (CurrentModel.AnimContainer.AnimationLayers[0].IsAdditiveBlend || CurrentModel.AnimContainer.AnimationLayers[1].IsAdditiveBlend)))
+                //    {
+                //        RemoveTransition();
+                //    }
+                //}
+
+
 
                 Graph.PlaybackCursor.ResetAll();
 
@@ -921,8 +1070,17 @@ namespace DSAnimStudio.TaeEditor
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)
                 {
                     //V2.0: Check
-                    CurrentModel.AnimContainer.CurrentAnimation.Reset();
+                    CurrentModel.AnimContainer.CurrentAnimation.Reset(CurrentModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
+
+                    UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
+
+                    OnScrubFrameChange(0);
+
                     CurrentModel.AnimContainer.ScrubRelative(0);
+
+                    MarkRootMotionStart(CurrentModel.AnimContainer.RootMotionTransform);
+
+                    UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
                 }
                 else
                 {
@@ -949,55 +1107,12 @@ namespace DSAnimStudio.TaeEditor
 
         private int lastFrameForTrails = -1;
 
-        public void GeneralUpdate(bool allowPlaybackManipulation = true)
+        public void GeneralUpdate_BeforePrimsDraw()
         {
             DBG.DbgPrimXRay = Graph.MainScreen.Config.DbgPrimXRay;
 
-            
             if (CurrentModel != null)
             {
-                // allowPlaybackManipulation==false prevents infinite recursion.
-                if (allowPlaybackManipulation && IsComboRecording && CurrentComboIndex >= 0)
-                {
-                    Graph.PlaybackCursor.IsPlaying = false;
-                    Graph.PlaybackCursor.Scrubbing = true;
-                    Graph.PlaybackCursor.IsStepping = false;
-                    Graph.PlaybackCursor.CurrentTime += CurrentComboRecorder.DeltaTime;
-                    Graph.PlaybackCursor.UpdateScrubbing();
-                    RecordCurrentComboFrame();
-                }
-
-
-                if (Graph.MainScreen.Config.CameraFollowsRootMotion)
-                {
-                    GFX.World.RootMotionFollow_Translation = 
-                        Vector3.Transform(Vector3.Zero, CurrentModel.AnimContainer.Skeleton.CurrentRootMotionTranslation);
-                }
-                else
-                {
-                    GFX.World.RootMotionFollow_Translation = Vector3.Zero;
-                }
-
-                if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
-                {
-                    GFX.World.RootMotionFollow_Rotation = CurrentModel.AnimContainer.Skeleton.CurrentDirection;
-                }
-                else
-                {
-                    GFX.World.RootMotionFollow_Rotation = 0;
-                }
-
-                if (Graph.MainScreen.Config.CameraPansVerticallyToFollowModel)
-                {
-                    GFX.World.UpdateDummyPolyFollowRefPoint(isFirstTime: false);
-                }
-
-                if (CurrentModel.AnimContainer != null)
-                {
-                    CurrentModel.AnimContainer.EnableRootMotion = Graph.MainScreen.Config.EnableAnimRootMotion;
-                    CurrentModel.AnimContainer.EnableRootMotionWrap = Graph.MainScreen.Config.WrapRootMotion && !IsComboRecording;
-                }
-
                 int frame = (int)Math.Round(Graph.PlaybackCursor.CurrentTime / (1.0 / 60.0));
 
                 if (Graph.PlaybackCursor.ContinuousTimeDelta != 0)
@@ -1021,7 +1136,40 @@ namespace DSAnimStudio.TaeEditor
                 GFX.World.RootMotionFollow_Translation = Vector3.Zero;
                 GFX.World.RootMotionFollow_Rotation = 0;
             }
+        }
+
+        int prevRootMotionLoopCount = -1;
+
+        public void GeneralUpdate(bool allowPlaybackManipulation = true)
+        {
             
+
+            
+            if (CurrentModel != null)
+            {
+                // allowPlaybackManipulation==false prevents infinite recursion.
+                if (allowPlaybackManipulation && IsComboRecording && CurrentComboIndex >= 0)
+                {
+                    Graph.PlaybackCursor.IsPlaying = false;
+                    Graph.PlaybackCursor.Scrubbing = true;
+                    Graph.PlaybackCursor.IsStepping = false;
+                    Graph.PlaybackCursor.CurrentTime += CurrentComboRecorder.DeltaTime;
+                    Graph.PlaybackCursor.UpdateScrubbing();
+                    RecordCurrentComboFrame();
+                }
+
+                
+            }
+
+            int curRootMotionLoopCount = CurrentModel.AnimContainer.CurrentAnimation.RootMotion.CurrentLoopNum;
+            if (curRootMotionLoopCount != prevRootMotionLoopCount)
+            {
+                MarkRootMotionStart(CurrentModel.AnimContainer.RootMotionTransform);
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
+            }
+            prevRootMotionLoopCount = curRootMotionLoopCount;
+
+
         }
 
         public void DrawDebug()
@@ -1029,7 +1177,11 @@ namespace DSAnimStudio.TaeEditor
             if (CurrentModel != null)
             {
                 EventSim?.DrawAllBladeSFXs(CurrentModel.CurrentTransform.WorldMatrix);
+
+                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, true);
             }
+
+            
         }
 
         public void DrawDebugOverlay()

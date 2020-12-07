@@ -71,12 +71,12 @@ namespace DSAnimStudio
                     return asm.GetDummyPolySpawnPlace(defaultDummyPolySource, DmyPoly2);
                 }
 
-                public List<Matrix> GetDmyPoly1Locations(Model mdl, DummyPolySource defaultDummySource)
+                public List<Matrix> GetDmyPoly1Locations(Model mdl, DummyPolySource defaultDummySource, bool isPlayerWeapon)
                 {
                     if (DmyPoly1 == -1)
                         return new List<Matrix>() { Matrix.Identity };
 
-                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.AnimContainer.Skeleton.CurrentRootMotionRotation * mdl.AnimContainer.Skeleton.CurrentRootMotionTranslation);
+                    var modMatrix = isPlayerWeapon ? Matrix.Identity : mdl.CurrentTransform.WorldMatrix;
 
                     if (mdl.ChrAsm == null)
                         return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly1, modMatrix) ?? new List<Matrix>() { modMatrix };
@@ -92,12 +92,12 @@ namespace DSAnimStudio
                     return place?.GetDummyMatricesByID(DmyPoly1 % 1000, modMatrix) ?? new List<Matrix>() { modMatrix };
                 }
 
-                public List<Matrix> GetDmyPoly2Locations(Model mdl, DummyPolySource defaultDummySource)
+                public List<Matrix> GetDmyPoly2Locations(Model mdl, DummyPolySource defaultDummySource, bool isPlayerWeapon)
                 {
                     if (DmyPoly2 == -1)
                         return new List<Matrix>() { Matrix.Identity };
 
-                    var modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.AnimContainer.Skeleton.CurrentRootMotionRotation * mdl.AnimContainer.Skeleton.CurrentRootMotionTranslation);
+                    var modMatrix = isPlayerWeapon ? Matrix.Identity : mdl.CurrentTransform.WorldMatrix;
 
                     if (mdl.ChrAsm == null)
                         return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly2, modMatrix) ?? new List<Matrix>() { modMatrix };
@@ -730,7 +730,7 @@ namespace DSAnimStudio
             public int FallbackBehaviorVariationID => (BehaviorVariationID / 100) * 100;
             public short EquipModelID;
             public byte WepMotionCategory;
-            public short SpAtkCategory;
+            public short SpAtkCategory = -1;
             public int WepAbsorpPosID = -1;
 
             public byte FDPSoundType = 0;
@@ -1106,6 +1106,19 @@ namespace DSAnimStudio
             public override void Read(BinaryReaderEx br)
             {
                 long start = br.Position;
+
+                if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                {
+                    br.Position = start + 0x02;
+                    EquipModelID = br.ReadInt16();
+                    br.Position = start + 0x07;
+                    WepMotionCategory = br.ReadByte();
+                    br.Position = start + 0x1C;
+                    BehaviorVariationID = br.ReadInt32();
+
+                    return;
+                }
+
                 BehaviorVariationID = br.ReadInt32();
 
                 br.Position = start + 0xB8;
@@ -1173,6 +1186,18 @@ namespace DSAnimStudio
             public bool ArmEquip;
             public bool LegEquip;
             public List<bool> InvisibleFlags = new List<bool>();
+
+            public bool CanEquipOnGender(bool isFemale)
+            {
+                if (EquipModelGender == EquipModelGenders.Unisex || EquipModelGender == EquipModelGenders.Both || EquipModelGender == EquipModelGenders.UseMaleForBoth)
+                    return true;
+                else if (EquipModelGender == EquipModelGenders.MaleOnly)
+                    return isFemale == false;
+                else if (EquipModelGender == EquipModelGenders.FemaleOnly)
+                    return isFemale == true;
+                else
+                    return true;
+            }
 
             public bool[] ApplyInvisFlagsToMask(bool[] mask)
             {
@@ -1248,8 +1273,7 @@ namespace DSAnimStudio
 
                 if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
                     GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R ||
-                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB ||
-                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES) //TODO_DES
+                    GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.BB) //TODO_DES
                 {
                     var firstBitmask = ReadBitmask(br, 6 + 48);
                     //IsDeposit = firstBitmask[0]
@@ -1270,6 +1294,26 @@ namespace DSAnimStudio
                         var mask48to62 = ReadBitmask(br, 15);
 
                         InvisibleFlags.AddRange(mask48to62);
+                    }
+                }
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                {
+                    br.Position = start + 1;
+                    EquipModelGender = (EquipModelGenders)br.ReadByte();
+                    EquipModelID = br.ReadInt16();
+
+                    br.Position = start + 0x09;
+                    HeadEquip = br.ReadBoolean();
+                    BodyEquip = br.ReadBoolean();
+                    ArmEquip = br.ReadBoolean();
+                    LegEquip = br.ReadBoolean();
+
+                    br.Position = start + 0x50;
+                    var firstBitmask = ReadBitmask(br, 32);
+                    InvisibleFlags.Clear();
+                    for (int i = 0; i < 32; i++)
+                    {
+                        InvisibleFlags.Add(firstBitmask[i]);
                     }
                 }
                 else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 ||

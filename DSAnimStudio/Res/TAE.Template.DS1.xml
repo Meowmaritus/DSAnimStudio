@@ -226,8 +226,7 @@
     </event>
     <event id="112" name="SpawnFFX_ByFloor">
       <s32 name="FFXID"/>
-      <s16 name="DummyPolyID"/>
-      <s16/>
+      <s32 name="DummyPolyID"/>
     </event>
     <!-- Like 115 but this one can be spawned multiple times during anim -->
     <event id="114" name="SpawnFFX_GoodsAndMagic">

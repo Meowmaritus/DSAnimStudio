@@ -10,6 +10,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NMatrix = System.Numerics.Matrix4x4;
+using NVector3 = System.Numerics.Vector3;
+using NQuaternion = System.Numerics.Quaternion;
 
 namespace DSAnimStudio
 {
@@ -33,9 +36,52 @@ namespace DSAnimStudio
             }
 
 
-            if (DebugButton("DEMONS SOULS TAE"))
+
+
+            if (DebugButton("DEMONS SOULS TAE CONVERT"))
             {
-                var tae = TAE.Read(@"C:\RPCS3\dev_hdd0\disc\BLUS30443\PS3_GAME\USRDIR\chr\c0000\c0000-anibnd\Model\chr\c0000\tae\a00.tae");
+                //var tae = TAE.Read(@"C:\RPCS3\dev_hdd0\disc\BLUS30443\PS3_GAME\USRDIR\chr\c0000\c0000-anibnd\Model\chr\c0000\tae\a00.tae");
+
+                var taeFileNames = Directory.GetFiles(@"E:\DarkSoulsModding\_DESANIM\_TaeToDS1", "*.tae");
+
+
+
+                foreach (var t in taeFileNames)
+                {
+                    var tae = TAE.Read(t);
+
+                    var templateDS1 = TAE.Template.ReadXMLFile(System.IO.Path.Combine(new System.IO.FileInfo(typeof(_QuickDebug).Assembly.Location).DirectoryName, $@"Res\TAE.Template.DS1.xml"));
+                    var templateDES = TAE.Template.ReadXMLFile(System.IO.Path.Combine(new System.IO.FileInfo(typeof(_QuickDebug).Assembly.Location).DirectoryName, $@"Res\TAE.Template.DES.xml"));
+
+                    tae.ApplyTemplate(templateDES);
+
+                    tae.BigEndian = false;
+                    tae.Format = TAE.TAEFormat.DS1;
+
+                    tae.ChangeTemplateAfterLoading(templateDS1);
+
+                    tae.Write($@"E:\DarkSoulsModding\_DESANIM\_TaeToDS1\out\{Path.GetFileNameWithoutExtension(t)}.tae");
+                }
+
+                Console.WriteLine("FATCAT");
+            }
+
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+            ImGui.Separator();
+
+            if (DebugButton("DEMONS SOULS HKX CONVERT"))
+            {
+                //var tae = TAE.Read(@"C:\RPCS3\dev_hdd0\disc\BLUS30443\PS3_GAME\USRDIR\chr\c0000\c0000-anibnd\Model\chr\c0000\tae\a00.tae");
+
+                DebugTest_RemapHK2010InterleavedAnims(@"E:\DarkSoulsModding\_DESANIM\_ToDS1");
 
                 Console.WriteLine("FATCAT");
             }
@@ -340,6 +386,699 @@ namespace DSAnimStudio
                 //Console.WriteLine("fatcat");
             }
         }
+
+
+
+
+        private static void DebugTest_RemapHK2010InterleavedAnims(string dir)
+        {
+            var hkxs = Directory.GetFiles(dir, "*.hkx");
+
+            HKX.HKASkeleton source_skeleton = null;
+            HKX.HKASkeleton target_skeleton = null;
+
+            foreach (var h in hkxs)
+            {
+                if (h.ToLower().EndsWith("sourceskeleton.hkx"))
+                {
+                    var hkx = HKX.Read(h);
+                    foreach (var o in hkx.DataSection.Objects)
+                    {
+                        if (o is HKX.HKASkeleton asSkeleton)
+                            source_skeleton = asSkeleton;
+                    }
+                }
+                else if (h.ToLower().EndsWith("targetskeleton.hkx"))
+                {
+                    var hkx = HKX.Read(h);
+                    foreach (var o in hkx.DataSection.Objects)
+                    {
+                        if (o is HKX.HKASkeleton asSkeleton)
+                            target_skeleton = asSkeleton;
+                    }
+                }
+            }
+
+            var sourceTpose = source_skeleton.Transforms.GetArrayData().Elements.Select(tp => NewBlendableTransform.FromHKXTransform(tp)).ToList();
+            var targetTpose = target_skeleton.Transforms.GetArrayData().Elements.Select(tp => NewBlendableTransform.FromHKXTransform(tp)).ToList();
+
+            var targetBonesChildren = new List<List<int>>();
+            var targetBonesTopOfHierarchy = new List<int>();
+
+            var sourceBonesChildren = new List<List<int>>();
+            var sourceBonesTopOfHierarchy = new List<int>();
+
+            for (int i = 0; i < targetTpose.Count; i++)
+            {
+                targetBonesChildren.Add(new List<int>());
+            }
+
+            for (int i = 0; i < sourceTpose.Count; i++)
+            {
+                sourceBonesChildren.Add(new List<int>());
+            }
+
+            for (int i = 0; i < targetTpose.Count; i++)
+            {
+                var parent = target_skeleton.ParentIndices[i].data;
+                if (parent >= 0)
+                {
+                    if (parent < targetTpose.Count)
+                    {
+                        if (!targetBonesChildren[parent].Contains(i))
+                            targetBonesChildren[parent].Add(i);
+                    }
+                }
+                else
+                {
+                    targetBonesTopOfHierarchy.Add(i);
+                }
+            }
+
+            for (int i = 0; i < sourceTpose.Count; i++)
+            {
+                var parent = source_skeleton.ParentIndices[i].data;
+                if (parent >= 0)
+                {
+                    if (parent < sourceTpose.Count)
+                    {
+                        if (!sourceBonesChildren[parent].Contains(i))
+                            sourceBonesChildren[parent].Add(i);
+                    }
+                }
+                else
+                {
+                    sourceBonesTopOfHierarchy.Add(i);
+                }
+            }
+
+            foreach (var h in hkxs)
+            {
+                if (h.ToLower().EndsWith("sourceskeleton.hkx"))
+                {
+                    continue;
+                }
+                else if (h.ToLower().EndsWith("targetskeleton.hkx"))
+                {
+                    continue;
+                }
+
+                var hkx = HKX.Read(h);
+
+                HKX.HKAAnimationBinding hk_binding = null;
+                HKX.HKAInterleavedUncompressedAnimation hk_anim = null;
+                HKX.HKADefaultAnimatedReferenceFrame hk_refFrame = null;
+
+                foreach (var o in hkx.DataSection.Objects)
+                {
+                    if (o is HKX.HKAAnimationBinding asBinding)
+                        hk_binding = asBinding;
+                    else if (o is HKX.HKAInterleavedUncompressedAnimation asAnim)
+                        hk_anim = asAnim;
+                    else if (o is HKX.HKADefaultAnimatedReferenceFrame asRefFrame)
+                        hk_refFrame = asRefFrame;
+                }
+
+                var targetBoneList = target_skeleton.Bones.GetArrayData().Elements.Select(b => b.Name.GetString()).ToList();
+
+                
+
+                var sourceRootMotionSamples = (hk_refFrame != null) ? hk_refFrame.ReferenceFrameSamples.GetArrayData().Elements.Select(rfs => rfs.Vector).ToList() : null;
+
+                if (hk_anim == null)
+                    continue;
+
+                var a = new HavokAnimationData_InterleavedUncompressed("fatcat", source_skeleton, hk_refFrame, hk_binding, hk_anim);
+                var targetBoneMapping = a.GetTransformTrackBoneNameMapping(targetBoneList);
+                var thing = new SoulsAssetPipeline.AnimationImporting.ImportedAnimation();
+
+                thing.Duration = hk_anim.Duration;
+                thing.BlendHint = hk_binding.BlendHint;
+                thing.FrameCount = (int)hk_anim.Transforms.Capacity / hk_anim.TransformTrackCount;
+                thing.FrameDuration = (thing.Duration / thing.FrameCount);
+
+                thing.HkxBoneIndexToTransformTrackMap = new int[targetBoneList.Count];
+                thing.TransformTrackIndexToHkxBoneMap = new int[targetBoneList.Count];
+
+                for (int i = 0; i < targetBoneList.Count; i++)
+                {
+                    thing.HkxBoneIndexToTransformTrackMap[i] = i;
+                    thing.TransformTrackIndexToHkxBoneMap[i] = i;
+                    thing.TransformTrackNames.Add(targetBoneList[i]);
+                    thing.TransformTrackToBoneIndices.Add(targetBoneList[i], i);
+                }
+
+                for (int f = 0; f < thing.FrameCount; f++)
+                {
+                    var newFrame = new SoulsAssetPipeline.AnimationImporting.ImportedAnimation.Frame();
+                    if (sourceRootMotionSamples != null)
+                    {
+                        int rootMotionIndex = f % sourceRootMotionSamples.Count;
+
+                        var sample = sourceRootMotionSamples[rootMotionIndex];
+
+                        if (sourceRootMotionSamples.Count == 2)
+                        {
+                            if (hk_refFrame.Duration < 0.001f || thing.FrameDuration < 0.01f || thing.FrameDuration > 1f)
+                                Console.WriteLine("DFSDF");
+                            sample = (sourceRootMotionSamples[1] - sourceRootMotionSamples[0]) * ((f * thing.FrameDuration) / hk_refFrame.Duration);
+                        }
+
+                        newFrame.RootMotionRotation = sample.W;
+                        newFrame.RootMotionTranslation = new System.Numerics.Vector3(
+                            sample.X,
+                            sample.Y,
+                            sample.Z);
+                    }
+
+                    for (int i = 0; i < targetBoneList.Count; i++)
+                    {
+                        newFrame.BoneTransforms.Add(NewBlendableTransform.FromHKXTransform(target_skeleton.Transforms[i]));
+                    }
+
+                    thing.Frames.Add(newFrame);
+                }
+
+                var sourceTrackToBoneMap = hk_binding.TransformTrackToBoneIndices.GetArrayData().Elements.Select(bn => bn.data).ToList();
+                var sourceBoneToTrackMap = new int[sourceTrackToBoneMap.Count];
+
+                for (int i = 0; i < sourceBoneToTrackMap.Length; i++)
+                {
+                    sourceBoneToTrackMap[i] = -1;
+                }
+
+                for (int i = 0; i < sourceTrackToBoneMap.Count; i++)
+                {
+                    if (sourceTrackToBoneMap[i] >= 0)
+                        sourceBoneToTrackMap[sourceTrackToBoneMap[i]] = i;
+                }
+
+                var sourceBoneNames = source_skeleton.Bones.GetArrayData().Elements.Select(bn => bn.Name.GetString()).ToList();
+
+                var hotfixTrackIndex_R_Arm_Root = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_Arm_Root")];
+                var hotfixTrackIndex_R_Clavicle = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_Clavicle")];
+                var hotfixTrackIndex_R_UpperArm = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_UpperArm")];
+                var hotfixTrackIndex_R_UpArmTwist = sourceBoneToTrackMap[sourceBoneNames.IndexOf("RUpArmTwist")];
+                var hotfixTrackIndex_R_ForeTwist = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_ForeTwist")];
+                var hotfixTrackIndex_R_Finger0 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_Finger0")];
+                var hotfixTrackIndex_R_Finger1 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_Finger1")];
+                var hotfixTrackIndex_R_Finger2 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_Finger2")];
+                var hotfixTrackIndex_R_Finger3 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("R_Finger3")];
+
+                var hotfixTrackIndex_L_Arm_Root = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_Arm_Root")];
+                var hotfixTrackIndex_L_Clavicle = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_Clavicle")];
+                var hotfixTrackIndex_L_UpperArm = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_UpperArm")];
+                var hotfixTrackIndex_L_UpArmTwist = sourceBoneToTrackMap[sourceBoneNames.IndexOf("LUpArmTwist")];
+                var hotfixTrackIndex_L_ForeTwist = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_ForeTwist")];
+                var hotfixTrackIndex_L_Finger0 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_Finger0")];
+                var hotfixTrackIndex_L_Finger1 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_Finger1")];
+                var hotfixTrackIndex_L_Finger2 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_Finger2")];
+                var hotfixTrackIndex_L_Finger3 = sourceBoneToTrackMap[sourceBoneNames.IndexOf("L_Finger3")];
+
+                var sourceTransforms = hk_anim.Transforms.GetArrayData().Elements;
+
+                foreach (var kvp in targetBoneMapping)
+                {
+                    int sourceTrackIndex = kvp.Key;
+
+                    
+
+                    int targetBoneIndex = targetBoneList.IndexOf(kvp.Value);
+
+                    int srcBoneIndex = hk_binding.TransformTrackToBoneIndices[sourceTrackIndex].data;
+
+                    var targetBoneTransform = NewBlendableTransform.FromHKXTransform(target_skeleton.Transforms[targetBoneIndex]);
+                    var sourceBoneTransform = NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[srcBoneIndex]);
+
+                    for (int f = 0; f < thing.FrameCount; f++)
+                    {
+                        var srcTransform = NewBlendableTransform.FromHKXTransform(
+                            sourceTransforms[((hk_anim.TransformTrackCount * f) + sourceTrackIndex)]);
+
+                        if (sourceTrackIndex == hotfixTrackIndex_L_Clavicle)
+                        {
+                            var rootThing = NewBlendableTransform.FromHKXTransform(
+                                sourceTransforms[((hk_anim.TransformTrackCount * f) + hotfixTrackIndex_L_Arm_Root)]);
+
+                            //srcTransform.Rotation = srcTransform.Rotation * rootThing.Rotation;
+                            //srcTransform.Translation = rootThing.Translation;
+
+                            srcTransform = new NewBlendableTransform(srcTransform.GetMatrixUnnormalized() * rootThing.GetMatrixUnnormalized());
+                        }
+                        else if (sourceTrackIndex == hotfixTrackIndex_R_Clavicle)
+                        {
+                            var rootThing = NewBlendableTransform.FromHKXTransform(
+                                sourceTransforms[((hk_anim.TransformTrackCount * f) + hotfixTrackIndex_R_Arm_Root)]);
+
+                            //srcTransform.Rotation = srcTransform.Rotation * rootThing.Rotation;
+                            //srcTransform.Translation = rootThing.Translation;
+
+                            srcTransform = new NewBlendableTransform(srcTransform.GetMatrixUnnormalized() * rootThing.GetMatrixUnnormalized());
+                        }
+                        //else if (sourceTrackIndex == hotfixTrackIndex_R_UpArmTwist)
+                        //{
+                        //    srcTransform.Rotation = NQuaternion.CreateFromYawPitchRoll(MathHelper.PiOver2, 0, 0) * srcTransform.Rotation;
+                        //}
+                        //else if (sourceTrackIndex == hotfixTrackIndex_L_UpArmTwist)
+                        //{
+                        //    srcTransform.Rotation = NQuaternion.CreateFromYawPitchRoll(MathHelper.PiOver2, 0, 0) * srcTransform.Rotation;
+                        //}
+                        else if (sourceTrackIndex == hotfixTrackIndex_R_Finger2)
+                        {
+                            srcTransform = NewBlendableTransform.FromHKXTransform(
+                                sourceTransforms[((hk_anim.TransformTrackCount * f) + hotfixTrackIndex_R_Finger3)]);
+                        }
+                        else if (sourceTrackIndex == hotfixTrackIndex_L_Finger2)
+                        {
+                            srcTransform = NewBlendableTransform.FromHKXTransform(
+                                sourceTransforms[((hk_anim.TransformTrackCount * f) + hotfixTrackIndex_L_Finger3)]);
+                        }
+
+                        thing.Frames[f].BoneTransforms[targetBoneIndex] = srcTransform;// (srcTransform * NewBlendableTransform.Invert(sourceBoneTransform)) * targetBoneTransform;// NewBlendableTransform.ApplyFromToDeltaTransform(srcTransform, sourceTpose[srcBoneIndex], targetTpose[targetBoneIndex]);
+                    }
+                }
+
+                ////void MultiplyAllAnimTransformFramesOfBone(int boneIdx, NewBlendableTransform mult, bool doRotation)
+                ////{
+                ////    for (int f = 0; f < thing.FrameCount; f++)
+                ////    {
+                ////        var tr = thing.Frames[f].BoneTransforms[boneIdx];
+
+                ////        //tr.Translation = NVector3.Transform(tr.Translation, NMatrix.CreateFromQuaternion(mult.Rotation));
+
+                ////        //tr.Translation += mult.Translation;
+
+                ////        if (doRotation)
+                ////            tr.Rotation *= mult.Rotation;
+
+                ////        //tr.Scale *= mult.Scale;
+                ////        thing.Frames[f].BoneTransforms[boneIdx] = tr;
+                ////    }
+                ////}
+
+                ////void FixTransformTrack(int targetBoneIndex)
+                ////{
+                ////    int sourceBoneIndex = source_skeleton.Bones.GetArrayData().Elements.FindIndex(bn => bn.Name.GetString() == targetBoneList[targetBoneIndex]);
+                ////    if (sourceBoneIndex >= 0)
+                ////    {
+                ////        var retargetDelta = NewBlendableTransform.GetDelta(sourceTpose[sourceBoneIndex], targetTpose[targetBoneIndex]);
+                ////        MultiplyAllAnimTransformFramesOfBone(targetBoneIndex, retargetDelta, doRotation: true);
+                ////        var retargetInverse = NewBlendableTransform.Inverse(retargetDelta);
+                ////        foreach (var childIdx in targetBonesChildren[targetBoneIndex])
+                ////        {
+                ////            MultiplyAllAnimTransformFramesOfBone(childIdx, retargetInverse, doRotation: true);
+                ////        }
+                ////    }
+
+                ////    foreach (var childIdx in targetBonesChildren[targetBoneIndex])
+                ////    {
+                ////        FixTransformTrack(childIdx);
+                ////    }
+                ////}
+
+                ////foreach (var topBoneIdx in targetBonesTopOfHierarchy)
+                ////{
+                ////    FixTransformTrack(topBoneIdx);
+                ////}
+
+
+
+
+
+
+                //var absoluteBoneMatrices_TargetSkeleton = new NewBlendableTransform[targetTpose.Count];
+                //var absoluteBoneMatrices_SourceSkeleton = new NewBlendableTransform[sourceTpose.Count];
+                //// All bones on frame 0, all bones on frame 1, etc
+                //var absoluteBoneMatrices_Source = new NewBlendableTransform[thing.FrameCount * sourceTpose.Count];
+                //var absoluteBoneMatrices_Source_Fixed = new NewBlendableTransform[thing.FrameCount * sourceTpose.Count];
+
+                //var absoluteBoneMatrices_Target = new NewBlendableTransform[thing.FrameCount * targetTpose.Count];
+
+                //for (int i = 0; i < absoluteBoneMatrices_TargetSkeleton.Length; i++)
+                //    absoluteBoneMatrices_TargetSkeleton[i] = NewBlendableTransform.Identity;
+
+                //for (int i = 0; i < absoluteBoneMatrices_SourceSkeleton.Length; i++)
+                //    absoluteBoneMatrices_SourceSkeleton[i] = NewBlendableTransform.Identity;
+
+                //for (int i = 0; i < absoluteBoneMatrices_Source.Length; i++)
+                //{
+                //    absoluteBoneMatrices_Source[i] = NewBlendableTransform.Identity;
+                //    absoluteBoneMatrices_Source_Fixed[i] = NewBlendableTransform.Identity;
+                //}
+
+                //for (int i = 0; i < absoluteBoneMatrices_Target.Length; i++)
+                //{
+                //    absoluteBoneMatrices_Target[i] = NewBlendableTransform.Identity;
+                //}
+
+                //void CalculateAbsoluteBoneMatrix_Source(int f, int boneIndex, NewBlendableTransform current)
+                //{
+                //    int sourceTransformTrackIndex = sourceBoneToTrackMap[boneIndex];
+
+                //    var boneTrans = (sourceTransformTrackIndex >= 0 ? NewBlendableTransform.FromHKXTransform(
+                //        sourceTransforms[((hk_anim.TransformTrackCount * f) + sourceTransformTrackIndex)])
+                //        :
+
+                //        NewBlendableTransform.FromHKXTransform(
+                //        source_skeleton.Transforms[boneIndex])) * current;
+
+                //    absoluteBoneMatrices_Source[((sourceTpose.Count * f) + boneIndex)] = boneTrans;
+
+                //    foreach (var childIdx in sourceBonesChildren[boneIndex])
+                //        CalculateAbsoluteBoneMatrix_Source(f, childIdx, boneTrans);
+                //}
+
+                //void CalculateAbsoluteBoneMatrix_SourceSkeleton(int boneIndex, NewBlendableTransform current)
+                //{
+                //    var boneTrans = current * NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[boneIndex]);
+
+                //    absoluteBoneMatrices_SourceSkeleton[boneIndex] = boneTrans;
+
+                //    foreach (var childIdx in sourceBonesChildren[boneIndex])
+                //        CalculateAbsoluteBoneMatrix_SourceSkeleton(childIdx, boneTrans);
+                //}
+
+                //void CalculateAbsoluteBoneMatrix_TargetSkeleton(int boneIndex, NewBlendableTransform current)
+                //{
+                //    var boneTrans = current * NewBlendableTransform.FromHKXTransform(target_skeleton.Transforms[boneIndex]);
+
+                //    absoluteBoneMatrices_TargetSkeleton[boneIndex] = boneTrans;
+
+                //    foreach (var childIdx in targetBonesChildren[boneIndex])
+                //        CalculateAbsoluteBoneMatrix_TargetSkeleton(childIdx, boneTrans);
+                //}
+
+                //foreach (var topBoneIdx in targetBonesTopOfHierarchy)
+                //{
+                //    CalculateAbsoluteBoneMatrix_TargetSkeleton(topBoneIdx, NewBlendableTransform.Identity);
+                //}
+
+                //foreach (var topBoneIdx in sourceBonesTopOfHierarchy)
+                //{
+                //    CalculateAbsoluteBoneMatrix_SourceSkeleton(topBoneIdx, NewBlendableTransform.Identity);
+                //}
+
+                //for (int f = 0; f < thing.FrameCount; f++)
+                //{
+                //    foreach (var topBoneIdx in sourceBonesTopOfHierarchy)
+                //    {
+                //        CalculateAbsoluteBoneMatrix_Source(f, topBoneIdx, NewBlendableTransform.Identity);
+                //    }
+
+                //    for (int t = 0; t < sourceTpose.Count; t++)
+                //    {
+                //        var thisBoneLocationOnThisFrame = absoluteBoneMatrices_Source[((sourceTpose.Count * f) + t)];
+
+                //        var thisBoneLocationInTPose = absoluteBoneMatrices_SourceSkeleton[t];
+
+                //        //if (sourceBoneNames[t] == "L_Clavicle")
+                //        //{
+                //        //    thisBoneLocationOnThisFrame = absoluteBoneMatrices_Source[((sourceTpose.Count * f) + sourceBoneNames.IndexOf("L_Arm_Root"))];
+                //        //    thisBoneLocationOnThisFrame *= NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[sourceBoneNames.IndexOf("L_Clavicle")]) * thisBoneLocationOnThisFrame;
+
+                //        //    thisBoneLocationInTPose = absoluteBoneMatrices_SourceSkeleton[sourceBoneNames.IndexOf("L_Arm_Root")];
+                //        //    thisBoneLocationInTPose = NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[sourceBoneNames.IndexOf("L_Clavicle")]) * thisBoneLocationInTPose;
+
+                //        //    thisBoneLocationOnThisFrame.Rotation = NQuaternion.Conjugate(thisBoneLocationOnThisFrame.Rotation);
+                //        //}
+                //        //else if (sourceBoneNames[t] == "R_Clavicle")
+                //        //{
+                //        //    thisBoneLocationOnThisFrame = absoluteBoneMatrices_Source[((sourceTpose.Count * f) + sourceBoneNames.IndexOf("R_Arm_Root"))];
+                //        //    thisBoneLocationOnThisFrame = NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[sourceBoneNames.IndexOf("R_Clavicle")]) * thisBoneLocationOnThisFrame;
+
+                //        //    thisBoneLocationInTPose = absoluteBoneMatrices_SourceSkeleton[sourceBoneNames.IndexOf("R_Arm_Root")];
+                //        //    thisBoneLocationInTPose = NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[sourceBoneNames.IndexOf("R_Clavicle")]) * thisBoneLocationInTPose;
+
+                //        //    thisBoneLocationOnThisFrame.Rotation = NQuaternion.Conjugate(thisBoneLocationOnThisFrame.Rotation);
+                //        //}
+
+                //        //if (sourceBoneNames[t] == "L_Clavicle")
+                //        //{
+
+                //        //}
+
+                //        int targetBoneIndex = targetBoneList.IndexOf(source_skeleton.Bones[t].Name.GetString());
+
+                //        if (targetBoneIndex >= 0)
+                //        {
+                //            var thisBoneLocationInTargetTPose = absoluteBoneMatrices_TargetSkeleton[targetBoneIndex];
+                //            var thisBoneLocationOnThisFrameRelativeToTPose = thisBoneLocationOnThisFrame * NewBlendableTransform.Invert(thisBoneLocationInTPose);
+                //            absoluteBoneMatrices_Source_Fixed[((sourceTpose.Count * f) + t)] = thisBoneLocationInTargetTPose * thisBoneLocationOnThisFrameRelativeToTPose;
+
+                //            //absoluteBoneMatrices_Target[((targetTpose.Count * f) + targetBoneIndex)] = thisBoneLocationOnThisFrame * (thisBoneLocationInTargetTPose * NewBlendableTransform.Invert(thisBoneLocationInTPose));
+
+                //            absoluteBoneMatrices_Target[((targetTpose.Count * f) + targetBoneIndex)] = thisBoneLocationOnThisFrame;// * NewBlendableTransform.Invert(thisBoneLocationInTPose) * thisBoneLocationInTargetTPose;
+
+                //        }
+                //        //else
+
+                //        //{
+                //        //    absoluteBoneMatrices_Target[((targetTpose.Count * f) + targetBoneIndex)] = new NewBlendableTransform() { Translation = new NVector3(10, 0, 0) };
+                //        //}
+
+
+                //    }
+                //}
+
+                ////void CalculateAbsoluteBoneMatrix_Target_FinalOutput(int f, int boneIndex, NewBlendableTransform current)
+                ////{
+                ////    var boneTrans = absoluteBoneMatrices_Target[((targetTpose.Count * f) + boneIndex)];
+
+                ////    var finalMatrix = boneTrans * NewBlendableTransform.Invert(current);
+
+                ////    //if (finalMatrix.Decompose(out Vector3 s, out Quaternion r, out Vector3 t))
+                ////    //{
+                ////    //    thing.Frames[f].BoneTransforms[boneIndex] = new NewBlendableTransform()
+                ////    //    {
+                ////    //        Translation = t.ToCS(),
+                ////    //        Rotation = r.ToCS(),
+                ////    //        //Scale = s.ToCS(),
+                ////    //    };
+                ////    //}
+
+                ////    thing.Frames[f].BoneTransforms[boneIndex] = finalMatrix;
+
+                ////    foreach (var childIdx in targetBonesChildren[boneIndex])
+                ////        CalculateAbsoluteBoneMatrix_Target_FinalOutput(f, childIdx, boneTrans);
+                ////}
+
+                ////for (int f = 0; f < thing.FrameCount; f++)
+                ////{
+                ////    foreach (var topBoneIdx in targetBonesTopOfHierarchy)
+                ////    {
+                ////        CalculateAbsoluteBoneMatrix_Target_FinalOutput(f, topBoneIdx, NewBlendableTransform.Identity);
+                ////    }
+                ////}
+
+                //var hotfixBoneIndex_R_Clavicle = targetBoneList.IndexOf("R_Clavicle");
+                //var hotfixBoneIndex_L_Clavicle = targetBoneList.IndexOf("L_Clavicle");
+                //var hotfixBoneIndex_Spine1 = sourceBoneNames.IndexOf("Spine1");
+
+                //var hotfixBoneIndex_Source_R_Arm_Root = sourceBoneNames.IndexOf("R_Arm_Root");
+                //var hotfixBoneIndex_Source_L_Arm_Root = sourceBoneNames.IndexOf("L_Arm_Root");
+
+                //for (int f = 0; f < thing.FrameCount; f++)
+                //{
+                //    for (int t = 0; t < targetTpose.Count; t++)
+                //    {
+                //        var absoluteBonePos = absoluteBoneMatrices_Target[((targetTpose.Count * f) + t)];
+
+                //        var sourceBoneIndex = -1;// sourceBoneNames.IndexOf(targetBoneList[t]);
+
+                //        if (sourceBoneIndex < 0)
+                //        {
+                //            int parentBoneIndex = target_skeleton.ParentIndices[t].data;
+
+                //            string parentBoneName = parentBoneIndex >= 0 ? targetBoneList[parentBoneIndex] : null;
+
+                //            var boneName = targetBoneList[t];
+
+                //            //if (boneName == "R_Clavicle")
+                //            //{
+                //            //    absoluteBonePos = absoluteBoneMatrices_Source[(sourceTpose.Count * f) + hotfixBoneIndex_Source_R_Arm_Root];
+                //            //}
+                //            //else if (boneName == "L_Clavicle")
+                //            //{
+                //            //    absoluteBonePos = absoluteBoneMatrices_Source[(sourceTpose.Count * f) + hotfixBoneIndex_Source_L_Arm_Root];
+                //            //}
+
+                //            if (boneName == "R_Clavicle" || boneName == "L_Clavicle")
+                //            {
+                //                //absoluteBonePos.Rotation *= NQuaternion.CreateFromYawPitchRoll(0, SoulsAssetPipeline.SapMath.PiOver2, 0);
+                //            }
+                //            else if (boneName == "R_UpperArm")
+                //            {
+                //                //absoluteBonePos.Rotation *= NQuaternion.CreateFromYawPitchRoll(0, 0, SoulsAssetPipeline.SapMath.PiOver2);
+
+                //                //absoluteBonePos.Rotation.X *= -1;
+                //                //absoluteBonePos.Rotation = SoulsAssetPipeline.SapMath.MirrorQuat(absoluteBonePos.Rotation);
+                //            }
+                //            else if (boneName == "L_UpperArm")
+                //            {
+                //                // THIS MAKES IT ALMOST RIGHT JUST UPSIDE DOWN FATCAT
+                //                //absoluteBonePos.Rotation *= NQuaternion.CreateFromYawPitchRoll(SoulsAssetPipeline.SapMath.Pi, 0, 0);
+
+                //                //absoluteBonePos.Rotation = NQuaternion.CreateFromRotationMatrix(NMatrix.CreateFromQuaternion(absoluteBonePos.Rotation) * NMatrix.CreateRotationY(-SoulsAssetPipeline.SapMath.Pi)
+                //                //    * NMatrix.CreateRotationZ(-SoulsAssetPipeline.SapMath.PiOver2));
+
+                //                //absoluteBonePos.Rotation = NQuaternion.CreateFromRotationMatrix(NMatrix.CreateFromQuaternion(absoluteBonePos.Rotation) * NMatrix.CreateRotationX(SoulsAssetPipeline.SapMath.Pi)
+                //                //    * NMatrix.CreateRotationZ(SoulsAssetPipeline.SapMath.Pi));
+                //            }
+                //            //else if (boneName == "L_Forearm")
+                //            //{
+                //            //    // THIS MAKES IT ALMOST RIGHT JUST UPSIDE DOWN FATCAT
+                //            //    absoluteBonePos.Rotation *= NQuaternion.CreateFromYawPitchRoll(0, 0, -SoulsAssetPipeline.SapMath.PiOver2);
+
+                //            //    //absoluteBonePos.Rotation = NQuaternion.CreateFromRotationMatrix(NMatrix.CreateFromQuaternion(absoluteBonePos.Rotation) * NMatrix.CreateRotationY(-SoulsAssetPipeline.SapMath.Pi)
+                //            //    //    * NMatrix.CreateRotationZ(-SoulsAssetPipeline.SapMath.PiOver2));
+                //            //}
+
+                //            if (parentBoneIndex >= 0)
+                //            {
+                //                var parentAbsolutePos = absoluteBoneMatrices_Target[((targetTpose.Count * f) + parentBoneIndex)];
+
+                //                //if (boneName == "R_Clavicle")
+                //                //{
+                //                //    parentAbsolutePos = absoluteBoneMatrices_Source[(sourceTpose.Count * f) + hotfixBoneIndex_Spine1];
+                //                //}
+                //                //else if (boneName == "L_Clavicle")
+                //                //{
+                //                //    parentAbsolutePos = absoluteBoneMatrices_Source[(sourceTpose.Count * f) + hotfixBoneIndex_Spine1];
+                //                //}
+
+
+                //                absoluteBonePos *= NewBlendableTransform.Invert(parentAbsolutePos);
+
+                //                if (boneName == "R_Clavicle")
+                //                {
+                //                    //var source_rootThing = absoluteBoneMatrices_Source[(hk_anim.TransformTrackCount * f) + sourceBoneNames.IndexOf("R_Arm_Root")];
+                //                    //var source_clavicle = absoluteBoneMatrices_Source[(hk_anim.TransformTrackCount * f) + sourceBoneNames.IndexOf("R_Clavicle")];
+
+                //                    //var memeQuat = SoulsAssetPipeline.SapMath.GetDeltaQuaternionWithDirectionVectors(source_clavicle.Rotation, source_rootThing.Rotation);
+
+                //                    //var mat = NMatrix.CreateFromQuaternion(absoluteBonePos.Rotation) * NMatrix.CreateRotationZ(-MathHelper.PiOver4);
+
+                //                    //absoluteBonePos.Rotation = NQuaternion.CreateFromRotationMatrix(mat);
+                //                    //absoluteBonePos.Rotation *= NQuaternion.CreateFromYawPitchRoll(0, 0, -SoulsAssetPipeline.SapMath.Pi);
+                //                }
+                //                else if (boneName == "L_Clavicle")
+                //                {
+                //                    //absoluteBonePos = NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[hotfixBoneIndex_Source_L_Arm_Root]) * absoluteBonePos;
+
+                //                    //absoluteBonePos.Rotation *= NQuaternion.Inverse(NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[hotfixBoneIndex_Source_L_Arm_Root]).Rotation);
+                //                    //int sourceTransformTrack = sourceBoneToTrackMap[hotfixBoneIndex_Source_L_Arm_Root];
+                //                    //var sourceMotion = NewBlendableTransform.FromHKXTransform(sourceTransforms[((hk_anim.TransformTrackCount * f) + sourceTransformTrack)]);
+                //                    //absoluteBonePos *= sourceMotion;
+                //                }
+                //                else if (boneName == "R_UpperArm")
+                //                {
+
+                //                }
+                //                else if (boneName == "L_UpperArm")
+                //                {
+                //                    //absoluteBonePos *= NewBlendableTransform.FromHKXTransform(source_skeleton.Transforms[hotfixBoneIndex_Source_L_Arm_Root]);
+                //                    //int sourceTransformTrack = sourceBoneToTrackMap[hotfixBoneIndex_Source_L_Arm_Root];
+                //                    //var sourceMotion = NewBlendableTransform.FromHKXTransform(sourceTransforms[((hk_anim.TransformTrackCount * f) + sourceTransformTrack)]);
+                //                    //absoluteBonePos.Rotation *= sourceMotion.Rotation;
+                //                }
+                //            }
+                //            //thing.Frames[f].BoneTransforms[t] = absoluteBonePos;
+                //        }
+                //        else
+                //        {
+                //            int parentBoneIndex = source_skeleton.ParentIndices[sourceBoneIndex].data;
+
+                //            if (t == hotfixBoneIndex_R_Clavicle || t == hotfixBoneIndex_L_Clavicle)
+                //            {
+                //                parentBoneIndex = hotfixBoneIndex_Spine1;
+                //            }
+
+                //            if (parentBoneIndex >= 0)
+                //            {
+                //                var parentAbsolutePos = absoluteBoneMatrices_Source[((sourceTpose.Count * f) + parentBoneIndex)];
+                //                absoluteBonePos *= NewBlendableTransform.Invert(parentAbsolutePos);
+                //            }
+                //            thing.Frames[f].BoneTransforms[t] = absoluteBonePos;
+                //        }
+
+
+                //    }
+                //}
+
+                for (int t = 0; t < targetBoneList.Count; t++)
+                {
+                    for (int f = 1; f < thing.FrameCount; f++)
+                    {
+                        var tr = thing.Frames[f].BoneTransforms[t];
+                        tr.Rotation = NQuaternion.Normalize(tr.Rotation);
+                        thing.Frames[f].BoneTransforms[t] = tr;
+                    }
+                }
+
+                for (int t = 0; t < targetBoneList.Count; t++)
+                {
+                    for (int f = 1; f < thing.FrameCount; f++)
+                    {
+                        // Use dot product to see how drastically this transform rotated in the span of 1 frame.
+                        var dot = NQuaternion.Dot(thing.Frames[f - 1].BoneTransforms[t].Rotation, thing.Frames[f].BoneTransforms[t].Rotation);
+                        // If it did more than a 90 degree turn in a single frame, it's just flipping
+                        // around backwards and we need to flip it back lol
+                        if (dot < -0.5)
+                        {
+                            var tr = thing.Frames[f].BoneTransforms[t];
+                            tr.Rotation = NQuaternion.Normalize(-tr.Rotation);
+                            thing.Frames[f].BoneTransforms[t] = tr;
+                        }
+                    }
+                }
+
+
+                //for (int f = 0; f < thing.FrameCount; f++)
+                //{
+                //    for (int t = 0; t < targetBoneList.Count; t++)
+                //    {
+                //        var tr = thing.Frames[f].BoneTransforms[t];
+                //        int sourceBoneIndex = source_skeleton.Bones.GetArrayData().Elements.FindIndex(bn => bn.Name.GetString() == targetBoneList[t]);
+                //        if (sourceBoneIndex < 0)
+                //        {
+                //            thing.Frames[f].BoneTransforms[t] = targetTpose[t];
+                //            continue;
+                //        }
+                //        var sourceRelativeToTpose = NewBlendableTransform.GetDelta(sourceTpose[sourceBoneIndex], tr);
+
+                //        var matSourceTpose = sourceTpose[sourceBoneIndex].GetMatrixUnnormalized().ToXna();
+                //        var matSourceCurr = tr.GetMatrixUnnormalized().ToXna();
+                //        var matTargetTpose = targetTpose[t].GetMatrixUnnormalized().ToXna();
+
+                //        var mat = (matSourceCurr * Matrix.Invert(matSourceTpose) * matTargetTpose).ToCS();
+                //        if (NMatrix.Decompose(mat, out NVector3 ss, out NQuaternion rr, out NVector3 tt))
+                //        {
+                //            tr.Rotation = NQuaternion.Normalize(rr);
+                //            tr.Translation = tt;
+
+                //            thing.Frames[f].BoneTransforms[t] = tr;
+                //        }
+
+
+                //    }
+                //}
+
+                string shortHkxName = Path.GetFileNameWithoutExtension(h);
+                string outDir = dir + "\\retargeted";
+                if (!Directory.Exists(outDir))
+                    Directory.CreateDirectory(outDir);
+
+                byte[] hkxFinalBytes = thing.WriteToSplineCompressedHKX2010Bytes(SplineCompressedAnimation.RotationQuantizationType.THREECOMP40, 0.001f);
+
+                File.WriteAllBytes($@"{outDir}\{shortHkxName}.hkx", hkxFinalBytes);
+            }
+
+            Console.WriteLine("FATCAT");
+        }
+
+
+
+
 
         private static bool DebugButton(string name)
         {

@@ -525,36 +525,62 @@ namespace DSAnimStudio.TaeEditor
                             }
                             if (MODEL.AnimContainer.AnimationLayers.Count > 0)
                                 MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
+
+                            MODEL.AnimContainer.InitializeNewAnimLayersUnweighted = false;
                         },
                         SimulationFrameChangePreBoxesAction =  (entry, evBoxes, time) =>
                         {
                             if (Graph.ViewportInteractor.CurrentComboIndex >= 0)
                                 return;
 
+                            MODEL.AnimContainer.InitializeNewAnimLayersUnweighted = true;
+
+                            var layersCopy = MODEL.AnimContainer.AnimationLayers;
+
+                            float referenceWeightTotal = 0;
+                            for (int i = 0; i < layersCopy.Count - 1; i++)
+                            {
+                                referenceWeightTotal += layersCopy[i].ReferenceWeight;
+                            }
+
+                            float blendToActiveAnimRatio = 0;
+
                             if (MODEL.AnimContainer.AnimationLayers.Count > 1)
                             {
-                                while (MODEL.AnimContainer.AnimationLayers.Count > 2)
-                                {
-                                    MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
-                                }
-
                                 var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
                                 if (blend != null)
                                 {
-                                    float blendRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.GUICurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
-                                    MODEL.AnimContainer.AnimationLayers[0].Weight = 1 - blendRatio;
-                                    MODEL.AnimContainer.AnimationLayers[1].Weight = blendRatio;
+                                    blendToActiveAnimRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.GUICurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
                                 }
                                 else
                                 {
-                                    while (MODEL.AnimContainer.AnimationLayers.Count > 1)
-                                        MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
+                                    blendToActiveAnimRatio = 1;
+                                }
+
+                                float inactiveReferenceWeightTotal = 1 - blendToActiveAnimRatio;
+
+                                for (int i = 0; i < layersCopy.Count; i++)
+                                {
+                                    if (i == layersCopy.Count - 1)
+                                    {
+                                        layersCopy[i].Weight = blendToActiveAnimRatio;
+                                    }
+                                    else
+                                    {
+                                        float inactiveAnimRefWeightRatio = (layersCopy[i].ReferenceWeight / referenceWeightTotal);
+                                        layersCopy[i].Weight = inactiveAnimRefWeightRatio * inactiveReferenceWeightTotal;
+                                    }
                                 }
                             }
                             else if (MODEL.AnimContainer.AnimationLayers.Count == 1)
                             {
                                 MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
+                                MODEL.AnimContainer.AnimationLayers[0].ReferenceWeight = 1;
                             }
+
+                            
+
+
 
                         },
                     }

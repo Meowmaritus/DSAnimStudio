@@ -223,7 +223,7 @@ namespace DSAnimStudio.TaeEditor
             }
             else if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
             {
-                if (asStandard.ImportsHKX)
+                if (asStandard.ImportsHKX && asStandard.ImportHKXSourceAnimID >= 0)
                 {
                     return asStandard.ImportHKXSourceAnimID;
                 }

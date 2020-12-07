@@ -204,6 +204,16 @@ namespace DSAnimStudio
             );
         }
 
+        public static System.Numerics.Matrix4x4 ToCS(this Matrix matrix)
+        {
+            return new System.Numerics.Matrix4x4(
+                matrix.M11, matrix.M12, matrix.M13, matrix.M14,
+                matrix.M21, matrix.M22, matrix.M23, matrix.M24,
+                matrix.M31, matrix.M32, matrix.M33, matrix.M34,
+                matrix.M41, matrix.M42, matrix.M43, matrix.M44
+            );
+        }
+
         public static Microsoft.Xna.Framework.Vector2 ToXna(this System.Numerics.Vector2 vector)
         {
             return new Microsoft.Xna.Framework.Vector2(vector.X, vector.Y);

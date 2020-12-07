@@ -128,7 +128,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void Draw(int lod, bool motionBlur, bool forceNoBackfaceCulling, bool isSkyboxLol, NewAnimSkeleton_FLVER skeleton = null)
+        public void Draw(int lod, bool motionBlur, bool forceNoBackfaceCulling, bool isSkyboxLol, NewAnimSkeleton_FLVER skeleton = null, Action<Exception> onDrawFail = null)
         {
             if (TextureReloadQueued)
             {
@@ -143,7 +143,14 @@ namespace DSAnimStudio
 
                 foreach (var submesh in Submeshes)
                 {
-                    submesh.Draw(lod, motionBlur, DrawMask, forceNoBackfaceCulling, skeleton);
+                    try
+                    {
+                        submesh.Draw(lod, motionBlur, DrawMask, forceNoBackfaceCulling, skeleton, onDrawFail);
+                    }
+                    catch (Exception ex)
+                    {
+                        onDrawFail?.Invoke(ex);
+                    }
                 }
             }
         }

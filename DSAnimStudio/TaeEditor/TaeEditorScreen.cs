@@ -1794,6 +1794,8 @@ namespace DSAnimStudio.TaeEditor
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
+            Graph?.ViewportInteractor?.CurrentModel?.AnimContainer?.RemoveDeadBlendAnims();
+
             bool isBlend = (PlaybackCursor.IsPlaying || Graph.ViewportInteractor.IsComboRecording) && 
                 Graph.ViewportInteractor.IsBlendingActive &&
                 Graph.ViewportInteractor.EntityType != TaeViewportInteractor.TaeEntityType.REMO;
@@ -1847,15 +1849,6 @@ namespace DSAnimStudio.TaeEditor
                 {
                     Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
                     Graph.ViewportInteractor.RootMotionSendHome();
-                    Graph.ViewportInteractor.CurrentModel.AnimContainer.Skeleton.CurrentDirection = 0;
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.Skeleton?.ResetCurrentDirection();
                     Graph.ViewportInteractor.ResetRootMotion();
                     Graph.ViewportInteractor.RemoveTransition();
                     Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
@@ -2386,15 +2379,6 @@ namespace DSAnimStudio.TaeEditor
                 return;
             Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
             Graph.ViewportInteractor.RootMotionSendHome();
-            Graph.ViewportInteractor.CurrentModel.AnimContainer.Skeleton.CurrentDirection = 0;
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.Skeleton?.ResetCurrentDirection();
             Graph.ViewportInteractor.ResetRootMotion();
             Graph.ViewportInteractor.RemoveTransition();
             Graph.PlaybackCursor.RestartFromBeginning();

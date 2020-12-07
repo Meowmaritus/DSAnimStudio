@@ -683,8 +683,8 @@ namespace DSAnimStudio
         {
             lock (_lock_everything_monkaS)
             {
-                var dmyA = hit.GetDmyPoly1Locations(MODEL, hit.DummyPolySourceSpawnedOn);
-                var dmyB = hit.GetDmyPoly2Locations(MODEL, hit.DummyPolySourceSpawnedOn);
+                var dmyA = hit.GetDmyPoly1Locations(MODEL, hit.DummyPolySourceSpawnedOn, MODEL.IS_PLAYER_WEAPON || MODEL.ChrAsm != null);
+                var dmyB = hit.GetDmyPoly2Locations(MODEL, hit.DummyPolySourceSpawnedOn, MODEL.IS_PLAYER_WEAPON || MODEL.ChrAsm != null);
 
                 
 
@@ -754,7 +754,7 @@ namespace DSAnimStudio
                     {
                         foreach (var prim in kvp.Value)
                         {
-                            prim.Draw(null, MODEL.CurrentTransform.WorldMatrix);
+                            prim.Draw(null, Matrix.Identity);
                         }
                     }
                 }
@@ -978,7 +978,12 @@ namespace DSAnimStudio
                     if (ignoreModelTransform)
                         result.Add(d.CurrentMatrix * modMatrix);
                     else
-                        result.Add(d.CurrentMatrix * MODEL.CurrentTransform.WorldMatrix * modMatrix);
+                    {
+                        if (!(MODEL.IS_PLAYER_WEAPON || MODEL.ChrAsm != null))
+                            result.Add(d.CurrentMatrix * modMatrix);
+                        else
+                            result.Add(d.CurrentMatrix * MODEL.CurrentTransform.WorldMatrix * modMatrix);
+                    }
                 }
             }
 

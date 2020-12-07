@@ -385,7 +385,8 @@ namespace DSAnimStudio
                         }
                     }
                     else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
-                        GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                        GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R ||
+                        GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
                     {
                         // Weapon
                         if (modelIdx == 0)
@@ -419,33 +420,32 @@ namespace DSAnimStudio
                     if (DebugRightWeaponModelPositions && !isLeft)
                     {
                         if (modelIdx == 0)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-0.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(-0.5f, 0, 2);
                         else if (modelIdx == 1)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-1.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(-1.5f, 0, 2);
                         else if (modelIdx == 2)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(2.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(-2.5f, 0, 2);
                         else if (modelIdx == 3)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-3.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(-3.5f, 0, 2);
                     }
                     else if (DebugLeftWeaponModelPositions && isLeft)
                     {
                         if (modelIdx == 0)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(0.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(0.5f, 0, 2);
                         else if (modelIdx == 1)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(1.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(1.5f, 0, 2);
                         else if (modelIdx == 2)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(2.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(2.5f, 0, 2);
                         else if (modelIdx == 3)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(3.5f, 0, 0);
+                            absoluteWeaponTransform = Matrix.CreateTranslation(3.5f, 0, 2);
                     }
 
-                    wpnMdl.StartTransform = new Transform(
+                    wpnMdl.StartTransform = wpnMdl.CurrentTransform = new Transform(
                             (backward ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
                             * (sideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
-                            * absoluteWeaponTransform
-                            * ((MODEL.AnimContainer?.EnableRootMotion == true) ? (MODEL.AnimContainer.Skeleton.CurrentRootMotionRotation * MODEL.AnimContainer.Skeleton.CurrentRootMotionTranslation) : Matrix.Identity));
+                            * absoluteWeaponTransform * MODEL.CurrentTransform.WorldMatrix);
 
-                    wpnMdl.AnimContainer.Skeleton.CurrentRootMotionTranslation = Matrix.Identity;
+                    wpnMdl.AnimContainer.ResetRootMotion();
 
                     wpnMdl.AfterAnimUpdate(timeDelta, ignorePosWrap: true);
                 }
@@ -580,7 +580,8 @@ namespace DSAnimStudio
         {
             // doesn't need _lock_doingAnythingWithModels because the thing it's called from has that and it's private.
             List<TPF> tpfs = new List<TPF>();
-            FLVER2 flver = null;
+            FLVER2 flver2 = null;
+            FLVER0 flver0 = null;
             foreach (var f in partsbnd.Files)
             {
                 string nameCheck = f.Name.ToLower();
@@ -588,9 +589,13 @@ namespace DSAnimStudio
                 {
                     tpfs.Add(TPF.Read(f.Bytes));
                 }
-                else if (flver == null && nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes))
+                else if (GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DES && (flver2 == null && nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
                 {
-                    flver = FLVER2.Read(f.Bytes);
+                    flver2 = FLVER2.Read(f.Bytes);
+                }
+                else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES && (flver0 == null && nameCheck.EndsWith(".flver") || FLVER0.Is(f.Bytes)))
+                {
+                    flver0 = FLVER0.Read(f.Bytes);
                 }
             }
 
@@ -601,9 +606,13 @@ namespace DSAnimStudio
 
             NewMesh mesh = null;
 
-            if (flver != null)
+            if (GameDataManager.GameType != SoulsAssetPipeline.SoulsGames.DES && flver2 != null)
             {
-                mesh = new NewMesh(flver, false, boneIndexRemap);
+                mesh = new NewMesh(flver2, false, boneIndexRemap);
+            }
+            else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES && flver0 != null)
+            {
+                mesh = new NewMesh(flver0, false, boneIndexRemap);
             }
             Scene.RequestTextureLoad();
 
@@ -703,41 +712,72 @@ namespace DSAnimStudio
         public void Draw(bool[] mask, int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
             UpdateWeaponTransforms(0);
+            MODEL.AfterAnimUpdate(0);
 
             if (FaceMesh != null)
             {
                 FaceMesh.DrawMask = mask;
-                FaceMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                FaceMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, onDrawFail: (ex) =>
+                {
+                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>FACE failed to draw:\n\n{ex}", 
+                        Vector3.Transform(new Vector3(-3f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix), 
+                        Color.Red, Color.Black, 10);
+                });
             }
 
             if (FacegenMesh != null)
             {
                 FacegenMesh.DrawMask = mask;
-                FacegenMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                FacegenMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, onDrawFail: (ex) =>
+                {
+                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>FACE failed to draw:\n\n{ex}",
+                        Vector3.Transform(new Vector3(-2f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
+                        Color.Red, Color.Black, 10);
+                });
             }
 
             if (HeadMesh != null)
             {
                 HeadMesh.DrawMask = mask;
-                HeadMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                HeadMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, onDrawFail: (ex) =>
+                {
+                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>HEAD failed to draw:\n\n{ex}",
+                        Vector3.Transform(new Vector3(-1f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
+                        Color.Red, Color.Black, 10);
+                });
             }
 
             if (BodyMesh != null)
             {
                 BodyMesh.DrawMask = mask;
-                BodyMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                BodyMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, onDrawFail: (ex) =>
+                {
+                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>BODY failed to draw:\n\n{ex}",
+                        Vector3.Transform(new Vector3(1f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
+                        Color.Red, Color.Black, 10);
+                });
             }
 
             if (ArmsMesh != null)
             {
                 ArmsMesh.DrawMask = mask;
-                ArmsMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                ArmsMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, onDrawFail: (ex) =>
+                {
+                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>ARMS failed to draw:\n\n{ex}",
+                        Vector3.Transform(new Vector3(2f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
+                        Color.Red, Color.Black, 10);
+                });
             }
 
             if (LegsMesh != null)
             {
                 LegsMesh.DrawMask = mask;
-                LegsMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                LegsMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, onDrawFail: (ex) =>
+                {
+                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>LEGS failed to draw:\n\n{ex}",
+                        Vector3.Transform(new Vector3(3f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
+                        Color.Red, Color.Black, 10);
+                });
             }
 
             void DrawWeapon(ParamData.EquipParamWeapon wpn, Model wpnMdl, int modelIdx, bool isLeft)
@@ -965,12 +1005,20 @@ namespace DSAnimStudio
             MODEL.ResetDrawMaskToDefault();
         }
 
-        public void UpdateModels(bool isAsync = false, Action onCompleteAction = null, bool updateFaceAndBody = true)
+        public void UpdateModels(bool isAsync = false, Action onCompleteAction = null, bool updateFaceAndBody = true, bool forceReloadArmor = false)
         {
             LoadingTaskMan.DoLoadingTask("ChrAsm_UpdateModels", "Updating c0000 models...", progress =>
             {
                 if (updateFaceAndBody)
                 {
+                    var oldMesh = FaceMesh;
+                    FaceMesh = null;
+                    oldMesh?.Dispose();
+
+                    oldMesh = FacegenMesh;
+                    FacegenMesh = null;
+                    oldMesh?.Dispose();
+
                     if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                     {
                         LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
@@ -984,16 +1032,27 @@ namespace DSAnimStudio
                     else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                     {
                         LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_m_0100.partsbnd.dcx"), EquipSlot.Face);
-
-                        var oldMesh = FacegenMesh;
-                        FacegenMesh = null;
-                        oldMesh?.Dispose();
+                    }
+                    else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                    {
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"facegen\facegen.fgbnd"), EquipSlot.Facegen);
+                    }
+                    else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                    {
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\FC_{(IsFemale ? "F" : "M")}_0000.partsbnd.dcx"), EquipSlot.Face);
+                        //LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"facegen\FaceGen.fgbnd"), EquipSlot.Facegen);
+                    }
+                    else if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1)
+                    {
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"parts\FC_{(IsFemale ? "F" : "M")}_0000.partsbnd"), EquipSlot.Face);
+                        LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"facegen\FaceGen.fgbnd"), EquipSlot.Facegen);
                     }
                 }
 
-                if (HeadID != lastHeadLoaded)
+                if (HeadID != lastHeadLoaded || forceReloadArmor)
                 {
-                    if (Head != null)
+                    if (Head != null && Head.CanEquipOnGender(IsFemale))
                     {
                         LoadArmorPartsbnd(Head.GetFullPartBndPath(IsFemale), EquipSlot.Head);
                         lastHeadLoaded = HeadID;
@@ -1008,9 +1067,9 @@ namespace DSAnimStudio
 
                 progress.Report(1.0 / 6.0);
 
-                if (BodyID != lastBodyLoaded)
+                if (BodyID != lastBodyLoaded || forceReloadArmor)
                 {
-                    if (Body != null)
+                    if (Body != null && Body.CanEquipOnGender(IsFemale))
                     {
                         LoadArmorPartsbnd(Body.GetFullPartBndPath(IsFemale), EquipSlot.Body);
                         lastBodyLoaded = BodyID;
@@ -1025,9 +1084,9 @@ namespace DSAnimStudio
 
                 progress.Report(2.0 / 6.0);
 
-                if (ArmsID != lastArmsLoaded)
+                if (ArmsID != lastArmsLoaded || forceReloadArmor)
                 {
-                    if (Arms != null)
+                    if (Arms != null && Arms.CanEquipOnGender(IsFemale))
                     {
                         LoadArmorPartsbnd(Arms.GetFullPartBndPath(IsFemale), EquipSlot.Arms);
                         lastArmsLoaded = ArmsID;
@@ -1042,9 +1101,9 @@ namespace DSAnimStudio
 
                 progress.Report(3.0 / 6.0);
 
-                if (LegsID != lastLegsLoaded)
+                if (LegsID != lastLegsLoaded || forceReloadArmor)
                 {
-                    if (Legs != null)
+                    if (Legs != null && Legs.CanEquipOnGender(IsFemale))
                     {
                         LoadArmorPartsbnd(Legs.GetFullPartBndPath(IsFemale), EquipSlot.Legs);
                         lastLegsLoaded = LegsID;

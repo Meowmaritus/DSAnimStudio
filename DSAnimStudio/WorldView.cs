@@ -653,6 +653,12 @@ namespace DSAnimStudio
         public float CameraTurnSpeedMouse = 1;
         public float CameraMoveSpeed = 1;
 
+        public Vector2 Project3DPosToScreen(Vector3 pos)
+        {
+            var screenPos = GFX.Device.Viewport.Project(pos, Matrix_Projection, Matrix_View, Matrix_World);
+            return new Vector2(screenPos.X, screenPos.Y);
+        }
+
         public Ray GetScreenRay(Vector2 screenPos)
         {
             var a = GFX.Device.Viewport.Unproject(

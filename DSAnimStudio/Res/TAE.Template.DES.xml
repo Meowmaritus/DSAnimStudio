@@ -106,15 +106,17 @@
         <entry value="62" name="PlungingAttack"/>
         <entry value="64" name="Parry"/>
       </s32>
-      <s32/>
+      <s32 name="AttackIndex"/>
       <f32/>
       <s32/>
       <f32/>
       <s32 name="BehaviorJudgeID"/>
       <s32/>
       <s32/>
-      <s32/>
-      <s32/>
+      
+      <!-- Turns out these were the next event data. -->
+      <!--<s32/>
+      <s32/>-->
     </event>
     
     
@@ -252,8 +254,7 @@
     </event>
     <event id="112" name="SpawnFFX_ByFloor">
       <s32 name="FFXID"/>
-      <s16 name="DummyPolyID"/>
-      <s16/>
+      <s32 name="DummyPolyID"/>
     </event>
     <!-- Like 115 but this one can be spawned multiple times during anim -->
     <event id="114" name="SpawnFFX_GoodsAndMagic">

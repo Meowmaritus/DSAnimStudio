@@ -12,27 +12,7 @@ namespace DSAnimStudio
 {
     public class NewAnimSkeleton_HKX
     {
-        public Matrix CurrentRootMotionTranslation = Matrix.Identity;
-
-        public Transform StartTransform = Transform.Default;
-
-
-
         public Transform CurrentTransform = Transform.Default;
-
-        public void ResetRootMotionTranslation()
-        {
-            CurrentRootMotionTranslation = Matrix.Identity;
-        }
-
-        public Matrix CurrentRootMotionRotation => Matrix.CreateRotationY(CurrentDirection);
-
-        public float CurrentDirection;
-
-        public void ResetCurrentDirection()
-        {
-            CurrentDirection = 0;
-        }
 
         public void RevertToReferencePose()
         {
@@ -42,8 +22,6 @@ namespace DSAnimStudio
                 h.CurrentMatrix = Matrix.Identity;
             }
         }
-
-        public Action<Vector3> OnRootMotionWrap = null;
 
         static NewAnimSkeleton_HKX()
         {
@@ -147,44 +125,6 @@ namespace DSAnimStudio
                 GetAbsoluteReferenceMatrix(i);
             }
 
-        }
-
-        public void UpdateTransform(bool enableRootMotion, bool enableRootMotionWrap, bool ignorePosWrap)
-        {
-            if (!enableRootMotion)
-            {
-                CurrentDirection = 0;
-                CurrentRootMotionTranslation = Matrix.Identity;
-            }
-
-            var newTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionRotation * CurrentRootMotionTranslation);
-
-
-
-            // TEST: modulo world pos
-            Vector3 locationWithNewTransform = Vector3.Transform(Vector3.Zero, newTransform.WorldMatrix);
-
-            bool justWrapped = false;
-
-            Vector3 translationDeltaToGetToMod = Vector3.Zero;
-
-            if (!ignorePosWrap && enableRootMotionWrap && (locationWithNewTransform.LengthSquared() > 100))
-            {
-                Vector3 locationWithNewTransform_Mod = new Vector3(locationWithNewTransform.X % 1, locationWithNewTransform.Y, locationWithNewTransform.Z % 1);
-                translationDeltaToGetToMod = locationWithNewTransform_Mod - locationWithNewTransform;
-                CurrentRootMotionTranslation *= Matrix.CreateTranslation(translationDeltaToGetToMod);
-
-                justWrapped = true;
-
-            }
-
-
-            //newTransform = new Transform(newTransform.WorldMatrix * );
-            ////////
-
-            CurrentTransform = new Transform(StartTransform.WorldMatrix * CurrentRootMotionRotation * CurrentRootMotionTranslation);
-
-            OnRootMotionWrap?.Invoke(translationDeltaToGetToMod);
         }
 
         public void DrawPrimitives()

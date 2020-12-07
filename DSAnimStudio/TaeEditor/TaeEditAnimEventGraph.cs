@@ -820,13 +820,13 @@ namespace DSAnimStudio.TaeEditor
                 });
         }
 
-        private TaeEditAnimEventBox PlaceNewEvent(TAE.Event ev, int row, TAE.EventGroup grp, bool notUndoable)
+        private TaeEditAnimEventBox PlaceNewEvent(TAE.Event ev, int row, TAE.EventGroup grp, bool notUndoable, bool isBigEndianEventSource)
         {
             //ev.Index = MainScreen.SelectedTaeAnim.EventList.Count;
 
             if (MainScreen.SelectedTae?.BankTemplate != null && ev.Template == null && MainScreen.SelectedTae.BankTemplate.ContainsKey(ev.Type))
             {
-                ev.ApplyTemplate(MainScreen.SelectedTae.BigEndian, MainScreen.SelectedTae.BankTemplate[ev.Type]);
+                ev.ApplyTemplate(isBigEndianEventSource, MainScreen.SelectedTae.BankTemplate[ev.Type]);
             }
 
             var newBox = new TaeEditAnimEventBox(this, ev, AnimRef);
@@ -919,7 +919,7 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            PlaceNewEvent(newEvent, MouseRow, MainScreen.SelectedTaeAnim.EventGroups.LastOrDefault(), notUndoable: false);
+            PlaceNewEvent(newEvent, MouseRow, MainScreen.SelectedTaeAnim.EventGroups.LastOrDefault(), notUndoable: false, MainScreen.SelectedTae.BigEndian);
         }
 
         public void DeleteSelectedEvent()
@@ -1064,7 +1064,7 @@ namespace DSAnimStudio.TaeEditor
                                 ev.StartTime = startTime;
                                 ev.EndTime = endTime;
 
-                                var box = PlaceNewEvent(ev, row, copyOfEventGroups[i], notUndoable: true);
+                                var box = PlaceNewEvent(ev, row, copyOfEventGroups[i], notUndoable: true, clipboardContents.IsBigEndian);
 
                                 MainScreen.MultiSelectedEventBoxes.Add(box);
                             }

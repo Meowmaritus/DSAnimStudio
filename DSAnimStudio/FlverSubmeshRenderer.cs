@@ -1693,7 +1693,7 @@ namespace DSAnimStudio
                 TexDataDOL2 = TexturePool.FetchTexture2D(TexNameDOL2);
         }
 
-        public void Draw(int lod, bool motionBlur, bool[] mask, bool forceNoBackfaceCulling, NewAnimSkeleton_FLVER skeleton)
+        public void Draw(int lod, bool motionBlur, bool[] mask, bool forceNoBackfaceCulling, NewAnimSkeleton_FLVER skeleton, Action<Exception> onDrawFail)
         {
             if (!IsVisible)
                 return;
@@ -1955,9 +1955,15 @@ namespace DSAnimStudio
 
                         GFX.BackfaceCulling = forceNoBackfaceCulling ? false : faceSet.BackfaceCulling;
 
-                        GFX.Device.DrawIndexedPrimitives(faceSet.IsTriangleStrip ? PrimitiveType.TriangleStrip : PrimitiveType.TriangleList, 0, 0,
-                            faceSet.IsTriangleStrip ? (faceSet.IndexCount - 2) : (faceSet.IndexCount / 3));
-
+                        try
+                        {
+                            GFX.Device.DrawIndexedPrimitives(faceSet.IsTriangleStrip ? PrimitiveType.TriangleStrip : PrimitiveType.TriangleList, 0, 0,
+                                faceSet.IsTriangleStrip ? (faceSet.IndexCount - 2) : (faceSet.IndexCount / 3));
+                        }
+                        catch (Exception ex)
+                        {
+                            onDrawFail?.Invoke(ex);
+                        }
                     }
                 }
             }

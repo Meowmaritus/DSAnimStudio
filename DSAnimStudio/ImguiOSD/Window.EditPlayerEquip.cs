@@ -32,13 +32,15 @@ namespace DSAnimStudio.ImguiOSD
             {
                 if (RequestIndexRefresh || IsFirstFrameOpen)
                 {
-                    EquipHD = FmgManager.EquipmentIDsHD.ToList().IndexOf(asm.HeadID);
-                    EquipBD = FmgManager.EquipmentIDsBD.ToList().IndexOf(asm.BodyID);
-                    EquipAM = FmgManager.EquipmentIDsAM.ToList().IndexOf(asm.ArmsID);
-                    EquipLG = FmgManager.EquipmentIDsLG.ToList().IndexOf(asm.LegsID);
+                    equipSearchStates.Clear();
 
-                    EquipWPR = FmgManager.EquipmentIDsWP.ToList().IndexOf(asm.RightWeaponID);
-                    EquipWPL = FmgManager.EquipmentIDsWP.ToList().IndexOf(asm.LeftWeaponID);
+                    EquipHD = asm.HeadID;
+                    EquipBD = asm.BodyID;
+                    EquipAM = asm.ArmsID;
+                    EquipLG = asm.LegsID;
+
+                    EquipWPR = asm.RightWeaponID;
+                    EquipWPL = asm.LeftWeaponID;
 
                     if (EquipStylesList == null || EquipStylesNamesList == null)
                     {
@@ -69,37 +71,150 @@ namespace DSAnimStudio.ImguiOSD
                 }
             }
 
+            class EquipSearchState
+            {
+                public SoulsAssetPipeline.SoulsGames GameItsFor = SoulsAssetPipeline.SoulsGames.None;
+
+                private string prevSearchTerm = "";
+                public string SearchTerm = "";
+
+                public EquipSearchState(string[] sourceNames, int[] sourceIDs)
+                {
+                    GameItsFor = GameDataManager.GameType;
+
+                    SearchSourceNames = sourceNames;
+                    SearchSourceIDs = sourceIDs;
+
+                    SearchResultsNames = SearchSourceNames.ToArray();
+                    SearchResultsIDs = SearchSourceIDs.ToArray();
+                }
+
+                public void CheckSearchTermUpdated(int curSelectedID)
+                {
+                    if (SearchTerm != prevSearchTerm)
+                    {
+                        var s = SearchTerm.Trim().ToLower();
+                        if (!string.IsNullOrWhiteSpace(s))
+                        {
+                            
+                            var resNames = new List<string>();
+                            var resIDs = new List<int>();
+                            for (int i = 0; i < SearchSourceNames.Length; i++)
+                            {
+                                if (SearchSourceNames[i].ToLower().Contains(s) || SearchSourceIDs[i] == curSelectedID)
+                                {
+                                    resNames.Add(SearchSourceNames[i]);
+                                    resIDs.Add(SearchSourceIDs[i]);
+                                }
+                            }
+                            SearchResultsNames = resNames.ToArray();
+                            SearchResultsIDs = resIDs.ToArray();
+                        }
+                        else
+                        {
+                            SearchResultsNames = SearchSourceNames.ToArray();
+                            SearchResultsIDs = SearchSourceIDs.ToArray();
+                        }
+                        
+                    }
+
+                    prevSearchTerm = SearchTerm;
+                }
+
+                public string[] SearchSourceNames;
+                public int[] SearchSourceIDs;
+                public string[] SearchResultsNames;
+                public int[] SearchResultsIDs;
+
+                public bool IsDropdownOpen = false;
+            }
+
+            Dictionary<string, EquipSearchState> equipSearchStates = new Dictionary<string, EquipSearchState>();
             protected override void BuildContents()
             {
                 if (asm == null)
                 {
                     ImGui.Text("No player currently loaded.");
+                    equipSearchStates.Clear();
                     return;
                 }
 
-                int EquipListIndexSelect(string disp, ref int curIndex, string[] names, int[] ids)
+                bool isChanged = false;
+
+                int EquipListIndexSelect(string disp, int currentSelectedID, string[] sourceNames, int[] sourceIDs)
                 {
-                    int idx = curIndex;
+                    //ImGui.PushID($"EditPlayerEquip_Dropdown_{disp}");
 
-                    Tools.FancyComboBox(disp, ref idx, names);
+                    if (!equipSearchStates.ContainsKey(disp) || equipSearchStates[disp].GameItsFor != GameDataManager.GameType)
+                        equipSearchStates[disp] = new EquipSearchState(sourceNames, sourceIDs);
 
-                    //ImGui.Combo(disp, ref idx, names, names.Length);
-                    //ImGui.ListBox("##" + disp, ref idx, names, names.Length);
-                    if (curIndex != idx)
-                        asm.UpdateModels(isAsync: true, onCompleteAction: null, updateFaceAndBody: false);
-                    curIndex = idx;
-                    return (idx >= 0 && idx < ids.Length) ? ids[idx] : -1;
+                    var state = equipSearchStates[disp];
+                    
+                    
+                    int idx = state.SearchResultsIDs.ToList().IndexOf(currentSelectedID);
+                    
+
+                    ImGui.SetNextItemOpen(state.IsDropdownOpen);
+                    var tree = ImGui.TreeNode($"{disp}: {(idx >= 0 && idx < state.SearchResultsIDs.Length ? state.SearchResultsNames[idx] : "None")}##EditPlayerEquip_Dropdown_{disp}_Tree");
+                    if (tree)
+                    {
+                        state.IsDropdownOpen = true;
+                        ImGui.InputText($"##EditPlayerEquip_Dropdown_{disp}_SearchField", ref state.SearchTerm, 256);
+                        equipSearchStates[disp].CheckSearchTermUpdated(currentSelectedID);
+                        idx = state.SearchResultsIDs.ToList().IndexOf(currentSelectedID);
+                        int oldIdx = idx;
+                        ImGui.ListBox($"##EditPlayerEquip_Dropdown_{disp}_Dropdown", ref idx, state.SearchResultsNames, state.SearchResultsNames.Length);
+                        if (idx != oldIdx)
+                        {
+                            var newSelectedId = idx >= 0 && idx < state.SearchResultsIDs.Length ? state.SearchResultsIDs[idx] : -1;
+                            if (newSelectedId != currentSelectedID)
+                            {
+                                currentSelectedID = newSelectedId;
+                                isChanged = true;
+                            }
+                        }
+                        ImGui.TreePop();
+                    }
+                    else
+                    {
+                        state.IsDropdownOpen = false;
+                    }
+
+                    
+
+                    //ImGui.PopID();
+
+                    
+
+                    return currentSelectedID;
                 }
 
-                asm.HeadID = EquipListIndexSelect("Head", ref EquipHD, FmgManager.EquipmentNamesHD, FmgManager.EquipmentIDsHD);
-                asm.BodyID = EquipListIndexSelect("Body", ref EquipBD, FmgManager.EquipmentNamesBD, FmgManager.EquipmentIDsBD);
-                asm.ArmsID = EquipListIndexSelect("Arms", ref EquipAM, FmgManager.EquipmentNamesAM, FmgManager.EquipmentIDsAM);
-                asm.LegsID = EquipListIndexSelect("Legs", ref EquipLG, FmgManager.EquipmentNamesLG, FmgManager.EquipmentIDsLG);
+                
+
+                asm.HeadID = EquipListIndexSelect("Head", asm.HeadID, FmgManager.EquipmentNamesHD, FmgManager.EquipmentIDsHD);
+                asm.BodyID = EquipListIndexSelect("Body", asm.BodyID, FmgManager.EquipmentNamesBD, FmgManager.EquipmentIDsBD);
+                asm.ArmsID = EquipListIndexSelect("Arms", asm.ArmsID, FmgManager.EquipmentNamesAM, FmgManager.EquipmentIDsAM);
+                asm.LegsID = EquipListIndexSelect("Legs", asm.LegsID, FmgManager.EquipmentNamesLG, FmgManager.EquipmentIDsLG);
 
                 ImGui.Separator();
 
-                asm.RightWeaponID = EquipListIndexSelect("Right Weapon", ref EquipWPR, FmgManager.EquipmentNamesWP, FmgManager.EquipmentIDsWP);
-                asm.LeftWeaponID = EquipListIndexSelect("Left Weapon", ref EquipWPL, FmgManager.EquipmentNamesWP, FmgManager.EquipmentIDsWP);
+                bool isFemale = asm.IsFemale;
+                ImGui.Checkbox("Is Female", ref isFemale);
+                if (isFemale != asm.IsFemale)
+                {
+                    asm.IsFemale = isFemale;
+                    asm.UpdateModels(isAsync: true, onCompleteAction: null, updateFaceAndBody: true, forceReloadArmor: true);
+                }
+
+                ImGui.Separator();
+
+                asm.RightWeaponID = EquipListIndexSelect("Right Weapon", asm.RightWeaponID, FmgManager.EquipmentNamesWP, FmgManager.EquipmentIDsWP);
+                asm.LeftWeaponID = EquipListIndexSelect("Left Weapon", asm.LeftWeaponID, FmgManager.EquipmentNamesWP, FmgManager.EquipmentIDsWP);
+
+                if (isChanged)
+                {
+                    asm.UpdateModels(isAsync: true, onCompleteAction: null, updateFaceAndBody: true, forceReloadArmor: true);
+                }
 
                 ImGui.Separator();
 

@@ -104,7 +104,7 @@ namespace DSAnimStudio
                 TrackingTestInput = MathHelper.Clamp(TrackingTestInput, -1, 1);
                 float delta = (MathHelper.ToRadians(CurrentTrackingSpeed)) * elapsedTime * TrackingTestInput;
                 CharacterTrackingRotation += delta;
-                AnimContainer.Skeleton.CurrentDirection += delta;
+                //AnimContainer.CurrentAnimation.ApplyExternalRotation(delta);
                 if (AnimContainer != null)
                 {
                     lock (Scene._lock_ModelLoad_Draw)
@@ -460,7 +460,8 @@ namespace DSAnimStudio
 
         public void AfterAnimUpdate(float timeDelta, bool ignorePosWrap = false)
         {
-            CurrentTransform = new Transform(StartTransform.WorldMatrix * (AnimContainer?.Skeleton?.CurrentTransform.WorldMatrix ?? Matrix.Identity));
+            if (IsRemoModel)
+                CurrentTransform = new Transform(StartTransform.WorldMatrix * (AnimContainer?.Skeleton?.CurrentTransform.WorldMatrix ?? Matrix.Identity));
 
             if (ChrAsm != null)
             {
@@ -682,7 +683,10 @@ namespace DSAnimStudio
             if (IsVisible && MainMesh != null)
             {
                 MainMesh.DrawMask = DrawMask;
-                MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, SkeletonFlver);
+                MainMesh.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, SkeletonFlver, onDrawFail: (ex) =>
+                {
+                    ImGuiDebugDrawer.DrawText3D($"{Name} failed to draw:\n\n{ex}", CurrentTransformPosition, Color.Red, Color.Black, 10);
+                });
             }
             
             if (ChrAsm != null)

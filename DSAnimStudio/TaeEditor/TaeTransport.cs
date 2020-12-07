@@ -39,17 +39,17 @@ namespace DSAnimStudio.TaeEditor
                     MainScreen.Graph?.ViewportInteractor?.CurrentModel?.AnimContainer?.ResetAll();
                     PlaybackCursor.StartTime = 0;
                     MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.AnimContainer.Skeleton.CurrentDirection = 0;
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.AnimContainer.ResetRootMotion();
 
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.Skeleton?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.ResetRootMotion();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.ResetRootMotion();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.ResetRootMotion();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.ResetRootMotion();
 
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.Skeleton?.ResetCurrentDirection();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.Skeleton?.ResetCurrentDirection();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.ResetRootMotion();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.ResetRootMotion();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.ResetRootMotion();
+                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.ResetRootMotion();
 
                     MainScreen.Graph.ViewportInteractor.ResetRootMotion();
                     MainScreen.Graph.ScrollToPlaybackCursor(1);

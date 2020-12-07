@@ -288,7 +288,7 @@ namespace DSAnimStudio.ImguiOSD
                                     else
                                     {
                                         overlay.Weight = -1;
-                                        overlay.Reset();
+                                        overlay.Reset(Scene.MainModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
                                     }
 
                                     if (selected != prevSelected)
@@ -301,7 +301,7 @@ namespace DSAnimStudio.ImguiOSD
                                 {
                                     foreach (var overlay in Scene.MainModel.AnimContainer.AdditiveBlendOverlays)
                                     {
-                                        overlay.Reset();
+                                        overlay.Reset(Scene.MainModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
                                     }
                                 }
                             }

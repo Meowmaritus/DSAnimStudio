@@ -7,6 +7,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NMatrix = System.Numerics.Matrix4x4;
+using NVector3 = System.Numerics.Vector3;
+using NVector4 = System.Numerics.Vector4;
+using NQuaternion = System.Numerics.Quaternion;
 
 namespace DSAnimStudio
 {
@@ -21,9 +25,6 @@ namespace DSAnimStudio
 
         private Dictionary<string, byte[]> timeactFiles = new Dictionary<string, byte[]>();
 
-        public bool EnableRootMotion = true;
-        public bool EnableRootMotionWrap = true;
-
         public object _lock_AnimationLayers = new object();
 
         public object _lock_AdditiveOverlays = new object();
@@ -35,6 +36,27 @@ namespace DSAnimStudio
         public bool IsAnimLoaded(string name)
         {
             return AnimationCache.ContainsKey(name);
+        }
+
+        public void RemoveDeadBlendAnims()
+        {
+            lock (_lock_AnimationLayers)
+            {
+                var layersToClear = new List<NewHavokAnimation>();
+                for (int i = 0; i < AnimationLayers.Count - 1; i++)
+                {
+                    var layer = AnimationLayers[i];
+                    if (layer.Weight <= 0)
+                        layersToClear.Add(layer);
+                    else
+                        layer.ReferenceWeight = layer.Weight;
+
+                }
+                foreach (var layer in layersToClear)
+                {
+                    AnimationLayers.Remove(layer);
+                }
+            }
         }
 
         public IReadOnlyDictionary<string, byte[]> TimeActFiles
@@ -184,6 +206,8 @@ namespace DSAnimStudio
         public IReadOnlyList<NewHavokAnimation> AdditiveBlendOverlays => _additiveBlendOverlays;
         public IReadOnlyList<string> AdditiveBlendOverlayNames => _additiveBlendOverlayNames;
 
+        public bool InitializeNewAnimLayersUnweighted = true;
+
         private string _currentAnimationName = null;
         public string CurrentAnimationName
         {
@@ -201,7 +225,7 @@ namespace DSAnimStudio
                     lock (_lock_animCache)
                     {
                         foreach (var cachedAnimName in AnimationCache.Keys)
-                            AnimationCache[cachedAnimName].Reset();
+                            AnimationCache[cachedAnimName].Reset(RootMotionTransform.GetRootMotionVector4());
                     }
                     
                     lock (_lock_AnimationLayers)
@@ -248,26 +272,13 @@ namespace DSAnimStudio
 
                             if (anim != null)
                             {
-                                lock (_lock_AnimationLayers)
-                                {
-                                    if (AnimationLayers.Count < 2)
-                                    {
-                                        if (AnimationLayers.Count == 0)
-                                            anim.Weight = 1;
-                                        else
-                                            anim.Weight = 0;
-                                        AnimationLayers.Add(anim);
-                                    }
-                                    else
-                                    {
-                                        anim.Weight = 0;
+                                RemoveDeadBlendAnims();
 
-                                        AnimationLayers[1].Weight = 1;
-                                        AnimationLayers[0] = AnimationLayers[1];
+                                anim.Weight = InitializeNewAnimLayersUnweighted ? 0 : 1;
 
-                                        AnimationLayers[1] = anim;
-                                    }
-                                }
+                                anim.RootMotion.ResetToStart(RootMotionTransform.GetRootMotionVector4());
+
+                                AnimationLayers.Add(anim);
                             }
 
                             
@@ -295,7 +306,7 @@ namespace DSAnimStudio
                         lock (_lock_animCache)
                         {
                             foreach (var cachedAnimName in AnimationCache.Keys)
-                                AnimationCache[cachedAnimName].Reset();
+                                AnimationCache[cachedAnimName].Reset(RootMotionTransform.GetRootMotionVector4());
                         }
 
                         lock (_lock_AnimationLayers)
@@ -335,12 +346,24 @@ namespace DSAnimStudio
         //public bool IsPlaying = true;
         //public bool IsLoop = true;
 
-        private Vector4 currentRootMotionVec = Vector4.Zero;
-        public Matrix FinalRootMotion => CurrentAnimation?.data.RootMotion?.ConvertSampleToMatrixWithViewNoRotation(currentRootMotionVec.ToCS()).ToXna() ?? Matrix.Identity;
+        public NewBlendableTransform RootMotionTransform { get; private set; } = NewBlendableTransform.Identity;
+
+
+
+        public NewBlendableTransform GetRootMotionTransform(float? moduloUnit)
+        {
+            var tr = RootMotionTransform;
+            if (moduloUnit != null)
+            {
+                tr.Translation.X = tr.Translation.X % moduloUnit.Value;
+                tr.Translation.Z = tr.Translation.Z % moduloUnit.Value;
+            }
+            return tr;
+        }
 
         public void ResetRootMotion()
         {
-            currentRootMotionVec = Vector4.Zero;
+            RootMotionTransform = NewBlendableTransform.Identity;
         }
 
         public void ClearAnimations()
@@ -367,7 +390,7 @@ namespace DSAnimStudio
             {
                 foreach (var anim in AnimationLayers)
                 {
-                    anim.Reset();
+                    anim.Reset(RootMotionTransform.GetRootMotionVector4());
                 }
             }
 
@@ -375,103 +398,37 @@ namespace DSAnimStudio
             {
                 foreach (var overlay in AdditiveBlendOverlays)
                 {
-                    overlay.Reset();
+                    overlay.Reset(RootMotionTransform.GetRootMotionVector4());
                 }
             }
 
         }
 
-        private void OnScrubUpdateAnimLayersRootMotion()
+        private void OnScrubUpdateAnimLayersRootMotion(List<NewHavokAnimation> animLayers)
         {
-            if (!EnableRootMotion)
+            //if (!EnableRootMotion)
+            //{
+            //    ResetRootMotion();
+            //    return;
+            //}
+
+            if (animLayers.Count > 0)
             {
-                ResetRootMotion();
-                return;
-            }
+                //NewBlendableTransform currentRootMotion = RootMotionTransform;
 
-            if (AnimationLayers.Count > 0)
-            {
-                //int totalCount = AnimationLayers.Count;
-                //float totalWeight = 0;
+                float totalWeight = 0;
 
-                //Vector4 rootMotionDelta = Vector4.Zero;
-
-                Vector4 AddDelta(Vector4 cur, Vector4 delta)
+                for (int i = 0; i < animLayers.Count; i++)
                 {
-                    //var deltaInDirection = Vector3.Transform(new Vector3(delta.X, delta.Y, delta.Z), Matrix.CreateRotationY(cur.W));
-                    cur.X += delta.X;
-                    cur.Y += delta.Y;
-                    cur.Z += delta.Z;
-                    cur.W += delta.W;
+                    if (animLayers[i].Weight * DebugAnimWeight <= 0)
+                        continue;
 
-                    return cur;
+                    totalWeight += animLayers[i].Weight;
+                    RootMotionTransform = NewBlendableTransform.Lerp(RootMotionTransform, 
+                        NewBlendableTransform.FromRootMotionSample(animLayers[i].RootMotion.CurrentTransform), animLayers[i].Weight / totalWeight);
                 }
 
-                Vector4 RotateDeltaToCurrentDirection(Vector4 v, float currentDirection)
-                {
-                    var rotated = Vector3.Transform(new Vector3(v.X, v.Y, v.Z), Matrix.CreateRotationY(currentDirection));
-                    return new Vector4(rotated.X, rotated.Y, rotated.Z, v.W);
-                }
-
-                Vector4 RotateDeltaToCurrentDirectionMat(Vector4 v, Matrix currentDirection)
-                {
-                    var rotated = Vector3.Transform(new Vector3(v.X, v.Y, v.Z), currentDirection);
-                    return new Vector4(rotated.X, rotated.Y, rotated.Z, v.W);
-                }
-
-                lock (_lock_AnimationLayers)
-                {
-                    if (AnimationLayers.Count == 1)
-                    {
-                        var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
-
-                        a = Vector4.Lerp(Vector4.Zero, a, DebugAnimWeight);
-
-                        var deltaMatrix = Matrix.CreateTranslation(new Vector3(a.X, a.Y, a.Z));
-                        Skeleton.CurrentRootMotionTranslation *= deltaMatrix;
-                        Skeleton.CurrentDirection += a.W;
-                    }
-                    else if (AnimationLayers.Count == 2)
-                    {
-                        var a = RotateDeltaToCurrentDirectionMat(AnimationLayers[0].RootMotionDeltaOfLastScrub, AnimationLayers[0].RotMatrixAtStartOfAnim);
-                        AnimationLayers[1].ApplyExternalRotation(AnimationLayers[0].RootMotionDeltaOfLastScrub.W * (1 - AnimationLayers[1].Weight));
-                        var b = RotateDeltaToCurrentDirectionMat(AnimationLayers[1].RootMotionDeltaOfLastScrub, AnimationLayers[1].RotMatrixAtStartOfAnim);
-
-                        var blended = Vector4.Lerp(a, b, AnimationLayers[1].Weight);
-
-                        blended = Vector4.Lerp(Vector4.Zero, blended, DebugAnimWeight);
-
-                        var deltaMatrix = Matrix.CreateTranslation(new Vector3(blended.X, blended.Y, blended.Z));
-                        Skeleton.CurrentRootMotionTranslation *= deltaMatrix;
-                        Skeleton.CurrentDirection += blended.W;
-                    }
-                }
-
-                
-
-                //// If our animations don't even add up to a total weight of 1, weigh them
-                //// alongside the default value for the remaining weight
-                //if (totalWeight < 1)
-                //{
-                //    rootMotionDelta += (Vector4.Zero) * (1 - totalWeight);
-                //    totalCount++;
-                //}
-
-                //var debug_BeforeDelta = FinalRootMotion;
-
-                //Matrix.
-
-                //currentRootMotionVec += rootMotionDelta;
-
-
-
-                //if (float.IsNaN(FinalRootMotion.M11) || float.IsNaN(FinalRootMotion.M12) || float.IsNaN(FinalRootMotion.M13) || float.IsNaN(FinalRootMotion.M14) ||
-                //    float.IsNaN(FinalRootMotion.M21) || float.IsNaN(FinalRootMotion.M22) || float.IsNaN(FinalRootMotion.M23) || float.IsNaN(FinalRootMotion.M24) ||
-                //    float.IsNaN(FinalRootMotion.M31) || float.IsNaN(FinalRootMotion.M32) || float.IsNaN(FinalRootMotion.M33) || float.IsNaN(FinalRootMotion.M34) ||
-                //    float.IsNaN(FinalRootMotion.M41) || float.IsNaN(FinalRootMotion.M42) || float.IsNaN(FinalRootMotion.M43) || float.IsNaN(FinalRootMotion.M44))
-                //{
-                //    //throw new Exception("TREMBELCAT");
-                //}
+                RootMotionTransform = NewBlendableTransform.Lerp(NewBlendableTransform.Identity, RootMotionTransform, DebugAnimWeight);
             }
             else
             {
@@ -487,7 +444,7 @@ namespace DSAnimStudio
             //IsPlaying = AutoPlayAnimContainersUponLoading;
         }
 
-        public void ScrubRelative(float timeDelta, bool doNotCheckRootMotionRotation = false)
+        public void ScrubRelative(float timeDelta)
         {
             ForcePlayAnim = false;
 
@@ -509,92 +466,89 @@ namespace DSAnimStudio
             {
                 animLayersCopy = AnimationLayers.ToList();
             }
-                for (int i = 0; i < animLayersCopy.Count; i++)
+            for (int i = 0; i < animLayersCopy.Count; i++)
+            {
+                animLayersCopy[i].ScrubRelative(timeDelta);
+            }
+
+            for (int t = 0; t < Skeleton.HkxSkeleton.Count; t++)
+            {
+                if (animLayersCopy.Count == 0)
                 {
-                animLayersCopy[i].ScrubRelative(timeDelta, doNotCheckRootMotionRotation);
+                    Skeleton.HkxSkeleton[t].CurrentHavokTransform = Skeleton.HkxSkeleton[t].RelativeReferenceTransform;
+
                 }
-
-                for (int t = 0; t < Skeleton.HkxSkeleton.Count; t++)
+                else
                 {
-                    if (animLayersCopy.Count == 0)
+                    var tr = NewBlendableTransform.Identity;
+                    float weight = 0;
+                    for (int i = 0; i < animLayersCopy.Count; i++)
                     {
-                        Skeleton.HkxSkeleton[t].CurrentHavokTransform = Skeleton.HkxSkeleton[t].RelativeReferenceTransform;
-                    }
-                    else
-                    {
-                        var tr = NewBlendableTransform.Identity;
-                        float weight = 0;
-                        for (int i = 0; i < animLayersCopy.Count; i++)
+                        if (animLayersCopy[i].Weight * DebugAnimWeight <= 0)
+                            continue;
+
+                        var frame = animLayersCopy[i].GetBlendableTransformOnCurrentFrame(t);
+
+
+
+                        if (animLayersCopy[i].IsAdditiveBlend)
                         {
-                            if (animLayersCopy[i].Weight * DebugAnimWeight <= 0)
-                                continue;
-
-                            var frame = animLayersCopy[i].GetBlendableTransformOnCurrentFrame(t);
-
-
-
-                            if (animLayersCopy[i].IsAdditiveBlend)
-                            {
-                                frame = Skeleton.HkxSkeleton[t].RelativeReferenceTransform * frame;
-                            }
-
-                            weight += animLayersCopy[i].Weight;
-                            if (animLayersCopy.Count > 1)
-                                tr = NewBlendableTransform.Lerp(tr, frame, animLayersCopy[i].Weight / weight);
-                            else
-                                tr = frame;
-
-
+                            frame = Skeleton.HkxSkeleton[t].RelativeReferenceTransform * frame;
                         }
-                        Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(Skeleton.HkxSkeleton[t].RelativeReferenceTransform, tr, DebugAnimWeight);
+
+                        weight += animLayersCopy[i].Weight;
+                        if (animLayersCopy.Count > 1)
+                            tr = NewBlendableTransform.Lerp(tr, frame, animLayersCopy[i].Weight / weight);
+                        else
+                            tr = frame;
+
+
                     }
+                    Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(Skeleton.HkxSkeleton[t].RelativeReferenceTransform, tr, DebugAnimWeight);
+                }
 
                     
-                }
+            }
 
-                void WalkTree(int i, Matrix currentMatrix, Matrix scaleMatrix)
+            void WalkTree(int i, Matrix currentMatrix, Matrix scaleMatrix)
+            {
+                var parentTransformation = currentMatrix;
+                var parentScaleMatrix = scaleMatrix;
+
+                currentMatrix = Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrix().ToXna();
+
+                scaleMatrix = Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrixScale().ToXna();
+
+                //if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
+                //    currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
+
+                lock (_lock_AdditiveOverlays)
                 {
-                    var parentTransformation = currentMatrix;
-                    var parentScaleMatrix = scaleMatrix;
-
-                    currentMatrix = Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrix().ToXna();
-
-                    scaleMatrix = Skeleton.HkxSkeleton[i].CurrentHavokTransform.GetMatrixScale().ToXna();
-
-                    //if (AnimationLayers[0].IsAdditiveBlend && (i >= 0 && i < MODEL.Skeleton.HkxSkeleton.Count))
-                    //    currentMatrix = MODEL.Skeleton.HkxSkeleton[i].RelativeReferenceMatrix * currentMatrix;
-
-                    lock (_lock_AdditiveOverlays)
+                    foreach (var overlay in _additiveBlendOverlays)
                     {
-                        foreach (var overlay in _additiveBlendOverlays)
-                        {
-                            if (overlay.Weight > 0)
-                                currentMatrix *= NewBlendableTransform.Lerp(NewBlendableTransform.Identity, overlay.GetBlendableTransformOnCurrentFrame(i), overlay.Weight).GetMatrix().ToXna();
-                        }
+                        if (overlay.Weight > 0)
+                            currentMatrix *= NewBlendableTransform.Lerp(NewBlendableTransform.Identity, overlay.GetBlendableTransformOnCurrentFrame(i), overlay.Weight).GetMatrix().ToXna();
                     }
-
-                    currentMatrix *= parentTransformation;
-                    scaleMatrix *= parentScaleMatrix;
-
-                    Skeleton.HkxSkeleton[i].CurrentMatrix = scaleMatrix * currentMatrix;
-
-                    foreach (var c in Skeleton.HkxSkeleton[i].ChildIndices)
-                        WalkTree(c, currentMatrix, scaleMatrix);
                 }
 
-                if (animLayersCopy.Count > 0)
-                {
-                    foreach (var root in Skeleton.TopLevelHkxBoneIndices)
-                        WalkTree(root, Matrix.Identity, Matrix.Identity);
-                }
+                currentMatrix *= parentTransformation;
+                scaleMatrix *= parentScaleMatrix;
+
+                Skeleton.HkxSkeleton[i].CurrentMatrix = scaleMatrix * currentMatrix;
+
+                foreach (var c in Skeleton.HkxSkeleton[i].ChildIndices)
+                    WalkTree(c, currentMatrix, scaleMatrix);
+            }
+
+            if (animLayersCopy.Count > 0)
+            {
+                foreach (var root in Skeleton.TopLevelHkxBoneIndices)
+                    WalkTree(root, Matrix.Identity, Matrix.Identity);
+            }
 
 
 
-                if (timeDelta != 0)
-                    OnScrubUpdateAnimLayersRootMotion();
-
-                Skeleton.UpdateTransform(EnableRootMotion, EnableRootMotionWrap, false);
-            
+            OnScrubUpdateAnimLayersRootMotion(animLayersCopy);
         }
 
         public void Update()
@@ -616,7 +570,7 @@ namespace DSAnimStudio
                 {
                     if (overlay.Weight > 0)
                     {
-                        overlay.ScrubRelative(Main.DELTA_UPDATE, doNotCheckRootMotionRotation: true);
+                        overlay.ScrubRelative(Main.DELTA_UPDATE);
                     }
                 }
             }
@@ -892,7 +846,7 @@ namespace DSAnimStudio
                     if (animHKXsToLoad.Count > 0)
                     {
                         CurrentAnimationName = animHKXsToLoad.Keys.First();
-                        CurrentAnimation?.ScrubRelative(0, doNotCheckRootMotionRotation: true);
+                        CurrentAnimation?.ScrubRelative(0);
                     }
                 }
             }

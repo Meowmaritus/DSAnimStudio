@@ -181,7 +181,7 @@ namespace DSAnimStudio
             {
                 AddParam(BehaviorParam, "BehaviorParam");
                 if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES)
-                    BehaviorParam_PC = BehaviorParam;
+                    BehaviorParam_PC = BehaviorParam.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                 else
                     AddParam(BehaviorParam_PC, "BehaviorParam_PC");
                 AddParam(AtkParam_Pc, "AtkParam_Pc");
