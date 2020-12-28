@@ -34,6 +34,10 @@ namespace DSAnimStudio
             public string AssetPath { get; set; }
 
             public float SceneScale { get; set; } = 1.0f;
+
+            public float RootMotionScaleOverride { get; set; } = 1.0f;
+            public bool UseRootMotionScaleOverride = false;
+
             public bool ConvertFromZUp { get; set; } = false;
 
             public string RootMotionNodeName { get; set; } = "root";

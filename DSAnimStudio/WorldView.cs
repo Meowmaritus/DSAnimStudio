@@ -577,8 +577,7 @@ namespace DSAnimStudio
                         return false;
                     if (Scene.MainModel.DummyPolyMan.DummyPolyByRefID.ContainsKey(dmyID))
                     {
-                        var lockonPoint1 = Scene.MainModel.DummyPolyMan.GetDummyPosByID(dmyID, 
-                            Matrix.Identity, ignoreModelTransform: true);
+                        var lockonPoint1 = Scene.MainModel.DummyPolyMan.GetDummyPosByID(dmyID, getAbsoluteWorldPos: false);
                         if (lockonPoint1.Count > 0)
                         {
                             OrbitCamCenter_DummyPolyFollowRefPoint = lockonPoint1[0];

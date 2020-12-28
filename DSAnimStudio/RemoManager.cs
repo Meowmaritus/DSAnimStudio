@@ -15,6 +15,14 @@ namespace DSAnimStudio
 {
     public static class RemoManager
     {
+        public static bool ContinuePlayingNextFrame = false;
+
+        public static void CancelFullPlayback()
+        {
+            StopStreamedBGM();
+            ViewportInteractor?.Graph?.PlaybackCursor?.ClearRemoState();
+        }
+
         public static FmodManager.FmodEventUpdater StreamedBGM = null;
         public static void StartStreamedBGM()
         {
@@ -23,7 +31,17 @@ namespace DSAnimStudio
         }
         public static void StopStreamedBGM()
         {
-            StreamedBGM.Stop(true);
+            StreamedBGM?.Stop(true);
+        }
+
+        public static void PauseStreamBGM()
+        {
+            StreamedBGM?.Pause();
+        }
+
+        public static void ResumeStreamedBGM()
+        {
+            StreamedBGM?.Resume();
         }
 
         public static void StopFullPreview()
@@ -37,14 +55,19 @@ namespace DSAnimStudio
             if (StreamedBGM != null && !StreamedBGM.EventIsOver)
                 StreamedBGM.Stop(true);
 
+            FmodManager.StopAllSounds();
+
             ViewportInteractor.Graph.MainScreen.SelectNewAnimRef(ViewportInteractor.Graph.MainScreen.SelectedTae,
                 ViewportInteractor.Graph.MainScreen.SelectedTae.Animations.First());
             ViewportInteractor.Graph.MainScreen.HardReset();
 
             ViewportInteractor.Graph.PlaybackCursor.Scrubbing = false;
             ViewportInteractor.Graph.PlaybackCursor.IsPlaying = true;
+            ViewportInteractor.Graph.PlaybackCursor.IsStepping = false;
 
             StartStreamedBGM();
+
+            ViewportInteractor?.Graph?.PlaybackCursor?.SetRemoState();
         }
 
         public static TaeViewportInteractor ViewportInteractor = null;
@@ -195,6 +218,11 @@ namespace DSAnimStudio
                 else
                     CurrentCutSibcam = null;
             }
+            else
+            {
+                if (AnimContainer != null)
+                    AnimContainer.CurrentAnimationName = null;
+            }
         }
 
         
@@ -299,14 +327,23 @@ namespace DSAnimStudio
         public static bool UpdateCutAdvance()
         {
             if (ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO
-                            && ViewportInteractor.Graph.PlaybackCursor.IsPlaying && !ViewportInteractor.Graph.PlaybackCursor.Scrubbing)
+                            && ViewportInteractor.Graph.PlaybackCursor.IsPlaying && !ViewportInteractor.Graph.PlaybackCursor.Scrubbing &&
+                            ViewportInteractor?.Graph?.MainScreen?.REMO_HOTFIX_REQUEST_CUT_ADVANCE_NEXT_FRAME != true
+                            && ViewportInteractor?.Graph?.MainScreen?.REMO_HOTFIX_REQUEST_CUT_ADVANCE_THIS_FRAME != true)
             {
-                int nextFrame = (int)Math.Round((ViewportInteractor.Graph.PlaybackCursor.CurrentTime + Main.DELTA_UPDATE) / (1f / 30f));
+                int nextFrame = (int)Math.Round((ViewportInteractor.Graph.PlaybackCursor.CurrentTime) / (1f / 30f));
                 int maxFrame = (int)Math.Round((RemoManager.AnimContainer?.CurrentAnimation?.Duration ?? ViewportInteractor.Graph.PlaybackCursor.MaxTime) / (1f / 30f));
                 if (nextFrame >= maxFrame)
                 {
-                    ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE = true;
-                    ViewportInteractor.Graph.PlaybackCursor.IsPlaying = false;
+                    ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_NEXT_FRAME = true;
+
+                    ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_PREV = false;
+                    ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_SHIFT = false;
+                    ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_CTRL = false;
+
+                    ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE = null;
+                    ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE_ANIM = null;
+
                     return true;
                 }
             }
@@ -358,37 +395,37 @@ namespace DSAnimStudio
         public static Model LookupModelOfEventGroup(TAE.EventGroup group)
         {
             var sb = new StringBuilder();
-            if (group.GroupData is TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity entitySpecifier)
+            if (group.GroupData.DataType == TAE.EventGroup.EventGroupDataType.ApplyToSpecificCutsceneEntity)
             {
-                if (entitySpecifier.Block >= 0 || entitySpecifier.Area >= 0)
+                if (group.GroupData.Block >= 0 || group.GroupData.Area >= 0)
                 {
-                    sb.Append($"A{entitySpecifier.Area:D2}_{entitySpecifier.Block:D2}_");
+                    sb.Append($"A{group.GroupData.Area:D2}_{group.GroupData.Block:D2}_");
                 }
 
-                if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Character)
-                    sb.Append($"c{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Object)
-                    sb.Append($"o{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.DummyNode)
-                    sb.Append($"d{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.MapPiece)
+                if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Character)
+                    sb.Append($"c{group.GroupData.CutsceneEntityIDPart1:D4}_{group.GroupData.CutsceneEntityIDPart2:D4}");
+                else if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Object)
+                    sb.Append($"o{group.GroupData.CutsceneEntityIDPart1:D4}_{group.GroupData.CutsceneEntityIDPart2:D4}");
+                else if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.DummyNode)
+                    sb.Append($"d{group.GroupData.CutsceneEntityIDPart1:D4}_{group.GroupData.CutsceneEntityIDPart2:D4}");
+                else if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece)
                 {
-                    if (entitySpecifier.Block >= 0)
-                        sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{entitySpecifier.Block}");
+                    if (group.GroupData.Block >= 0)
+                        sb.Append($"m{group.GroupData.CutsceneEntityIDPart1:D4}B{group.GroupData.Block}");
                     else
-                        sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}");
+                        sb.Append($"m{group.GroupData.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}");
 
-                    if (entitySpecifier.CutsceneEntityIDPart2 > 0)
+                    if (group.GroupData.CutsceneEntityIDPart2 > 0)
                     {
-                        sb.Append($"_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                        sb.Append($"_{group.GroupData.CutsceneEntityIDPart2:D4}");
                     }
                 }
 
                 var mdls = Scene.Models.ToList();
                 var foundModel = mdls.FirstOrDefault(m => m.Name == sb.ToString());
-                if (foundModel == null && 
-                    entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.MapPiece
-                    && entitySpecifier.CutsceneEntityIDPart2 == 0)
+                if (foundModel == null &&
+                    group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece
+                    && group.GroupData.CutsceneEntityIDPart2 == 0)
                 {
                     sb.Append("_0000");
                     foundModel = mdls.FirstOrDefault(m => m.Name == sb.ToString());
@@ -434,6 +471,8 @@ namespace DSAnimStudio
                     hk_anim = hk_anim,
                     hk_skeleton = hk_skeleton,
                 });
+
+                
             }
 
             
@@ -457,13 +496,18 @@ namespace DSAnimStudio
 
             CurrentCutHits.Clear();
             CurrentCutOtherBlocks.Clear();
-            Scene.Models.Clear();
+            lock (Scene._lock_ModelLoad_Draw)
+            {
+                Scene.Models.Clear();
+            }
             foreach (var name in modelNames)
             {
                 Model mdl = null;
 
                 if (!remoModelDict.ContainsKey(name))
                 {
+                    PauseStreamBGM();
+
                     if (name.StartsWith("c"))
                     {
                         string shortName = name.Substring(0, 5);
@@ -541,7 +585,10 @@ namespace DSAnimStudio
                     mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
                     mdl.UpdateSkeleton();
 
-                    Scene.Models.Add(mdl);
+                    lock (Scene._lock_ModelLoad_Draw)
+                    {
+                        Scene.Models.Add(mdl);
+                    }
                 }
             }
 
@@ -593,7 +640,10 @@ namespace DSAnimStudio
                         mdl.SkeletonFlver.RevertToReferencePose();
                         mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
                         mdl.UpdateSkeleton();
-                        Scene.Models.Add(mdl);
+                        lock (Scene._lock_ModelLoad_Draw)
+                        {
+                            Scene.Models.Add(mdl);
+                        }
                         continue;
                     }
                     
@@ -613,9 +663,11 @@ namespace DSAnimStudio
                     mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
                     mdl.UpdateSkeleton();
 
-                    
+                    lock (Scene._lock_ModelLoad_Draw)
+                    {
+                        Scene.Models.Add(mdl);
+                    }
 
-                    Scene.Models.Add(mdl);
                     remoModelDict.Add(thisEntityName, mdl);
                 }
             }
@@ -637,7 +689,10 @@ namespace DSAnimStudio
                         mdl.SkeletonFlver.RevertToReferencePose();
                         mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
                         mdl.UpdateSkeleton();
-                        Scene.Models.Add(mdl);
+                        lock (Scene._lock_ModelLoad_Draw)
+                        {
+                            Scene.Models.Add(mdl);
+                        }
                         continue;
                     }
 
@@ -658,20 +713,32 @@ namespace DSAnimStudio
 
                     mdl.UpdateSkeleton();
 
-                    
+                    lock (Scene._lock_ModelLoad_Draw)
+                    {
+                        Scene.Models.Add(mdl);
+                    }
 
-                    Scene.Models.Add(mdl);
                     remoModelDict.Add(thisEntityName, mdl);
                 }
             }
 
-            Scene.Models = Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
+            lock (Scene._lock_ModelLoad_Draw)
+            {
+                Scene.Models = Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
+            }
+            
 
             CurrentCut = animName;
 
             animContainer.ScrubRelative(0);
 
-            var mdls = Scene.Models.ToList();
+            List<Model> mdls = null;
+
+            lock (Scene._lock_ModelLoad_Draw)
+            {
+                mdls = Scene.Models.ToList();
+            }
+            
             foreach (var m in mdls)
             {
                 m.UpdateSkeleton();
@@ -681,6 +748,12 @@ namespace DSAnimStudio
 
             Scene.EnableModelDrawing();
             Scene.EnableModelDrawing2();
+
+            ResumeStreamedBGM();
+
+            ViewportInteractor.Graph.MainScreen.REMO_HOTFIX_REQUEST_PLAY_RESUME_NEXT_FRAME = true;
+
+            ViewportInteractor.Graph.MainScreen.HardReset();
         }
     }
 }

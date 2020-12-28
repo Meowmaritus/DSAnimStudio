@@ -13,6 +13,7 @@ namespace DSAnimStudio
         DragY,
         DragXY,
         GrabPan,
+        DragBottomLeftResize
     }
 
     public class FancyInputHandler
@@ -216,6 +217,12 @@ namespace DSAnimStudio
                         Microsoft.Xna.Framework.Input.Mouse.SetCursor(MouseCursor.Crosshair);
                         //System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.SizeWE;
                         break;
+                    case MouseCursorType.DragBottomLeftResize:
+                        Microsoft.Xna.Framework.Input.Mouse.SetCursor(MouseCursor.SizeNESW);
+                        //System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.SizeWE;
+                        break;
+                    default:
+                        throw new NotImplementedException($"Mouse cursor type {CursorType} not implemented.");
                 }
             }
             else if (prevInUpdateCursorRect)

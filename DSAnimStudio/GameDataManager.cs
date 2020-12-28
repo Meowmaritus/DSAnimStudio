@@ -69,8 +69,17 @@ namespace DSAnimStudio
         private static SoulsGames lastGameType = SoulsGames.None;
         public static SoulsGames GameType { get; private set; } = SoulsGames.None;
 
+        public static bool IsGame(SoulsGames gameTypes)
+        {
+            return (GameType & gameTypes) != 0;
+        }
+
         public static bool GameTypeHasLongAnimIDs => CurrentAnimIDFormatType == AnimIDFormattingType.aXXX_YYYYYY ||
             CurrentAnimIDFormatType == AnimIDFormattingType.aXX_YY_ZZZZ;
+
+        public static bool GameTypeUsesBoilerplateEventGroups => 
+            IsGame(SoulsGames.DS3 | SoulsGames.SDT | SoulsGames.BB) || 
+            (IsGame(SoulsGames.DS1 | SoulsGames.DS1R) && Main.Config.SaveAdditionalEventRowInfoToLegacyGames);
 
         public static AnimIDFormattingType CurrentAnimIDFormatType
         {
@@ -89,7 +98,7 @@ namespace DSAnimStudio
                     case SoulsGames.DS2SOTFS:
                         return AnimIDFormattingType.aXX_YY_ZZZZ;
                     default:
-                        return AnimIDFormattingType.aXXX_YYYYYY;
+                        throw new NotImplementedException($"Animation ID formatting type not specified for game type {GameType}.");
                 }
             }
         }
@@ -447,7 +456,7 @@ namespace DSAnimStudio
                         throw new NotImplementedException($"Not implemented for GameType {GameType}.");
                     }
 
-                Scene.AddModel(obj, doLock: false);
+                Scene.AddModel(obj);
 
 
 
@@ -1276,7 +1285,7 @@ namespace DSAnimStudio
                         throw new NotImplementedException($"Not implemented for GameType {GameType}.");
                     }
 
-                    Scene.AddModel(chr, doLock: false);
+                    Scene.AddModel(chr);
                 });
 
                 if (id == "c0000" || id == "c0000_0000")

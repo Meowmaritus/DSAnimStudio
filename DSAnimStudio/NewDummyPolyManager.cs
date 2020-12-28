@@ -470,7 +470,7 @@ namespace DSAnimStudio
 
             public void DrawPrim(Matrix world, bool isForce)
             {
-                bool generalDummyPolyDraw = DBG.CategoryEnableDraw[DbgPrimCategory.DummyPoly] || isForce;
+                bool generalDummyPolyDraw = DBG.GetCategoryEnableDraw(DbgPrimCategory.DummyPoly) || isForce;
 
                 bool hasSpawnStuff = !(SFXSpawnIDs.Count == 0 &&
                     BulletSpawnIDs.Count == 0 && MiscSpawnTexts.Count == 0);
@@ -511,7 +511,7 @@ namespace DSAnimStudio
 
                 if (hasSpawnStuff && !isForce)
                     SpawnPrinter.AppendLine(dmyIDTxt, GetCurrentSpawnColor());
-                else if (DBG.CategoryEnableNameDraw[DbgPrimCategory.DummyPoly] || isForce)
+                else if (DBG.GetCategoryEnableNameDraw(DbgPrimCategory.DummyPoly) || isForce)
                     SpawnPrinter.AppendLine(dmyIDTxt, DBG.COLOR_DUMMY_POLY);
                 
 
@@ -963,36 +963,28 @@ namespace DSAnimStudio
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_AttachBone => _dummyPolyByBoneID;
         public IReadOnlyDictionary<int, List<DummyPolyInfo>> DummyPolyByBoneID_ReferenceBone => _dummyPolyByBoneID_Ref;
 
-        public List<Matrix> GetDummyMatricesByID(int id, Matrix modMatrix, bool ignoreModelTransform = false)
+        public List<Matrix> GetDummyMatricesByID(int id, bool getAbsoluteWorldPos = true)
         {
             var result = new List<Matrix>();
 
+            var world = (getAbsoluteWorldPos ? MODEL.CurrentTransform.WorldMatrix : Matrix.Identity);
+
             if (!_dummyPolyByRefID.ContainsKey(id))
             {
-                result.Add(modMatrix);
+                result.Add(world);
             }
             else
             {
                 foreach (var d in DummyPolyByRefID[id])
-                {
-                    if (ignoreModelTransform)
-                        result.Add(d.CurrentMatrix * modMatrix);
-                    else
-                    {
-                        if (!(MODEL.IS_PLAYER_WEAPON || MODEL.ChrAsm != null))
-                            result.Add(d.CurrentMatrix * modMatrix);
-                        else
-                            result.Add(d.CurrentMatrix * MODEL.CurrentTransform.WorldMatrix * modMatrix);
-                    }
-                }
+                    result.Add(d.CurrentMatrix * world);
             }
 
             return result;
         }
 
-        public List<Vector3> GetDummyPosByID(int id, Matrix modMatrix, bool ignoreModelTransform = false)
+        public List<Vector3> GetDummyPosByID(int id, bool getAbsoluteWorldPos)
         {
-            return GetDummyMatricesByID(id, modMatrix, ignoreModelTransform).Select(x => Vector3.Transform(Vector3.Zero, x)).ToList();
+            return GetDummyMatricesByID(id, getAbsoluteWorldPos).Select(x => Vector3.Transform(Vector3.Zero, x)).ToList();
         }
 
         public void UpdateFlverBone(int index, Matrix relativeMatrix)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -14,8 +15,51 @@ namespace DSAnimStudio.TaeEditor
 
         public class TaeUndoableAction
         {
-            public Action Do;
-            public Action Undo;
+            private TaeEditAnimEventGraph Graph;
+            private IEnumerable<ITaeClonable> ItemsToCapture;
+            private Action DoAction;
+            private Action UndoAction;
+            private TaeUndoRestorableGraphState StateOnRedo;
+            private TaeUndoRestorableGraphState StateOnUndo;
+
+            private bool IsCustomPreState = false;
+
+            public TaeUndoableAction(TaeEditAnimEventGraph graph, Action doAction, Action undoAction, TaeUndoRestorableGraphState customPreState)
+            {
+                Graph = graph;
+                ItemsToCapture = null;
+
+                StateOnUndo = customPreState;
+                IsCustomPreState = true;
+                ItemsToCapture = new List<ITaeClonable>();
+
+                DoAction = doAction;
+                UndoAction = undoAction;
+            }
+
+            public TaeUndoableAction(TaeEditAnimEventGraph graph, Action doAction, Action undoAction, IEnumerable<ITaeClonable> itemsToCapture)
+            {
+                Graph = graph;
+                ItemsToCapture = itemsToCapture;
+                DoAction = doAction;
+                UndoAction = undoAction;
+            }
+
+            public void PerformDo()
+            {
+                if (!IsCustomPreState)
+                    StateOnUndo = new TaeUndoRestorableGraphState(Graph, ItemsToCapture);
+
+                DoAction?.Invoke();
+                StateOnRedo?.RestoreState();
+            }
+
+            public void PerformUndo()
+            {
+                StateOnRedo = new TaeUndoRestorableGraphState(Graph, ItemsToCapture);
+                UndoAction?.Invoke();
+                StateOnUndo?.RestoreState();
+            }
         }
 
         private Stack<TaeUndoableAction> UndoStack = new Stack<TaeUndoableAction>();
@@ -24,16 +68,32 @@ namespace DSAnimStudio.TaeEditor
         public bool CanUndo => UndoStack.Count > 0;
         public bool CanRedo => RedoStack.Count > 0;
 
-        public void NewAction(Action doAction, Action undoAction)
+        public void NewActionCustomPreState(TaeUndoRestorableGraphState customPreState, Action doAction, Action undoAction)
         {
             RedoStack.Clear();
-            var newAction = new TaeUndoableAction()
-            {
-                Do = doAction,
-                Undo = undoAction
-            };
-            newAction.Do();
+            var newAction = new TaeUndoableAction(MainScreen.Graph, doAction, undoAction, customPreState);
+            newAction.PerformDo();
             UndoStack.Push(newAction);
+        }
+
+        public void NewAction(Action doAction, Action undoAction, List<ITaeClonable> captureItems)
+        {
+            NewActionOptional(true, doAction, undoAction, captureItems);
+        }
+
+        public void NewActionOptional(bool enableUndoOnAction, Action doAction, Action undoAction, List<ITaeClonable> captureItems)
+        {
+            if (enableUndoOnAction && MainScreen?.Graph != null)
+            {
+                RedoStack.Clear();
+                var newAction = new TaeUndoableAction(MainScreen.Graph, doAction, undoAction, captureItems);
+                newAction.PerformDo();
+                UndoStack.Push(newAction);
+            }
+            else
+            {
+                doAction?.Invoke();
+            }
         }
 
         public void Redo()
@@ -43,7 +103,7 @@ namespace DSAnimStudio.TaeEditor
             if (RedoStack.Count > 0)
             {
                 var action = RedoStack.Pop();
-                action.Do();
+                action.PerformDo();
                 UndoStack.Push(action);
             }
 
@@ -57,7 +117,7 @@ namespace DSAnimStudio.TaeEditor
             if (UndoStack.Count > 0)
             {
                 var lastAction = UndoStack.Pop();
-                lastAction.Undo();
+                lastAction.PerformUndo();
                 RedoStack.Push(lastAction);
             }
 

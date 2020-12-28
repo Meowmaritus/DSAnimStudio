@@ -38,7 +38,19 @@ namespace DSAnimStudio
             return AnimationCache.ContainsKey(name);
         }
 
-        public void RemoveDeadBlendAnims()
+        public void MarkAllAnimsReferenceBlendWeights()
+        {
+            lock (_lock_AnimationLayers)
+            {
+                for (int i = 0; i < AnimationLayers.Count - 1; i++)
+                {
+                    var layer = AnimationLayers[i];
+                    layer.ReferenceWeight = layer.Weight;
+                }
+            }
+        }
+
+        public void RemoveAnimsWithDeadReferenceWeights()
         {
             lock (_lock_AnimationLayers)
             {
@@ -46,15 +58,26 @@ namespace DSAnimStudio
                 for (int i = 0; i < AnimationLayers.Count - 1; i++)
                 {
                     var layer = AnimationLayers[i];
-                    if (layer.Weight <= 0)
+                    if (layer.ReferenceWeight < 0.001f)
                         layersToClear.Add(layer);
-                    else
-                        layer.ReferenceWeight = layer.Weight;
-
                 }
                 foreach (var layer in layersToClear)
                 {
                     AnimationLayers.Remove(layer);
+                }
+            }
+        }
+
+        public void RemoveAllAnimsExceptTopmost()
+        {
+            lock (_lock_AnimationLayers)
+            {
+                if (AnimationLayers.Count > 0)
+                {
+                    var anim = AnimationLayers[AnimationLayers.Count - 1];
+                    anim.Weight = 1;
+                    anim.ReferenceWeight = 1;
+                    AnimationLayers = new List<NewHavokAnimation> { anim };
                 }
             }
         }
@@ -272,7 +295,7 @@ namespace DSAnimStudio
 
                             if (anim != null)
                             {
-                                RemoveDeadBlendAnims();
+                                MarkAllAnimsReferenceBlendWeights();
 
                                 anim.Weight = InitializeNewAnimLayersUnweighted ? 0 : 1;
 
@@ -346,7 +369,10 @@ namespace DSAnimStudio
         //public bool IsPlaying = true;
         //public bool IsLoop = true;
 
+        public bool EnableLooping = true;
+
         public NewBlendableTransform RootMotionTransform { get; private set; } = NewBlendableTransform.Identity;
+        public NVector4 RootMotionTransformVec { get; private set; } = NVector4.Zero;
 
 
 
@@ -424,16 +450,21 @@ namespace DSAnimStudio
                         continue;
 
                     totalWeight += animLayers[i].Weight;
-                    RootMotionTransform = NewBlendableTransform.Lerp(RootMotionTransform, 
-                        NewBlendableTransform.FromRootMotionSample(animLayers[i].RootMotion.CurrentTransform), animLayers[i].Weight / totalWeight);
+                    RootMotionTransformVec = NVector4.Lerp(RootMotionTransformVec, 
+                        animLayers[i].RootMotion.CurrentTransform, (animLayers[i].Weight / totalWeight) * DebugAnimWeight);
                 }
 
-                RootMotionTransform = NewBlendableTransform.Lerp(NewBlendableTransform.Identity, RootMotionTransform, DebugAnimWeight);
+                for (int i = 0; i < animLayers.Count; i++)
+                {
+                    animLayers[i].RootMotion.ApplyExternalTransformSuchThatCurrentTransformMatches(RootMotionTransformVec);
+                }
             }
             else
             {
                 ResetRootMotion();
             }
+
+            RootMotionTransform = NewBlendableTransform.FromRootMotionSample(RootMotionTransformVec);
 
         }
 
@@ -446,7 +477,7 @@ namespace DSAnimStudio
 
         public void ScrubRelative(float timeDelta)
         {
-            ForcePlayAnim = false;
+            //ForcePlayAnim = false;
 
             //if (stopPlaying)
             //    IsPlaying = false;
@@ -468,6 +499,7 @@ namespace DSAnimStudio
             }
             for (int i = 0; i < animLayersCopy.Count; i++)
             {
+                animLayersCopy[i].EnableLooping = EnableLooping;
                 animLayersCopy[i].ScrubRelative(timeDelta);
             }
 
@@ -540,11 +572,8 @@ namespace DSAnimStudio
                     WalkTree(c, currentMatrix, scaleMatrix);
             }
 
-            if (animLayersCopy.Count > 0)
-            {
-                foreach (var root in Skeleton.TopLevelHkxBoneIndices)
-                    WalkTree(root, Matrix.Identity, Matrix.Identity);
-            }
+            foreach (var root in Skeleton.TopLevelHkxBoneIndices)
+                WalkTree(root, Matrix.Identity, Matrix.Identity);
 
 
 

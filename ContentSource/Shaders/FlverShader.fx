@@ -511,7 +511,7 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
 	
     float4 blendmaskColor = tex2D(BlendmaskMapSampler, input.TexCoord / BlendmaskMapScale);
 
-    float texBlendVal = (input.Color.a * EnableBlendTextures);
+    float texBlendVal = 0;
 
     [branch]
 	if (IsDoubleFaceCloth)
@@ -528,6 +528,10 @@ float4 MainPS(VertexShaderOutput input, bool isFrontFacing : SV_IsFrontFace) : C
     else if (EnableBlendMaskMap)
     {
         texBlendVal = blendmaskColor.r;
+    }
+    else if (WorkflowType == WORKFLOW_CLASSIC_DIFFUSE_PTDE)
+    {
+        texBlendVal = (input.Color.a * EnableBlendTextures);
     }
 
 	float4 color = lerp(tex2D(ColorMapSampler, input.TexCoord / ColorMapScale), tex2D(ColorMap2Sampler, input.TexCoord2 / ColorMapScale2), texBlendVal);

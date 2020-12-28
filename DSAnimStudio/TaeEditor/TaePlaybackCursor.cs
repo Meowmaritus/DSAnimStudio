@@ -34,7 +34,7 @@ namespace DSAnimStudio.TaeEditor
 
         public static double LastMaxTimeGreaterThanZero = 0;
 
-        public double CurrentTimeMod => MaxTime > 0 ? CurrentTime % MaxTime : 0;
+        public double CurrentTimeMod => Main.Config.LoopEnabled ? (MaxTime > 0 ? CurrentTime % MaxTime : 0) : CurrentTime;
 
         public event EventHandler<TaeEditAnimEventBox> EventBoxEnter;
         private void OnEventBoxEnter(TaeEditAnimEventBox evBox) { EventBoxEnter?.Invoke(this, evBox); }
@@ -60,6 +60,16 @@ namespace DSAnimStudio.TaeEditor
         public event EventHandler ScrubFrameChange;
         private void OnScrubFrameChange() { ScrubFrameChange?.Invoke(this, EventArgs.Empty); }
 
+        public void ClearRemoState()
+        {
+            IsPlayingRemoFullPreview = false;
+        }
+
+        public void SetRemoState()
+        {
+            IsPlayingRemoFullPreview = true;
+        }
+
         public void UpdateScrubbing()
         {
 
@@ -75,6 +85,9 @@ namespace DSAnimStudio.TaeEditor
             //    else
             //        OnPlaybackFrameChange();
             //}
+
+            if (!Main.Config.LoopEnabled && CurrentTime > MaxTime)
+                CurrentTime = MaxTime;
 
             if (!IsPlaying)
                 OnScrubFrameChange();
@@ -96,7 +109,7 @@ namespace DSAnimStudio.TaeEditor
         //public double OldHitWindowStart => OldCurrentTime;
         //public double OldHitWindowEnd => OldCurrentTime + (CurrentSnapInterval / 2.0);
 
-        public double GUICurrentTimeMod => GUICurrentTime % MaxTime;
+        public double GUICurrentTimeMod => Main.Config.LoopEnabled ? (GUICurrentTime % MaxTime) : GUICurrentTime;
 
         public double GUIStartTime => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Floor(StartTime / (SnapInterval ?? SnapInterval_Default)) 
@@ -107,7 +120,7 @@ namespace DSAnimStudio.TaeEditor
         public double HKXDeltaTime = 0;
 
         public double OldCurrentTime { get; private set; } = 0;
-        public double OldCurrentTimeMod => MaxTime > 0 ? OldCurrentTime % MaxTime : 0;
+        public double OldCurrentTimeMod => Main.Config.LoopEnabled ? (MaxTime > 0 ? OldCurrentTime % MaxTime : 0) : OldCurrentTime;
 
         public double OldCurrentTimeModWrapped
         {
@@ -126,11 +139,11 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public double OldGUICurrentTimeMod => OldGUICurrentTime % MaxTime;
+        public double OldGUICurrentTimeMod => Main.Config.LoopEnabled ? (OldGUICurrentTime % MaxTime) : OldGUICurrentTime;
 
         public double OldGUICurrentFrame { get; private set; } = 0;
 
-        public double OldGUICurrentFrameMod => OldGUICurrentFrame % MaxFrame;
+        public double OldGUICurrentFrameMod => Main.Config.LoopEnabled ? (OldGUICurrentFrame % MaxFrame) : OldGUICurrentFrame;
 
         public double StartTime = 0;
         public double MaxTime { get; private set; } = 1;
@@ -153,7 +166,7 @@ namespace DSAnimStudio.TaeEditor
         public double CurrentFrame => (CurrentTime / CurrentSnapInterval);
         public double OldCurrentFrame => (OldCurrentTime / CurrentSnapInterval);
 
-        public double GUICurrentFrameMod => MaxFrame > 0 ? (GUICurrentFrame % MaxFrame) : 0;
+        public double GUICurrentFrameMod => Main.Config.LoopEnabled ? (MaxFrame > 0 ? (GUICurrentFrame % MaxFrame) : 0) : GUICurrentFrame;
 
         public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate
             ? (Math.Floor(MaxTime / CurrentSnapInterval))
@@ -163,6 +176,7 @@ namespace DSAnimStudio.TaeEditor
 
         public bool IsRepeat = true;
         public bool IsPlaying = false;
+        public bool IsPlayingRemoFullPreview = false;
         public bool OldIsPlaying { get; private set; } = false;
 
         public bool Scrubbing = false;
@@ -183,6 +197,7 @@ namespace DSAnimStudio.TaeEditor
         public void RestartFromBeginning()
         {
             CurrentTime = 0;
+            StartTime = 0;
             OldIsPlaying = false;
             if (IsPlaying)
             {
@@ -220,11 +235,26 @@ namespace DSAnimStudio.TaeEditor
             //PlaybackSpeed = 1.0f;
         }
 
-        public void Transport_PlayPause()
+        public void Transport_PlayPause(bool isUserInput = true)
         {
             IsStepping = false;
 
+            // Reset to start if end is reached while loop is off.
+            if (isUserInput && !Main.Config.LoopEnabled && !IsPlaying && CurrentTime >= MaxTime)
+            {
+                CurrentTime = StartTime;
+                UpdateScrubbing();
+            }
+
             IsPlaying = !IsPlaying;
+
+            if (IsPlayingRemoFullPreview)
+            {
+                if (IsPlaying)
+                    RemoManager.ResumeStreamedBGM();
+                else
+                    RemoManager.PauseStreamBGM();
+            }
 
             //StartTime = CurrentTime;
 
@@ -271,24 +301,12 @@ namespace DSAnimStudio.TaeEditor
                 if (IsPlaying)
                 {
                     CurrentTime += (Main.DELTA_UPDATE * BasePlaybackSpeed * ModPlaybackSpeed);
+                    if (!Main.Config.LoopEnabled && CurrentTime > MaxTime)
+                    {
+                        CurrentTime = MaxTime;
+                        IsPlaying = false;
+                    }
                 }
-
-                //if (GUICurrentTime != OldGUICurrentTime)
-                //{
-                //    if (CurrentTime < 0)
-                //    {
-                //        CurrentTime += MaxTime;
-                //        CurrentLoopCount--;
-                //    }
-                //}
-
-                bool justReachedAnimEnd = (CurrentTime >= MaxTime);
-
-                // Single frame anim
-                //if (MaxTime <= (SnapInterval))
-                //{
-                //    CurrentTime = 0;
-                //}
 
                 if (!HkxAnimationLength.HasValue)
                     MaxTime = 0;

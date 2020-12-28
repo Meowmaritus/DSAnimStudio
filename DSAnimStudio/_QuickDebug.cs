@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NMatrix = System.Numerics.Matrix4x4;
 using NVector3 = System.Numerics.Vector3;
+using NVector4 = System.Numerics.Vector4;
 using NQuaternion = System.Numerics.Quaternion;
 
 namespace DSAnimStudio
@@ -20,25 +21,143 @@ namespace DSAnimStudio
     {
         public static void BuildDebugMenu()
         {
-            if (Scene.MainModel?.AnimContainer != null)
+            
+
+            if (DebugTestButton("Misc2"))
             {
-                float animWeight = Scene.MainModel.AnimContainer.DebugAnimWeight;
-                ImGui.SliderFloat("HKX Skel -> HKX Anim Weight", ref animWeight, 0, 1);
-                Scene.MainModel.AnimContainer.DebugAnimWeight = animWeight;
+                var test = new Dictionary<string, FLVER2>();
+                var mapFlverNames = Directory.GetFiles(@"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS REMASTERED - Nightfall\map", "*.flver.dcx", SearchOption.AllDirectories);
+                foreach (var ff in mapFlverNames)
+                {
+                    var flver = FLVER2.Read(ff);
+                    foreach (var mat in flver.Materials)
+                    {
+                        if (mat.MTD.ToLower().EndsWith("m[d][l].mtd"))
+                        {
+                            test.Add(Path.GetFileName(ff), flver);
+                            break;
+                        }
+                    }
+                }
 
-                float animWeight2 = Scene.MainModel.DebugAnimWeight_Deprecated;
-                ImGui.SliderFloat("FLVER Skel -> HKX Skel Weight", ref animWeight2, 0, 1);
-                Scene.MainModel.DebugAnimWeight_Deprecated = animWeight2;
+                Console.WriteLine("fatcsat");
+            }
 
-                bool bind = Scene.MainModel.EnableSkinning;
-                ImGui.Checkbox("Enable FLVER Skel -> HKX Skel", ref bind);
-                Scene.MainModel.EnableSkinning = bind;
+            if (DebugTestButton("Misc"))
+            {
+                var test = @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS REMASTERED - Nightfall\map\m10_02_00_00\m4100B2A10_Crash.flver";
+                var flver = FLVER2.Read(test);
+
+                //foreach (var m in flver.Meshes)
+                //{
+                //    foreach (var v in m.Vertices)
+                //    {
+                //        if (v.Tangents.Count == 0)
+                //            v.Tangents.Add(new NVector4(NVector3.TransformNormal(v.Normal, NMatrix.CreateRotationZ(MathHelper.PiOver2)), 1));
+
+                //        v.NormalW = 0;
+                //    }
+
+                //    foreach (var vb in m.VertexBuffers)
+                //    {
+                //        vb.LayoutIndex = 0;
+                //    }
+
+                //    var fs = m.FaceSets[0];
+                //    var new1 = new FLVER2.FaceSet(FLVER2.FaceSet.FSFlags.LodLevel1, fs.TriangleStrip, fs.CullBackfaces, fs.Unk06, fs.Indices.ToList());
+                //    var new2 = new FLVER2.FaceSet(FLVER2.FaceSet.FSFlags.LodLevel2, fs.TriangleStrip, fs.CullBackfaces, fs.Unk06, fs.Indices.ToList());
+
+                //    m.FaceSets.Add(new1);
+                //    m.FaceSets.Add(new2);
+                //}
+
+                //flver.BufferLayouts = flver.BufferLayouts.Take(1).ToList();
+
+                //foreach (var layout in flver.BufferLayouts)
+                //{
+                //    if (!layout.Any(mb => mb.Semantic == FLVER.LayoutSemantic.Tangent))
+                //    {
+                //        var normalIndex = layout.FindIndex(mb => mb.Semantic == FLVER.LayoutSemantic.Normal);
+                //        if (normalIndex >= 0)
+                //        {
+                //            var n = layout[normalIndex];
+                //            var newMember = new FLVER.LayoutMember(n.Type, FLVER.LayoutSemantic.Tangent, 0, n.Unk00);
+                //            layout.Insert(normalIndex + 1, newMember);
+                //        }
+                //    }
+                //}
+
+                //int xx = 0;
+
+                //foreach (var m in flver.Materials)
+                //{
+                //    m.GXIndex = -1;
+                //    var g_Lightmap_Index = m.Textures.FindIndex(tx => tx.Type == "g_Lightmap");
+                //    if (g_Lightmap_Index >= 0)
+                //    {
+                //        var lm = m.Textures[g_Lightmap_Index];
+                //        var g_Specular = new FLVER2.Texture("g_Specular", lm.Path, lm.Scale, lm.Unk10, lm.Unk11, 0, 0, lm.Unk1C);
+                //        var g_Bumpmap = new FLVER2.Texture("g_Bumpmap", lm.Path, lm.Scale, lm.Unk10, lm.Unk11, 0, 0, lm.Unk1C);
+                //        m.Textures.Insert(g_Lightmap_Index, g_Bumpmap);
+                //        m.Textures.Insert(g_Lightmap_Index, g_Specular);
+                        
+                //    }
+
+                //    foreach (var tx in m.Textures)
+                //    {
+                //        //tx.Path = tx.Path.Replace("+", "").Replace("~", "");
+                //        if (tx.Type != "g_DetailBumpmap")
+                //            tx.Path = @"N:\FRPG\data\Model\map\m10\tex\PleaseDontCrash.tga";
+                //    }
+
+                //    m.Name = $"Material{xx}";
+
+                //    xx++;
+                //}
+
+                //flver.GXLists.Clear();
+
+
+                // Max 189
+                // 90 fine
+                // 140 fine
+                // 160 fine
+                // 165 fine
+                // 166 CRASH
+                // 170 CRASH
+                // First 180 CRASH
+                flver.Meshes = flver.Meshes.Skip(165).ToList();
+
+                //var culprit = flver.Meshes[165];
+
+                //foreach (var v in culprit.Vertices)
+                //{
+                //    //if (v.BoneIndices[0] != 0 || v.BoneIndices[1] != 0 || v.BoneIndices[2] != 0 || v.BoneIndices[3] != 0 ||
+                //    //    v.BoneWeights[0] != 0 || v.BoneWeights[1] != 0 || v.BoneWeights[2] != 0 || v.BoneWeights[3] != 0 ||
+                //    //    v.Colors[0].R != 1 || v.Colors[0].G != 1 || v.Colors[0].B != 1 || v.Colors[0].A != 1)
+                //    //{
+                //    //    Console.WriteLine("SDFLJSHDF");
+                //    //}
+                //    v.UVs[0] = new NVector3(0, 0, 0);
+                //    v.UVs[1] = new NVector3(0, 0, 0);
+
+                //    v.Position = new NVector3(0, 0, 0);
+                //    v.Normal = NVector3.UnitY;
+                //}
+
+                flver.Materials = flver.Materials.Skip(165).ToList();
+
+                flver.Write(@"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS REMASTERED - Nightfall\map\m10_02_00_00\m4100B2A10.flver");
+
+                flver.Compression = DCX.Type.DCX_DFLT_10000_24_9;
+
+                flver.Write(@"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS REMASTERED - Nightfall\map\m10_02_00_00\m4100B2A10.flver.dcx");
+
+                Console.WriteLine("fatxat");
             }
 
 
-
-
-            if (DebugButton("DEMONS SOULS TAE CONVERT"))
+            if (DebugTestButton("DEMONS SOULS TAE CONVERT"))
             {
                 //var tae = TAE.Read(@"C:\RPCS3\dev_hdd0\disc\BLUS30443\PS3_GAME\USRDIR\chr\c0000\c0000-anibnd\Model\chr\c0000\tae\a00.tae");
 
@@ -77,7 +196,7 @@ namespace DSAnimStudio
             ImGui.Separator();
             ImGui.Separator();
 
-            if (DebugButton("DEMONS SOULS HKX CONVERT"))
+            if (DebugTestButton("DEMONS SOULS HKX CONVERT"))
             {
                 //var tae = TAE.Read(@"C:\RPCS3\dev_hdd0\disc\BLUS30443\PS3_GAME\USRDIR\chr\c0000\c0000-anibnd\Model\chr\c0000\tae\a00.tae");
 
@@ -97,7 +216,7 @@ namespace DSAnimStudio
             ImGui.Separator();
             ImGui.Separator();
 
-            if (DebugButton("EXPORT CURRENT ANIMATION\n\n[ASSIMP TEST]"))
+            if (DebugTestButton("EXPORT CURRENT ANIMATION\n\n[ASSIMP TEST]"))
             {
                 var a = Scene.MainModel?.AnimContainer?.CurrentAnimation?.data;
 
@@ -124,14 +243,14 @@ namespace DSAnimStudio
             ImGui.Separator();
             ImGui.Separator();
 
-            if (DebugButton("SIBCAM TEST"))
+            if (DebugTestButton("SIBCAM TEST"))
             {
                 var s = SIBCAM.Read(@"E:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\remo\scn150000-remobnd\cut0060\camera_win32.sibcam");
 
                 Console.WriteLine("DFSDF");
             }
 
-            if (DebugButton("REMO HKX TEST"))
+            if (DebugTestButton("REMO HKX TEST"))
             {
                 var hkxTestPath = @"E:\Program Files (x86)\Steam\steamapps\common\Dark Souls Prepare to Die Edition\DATA\remo\scn180000-remobnd\cut0030\hkxwin32\a0030.hkx";
                 HKX.HKAAnimationBinding hk_binding = null;
@@ -173,7 +292,7 @@ namespace DSAnimStudio
             
 
 
-            if (DebugButton("DS2 IMPORT TEST"))
+            if (DebugTestButton("DS2 IMPORT TEST"))
             {
                 LoadingTaskMan.DoLoadingTask(null, "DS2 IMPORT TEST", prog =>
                 {
@@ -344,7 +463,7 @@ namespace DSAnimStudio
             ImGui.Separator();
             ImGui.Separator();
 
-            if (DebugButton("SoulsAssetPipeline_Anim_Test"))
+            if (DebugTestButton("SoulsAssetPipeline_Anim_Test"))
             {
                 var boneDefaultTransforms = Scene.MainModel.AnimContainer.Skeleton.HkxSkeleton.ToDictionary(x => x.Name, x => x.RelativeReferenceTransform);
                 var importSettings = new SoulsAssetPipeline.AnimationImporting.AnimationImporter.AnimationImportSettings
@@ -1080,9 +1199,9 @@ namespace DSAnimStudio
 
 
 
-        private static bool DebugButton(string name)
+        private static bool DebugTestButton(string name)
         {
-            ImGui.Button(name);
+            ImGui.Button("TEST: " + name);
             return ImGui.IsItemClicked();
         }
     }

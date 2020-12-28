@@ -66,12 +66,11 @@
             // checkBoxLoop
             // 
             this.checkBoxLoop.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBoxLoop.AutoSize = true;
             this.checkBoxLoop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.checkBoxLoop.ForeColor = System.Drawing.Color.White;
             this.checkBoxLoop.Location = new System.Drawing.Point(16, 331);
             this.checkBoxLoop.Name = "checkBoxLoop";
-            this.checkBoxLoop.Size = new System.Drawing.Size(47, 17);
+            this.checkBoxLoop.Size = new System.Drawing.Size(97, 17);
             this.checkBoxLoop.TabIndex = 5;
             this.checkBoxLoop.Text = "Loop";
             this.checkBoxLoop.UseVisualStyleBackColor = true;
@@ -134,10 +133,9 @@
             // checkBoxRecord
             // 
             this.checkBoxRecord.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBoxRecord.AutoSize = true;
             this.checkBoxRecord.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.checkBoxRecord.ForeColor = System.Drawing.Color.White;
-            this.checkBoxRecord.Location = new System.Drawing.Point(69, 331);
+            this.checkBoxRecord.Location = new System.Drawing.Point(119, 331);
             this.checkBoxRecord.Name = "checkBoxRecord";
             this.checkBoxRecord.Size = new System.Drawing.Size(127, 17);
             this.checkBoxRecord.TabIndex = 10;

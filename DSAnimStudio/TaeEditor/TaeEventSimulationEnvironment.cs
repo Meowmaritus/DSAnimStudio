@@ -519,66 +519,161 @@ namespace DSAnimStudio.TaeEditor
                             if (Graph.ViewportInteractor.CurrentComboIndex >= 0)
                                 return;
 
-                            while (MODEL.AnimContainer.AnimationLayers.Count > 1)
+                            void doAnimContainer(NewAnimationContainer animContainer)
                             {
-                                MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
-                            }
-                            if (MODEL.AnimContainer.AnimationLayers.Count > 0)
-                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
+                                animContainer.RemoveAllAnimsExceptTopmost();
 
-                            MODEL.AnimContainer.InitializeNewAnimLayersUnweighted = false;
+                                animContainer.InitializeNewAnimLayersUnweighted = false;
+                            }
+
+                            doAnimContainer(MODEL.AnimContainer);
+                            MODEL.ChrAsm?.ForeachWeaponModel(wpnMdl => doAnimContainer(wpnMdl?.AnimContainer));
                         },
                         SimulationFrameChangePreBoxesAction =  (entry, evBoxes, time) =>
                         {
                             if (Graph.ViewportInteractor.CurrentComboIndex >= 0)
                                 return;
 
-                            MODEL.AnimContainer.InitializeNewAnimLayersUnweighted = true;
-
-                            var layersCopy = MODEL.AnimContainer.AnimationLayers;
-
-                            float referenceWeightTotal = 0;
-                            for (int i = 0; i < layersCopy.Count - 1; i++)
+                            void doAnimContainer(NewAnimationContainer animContainer)
                             {
-                                referenceWeightTotal += layersCopy[i].ReferenceWeight;
-                            }
+                                animContainer.InitializeNewAnimLayersUnweighted = true;
 
-                            float blendToActiveAnimRatio = 0;
+                                var layersCopy = animContainer.AnimationLayers;
 
-                            if (MODEL.AnimContainer.AnimationLayers.Count > 1)
-                            {
-                                var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
-                                if (blend != null)
+                                float referenceWeightTotal = 0;
+                                for (int i = 0; i < layersCopy.Count - 1; i++)
                                 {
-                                    blendToActiveAnimRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.GUICurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
-                                }
-                                else
-                                {
-                                    blendToActiveAnimRatio = 1;
+                                    referenceWeightTotal += layersCopy[i].ReferenceWeight;
                                 }
 
-                                float inactiveReferenceWeightTotal = 1 - blendToActiveAnimRatio;
+                                float blendToActiveAnimRatio = 0;
 
-                                for (int i = 0; i < layersCopy.Count; i++)
+                                if (animContainer.AnimationLayers.Count > 1)
                                 {
-                                    if (i == layersCopy.Count - 1)
+                                    var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
+                                    if (blend != null)
                                     {
-                                        layersCopy[i].Weight = blendToActiveAnimRatio;
+                                        blendToActiveAnimRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.GUICurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
                                     }
                                     else
                                     {
-                                        float inactiveAnimRefWeightRatio = (layersCopy[i].ReferenceWeight / referenceWeightTotal);
-                                        layersCopy[i].Weight = inactiveAnimRefWeightRatio * inactiveReferenceWeightTotal;
+                                        blendToActiveAnimRatio = 1;
+                                        animContainer.RemoveAllAnimsExceptTopmost();
+                                    }
+
+                                    float inactiveReferenceWeightTotal = 1 - blendToActiveAnimRatio;
+
+                                    for (int i = 0; i < layersCopy.Count; i++)
+                                    {
+                                        if (i == layersCopy.Count - 1)
+                                        {
+                                            layersCopy[i].Weight = blendToActiveAnimRatio;
+                                        }
+                                        else
+                                        {
+                                            float inactiveAnimRefWeightRatio = referenceWeightTotal != 0 ? (layersCopy[i].ReferenceWeight / referenceWeightTotal) : 0;
+                                            layersCopy[i].Weight = inactiveAnimRefWeightRatio * inactiveReferenceWeightTotal;
+                                        }
                                     }
                                 }
-                            }
-                            else if (MODEL.AnimContainer.AnimationLayers.Count == 1)
-                            {
-                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
-                                MODEL.AnimContainer.AnimationLayers[0].ReferenceWeight = 1;
+                                else if (animContainer.AnimationLayers.Count == 1)
+                                {
+                                    animContainer.AnimationLayers[0].Weight = 1;
+                                    animContainer.AnimationLayers[0].ReferenceWeight = 1;
+                                }
+
+                                animContainer.RemoveAnimsWithDeadReferenceWeights();
                             }
 
-                            
+                            doAnimContainer(MODEL.AnimContainer);
+                            MODEL.ChrAsm?.ForeachWeaponModel(wpnMdl => doAnimContainer(wpnMdl.AnimContainer));
+
+
+
+                        },
+                    }
+                },
+
+                
+
+
+                {
+                    "EventSimBasicBlending_Combos",
+                    new EventSimEntry("Simulate Animation Blending (Combo Viewer)", true)
+                    {
+                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
+                        {
+                            if (Graph.ViewportInteractor.CurrentComboIndex < 0)
+                                return;
+
+                            void doAnimContainer(NewAnimationContainer animContainer)
+                            {
+                                animContainer.RemoveAllAnimsExceptTopmost();
+
+                                animContainer.InitializeNewAnimLayersUnweighted = false;
+                            }
+
+                            doAnimContainer(MODEL.AnimContainer);
+                            //MODEL.ChrAsm?.ForeachWeaponModel(wpnMdl => doAnimContainer(wpnMdl?.AnimContainer));
+                        },
+                        SimulationFrameChangePreBoxesAction =  (entry, evBoxes, time) =>
+                        {
+                            if (Graph.ViewportInteractor.CurrentComboIndex < 0)
+                                return;
+
+                            void doAnimContainer(NewAnimationContainer animContainer)
+                            {
+                                animContainer.InitializeNewAnimLayersUnweighted = true;
+
+                                var layersCopy = animContainer.AnimationLayers;
+
+                                float referenceWeightTotal = 0;
+                                for (int i = 0; i < layersCopy.Count - 1; i++)
+                                {
+                                    referenceWeightTotal += layersCopy[i].ReferenceWeight;
+                                }
+
+                                float blendToActiveAnimRatio = 0;
+
+                                if (animContainer.AnimationLayers.Count > 1)
+                                {
+                                    var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
+                                    if (blend != null)
+                                    {
+                                        blendToActiveAnimRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.GUICurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
+                                    }
+                                    else
+                                    {
+                                        blendToActiveAnimRatio = 1;
+                                        animContainer.RemoveAllAnimsExceptTopmost();
+                                    }
+
+                                    float inactiveReferenceWeightTotal = 1 - blendToActiveAnimRatio;
+
+                                    for (int i = 0; i < layersCopy.Count; i++)
+                                    {
+                                        if (i == layersCopy.Count - 1)
+                                        {
+                                            layersCopy[i].Weight = blendToActiveAnimRatio;
+                                        }
+                                        else
+                                        {
+                                            float inactiveAnimRefWeightRatio = referenceWeightTotal != 0 ? (layersCopy[i].ReferenceWeight / referenceWeightTotal) : 0;
+                                            layersCopy[i].Weight = inactiveAnimRefWeightRatio * inactiveReferenceWeightTotal;
+                                        }
+                                    }
+                                }
+                                else if (animContainer.AnimationLayers.Count == 1)
+                                {
+                                    animContainer.AnimationLayers[0].Weight = 1;
+                                    animContainer.AnimationLayers[0].ReferenceWeight = 1;
+                                }
+
+                                animContainer.RemoveAnimsWithDeadReferenceWeights();
+                            }
+
+                            doAnimContainer(MODEL.AnimContainer);
+                            //MODEL.ChrAsm?.ForeachWeaponModel(wpnMdl => doAnimContainer(wpnMdl?.AnimContainer));
 
 
 
@@ -600,7 +695,7 @@ namespace DSAnimStudio.TaeEditor
 
                             foreach (var evBox in evBoxes)
                             {
-                                if (evBox.MyEvent.Type == 712 && evBox.MyEvent.Template != null && 
+                                if (evBox.MyEvent.Type == 712 && evBox.MyEvent.Template != null &&
                                     GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS3 && MODEL.ChrAsm != null &&
                                     evBox.PlaybackHighlight)
                                 {
@@ -671,57 +766,6 @@ namespace DSAnimStudio.TaeEditor
                             {
                                 MODEL.ChrAsm?.ClearDS3PairedWeaponMeme();
                             }
-                        },
-                    }
-                },
-
-
-                {
-                    "EventSimBasicBlending_Combos",
-                    new EventSimEntry("Simulate Animation Blending (Combo Viewer)", true)
-                    {
-                        SimulationFrameChangeDisabledAction = (entry, evBoxes, time) =>
-                        {
-                            if (Graph.ViewportInteractor.CurrentComboIndex < 0)
-                                return;
-
-                            while (MODEL.AnimContainer.AnimationLayers.Count > 1)
-                            {
-                                MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
-                            }
-                            if (MODEL.AnimContainer.AnimationLayers.Count > 0)
-                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
-                        },
-                        SimulationFrameChangePreBoxesAction =  (entry, evBoxes, time) =>
-                        {
-                            if (Graph.ViewportInteractor.CurrentComboIndex < 0)
-                                return;
-
-                            if (MODEL.AnimContainer.AnimationLayers.Count > 1)
-                            {
-                                while (MODEL.AnimContainer.AnimationLayers.Count > 2)
-                                {
-                                    MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
-                                }
-
-                                var blend = evBoxes.FirstOrDefault(b => b.MyEvent.Type == 16);
-                                if (blend != null)
-                                {
-                                    float blendRatio = MathHelper.Clamp((((float)Graph.PlaybackCursor.CurrentTime - blend.MyEvent.StartTime) / (blend.MyEvent.EndTime - blend.MyEvent.StartTime)), 0, 1);
-                                    MODEL.AnimContainer.AnimationLayers[0].Weight = 1 - blendRatio;
-                                    MODEL.AnimContainer.AnimationLayers[1].Weight = blendRatio;
-                                }
-                                else
-                                {
-                                    while (MODEL.AnimContainer.AnimationLayers.Count > 1)
-                                        MODEL.AnimContainer.AnimationLayers.RemoveAt(0);
-                                }
-                            }
-                            else if (MODEL.AnimContainer.AnimationLayers.Count == 1)
-                            {
-                                MODEL.AnimContainer.AnimationLayers[0].Weight = 1;
-                            }
-
                         },
                     }
                 },
@@ -1437,7 +1481,10 @@ namespace DSAnimStudio.TaeEditor
             }
             catch (Exception exc)
             {
-                ErrorLog.HandleException(exc, "Error occurred while simulating events");
+                if (!ErrorLog.HandleException(exc, "Error occurred while simulating events"))
+                {
+                    Main.WinForm.Close();
+                }
             }
 
             try
@@ -1460,7 +1507,10 @@ namespace DSAnimStudio.TaeEditor
             }
             catch (Exception exc)
             {
-                ErrorLog.HandleException(exc, "Error occurred while simulating events");
+                if (!ErrorLog.HandleException(exc, "Error occurred while simulating events"))
+                {
+                    Main.WinForm.Close();
+                }
             }
         }
 

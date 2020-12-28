@@ -160,7 +160,7 @@ namespace DSAnimStudio
 
                 if (i == DebugDrawTransformOfFlverBoneIndex || (FlverSkeleton[i].EnablePrimDraw && DebugDrawTransformOfFlverBoneIndex < 0))
                 {
-                    if (DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone])
+                    if (DBG.GetCategoryEnableDraw(DebugPrimitives.DbgPrimCategory.FlverBone))
                     {
                         DebugDrawTransformOfFlverBonePrim.Transform = new Transform(
                     Matrix.CreateRotationY(MathHelper.Pi) *
@@ -174,7 +174,7 @@ namespace DSAnimStudio
                         DebugDrawTransformOfFlverBonePrim.Draw(null, MODEL.CurrentTransform.WorldMatrix);
                     }
 
-                    if (i == DebugDrawTransformOfFlverBoneIndex || DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.FlverBone])
+                    if (i == DebugDrawTransformOfFlverBoneIndex || DBG.GetCategoryEnableNameDraw(DebugPrimitives.DbgPrimCategory.FlverBone))
                     {
 
                         DebugDrawTransformOfFlverBoneTextDrawer.Clear();
@@ -305,6 +305,10 @@ namespace DSAnimStudio
                 if (hkxBoneIndex >= 0 && hkxBoneIndex < HavokSkeletonThisIsMappedTo.HkxSkeleton.Count)
                 {
                     this[i] = Matrix.Invert(FlverSkeleton[i].ReferenceMatrix) * HavokSkeletonThisIsMappedTo.HkxSkeleton[hkxBoneIndex].CurrentMatrix;
+                }
+                else
+                {
+                    this[i] = FlverSkeleton[i].ReferenceMatrix;
                 }
             }
         }
@@ -491,7 +495,7 @@ namespace DSAnimStudio
                     //}
                 }
 
-                if (DBG.CategoryEnableDraw[DbgPrimCategory.FlverBone])
+                if (DBG.GetCategoryEnableDraw(DbgPrimCategory.FlverBone))
                 {
                     if (NubReferenceMatrix != null)
                     {

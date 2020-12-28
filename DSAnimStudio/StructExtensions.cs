@@ -11,6 +11,27 @@ namespace DSAnimStudio
 {
     public static class StructExtensions
     {
+        public static Rectangle ApplyPadding(this Rectangle rect, 
+            float t, float b, 
+            float l, float r)
+        {
+            return new Rectangle(
+                (int)(rect.X + l),
+                (int)(rect.Y + t),
+                (int)(rect.Width - l - r),
+                (int)(rect.Height - t - b));
+        }
+
+        public static Rectangle ApplyPadding(this Rectangle r, float p)
+        {
+            return r.ApplyPadding(p, p, p, p);
+        }
+
+        public static Rectangle ApplyPadding(this Rectangle r, float x, float y)
+        {
+            return r.ApplyPadding(y, y, x, x);
+        }
+
         public static Vector3 XYZ(this Vector4 v)
         {
             return new Vector3(v.X, v.Y, v.Z);

@@ -53,11 +53,30 @@ namespace DSAnimStudio.ImguiOSD
                 if (ImGui.IsItemClicked())
                     FmodManager.AdjustSoundVolume = 100;
                 ImGui.Separator();
+                
+
                 ImGui.Text("Tracking Simulation Analog Input");
                 ImGui.SliderFloat("Input", ref Model.GlobalTrackingInput, -1, 1);
                 ImGui.Button("Reset To 0");
                 if (ImGui.IsItemClicked())
                     Model.GlobalTrackingInput = 0;
+                bool trackingIsRealTime = Main.Config.CharacterTrackingTestIsIngameTime;
+                ImGui.Checkbox("Tracking Simulation Uses Animation Timeline", ref trackingIsRealTime);
+                Main.Config.CharacterTrackingTestIsIngameTime = trackingIsRealTime;
+                ImGui.Separator();
+
+                bool rootMotionPathEnabled = Main.Config.RootMotionPathEnabled;
+                ImGui.Checkbox("Enable Root Motion Paths", ref rootMotionPathEnabled);
+                Main.Config.RootMotionPathEnabled = rootMotionPathEnabled;
+
+                float rootMotionUpdateRate = Main.Config.RootMotionPathUpdateRate;
+                ImGui.SliderFloat("Root Motion Path Update Rate", ref rootMotionUpdateRate, 1, 300, "%.3f Hz");
+                Main.Config.RootMotionPathUpdateRate = Math.Max(Math.Min(rootMotionUpdateRate, 300), 1);
+
+                int rootMotionMaxSamples = Main.Config.RootMotionPathSampleMax;
+                ImGui.SliderInt("Root Motion Path Sample Max", ref rootMotionMaxSamples, 1, TaeConfigFile.RootMotionPathSampleMaxInfinityValue, rootMotionMaxSamples >= TaeConfigFile.RootMotionPathSampleMaxInfinityValue ? "Unlimited" : "Up to %d");
+                Main.Config.RootMotionPathSampleMax = Math.Max(Math.Min(rootMotionMaxSamples, TaeConfigFile.RootMotionPathSampleMaxInfinityValue), 1);
+
                 ImGui.Separator();
 
                 if (OSD.RequestCollapse)
@@ -77,16 +96,32 @@ namespace DSAnimStudio.ImguiOSD
                     {
                         foreach (var m in Scene.Models)
                         {
-                            if (m.AnimContainer?.ForcePlayAnim == true)
+                            if (m.AnimContainer != null)
                             {
-                                var animNames = m.AnimContainer.Animations.Keys.ToList();
-                                int current = animNames.IndexOf(m.AnimContainer.CurrentAnimationName);
+                                var animNames = new List<string> { "Default" };
+                                animNames.AddRange(m.AnimContainer.Animations.Keys.ToList());
+                                int current = m.AnimContainer.ForcePlayAnim ? animNames.IndexOf(m.AnimContainer.CurrentAnimationName) : 0;
                                 int next = current;
                                 ImGui.ListBox("Animation", ref next, animNames.ToArray(), animNames.Count);
                                 if (current != next)
                                 {
-                                    m.AnimContainer.CurrentAnimationName = animNames[next];
-                                    m.AnimContainer.ResetAll();
+                                    if (next == 0)
+                                    {
+                                        m.AnimContainer.ForcePlayAnim = false;
+                                        m.AnimContainer.CurrentAnimationName = null;
+                                        m.AnimContainer.ResetAll();
+                                    }
+                                    else
+                                    {
+                                        m.AnimContainer.ForcePlayAnim = true;
+                                        lock (m.AnimContainer._lock_AnimationLayers)
+                                        {
+                                            m.AnimContainer.AnimationLayers.Clear();
+                                        }
+                                        m.AnimContainer.InitializeNewAnimLayersUnweighted = false;
+                                        m.AnimContainer.CurrentAnimationName = animNames[next];
+                                        m.AnimContainer.ResetAll();
+                                    }
                                 }
                             }
                         }
@@ -191,6 +226,13 @@ namespace DSAnimStudio.ImguiOSD
                     Tools.HandleColor("Sound Event", cc => cc.ColorHelperSoundEvent, (cc, c) => cc.ColorHelperSoundEvent = c);
                     Tools.HandleColor("DummyPoly", cc => cc.ColorHelperDummyPoly, (cc, c) => cc.ColorHelperDummyPoly = c);
                     Tools.HandleColor("Camera Pivot Box", cc => cc.ColorHelperCameraPivot, (cc, c) => cc.ColorHelperCameraPivot = c);
+
+                    Tools.HandleColor("Root Motion - Start Point", cc => cc.ColorHelperRootMotionStartLocation, (cc, c) => cc.ColorHelperRootMotionStartLocation = c);
+                    Tools.HandleColor("Root Motion - Trail Line", cc => cc.ColorHelperRootMotionTrail, (cc, c) => cc.ColorHelperRootMotionTrail = c);
+                    Tools.HandleColor("Root Motion - Current Point", cc => cc.ColorHelperRootMotionCurrentLocation, (cc, c) => cc.ColorHelperRootMotionCurrentLocation = c);
+
+                    Tools.HandleColor("Root Motion - Start Point (Previous Chunk)", cc => cc.ColorHelperRootMotionStartLocation_PrevLoop, (cc, c) => cc.ColorHelperRootMotionStartLocation_PrevLoop = c);
+                    Tools.HandleColor("Root Motion - Trail Line (Previous Chunk)", cc => cc.ColorHelperRootMotionTrail_PrevLoop, (cc, c) => cc.ColorHelperRootMotionTrail_PrevLoop = c);
 
 
 
@@ -929,6 +971,15 @@ namespace DSAnimStudio.ImguiOSD
 
                     ImGui.SliderFloat("Vertical FOV", ref GFX.World.ProjectionVerticalFoV, 1, 160, GFX.World.ProjectionVerticalFoV <= 1.0001f ? "Orthographic" : "%.0f°");
                     GFX.World.ProjectionVerticalFoV = (float)Math.Round(GFX.World.ProjectionVerticalFoV);
+
+                    bool lockAspect = Main.Config.LockAspectRatioDuringRemo;
+                    bool lockAspectPrev = lockAspect;
+                    ImGui.Checkbox("Lock to 16:9 For Cutscenes", ref lockAspect);
+                    Main.Config.LockAspectRatioDuringRemo = lockAspect;
+                    if (lockAspect != lockAspectPrev)
+                    {
+                        Main.RequestViewportRenderTargetResolutionChange = true;
+                    }
 
                     ImGui.Checkbox("Snap Cam to 45° Angles", ref GFX.World.AngleSnapEnable);
                     ImGui.Checkbox("Show Cam Pivot Indicator Cube", ref GFX.World.PivotPrimIsEnabled);

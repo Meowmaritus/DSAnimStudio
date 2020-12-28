@@ -74,7 +74,7 @@ namespace DSAnimStudio
             {
                 SaveValuesToConfig();
 
-                MainScreen.SaveConfig();
+                Main.SaveConfig();
 
                 var cfg = new FLVER2Importer.FLVER2ImportSettings();
 

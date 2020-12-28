@@ -474,8 +474,22 @@ namespace DSAnimStudio
             DoWPN(LeftWeapon, LeftWeaponModel3, 3, LeftWeaponBoneIndex, isLeft: true, lback, lside);
         }
 
-        public void UpdateWeaponAnimation(float timeDelta)
+        public void SelectWeaponAnimations(string playerAnimName)
         {
+            string GetMatchingAnim(IEnumerable<string> animNames, string desiredName)
+            {
+                if (desiredName == null)
+                    return null;
+
+                desiredName = desiredName.Replace(".hkx", "");
+                foreach (var a in animNames)
+                {
+                    if (a.StartsWith(desiredName))
+                        return a;
+                }
+                return null;
+            }
+
             void DoWPN(Model wpnMdl)
             {
                 if (wpnMdl == null)
@@ -489,30 +503,88 @@ namespace DSAnimStudio
 
                 if (wpnMdl != null && wpnMdl.AnimContainer != null)
                 {
+                    if (wpnMdl.AnimContainer.Animations.Count > 0)
+                    {
+                        var matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, playerAnimName);
+                        if (matching != null)
+                        {
+                            wpnMdl.AnimContainer.CurrentAnimationName = matching;
+                        }
+                        else
+                        {
+                            matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, GameDataManager.GameTypeHasLongAnimIDs ? "a999_000000.hkx" : "a99_0000.hkx");
+                            if (matching != null)
+                            {
+                                wpnMdl.AnimContainer.CurrentAnimationName = matching;
+                            }
+                            else
+                            {
+                                matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, GameDataManager.GameTypeHasLongAnimIDs ? "a000_000000.hkx" : "a00_0000.hkx");
+                                if (matching != null)
+                                {
+                                    wpnMdl.AnimContainer.CurrentAnimationName = matching;
+                                }
+                                else
+                                {
+                                    wpnMdl.AnimContainer.CurrentAnimationName =
+                                        wpnMdl.AnimContainer.Animations.Keys.First();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            DoWPN(RightWeaponModel0);
+            DoWPN(RightWeaponModel1);
+            DoWPN(RightWeaponModel2);
+            DoWPN(RightWeaponModel3);
+
+            DoWPN(LeftWeaponModel0);
+            DoWPN(LeftWeaponModel1);
+            DoWPN(LeftWeaponModel2);
+            DoWPN(LeftWeaponModel3);
+        }
+
+        public void UpdateWeaponAnimation(float timeDelta)
+        {
+            string GetMatchingAnim(IEnumerable<string> animNames, string desiredName)
+            {
+                if (desiredName == null)
+                    return null;
+
+                desiredName = desiredName.Replace(".hkx", "");
+                foreach (var a in animNames)
+                {
+                    if (a.StartsWith(desiredName))
+                        return a;
+                }
+                return null;
+            }
+
+            void DoWPN(Model wpnMdl)
+            {
+                if (wpnMdl == null)
+                    return;
+
+                if (wpnMdl.SkeletonFlver != null)
+                    wpnMdl.UpdateSkeleton();
+
+                if (wpnMdl.AnimContainer.Skeleton?.OriginalHavokSkeleton == null)
+                {
+                    wpnMdl.SkeletonFlver?.RevertToReferencePose();
+                }
+
+
+                if (wpnMdl != null && wpnMdl.AnimContainer != null)
+                {
                     if (!wpnMdl.ApplyBindPose)
                     {
                         //V2.0
                         //RightWeaponModel.AnimContainer.IsLoop = false;
-                        if (wpnMdl.AnimContainer.AnimationLayers.Count == 2)
-                        {
-                            if (MODEL.AnimContainer.AnimationLayers.Count == 2)
-                            {
-                                wpnMdl.AnimContainer.AnimationLayers[0].Weight = MODEL.AnimContainer.AnimationLayers[0].Weight;
-                                wpnMdl.AnimContainer.AnimationLayers[1].Weight = MODEL.AnimContainer.AnimationLayers[1].Weight;
-                            }
-                            else
-                            {
-                                wpnMdl.AnimContainer.AnimationLayers[0].Weight = 0;
-                                wpnMdl.AnimContainer.AnimationLayers[1].Weight = 1;
-                            }
-
-                        }
-                        else if (wpnMdl.AnimContainer.AnimationLayers.Count == 1)
-                        {
-                            wpnMdl.AnimContainer.AnimationLayers[0].Weight = 1;
-                        }
 
                         wpnMdl.AnimContainer.ScrubRelative(timeDelta);
+                        //wpnMdl.AfterAnimUpdate(timeDelta);
 
                         if (MODEL.AnimContainer.CurrentAnimDuration.HasValue && wpnMdl.AnimContainer.CurrentAnimDuration.HasValue)
                         {
@@ -523,6 +595,7 @@ namespace DSAnimStudio
                                 curModTime += wpnMdl.AnimContainer.CurrentAnimDuration.Value;
 
                             wpnMdl.AnimContainer.ScrubRelative(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
+                            //wpnMdl.AfterAnimUpdate(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
                         }
                     }
                     //else
@@ -530,6 +603,8 @@ namespace DSAnimStudio
                     //    wpnMdl?.Skeleton?.RevertToReferencePose();
                     //}
                 }
+
+
             }
 
             DoWPN(RightWeaponModel0);

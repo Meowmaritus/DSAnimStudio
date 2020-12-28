@@ -32,8 +32,7 @@ namespace DSAnimStudio
             if (IS_REMO_DUMMY || IS_REMO_NOTSKINNED)
                 return CurrentTransformPosition;
 
-            var possible = DummyPolyMan.GetDummyPosByID(220,
-                            Matrix.Identity, ignoreModelTransform: false);
+            var possible = DummyPolyMan.GetDummyPosByID(220, getAbsoluteWorldPos: true);
             if (possible.Any())
                 return possible.First();
             else
@@ -52,8 +51,9 @@ namespace DSAnimStudio
         public NewChrAsm ChrAsm = null;
         public ParamData.NpcParam NpcParam = null;
 
+        public object _lock_NpcParams = new object();
         public List<ParamData.NpcParam> PossibleNpcParams = new List<ParamData.NpcParam>();
-        public Dictionary<int, string> NpcMaterialNamesPerMask = new Dictionary<int, string>();
+        public Dictionary<int, List<string>> NpcMaterialNamesPerMask = new Dictionary<int, List<string>>();
         public List<int> NpcMasksEnabledOnAllNpcParams = new List<int>();
 
         private int _selectedNpcParamIndex = -1;
@@ -62,26 +62,39 @@ namespace DSAnimStudio
             get => _selectedNpcParamIndex;
             set
             {
-                NpcParam = (value >= 0 && value < PossibleNpcParams.Count)
-                        ? PossibleNpcParams[value] : null;
-                _selectedNpcParamIndex = value;
-                if (NpcParam != null)
+                lock (_lock_NpcParams)
                 {
-                    //CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
-                    NpcParam.ApplyToNpcModel(this);
+                    NpcParam = (value >= 0 && value < PossibleNpcParams.Count)
+                            ? PossibleNpcParams[value] : null;
+                    _selectedNpcParamIndex = value;
+                    if (NpcParam != null)
+                    {
+                        //CurrentModel.DummyPolyMan.RecreateAllHitboxPrimitives(CurrentModel.NpcParam);
+                        NpcParam.ApplyToNpcModel(this);
+                    }
                 }
             }
         }
 
         public void RescanNpcParams()
         {
-            PossibleNpcParams = ParamManager.FindNpcParams(Name);
-            PossibleNpcParams.AddRange(ParamManager.FindNpcParams(Name, matchCXXX0: true));
+            lock (_lock_NpcParams)
+            {
+                PossibleNpcParams = ParamManager.FindNpcParams(Name);
+                var additional = ParamManager.FindNpcParams(Name, matchCXXX0: true);
+                foreach (var n in additional)
+                {
+                    if (!PossibleNpcParams.Contains(n))
+                        PossibleNpcParams.Add(n);
+                }
 
-            if (PossibleNpcParams.Count > 0)
-                SelectedNpcParamIndex = 0;
-            else
-                SelectedNpcParamIndex = -1;
+                PossibleNpcParams = PossibleNpcParams.OrderBy(x => x.ID).ToList();
+
+                if (PossibleNpcParams.Count > 0)
+                    SelectedNpcParamIndex = 0;
+                else
+                    SelectedNpcParamIndex = -1;
+            }
         }
 
         public bool ApplyBindPose = false;
@@ -173,7 +186,7 @@ namespace DSAnimStudio
             }
         }
 
-        public Dictionary<int, string> GetMaterialNamesPerMask()
+        public Dictionary<int, List<string>> GetMaterialNamesPerMask()
         {
             Dictionary<int, List<FlverSubmeshRenderer>> submeshesByMask = 
                 new Dictionary<int, List<FlverSubmeshRenderer>>();
@@ -187,18 +200,11 @@ namespace DSAnimStudio
                     submeshesByMask[submesh.ModelMaskIndex].Add(submesh);
             }
 
-            var result = new Dictionary<int, string>();
+            var result = new Dictionary<int, List<string>>();
 
             foreach (var kvp in submeshesByMask)
             {
-                var sb = new System.Text.StringBuilder();
-                for (int i = 0; i < kvp.Value.Count; i++)
-                {
-                    if (i > 0)
-                        sb.Append(", ");
-                    sb.Append($"{kvp.Value[i].FullMaterialName }<{(MainMesh.Submeshes.IndexOf(kvp.Value[i]) + 1):D2}>");
-                }
-                result.Add(kvp.Key, sb.ToString());
+                result.Add(kvp.Key, kvp.Value.Select(sm => sm.FullMaterialName).ToList());
             }
 
             return result;
@@ -457,6 +463,13 @@ namespace DSAnimStudio
             LoadFLVER2(flver, useSecondUV);
         }
 
+        public Model(FLVER0 flver, bool useSecondUV)
+            : this()
+        {
+            AnimContainer = new NewAnimationContainer();
+            LoadFLVER0(flver, useSecondUV);
+        }
+
 
         public void AfterAnimUpdate(float timeDelta, bool ignorePosWrap = false)
         {
@@ -482,6 +495,11 @@ namespace DSAnimStudio
                 ChrAsm.LeftWeaponModel2?.DummyPolyMan.UpdateAllHitPrims();
                 ChrAsm.LeftWeaponModel3?.DummyPolyMan.UpdateAllHitPrims();
             }
+
+            if (Main.Config.CharacterTrackingTestIsIngameTime && timeDelta != 0)
+            {
+                UpdateTrackingTest(timeDelta);
+            }
         }
 
         public void UpdateAnimation()
@@ -490,7 +508,16 @@ namespace DSAnimStudio
                 SkeletonFlver?.RevertToReferencePose();
 
             AnimContainer?.Update();
-            UpdateTrackingTest(Main.DELTA_UPDATE);
+
+            if (AnimContainer?.ForcePlayAnim == true)
+            {
+                UpdateSkeleton();
+            }
+
+            if (!Main.Config.CharacterTrackingTestIsIngameTime)
+            {
+                UpdateTrackingTest(Main.DELTA_UPDATE);
+            }
             //V2.0
             //if (AnimContainer.IsPlaying)
             //    AfterAnimUpdate();
@@ -551,7 +578,7 @@ namespace DSAnimStudio
 
             SkeletonFlver?.DrawPrimitives();
 
-            if (DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.HkxBone])
+            if (DBG.GetCategoryEnableDraw(DebugPrimitives.DbgPrimCategory.HkxBone))
                 AnimContainer?.Skeleton?.DrawPrimitives();
         }
 

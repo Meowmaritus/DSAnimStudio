@@ -66,7 +66,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     var start = PlaybackCursor.StartTime;
                     PlaybackCursor.IsPlaying = false;
-                    PlaybackCursor.CurrentTime = PlaybackCursor.StartTime;
+                    PlaybackCursor.CurrentTime = start;
                     //MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
                     MainScreen.Graph.PlaybackCursor.UpdateScrubbing();
                     //MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.StartTime);
@@ -82,7 +82,6 @@ namespace DSAnimStudio.TaeEditor
                 OnClick = () => PlaybackCursor.Transport_PlayPause(),
                 GetHotkey = b => (!MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && !MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyDown(Keys.Space),
             });
-
 
             Buttons.Add(new TransportButton()
             {
@@ -100,6 +99,19 @@ namespace DSAnimStudio.TaeEditor
                 GetHotkey = b => MainScreen.Input.KeyHeld(Keys.End),
             });
 
+            Buttons.Add(new TransportButtonSeparator());
+
+            Buttons.Add(new TransportButton()
+            {
+                GetDebugText = () => MainScreen.Config.LoopEnabled_BeforeCombo ? "[LOOP]" : "[ONCE]",
+                GetIsEnabled = () => (MainScreen.Graph?.ViewportInteractor?.CurrentComboIndex ?? -1) < 0,
+                OnClick = () => MainScreen.Config.LoopEnabled_BeforeCombo = MainScreen.Config.LoopEnabled = !MainScreen.Config.LoopEnabled,
+                GetHotkey = b => (!MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyDown(Keys.L),
+                CustomWidth = 48,
+                GetActiveBackColor = () => MainScreen.Config.LoopEnabled_BeforeCombo ? new Color(0, 100, 0, 255) : new Color(150, 0, 0, 255),
+                GetHoverBackColor = () => MainScreen.Config.LoopEnabled_BeforeCombo ? new Color(0, 150, 0, 255) : new Color(200, 0, 0, 255),
+                GetPressedBackColor = () => MainScreen.Config.LoopEnabled_BeforeCombo ? new Color(175, 210, 175, 255) : new Color(255, 130, 130, 255),
+            });
 
             Buttons.Add(new TransportButtonSeparator());
 
@@ -155,12 +167,12 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (thing.IsSeparator)
                 {
-                    buttonCageWidth += ButtonSeparatorThickness;
+                    buttonCageWidth += (thing.CustomWidth ?? ButtonSeparatorThickness);
                     buttonCageWidth += ButtonCageThickness;
                 }
                 else
                 {
-                    buttonCageWidth += ButtonSize;
+                    buttonCageWidth += (thing.CustomWidth ?? ButtonSize);
                     buttonCageWidth += ButtonCageThickness;
                 }
             }
@@ -179,7 +191,7 @@ namespace DSAnimStudio.TaeEditor
 
                     Buttons[i].Rect = new Rectangle(horizontalOffset,
                     buttonCageStartY + ButtonCageThickness,
-                    ButtonSeparatorThickness,
+                    Buttons[i].CustomWidth ?? ButtonSeparatorThickness,
                     ButtonSize);
 
                     horizontalOffset += ButtonSeparatorThickness;
@@ -190,10 +202,10 @@ namespace DSAnimStudio.TaeEditor
 
                     Buttons[i].Rect = new Rectangle(horizontalOffset,
                     buttonCageStartY + ButtonCageThickness,
-                    ButtonSize,
+                    (Buttons[i].CustomWidth ?? ButtonSize),
                     ButtonSize);
 
-                    horizontalOffset += ButtonSize;
+                    horizontalOffset += (Buttons[i].CustomWidth ?? ButtonSize);
 
                     
                 }
@@ -260,7 +272,19 @@ namespace DSAnimStudio.TaeEditor
 
             public Func<TransportButton, bool> GetHotkey;
 
+            public int? CustomWidth = null;
+
             public TransportButtonState prevState = TransportButtonState.Normal;
+
+            public Func<Color> GetActiveBackColor = null;
+            public Func<Color> GetHoverBackColor = null;
+            public Func<Color> GetPressedBackColor = null;
+            public Func<Color> GetInactiveBackColor = null;
+
+            public Func<Color> GetActiveForeColor = null;
+            public Func<Color> GetHoverForeColor = null;
+            public Func<Color> GetPressedForeColor = null;
+            public Func<Color> GetInactiveForeColor = null;
 
             private bool prevMouseHover;
 
@@ -341,24 +365,24 @@ namespace DSAnimStudio.TaeEditor
 
                 if (state == TransportButtonState.Normal)
                 {
-                    bgColor = Color.Gray;
-                    fgColor = Color.White;
+                    bgColor = GetActiveBackColor?.Invoke() ?? Color.Gray;
+                    fgColor = GetActiveForeColor?.Invoke() ?? Color.White;
                 }
                 else if (state == TransportButtonState.Hover)
                 {
-                    bgColor = Color.DarkGray;
-                    fgColor = Color.White;
+                    bgColor = GetHoverBackColor?.Invoke() ?? Color.DarkGray;
+                    fgColor = GetHoverForeColor?.Invoke() ?? Color.White;
                 }
                 else if (state == TransportButtonState.HoldingClick)
                 {
-                    bgColor = Color.White;
-                    fgColor = Color.Black;
+                    bgColor = GetPressedBackColor?.Invoke() ?? Color.White;
+                    fgColor = GetPressedForeColor?.Invoke() ?? Color.Black;
                 }
 
                 if (!(GetIsEnabled?.Invoke() ?? true))
                 {
-                    bgColor *= 0.5f;
-                    fgColor *= 0.5f;
+                    bgColor = GetInactiveBackColor?.Invoke() ?? (bgColor * 0.5f);
+                    fgColor = GetInactiveForeColor?.Invoke() ?? (fgColor * 0.5f);
                 }
 
                 sb.Draw(boxTex, Rect, bgColor);

@@ -5,24 +5,100 @@ using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 //using System.Numerics;
 
 namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditAnimEventGraph
     {
-        public bool DisableGroupRegionAssignOnRowMove = false;
+        public void GenerateFakeDS3EventGroups()
+        {
+            if (IsSimpleRemoGroupMode)
+            {
+                // REMOVE REDUNDANT EVENT GROUPS
+                MainScreen.SelectedTaeAnim.EventGroups.Clear();
+
+                //var cutsceneEntitySpecifyEventGroupIndexMap = new Dictionary<TAE.EventGroup.EventGroupDataStruct, int>();
+                foreach (var ev in MainScreen.SelectedTaeAnim.Events)
+                {
+                    if (ev.Group == null)
+                    {
+                        ev.Group = new TAE.EventGroup(0);
+                        ev.Group.GroupData = new TAE.EventGroup.EventGroupDataStruct();
+                    }
+                    else
+                    {
+                        var gdt = ev.Group.GroupData;
+                        ev.Group = new TAE.EventGroup(ev.Group.GroupType);
+                        ev.Group.GroupData = gdt;
+                    }
+
+                    MainScreen.SelectedTaeAnim.EventGroups.Add(ev.Group);
+                }
+            }
+            else if (IsFancyCollapsingRemoGroupMode)
+            {
+                throw new NotImplementedException();
+            }
+            else
+            {
+                // Always clear for anything not a REMO, which is the only example of event groups actually having meanings.
+                MainScreen.SelectedTaeAnim.EventGroups.Clear();
+                GroupRegions.Clear();
+
+                // Only generate if supported or if user has option enabled to force use these in games where they usually aren't.
+                if (EventBoxes.Count > 0 && GameDataManager.GameTypeUsesBoilerplateEventGroups)
+                {
+                    int maxRow = EventBoxes.Max(evBox => evBox.Row);
+                    for (int i = 0; i <= maxRow; i++)
+                    {
+                        var eventsInThisGroup = EventBoxes.Where(ev => ev.Row == i).ToList();
+                        int fakeGroupType = eventsInThisGroup.FirstOrDefault()?.MyEvent?.Type ?? 0;
+                        if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                        {
+                            fakeGroupType = 0;
+                        }
+                        var group = new TAE.EventGroup(fakeGroupType);
+                        if (!GameDataManager.GameTypeUsesBoilerplateEventGroups)
+                        {
+                            group.GroupData = new TAE.EventGroup.EventGroupDataStruct();
+                        }
+
+                        foreach (var ev in eventsInThisGroup)
+                            ev.MyEvent.Group = group;
+                        MainScreen.SelectedTaeAnim.EventGroups.Add(group);
+                        //Graph.GroupRegions.Add(new TaeEventGroupRegion(Graph, SelectedTaeAnim, group));
+                    }
+                }
+            }
+        }
 
         public List<TaeEventGroupRegion> GroupRegions = new List<TaeEventGroupRegion>();
 
+        /// <summary>
+        /// Temporarily disabled for 3.0
+        /// </summary>
+        public bool IsFancyCollapsingRemoGroupMode => false;// ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO;
+
+        /// <summary>
+        /// Temporarily enabled for 3.0 lol
+        /// </summary>
+        public bool IsSimpleRemoGroupMode => ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO; //false;
+
+        public bool EventGroupDebugDrawEnable = false;
+
         public TaeEventGroupRegion GetGroupRegionOfRow(int row)
         {
+            if (ViewportInteractor.EntityType != TaeViewportInteractor.TaeEntityType.REMO)
+                return null;
+
             foreach (var gr in GroupRegions)
             {
-                if (row >= gr.StartRow && row < gr.EndRow)
+                if (row >= gr.StartRow + 1 && row < gr.EndRow)
                     return gr;
             }
-            return GroupRegions.LastOrDefault();
+            return null;
         }
 
         private void ShiftAllGroupRegionsDownPastRow(int row, int shiftAmount)
@@ -34,77 +110,86 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void FixAllGroupBounds()
+        private void FixAllGroupBounds(bool ignoreUndoRedo)
         {
-            bool needsMoreFixing = false;
-            foreach (var gr in GroupRegions)
-            {
-                foreach (var otherGr in GroupRegions)
-                {
-                    if (otherGr == gr)
-                        continue;
+            if (!(IsFancyCollapsingRemoGroupMode))
+                return;
 
-                    if (otherGr.EndRow > gr.StartRow && otherGr.StartRow < gr.EndRow)
+            MainScreen.UndoMan.NewActionOptional(enableUndoOnAction: !ignoreUndoRedo,
+                    doAction: () =>
                     {
-                        int shift = (gr.EndRow - otherGr.StartRow);
-                        if (shift > 0)
+                        int currentLogicalRow = 0;
+                        foreach (var gr in GroupRegions)
                         {
-                            otherGr.ShiftRow(shift);
-                            //otherGr.CropRegionToEvents();
-                            needsMoreFixing = true;
+                            gr.CropRegionToEvents();
+                            if (gr.StartRow < 0)
+                            {
+                                gr.ShiftRow(0 - gr.StartRow);
+                            }
+                            if (gr.StartRow != currentLogicalRow)
+                            {
+                                gr.ShiftRow(currentLogicalRow - gr.StartRow);
+                            }
+                            currentLogicalRow += gr.RowCount;
                         }
-                        //ShiftAllGroupRegionsDownPastRow(otherGr.StartRow, shift);
-                        //FixAllGroupBounds();
-                    }
-                }
-            }
-            if (needsMoreFixing)
-                FixAllGroupBounds();
+                    },
+                    undoAction: null,
+                    new List<ITaeClonable>
+                    {
+
+                    });
         }
 
-        private void DrawAllEventGroupRegions(float opacity, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
-            SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Matrix scrollMatrix)
-        {
-            var oldViewport = gd.Viewport;
-            gd.Viewport = new Viewport(new Rectangle(Rect.X, (int)Math.Round(Rect.Y + TimeLineHeight), Rect.Width, (int)Math.Round(Rect.Height - TimeLineHeight)).DpiScaled());
-            {
-                sb.Begin(transformMatrix: Main.DPIMatrix);
-                try
-                {
-                    // full bg
-                    sb.Draw(texture: boxTex,
-                        position: new Vector2(0, 0),
-                        sourceRectangle: null,
-                        color: Main.Colors.GuiColorEventGraphBackground,
-                        rotation: 0,
-                        origin: Vector2.Zero,
-                        scale: new Vector2(EventGroupAreaWidth, (Rect.Height - TimeLineHeight) + 2),
-                        effects: SpriteEffects.None,
-                        layerDepth: 0
-                        );
+        //private void DrawAllEventGroupRegions(float opacity, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
+        //    SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Matrix scrollMatrix)
+        //{
+        //    var oldViewport = gd.Viewport;
+        //    gd.Viewport = new Viewport(new Rectangle(Rect.X, (int)Math.Round(Rect.Y + TimeLineHeight), Rect.Width, (int)Math.Round(Rect.Height - TimeLineHeight)).DpiScaled());
+        //    {
+        //        sb.Begin(transformMatrix: Main.DPIMatrix);
+        //        try
+        //        {
+        //            // full bg
+        //            sb.Draw(texture: boxTex,
+        //                position: new Vector2(0, 0),
+        //                sourceRectangle: null,
+        //                color: Main.Colors.GuiColorEventGraphBackground,
+        //                rotation: 0,
+        //                origin: Vector2.Zero,
+        //                scale: new Vector2(EventGroupAreaWidth, (Rect.Height - TimeLineHeight) + 2),
+        //                effects: SpriteEffects.None,
+        //                layerDepth: 0
+        //                );
 
-                    foreach (var gr in GroupRegions)
-                    {
-                        sb.Draw(texture: boxTex,
-                            position: new Vector2(0, (gr.StartRow * RowHeight) - ScrollViewer.Scroll.Y - 1),
-                            sourceRectangle: null,
-                            color: Color.Black,
-                            rotation: 0,
-                            origin: Vector2.Zero,
-                            scale: new Vector2(Rect.Width + 4, 2),
-                            effects: SpriteEffects.None,
-                            layerDepth: 0
-                            );
+        //            try
+        //            {
+        //                foreach (var gr in GroupRegions)
+        //                {
+        //                    sb.Draw(texture: boxTex,
+        //                        position: new Vector2(0, (gr.StartRow * RowHeight) - ScrollViewer.Scroll.Y - 1),
+        //                        sourceRectangle: null,
+        //                        color: Color.Black,
+        //                        rotation: 0,
+        //                        origin: Vector2.Zero,
+        //                        scale: new Vector2(Rect.Width + 4, 2),
+        //                        effects: SpriteEffects.None,
+        //                        layerDepth: 0
+        //                        );
 
-                        sb.DrawString(smallFont, gr.GetGroupText(), new Vector2(4, (gr.StartRow * RowHeight) + 4 - ScrollViewer.Scroll.Y), Color.White);
-                    }
-                }
-                finally { sb.End(); }
-            }
-            gd.Viewport = oldViewport;
+        //                    sb.DrawString(smallFont, gr.GetGroupText(), new Vector2(4, (gr.StartRow * RowHeight) + 4 - ScrollViewer.Scroll.Y), Color.White);
+        //                }
+        //            }
+        //            catch
+        //            {
+
+        //            }
+        //        }
+        //        finally { sb.End(); }
+        //    }
+        //    gd.Viewport = oldViewport;
 
             
-        }
+        //}
 
         public enum BoxDragType
         {
@@ -122,6 +207,7 @@ namespace DSAnimStudio.TaeEditor
 
         public class TaeDragState
         {
+            public TaeUndoRestorableGraphState UndoRestoreState;
             public BoxDragType DragType = BoxDragType.None;
             public TaeEditAnimEventBox Box = null;
             public Point Offset = Point.Zero;
@@ -159,6 +245,16 @@ namespace DSAnimStudio.TaeEditor
 
             public void ShiftBoxRow(int newMouseRow)
             {
+                if (StartMouseRow < 0)
+                {
+                    throw new InvalidOperationException($"Event graph drag ShiftBoxRow - drag start mouse row was an invalid row ({StartMouseRow}).");
+                }
+
+                if (newMouseRow < 0)
+                {
+                    throw new InvalidOperationException($"Event graph drag ShiftBoxRow - drag current mouse row was an invalid row ({newMouseRow}).");
+                }
+
                 if (newMouseRow >= 0)
                     Box.Row = BoxOriginalRow + (newMouseRow - StartMouseRow);
             }
@@ -216,10 +312,9 @@ namespace DSAnimStudio.TaeEditor
 
         public readonly TaeEditorScreen MainScreen;
         public TAE.Animation AnimRef { get; private set; }
-        public int EventGroupAreaWidth => ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO ? 256 : 0;
 
         public Rectangle Rect;
-        public Rectangle ScrollViewerRect => new Rectangle(Rect.X + EventGroupAreaWidth, Rect.Y, Rect.Width - EventGroupAreaWidth, Rect.Height);
+        public Rectangle ScrollViewerRect => new Rectangle(Rect.X, Rect.Y, Rect.Width, Rect.Height);
 
         public List<TaeEditAnimEventBox> EventBoxes = new List<TaeEditAnimEventBox>();
         //public List<TaeEditAnimEventBox> EventBoxesToSimulate =>
@@ -340,21 +435,33 @@ namespace DSAnimStudio.TaeEditor
         public bool IsNewGraphVisiMode => MainScreen.Config.IsNewGraphVisiMode;
 
         public float RowHeight => (IsNewGraphVisiMode ? 20 : 32) 
-            * (ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO ? 1 : 1);
+            * (IsSimpleRemoGroupMode ? 1.5f : 1);
 
-        private Dictionary<int, List<TaeEditAnimEventBox>> sortedByRow = new Dictionary<int, List<TaeEditAnimEventBox>>();
+        public object _lock_sortedByRow = new object();
+        public Dictionary<int, List<TaeEditAnimEventBox>> sortedByRow = new Dictionary<int, List<TaeEditAnimEventBox>>();
+
+        private object _lock_VisualRowToLogicalRowMap = new object();
+        private List<int> VisualRowToLogicalRowMap = new List<int>();
+        private List<int> LogicalRowToVisualRowMap = new List<int>();
 
         private Vector2 relMouse => new Vector2(
             MainScreen.Input.MousePosition.X - ScrollViewerRect.X + ScrollViewer.Scroll.X, 
             MainScreen.Input.MousePosition.Y - ScrollViewerRect.Y + ScrollViewer.Scroll.Y - TimeLineHeight);
 
-        private int MouseRow = 0;
+        private int MouseVisualRow = 0;
+        private int MouseLogicalRow = 0;
 
-        private List<TaeEditAnimEventBox> GetRow(int row)
+        private List<TaeEditAnimEventBox> GetBoxesInLogicalRow(int row)
         {
-            if (sortedByRow.ContainsKey(row))
-                return sortedByRow[row];
-            else return new List<TaeEditAnimEventBox>();
+            var result = new List<TaeEditAnimEventBox>();
+            lock (_lock_sortedByRow)
+            {
+                if (sortedByRow.ContainsKey(row))
+                    result = sortedByRow[row];
+                else 
+                    result = new List<TaeEditAnimEventBox>();
+            }
+            return result;
         }
 
         public void RegisterEventBoxExistance(TaeEditAnimEventBox box)
@@ -362,10 +469,13 @@ namespace DSAnimStudio.TaeEditor
             if (!EventBoxes.Contains(box))
                 EventBoxes.Add(box);
 
-            if (!sortedByRow.ContainsKey(box.Row))
-                sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
+            lock (_lock_sortedByRow)
+            {
+                if (!sortedByRow.ContainsKey(box.Row))
+                    sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
 
-            sortedByRow[box.Row].Add(box);
+                sortedByRow[box.Row].Add(box);
+            }
         }
 
         public void ChangeToNewAnimRef(TAE.Animation newAnimRef)
@@ -377,11 +487,12 @@ namespace DSAnimStudio.TaeEditor
 
             GroupRegions.Clear();
 
-            DisableGroupRegionAssignOnRowMove = false;
-
             GhostEventGraph = null;
 
-            sortedByRow.Clear();
+            lock (_lock_sortedByRow)
+            {
+                sortedByRow.Clear();
+            }
             AnimRef = newAnimRef;
 
             if (AnimRef == null)
@@ -389,13 +500,30 @@ namespace DSAnimStudio.TaeEditor
 
             void RegisterBoxToRow(TaeEditAnimEventBox box, int row)
             {
-                if (sortedByRow.ContainsKey(row))
-                    sortedByRow[row].Add(box);
-                else
-                    sortedByRow.Add(row, new List<TaeEditAnimEventBox> { box });
+                lock (_lock_sortedByRow)
+                {
+                    if (sortedByRow.ContainsKey(row))
+                        sortedByRow[row].Add(box);
+                    else
+                        sortedByRow.Add(row, new List<TaeEditAnimEventBox> { box });
+                }
             }
 
-            bool legacyRowMode = true;// !(AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0);
+            bool legacyRowMode = AnimRef.EventGroups == null || AnimRef.EventGroups.Count == 0 || IsSimpleRemoGroupMode;
+
+            if (GameDataManager.GameTypeUsesBoilerplateEventGroups)
+            {
+                legacyRowMode = false;
+            }
+            else
+            {
+                legacyRowMode = !(AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0);
+            }
+
+            if (IsSimpleRemoGroupMode)
+            {
+                legacyRowMode = true;
+            }
 
             int currentRow = 0;
             float farthestRightOnCurrentRow = 0;
@@ -403,7 +531,7 @@ namespace DSAnimStudio.TaeEditor
 
             var orderedEvents = AnimRef.Events;
 
-            if (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0)
+            if ((IsFancyCollapsingRemoGroupMode || IsSimpleRemoGroupMode) && (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0))
             {
                 GroupRegions.Clear();
                 orderedEvents = newAnimRef.Events.OrderBy(x => newAnimRef.EventGroups.IndexOf(x.Group)).ToList();
@@ -464,7 +592,7 @@ namespace DSAnimStudio.TaeEditor
                 eventIndex++;
             }
 
-            if (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0)
+            if (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0 && (IsFancyCollapsingRemoGroupMode || IsSimpleRemoGroupMode))
             {
                 GroupRegions.Clear();
                 foreach (var eg in newAnimRef.EventGroups)
@@ -475,12 +603,30 @@ namespace DSAnimStudio.TaeEditor
                     foreach (var b in boxesInGroupRegion)
                         gr.AddEvent(b);
                 }
+
+                foreach (var gr in GroupRegions)
+                    gr.CropRegionToEvents();
+            }
+            else
+            {
+                GroupRegions.Clear();
+            }
+            
+
+            FixAllGroupBounds(ignoreUndoRedo: true);
+
+            if (IsSimpleRemoGroupMode)
+            {
+                GenerateFakeDS3EventGroups();
             }
 
-            foreach (var gr in GroupRegions)
-                gr.CropRegionToEvents();
-
-            FixAllGroupBounds();
+            if (!IsFancyCollapsingRemoGroupMode)
+            {
+                foreach (var ev in EventBoxes)
+                {
+                    ev.VisualRow = ev.Row;
+                }
+            }
 
             InitGhostEventBoxes();
 
@@ -547,8 +693,6 @@ namespace DSAnimStudio.TaeEditor
 
             IsGhostEventGraph = isGhostGraph;
 
-            ChangeToNewAnimRef(startingAnimRef);
-
             if (!isGhostGraph)
             {
                 PlaybackCursor = new TaePlaybackCursor();
@@ -556,127 +700,66 @@ namespace DSAnimStudio.TaeEditor
                 ViewportInteractor = new TaeViewportInteractor(this);
             }
 
+            
+
+            ChangeToNewAnimRef(startingAnimRef);
+
+            
+
            
         }
 
-        private void RemoveEventBoxFromGroups(TaeEditAnimEventBox box)
-        {
-            //if (MainScreen.SelectedTae.Animations.Any(a => a.EventGroups.Count > 0))
-            //{
-            //    int thisIndex = MainScreen.SelectedTaeAnim.Events.IndexOf(box.MyEvent);
-            //    if (thisIndex == -1)
-            //    {
-            //        throw new Exception("Remove event from groups before removing from event list.");
-            //    }
-
-            //    int lastGroupWithAnythingInIt = 0;
-            //    for (int i = 0; i < MainScreen.SelectedTaeAnim.EventGroups.Count; i++)
-            //    {
-            //        if (MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Contains(thisIndex))
-            //            MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Remove(thisIndex);
-
-            //        if (MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Count > 0)
-            //            lastGroupWithAnythingInIt = i;
-            //    }
-
-            //    while (lastGroupWithAnythingInIt != MainScreen.SelectedTaeAnim.EventGroups.Count - 1)
-            //    {
-            //        MainScreen.SelectedTaeAnim.EventGroups.RemoveAt(lastGroupWithAnythingInIt + 1);
-            //    }
-            //}
-        }
-
-        private void RecreateAllAnimGroups()
-        {
-            if (MainScreen.SelectedTae.Animations.Any(a => a.EventGroups.Count > 0))
-            {
-                MainScreen.SelectedTaeAnim.EventGroups.Clear();
-
-                foreach (var box in EventBoxes)
-                {
-                    AddBoxToEventGroups(box);
-                }
-            }
-                
-        }
-
-        private void AddBoxToEventGroups(TaeEditAnimEventBox box)
-        {
-            //if (MainScreen.SelectedTae.Animations.Any(a => a.EventGroups.Count > 0))
-            //{
-            //    int thisIndex = MainScreen.SelectedTaeAnim.Events.IndexOf(box.MyEvent);
-            //    if (thisIndex == -1)
-            //    {
-            //        MainScreen.SelectedTaeAnim.Events.Add(box.MyEvent);
-            //        thisIndex = MainScreen.SelectedTaeAnim.Events.Count - 1;
-            //    }
-
-            //    while (MainScreen.SelectedTaeAnim.EventGroups.Count <= box.Row)
-            //    {
-            //        MainScreen.SelectedTaeAnim.EventGroups.Add(
-            //            new TAE.EventGroup(MainScreen.SelectedTaeAnim.EventGroups.Count == box.Row
-            //               ? box.MyEvent.Type : 0));
-            //    }
-            //    int lastGroupWithAnythingInIt = 0;
-            //    for (int i = 0; i < MainScreen.SelectedTaeAnim.EventGroups.Count; i++)
-            //    {
-            //        if (i == box.Row)
-            //        {
-            //            if (!MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Contains(thisIndex))
-            //                MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Add(thisIndex);
-            //        }
-            //        else
-            //        {
-            //            if (MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Contains(thisIndex))
-            //                MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Remove(thisIndex);
-            //        }
-
-            //        if (MainScreen.SelectedTaeAnim.EventGroups[i].Indices.Count > 0)
-            //        {
-            //            if (!MainScreen.SelectedTaeAnim.EventGroups[i].Indices
-            //                .Any(index => MainScreen.SelectedTaeAnim.EventGroups[i].GroupType 
-            //                == MainScreen.SelectedTaeAnim.Events[index].Type))
-            //            {
-            //                MainScreen.SelectedTaeAnim.EventGroups[i].GroupType
-            //                    = MainScreen.SelectedTaeAnim.Events[
-            //                        MainScreen.SelectedTaeAnim.EventGroups[i].Indices[0]].Type;
-            //            }
-
-            //            if (MainScreen.SelectedTaeAnim.EventGroups[i].GroupType !=
-            //                MainScreen.SelectedTaeAnim.Events[MainScreen.SelectedTaeAnim.EventGroups[i].Indices[0]].Type)
-            //            {
-
-            //            }
-            //            lastGroupWithAnythingInIt = i;
-            //        }
-            //    }
-
-            //    while (lastGroupWithAnythingInIt != MainScreen.SelectedTaeAnim.EventGroups.Count - 1)
-            //    {
-            //        MainScreen.SelectedTaeAnim.EventGroups.RemoveAt(lastGroupWithAnythingInIt + 1);
-            //    }
-            //}
-        }
-
-        private void Box_RowChanged(object sender, int e)
+        public void Box_RowChanged(object sender, int oldRow)
         {
             var box = (TaeEditAnimEventBox)sender;
 
-            if (sortedByRow.ContainsKey(e) && sortedByRow[e].Contains(box))
-                sortedByRow[e].Remove(box);
-            if (!sortedByRow.ContainsKey(box.Row))
-                sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
-            if (!sortedByRow[box.Row].Contains(box))
-                sortedByRow[box.Row].Add(box);
-            RemoveEventBoxFromGroups(box);
-            AddBoxToEventGroups(box);
-
-            if (!DisableGroupRegionAssignOnRowMove)
+            lock (_lock_sortedByRow)
             {
-                var gr = GetGroupRegionOfRow(e);
-                gr?.AddEvent(box);
-                //FixAllGroupBounds();
+                if (sortedByRow.ContainsKey(oldRow) && sortedByRow[oldRow].Contains(box))
+                    sortedByRow[oldRow].Remove(box);
+                if (!sortedByRow.ContainsKey(box.Row))
+                    sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
+                if (!sortedByRow[box.Row].Contains(box))
+                    sortedByRow[box.Row].Add(box);
             }
+
+            if (IsFancyCollapsingRemoGroupMode)
+                RegisterBoxGroupChange(box, ignoreUndoRedo: true);
+        }
+
+        private void RegisterBoxGroupChange(TaeEditAnimEventBox evBox, bool ignoreUndoRedo = false)
+        {
+            MainScreen.UndoMan.NewActionOptional(enableUndoOnAction: !ignoreUndoRedo,
+                doAction: () =>
+                {
+                    if (IsSimpleRemoGroupMode)
+                    {
+                        if (evBox.CurrentGroupRegion == null || evBox.CurrentGroupRegion.Group != evBox.MyEvent.Group)
+                        {
+                            evBox.CurrentGroupRegion = new TaeEventGroupRegion(this, MainScreen.SelectedTaeAnim, evBox.MyEvent.Group);
+                        }
+
+                        if (!GroupRegions.Contains(evBox.CurrentGroupRegion))
+                            GroupRegions.Add(evBox.CurrentGroupRegion);
+                    }
+                    else
+                    {
+                        evBox.CurrentGroupRegion?.RemoveEvent(evBox);
+                        var gr = GetGroupRegionOfRow(evBox.Row);
+                        gr?.AddEvent(evBox);
+                        //FixAllGroupBounds(ignoreUndoRedo: true);
+                    }
+
+
+                },
+                undoAction: () =>
+                {
+
+                },
+                new List<ITaeClonable>
+                {
+
+                });
         }
 
         public void DeleteMultipleEventBoxes(IEnumerable<TaeEditAnimEventBox> boxes, bool notUndoable)
@@ -694,44 +777,36 @@ namespace DSAnimStudio.TaeEditor
                 copyOfBoxes.Add(box);
             }
 
-            void DoDeleteAll()
-            {
-                foreach (var box in copyOfBoxes)
-                {
-                    if (MainScreen.SelectedEventBox == box)
-                        MainScreen.SelectedEventBox = null;
-
-                    if (MainScreen.MultiSelectedEventBoxes.Contains(box))
-                        MainScreen.MultiSelectedEventBoxes.Remove(box);
-
-                    box.RowChanged -= Box_RowChanged;
-
-                    var r = box.Row;
-
-                    if (sortedByRow.ContainsKey(r))
-                        if (sortedByRow[r].Contains(box))
-                            sortedByRow[r].Remove(box);
-
-                    AnimRef.Events.Remove(box.MyEvent);
-
-                    EventBoxes.Remove(box);
-
-                    AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-                }
-
-                RecreateAllAnimGroups();
-            }
-
-            if (notUndoable)
-            {
-                DoDeleteAll();
-                return;
-            }
-
-            MainScreen.UndoMan.NewAction(
+            MainScreen.UndoMan.NewActionOptional(enableUndoOnAction: !notUndoable,
                 doAction: () =>
                 {
-                    DoDeleteAll();
+                    foreach (var box in copyOfBoxes)
+                    {
+                        if (MainScreen.SelectedEventBox == box)
+                            MainScreen.SelectedEventBox = null;
+
+                        if (MainScreen.MultiSelectedEventBoxes.Contains(box))
+                            MainScreen.MultiSelectedEventBoxes.Remove(box);
+
+                        box.RowChanged -= Box_RowChanged;
+
+                        var r = box.Row;
+
+                        lock (_lock_sortedByRow)
+                        {
+                            if (sortedByRow.ContainsKey(r))
+                                if (sortedByRow[r].Contains(box))
+                                    sortedByRow[r].Remove(box);
+                        }
+
+                        AnimRef.Events.Remove(box.MyEvent);
+
+                        EventBoxes.Remove(box);
+
+                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
+                    }
+
+                    GenerateFakeDS3EventGroups();
                 },
                 undoAction: () =>
                 {
@@ -743,21 +818,32 @@ namespace DSAnimStudio.TaeEditor
 
                         var r = box.Row;
 
-                        if (!sortedByRow.ContainsKey(r))
-                            sortedByRow.Add(r, new List<TaeEditAnimEventBox>());
+                        lock (_lock_sortedByRow)
+                        {
+                            if (!sortedByRow.ContainsKey(r))
+                                sortedByRow.Add(r, new List<TaeEditAnimEventBox>());
 
-                        if (!sortedByRow[r].Contains(box))
-                            sortedByRow[r].Add(box);
+                            if (!sortedByRow[r].Contains(box))
+                                sortedByRow[r].Add(box);
+                        }
 
                         box.RowChanged += Box_RowChanged;
 
                         if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
                             MainScreen.MultiSelectedEventBoxes.Add(box);
 
-                        AddBoxToEventGroups(box);
+                        RegisterBoxGroupChange(box, ignoreUndoRedo: true);
+
+                        FixAllGroupBounds(ignoreUndoRedo: true);
 
                         AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     }
+
+                    GenerateFakeDS3EventGroups();
+                },
+                captureItems: new List<ITaeClonable>()
+                {
+
                 });
         }
 
@@ -769,54 +855,49 @@ namespace DSAnimStudio.TaeEditor
                     $"delete {nameof(TaeEditAnimEventBox)}'s that it owns!", nameof(box));
             }
 
-            void DoDelete()
-            {
-                if (MainScreen.SelectedEventBox == box)
-                    MainScreen.SelectedEventBox = null;
-                box.RowChanged -= Box_RowChanged;
-
-                if (sortedByRow.ContainsKey(box.Row))
-                    if (sortedByRow[box.Row].Contains(box))
-                        sortedByRow[box.Row].Remove(box);
-
-                AnimRef.Events.Remove(box.MyEvent);
-
-                EventBoxes.Remove(box);
-
-                AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
-
-                RecreateAllAnimGroups();
-            }
-
-            if (notUndoable)
-            {
-                DoDelete();
-                return;
-            }
-
-            MainScreen.UndoMan.NewAction(
+            MainScreen.UndoMan.NewActionOptional(enableUndoOnAction: !notUndoable,
                 doAction: () =>
                 {
-                    DoDelete();
+                    if (MainScreen.SelectedEventBox == box)
+                        MainScreen.SelectedEventBox = null;
+                    box.RowChanged -= Box_RowChanged;
+
+                    foreach (var kvp in sortedByRow)
+                    {
+                        if (kvp.Value.Contains(box))
+                            kvp.Value.Remove(box);
+                    }
+
+                    AnimRef.Events.Remove(box.MyEvent);
+
+                    EventBoxes.Remove(box);
+
+                    AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
+
+                    GenerateFakeDS3EventGroups();
                 },
                 undoAction: () =>
                 {
                     EventBoxes.Add(box);
                     AnimRef.Events.Add(box.MyEvent);
 
-                    if (!sortedByRow.ContainsKey(box.Row))
-                        sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
+                    lock (_lock_sortedByRow)
+                    {
+                        if (!sortedByRow.ContainsKey(box.Row))
+                            sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
 
-                    if (!sortedByRow[box.Row].Contains(box))
-                        sortedByRow[box.Row].Add(box);
-
+                        if (!sortedByRow[box.Row].Contains(box))
+                            sortedByRow[box.Row].Add(box);
+                    }
                     box.RowChanged += Box_RowChanged;
 
                     MainScreen.SelectedEventBox = box;
 
-                    AddBoxToEventGroups(box);
-
                     AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
+                }, 
+                captureItems: new List<ITaeClonable>
+                {
+
                 });
         }
 
@@ -831,7 +912,13 @@ namespace DSAnimStudio.TaeEditor
 
             var newBox = new TaeEditAnimEventBox(this, ev, AnimRef);
 
-            newBox.MyEvent.Group = grp;
+            newBox.MyEvent.Group = new TAE.EventGroup(0);
+
+            if (grp != null)
+            {
+                newBox.MyEvent.Group.GroupType = grp.GroupType;
+                newBox.MyEvent.Group.GroupData = grp.GroupData;
+            }
 
             newBox.Row = row;
 
@@ -839,16 +926,20 @@ namespace DSAnimStudio.TaeEditor
             {
                 MainScreen.SelectedTaeAnim.Events.Add(ev);
 
-                if (!sortedByRow.ContainsKey(newBox.Row))
-                    sortedByRow.Add(newBox.Row, new List<TaeEditAnimEventBox>());
+                lock (_lock_sortedByRow)
+                {
+                    if (!sortedByRow.ContainsKey(newBox.Row))
+                        sortedByRow.Add(newBox.Row, new List<TaeEditAnimEventBox>());
 
-                sortedByRow[newBox.Row].Add(newBox);
+                    if (!sortedByRow[newBox.Row].Contains(newBox))
+                        sortedByRow[newBox.Row].Add(newBox);
+                }
 
                 newBox.RowChanged += Box_RowChanged;
 
                 EventBoxes.Add(newBox);
 
-                AddBoxToEventGroups(newBox);
+                RegisterBoxGroupChange(newBox);
 
                 AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
             }
@@ -859,7 +950,7 @@ namespace DSAnimStudio.TaeEditor
                 return newBox;
             }
 
-            MainScreen.UndoMan.NewAction(
+            MainScreen.UndoMan.NewActionOptional(enableUndoOnAction: !notUndoable,
                 doAction: () =>
                 {
                     DoPlaceEvent();
@@ -870,23 +961,31 @@ namespace DSAnimStudio.TaeEditor
 
                     newBox.RowChanged -= Box_RowChanged;
 
-                    if (sortedByRow.ContainsKey(newBox.Row))
-                        if (sortedByRow[newBox.Row].Contains(newBox))
-                            sortedByRow[newBox.Row].Remove(newBox);
+                    lock (_lock_sortedByRow)
+                    {
+                        if (sortedByRow.ContainsKey(newBox.Row))
+                            if (sortedByRow[newBox.Row].Contains(newBox))
+                                sortedByRow[newBox.Row].Remove(newBox);
+                    }
 
-                    RemoveEventBoxFromGroups(newBox);
 
                     MainScreen.SelectedTaeAnim.Events.Remove(ev);
 
                     AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
+                },
+                captureItems: new List<ITaeClonable>
+                {
+
                 });
+
+            
 
             return newBox;
         }
 
         private void PlaceNewEventAtMouse()
         {
-            if (MouseRow < 0)
+            if (MouseLogicalRow < 0)
                 return;
 
             float mouseTime = ((MainScreen.Input.MousePosition.X - ScrollViewerRect.X + ScrollViewer.Scroll.X) / SecondsPixelSize);
@@ -919,7 +1018,7 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            PlaceNewEvent(newEvent, MouseRow, MainScreen.SelectedTaeAnim.EventGroups.LastOrDefault(), notUndoable: false, MainScreen.SelectedTae.BigEndian);
+            PlaceNewEvent(newEvent, MouseLogicalRow, MainScreen.SelectedTaeAnim.EventGroups.LastOrDefault(), notUndoable: false, MainScreen.SelectedTae.BigEndian);
         }
 
         public void DeleteSelectedEvent()
@@ -1010,7 +1109,7 @@ namespace DSAnimStudio.TaeEditor
                     var copyOfSelectedEventBox = MainScreen.SelectedEventBox;
 
                     var copyOfRelMouse = relMouse;
-                    var copyOfMouseRow = MouseRow;
+                    var copyOfMouseRow = MouseLogicalRow;
 
                     var copyOfClipboardStartTime = clipboardContents.StartTime;
 
@@ -1074,6 +1173,8 @@ namespace DSAnimStudio.TaeEditor
                                 MainScreen.SelectedEventBox = MainScreen.MultiSelectedEventBoxes[0];
                                 MainScreen.MultiSelectedEventBoxes.Clear();
                             }
+
+                            GenerateFakeDS3EventGroups();
                         },
                         undoAction: () =>
                         {
@@ -1084,12 +1185,16 @@ namespace DSAnimStudio.TaeEditor
                                     DeleteEventBox(matchedBox, notUndoable: true);
                             }
 
-                            RecreateAllAnimGroups();
+                            GenerateFakeDS3EventGroups();
 
                             //DeleteMultipleEventBoxes(copyOfEvents, notUndoable: true);
 
                             //MainScreen.SelectedEventBox = copyOfSelectedEventBox;
                             //MainScreen.MultiSelectedEventBoxes = copyOfSelectedEventBoxes;
+                        },
+                        captureItems: new List<ITaeClonable>
+                        {
+
                         });
 
                        
@@ -1135,8 +1240,66 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
+        public int GetLogicalRowFromVisualRow(int visualRow)
+        {
+            if (!IsFancyCollapsingRemoGroupMode)
+                return visualRow;
+
+            int result = 0;
+            lock (_lock_VisualRowToLogicalRowMap)
+            {
+                if (VisualRowToLogicalRowMap.Count == 0)
+                {
+                    return 0;
+                }
+                else if (visualRow >= VisualRowToLogicalRowMap.Count)
+                {
+                    result = VisualRowToLogicalRowMap.LastOrDefault(x => x >= 0) + 1;
+                }
+                else if (visualRow < 0)
+                {
+                    result = 0;
+                }
+                else
+                {
+                    result = VisualRowToLogicalRowMap[visualRow];
+                }
+            }
+            return result;
+        }
+
+        public int GetVisualRowFromLogicalRow(int logicalRow)
+        {
+            if (!IsFancyCollapsingRemoGroupMode)
+                return logicalRow;
+
+            int result = 0;
+            lock (_lock_VisualRowToLogicalRowMap)
+            {
+                if (LogicalRowToVisualRowMap.Count == 0)
+                {
+                    return 0;
+                }
+                else if (logicalRow >= LogicalRowToVisualRowMap.Count)
+                {
+                    result = LogicalRowToVisualRowMap.LastOrDefault(x => x >= 0) + 1;
+                }
+                else if (logicalRow < 0)
+                {
+                    result = 0;
+                }
+                else
+                {
+                    result = LogicalRowToVisualRowMap[logicalRow];
+                }
+            }
+            return result;
+        }
+
         public void Update(bool allowMouseUpdate)
         {
+            RefreshLogicalAndVisualRowMappings();
+
             if (MainScreen.Input.MiddleClickHeld && ScrollViewerRect.Contains(MainScreen.Input.MiddleClickDownAnchor))
             {
                 MainScreen.HoveringOverEventBox = null;
@@ -1189,7 +1352,7 @@ namespace DSAnimStudio.TaeEditor
 
                 PlaybackCursor.Scrubbing = true;
 
-                MouseRow = -1;
+                MouseLogicalRow = -1;
 
                 if (!MainScreen.Input.LeftClickHeld)
                     currentUnselectedMouseDragType = UnselectedMouseDragType.None;
@@ -1212,12 +1375,15 @@ namespace DSAnimStudio.TaeEditor
                     currentUnselectedMouseDragType = UnselectedMouseDragType.None;
             }
 
-            MouseRow = (int)(relMouse.Y / RowHeight);
+            
+
+            MouseVisualRow = (int)(relMouse.Y / RowHeight);
+            MouseLogicalRow = GetLogicalRowFromVisualRow(MouseVisualRow);
 
             // Fix for stuff being highlighted while mouse is over timeline
             if ((MainScreen.Input.MousePosition.Y - ScrollViewerRect.Y) < TimeLineHeight)
             {
-                MouseRow = -1;
+                MouseLogicalRow = -1;
             }
 
             if ((ScrollViewer.Viewport.Contains(new Point((int)MainScreen.Input.MousePosition.X, (int)MainScreen.Input.MousePosition.Y))
@@ -1289,7 +1455,7 @@ namespace DSAnimStudio.TaeEditor
 
                 
 
-                IEnumerable<TaeEditAnimEventBox> masterRowBoxList = GetRow(MouseRow);
+                IEnumerable<TaeEditAnimEventBox> masterRowBoxList = GetBoxesInLogicalRow(MouseLogicalRow);
                 var rowOrderedByTime = masterRowBoxList.OrderByDescending(x => x.MyEvent.StartTime);
 
                 MainScreen.HoveringOverEventBox = null;
@@ -1297,245 +1463,256 @@ namespace DSAnimStudio.TaeEditor
                 if (GhostEventGraph != null)
                     return;
 
-                foreach (var box in rowOrderedByTime)
+                if (MouseLogicalRow >= 0)
                 {
-                    bool canManipulateBox = (MainScreen.MultiSelectedEventBoxes.Count == 0
-                        || MainScreen.MultiSelectedEventBoxes.Contains(box));
-
-                    if (currentDrag.DragType == BoxDragType.None)
+                    foreach (var box in rowOrderedByTime)
                     {
-                        if (canManipulateBox && box.Width >= 16 && 
-                            relMouse.X <= box.Left + BoxSideScrollMarginSize && 
-                            relMouse.X >= box.Left - BoxSideScrollMarginSize && 
-                            (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback)))
+                        if (box.CurrentGroupRegion?.Collapsed == true)
+                            continue;
+
+                        bool canManipulateBox = (MainScreen.MultiSelectedEventBoxes.Count == 0
+                            || MainScreen.MultiSelectedEventBoxes.Contains(box));
+
+                        if (currentDrag.DragType == BoxDragType.None)
                         {
-                            MainScreen.Input.CursorType = MouseCursorType.DragX;
-                            if (MainScreen.Input.LeftClickDown)
+                            if (canManipulateBox && box.Width >= 16 &&
+                                relMouse.X <= box.Left + BoxSideScrollMarginSize &&
+                                relMouse.X >= box.Left - BoxSideScrollMarginSize &&
+                                (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback)))
                             {
-                                if (MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                MainScreen.Input.CursorType = MouseCursorType.DragX;
+                                if (MainScreen.Input.LeftClickDown)
                                 {
-                                    currentMultiDrag.Clear();
-
-                                    currentDrag.DragType = BoxDragType.LeftOfEventBox;
-                                    currentDrag.Box = box;
-                                    currentDrag.Offset = new Point((int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
-                                    currentDrag.BoxOriginalWidth = box.Width;
-                                    currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
-                                    currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
-                                    currentDrag.BoxOriginalRow = box.Row;
-                                    currentDrag.StartMouseRow = MouseRow;
-                                    currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
-                                }
-                                else
-                                {
-                                    currentDrag.DragType = BoxDragType.MultiDragLeftOfEventBox;
-                                    currentMultiDrag.Clear();
-                                    foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
+                                    if (MainScreen.MultiSelectedEventBoxes.Count == 0)
                                     {
-                                        var newDrag = new TaeDragState();
+                                        currentMultiDrag.Clear();
 
-                                        newDrag.DragType = BoxDragType.LeftOfEventBox;
-                                        newDrag.Box = multiBox;
-                                        newDrag.Offset = new Point((int)(relMouse.X - multiBox.Left), (int)(relMouse.Y - multiBox.Top));
-                                        newDrag.BoxOriginalWidth = multiBox.Width;
-                                        newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
-                                        newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
-                                        newDrag.BoxOriginalRow = multiBox.Row;
-                                        newDrag.StartMouseRow = MouseRow;
-                                        newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
-
-                                        currentMultiDrag.Add(newDrag);
+                                        currentDrag.DragType = BoxDragType.LeftOfEventBox;
+                                        currentDrag.Box = box;
+                                        currentDrag.Offset = new Point((int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
+                                        currentDrag.BoxOriginalWidth = box.Width;
+                                        currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
+                                        currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
+                                        currentDrag.BoxOriginalRow = box.Row;
+                                        currentDrag.StartMouseRow = MouseLogicalRow;
+                                        currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
                                     }
-                                }
-                                
-                            }
-                        }
-                        else if (canManipulateBox && 
-                            box.Width >= 16 && 
-                            relMouse.X >= box.Right - BoxSideScrollMarginSize && 
-                            relMouse.X <= box.Right + BoxSideScrollMarginSize &&
-                            (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback)))
-                        {
-                            MainScreen.Input.CursorType = MouseCursorType.DragX;
-                            if (MainScreen.Input.LeftClickDown && currentUnselectedMouseDragType == UnselectedMouseDragType.EventSelect)
-                            {
-                                if (MainScreen.MultiSelectedEventBoxes.Count == 0)
-                                {
-                                    currentMultiDrag.Clear();
-
-                                    currentDrag.DragType = BoxDragType.RightOfEventBox;
-                                    currentDrag.Box = box;
-                                    currentDrag.Offset = new Point(
-                                        (int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
-                                    currentDrag.BoxOriginalWidth = box.Width;
-                                    currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
-                                    currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
-                                    currentDrag.BoxOriginalRow = box.Row;
-                                    currentDrag.StartMouseRow = MouseRow;
-                                    currentDrag.StartDragPoint =
-                                        currentDrag.CurrentDragPoint = relMouse.ToPoint();
-                                }
-                                else
-                                {
-                                    currentDrag.DragType = BoxDragType.MultiDragRightOfEventBox;
-                                    currentMultiDrag.Clear();
-                                    foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
+                                    else
                                     {
-                                        var newDrag = new TaeDragState();
-
-                                        newDrag.DragType = BoxDragType.RightOfEventBox;
-                                        newDrag.Box = multiBox;
-                                        newDrag.Offset = new Point(
-                                            (int)(relMouse.X - multiBox.Left), 
-                                            (int)(relMouse.Y - multiBox.Top));
-                                        newDrag.BoxOriginalWidth = multiBox.Width;
-                                        newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
-                                        newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
-                                        newDrag.BoxOriginalRow = multiBox.Row;
-                                        newDrag.StartMouseRow = MouseRow;
-                                        newDrag.StartDragPoint =
-                                            newDrag.CurrentDragPoint = relMouse.ToPoint();
-
-                                        currentMultiDrag.Add(newDrag);
-                                    }
-                                }
-                                
-                            }
-                        }
-                        else if (relMouse.X >= box.Left && relMouse.X < box.Right)
-                        {
-                            MainScreen.Input.CursorType = MouseCursorType.Arrow;
-
-                            if (ScrollViewerRect.Contains(MainScreen.Input.MousePositionPoint))
-                            {
-                                MainScreen.HoveringOverEventBox = box;
-                            }
-                            
-                            if (MainScreen.Input.LeftClickDown)
-                            {
-                                if (MainScreen.MultiSelectedEventBoxes.Count == 0)
-                                {
-                                    currentDrag.DragType = BoxDragType.MiddleOfEventBox;
-                                    currentDrag.Box = box;
-                                    currentDrag.Offset = new Point((int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
-                                    currentDrag.BoxOriginalWidth = box.Width;
-                                    currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
-                                    currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
-                                    currentDrag.BoxOriginalRow = box.Row;
-                                    currentDrag.StartMouseRow = MouseRow;
-                                    currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
-                                }
-                                else
-                                {
-                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box) && !MainScreen.Input.CtrlHeld)
-                                    {
-                                        currentDrag.DragType = BoxDragType.MultiDragMiddleOfEventBox;
+                                        currentDrag.DragType = BoxDragType.MultiDragLeftOfEventBox;
                                         currentMultiDrag.Clear();
                                         foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
                                         {
                                             var newDrag = new TaeDragState();
 
-                                            newDrag.DragType = BoxDragType.MiddleOfEventBox;
+                                            newDrag.UndoRestoreState = new TaeUndoRestorableGraphState(this, new List<ITaeClonable> { });
+                                            newDrag.DragType = BoxDragType.LeftOfEventBox;
                                             newDrag.Box = multiBox;
                                             newDrag.Offset = new Point((int)(relMouse.X - multiBox.Left), (int)(relMouse.Y - multiBox.Top));
                                             newDrag.BoxOriginalWidth = multiBox.Width;
                                             newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
                                             newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
                                             newDrag.BoxOriginalRow = multiBox.Row;
-                                            newDrag.StartMouseRow = MouseRow;
+                                            newDrag.StartMouseRow = MouseLogicalRow;
                                             newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
 
                                             currentMultiDrag.Add(newDrag);
                                         }
                                     }
+
+                                }
+                            }
+                            else if (canManipulateBox &&
+                                box.Width >= 16 &&
+                                relMouse.X >= box.Right - BoxSideScrollMarginSize &&
+                                relMouse.X <= box.Right + BoxSideScrollMarginSize &&
+                                (!(PlaybackCursor.IsPlaying && MainScreen.Config.AutoScrollDuringAnimPlayback)))
+                            {
+                                MainScreen.Input.CursorType = MouseCursorType.DragX;
+                                if (MainScreen.Input.LeftClickDown && currentUnselectedMouseDragType == UnselectedMouseDragType.EventSelect)
+                                {
+                                    if (MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                    {
+                                        currentMultiDrag.Clear();
+
+                                        currentDrag.UndoRestoreState = new TaeUndoRestorableGraphState(this, new List<ITaeClonable> { });
+                                        currentDrag.DragType = BoxDragType.RightOfEventBox;
+                                        currentDrag.Box = box;
+                                        currentDrag.Offset = new Point(
+                                            (int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
+                                        currentDrag.BoxOriginalWidth = box.Width;
+                                        currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
+                                        currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
+                                        currentDrag.BoxOriginalRow = box.Row;
+                                        currentDrag.StartMouseRow = MouseLogicalRow;
+                                        currentDrag.StartDragPoint =
+                                            currentDrag.CurrentDragPoint = relMouse.ToPoint();
+                                    }
                                     else
                                     {
-                                        if (MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
+                                        currentDrag.DragType = BoxDragType.MultiDragRightOfEventBox;
+                                        currentMultiDrag.Clear();
+                                        foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
                                         {
-                                            if (MainScreen.SelectedEventBox == null 
-                                                && MainScreen.MultiSelectedEventBoxes.Count == 0)
-                                                MainScreen.SelectedEventBox = box;
-                                            else if (MainScreen.SelectedEventBox != null)
+                                            var newDrag = new TaeDragState();
+
+                                            newDrag.DragType = BoxDragType.RightOfEventBox;
+                                            newDrag.Box = multiBox;
+                                            newDrag.Offset = new Point(
+                                                (int)(relMouse.X - multiBox.Left),
+                                                (int)(relMouse.Y - multiBox.Top));
+                                            newDrag.BoxOriginalWidth = multiBox.Width;
+                                            newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
+                                            newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
+                                            newDrag.BoxOriginalRow = multiBox.Row;
+                                            newDrag.StartMouseRow = MouseLogicalRow;
+                                            newDrag.StartDragPoint =
+                                                newDrag.CurrentDragPoint = relMouse.ToPoint();
+
+                                            currentMultiDrag.Add(newDrag);
+                                        }
+                                    }
+
+                                }
+                            }
+                            else if (relMouse.X >= box.Left && relMouse.X < box.Right)
+                            {
+                                MainScreen.Input.CursorType = MouseCursorType.Arrow;
+
+                                if (ScrollViewerRect.Contains(MainScreen.Input.MousePositionPoint))
+                                {
+                                    MainScreen.HoveringOverEventBox = box;
+                                }
+
+                                if (MainScreen.Input.LeftClickDown)
+                                {
+                                    if (MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                    {
+                                        currentDrag.UndoRestoreState = new TaeUndoRestorableGraphState(this, new List<ITaeClonable> { });
+                                        currentDrag.DragType = BoxDragType.MiddleOfEventBox;
+                                        currentDrag.Box = box;
+                                        currentDrag.Offset = new Point((int)(relMouse.X - box.Left), (int)(relMouse.Y - box.Top));
+                                        currentDrag.BoxOriginalWidth = box.Width;
+                                        currentDrag.BoxOriginalStart = box.MyEvent.StartTime;
+                                        currentDrag.BoxOriginalEnd = box.MyEvent.EndTime;
+                                        currentDrag.BoxOriginalRow = box.Row;
+                                        currentDrag.StartMouseRow = MouseLogicalRow;
+                                        currentDrag.StartDragPoint = currentDrag.CurrentDragPoint = relMouse.ToPoint();
+                                    }
+                                    else
+                                    {
+                                        if (MainScreen.MultiSelectedEventBoxes.Contains(box) && !MainScreen.Input.CtrlHeld)
+                                        {
+                                            currentDrag.DragType = BoxDragType.MultiDragMiddleOfEventBox;
+
+                                            currentDrag.UndoRestoreState = new TaeUndoRestorableGraphState(this, new List<ITaeClonable> { });
+
+                                            currentMultiDrag.Clear();
+                                            foreach (var multiBox in MainScreen.MultiSelectedEventBoxes)
                                             {
-                                                MainScreen.MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>
+                                                var newDrag = new TaeDragState();
+
+                                                newDrag.DragType = BoxDragType.MiddleOfEventBox;
+                                                newDrag.Box = multiBox;
+                                                newDrag.Offset = new Point((int)(relMouse.X - multiBox.Left), (int)(relMouse.Y - multiBox.Top));
+                                                newDrag.BoxOriginalWidth = multiBox.Width;
+                                                newDrag.BoxOriginalStart = multiBox.MyEvent.StartTime;
+                                                newDrag.BoxOriginalEnd = multiBox.MyEvent.EndTime;
+                                                newDrag.BoxOriginalRow = multiBox.Row;
+                                                newDrag.StartMouseRow = MouseLogicalRow;
+                                                newDrag.StartDragPoint = newDrag.CurrentDragPoint = relMouse.ToPoint();
+
+                                                currentMultiDrag.Add(newDrag);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
+                                            {
+                                                if (MainScreen.SelectedEventBox == null
+                                                    && MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                                    MainScreen.SelectedEventBox = box;
+                                                else if (MainScreen.SelectedEventBox != null)
+                                                {
+                                                    MainScreen.MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>
                                                 {
                                                     MainScreen.SelectedEventBox,
                                                     box,
                                                 };
-                                                MainScreen.SelectedEventBox = null;
+                                                    MainScreen.SelectedEventBox = null;
+                                                }
+                                                else if (MainScreen.SelectedEventBox == null
+                                                    && MainScreen.MultiSelectedEventBoxes.Count > 0
+                                                    && !MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                    MainScreen.MultiSelectedEventBoxes.Add(box);
                                             }
-                                            else if (MainScreen.SelectedEventBox == null
-                                                && MainScreen.MultiSelectedEventBoxes.Count > 0 
-                                                && !MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                MainScreen.MultiSelectedEventBoxes.Add(box);
-                                        }
-                                        else if (!MainScreen.Input.ShiftHeld && MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
-                                        {
-                                            if (MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                MainScreen.MultiSelectedEventBoxes.Remove(box);
-                                            if (MainScreen.SelectedEventBox == box)
-                                                MainScreen.SelectedEventBox = null;
-                                        }
-                                        else
-                                        {
-                                            MainScreen.MultiSelectedEventBoxes.Clear();
-                                            MainScreen.SelectedEventBox = box;
+                                            else if (!MainScreen.Input.ShiftHeld && MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
+                                            {
+                                                if (MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                    MainScreen.MultiSelectedEventBoxes.Remove(box);
+                                                if (MainScreen.SelectedEventBox == box)
+                                                    MainScreen.SelectedEventBox = null;
+                                            }
+                                            else
+                                            {
+                                                MainScreen.MultiSelectedEventBoxes.Clear();
+                                                MainScreen.SelectedEventBox = box;
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    var isSingleSelect = (currentDrag.DragType == BoxDragType.None) ||
-                        (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.StartDragPoint == currentDrag.CurrentDragPoint);
+                        var isSingleSelect = (currentDrag.DragType == BoxDragType.None) ||
+                            (currentDrag.DragType == BoxDragType.MiddleOfEventBox && currentDrag.StartDragPoint == currentDrag.CurrentDragPoint);
 
 
-                    if (isSingleSelect && MainScreen.Input.LeftClickDown && !(MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight))
-                    {
-                        if (relMouse.X >= box.Left && relMouse.X < box.Right)
+                        if (isSingleSelect && MainScreen.Input.LeftClickDown && !(MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight))
                         {
-                            currentMultiDrag.Clear();
-
-                            if (MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
+                            if (relMouse.X >= box.Left && relMouse.X < box.Right)
                             {
-                                if (MainScreen.SelectedEventBox == null
-                                    && MainScreen.MultiSelectedEventBoxes.Count == 0)
-                                    MainScreen.SelectedEventBox = box;
-                                else if (MainScreen.SelectedEventBox != null)
+                                currentMultiDrag.Clear();
+
+                                if (MainScreen.Input.ShiftHeld && !MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
                                 {
-                                    MainScreen.MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>
+                                    if (MainScreen.SelectedEventBox == null
+                                        && MainScreen.MultiSelectedEventBoxes.Count == 0)
+                                        MainScreen.SelectedEventBox = box;
+                                    else if (MainScreen.SelectedEventBox != null)
+                                    {
+                                        MainScreen.MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>
                                     {
                                         MainScreen.SelectedEventBox,
                                         box,
                                     };
-                                    MainScreen.SelectedEventBox = null;
+                                        MainScreen.SelectedEventBox = null;
+                                    }
+                                    else if (MainScreen.SelectedEventBox == null
+                                        && MainScreen.MultiSelectedEventBoxes.Count > 0
+                                        && !MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                        MainScreen.MultiSelectedEventBoxes.Add(box);
                                 }
-                                else if (MainScreen.SelectedEventBox == null
-                                    && MainScreen.MultiSelectedEventBoxes.Count > 0
-                                    && !MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                    MainScreen.MultiSelectedEventBoxes.Add(box);
-                            }
-                            else if (!MainScreen.Input.ShiftHeld && MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
-                            {
-                                if (MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                    MainScreen.MultiSelectedEventBoxes.Remove(box);
-                                if (MainScreen.SelectedEventBox == box)
-                                    MainScreen.SelectedEventBox = null;
-                            }
-                            else
-                            {
-                                MainScreen.SelectedEventBox = box;
-                                MainScreen.MultiSelectedEventBoxes.Clear();
+                                else if (!MainScreen.Input.ShiftHeld && MainScreen.Input.CtrlHeld && !MainScreen.Input.AltHeld)
+                                {
+                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                        MainScreen.MultiSelectedEventBoxes.Remove(box);
+                                    if (MainScreen.SelectedEventBox == box)
+                                        MainScreen.SelectedEventBox = null;
+                                }
+                                else
+                                {
+                                    MainScreen.SelectedEventBox = box;
+                                    MainScreen.MultiSelectedEventBoxes.Clear();
+                                }
+
+                                break;
                             }
 
-                            break;
                         }
 
                     }
-
                 }
-
                 if (currentDrag.DragType == BoxDragType.None && 
                     MainScreen.Input.LeftClickDown
                     && !(MainScreen.Input.MousePosition.Y < ScrollViewer.Viewport.Top + TimeLineHeight)
@@ -1583,7 +1760,8 @@ namespace DSAnimStudio.TaeEditor
                             var isModified = currentDrag.DragBoxToMouseAndCheckIsModified(relMouse.ToPoint());
                             AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
                             //currentDrag.Box.DragMiddle(MainScreen.Input.MousePositionDelta.X);
-                            currentDrag.ShiftBoxRow(MouseRow);
+                            if (MouseLogicalRow >= 0)
+                                currentDrag.ShiftBoxRow(MouseLogicalRow);
                         }
                         else if (currentDrag.DragType == BoxDragType.MultiDragLeftOfEventBox)
                         {
@@ -1630,7 +1808,8 @@ namespace DSAnimStudio.TaeEditor
 
                                 AnimRef.SetIsModified(AnimRef.GetIsModified() || (!MainScreen.IsReadOnlyFileMode && isModified));
 
-                                multiDrag.ShiftBoxRow(MathHelper.Max(MouseRow, minimumMouseRow));
+                                if (MouseLogicalRow >= 0)
+                                    multiDrag.ShiftBoxRow(MathHelper.Max(MouseLogicalRow, minimumMouseRow));
                             }
 
                             MainScreen.Input.CursorType = MouseCursorType.DragXY;
@@ -1647,39 +1826,42 @@ namespace DSAnimStudio.TaeEditor
                             int lastRow = (int)(dragRect.Bottom / RowHeight) + 1;
                             for (int i = firstRow; i <= lastRow; i++)
                             {
-                                if (sortedByRow.ContainsKey(i))
+                                lock (_lock_sortedByRow)
                                 {
-                                    foreach (var box in sortedByRow[i])
+                                    if (sortedByRow.ContainsKey(i))
                                     {
-                                        var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.Width, (int)box.HeightFr);
-                                        if (boxRect.Intersects(dragRect))
+                                        foreach (var box in sortedByRow[i])
                                         {
-                                            if (currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
+                                            var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.Width, (int)box.HeightFr);
+                                            if (boxRect.Intersects(dragRect))
                                             {
-                                                if (MainScreen.SelectedEventBox == box)
-                                                    MainScreen.SelectedEventBox = null;
-                                                if (MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                    MainScreen.MultiSelectedEventBoxes.Remove(box);
-                                            }
-                                            else
-                                            {
-                                                if (MainScreen.SelectedEventBox == null)
+                                                if (currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
                                                 {
-                                                    if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                        MainScreen.MultiSelectedEventBoxes.Add(box);
+                                                    if (MainScreen.SelectedEventBox == box)
+                                                        MainScreen.SelectedEventBox = null;
+                                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                        MainScreen.MultiSelectedEventBoxes.Remove(box);
                                                 }
                                                 else
                                                 {
-                                                    if (!MainScreen.MultiSelectedEventBoxes.Contains(MainScreen.SelectedEventBox))
-                                                        MainScreen.MultiSelectedEventBoxes.Add(MainScreen.SelectedEventBox);
-                                                    if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                        MainScreen.MultiSelectedEventBoxes.Add(box);
-                                                    MainScreen.SelectedEventBox = null;
+                                                    if (MainScreen.SelectedEventBox == null)
+                                                    {
+                                                        if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                            MainScreen.MultiSelectedEventBoxes.Add(box);
+                                                    }
+                                                    else
+                                                    {
+                                                        if (!MainScreen.MultiSelectedEventBoxes.Contains(MainScreen.SelectedEventBox))
+                                                            MainScreen.MultiSelectedEventBoxes.Add(MainScreen.SelectedEventBox);
+                                                        if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                            MainScreen.MultiSelectedEventBoxes.Add(box);
+                                                        MainScreen.SelectedEventBox = null;
+                                                    }
+
                                                 }
 
+
                                             }
-
-
                                         }
                                     }
                                 }
@@ -1707,39 +1889,42 @@ namespace DSAnimStudio.TaeEditor
                             int lastRow = (int)(dragRect.Bottom / RowHeight) + 1;
                             for (int i = firstRow; i <= lastRow; i++)
                             {
-                                if (sortedByRow.ContainsKey(i))
+                                lock (_lock_sortedByRow)
                                 {
-                                    foreach (var box in sortedByRow[i])
+                                    if (sortedByRow.ContainsKey(i))
                                     {
-                                        var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.Width, (int)box.HeightFr);
-                                        if (boxRect.Intersects(dragRect))
+                                        foreach (var box in sortedByRow[i])
                                         {
-                                            if (currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
+                                            var boxRect = new Rectangle((int)box.Left, (int)(box.Top - TimeLineHeight), (int)box.Width, (int)box.HeightFr);
+                                            if (boxRect.Intersects(dragRect))
                                             {
-                                                if (MainScreen.SelectedEventBox == box)
-                                                    MainScreen.SelectedEventBox = null;
-                                                if (MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                    MainScreen.MultiSelectedEventBoxes.Remove(box);
-                                            }
-                                            else
-                                            {
-                                                if (MainScreen.SelectedEventBox == null)
+                                                if (currentDrag.DragType == BoxDragType.MultiSelectionRectangleSUBTRACT)
                                                 {
-                                                    if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                        MainScreen.MultiSelectedEventBoxes.Add(box);
+                                                    if (MainScreen.SelectedEventBox == box)
+                                                        MainScreen.SelectedEventBox = null;
+                                                    if (MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                        MainScreen.MultiSelectedEventBoxes.Remove(box);
                                                 }
                                                 else
                                                 {
-                                                    if (!MainScreen.MultiSelectedEventBoxes.Contains(MainScreen.SelectedEventBox))
-                                                        MainScreen.MultiSelectedEventBoxes.Add(MainScreen.SelectedEventBox);
-                                                    if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
-                                                        MainScreen.MultiSelectedEventBoxes.Add(box);
-                                                    MainScreen.SelectedEventBox = null;
+                                                    if (MainScreen.SelectedEventBox == null)
+                                                    {
+                                                        if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                            MainScreen.MultiSelectedEventBoxes.Add(box);
+                                                    }
+                                                    else
+                                                    {
+                                                        if (!MainScreen.MultiSelectedEventBoxes.Contains(MainScreen.SelectedEventBox))
+                                                            MainScreen.MultiSelectedEventBoxes.Add(MainScreen.SelectedEventBox);
+                                                        if (!MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                                            MainScreen.MultiSelectedEventBoxes.Add(box);
+                                                        MainScreen.SelectedEventBox = null;
+                                                    }
+
                                                 }
 
+
                                             }
-
-
                                         }
                                     }
                                 }
@@ -1783,7 +1968,7 @@ namespace DSAnimStudio.TaeEditor
                         bool copyOfIsMainScreenModified = MainScreen.IsModified;
                         bool copyOfIsAnimModified = MainScreen.SelectedTaeAnim.GetIsModified();
 
-                        MainScreen.UndoMan.NewAction(
+                        MainScreen.UndoMan.NewActionCustomPreState(customPreState: currentDrag.UndoRestoreState,
                             doAction: () =>
                             {
                                 copyOfBox.MyEvent.StartTime = copyOfCurrentBoxStart;
@@ -1797,6 +1982,8 @@ namespace DSAnimStudio.TaeEditor
                                     (!MainScreen.IsReadOnlyFileMode && ((copyOfCurrentBoxStart != copyOfOldBoxStart) ||
                                     (copyOfCurrentBoxEnd != copyOfOldBoxEnd) ||
                                     (copyOfCurrentBoxRow != copyOfOldBoxRow))));
+
+                                FixAllGroupBounds(ignoreUndoRedo: true);
                             },
                             undoAction: () =>
                             {
@@ -1818,6 +2005,8 @@ namespace DSAnimStudio.TaeEditor
                                 {
                                     MainScreen.SelectedTaeAnim.SetIsModified(copyOfIsAnimModified);
                                 }
+
+                                FixAllGroupBounds(ignoreUndoRedo: true);
                             });
 
                         currentDrag.DragType = BoxDragType.None;
@@ -1827,6 +2016,8 @@ namespace DSAnimStudio.TaeEditor
                         currentDrag.DragType == BoxDragType.MultiDragRightOfEventBox ||
                         currentDrag.DragType == BoxDragType.MultiDragMiddleOfEventBox)
                     {
+                        
+
                         List<TaeEditAnimEventBox> copiesOfBox = new List<TaeEditAnimEventBox>();
 
                         List<float> copiesOfOldBoxStart = new List<float>();
@@ -1853,7 +2044,7 @@ namespace DSAnimStudio.TaeEditor
                             copiesOfCurrentBoxRow.Add(multiDrag.Box.Row);
                         }
 
-                        MainScreen.UndoMan.NewAction(
+                        MainScreen.UndoMan.NewActionCustomPreState(customPreState: currentDrag.UndoRestoreState,
                                 doAction: () =>
                                 {
                                     for (int i = 0; i < copiesOfBox.Count; i++)
@@ -1870,6 +2061,7 @@ namespace DSAnimStudio.TaeEditor
                                             (copiesOfCurrentBoxEnd[i] != copiesOfOldBoxEnd[i]) ||
                                             (copiesOfCurrentBoxRow[i] != copiesOfOldBoxRow[i]))));
                                     }
+                                    FixAllGroupBounds(ignoreUndoRedo: true);
                                 },
                                 undoAction: () =>
                                 {
@@ -1894,7 +2086,7 @@ namespace DSAnimStudio.TaeEditor
                                             MainScreen.SelectedTaeAnim.SetIsModified(copyOfIsAnimModified);
                                         }
 
-
+                                        FixAllGroupBounds(ignoreUndoRedo: true);
                                     }
                                 });
 
@@ -1986,7 +2178,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void UpdateMouseOutsideRect(float elapsedSeconds, bool allowMouseUpdate)
         {
-            MouseRow = -1;
+            MouseLogicalRow = -1;
             if (!allowMouseUpdate)
             {
                 if (currentDrag.DragType == BoxDragType.MultiSelectionRectangle)
@@ -2003,28 +2195,33 @@ namespace DSAnimStudio.TaeEditor
 
         private Point GetVirtualAreaSize()
         {
-            
+            int w = 0;
+            int h = 0;
 
             if (GhostEventGraph != null)
             {
-                if (GhostEventGraph.EventBoxes.Count == 0)
-                    return Point.Zero;
-
-                return new Point(
-                (int)GhostEventGraph.EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 64,
-                (int)GhostEventGraph.EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 64);
+                if (GhostEventGraph.EventBoxes.Count > 0)
+                {
+                    w = (int)GhostEventGraph.EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 256;
+                    h = (int)GhostEventGraph.EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 256;
+                }
             }
             else
             {
-                if (EventBoxes.Count == 0)
-                    return Point.Zero;
-
-                return new Point(
-                (int)EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 64,
-                (int)EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 64);
+                if (EventBoxes.Count > 0)
+                {
+                    w = (int)EventBoxes.OrderByDescending(x => x.MyEvent.EndTime).First().Right + 256;
+                    h = (int)EventBoxes.OrderByDescending(x => x.Row).First().Bottom + 256;
+                }
+                
             }
 
-            
+            if ((PlaybackCursor.MaxTime * SecondsPixelSize + 256) > w)
+            {
+                w = (int)(PlaybackCursor.MaxTime * SecondsPixelSize + 256);
+            }
+
+            return new Point(w, h);
         }
 
         private Dictionary<int, float> GetSecondVerticalLineXPositions()
@@ -2104,8 +2301,13 @@ namespace DSAnimStudio.TaeEditor
         }
 
         private void DrawEventBox(float elapsedSeconds, Matrix scrollMatrix, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont font, SpriteFont smallFont, 
-            TaeEditAnimEventBox box, bool isHover, float opacity, bool updateColorPulse)
+            TaeEditAnimEventBox box, bool isHover, float opacity)
         {
+            if (IsSimpleRemoGroupMode)
+            {
+                box.VisualRow = box.Row;
+            }
+
             var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
 
             var boxHighlightedAndVisiActive = box.PlaybackHighlight && IsNewGraphVisiMode && (PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying);
@@ -2492,6 +2694,59 @@ namespace DSAnimStudio.TaeEditor
                 //        textFG, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                 //}
             }
+            if (box.MyEvent.Group != null && IsSimpleRemoGroupMode)
+            {
+                var strBld = new StringBuilder();
+                var evBoxGrp = box.MyEvent.Group;
+
+                Vector2 boxDebugTextPos = boxRect.BottomLeftCorner() + new Vector2(0, -12);
+
+                if (evBoxGrp != null)
+                {
+                    if (boxDebugTextPos.X < ScrollViewer.Scroll.X)
+                    {
+                        boxDebugTextPos.X = (int)Math.Round(ScrollViewer.Scroll.X + 1);
+                        strBld.Append("<-");
+                    }
+
+                    if (evBoxGrp.GroupType != 128)
+                    {
+                        strBld.Append($"GroupType{evBoxGrp.GroupType}");
+                    }
+
+
+                    if (evBoxGrp.GroupData.DataType == TAE.EventGroup.EventGroupDataType.ApplyToSpecificCutsceneEntity)
+                    {
+                        //sb.AppendLine();
+                        //sb.Append("Affects Remo Entity ");
+                        if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Character)
+                            strBld.Append($"c{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                        else if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Object)
+                            strBld.Append($"o{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                        else if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.DummyNode)
+                            strBld.Append($"d{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                        else if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece)
+                        {
+                            if (evBoxGrp.GroupData.Block >= 0)
+                                strBld.Append($"m{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}B{evBoxGrp.GroupData.Block}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                            else
+                                strBld.Append($"m{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                        }
+
+                        if (evBoxGrp.GroupData.CutsceneEntityType != TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece &&
+                            (evBoxGrp.GroupData.Block >= 0 || evBoxGrp.GroupData.Area >= 0))
+                        {
+                            strBld.Append($" (from m{evBoxGrp.GroupData.Area:D2}_{evBoxGrp.GroupData.Block:D2})");
+                        }
+                    }
+                }
+                string boxDebugText = strBld.ToString();
+                
+                sb.DrawString(smallFont, boxDebugText, boxDebugTextPos + new Vector2(0, 1), Color.Black);
+                sb.DrawString(smallFont, boxDebugText, boxDebugTextPos + new Vector2(1, 1), Color.Black);
+                sb.DrawString(smallFont, boxDebugText, boxDebugTextPos + new Vector2(1, 0), Color.Black);
+                sb.DrawString(smallFont, boxDebugText, boxDebugTextPos, Color.Lime);
+            }
         }
 
         //private void DrawSelectedEventBoxThickOutline(SpriteBatch sb, Texture2D boxTex, TaeEditAnimEventBox box, float opacity)
@@ -2544,74 +2799,205 @@ namespace DSAnimStudio.TaeEditor
         //private float selectionBoxCornerPulseTimer = 0;
         //private float selectionBoxCornerPulseTimerCycleLength = 1;
 
+        private void DrawDebugTextInGraph(string text, Vector2 position, Color color)
+        {
+
+        }
+
+        private void RefreshLogicalAndVisualRowMappings()
+        {
+            lock (_lock_VisualRowToLogicalRowMap)
+            {
+                LogicalRowToVisualRowMap.Clear();
+                VisualRowToLogicalRowMap.Clear();
+
+
+                List<int> logicalRowsMapped = new List<int>();
+
+                void registerRow(int visual, int logical)
+                {
+                    if (logicalRowsMapped.Contains(logical) && logical >= 0)
+                        logical = -1;
+                    else
+                        logicalRowsMapped.Add(logical);
+                    while (VisualRowToLogicalRowMap.Count <= visual)
+                    {
+                        if (VisualRowToLogicalRowMap.Count > 0)
+                        {
+                            VisualRowToLogicalRowMap.Add(VisualRowToLogicalRowMap[VisualRowToLogicalRowMap.Count - 1]);
+                        }
+                        else
+                        {
+                            VisualRowToLogicalRowMap.Add(0);
+                        }
+
+                    }
+                    VisualRowToLogicalRowMap[visual] = logical;
+
+                    if (logical >= 0)
+                    {
+                        while (LogicalRowToVisualRowMap.Count <= visual)
+                        {
+                            if (LogicalRowToVisualRowMap.Count > 0)
+                            {
+                                LogicalRowToVisualRowMap.Add(LogicalRowToVisualRowMap[LogicalRowToVisualRowMap.Count - 1]);
+                            }
+                            else
+                            {
+                                LogicalRowToVisualRowMap.Add(0);
+                            }
+
+                        }
+                        LogicalRowToVisualRowMap[logical] = visual;
+                    }
+                }
+
+                int currentVisualRow = 0;
+                int currentLogicalRow = 0;
+
+                foreach (var group in GroupRegions)
+                {
+                    while (currentLogicalRow < group.StartRow)
+                    {
+                        registerRow(currentVisualRow, currentLogicalRow);
+                        currentVisualRow++;
+                        currentLogicalRow++;
+                    }
+
+                    // Group start - invalid logical row
+                    registerRow(currentVisualRow, -1);
+                    currentVisualRow++;
+                    currentLogicalRow++;
+
+                    for (int i = 1; i < group.RowCount; i++)
+                    {
+                        registerRow(currentVisualRow, currentLogicalRow);
+                        currentVisualRow++;
+                        currentLogicalRow++;
+                    }
+                }
+
+
+                foreach (var b in EventBoxes)
+                {
+                    b.VisualRow = IsFancyCollapsingRemoGroupMode ? GetVisualRowFromLogicalRow(b.Row) : b.Row;
+                }
+            }
+        }
+
         private void DrawAllEventBoxes(float opacity, GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
             SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Matrix scrollMatrix)
         {
             //selectionBoxCornerPulseTimer += elapsedSeconds;
             //selectionBoxCornerPulseTimer = selectionBoxCornerPulseTimer % selectionBoxCornerPulseTimerCycleLength;
 
+            void debugText(string text, Vector2 pos, Color c)
+            {
+                sb.DrawString(smallFont, text, pos + new Vector2(0, 1), Color.Black);
+                sb.DrawString(smallFont, text, pos + new Vector2(0, -1), Color.Black);
+                sb.DrawString(smallFont, text, pos + new Vector2(-1, 0), Color.Black);
+                sb.DrawString(smallFont, text, pos + new Vector2(1, 0), Color.Black);
+                sb.DrawString(smallFont, text, pos, c);
+            }
+
             bool isHoverBoxAlsoSelected = false;
 
             List<TaeEditAnimEventBox> selectedBoxes = new List<TaeEditAnimEventBox>();
 
-            foreach (var kvp in sortedByRow)
-            {
-                var boxesOrderedByTime = kvp.Value.OrderBy(x => x.MyEvent.StartTime);
+            bool oddRowAlternateFlag = false;
 
-                
+            foreach (var gr in GroupRegions)
+            {
+                var rowThisGroupHeaderIsOn = GetVisualRowFromLogicalRow(gr.StartRow);
 
                 List<TaeEditAnimEventBox> highlightedBoxes = new List<TaeEditAnimEventBox>();
-                
 
-                foreach (var box in boxesOrderedByTime)
+                // Placeholder colors lol
+                var groupHeaderColorBG = oddRowAlternateFlag ? Color.Red : Color.Green;
+                var groupRegionColorBG = (oddRowAlternateFlag ? Color.Red : Color.Green) * 0.5f;
+                var groupHeaderColorFG = oddRowAlternateFlag ? Color.Black : Color.Black;
+
+                oddRowAlternateFlag = !oddRowAlternateFlag;
+
+                if (IsFancyCollapsingRemoGroupMode)
                 {
-                    var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
 
-                    if (MainScreen.HoveringOverEventBox == box)
+                    if (!gr.Collapsed)
                     {
-                        isHoverBoxAlsoSelected = isBoxSelected;
-                        continue;
-                    }
-
-                    if (isBoxSelected)
-                    {
-                        selectedBoxes.Add(box);
-                    }
-                    else if (box.PlaybackHighlight && IsNewGraphVisiMode && (PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying))
-                    {
-                        highlightedBoxes.Add(box);
-                    }
-                    else
-                    {
-                        DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity, true);
+                        sb.Draw(boxTex, new Rectangle(
+                        (int)(ScrollViewer.Scroll.X - 8),
+                        (int)(TimeLineHeight + (rowThisGroupHeaderIsOn * RowHeight)),
+                        (int)(ScrollViewer.Viewport.Width + 16),
+                        (int)(RowHeight * (gr.RowCount + 1))), groupRegionColorBG);
                     }
 
-                    //if (!IsNewGraphVisiMode || !(box.PlaybackHighlight || isBoxSelected) || !(PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying))
-                    //{
-                    //    DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity);
-                    //}
-                    //else
-                    //{
-                    //    if (isBoxSelected)
-                    //        selectedBoxes.Add(box);
-                    //    else
-                    //        highlightedBoxes.Add(box);
-                    //}
+                    sb.Draw(boxTex, new Rectangle(
+                        (int)(ScrollViewer.Scroll.X - 8),
+                        (int)(TimeLineHeight + (rowThisGroupHeaderIsOn * RowHeight)),
+                        (int)(ScrollViewer.Viewport.Width + 16),
+                        (int)(RowHeight * 1)), groupHeaderColorBG);
+
+                    sb.DrawString(smallFont, gr.GetGroupText(), new Vector2(ScrollViewer.Scroll.X + 24, TimeLineHeight + (rowThisGroupHeaderIsOn * RowHeight) + 2), groupHeaderColorFG);
+
                 }
 
-                foreach (var box in highlightedBoxes)
+                if (!gr.Collapsed)
                 {
-                    DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity, true);
+                    rowThisGroupHeaderIsOn += gr.RowCount;
                 }
+            }
 
-                
+            lock (_lock_sortedByRow)
+            {
+                foreach (var kvp in sortedByRow)
+                {
+                    var boxesOrderedByTime = sortedByRow[kvp.Key].OrderBy(x => x.MyEvent.StartTime);
 
+                    var highlightedBoxes = new List<TaeEditAnimEventBox>();
 
+                    foreach (var box in boxesOrderedByTime)
+                    {
+                        if (box.CurrentGroupRegion?.Collapsed == true)
+                            continue;
+
+                        var isBoxSelected = (MainScreen.SelectedEventBox == box) || (MainScreen.MultiSelectedEventBoxes.Contains(box));
+
+                        if (MainScreen.HoveringOverEventBox == box)
+                        {
+                            isHoverBoxAlsoSelected = isBoxSelected;
+                            continue;
+                        }
+
+                        if (isBoxSelected)
+                        {
+                            selectedBoxes.Add(box);
+                        }
+                        else if (box.PlaybackHighlight && IsNewGraphVisiMode && (PlaybackCursor.Scrubbing || PlaybackCursor.IsPlaying))
+                        {
+                            highlightedBoxes.Add(box);
+                        }
+                        else
+                        {
+
+                            DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity);
+                            //debugText($"EventLogicalRow{box.Row}", new Vector2(box.Left, box.Top), Color.Cyan);
+                        }
+                    }
+
+                    foreach (var box in highlightedBoxes)
+                    {
+
+                        DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity);
+                        //debugText($"EventLogicalRow{box.Row}", new Vector2(box.Left, box.Top), Color.Cyan);
+                    }
+                }
             }
 
             if (MainScreen.HoveringOverEventBox != null && !isHoverBoxAlsoSelected)
             {
-                DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, MainScreen.HoveringOverEventBox, isHover: true, opacity, true);
+                
+                DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, MainScreen.HoveringOverEventBox, isHover: true, opacity);
+                //debugText($"EventLogicalRow{MainScreen.HoveringOverEventBox.Row}", new Vector2(MainScreen.HoveringOverEventBox.Left, MainScreen.HoveringOverEventBox.Top), Color.Cyan);
             }
 
             if (selectedBoxes.Count > 0 || isHoverBoxAlsoSelected)
@@ -2639,7 +3025,8 @@ namespace DSAnimStudio.TaeEditor
 
                 foreach (var box in selectedBoxes)
                 {
-                    DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity, false);
+                    DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, box, isHover: false, opacity);
+                    //debugText($"EventLogicalRow{box.Row}", new Vector2(box.Left, box.Top), Color.Cyan);
                 }
 
             }
@@ -2648,7 +3035,19 @@ namespace DSAnimStudio.TaeEditor
             {
                 //MainScreen.HoveringOverEventBox.UpdateSelectionColorPulse(elapsedSeconds, true);
                 //DrawSelectedEventBoxThickOutline(sb, boxTex, MainScreen.HoveringOverEventBox, opacity);
-                DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, MainScreen.HoveringOverEventBox, isHover: true, opacity, false);
+                DrawEventBox(elapsedSeconds, scrollMatrix, gd, sb, boxTex, font, smallFont, MainScreen.HoveringOverEventBox, isHover: true, opacity);
+                //debugText($"EventLogicalRow{MainScreen.HoveringOverEventBox.Row}", new Vector2(MainScreen.HoveringOverEventBox.Left, MainScreen.HoveringOverEventBox.Top), Color.Cyan);
+            }
+
+
+            if (EventGroupDebugDrawEnable)
+            {
+                for (int i = 0; i < VisualRowToLogicalRowMap.Count; i++)
+                {
+                    debugText($"LogicalRow:{VisualRowToLogicalRowMap[i]}", new Vector2(ScrollViewer.Scroll.X + 4, TimeLineHeight + (i * RowHeight) + 10), Color.Fuchsia);
+                }
+
+                debugText($"MouseLogicalRow:{MouseLogicalRow}", relMouse + new Vector2(12, TimeLineHeight), Color.Lime);
             }
         }
 
@@ -3274,9 +3673,6 @@ namespace DSAnimStudio.TaeEditor
                 }
                 finally { sb.End(); }
             }
-
-            DrawAllEventGroupRegions(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
-            GhostEventGraph?.DrawAllEventGroupRegions(1.0f, gd, sb, boxTex, font, elapsedSeconds, smallFont, scrollMatrix);
 
             if (MainScreen.Config.ShowEventHoverInfo)
             {

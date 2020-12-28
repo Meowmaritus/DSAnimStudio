@@ -28,46 +28,63 @@ namespace DSAnimStudio.TaeEditor
         }
 
         public bool IsBlendingActive => 
-            (CurrentComboIndex >= 0 && EventSim.GetSimEnabled("EventSimBasicBlending_Combos")) ||
-            (CurrentComboIndex < 0 && EventSim.GetSimEnabled("EventSimBasicBlending"));
+            (CurrentComboIndex >= 0 && EventSim?.GetSimEnabled("EventSimBasicBlending_Combos") == true) ||
+            (CurrentComboIndex < 0 && EventSim?.GetSimEnabled("EventSimBasicBlending") == true);
 
         public TaeEntityType EntityType { get; private set; } = TaeEntityType.NONE;
 
         public TaeEventSimulationEnvironment EventSim { get; private set; }
 
         public static DebugPrimitives.DbgPrimWireArrow DbgPrim_RootMotionStartPoint = null;
-        public static DebugPrimitives.DbgPrimWireArrow DbgPrim_RootMotionMidstPoint = null;
-        public static DebugPrimitives.DbgPrimWireBone GlobalBonePrim;
+        public static DebugPrimitives.DbgPrimWireArrow DbgPrim_RootMotionCurrentPoint = null;
+        public static DebugPrimitives.DbgPrimWireBone DbgPrim_RootMotionPathLine = null;
 
         public Matrix DbgPrim_RootMotionStartPoint_Matrix = Matrix.Identity;
+        public Matrix DbgPrim_RootMotionStartPoint_Matrix_PrevLoop = Matrix.CreateScale(0);
 
         public Queue<Transform> DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue = new Queue<Transform>();
-        public int DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_Max = 200;
-        public float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold = (1f / 30f);
-        public float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
+        public Queue<Transform> DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop = new Queue<Transform>();
+        private float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
+        private float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold => 1f / Main.Config.RootMotionPathUpdateRate;
+
+        public void HardResetRootMotionToStartHere()
+        {
+            lock (_lock_UpdateAndDrawRootMotionPoints)
+            {
+                DbgPrim_RootMotionStartPoint_Matrix_PrevLoop = Matrix.CreateScale(0);
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop = new Queue<Transform>();
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue = new Queue<Transform>();
+            }
+            MarkRootMotionStart();
+        }
 
         private void CreateRootMotionPoints()
         {
-            if (DbgPrim_RootMotionStartPoint == null)
-                DbgPrim_RootMotionStartPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Start", new Transform(Matrix.CreateScale(0.25f)), Color.White)
-                {
-                    Category = DebugPrimitives.DbgPrimCategory.AlwaysDraw,
-                    OverrideColor = Color.Red,
-                };
-
-            if (DbgPrim_RootMotionMidstPoint == null)
-                DbgPrim_RootMotionMidstPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Midst", new Transform(Matrix.CreateScale(0.005f)), Color.White)
-                {
-                    Category = DebugPrimitives.DbgPrimCategory.AlwaysDraw,
-                    OverrideColor = Color.Yellow * 0.5f
-                };
-
-            if (GlobalBonePrim == null)
+            lock (_lock_UpdateAndDrawRootMotionPoints)
             {
-                GlobalBonePrim = new DbgPrimWireBone("Root Motion Midst Connector", new Transform(Matrix.Identity), Color.Yellow)
+                if (DbgPrim_RootMotionStartPoint == null)
+                    DbgPrim_RootMotionStartPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Start Point", new Transform(Matrix.CreateScale(0.25f)), Color.White)
+                    {
+                        Category = DbgPrimCategory.AlwaysDraw,
+                        OverrideColor = Main.Colors.ColorHelperRootMotionStartLocation,
+                    };
+
+                if (DbgPrim_RootMotionCurrentPoint == null)
+                    DbgPrim_RootMotionCurrentPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Current Point", new Transform(Matrix.CreateScale(0.15f)), Color.White)
+                    {
+                        Category = DbgPrimCategory.AlwaysDraw,
+                        OverrideColor = Main.Colors.ColorHelperRootMotionCurrentLocation,
+                    };
+
+                if (DbgPrim_RootMotionPathLine == null)
                 {
-                    Category = DbgPrimCategory.AlwaysDraw,
-                };
+                    DbgPrim_RootMotionPathLine = new DbgPrimWireBone("Root Motion Trail Piece", new Transform(Matrix.Identity), Color.White)
+                    {
+                        Category = DbgPrimCategory.AlwaysDraw,
+                        OverrideColor = Main.Colors.ColorHelperRootMotionTrail,
+                    };
+                }
+
             }
         }
 
@@ -75,16 +92,24 @@ namespace DSAnimStudio.TaeEditor
 
         public void UpdateAndDrawRootMotionPoints(NewBlendableTransform absoluteRootMotionLocation, bool doDraw, float deltaTime = 0)
         {
+            CreateRootMotionPoints();
+
+            if (!Main.Config.RootMotionPathEnabled)
+            {
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop.Clear();
+            }
+
             lock (_lock_UpdateAndDrawRootMotionPoints)
             {
-                CreateRootMotionPoints();
-
                 DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime += Math.Abs(deltaTime);
 
                 if (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime >= DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold)
                 {
-                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Enqueue(new Transform(Matrix.CreateScale(0.15f) * absoluteRootMotionLocation.GetMatrix().ToXna()));
-                    while (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Count > DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_Max)
+                    if (Main.Config.RootMotionPathEnabled)
+                        DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Enqueue(new Transform(Matrix.CreateScale(0.15f) * absoluteRootMotionLocation.GetMatrix().ToXna()));
+
+                    while (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Count > Main.Config.RootMotionPathSampleMax && Main.Config.RootMotionPathSampleMax < TaeConfigFile.RootMotionPathSampleMaxInfinityValue)
                         DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Dequeue();
 
                     DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
@@ -100,34 +125,82 @@ namespace DSAnimStudio.TaeEditor
 
                 Vector3 globalTranslationOffset = (rootMotionDispLocation.Translation - absoluteRootMotionLocation.Translation).ToXna();
 
-                if (doDraw)
+                if (doDraw && Main.Config.RootMotionPathEnabled)
                 {
-                    //DbgPrim_RootMotionStartPoint.Transform = new Transform(absoluteRootMotionLocation.GetMatrix().ToXna());
+                    DbgPrim_RootMotionStartPoint.OverrideColor = Main.Colors.ColorHelperRootMotionStartLocation;
+                    DbgPrim_RootMotionStartPoint.Transform = new Transform(DbgPrim_RootMotionStartPoint_Matrix);
+                    DbgPrim_RootMotionStartPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+
+                    DbgPrim_RootMotionStartPoint.OverrideColor = Main.Colors.ColorHelperRootMotionStartLocation_PrevLoop;
+                    DbgPrim_RootMotionStartPoint.Transform = new Transform(DbgPrim_RootMotionStartPoint_Matrix_PrevLoop);
                     DbgPrim_RootMotionStartPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
                 }
 
-                var asList = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.ToList();
+                DbgPrim_RootMotionPathLine.OverrideColor = Main.Colors.ColorHelperRootMotionTrail;
 
-                for (int i = 0; i < asList.Count; i++)
+                if (doDraw)
                 {
-                    DbgPrim_RootMotionMidstPoint.Transform = asList[i];
-                    if (doDraw)
+                    var asList = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.ToList();
+
+
+                    for (int i = 0; i < asList.Count; i++)
                     {
-                        
-                        DbgPrim_RootMotionMidstPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
-                        if (i < asList.Count - 1)
+                        if (doDraw)
                         {
-                            var next = asList[i + 1];
-                            var curPos = Vector3.Transform(Vector3.Zero, asList[i].WorldMatrix);
-                            var nextPos = Vector3.Transform(Vector3.Zero, asList[i + 1].WorldMatrix);
-                            float length = (nextPos - curPos).Length();
-                            GlobalBonePrim.Transform = new Transform(Matrix.CreateScale(length) *
-                                Matrix.CreateRotationY(MathHelper.PiOver2) *
-                                Matrix.CreateWorld(curPos, nextPos - curPos, Vector3.Up));
-                            GlobalBonePrim.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+
+
+                            if (i < asList.Count - 1)
+                            {
+                                var next = asList[i + 1];
+                                var curPos = Vector3.Transform(Vector3.Zero, asList[i].WorldMatrix);
+                                var nextPos = Vector3.Transform(Vector3.Zero, asList[i + 1].WorldMatrix);
+                                float length = (nextPos - curPos).Length();
+                                DbgPrim_RootMotionPathLine.Transform = new Transform(Matrix.CreateScale(length) *
+                                    Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                    Matrix.CreateWorld(curPos, nextPos - curPos, Vector3.Up));
+                                DbgPrim_RootMotionPathLine.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                            }
+                        }
+                    }
+
+
+                    if (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop != null)
+                    {
+                        DbgPrim_RootMotionPathLine.OverrideColor = Main.Colors.ColorHelperRootMotionTrail_PrevLoop;
+
+                        asList = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop.ToList();
+
+                        for (int i = 0; i < asList.Count; i++)
+                        {
+                            if (doDraw)
+                            {
+
+
+                                if (i < asList.Count - 1)
+                                {
+                                    var next = asList[i + 1];
+                                    var curPos = Vector3.Transform(Vector3.Zero, asList[i].WorldMatrix);
+                                    var nextPos = Vector3.Transform(Vector3.Zero, asList[i + 1].WorldMatrix);
+                                    float length = (nextPos - curPos).Length();
+                                    DbgPrim_RootMotionPathLine.Transform = new Transform(Matrix.CreateScale(length) *
+                                        Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                        Matrix.CreateWorld(curPos, nextPos - curPos, Vector3.Up));
+                                    DbgPrim_RootMotionPathLine.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                                }
+                            }
                         }
                     }
                 }
+
+                if (doDraw)
+                {
+                    DbgPrim_RootMotionCurrentPoint.OverrideColor = Main.Colors.ColorHelperRootMotionCurrentLocation;
+                    DbgPrim_RootMotionCurrentPoint.Transform = new Transform(Matrix.CreateScale(0.25f) * absoluteRootMotionLocation.GetMatrix().ToXna());
+
+                    if (Main.Config.RootMotionPathEnabled)
+                        DbgPrim_RootMotionCurrentPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                }
+
 
                 if (!doDraw)
                 {
@@ -168,13 +241,37 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void MarkRootMotionStart(NewBlendableTransform absoluteRootMotionLocation)
+        public void MarkRootMotionStart()
         {
             CreateRootMotionPoints();
 
-            DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
+            var curTransform = Matrix.CreateScale(0.5f) * (CurrentModel?.AnimContainer?.RootMotionTransform ?? NewBlendableTransform.Identity).GetMatrix().ToXna();
 
-            DbgPrim_RootMotionStartPoint.Transform = new Transform(absoluteRootMotionLocation.GetMatrix().ToXna());
+            if (DbgPrim_RootMotionStartPoint_Matrix != curTransform)
+            {
+                // Force update last frame.
+                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold);
+            }
+
+            lock (_lock_UpdateAndDrawRootMotionPoints)
+            {
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
+
+                
+
+                if (DbgPrim_RootMotionStartPoint_Matrix != curTransform)
+                {
+                    DbgPrim_RootMotionStartPoint_Matrix_PrevLoop = DbgPrim_RootMotionStartPoint_Matrix;
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue;
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue = new Queue<Transform>();
+                    DbgPrim_RootMotionStartPoint_Matrix = curTransform;
+                }
+
+                
+            }
+
+            // Force update first frame.
+            UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold);
         }
 
 
@@ -188,8 +285,11 @@ namespace DSAnimStudio.TaeEditor
 
             if (entityType != TaeEntityType.NPC && CurrentModel != null)
             {
-                CurrentModel?.PossibleNpcParams?.Clear();
-                CurrentModel.SelectedNpcParamIndex = -1;
+                lock (CurrentModel._lock_NpcParams)
+                {
+                    CurrentModel?.PossibleNpcParams?.Clear();
+                    CurrentModel.SelectedNpcParamIndex = -1;
+                }
             }
 
             if (!(entityType == TaeEntityType.PC || entityType == TaeEntityType.REMO))
@@ -205,8 +305,11 @@ namespace DSAnimStudio.TaeEditor
         {
             if (mdl.IS_PLAYER)
             {
-                mdl.PossibleNpcParams.Clear();
-                mdl.SelectedNpcParamIndex = -1;
+                lock (mdl._lock_NpcParams)
+                {
+                    mdl.PossibleNpcParams.Clear();
+                    mdl.SelectedNpcParamIndex = -1;
+                }
 
                 mdl.CreateChrAsm();
 
@@ -231,24 +334,30 @@ namespace DSAnimStudio.TaeEditor
 
                 SetEntityType(isRemo ? TaeEntityType.REMO : TaeEntityType.NPC);
 
-                mdl.NpcMaterialNamesPerMask = mdl.GetMaterialNamesPerMask();
-
-                mdl.NpcMasksEnabledOnAllNpcParams = mdl.NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
-                foreach (var kvp in mdl.NpcMaterialNamesPerMask)
+                lock (mdl._lock_NpcParams)
                 {
-                    if (kvp.Key < 0)
-                        continue;
 
-                    foreach (var npcParam in mdl.PossibleNpcParams)
+                    mdl.NpcMaterialNamesPerMask = mdl.GetMaterialNamesPerMask();
+
+
+                    mdl.NpcMasksEnabledOnAllNpcParams = mdl.NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
+                    foreach (var kvp in mdl.NpcMaterialNamesPerMask)
                     {
-                        if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
-                        {
-                            if (mdl.NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
-                                mdl.NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
+                        if (kvp.Key < 0)
+                            continue;
 
-                            break;
+                        foreach (var npcParam in mdl.PossibleNpcParams)
+                        {
+                            if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
+                            {
+                                if (mdl.NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                    mdl.NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
+
+                                break;
+                            }
                         }
                     }
+
                 }
 
                 //foreach (var npc in validNpcParams)
@@ -378,7 +487,10 @@ namespace DSAnimStudio.TaeEditor
                 if (Scene.Models.Count == 0)
                     GameDataManager.LoadCharacter("c0000");
 
-                Scene.Models = Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
+                lock (Scene._lock_ModelLoad_Draw)
+                {
+                    Scene.Models = Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
+                }
 
                 //throw new NotImplementedException("REMO NOT SUPPORTED YET");
             }
@@ -388,6 +500,9 @@ namespace DSAnimStudio.TaeEditor
             InitializeForCurrentModel();
 
             Scene.EnableModelDrawing();
+            if (Scene.IsEmpty)
+                GameDataManager.LoadCharacter("c1000");
+
             if (!CurrentModel.IS_PLAYER)
                 Scene.EnableModelDrawing2();
         }
@@ -411,25 +526,31 @@ namespace DSAnimStudio.TaeEditor
                 if (GFX.World.OrbitCamDistanceInput < 0.5f)
                     GFX.World.OrbitCamDistanceInput = 5;
 
-                CurrentModel.NpcMaterialNamesPerMask = CurrentModel.GetMaterialNamesPerMask();
-
-                CurrentModel.NpcMasksEnabledOnAllNpcParams = CurrentModel.NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
-                foreach (var kvp in CurrentModel.NpcMaterialNamesPerMask)
+                lock (CurrentModel._lock_NpcParams)
                 {
-                    if (kvp.Key < 0)
-                        continue;
 
-                    foreach (var npcParam in CurrentModel.PossibleNpcParams)
+                    CurrentModel.NpcMaterialNamesPerMask = CurrentModel.GetMaterialNamesPerMask();
+
+                    CurrentModel.NpcMasksEnabledOnAllNpcParams = CurrentModel.NpcMaterialNamesPerMask.Select(kvp => kvp.Key).ToList();
+                    foreach (var kvp in CurrentModel.NpcMaterialNamesPerMask)
                     {
-                        if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
-                        {
-                            if (CurrentModel.NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
-                                CurrentModel.NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
+                        if (kvp.Key < 0)
+                            continue;
 
-                            break;
+                        foreach (var npcParam in CurrentModel.PossibleNpcParams)
+                        {
+                            if (npcParam.DrawMask.Length <= kvp.Key || !npcParam.DrawMask[kvp.Key])
+                            {
+                                if (CurrentModel.NpcMasksEnabledOnAllNpcParams.Contains(kvp.Key))
+                                    CurrentModel.NpcMasksEnabledOnAllNpcParams.Remove(kvp.Key);
+
+                                break;
+                            }
                         }
                     }
                 }
+
+                OSD.WindowEntitySettings.IsOpen = true;
             }
         }
 
@@ -490,6 +611,7 @@ namespace DSAnimStudio.TaeEditor
 
             //V2.0
             //CurrentModel.AnimContainer.IsPlaying = false;
+            CurrentModel.AnimContainer.EnableLooping = Main.Config.LoopEnabled;
             CurrentModel.AnimContainer.ScrubRelative(timeDelta);
 
             
@@ -563,6 +685,7 @@ namespace DSAnimStudio.TaeEditor
                 {
                     //V2.0
                     //CurrentModel.AnimContainer.IsPlaying = false;
+                    CurrentModel.AnimContainer.EnableLooping = Main.Config.LoopEnabled;
                     CurrentModel.AnimContainer.ScrubRelative(timeDelta);
 
                 UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, timeDelta);
@@ -601,6 +724,13 @@ namespace DSAnimStudio.TaeEditor
 
         public void StartCombo(bool isLoop, bool isRecord, TaeComboEntry[] entries)
         {
+            if (CurrentComboIndex >= 0)
+            {
+                // Just in case?
+                CancelCombo();
+            }    
+
+            Main.Config.LoopEnabled_BeforeCombo = Main.Config.LoopEnabled;
             // Do this before setting current combo since inside here, it will check if there's a combo and not reset stuff if there's currently a combo happening.
             CurrentComboIndex = -1;
             EventSim.OnNewAnimSelected(Graph.EventBoxes);
@@ -668,7 +798,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (Graph.PlaybackCursor.IsPlaying)
                 {
-                    Graph.PlaybackCursor.Transport_PlayPause();
+                    Graph.PlaybackCursor.Transport_PlayPause(isUserInput: false);
                 }
 
                 //RecordCurrentComboFrame();
@@ -679,7 +809,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 if (!Graph.PlaybackCursor.IsPlaying)
                 {
-                    Graph.PlaybackCursor.Transport_PlayPause();
+                    Graph.PlaybackCursor.Transport_PlayPause(isUserInput: false);
                 }
             }
 
@@ -695,6 +825,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void CancelCombo()
         {
+            Main.Config.LoopEnabled = Main.Config.LoopEnabled_BeforeCombo;
             IsComboRecording = false;
             CurrentComboIndex = -1;
             EventSim.OverrideHitViewDummyPolySource = null;
@@ -717,7 +848,7 @@ namespace DSAnimStudio.TaeEditor
                 else
                 {
                     if (Graph.PlaybackCursor.IsPlaying)
-                        Graph.PlaybackCursor.Transport_PlayPause();
+                        Graph.PlaybackCursor.Transport_PlayPause(isUserInput: false);
 
                     if (IsComboRecording)
                         CurrentComboRecorder?.FinalizeRecording();
@@ -748,20 +879,22 @@ namespace DSAnimStudio.TaeEditor
 
             if (CurrentComboIndex >= 0)
             {
+                Main.Config.LoopEnabled = false;
+
                 if (CurrentComboIndex < CurrentCombo.Length)
                 {
 
-                    if (Graph.PlaybackCursor.MaxTime > 0 && (Graph.PlaybackCursor.CurrentTime >= (Graph.PlaybackCursor.MaxTime - 0.00005f)) ||
+                    if (Graph.PlaybackCursor.MaxTime > 0 && (Graph.PlaybackCursor.CurrentTime >= Graph.PlaybackCursor.MaxTime) ||
                         (CurrentCombo[CurrentComboIndex].EndFrame >= 0 && Graph.PlaybackCursor.CurrentFrame >= CurrentCombo[CurrentComboIndex].EndFrame))
                     {
                         if (CurrentCombo[CurrentComboIndex].EndFrame >= 0)
                         {
                             Graph.PlaybackCursor.CurrentTime = (CurrentCombo[CurrentComboIndex].EndFrame * Graph.PlaybackCursor.CurrentSnapInterval);
                         }
-                        else
-                        {
-                            Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime - 0.00005f;
-                        }
+                        //else
+                        //{
+                        //    Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime - 0.00005f;
+                        //}
                         
                         //Graph.PlaybackCursor.UpdateScrubbing();
 
@@ -936,22 +1069,38 @@ namespace DSAnimStudio.TaeEditor
 
         public void ResetRootMotion()
         {
-            if (CurrentModel != null)
-            {
-                CurrentModel.AnimContainer.ResetRootMotion();
-            }
-            MarkRootMotionStart(NewBlendableTransform.Identity);
+            CurrentModel.AnimContainer?.ResetRootMotion();
+            MarkRootMotionStart();
         }
 
         public void RemoveTransition()
         {
-            if (CurrentModel?.AnimContainer != null && CurrentModel.AnimContainer.AnimationLayers.Count == 2)
+            void DoAnimContainer(NewAnimationContainer animContainer)
             {
-                var curAnim = CurrentModel.AnimContainer.AnimationLayers[1];
-                CurrentModel.AnimContainer.AnimationLayers.Clear();
-                curAnim.Weight = 1;
-                CurrentModel.AnimContainer.AnimationLayers.Add(curAnim);
+                if (animContainer == null)
+                    return;
+                if (animContainer != null && animContainer.AnimationLayers.Count > 1)
+                {
+                    lock (animContainer._lock_AnimationLayers)
+                    {
+                        var curAnim = animContainer.AnimationLayers[animContainer.AnimationLayers.Count - 1];
+                        animContainer.AnimationLayers.Clear();
+                        curAnim.Weight = 1;
+                        curAnim.ReferenceWeight = 1;
+                        animContainer.AnimationLayers.Add(curAnim);
+                    }
+                }
             }
+
+            DoAnimContainer(CurrentModel?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel0?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel1?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel2?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel3?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel0?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel1?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel2?.AnimContainer);
+            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel3?.AnimContainer);
         }
 
         public float GetAnimWeight(string animName)
@@ -1035,9 +1184,10 @@ namespace DSAnimStudio.TaeEditor
 
                 CurrentModel.AnimContainer.CurrentAnimationName = mainChrAnimName;
 
+                CurrentModel.ChrAsm?.SelectWeaponAnimations(mainChrAnimName);
+
                 prevRootMotionLoopCount = 0;
-                MarkRootMotionStart(CurrentModel.AnimContainer.RootMotionTransform);
-                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
+                MarkRootMotionStart();
 
                 //lock (CurrentModel.AnimContainer._lock_AnimationLayers)
                 //{
@@ -1078,7 +1228,7 @@ namespace DSAnimStudio.TaeEditor
 
                     CurrentModel.AnimContainer.ScrubRelative(0);
 
-                    MarkRootMotionStart(CurrentModel.AnimContainer.RootMotionTransform);
+                    MarkRootMotionStart();
 
                     UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
                 }
@@ -1161,14 +1311,21 @@ namespace DSAnimStudio.TaeEditor
                 
             }
 
-            int curRootMotionLoopCount = CurrentModel.AnimContainer.CurrentAnimation.RootMotion.CurrentLoopNum;
-            if (curRootMotionLoopCount != prevRootMotionLoopCount)
+            if (CurrentModel.AnimContainer?.CurrentAnimation?.RootMotion != null)
             {
-                MarkRootMotionStart(CurrentModel.AnimContainer.RootMotionTransform);
-                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
-            }
-            prevRootMotionLoopCount = curRootMotionLoopCount;
 
+                int curRootMotionLoopCount = CurrentModel.AnimContainer.CurrentAnimation.RootMotion.CurrentLoopNum;
+                if (curRootMotionLoopCount != prevRootMotionLoopCount)
+                {
+                    MarkRootMotionStart();
+                }
+                prevRootMotionLoopCount = curRootMotionLoopCount;
+
+            }
+            //else
+            //{
+            //    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
+            //}
 
         }
 
@@ -1189,6 +1346,14 @@ namespace DSAnimStudio.TaeEditor
             
 
             var printer = new StatusPrinter(Vector2.One * 4, Main.Colors.GuiColorViewportStatus);
+
+            if (Graph?.PlaybackCursor.IsPlayingRemoFullPreview == true)
+            {
+                printer.AppendLine("[CUTSCENE PLAY MODE]", Color.Cyan);
+                printer.BaseScale = (StatusTextScale / 100) * 0.75f;
+                printer.Draw();
+                return;
+            }
 
             //if (FmodManager.LoadedFEVs.Count > 0)
             //{
@@ -1213,39 +1378,37 @@ namespace DSAnimStudio.TaeEditor
                     printer.AppendLine($"Warning: Model exceeds max bone count.", Main.Colors.GuiColorViewportStatusMaxBoneCountExceeded);
                 }
 
-                if (CurrentModel.AnimContainer.CurrentAnimation != null)
+                printer.AppendLine($"[ANIMATION LAYERS:]");
+                lock (CurrentModel.AnimContainer._lock_AnimationLayers)
                 {
-                    printer.AppendLine($"Animation: {CurrentModel.AnimContainer.CurrentAnimation}");
-                }
-                else if (CurrentModel.AnimContainer.CurrentAnimationName != null)
-                {
-                    printer.AppendLine($"Animation: {(CurrentModel.AnimContainer.CurrentAnimationName)} (Invalid)", Main.Colors.GuiColorViewportStatusAnimDoesntExist);
+                    foreach (var anim in CurrentModel.AnimContainer.AnimationLayers)
+                        printer.AppendLine($"    [x{anim.Weight:0.00}] [x{anim.CurrentTime:00.000}/{anim.Duration:00.000}] {anim.Name}");
                 }
 
                 if (CurrentComboIndex >= 0)
                 {
-                    printer.AppendLine($"Playing Combo ({(CurrentComboLoop ? "Looping" : "Once")}):", Main.Colors.GuiColorViewportStatusCombo);
+                    printer.AppendLine($"\nPlaying Combo ({(CurrentComboLoop ? "Looping" : "Once")}):", Main.Colors.GuiColorViewportStatusCombo);
                     for (int c = 0; c < CurrentCombo.Length; c++)
                     {
                         printer.AppendLine($"    {(CurrentComboIndex == c ? "■" : "□")} {CurrentCombo[c]}", Main.Colors.GuiColorViewportStatusCombo);
                     }
                 }
 
-                if (CurrentModel.AnimContainer.AnimationLayers.Count > 0)
-                {
-                    //printer.AppendLine($"Active Anims:");
+                //if (CurrentModel.AnimContainer.AnimationLayers.Count > 0)
+                //{
+                //    //printer.AppendLine($"Active Anims:");
 
-                    //for (int i = 0; i < CurrentModel.AnimContainer.AnimationLayers.Count; i++)
-                    //{
-                    //    var layer = CurrentModel.AnimContainer.AnimationLayers[i];
-                    //    printer.AppendLine($"[{i:D2}] [{layer.Weight:0.000}x] {layer.Name} [{layer.CurrentTime:0.000}/{layer.Duration:0.000}]");
-                    //}
-                    var tr = GetCurrentTransition();
-                    if (tr != null)
-                    {
-                        printer.AppendLine($"<Showing Transition from {tr}>");
-                    }
-                }
+                //    //for (int i = 0; i < CurrentModel.AnimContainer.AnimationLayers.Count; i++)
+                //    //{
+                //    //    var layer = CurrentModel.AnimContainer.AnimationLayers[i];
+                //    //    printer.AppendLine($"[{i:D2}] [{layer.Weight:0.000}x] {layer.Name} [{layer.CurrentTime:0.000}/{layer.Duration:0.000}]");
+                //    //}
+                //    var tr = GetCurrentTransition();
+                //    if (tr != null)
+                //    {
+                //        printer.AppendLine($"<Showing Transition from {tr}>");
+                //    }
+                //}
             }
 
             if (EntityType == TaeEntityType.PC)
@@ -1254,8 +1417,15 @@ namespace DSAnimStudio.TaeEditor
 
                 void DoWpnAnim(string wpnKind, Model wpnMdl)
                 {
+                    printer.AppendLine(wpnKind);
                     if (wpnMdl?.AnimContainer?.CurrentAnimation != null)
-                        printer.AppendLine($"{wpnKind} Animation: {(wpnMdl?.AnimContainer?.CurrentAnimation?.ToString() ?? "NONE")}");
+                    {
+                        lock (wpnMdl.AnimContainer._lock_AnimationLayers)
+                        {
+                            foreach (var anim in wpnMdl.AnimContainer.AnimationLayers)
+                                printer.AppendLine($"            [x{anim.Weight:0.00}] [x{anim.CurrentTime:00.000}/{anim.Duration:00.000}] {anim.Name}");
+                        }
+                    }
                 }
 
                 if (CurrentModel?.ChrAsm?.RightWeapon != null)
@@ -1340,9 +1510,7 @@ namespace DSAnimStudio.TaeEditor
 
             printer.BaseScale = StatusTextScale / 100;
 
-            GFX.SpriteBatchBeginForText();
             printer.Draw();
-            GFX.SpriteBatchEnd();
         }
     }
 }

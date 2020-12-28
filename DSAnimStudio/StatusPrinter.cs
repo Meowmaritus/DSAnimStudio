@@ -19,15 +19,17 @@ namespace DSAnimStudio
         public Vector2? Position;
         public Vector3 Position3D = Vector3.Zero;
         public Color? Color;
+        public Color? ShadowColor;
 
         public float BaseScale = 1.0f;
 
         public bool ScaleByEffectiveSSAA = false;
 
-        public StatusPrinter(Vector2? pos, Color? color = null)
+        public StatusPrinter(Vector2? pos, Color? color = null, Color? shadowColor = null)
         {
             Position = pos;
             Color = color;
+            ShadowColor = shadowColor;
         }
 
         private List<StatusLine> statusLines = new List<StatusLine>();
@@ -96,7 +98,7 @@ namespace DSAnimStudio
 
                
                 var color = line.Color ?? Color ?? Microsoft.Xna.Framework.Color.Cyan;
-                ImGuiDebugDrawer.DrawText(line.Text, currentPos, color, fontSize: ImGuiDebugDrawer.BaseFontSize * scale);
+                ImGuiDebugDrawer.DrawText(line.Text, currentPos, color, shadowColor: ShadowColor, fontSize: ImGuiDebugDrawer.BaseFontSize * scale);
 
                 currentPos.Y += ImGuiDebugDrawer.BaseFontSize * scale;
             }

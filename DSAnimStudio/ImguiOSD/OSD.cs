@@ -30,8 +30,10 @@ namespace DSAnimStudio.ImguiOSD
 #if DEBUG
         //very FromSoft style
         public static bool EnableDebugMenu = true;
+        public static bool EnableDebugMenuFull = true;
 #else
-        public static bool EnableDebugMenu = false;
+        public static bool EnableDebugMenu = true;
+        public static bool EnableDebugMenuFull = false;
 #endif
         public static bool IsInit { get; private set; } = true;
 
@@ -41,6 +43,7 @@ namespace DSAnimStudio.ImguiOSD
         public static Window.Help WindowHelp = new Window.Help();
         public static Window.SceneManager WindowSceneManager = new Window.SceneManager();
         public static Window.Toolbox WindowToolbox = new Window.Toolbox();
+        public static Window.EntitySettings WindowEntitySettings = new Window.EntitySettings();
 
 
         public static Window.EventInspector SpWindowEventInspector = new Window.EventInspector();
@@ -61,7 +64,7 @@ namespace DSAnimStudio.ImguiOSD
                 ImGui.EndMainMenuBar();
             }
 
-            
+
 
             ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0.15f, 0.15f, 0.15f, Focused ? 1 : 0.65f));
             TooltipManager.PreUpdate(elapsedTime, offsetX, offsetY);
@@ -71,6 +74,7 @@ namespace DSAnimStudio.ImguiOSD
             WindowHelp.Update();
             WindowSceneManager.Update();
             WindowToolbox.Update();
+            WindowEntitySettings.Update();
 
 
             SpWindowEventInspector.Update();
@@ -87,6 +91,11 @@ namespace DSAnimStudio.ImguiOSD
 
             Focused = ImGui.IsAnyItemFocused() || ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow);
             Hovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow) || ImGui.IsAnyItemHovered();
+
+            if (Focused || Hovered)
+            {
+                Main.Input.CursorType = MouseCursorType.Arrow;
+            }
         }
     }
 }

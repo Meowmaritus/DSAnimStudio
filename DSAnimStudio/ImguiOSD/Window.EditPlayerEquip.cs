@@ -51,7 +51,7 @@ namespace DSAnimStudio.ImguiOSD
                             NewChrAsm.WeaponStyleType.TwoHandL,
                             NewChrAsm.WeaponStyleType.TwoHandR,
                             NewChrAsm.WeaponStyleType.OneHandTransformedL,
-                            NewChrAsm.WeaponStyleType.OneHandTransformedL,
+                            NewChrAsm.WeaponStyleType.OneHandTransformedR,
                         };
 
                         EquipStylesNamesList = new string[]
@@ -220,8 +220,13 @@ namespace DSAnimStudio.ImguiOSD
 
                 Tools.FancyComboBox("Weapon Style", ref EquipStyleIndex, EquipStylesNamesList);
 
+                NewChrAsm.WeaponStyleType oldStartWeaponStyle = asm.StartWeaponStyle;
+
                 asm.StartWeaponStyle = (EquipStyleIndex >= 0 && EquipStyleIndex < EquipStylesList.Length) ? 
                     EquipStylesList[EquipStyleIndex] : NewChrAsm.WeaponStyleType.None;
+
+                if (asm.StartWeaponStyle != oldStartWeaponStyle)
+                    asm.WeaponStyle = asm.StartWeaponStyle;
 
                 ImGui.Separator();
 

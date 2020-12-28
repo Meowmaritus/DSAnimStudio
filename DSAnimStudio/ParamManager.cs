@@ -126,8 +126,10 @@ namespace DSAnimStudio
             foreach (var kvp in NpcParam.Where(r 
                 => CheckNpcParamForCurrentGameType(chrId, r.Value, npcParams.Count == 0, matchCXXX0)))
             {
+                if (!npcParams.Contains(kvp.Value))
                 npcParams.Add(kvp.Value);
             }
+            npcParams = npcParams.OrderBy(x => x.ID).ToList();
             return npcParams;
         }
         

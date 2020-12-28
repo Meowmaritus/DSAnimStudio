@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using ImGuiNET;
+using Microsoft.Xna.Framework;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -76,40 +77,24 @@ namespace DSAnimStudio
                     if (DmyPoly1 == -1)
                         return new List<Matrix>() { Matrix.Identity };
 
-                    var modMatrix = isPlayerWeapon ? Matrix.Identity : mdl.CurrentTransform.WorldMatrix;
-
                     if (mdl.ChrAsm == null)
-                        return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly1, modMatrix) ?? new List<Matrix>() { modMatrix };
+                        return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly1) ?? new List<Matrix>() { mdl.CurrentTransform.WorldMatrix };
 
                     var place = mdl.ChrAsm.GetDummyPolySpawnPlace(defaultDummySource, DmyPoly1);
 
-                    
-                    //if (place == mdl.DummyPolyMan)
-                    //{
-                    //    modMatrix = Matrix.Identity;
-                    //}
-
-                    return place?.GetDummyMatricesByID(DmyPoly1 % 1000, modMatrix) ?? new List<Matrix>() { modMatrix };
+                    return place?.GetDummyMatricesByID(DmyPoly1 % 1000) ?? new List<Matrix>() { mdl.CurrentTransform.WorldMatrix };
                 }
 
                 public List<Matrix> GetDmyPoly2Locations(Model mdl, DummyPolySource defaultDummySource, bool isPlayerWeapon)
                 {
                     if (DmyPoly2 == -1)
-                        return new List<Matrix>() { Matrix.Identity };
-
-                    var modMatrix = isPlayerWeapon ? Matrix.Identity : mdl.CurrentTransform.WorldMatrix;
+                        return new List<Matrix>() { mdl.CurrentTransform.WorldMatrix };
 
                     if (mdl.ChrAsm == null)
-                        return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly2, modMatrix) ?? new List<Matrix>() { modMatrix };
+                        return mdl.DummyPolyMan?.GetDummyMatricesByID(DmyPoly2) ?? new List<Matrix>() { mdl.CurrentTransform.WorldMatrix };
 
                     var place = mdl.ChrAsm.GetDummyPolySpawnPlace(defaultDummySource, DmyPoly2);
-
-                    //if (place != mdl.DummyPolyMan)
-                    //{
-                    //    modMatrix = mdl.StartTransform.WorldMatrix * Matrix.Invert(mdl.CurrentRootMotionRotation * mdl.CurrentRootMotionTranslation);
-                    //}
-
-                    return place?.GetDummyMatricesByID(DmyPoly2 % 1000, modMatrix) ?? new List<Matrix>() { modMatrix };
+                    return place?.GetDummyMatricesByID(DmyPoly2 % 1000) ?? new List<Matrix>() { mdl.CurrentTransform.WorldMatrix };
                 }
 
                 //public static int GetFilteredDmyPolyID(ParamData.AtkParam.DummyPolySource dmyFilter, int id)
@@ -584,36 +569,20 @@ namespace DSAnimStudio
 
             public bool[] DrawMask;
 
-            public string GetMaskString(Dictionary<int, string> materialsPerMask, 
+            public string GetMaskString(Dictionary<int, List<string>> materialsPerMask, 
                 List<int> masksEnabledOnAllNpcParamsForThisChr)
             {
                 if (materialsPerMask.Any(kvp => kvp.Key >= 0))
                 {
                     var sb = new StringBuilder();
 
-                    bool isFirst = true;
-
                     bool nothingInHere = true;
 
-                    foreach (var kvp in materialsPerMask)
-                    {
-                        if (kvp.Key < 0)
-                            continue;
+                    sb.AppendLine($"BehaviorVariationID: {BehaviorVariationID}");
 
-                        if (masksEnabledOnAllNpcParamsForThisChr.Contains(kvp.Key))
-                            continue;
+                    sb.AppendLine("Meshes Visible:");
 
-                        if (DrawMask[kvp.Key])
-                        {
-                            if (!isFirst)
-                                sb.Append("  ");
-                            else
-                                isFirst = false;
-
-                            sb.Append($"[{kvp.Value}]");
-                            nothingInHere = false;
-                        }
-                    }
+                    
 
                     if (nothingInHere)
                     {

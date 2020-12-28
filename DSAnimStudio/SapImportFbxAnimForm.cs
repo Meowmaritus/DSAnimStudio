@@ -40,7 +40,7 @@ namespace DSAnimStudio
                 fbxAnim_NegateQuaternionZ.Checked = !ImportConfig.NegateQuaternionZ;
                 fbxAnim_NegateQuaternionW.Checked = ImportConfig.NegateQuaternionW;
 
-                fbxAnim_BonesToFlipBackwards.Text = string.Join("\n", ImportConfig.BonesToFlipBackwardsForHotfix);
+                fbxAnim_BonesToFlipBackwards.Text = string.Join("\r\n", ImportConfig.BonesToFlipBackwardsForHotfix);
 
                 fbxAnim_SampleToFramerate.Value = (decimal)ImportConfig.SampleToFramerate;
 
@@ -48,6 +48,9 @@ namespace DSAnimStudio
                 fbxAnim_EnableRootMotionRotation.Checked = ImportConfig.EnableRotationalRootMotion;
 
                 fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Checked = ImportConfig.ExcludeRootMotionNodeFromTransformTracks;
+
+                fbxAnim_OverrideRootMotionScale.Checked = ImportConfig.UseRootMotionScaleOverride;
+                fbxAnim_OverrideRootMotionScale_Amount.Value = (decimal)(ImportConfig.RootMotionScaleOverride * 100.0);
             }));
         }
 
@@ -81,6 +84,9 @@ namespace DSAnimStudio
                 ImportConfig.EnableRotationalRootMotion = fbxAnim_EnableRootMotionRotation.Checked;
 
                 ImportConfig.ExcludeRootMotionNodeFromTransformTracks = fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Checked;
+
+                ImportConfig.UseRootMotionScaleOverride = fbxAnim_OverrideRootMotionScale.Checked;
+                ImportConfig.RootMotionScaleOverride = (float)((double)fbxAnim_OverrideRootMotionScale_Amount.Value / 100.0);
             }));
         }
 
@@ -92,14 +98,16 @@ namespace DSAnimStudio
 
         private void SapImportFbxAnimForm_Load(object sender, EventArgs e)
         {
-
+            richTextBoxHint.Select(0, richTextBoxHint.Text.IndexOf(":"));
+            richTextBoxHint.SelectionFont = new Font(richTextBoxHint.SelectionFont, FontStyle.Bold);
+            richTextBoxHint.DeselectAll();
         }
 
         private SoulsAssetPipeline.AnimationImporting.ImportedAnimation ImportAnim()
         {
             SaveValuesToConfig();
 
-            MainScreen.SaveConfig();
+            Main.SaveConfig();
 
             var boneDefaultTransforms = Scene.MainModel.AnimContainer.Skeleton.HkxSkeleton.ToDictionary(x => x.Name, x => x.RelativeReferenceTransform);
             var boneNames = boneDefaultTransforms.Keys.ToList();
@@ -122,6 +130,9 @@ namespace DSAnimStudio
                 EnableRotationalRootMotion = ImportConfig.EnableRotationalRootMotion,
 
                 ExcludeRootMotionNodeFromTransformTracks = ImportConfig.ExcludeRootMotionNodeFromTransformTracks,
+
+                RootMotionScaleOverride = ImportConfig.RootMotionScaleOverride,
+                UseRootMotionScaleOverride = ImportConfig.UseRootMotionScaleOverride,
             };
 
             var importedAnim = SoulsAssetPipeline.AnimationImporting.AnimationImporter.ImportFBX(
@@ -456,6 +467,11 @@ namespace DSAnimStudio
             }, disableProgressBarByDefault: true, isUnimportant: true);
 
             
+        }
+
+        private void fbxAnim_OverrideRootMotionScale_CheckedChanged(object sender, EventArgs e)
+        {
+            fbxAnim_OverrideRootMotionScale_Amount.Enabled = fbxAnim_OverrideRootMotionScale.Checked;
         }
     }
 }

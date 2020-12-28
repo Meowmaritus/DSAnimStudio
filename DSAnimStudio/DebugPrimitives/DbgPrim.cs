@@ -23,6 +23,7 @@ namespace DSAnimStudio.DebugPrimitives
         DummyPolySpawnArrow,
         CameraPivot,
         Other,
+        RootMotionPath,
     }
 
     public class DbgLabel
@@ -202,7 +203,7 @@ namespace DSAnimStudio.DebugPrimitives
             if (!EnableDraw)
                 return;
 
-            if (Category != DbgPrimCategory.AlwaysDraw && !DBG.CategoryEnableDraw[Category])
+            if (Category != DbgPrimCategory.AlwaysDraw && !DBG.GetCategoryEnableDraw(Category))
                 return;
 
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
@@ -274,7 +275,7 @@ namespace DSAnimStudio.DebugPrimitives
             foreach (var c in UnparentedChildren)
                 c.LabelDraw(world);
 
-            if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category]))
+            if (!(EnableDbgLabelDraw && DBG.GetCategoryEnableDbgLabelDraw(Category)))
                 return;
 
             if (DbgLabels.Count > 0)
@@ -296,7 +297,7 @@ namespace DSAnimStudio.DebugPrimitives
             foreach (var c in UnparentedChildren)
                 c.LabelDraw_Billboard(world);
 
-            if (!(EnableDbgLabelDraw && DBG.CategoryEnableDbgLabelDraw[Category]))
+            if (!(EnableDbgLabelDraw && DBG.GetCategoryEnableDbgLabelDraw(Category)))
                 return;
 
             if (DbgLabels.Count > 0)

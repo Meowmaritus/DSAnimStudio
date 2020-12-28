@@ -302,59 +302,62 @@ namespace DSAnimStudio
         {
             Device.DepthStencilState = writeDepth ? DepthStencilState_Normal : DepthStencilState_DontWriteDepth;
         }
-        private static ContentManager DebugReloadContentManager = null;
+        //private static ContentManager DebugReloadContentManager = null;
         public static void ReloadFlverShader()
         {
             lock (Scene._lock_ModelLoad_Draw)
             {
-                if (DebugReloadContentManager != null)
+                if (File.Exists($@"{Main.Directory}\..\..\..\Content\Shaders\FlverShader.xnb"))
                 {
-                    DebugReloadContentManager.Unload();
-                    DebugReloadContentManager.Dispose();
+                    FlverShader?.Effect?.Dispose();
+                    FlverShader = null;
+                    FlverShader = new FlverShader(Main.ReloadMonoGameContent<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\FlverShader"));
+                    InitShaders();
                 }
-
-                DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
-
-                GFX.FlverShader.Effect.Dispose();
-                GFX.FlverShader = null;
-                GFX.FlverShader = new FlverShader(DebugReloadContentManager.Load<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\FlverShader"));
-
-                GFX.InitShaders();
+                else
+                {
+                    var fullPath = Path.GetFullPath($@"{Main.Directory}\..\..\..\Content\Shaders\FlverShader.xnb");
+                    ImguiOSD.DialogManager.DialogOK("File Not Found", $@"Could not find shader file '{fullPath}'.");
+                }
             }
         }
 
         public static void ReloadTonemapShader()
         {
-            if (DebugReloadContentManager != null)
+            lock (Scene._lock_ModelLoad_Draw)
             {
-                DebugReloadContentManager.Unload();
-                DebugReloadContentManager.Dispose();
+                if (File.Exists($@"{Main.Directory}\..\..\..\Content\Shaders\CubemapSkyboxShader.xnb"))
+                {
+                    Main.MainFlverTonemapShader?.Effect?.Dispose();
+                    Main.MainFlverTonemapShader = null;
+                    Main.MainFlverTonemapShader = new FlverTonemapShader(Main.ReloadMonoGameContent<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\FlverTonemapShader"));
+                    InitShaders();
+                }
+                else
+                {
+                    var fullPath = Path.GetFullPath($@"{Main.Directory}\..\..\..\Content\Shaders\FlverTonemapShader.xnb");
+                    ImguiOSD.DialogManager.DialogOK("File Not Found", $@"Could not find shader file '{fullPath}'.");
+                }
             }
-
-            DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
-
-            Main.MainFlverTonemapShader.Effect.Dispose();
-            Main.MainFlverTonemapShader = null;
-            Main.MainFlverTonemapShader = new FlverTonemapShader(DebugReloadContentManager.Load<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\FlverTonemapShader"));
-
-            GFX.InitShaders();
         }
 
         public static void ReloadCubemapSkyboxShader()
         {
-            if (DebugReloadContentManager != null)
+            lock (Scene._lock_ModelLoad_Draw)
             {
-                DebugReloadContentManager.Unload();
-                DebugReloadContentManager.Dispose();
+                if (File.Exists($@"{Main.Directory}\..\..\..\Content\Shaders\CubemapSkyboxShader.xnb"))
+                {
+                    SkyboxShader?.Effect?.Dispose();
+                    SkyboxShader = null;
+                    SkyboxShader = new SkyboxShader(Main.ReloadMonoGameContent<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\CubemapSkyboxShader"));
+                    InitShaders();
+                }
+                else
+                {
+                    var fullPath = Path.GetFullPath($@"{Main.Directory}\..\..\..\Content\Shaders\CubemapSkyboxShader.xnb");
+                    ImguiOSD.DialogManager.DialogOK("File Not Found", $@"Could not find shader file '{fullPath}'.");
+                }
             }
-
-            DebugReloadContentManager = new ContentManager(Main.ContentServiceProvider);
-
-            GFX.SkyboxShader.Effect.Dispose();
-            GFX.SkyboxShader = null;
-            GFX.SkyboxShader = new SkyboxShader(DebugReloadContentManager.Load<Effect>($@"{Main.Directory}\..\..\..\Content\Shaders\CubemapSkyboxShader"));
-
-            GFX.InitShaders();
         }
 
         public static void Init(ContentManager c)

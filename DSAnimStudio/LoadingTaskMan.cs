@@ -58,7 +58,10 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        ErrorLog.HandleException(ex, $"Fatal error encountered during background task '{TaskKey}'");
+                        if (!ErrorLog.HandleException(ex, $"Fatal error encountered during background task '{TaskKey}'"))
+                        {
+                            Main.WinForm.Close();
+                        }
                     }
 #else
                     doLoad.Invoke(prog);

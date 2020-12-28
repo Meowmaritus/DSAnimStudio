@@ -38,8 +38,11 @@ namespace DSAnimStudio.ImguiOSD
                             {
                                 if (answer == "YES")
                                 {
-                                    Tae.Config.RecentFilesList.Clear();
-                                    Tae.SaveConfig();
+                                    lock (Main.Config._lock_ThreadSensitiveStuff)
+                                    {
+                                        Main.Config.RecentFilesList.Clear();
+                                    }
+                                    Main.SaveConfig();
                                 }
                             }, Dialog.CancelTypes.Combo_ClickTitleBarX_PressEscape, "YES", "NO");
                     }
@@ -48,9 +51,22 @@ namespace DSAnimStudio.ImguiOSD
 
                     try
                     {
-                        foreach (var f in Tae.Config.RecentFilesList)
-                            if (ClickItem(f))
-                                Tae.DirectOpenFile(f);
+                        string fileOpened = null;
+                        lock (Main.Config._lock_ThreadSensitiveStuff)
+                        {
+                            foreach (var f in Main.Config.RecentFilesList)
+                            {
+                                if (fileOpened == null && ClickItem(f))
+                                {
+                                    fileOpened = f;
+                                }
+                            }
+                        }
+
+                        if (fileOpened != null)
+                        {
+                            Tae.DirectOpenFile(fileOpened);
+                        }
                     }
                     catch
                     {
@@ -77,7 +93,10 @@ namespace DSAnimStudio.ImguiOSD
                     "(DS3/DS1R Only) Force Ingame Character Reload Upon Saving",
                     Tae.Config.LiveRefreshOnSave);
                 ImGui.Separator();
-                bool clickedSaveConfigManually = ClickItem("Manually Save Config");
+                bool clickedSaveConfigManually = ClickItem("Save Config File");
+                Main.DisableConfigFileAutoSave = !Checkbox("Enable Config File Autosaving", !Main.DisableConfigFileAutoSave);
+                bool clickedLoadConfigManually = ClickItem("Reload Config File");
+                
                 ImGui.Separator();
                 bool clickedExit = ClickItem("Exit");
 
@@ -95,8 +114,8 @@ namespace DSAnimStudio.ImguiOSD
                             {
                                 GameDataManager.ReloadParams();
                                 GameDataManager.ReloadFmgs();
-                                Tae.Graph.ViewportInteractor.CurrentModel.RescanNpcParams();
-                                Tae.Graph.ViewportInteractor.OnScrubFrameChange();
+                                Tae.Graph?.ViewportInteractor?.CurrentModel?.RescanNpcParams();
+                                Tae.Graph?.ViewportInteractor?.OnScrubFrameChange();
                             }, disableProgressBarByDefault: true);
                     }
 
@@ -116,8 +135,12 @@ namespace DSAnimStudio.ImguiOSD
 
                     if (clickedSaveConfigManually)
                     {
-                        Tae.SaveConfig();
-                        DialogManager.DialogOK(null, "Configuration saved succesfully.");
+                        Main.SaveConfig(isManual: true);
+                    }
+
+                    if (clickedLoadConfigManually)
+                    {
+                        Main.LoadConfig(isManual: true);
                     }
 
                     if (clickedExit)
@@ -126,129 +149,6 @@ namespace DSAnimStudio.ImguiOSD
 
                 ImGui.EndMenu();
             }
-
-            var entityTypeLoaded = (Tae.Graph?.ViewportInteractor?.EntityType ?? TaeEditor.TaeViewportInteractor.TaeEntityType.NONE);
-            switch (entityTypeLoaded)
-            {
-                case TaeEditor.TaeViewportInteractor.TaeEntityType.NPC:
-
-                    ImGui.PushStyleColor(ImGuiCol.Text, Color.Cyan.ToNVector4());
-                    bool npcSettings = ImGui.BeginMenu("NPC Settings");
-                    ImGui.PopStyleColor();
-                    if (npcSettings)
-                    {
-                        isAnyMenuExpanded = true;
-
-                        if (ClickItem("Load Additional Texture File(s)..."))
-                        {
-                            Tae.BrowseForMoreTextures();
-                        }
-
-                        if (Tae.Graph?.ViewportInteractor?.CurrentModel != null)
-                        {
-                            if (ImGui.BeginMenu("Select NpcParam"))
-                            {
-                                foreach (var npc in Tae.Graph.ViewportInteractor.CurrentModel.PossibleNpcParams)
-                                {
-                                    if (ClickItem(npc.GetDisplayName(), shortcut: npc.GetMaskString(
-                                        Tae.Graph.ViewportInteractor.CurrentModel.NpcMaterialNamesPerMask,
-                                        Tae.Graph.ViewportInteractor.CurrentModel.NpcMasksEnabledOnAllNpcParams)))
-                                    {
-                                        Tae.Graph.ViewportInteractor.CurrentModel.NpcParam = npc;
-                                        npc.ApplyToNpcModel(Tae.Graph.ViewportInteractor.CurrentModel);
-                                    }
-                                }
-
-                                ImGui.EndMenu();
-                            }
-                        }
-
-                        ImGui.Separator();
-
-                        if (ClickItem("Open NPC Model Importer"))
-                            Tae.BringUpImporter_FLVER2();
-
-                        ImGui.EndMenu();
-                    }
-                    break;
-
-                case TaeEditor.TaeViewportInteractor.TaeEntityType.OBJ:
-
-                    ImGui.PushStyleColor(ImGuiCol.Text, Color.Cyan.ToNVector4());
-                    bool objSettings = ImGui.BeginMenu("Object Settings");
-                    ImGui.PopStyleColor();
-                    if (objSettings)
-                    {
-                        isAnyMenuExpanded = true;
-
-                        if (ClickItem("Load Additional Texture File(s)..."))
-                            Tae.BrowseForMoreTextures();
-
-                        ImGui.EndMenu();
-                    }
-                    break;
-                case TaeEditor.TaeViewportInteractor.TaeEntityType.PC:
-                case TaeEditor.TaeViewportInteractor.TaeEntityType.REMO:
-                    ImGui.PushStyleColor(ImGuiCol.Text, Color.Cyan.ToNVector4());
-                    bool pcSettings = ImGui.BeginMenu("Player Settings");
-                    ImGui.PopStyleColor();
-                    if (pcSettings)
-                    {
-                        isAnyMenuExpanded = true;
-
-                        OSD.WindowEditPlayerEquip.IsOpen = Checkbox("Show Player Equipment Editor Window", OSD.WindowEditPlayerEquip.IsOpen);
-
-                        if (Tae.Graph?.ViewportInteractor?.EventSim != null)
-                        {
-                            var currentHitViewSource = Tae.Config.HitViewDummyPolySource;
-
-                            var newHitViewSource = EnumSelectorItem(
-                                "Behavior / Hitbox Source", currentHitViewSource,
-                                new Dictionary<ParamData.AtkParam.DummyPolySource, string>
-                                {
-                                        { ParamData.AtkParam.DummyPolySource.Body, "Body" },
-                                        { ParamData.AtkParam.DummyPolySource.RightWeapon0, "Right Weapon" },
-                                        { ParamData.AtkParam.DummyPolySource.LeftWeapon0, "Left Weapon" }
-                                });
-
-                            if (currentHitViewSource != newHitViewSource)
-                            {
-                                Tae.Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Tae.Graph.EventBoxes);
-                                Tae.Config.HitViewDummyPolySource = newHitViewSource;
-                                Tae.Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Tae.Graph.EventBoxes);
-                                Tae.Graph.ViewportInteractor.OnScrubFrameChange();
-                            }
-                        }
-
-                        ImGui.EndMenu();
-                    }
-
-                    if (entityTypeLoaded == TaeEditor.TaeViewportInteractor.TaeEntityType.REMO)
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.Text, Color.Cyan.ToNVector4());
-                        bool cutsceneSettings = ImGui.BeginMenu("Cutscene Settings");
-                        ImGui.PopStyleColor();
-                        if (cutsceneSettings)
-                        {
-                            isAnyMenuExpanded = true;
-
-                            RemoManager.EnableRemoCameraInViewport = Checkbox("Show Cutscene Camera View", RemoManager.EnableRemoCameraInViewport);
-                            RemoManager.EnableDummyPrims = Checkbox("Enable Dummy Node Helpers", RemoManager.EnableDummyPrims);
-
-                            if (ClickItem("Preview Full Cutscene With Streamed Audio"))
-                            {
-                                RemoManager.StartFullPreview();
-                            }
-
-                            ImGui.EndMenu();
-                        }
-                    }
-
-                    break;
-                    //TODO: OTHERS
-            }
-
-
 
             if (ImGui.BeginMenu("Edit"))
             {
@@ -470,6 +370,7 @@ namespace DSAnimStudio.ImguiOSD
 
             if (ImGui.BeginMenu("Window"))
             {
+                DoWindow(OSD.WindowEntitySettings);
                 //DoWindow(OSD.WindowEditPlayerEquip); //handled in player menu
                 //DoWindow(OSD.WindowHelp); //handled in help menu
                 DoWindow(OSD.WindowSceneManager);
@@ -527,7 +428,7 @@ namespace DSAnimStudio.ImguiOSD
                     Process.Start("https://paypal.me/Meowmaritus");
 
                 if (ClickItem("On Ko-fi...", textColor: Color.Lime,
-                    shortcut: "(https://paypal.me/Meowmaritus)", shortcutColor: Color.Lime))
+                    shortcut: "(https://ko-fi.com/meowmaritus)", shortcutColor: Color.Lime))
                     Process.Start("https://ko-fi.com/meowmaritus");
 
                 ImGui.EndMenu();

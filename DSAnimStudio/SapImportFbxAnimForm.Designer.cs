@@ -29,6 +29,9 @@
         private void InitializeComponent()
         {
             this.groupBoxSettings = new System.Windows.Forms.GroupBox();
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks = new System.Windows.Forms.CheckBox();
+            this.fbxAnim_InitializeTracksToTPose = new System.Windows.Forms.CheckBox();
+            this.fbxAnim_EnableRootMotionRotation = new System.Windows.Forms.CheckBox();
             this.fbxAnim_NegateQuaternionW = new System.Windows.Forms.CheckBox();
             this.fbxAnim_NegateQuaternionZ = new System.Windows.Forms.CheckBox();
             this.fbxAnim_NegateQuaternionY = new System.Windows.Forms.CheckBox();
@@ -54,13 +57,14 @@
             this.buttonImport = new System.Windows.Forms.Button();
             this.buttonImportToLooseHKX = new System.Windows.Forms.Button();
             this.buttonImportDirectlyTest = new System.Windows.Forms.Button();
-            this.fbxAnim_EnableRootMotionRotation = new System.Windows.Forms.CheckBox();
-            this.fbxAnim_InitializeTracksToTPose = new System.Windows.Forms.CheckBox();
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks = new System.Windows.Forms.CheckBox();
+            this.richTextBoxHint = new System.Windows.Forms.RichTextBox();
+            this.fbxAnim_OverrideRootMotionScale = new System.Windows.Forms.CheckBox();
+            this.fbxAnim_OverrideRootMotionScale_Amount = new System.Windows.Forms.NumericUpDown();
             this.groupBoxSettings.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.fbxAnim_SampleToFramerate)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.fbxAnim_RotationTolerance)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.flver2_numericUpDownScale)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fbxAnim_OverrideRootMotionScale_Amount)).BeginInit();
             this.SuspendLayout();
             // 
             // groupBoxSettings
@@ -68,6 +72,9 @@
             this.groupBoxSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBoxSettings.Controls.Add(this.fbxAnim_OverrideRootMotionScale_Amount);
+            this.groupBoxSettings.Controls.Add(this.fbxAnim_OverrideRootMotionScale);
+            this.groupBoxSettings.Controls.Add(this.richTextBoxHint);
             this.groupBoxSettings.Controls.Add(this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks);
             this.groupBoxSettings.Controls.Add(this.fbxAnim_InitializeTracksToTPose);
             this.groupBoxSettings.Controls.Add(this.fbxAnim_EnableRootMotionRotation);
@@ -96,6 +103,39 @@
             this.groupBoxSettings.TabIndex = 13;
             this.groupBoxSettings.TabStop = false;
             this.groupBoxSettings.Text = "Import Settings";
+            // 
+            // fbxAnim_ExcludeRootMotionNodeFromTransformTracks
+            // 
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Checked = true;
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Location = new System.Drawing.Point(585, 85);
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Name = "fbxAnim_ExcludeRootMotionNodeFromTransformTracks";
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Size = new System.Drawing.Size(234, 33);
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.TabIndex = 25;
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Text = "Exclude Specified Root Motion Node From Animation Tracks";
+            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.UseVisualStyleBackColor = true;
+            // 
+            // fbxAnim_InitializeTracksToTPose
+            // 
+            this.fbxAnim_InitializeTracksToTPose.AutoSize = true;
+            this.fbxAnim_InitializeTracksToTPose.Location = new System.Drawing.Point(25, 150);
+            this.fbxAnim_InitializeTracksToTPose.Name = "fbxAnim_InitializeTracksToTPose";
+            this.fbxAnim_InitializeTracksToTPose.Size = new System.Drawing.Size(188, 17);
+            this.fbxAnim_InitializeTracksToTPose.TabIndex = 24;
+            this.fbxAnim_InitializeTracksToTPose.Text = "Put Un-Animated Bones In T-Pose";
+            this.fbxAnim_InitializeTracksToTPose.UseVisualStyleBackColor = true;
+            // 
+            // fbxAnim_EnableRootMotionRotation
+            // 
+            this.fbxAnim_EnableRootMotionRotation.AutoSize = true;
+            this.fbxAnim_EnableRootMotionRotation.Checked = true;
+            this.fbxAnim_EnableRootMotionRotation.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.fbxAnim_EnableRootMotionRotation.Location = new System.Drawing.Point(585, 59);
+            this.fbxAnim_EnableRootMotionRotation.Name = "fbxAnim_EnableRootMotionRotation";
+            this.fbxAnim_EnableRootMotionRotation.Size = new System.Drawing.Size(171, 17);
+            this.fbxAnim_EnableRootMotionRotation.TabIndex = 23;
+            this.fbxAnim_EnableRootMotionRotation.Text = "Enable Rotational Root Motion";
+            this.fbxAnim_EnableRootMotionRotation.UseVisualStyleBackColor = true;
             // 
             // fbxAnim_NegateQuaternionW
             // 
@@ -151,10 +191,11 @@
             this.fbxAnim_BonesToFlipBackwards.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.fbxAnim_BonesToFlipBackwards.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.fbxAnim_BonesToFlipBackwards.Location = new System.Drawing.Point(14, 234);
             this.fbxAnim_BonesToFlipBackwards.Multiline = true;
             this.fbxAnim_BonesToFlipBackwards.Name = "fbxAnim_BonesToFlipBackwards";
-            this.fbxAnim_BonesToFlipBackwards.Size = new System.Drawing.Size(829, 120);
+            this.fbxAnim_BonesToFlipBackwards.Size = new System.Drawing.Size(662, 120);
             this.fbxAnim_BonesToFlipBackwards.TabIndex = 17;
             // 
             // label7
@@ -394,38 +435,53 @@
             this.buttonImportDirectlyTest.UseVisualStyleBackColor = true;
             this.buttonImportDirectlyTest.Click += new System.EventHandler(this.buttonImportDirectlyTest_Click);
             // 
-            // fbxAnim_EnableRootMotionRotation
+            // richTextBoxHint
             // 
-            this.fbxAnim_EnableRootMotionRotation.AutoSize = true;
-            this.fbxAnim_EnableRootMotionRotation.Checked = true;
-            this.fbxAnim_EnableRootMotionRotation.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.fbxAnim_EnableRootMotionRotation.Location = new System.Drawing.Point(585, 59);
-            this.fbxAnim_EnableRootMotionRotation.Name = "fbxAnim_EnableRootMotionRotation";
-            this.fbxAnim_EnableRootMotionRotation.Size = new System.Drawing.Size(171, 17);
-            this.fbxAnim_EnableRootMotionRotation.TabIndex = 23;
-            this.fbxAnim_EnableRootMotionRotation.Text = "Enable Rotational Root Motion";
-            this.fbxAnim_EnableRootMotionRotation.UseVisualStyleBackColor = true;
+            this.richTextBoxHint.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.richTextBoxHint.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.richTextBoxHint.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.richTextBoxHint.Location = new System.Drawing.Point(682, 234);
+            this.richTextBoxHint.Name = "richTextBoxHint";
+            this.richTextBoxHint.ReadOnly = true;
+            this.richTextBoxHint.Size = new System.Drawing.Size(169, 120);
+            this.richTextBoxHint.TabIndex = 26;
+            this.richTextBoxHint.Text = "For DS3 c0000 try these:\n\nRootPos\nL_Foot_Target2\nR_Foot_Target2";
             // 
-            // fbxAnim_InitializeTracksToTPose
+            // fbxAnim_OverrideRootMotionScale
             // 
-            this.fbxAnim_InitializeTracksToTPose.AutoSize = true;
-            this.fbxAnim_InitializeTracksToTPose.Location = new System.Drawing.Point(25, 150);
-            this.fbxAnim_InitializeTracksToTPose.Name = "fbxAnim_InitializeTracksToTPose";
-            this.fbxAnim_InitializeTracksToTPose.Size = new System.Drawing.Size(188, 17);
-            this.fbxAnim_InitializeTracksToTPose.TabIndex = 24;
-            this.fbxAnim_InitializeTracksToTPose.Text = "Put Un-Animated Bones In T-Pose";
-            this.fbxAnim_InitializeTracksToTPose.UseVisualStyleBackColor = true;
+            this.fbxAnim_OverrideRootMotionScale.AutoSize = true;
+            this.fbxAnim_OverrideRootMotionScale.Location = new System.Drawing.Point(585, 124);
+            this.fbxAnim_OverrideRootMotionScale.Name = "fbxAnim_OverrideRootMotionScale";
+            this.fbxAnim_OverrideRootMotionScale.Size = new System.Drawing.Size(160, 17);
+            this.fbxAnim_OverrideRootMotionScale.TabIndex = 27;
+            this.fbxAnim_OverrideRootMotionScale.Text = "Override Root Motion Scale:";
+            this.fbxAnim_OverrideRootMotionScale.UseVisualStyleBackColor = true;
+            this.fbxAnim_OverrideRootMotionScale.CheckedChanged += new System.EventHandler(this.fbxAnim_OverrideRootMotionScale_CheckedChanged);
             // 
-            // fbxAnim_ExcludeRootMotionNodeFromTransformTracks
+            // fbxAnim_OverrideRootMotionScale_Amount
             // 
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Checked = true;
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Location = new System.Drawing.Point(585, 85);
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Name = "fbxAnim_ExcludeRootMotionNodeFromTransformTracks";
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Size = new System.Drawing.Size(234, 33);
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.TabIndex = 25;
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.Text = "Exclude Specified Root Motion Node From Animation Tracks";
-            this.fbxAnim_ExcludeRootMotionNodeFromTransformTracks.UseVisualStyleBackColor = true;
+            this.fbxAnim_OverrideRootMotionScale_Amount.DecimalPlaces = 2;
+            this.fbxAnim_OverrideRootMotionScale_Amount.Enabled = false;
+            this.fbxAnim_OverrideRootMotionScale_Amount.Location = new System.Drawing.Point(744, 121);
+            this.fbxAnim_OverrideRootMotionScale_Amount.Maximum = new decimal(new int[] {
+            10000,
+            0,
+            0,
+            0});
+            this.fbxAnim_OverrideRootMotionScale_Amount.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.fbxAnim_OverrideRootMotionScale_Amount.Name = "fbxAnim_OverrideRootMotionScale_Amount";
+            this.fbxAnim_OverrideRootMotionScale_Amount.Size = new System.Drawing.Size(75, 20);
+            this.fbxAnim_OverrideRootMotionScale_Amount.TabIndex = 28;
+            this.fbxAnim_OverrideRootMotionScale_Amount.Value = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            65536});
             // 
             // SapImportFbxAnimForm
             // 
@@ -452,6 +508,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.fbxAnim_SampleToFramerate)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.fbxAnim_RotationTolerance)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.flver2_numericUpDownScale)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fbxAnim_OverrideRootMotionScale_Amount)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -487,5 +544,8 @@
         private System.Windows.Forms.CheckBox fbxAnim_EnableRootMotionRotation;
         private System.Windows.Forms.CheckBox fbxAnim_InitializeTracksToTPose;
         private System.Windows.Forms.CheckBox fbxAnim_ExcludeRootMotionNodeFromTransformTracks;
+        private System.Windows.Forms.RichTextBox richTextBoxHint;
+        private System.Windows.Forms.NumericUpDown fbxAnim_OverrideRootMotionScale_Amount;
+        private System.Windows.Forms.CheckBox fbxAnim_OverrideRootMotionScale;
     }
 }

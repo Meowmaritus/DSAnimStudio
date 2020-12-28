@@ -19,21 +19,41 @@ namespace DSAnimStudio.ImguiOSD
                 if (OSD.RequestExpandAllTreeNodes || OSD.IsInit)
                     ImGui.SetNextItemOpen(true);
 
-                _QuickDebug.BuildDebugMenu();
+                if (OSD.EnableDebugMenuFull)
+                {
+                    _QuickDebug.BuildDebugMenu();
+                    ImGui.Separator();
+                }
 
-                ImGui.Separator();
+                if (Scene.MainModel?.AnimContainer != null)
+                {
+                    float animWeight = Scene.MainModel.AnimContainer.DebugAnimWeight;
+                    ImGui.SliderFloat("HKX Skel -> HKX Anim Weight", ref animWeight, 0, 1);
+                    Scene.MainModel.AnimContainer.DebugAnimWeight = animWeight;
 
-                ImGui.Button("Hot Reload FlverShader.xnb");
-                if (ImGui.IsItemClicked())
-                    GFX.ReloadFlverShader();
+                    float animWeight2 = Scene.MainModel.DebugAnimWeight_Deprecated;
+                    ImGui.SliderFloat("FLVER Skel -> HKX Skel Weight", ref animWeight2, 0, 1);
+                    Scene.MainModel.DebugAnimWeight_Deprecated = animWeight2;
 
-                ImGui.Button("Hot Reload FlverTonemapShader.xnb");
-                if (ImGui.IsItemClicked())
-                    GFX.ReloadTonemapShader();
+                    bool bind = Scene.MainModel.EnableSkinning;
+                    ImGui.Checkbox("Enable FLVER Skel -> HKX Skel", ref bind);
+                    Scene.MainModel.EnableSkinning = bind;
+                }
 
-                ImGui.Button("Hot Reload CubemapSkyboxShader.xnb");
-                if (ImGui.IsItemClicked())
-                    GFX.ReloadCubemapSkyboxShader();
+                if (OSD.EnableDebugMenuFull)
+                {
+                    ImGui.Button("Hot Reload FlverShader.xnb\nFrom '..\\..\\..\\Content\\Shaders\\' Folder");
+                    if (ImGui.IsItemClicked())
+                        GFX.ReloadFlverShader();
+
+                    ImGui.Button("Hot Reload FlverTonemapShader.xnb\nFrom '..\\..\\..\\Content\\Shaders\\' Folder");
+                    if (ImGui.IsItemClicked())
+                        GFX.ReloadTonemapShader();
+
+                    ImGui.Button("Hot Reload CubemapSkyboxShader.xnb\nFrom '..\\..\\..\\Content\\Shaders\\' Folder");
+                    if (ImGui.IsItemClicked())
+                        GFX.ReloadCubemapSkyboxShader();
+                }
             }
         }
     }

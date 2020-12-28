@@ -23,6 +23,18 @@ namespace DSAnimStudio
     /// </summary>
     public class Main : Game
     {
+        public const string VERSION = "Version 3.0.2";
+
+        public static T ReloadMonoGameContent<T>(string path)
+        {
+            path = Path.GetFullPath(path);
+
+            if (path.ToLower().EndsWith(".xnb"))
+                path = path.Substring(0, path.Length - 4);
+
+            return MainContentManager.Load<T>(path);
+        }
+
         public static void CenterForm(Form form)
         {
             var x = Main.WinForm.Location.X + (Main.WinForm.Width - form.Width) / 2;
@@ -59,6 +71,205 @@ namespace DSAnimStudio
 
         public static FancyInputHandler Input;
 
+        public const int ConfigFileIOMaxTries = 10;
+
+        public static bool NeedsToLoadConfigFileForFirstTime { get; private set; } = true;
+
+        public static bool DisableConfigFileAutoSave = false;
+
+        private static object _lock_actualConfig = new object();
+        private static TaeEditor.TaeConfigFile actualConfig = new TaeEditor.TaeConfigFile();
+        public static TaeEditor.TaeConfigFile Config
+        {
+            get
+            {
+                TaeEditor.TaeConfigFile result = null;
+                lock (_lock_actualConfig)
+                {
+                    result = actualConfig;
+                }
+                return result;
+            }
+            set
+            {
+                lock (_lock_actualConfig)
+                {
+                    actualConfig = value;
+                }
+            }
+        }
+
+        private static string ConfigFilePath = null;
+
+        public const string ConfigFileShortName = "DSAnimStudio_Config.json";
+
+        private static void CheckConfigFilePath()
+        {
+            if (ConfigFilePath == null)
+            {
+                var currentAssemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                var currentAssemblyDir = System.IO.Path.GetDirectoryName(currentAssemblyPath);
+                ConfigFilePath = System.IO.Path.Combine(currentAssemblyDir, ConfigFileShortName);
+            }
+        }
+
+        public static void LoadConfig(bool isManual = false)
+        {
+            if (!isManual && DisableConfigFileAutoSave)
+                return;
+            CheckConfigFilePath();
+            if (!System.IO.File.Exists(ConfigFilePath))
+            {
+                Config = new TaeEditor.TaeConfigFile();
+                SaveConfig();
+            }
+            string jsonText = null;
+            int tryCounter = 0;
+
+            while (jsonText == null)
+            {
+                bool giveUp = false;
+                try
+                {
+                    if (tryCounter < ConfigFileIOMaxTries)
+                    {
+                        jsonText = System.IO.File.ReadAllText(ConfigFilePath);
+                    }
+                    else
+                    {
+                        var ask = System.Windows.Forms.MessageBox.Show($"Failed 10 times in a row to read configuration file '{ConfigFileShortName}' from the application folder. " +
+                            "It may have been in use by another " +
+                            "application (e.g. another instance of DS Anim Studio). " +
+                            "\n\nWould you like to RETRY the configuration file reading operation or CANCEL, " +
+                            "disabling configuration file autosaving to be safe?", "Configuration File IO Failure",
+                            MessageBoxButtons.RetryCancel, MessageBoxIcon.Warning);
+
+                        if (ask == DialogResult.Retry)
+                        {
+                            giveUp = false;
+                            tryCounter = 0;
+                        }
+                        else
+                        {
+                            giveUp = true;
+                        }
+                    }
+                }
+                catch
+                {
+                    tryCounter++;
+                }
+
+                if (giveUp)
+                {
+                    DisableConfigFileAutoSave = true;
+                    return;
+                }
+            }
+
+            try
+            {
+                Config = Newtonsoft.Json.JsonConvert.DeserializeObject<TaeEditor.TaeConfigFile>(jsonText);
+
+                
+            }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                var ask = System.Windows.Forms.MessageBox.Show($"Failed to parse configuration file '{ConfigFileShortName}' in the application folder. " +
+                            "It may have been saved by an incompatible version of the application or corrupted. " +
+                            "\n\nWould you like to overwrite it with default settings? " +
+                            "\n\nIf not, configuration file autosaving will be disabled to keep the file as-is.", "Configuration File Parse Failure",
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (ask == DialogResult.Yes)
+                {
+                    Config = new TaeEditor.TaeConfigFile();
+                    SaveConfig(isManual: true);
+                }
+                else
+                {
+                    DisableConfigFileAutoSave = true;
+                }
+            }
+
+            Config.AfterLoading(TAE_EDITOR);
+
+            if (NeedsToLoadConfigFileForFirstTime)
+            {
+                Config.AfterLoadingFirstTime(TAE_EDITOR);
+            }
+
+            NeedsToLoadConfigFileForFirstTime = false;
+        }
+
+        public static void SaveConfig(bool isManual = false)
+        {
+
+            if (!isManual && DisableConfigFileAutoSave)
+                return;
+            lock (Main.Config._lock_ThreadSensitiveStuff)
+            {
+                if (TAE_EDITOR?.Graph != null)
+                {
+                    // I'm sorry; this is pecularily placed.
+                    TAE_EDITOR.Graph?.ViewportInteractor?.SaveChrAsm();
+                }
+
+                Config.BeforeSaving(TAE_EDITOR);
+                CheckConfigFilePath();
+
+                var jsonText = Newtonsoft.Json.JsonConvert
+                    .SerializeObject(Config,
+                    Newtonsoft.Json.Formatting.Indented);
+
+                bool success = false;
+
+                int tryCounter = 0;
+
+                while (!success)
+                {
+                    bool giveUp = false;
+                    try
+                    {
+                        if (tryCounter < ConfigFileIOMaxTries)
+                        {
+                            System.IO.File.WriteAllText(ConfigFilePath, jsonText);
+                            success = true;
+                        }
+                        else
+                        {
+                            var ask = System.Windows.Forms.MessageBox.Show($"Failed 10 times in a row to write configuration file '{ConfigFileShortName}' in the application folder. " +
+                                "It may have been in use by another " +
+                                "application (e.g. another instance of DS Anim Studio). " +
+                                "\n\nWould you like to RETRY the configuration file writing operation or CANCEL, " +
+                                "disabling configuration file autosaving to be safe?", "Configuration File IO Failure",
+                                MessageBoxButtons.RetryCancel, MessageBoxIcon.Warning);
+
+                            if (ask == DialogResult.Retry)
+                            {
+                                giveUp = false;
+                                tryCounter = 0;
+                            }
+                            else
+                            {
+                                giveUp = true;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        tryCounter++;
+                    }
+
+                    if (giveUp)
+                    {
+                        DisableConfigFileAutoSave = true;
+                        return;
+                    }
+                }
+
+            }
+        }
+
         public static Vector2 DPIVector => new Vector2(DPIX, DPIY);
         public static System.Numerics.Vector2 DPIVectorN => new System.Numerics.Vector2(DPIX, DPIY);
 
@@ -80,7 +291,7 @@ namespace DSAnimStudio
 
         public static string Directory = null;
 
-        public const string VERSION = "Version 3.0-Test002 [Private Build]";
+        
 
         public static bool FIXED_TIME_STEP = false;
 
@@ -94,7 +305,7 @@ namespace DSAnimStudio
 
         public static Vector2 GlobalTaeEditorFontOffset = new Vector2(0, -3);
 
-        public static IServiceProvider ContentServiceProvider = null;
+        public static IServiceProvider MainContentServiceProvider = null;
 
         private bool prevFrameWasLoadingTaskRunning = false;
         public static bool Active { get; private set; }
@@ -143,10 +354,10 @@ namespace DSAnimStudio
         public bool IsLoadingTaskRunning = false;
         public HysteresisBool IsLoadingTaskRunningHyst = new HysteresisBool(0, 5);
 
-        public static ContentManager CM = null;
+        public static ContentManager MainContentManager = null;
 
         public static RenderTarget2D SceneRenderTarget = null;
-        public static RenderTarget2D UnusedRendertarget0 = null;
+        //public static RenderTarget2D UnusedRendertarget0 = null;
         public static int UnusedRenderTarget0Padding = 0;
 
         public static int RequestHideOSD = 0;
@@ -350,7 +561,7 @@ namespace DSAnimStudio
 
 
                 SceneRenderTarget?.Dispose();
-                UnusedRendertarget0?.Dispose();
+                //UnusedRendertarget0?.Dispose();
                 //GFX.BokehRenderTarget?.Dispose();
 
                 GC.Collect();
@@ -359,9 +570,9 @@ namespace DSAnimStudio
                        TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24,
                        ssaa > 1 ? 1 : msaa, RenderTargetUsage.DiscardContents);
 
-                UnusedRendertarget0 = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width + (UnusedRenderTarget0Padding * 2),
-                       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height + (UnusedRenderTarget0Padding * 2), true, SurfaceFormat.Vector4, DepthFormat.Depth24,
-                       1, RenderTargetUsage.DiscardContents);
+                //UnusedRendertarget0 = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width + (UnusedRenderTarget0Padding * 2),
+                //       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height + (UnusedRenderTarget0Padding * 2), true, SurfaceFormat.Vector4, DepthFormat.Depth24,
+                //       1, RenderTargetUsage.DiscardContents);
 
                 //GFX.BokehRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width + (UnusedRenderTarget0Padding * 2),
                 //       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height + (UnusedRenderTarget0Padding * 2), true, SurfaceFormat.Vector4, DepthFormat.Depth24,
@@ -380,7 +591,7 @@ namespace DSAnimStudio
         {
             CFG.Save();
 
-            TAE_EDITOR.SaveConfig();
+            Main.SaveConfig();
 
             base.OnExiting(sender, args);
         }
@@ -454,6 +665,8 @@ namespace DSAnimStudio
             
         }
 
+        
+
         private static Microsoft.Xna.Framework.Vector3 currModelAddOffset = Microsoft.Xna.Framework.Vector3.Zero;
         private void GameWindowForm_DragDrop(object sender, DragEventArgs e)
         {
@@ -461,16 +674,73 @@ namespace DSAnimStudio
 
             //TAE_EDITOR.
 
+            void LoadOneFile(string file)
+            {
+                if (file.ToUpper().EndsWith(".FLVER") || file.ToUpper().EndsWith(".FLVER.DCX"))
+                {
+                    if (FLVER2.Is(file))
+                    {
+                        //currModelAddOffset.X += 3;
+                        var m = new Model(FLVER2.Read(file), false);
+                        m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                        Scene.ClearSceneAndAddModel(m);
+                    }
+                    else if (FLVER0.Is(file))
+                    {
+                        //currModelAddOffset.X += 3;
+                        var m = new Model(FLVER0.Read(file), false);
+                        m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                        Scene.ClearSceneAndAddModel(m);
+                    }
+                }
+                else if (file.ToUpper().EndsWith(".CHRBND") || file.ToUpper().EndsWith(".CHRBND.DCX"))
+                {
+                    Scene.ClearScene();
+                    //currModelAddOffset.X += 3;
+                    GameDataManager.InitializeFromBND(file);
+                    var m = GameDataManager.LoadCharacter(Utils.GetShortIngameFileName(file));
+                    m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                    m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
+                    m.AnimContainer.ForcePlayAnim = true;
+                    m.UpdateAnimation();
+                    //Scene.ClearSceneAndAddModel(m);
+                }
+                else if (file.ToUpper().EndsWith(".OBJBND") || file.ToUpper().EndsWith(".OBJBND.DCX"))
+                {
+                    Scene.ClearScene();
+                    //currModelAddOffset.X += 3;
+                    GameDataManager.InitializeFromBND(file);
+                    var m = GameDataManager.LoadObject(Utils.GetShortIngameFileName(file));
+                    m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                    m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
+                    m.AnimContainer.ForcePlayAnim = true;
+                    m.UpdateAnimation();
+                    //Scene.ClearSceneAndAddModel(m);
+                }
+                else if (file.ToUpper().EndsWith(".HKX"))
+                {
+                    var anim = KeyboardInput.Show("Enter Anim ID", "Enter name to save the dragged and dropped HKX file to e.g. a01_3000.");
+                    string name = anim.Result;
+                    byte[] animData = File.ReadAllBytes(file);
+                    TAE_EDITOR.FileContainer.AddNewHKX(name, animData, out byte[] dataForAnimContainer);
+                    TAE_EDITOR.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(name + ".hkx", dataForAnimContainer);
+                }
+            }
+
             if (modelFiles.Length == 1)
             {
                 string f = modelFiles[0].ToLower();
 
                 if (f.EndsWith(".fbx"))
                 {
-                    TAE_EDITOR.Config.LastUsedImportConfig_FLVER2.AssetPath = f;
+                    TAE_EDITOR.Config.LastUsedImportConfig_FLVER2.AssetPath = modelFiles[0];
                     TAE_EDITOR.BringUpImporter_FLVER2();
-                    TAE_EDITOR.Config.LastUsedImportConfig_FLVER2.AssetPath = f;
+                    TAE_EDITOR.Config.LastUsedImportConfig_FLVER2.AssetPath = modelFiles[0];
                     TAE_EDITOR.ImporterWindow_FLVER2.LoadValuesFromConfig();
+                }
+                else
+                {
+                    LoadOneFile(modelFiles[0]);
                 }
             }
             else
@@ -480,45 +750,7 @@ namespace DSAnimStudio
                 {
                     foreach (var file in modelFiles)
                     {
-                        if (file.ToUpper().EndsWith(".FLVER"))
-                        {
-                        //currModelAddOffset.X += 3;
-                        var m = new Model(FLVER2.Read(file), false);
-                            m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                            Scene.ClearSceneAndAddModel(m);
-                        }
-                        else if (file.ToUpper().EndsWith(".CHRBND") || file.ToUpper().EndsWith(".CHRBND.DCX"))
-                        {
-                            Scene.ClearScene();
-                        //currModelAddOffset.X += 3;
-                        GameDataManager.InitializeFromBND(file);
-                            var m = GameDataManager.LoadCharacter(Utils.GetShortIngameFileName(file));
-                            m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                            m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
-                            m.AnimContainer.ForcePlayAnim = true;
-                            m.UpdateAnimation();
-                        //Scene.ClearSceneAndAddModel(m);
-                    }
-                        else if (file.ToUpper().EndsWith(".OBJBND") || file.ToUpper().EndsWith(".OBJBND.DCX"))
-                        {
-                            Scene.ClearScene();
-                        //currModelAddOffset.X += 3;
-                        GameDataManager.InitializeFromBND(file);
-                            var m = GameDataManager.LoadObject(Utils.GetShortIngameFileName(file));
-                            m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                            m.AnimContainer.CurrentAnimationName = m.AnimContainer.Animations.Keys.FirstOrDefault();
-                            m.AnimContainer.ForcePlayAnim = true;
-                            m.UpdateAnimation();
-                        //Scene.ClearSceneAndAddModel(m);
-                    }
-                        else if (file.ToUpper().EndsWith(".HKX"))
-                        {
-                            var anim = KeyboardInput.Show("Enter Anim ID", "Enter name to save the dragged and dropped HKX file to e.g. a01_3000.");
-                            string name = anim.Result;
-                            byte[] animData = File.ReadAllBytes(file);
-                            TAE_EDITOR.FileContainer.AddNewHKX(name, animData, out byte[] dataForAnimContainer);
-                            TAE_EDITOR.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(name + ".hkx", dataForAnimContainer);
-                        }
+                        LoadOneFile(file);
                     }
 
                 }, disableProgressBarByDefault: true);
@@ -548,7 +780,13 @@ namespace DSAnimStudio
                     string f = files[0].ToLower();
 
                     if (f.EndsWith(".fbx"))
+                    {
                         isValid = Scene.IsModelLoaded;
+                    }
+                    else if (f.EndsWith(".flver.dcx") || f.EndsWith(".flver") || f.EndsWith(".chrbnd") || f.EndsWith(".chrbnd.dcx") || f.EndsWith(".objbnd") || f.EndsWith(".objbnd.dcx"))
+                    {
+                        isValid = true;
+                    }
                 }
                 // If multiple files are dragged they must all be regularly 
                 // loadable rather than the specific case ones above
@@ -561,10 +799,15 @@ namespace DSAnimStudio
             e.Effect = isValid ? DragDropEffects.Link : DragDropEffects.None;
         }
 
+        public static Rectangle GetTaeEditorRect()
+        {
+            return new Rectangle(0, 0, GFX.Device.Viewport.Width, GFX.Device.Viewport.Height - 2);
+        }
+
         protected override void LoadContent()
         {
-            ContentServiceProvider = Content.ServiceProvider;
-            CM = Content;
+            MainContentServiceProvider = Content.ServiceProvider;
+            MainContentManager = Content;
 
             GFX.Init(Content);
             DBG.LoadContent(Content);
@@ -587,7 +830,7 @@ namespace DSAnimStudio
             TAE_EDITOR_BLANK_TEX.SetData(new Color[] { Color.White }, 0, 1);
             TAE_EDITOR_SCROLLVIEWER_ARROW = Content.Load<Texture2D>($@"{Main.Directory}\Content\Utility\TaeEditorScrollbarArrow");
 
-            TAE_EDITOR = new TaeEditor.TaeEditorScreen((System.Windows.Forms.Form)System.Windows.Forms.Form.FromHandle(Window.Handle));
+            TAE_EDITOR = new TaeEditor.TaeEditorScreen((Form)Form.FromHandle(Window.Handle), GetTaeEditorRect());
 
             TaeEditorSpriteBatch = new SpriteBatch(GFX.Device);
 
@@ -627,6 +870,7 @@ namespace DSAnimStudio
                     var ccm = CCM.Read($@"{Directory}\Content\Fonts\dbgfont14h_ds3.ccm");
                     foreach (var g in ccm.Glyphs)
                         builder.AddChar((ushort)g.Key);
+
                     builder.BuildRanges(out ranges);
                     var ptr = ImGuiNET.ImGuiNative.ImFontConfig_ImFontConfig();
                     var cfg = new ImGuiNET.ImFontConfigPtr(ptr);
@@ -883,7 +1127,10 @@ namespace DSAnimStudio
             }
             catch (Exception ex)
             {
-                ErrorLog.HandleException(ex, "Fatal error encountered during update loop");
+                if (!ErrorLog.HandleException(ex, "Fatal error encountered during update loop"))
+                {
+                    WinForm.Close();
+                }
             }
 #endif
             IsFirstUpdateLoop = false;
@@ -1116,7 +1363,7 @@ namespace DSAnimStudio
 
                     GFX.Device.Viewport = new Viewport(0, 0, (int)Math.Ceiling(Window.ClientBounds.Width / Main.DPIX), (int)Math.Ceiling(Window.ClientBounds.Height / Main.DPIY));
 
-                    TAE_EDITOR.Rect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height - 2);
+                    TAE_EDITOR.Rect = GetTaeEditorRect();
 
                     TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
                         TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT,
@@ -1147,7 +1394,10 @@ namespace DSAnimStudio
             }
             catch (Exception ex)
             {
-                ErrorLog.HandleException(ex, "Fatal error ocurred during rendering");
+                if (!ErrorLog.HandleException(ex, "Fatal error ocurred during rendering"))
+                {
+                    Main.WinForm.Close();
+                }
                 GFX.Device.SetRenderTarget(null);
             }
 #endif

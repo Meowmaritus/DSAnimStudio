@@ -92,42 +92,46 @@ namespace DSAnimStudio.ImguiOSD
 
                     if (ImGui.TreeNode("Helpers"))
                     {
-                        DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] =
-                            MenuBar.Checkbox("Bone Lines",
-                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
-                            enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperFlverBone);
+                        lock (DBG._lock_DebugDrawEnablers)
+                        {
+                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone] =
+                                MenuBar.Checkbox("Bone Lines",
+                                DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
+                                enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperFlverBone);
 
-                        DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.FlverBone] =
-                            MenuBar.Checkbox("Bone Names",
-                            DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
-                            enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperFlverBone);
+                            DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.FlverBone] =
+                                MenuBar.Checkbox("Bone Names",
+                                DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.FlverBone],
+                                enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperFlverBone);
 
-                        DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] =
-                            MenuBar.Checkbox("Bone Boxes",
-                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
-                            enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperFlverBoneBoundingBox);
+                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox] =
+                                MenuBar.Checkbox("Bone Boxes",
+                                DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.FlverBoneBoundingBox],
+                                enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperFlverBoneBoundingBox);
 
-                        DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] =
-                            MenuBar.Checkbox("DummyPoly",
-                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                            enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperDummyPoly);
+                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] =
+                                MenuBar.Checkbox("DummyPoly",
+                                DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                                enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperDummyPoly);
 
-                        DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] =
-                            MenuBar.Checkbox("DummyPoly IDs",
-                            DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
-                            enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperDummyPoly);
+                            DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly] =
+                                MenuBar.Checkbox("DummyPoly IDs",
+                                DBG.CategoryEnableNameDraw[DebugPrimitives.DbgPrimCategory.DummyPoly],
+                                enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperDummyPoly);
 
-                        NewDummyPolyManager.ShowGlobalIDOffset = MenuBar.Checkbox("Show c0000 Weapon Global \nDummyPoly ID Values (10000+)", NewDummyPolyManager.ShowGlobalIDOffset);
+                            NewDummyPolyManager.ShowGlobalIDOffset = MenuBar.Checkbox("Show c0000 Weapon Global \nDummyPoly ID Values (10000+)", NewDummyPolyManager.ShowGlobalIDOffset);
 
-                        DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent] =
-                            MenuBar.Checkbox("FMOD Sound Events",
-                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent],
-                            enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperSoundEvent);
+                            DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent] =
+                                MenuBar.Checkbox("FMOD Sound Events",
+                                DBG.CategoryEnableDraw[DebugPrimitives.DbgPrimCategory.SoundEvent],
+                                enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperSoundEvent);
 
-                        RemoManager.EnableDummyPrims =
-                            MenuBar.Checkbox("Cutscene Dummies",
-                            RemoManager.EnableDummyPrims,
-                            enabled: true, shortcut: "(This Color)", shortcutColor: Microsoft.Xna.Framework.Color.Lime);
+                            RemoManager.EnableDummyPrims =
+                                MenuBar.Checkbox("Cutscene Dummies",
+                                RemoManager.EnableDummyPrims,
+                                enabled: true, shortcut: "(This Color)", shortcutColor: Microsoft.Xna.Framework.Color.Lime);
+
+                        }
 
                         ImGui.Separator();
 

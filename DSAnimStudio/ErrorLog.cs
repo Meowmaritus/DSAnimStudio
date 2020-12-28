@@ -52,14 +52,33 @@ namespace DSAnimStudio
 
         }
 
-        public static void HandleException(Exception ex, string messageBeforeColon)
+        public static bool HandleException(Exception ex, string messageBeforeColon)
         {
             Log("ERROR", $"{messageBeforeColon}:\n{ex.ToString()}");
 
-            System.Windows.Forms.MessageBox.Show(
-               $"[Logged to DSAnimStudio_ErrorLog.txt]\n" +
-               $"{messageBeforeColon}:\n{ex.ToString()}",
-               "Fatal Error Encountered");
+            var dlgBox = new ExceptionHandleForm();
+
+            string file = Main.TAE_EDITOR.FileContainerName;
+            string fileBackupPath = $"{file}.{(DateTime.Now.ToString("yyyy.MM.dd_HH.mm.ss").Replace(".", ""))}.errbak";
+            dlgBox.InitializeForException(ex, messageBeforeColon, fileBackupPath);
+            var result = dlgBox.ShowDialog();
+
+            if (dlgBox.CreateBackup)
+            {
+                if (file != null && File.Exists(file))
+                {
+                    File.Copy(file, fileBackupPath, true);
+                }
+            }
+
+            if (result == System.Windows.Forms.DialogResult.Abort)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
     }
 }

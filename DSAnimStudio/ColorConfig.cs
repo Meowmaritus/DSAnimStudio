@@ -28,9 +28,10 @@ namespace DSAnimStudio
 
         public Color ColorHelperCameraPivot { get; set; } = Color.Cyan;
 
-        public Color MainColorBackground { get; set; } = new Color(0.2f, 0.2f, 0.2f);
+        public Color MainColorBackground { get; set; } = new Color(35, 35, 35, 255);
+        public Color MainColorDivider { get; set; } = new Color(90, 90, 90, 255);
 
-        public Color MainColorViewportBackground { get; set; } = Color.DimGray;
+        public Color MainColorViewportBackground { get; set; } = new Color(0.1f, 0.1f, 0.1f);
 
 
 
@@ -96,6 +97,15 @@ namespace DSAnimStudio
         
         public Color GuiColorAnimListHighlightRectFill { get; set; } = Color.DodgerBlue;
         public Color GuiColorAnimListHighlightRectOutline { get; set; } = new Color(200, 200, 200);
+
+        public Color ColorHelperRootMotionStartLocation { get; set; } = Color.Red;
+        public Color ColorHelperRootMotionTrail { get; set; } = Color.Yellow;
+        public Color ColorHelperRootMotionCurrentLocation { get; set; } = Color.Lime;
+
+        public Color ColorHelperRootMotionStartLocation_PrevLoop { get; set; } = new Color(Color.Red.ToVector4() * new Vector4(1, 1, 1, 0.5f));
+        public Color ColorHelperRootMotionTrail_PrevLoop { get; set; } = new Color(Color.Yellow.ToVector4() * new Vector4(1, 1, 1, 0.5f));
+        public Color ColorHelperRootMotionCurrentLocation_PrevLoop { get; set; } = new Color(Color.Lime.ToVector4() * new Vector4(1, 1, 1, 0.5f));
+
 
         public void ReadColorsFromConfig()
         {

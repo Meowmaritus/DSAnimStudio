@@ -164,7 +164,36 @@ namespace DSAnimStudio
 
             public void Stop(bool immediate)
             {
+                if (EventIsOver)
+                    return;
                 var res = Event.stop(immediate);
+
+                if (res == RESULT.ERR_INVALID_HANDLE)
+                {
+                    EventIsOver = true;
+                    return;
+                }
+            }
+
+            public void Pause()
+            {
+                if (EventIsOver)
+                    return;
+
+                var res = Event.setPaused(true);
+                if (res == RESULT.ERR_INVALID_HANDLE)
+                {
+                    EventIsOver = true;
+                    return;
+                }
+            }
+
+            public void Resume()
+            {
+                if (EventIsOver)
+                    return;
+
+                var res = Event.setPaused(false);
 
                 if (res == RESULT.ERR_INVALID_HANDLE)
                 {
@@ -745,6 +774,8 @@ namespace DSAnimStudio
         {
             if (!initialised)
                 return;
+
+            RemoManager.CancelFullPlayback();
 
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||

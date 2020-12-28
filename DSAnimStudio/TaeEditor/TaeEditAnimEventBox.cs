@@ -7,8 +7,34 @@ using System.Text;
 
 namespace DSAnimStudio.TaeEditor
 {
-    public class TaeEditAnimEventBox
+    public class TaeEditAnimEventBox : ITaeClonable
     {
+        public object ToClone()
+        {
+            var clone = new TaeEditAnimEventBox(OwnerPane, MyEvent, AnimMyEventIsFor);
+            clone.CurrentGroupRegion = CurrentGroupRegion;
+            clone.EventText = EventText;
+            clone.PrevFrameEnteredState_ForSoundEffectPlayback = PrevFrameEnteredState_ForSoundEffectPlayback;
+            clone._row = _row;
+            clone.VisualRow = VisualRow;
+            return clone;
+        }
+
+        public object FromClone(object cloneObj)
+        {
+            var clone = (TaeEditAnimEventBox)cloneObj;
+            CurrentGroupRegion = clone.CurrentGroupRegion;
+            EventText = clone.EventText;
+            PrevFrameEnteredState_ForSoundEffectPlayback = clone.PrevFrameEnteredState_ForSoundEffectPlayback;
+            _row = clone._row;
+            VisualRow = clone.VisualRow;
+
+            RowChanged = null;
+            RowChanged += OwnerPane.Box_RowChanged;
+
+            return this;
+        }
+
         [Newtonsoft.Json.JsonIgnore]
         public readonly TaeEditAnimEventGraph OwnerPane;
         public TAE.Event MyEvent;
@@ -25,12 +51,26 @@ namespace DSAnimStudio.TaeEditor
             RowChanged?.Invoke(this, oldRow);
         }
 
-        //public const double FRAME = 0.0333333333333333;
-        public const double FRAME = 0.01666666666666666;
+
+        public const double TAE_FRAME_30 = 1.0 / 30.0;
+        public const double TAE_FRAME_60 = 1.0 / 60.0;
+
+        public static double FRAME
+        {
+            get
+            {
+                if (Main.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+                    return TAE_FRAME_30;
+                else if (Main.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS60)
+                    return TAE_FRAME_60;
+                else
+                    return 0.01f;
+            }
+        }
 
         public float Left => MyEvent.StartTime * OwnerPane.SecondsPixelSize;
         public float Right => MyEvent.EndTime * OwnerPane.SecondsPixelSize;
-        public float Top => (Row * OwnerPane.RowHeight) + 2 + TaeEditAnimEventGraph.TimeLineHeight;
+        public float Top => (VisualRow * OwnerPane.RowHeight) + 2 + TaeEditAnimEventGraph.TimeLineHeight;
         public float Bottom => Top + OwnerPane.RowHeight;
         public float Width => (MyEvent.EndTime - MyEvent.StartTime) * OwnerPane.SecondsPixelSize;
         public float Height => OwnerPane.RowHeight - 2;
@@ -46,6 +86,12 @@ namespace DSAnimStudio.TaeEditor
             get => _row;
             set
             {
+                if (value < 0)
+                {
+                    throw new InvalidOperationException($"Event box rowvalue invalid ({value}).");
+                    
+                }
+
                 if (value != _row)
                 {
                     var oldRow = _row;
@@ -54,6 +100,8 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
         }
+
+        public int VisualRow = 0;
 
         public void SetRowSilently(int newRow)
         {
@@ -259,6 +307,8 @@ namespace DSAnimStudio.TaeEditor
 
         public bool DragLeftSideOfBoxToVirtualUnitX(float x)
         {
+            x = MathHelper.Max(x, 0);
+
             var originalStartFrame = MyEvent.GetStartTimeFr();
 
             MyEvent.StartTime = (float)Math.Min(x / OwnerPane.SecondsPixelSize, MyEvent.EndTime - FRAME);
@@ -401,6 +451,8 @@ namespace DSAnimStudio.TaeEditor
                 EventText.SetText($"{(MyEvent.TypeName ?? "") }[{MyEvent.Type}]({string.Join(" ", MyEvent.GetParameterBytes(GameDataManager.IsBigEndianGame).Select(b => b.ToString("X2")))})");
             }
         }
+
+       
 
         //public void DeleteMe()
         //{

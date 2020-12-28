@@ -90,6 +90,12 @@
     <Compile Include="DebugPrimitives\DbgPrimSolidBladeTrail.cs" />
     <Compile Include="DebugPrimitives\DbgPrimWireBladeTrail.cs" />
     <Compile Include="ErrorLog.cs" />
+    <Compile Include="ExceptionHandleForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ExceptionHandleForm.Designer.cs">
+      <DependentUpon>ExceptionHandleForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="FancyShaders\BokehShader.cs" />
     <Compile Include="FancyShaders\QuadRenderer.cs" />
     <Compile Include="FlverShaderEnums.cs" />
@@ -114,6 +120,7 @@
     <Compile Include="ImguiOSD\Tools.cs" />
     <Compile Include="ImguiOSD\TooltipManager.cs" />
     <Compile Include="ImguiOSD\Window.cs" />
+    <Compile Include="ImguiOSD\Window.EntitySettings.cs" />
     <Compile Include="ImguiOSD\Window.EventInspector.cs" />
     <Compile Include="ImguiOSD\Window.SceneManager.cs" />
     <Compile Include="ImguiOSD\Window.Debug.cs" />
@@ -187,6 +194,7 @@
     <Compile Include="NewChrAsm.cs" />
     <Compile Include="NewHavokAnimation_SplineCompressed.cs" />
     <Compile Include="NewMesh.cs" />
+    <Compile Include="TaeEditor\ITaeClonable.cs" />
     <Compile Include="TaeEditor\TaeComboEntry.cs" />
     <Compile Include="TaeEditor\TaeComboMenu.cs">
       <SubType>Form</SubType>
@@ -195,6 +203,7 @@
       <DependentUpon>TaeComboMenu.cs</DependentUpon>
     </Compile>
     <Compile Include="TaeEditor\TaeEventGroupRegion.cs" />
+    <Compile Include="TaeEditor\TaeUndoRestorableGraphState.cs" />
     <Compile Include="TaeEditor\TaeTransport.cs" />
     <Compile Include="TaeEditor\WinformsTooltipHelper.cs" />
     <Compile Include="TaeEditor\TaeHoverInfoBox.cs" />
@@ -687,6 +696,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="ExceptionHandleForm.resx">
+      <DependentUpon>ExceptionHandleForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="NewChrAsmEquipForm.resx">
       <DependentUpon>NewChrAsmEquipForm.cs</DependentUpon>
     </EmbeddedResource>

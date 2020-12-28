@@ -185,7 +185,7 @@ namespace DSAnimStudio.TaeEditor
                         {
                             if (MainScreen?.Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
                             {
-                                return anim.ID < 1_0000 ? $"a{anim.ID:D4}" : $"[{anim.ID}]";
+                                return anim.ID < 1_0000 ? $"cut{anim.ID:D4}" : $"[Entry {anim.ID}]";
                             }
                             else if (GameDataManager.GameTypeHasLongAnimIDs)
                             {
@@ -263,8 +263,18 @@ namespace DSAnimStudio.TaeEditor
                                 ScrollViewer.Viewport.Width, AnimHeight);
                             if (thisAnimRect.Contains(mouseCheckPoint))
                             {
-                                MainScreen.Graph?.ViewportInteractor?.CancelCombo();
-                                MainScreen.SelectNewAnimRef(taeSection.Tae, anim.Value.Ref);
+                                if (MainScreen.Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
+                                {
+                                    MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_NEXT_FRAME = true;
+                                    MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE = taeSection.Tae;
+                                    MainScreen.REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE_ANIM = anim.Value.Ref;
+                                }
+                                else
+                                {
+                                    MainScreen.Graph?.ViewportInteractor?.CancelCombo();
+                                    RemoManager.CancelFullPlayback();
+                                    MainScreen.SelectNewAnimRef(taeSection.Tae, anim.Value.Ref);
+                                }
                             }
                             offset += AnimHeight;
                         }

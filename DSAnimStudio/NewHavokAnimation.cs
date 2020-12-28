@@ -6,6 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NMatrix = System.Numerics.Matrix4x4;
+using NVector3 = System.Numerics.Vector3;
+using NVector4 = System.Numerics.Vector4;
+using NQuaternion = System.Numerics.Quaternion;
 
 
 namespace DSAnimStudio
@@ -70,11 +74,16 @@ namespace DSAnimStudio
 
         public RootMotionDataPlayer RootMotion { get; private set; }
 
-        public float ExternalRotation { get; private set; }
+        public NVector4 RootMotionTransformLastFrame;
+        public NVector4 RootMotionTransformDelta;
+
+        //public float ExternalRotation { get; private set; }
+
+        public bool EnableLooping;
 
         public void ApplyExternalRotation(float r)
         {
-            ExternalRotation += r;
+            RootMotion.ApplyExternalTransform(r, System.Numerics.Vector3.Zero);
         }
 
         public void Reset(System.Numerics.Vector4 startRootMotionTransform)
@@ -89,12 +98,14 @@ namespace DSAnimStudio
 
         public NewBlendableTransform GetBlendableTransformOnCurrentFrame(int hkxBoneIndex)
         {
-            return data.GetTransformOnFrameByBone(hkxBoneIndex, CurrentFrame);
+            return data.GetTransformOnFrameByBone(hkxBoneIndex, CurrentFrame, EnableLooping);
         }
 
         public void ScrubRelative(float timeDelta)
         {
             CurrentTime += timeDelta;
+            if (!EnableLooping && CurrentTime > Duration)
+                CurrentTime = Duration;
             RootMotion.SetTime(CurrentTime);
             oldTime = CurrentTime;
         }

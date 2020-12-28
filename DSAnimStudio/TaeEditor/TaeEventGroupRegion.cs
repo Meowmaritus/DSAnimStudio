@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio.TaeEditor
 {
-    public class TaeEventGroupRegion
+    public class TaeEventGroupRegion : ITaeClonable
     {
         public TaeEditAnimEventGraph Graph;
         public TAE.Animation TaeAnim;
         public TAE.EventGroup Group = null;
         public int GetGroupIndex() => TaeAnim.EventGroups.IndexOf(Group);
+        public bool Collapsed = false;
 
         public TaeEventGroupRegion(TaeEditAnimEventGraph graph, TAE.Animation anim, TAE.EventGroup group)
         {
@@ -24,38 +25,43 @@ namespace DSAnimStudio.TaeEditor
 
         public string GetGroupText()
         {
-            var sb = new StringBuilder();
-            var group = Group;
-            if (group != null)
+            var strBld = new StringBuilder();
+            var evBoxGrp = Group;
+            if (evBoxGrp != null)
             {
                 int groupIndex = GetGroupIndex();
-                sb.Append($"Group {groupIndex}[Type {group.GroupType}]");
-
-                if (group.GroupData is TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity entitySpecifier)
+                if (evBoxGrp.GroupType != 128)
                 {
-                    sb.AppendLine();
+                    strBld.Append($"Group {groupIndex} [Type {evBoxGrp.GroupType}] - ");
+                }
+                
+
+                if (evBoxGrp.GroupData.DataType == TAE.EventGroup.EventGroupDataType.ApplyToSpecificCutsceneEntity)
+                {
+                    //sb.AppendLine();
                     //sb.Append("Affects Remo Entity ");
-                    if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Character)
-                        sb.Append($"c{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.Object)
-                        sb.Append($"o{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.DummyNode)
-                        sb.Append($"d{entitySpecifier.CutsceneEntityIDPart1:D4}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
-                    else if (entitySpecifier.CutsceneEntityType == TAE.EventGroup.EventGroupData.ApplyToSpecificCutsceneEntity.EntityTypes.MapPiece)
+                    if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Character)
+                        strBld.Append($"c{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                    else if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Object)
+                        strBld.Append($"o{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                    else if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.DummyNode)
+                        strBld.Append($"d{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
+                    else if (evBoxGrp.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece)
                     {
-                        if (entitySpecifier.Block >= 0)
-                            sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{entitySpecifier.Block}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                        if (evBoxGrp.GroupData.Block >= 0)
+                            strBld.Append($"m{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}B{evBoxGrp.GroupData.Block}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
                         else
-                            sb.Append($"m{entitySpecifier.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}_{entitySpecifier.CutsceneEntityIDPart2:D4}");
+                            strBld.Append($"m{evBoxGrp.GroupData.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}_{evBoxGrp.GroupData.CutsceneEntityIDPart2:D4}");
                     }
 
-                    if (entitySpecifier.Block >= 0 || entitySpecifier.Area >= 0)
+                    if (evBoxGrp.GroupData.CutsceneEntityType != TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece && 
+                        (evBoxGrp.GroupData.Block >= 0 || evBoxGrp.GroupData.Area >= 0))
                     {
-                        sb.Append($" (from m{entitySpecifier.Area:D2}_{entitySpecifier.Block:D2})");
+                        strBld.Append($" (from m{evBoxGrp.GroupData.Area:D2}_{evBoxGrp.GroupData.Block:D2})");
                     }
                 }
             }
-            return sb.ToString();
+            return strBld.ToString();
         }
 
         /// <summary>
@@ -66,7 +72,7 @@ namespace DSAnimStudio.TaeEditor
         /// <summary>
         /// Inclusive
         /// </summary>
-        public int RowCount = 0;
+        public int RowCount = 2;
 
         /// <summary>
         /// Exclusive
@@ -76,12 +82,10 @@ namespace DSAnimStudio.TaeEditor
         public void ShiftRow(int shift)
         {
             StartRow += shift;
-            
-            Graph.DisableGroupRegionAssignOnRowMove = true;
 
             foreach (var b in Boxes)
             {
-                b.Row += shift;
+                b.SetRowSilently(b.Row + shift);
             }
 
             //if (Boxes.Count > 0)
@@ -95,38 +99,37 @@ namespace DSAnimStudio.TaeEditor
             //        b.Row += boxRowShift;
             //    }
             //}
-
-
-            Graph.DisableGroupRegionAssignOnRowMove = false;
         }
 
         private List<TaeEditAnimEventBox> Boxes = new List<TaeEditAnimEventBox>();
 
+        public IReadOnlyList<TaeEditAnimEventBox> BoxesInGroup => Boxes;
+
         public void AddEvent(TaeEditAnimEventBox evBox)
         {
-            if (evBox.CurrentGroupRegion != this)
-            {
-                evBox.CurrentGroupRegion?.RemoveEvent(evBox);
+           
+            evBox.CurrentGroupRegion?.RemoveEvent(evBox);
 
-                evBox.CurrentGroupRegion = this;
-                evBox.MyEvent.Group = Group;
+            evBox.CurrentGroupRegion = this;
+            evBox.MyEvent.Group = Group;
+            if (!Boxes.Contains(evBox))
                 Boxes.Add(evBox);
 
-                if (Boxes.Count == 1)
-                {
-                    StartRow = evBox.Row;
-                    RowCount = 1;
-                }
-                else
-                {
-                    if (evBox.Row >= EndRow)
-                    {
-                        RowCount = evBox.Row - StartRow;
-                    }
-                }
+            //if (Boxes.Count == 1)
+            //{
+            //    StartRow = evBox.Row;
+            //    RowCount = 2;
+            //}
+            //else
+            //{
+            //    if (evBox.Row >= EndRow)
+            //    {
+            //        RowCount = evBox.Row - StartRow;
+            //    }
+            //}
 
                 
-            }
+            
         }
 
         public void RemoveEvent(TaeEditAnimEventBox evBox)
@@ -136,15 +139,40 @@ namespace DSAnimStudio.TaeEditor
                 Boxes.Remove(evBox);
                 evBox.MyEvent.Group = null;
             }
+            //CropRegionToEvents();
         }
 
         public void CropRegionToEvents()
         {
             if (Boxes.Count > 0)
             {
-                StartRow = Boxes.OrderBy(b => b.Row).First().Row;
-                RowCount = (Boxes.OrderBy(b => b.Row).Last().Row - StartRow) + 1;
+                StartRow = Boxes.OrderBy(b => b.Row).First().Row - 1;
+                RowCount = (Boxes.OrderBy(b => b.Row).Last().Row - Boxes.OrderBy(b => b.Row).First().Row) + 2;
             }
+            else
+            {
+                RowCount = 1;
+            }
+        }
+
+        public object ToClone()
+        {
+            var gr = new TaeEventGroupRegion(Graph, TaeAnim, Group);
+            gr.Boxes = Boxes.ToList();
+            gr.Collapsed = Collapsed;
+            gr.StartRow = StartRow;
+            gr.RowCount = RowCount;
+            return gr;
+        }
+
+        public object FromClone(object cloneObj)
+        {
+            var clone = (TaeEventGroupRegion)cloneObj;
+            Boxes = clone.Boxes.ToList();
+            Collapsed = clone.Collapsed;
+            StartRow = clone.StartRow;
+            RowCount = clone.RowCount;
+            return this;
         }
     }
 }

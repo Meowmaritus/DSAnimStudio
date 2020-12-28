@@ -21,6 +21,38 @@ namespace DSAnimStudio.ImguiOSD
 
             string CurrentUnmappedEventHex = "";
 
+            static string[] listBox_EntityTypeNames = new string[]
+            {
+                "0: Character (cXXXX_YYYY)",
+                "1: Object (oXXXX_YYYY)",
+                "2: Map Piece (mXXXX_YYYY)",
+                "4: Dummy Node (dXXXX_YYYY)",
+            };
+            static List<SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataStruct.EntityTypes> listBox_EntityTypes = 
+                new List<SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataStruct.EntityTypes>
+            { 
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataStruct.EntityTypes.Character,
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataStruct.EntityTypes.Object,
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece,
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataStruct.EntityTypes.DummyNode
+            };
+
+            static string[] listBox_EventGroupDataTypeNames = new string[]
+            {
+                "0: Standard",
+                "16: Unknown",
+                "128: Specific Scene Entity",
+                "192: Unknown",
+            };
+            static List<SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType> listBox_EventGroupDataTypes =
+                new List<SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType>
+            {
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType.GroupData0,
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType.GroupData16,
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType.ApplyToSpecificCutsceneEntity,
+                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType.GroupData192,
+            };
+
             protected override void PreUpdate()
             {
                 IsOpen = true;
@@ -33,6 +65,8 @@ namespace DSAnimStudio.ImguiOSD
 
                 if (Tae.SingleEventBoxSelected)
                 {
+                    ImGui.PushItemWidth(256 * Main.DPIX);
+
                     var ev = Tae.SelectedEventBox;
                     if (MenuBar.ClickItem(ev.MyEvent.TypeName ?? $"[Event Type {ev.MyEvent.Type}]",
                         shortcut: "(Change)", shortcutColor: Color.Cyan))
@@ -227,6 +261,60 @@ namespace DSAnimStudio.ImguiOSD
                             System.Windows.Forms.Clipboard.SetText(string.Join(" ", ev.MyEvent.GetParameterBytes(GameDataManager.IsBigEndianGame).Select(xx => xx.ToString("X2"))));
                         }
                     }
+
+
+
+                    if (Tae?.Graph?.IsSimpleRemoGroupMode == true)
+                    {
+                        ImGui.Separator();
+
+                        ImGui.LabelText("", "CUTSCENE DATA");
+
+                        int groupTypeIndex = listBox_EventGroupDataTypes.IndexOf(ev.MyEvent.Group.GroupData.DataType);
+                        ImGui.ListBox("Cutscene Event Context", ref groupTypeIndex, listBox_EventGroupDataTypeNames, listBox_EventGroupDataTypeNames.Length);
+                        ev.MyEvent.Group.GroupData.DataType = groupTypeIndex < 0 ?
+                            SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType.GroupData0
+                            : listBox_EventGroupDataTypes[groupTypeIndex];
+
+                        ev.MyEvent.Group.GroupType = (int)ev.MyEvent.Group.GroupData.DataType;
+
+                        if (ev.MyEvent.Group.GroupData.DataType == SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataType.ApplyToSpecificCutsceneEntity)
+                        {
+                            ImGui.Separator();
+
+                            ImGui.LabelText("", "CUTSCENE ENTITY SELECTION");
+
+                            int entityTypeIndex = listBox_EntityTypes.IndexOf(ev.MyEvent.Group.GroupData.CutsceneEntityType);
+                            ImGui.ListBox("Entity Type", ref entityTypeIndex, listBox_EntityTypeNames, listBox_EntityTypeNames.Length);
+                            ev.MyEvent.Group.GroupData.CutsceneEntityType = entityTypeIndex < 0 ?
+                                SoulsAssetPipeline.Animation.TAE.EventGroup.EventGroupDataStruct.EntityTypes.Character
+                                : listBox_EntityTypes[entityTypeIndex];
+
+                            int x = ev.MyEvent.Group.GroupData.CutsceneEntityIDPart1;
+                            ImGui.InputInt("Entity ID First Half (XXXX)", ref x);
+                            x = Math.Min(Math.Max(x, 0), 9999);
+                            ev.MyEvent.Group.GroupData.CutsceneEntityIDPart1 = (short)x;
+
+                            x = ev.MyEvent.Group.GroupData.CutsceneEntityIDPart2;
+                            ImGui.InputInt("Entity ID Second Half (YYYY)", ref x);
+                            x = Math.Min(Math.Max(x, 0), 9999);
+                            ev.MyEvent.Group.GroupData.CutsceneEntityIDPart2 = (short)x;
+
+                            x = ev.MyEvent.Group.GroupData.Area;
+                            ImGui.InputInt("Entity Area (-1: Default)", ref x);
+                            x = Math.Min(Math.Max(x, -1), 99);
+                            ev.MyEvent.Group.GroupData.Area = (sbyte)x;
+
+                            x = ev.MyEvent.Group.GroupData.Block;
+                            ImGui.InputInt("Entity Block (-1: Default)", ref x);
+                            x = Math.Min(Math.Max(x, -1), 99);
+                            ev.MyEvent.Group.GroupData.Block = (sbyte)x;
+                        }
+
+                        
+                    }
+
+                    ImGui.PopItemWidth();
 
                 }
 

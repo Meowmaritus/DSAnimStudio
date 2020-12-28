@@ -33,9 +33,41 @@ namespace DSAnimStudio
         public static bool ShowModelSubmeshBoundingBoxes = false;
         public static bool ShowGrid = true;
 
+        public static object _lock_DebugDrawEnablers = new object();
+
         public static Dictionary<DbgPrimCategory, bool> CategoryEnableDraw = new Dictionary<DbgPrimCategory, bool>();
         public static Dictionary<DbgPrimCategory, bool> CategoryEnableDbgLabelDraw = new Dictionary<DbgPrimCategory, bool>();
         public static Dictionary<DbgPrimCategory, bool> CategoryEnableNameDraw = new Dictionary<DbgPrimCategory, bool>();
+
+        public static bool GetCategoryEnableDraw(DbgPrimCategory category)
+        {
+            bool result = false;
+            lock (DBG._lock_DebugDrawEnablers)
+            {
+                result = CategoryEnableDraw[category];
+            }
+            return result;
+        }
+
+        public static bool GetCategoryEnableDbgLabelDraw(DbgPrimCategory category)
+        {
+            bool result = false;
+            lock (DBG._lock_DebugDrawEnablers)
+            {
+                result = CategoryEnableDbgLabelDraw[category];
+            }
+            return result;
+        }
+
+        public static bool GetCategoryEnableNameDraw(DbgPrimCategory category)
+        {
+            bool result = false;
+            lock (DBG._lock_DebugDrawEnablers)
+            {
+                result = CategoryEnableNameDraw[category];
+            }
+            return result;
+        }
 
         public static Texture2D UV_CHECK_TEX { get; private set; }
         static string UV_CHECK_TEX_NAME => $@"{Main.Directory}\Content\UVCheck";
@@ -82,35 +114,40 @@ namespace DSAnimStudio
 
         static DBG()
         {
-            CategoryEnableDraw.Clear();
-            CategoryEnableDbgLabelDraw.Clear();
-            CategoryEnableNameDraw.Clear();
-
-            var categories = (DbgPrimCategory[])Enum.GetValues(typeof(DbgPrimCategory));
-            foreach (var c in categories)
+            lock (DBG._lock_DebugDrawEnablers)
             {
-                CategoryEnableDraw.Add(c, false);
-                CategoryEnableDbgLabelDraw.Add(c, false);
-                CategoryEnableNameDraw.Add(c, false);
+                CategoryEnableDraw.Clear();
+                CategoryEnableDbgLabelDraw.Clear();
+                CategoryEnableNameDraw.Clear();
+
+                var categories = (DbgPrimCategory[])Enum.GetValues(typeof(DbgPrimCategory));
+                foreach (var c in categories)
+                {
+                    CategoryEnableDraw.Add(c, false);
+                    CategoryEnableDbgLabelDraw.Add(c, false);
+                    CategoryEnableNameDraw.Add(c, false);
+                }
+
+                CategoryEnableDraw[DbgPrimCategory.FlverBone] = true;
+
+                DbgPrimXRay = true;
+
+                CategoryEnableDraw[DbgPrimCategory.DummyPolyHelper] = true;
+
+                CategoryEnableDraw[DbgPrimCategory.DummyPolySpawnArrow] = true;
+
+                CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
+
+                CategoryEnableDraw[DbgPrimCategory.SoundEvent] = false;
+                //CategoryEnableNameDraw[DbgPrimCategory.SoundEvent] = true;
+
+                CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
+                CategoryEnableDraw[DbgPrimCategory.Other] = true;
+
+                CategoryEnableDraw[DbgPrimCategory.CameraPivot] = false;
+
+                CategoryEnableDraw[DbgPrimCategory.RootMotionPath] = true;
             }
-
-            CategoryEnableDraw[DbgPrimCategory.FlverBone] = true;
-
-            DbgPrimXRay = true;
-
-            CategoryEnableDraw[DbgPrimCategory.DummyPolyHelper] = true;
-
-            CategoryEnableDraw[DbgPrimCategory.DummyPolySpawnArrow] = true;
-
-            CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
-
-            CategoryEnableDraw[DbgPrimCategory.SoundEvent] = false;
-            //CategoryEnableNameDraw[DbgPrimCategory.SoundEvent] = true;
-
-            CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
-            CategoryEnableDraw[DbgPrimCategory.Other] = true;
-
-            CategoryEnableDraw[DbgPrimCategory.CameraPivot] = true;
         }
 
         public static bool DbgPrimXRay = false;
@@ -305,7 +342,12 @@ namespace DSAnimStudio
 
             if (RemoManager.EnableDummyPrims)
             {
-                var mdls = Scene.Models.ToList();
+                List<Model> mdls = null;
+                lock (Scene._lock_ModelLoad_Draw)
+                {
+                    mdls = Scene.Models.ToList();
+                }
+
                 foreach (var m in mdls)
                 {
                     m.DrawRemoPrims();
