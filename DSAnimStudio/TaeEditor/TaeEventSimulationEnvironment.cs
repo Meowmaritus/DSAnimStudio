@@ -481,7 +481,7 @@ namespace DSAnimStudio.TaeEditor
                             }
                             MODEL.CurrentTrackingSpeed = activeTrackingSpeedThisFrame;
 
-                            if (!Graph.MainScreen.Input.AnyModifiersHeld)
+                            if (!Graph.MainScreen.Input.AnyModifiersHeld && !ImguiOSD.DialogManager.AnyDialogsShowing)
                             {
                                 float trackDir = 0;
                                 if (Graph.MainScreen.Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.D))

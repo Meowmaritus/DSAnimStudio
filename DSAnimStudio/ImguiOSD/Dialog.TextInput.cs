@@ -34,7 +34,7 @@ namespace DSAnimStudio.ImguiOSD
                 ImGui.SetKeyboardFocusHere();
 
                 bool accepted = ImGui.InputTextWithHint(Question, TextHint, InputtedString,
-                    256, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackAlways,
+                    256, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackAlways | ImGuiInputTextFlags.AutoSelectAll,
                     TextCallbackDelegate);
                 if (accepted)
                 {

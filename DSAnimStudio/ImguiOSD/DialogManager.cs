@@ -51,109 +51,125 @@ namespace DSAnimStudio.ImguiOSD
 
         public static void ShowTaeAnimPropertiesEditor(TAE.Animation anim)
         {
-            var dlg = new Dialog.TaeAnimPropertiesEdit(anim);
-            dlg.OnDismiss = () =>
+            Task.Run(new Action(() =>
             {
-                if (dlg.CancelType == Dialog.CancelTypes.ClickedAcceptButton)
+                var dlg = new Dialog.TaeAnimPropertiesEdit(anim);
+                dlg.OnDismiss = () =>
                 {
-                    if (dlg.WasAnimDeleted)
+                    if (dlg.CancelType == Dialog.CancelTypes.ClickedAcceptButton)
                     {
-                        if (Tae.SelectedTae.Animations.Count <= 1)
+                        if (dlg.WasAnimDeleted)
                         {
-                            DialogOK("Can't Delete Last Animation",
-                                "Cannot delete the only animation remaining in the TAE.");
+                            if (Tae.SelectedTae.Animations.Count <= 1)
+                            {
+                                DialogOK("Can't Delete Last Animation",
+                                    "Cannot delete the only animation remaining in the TAE.");
+                            }
+                            else
+                            {
+                                var indexOfCurrentAnim = Tae.SelectedTae.Animations.IndexOf(Tae.SelectedTaeAnim);
+                                Tae.SelectedTae.Animations.Remove(Tae.SelectedTaeAnim);
+
+                                Tae.RecreateAnimList();
+                                Tae.UpdateSelectedTaeAnimInfoText();
+
+                                if (indexOfCurrentAnim > Tae.SelectedTae.Animations.Count - 1)
+                                    indexOfCurrentAnim = Tae.SelectedTae.Animations.Count - 1;
+
+                                if (indexOfCurrentAnim >= 0)
+                                    Tae.SelectNewAnimRef(Tae.SelectedTae, Tae.SelectedTae.Animations[indexOfCurrentAnim]);
+                                else
+                                    Tae.SelectNewAnimRef(Tae.SelectedTae, Tae.SelectedTae.Animations[0]);
+
+                                Tae.SelectedTae.SetIsModified(!Tae.IsReadOnlyFileMode);
+                            }
+
+
                         }
                         else
                         {
-                            var indexOfCurrentAnim = Tae.SelectedTae.Animations.IndexOf(Tae.SelectedTaeAnim);
-                            Tae.SelectedTae.Animations.Remove(Tae.SelectedTaeAnim);
-
+                            anim.MiniHeader = dlg.TaeAnimHeader;
+                            anim.ID = dlg.TaeAnimID_Value.Value;
+                            anim.AnimFileName = dlg.TaeAnimName;
+                            anim.SetIsModified(true);
                             Tae.RecreateAnimList();
                             Tae.UpdateSelectedTaeAnimInfoText();
-
-                            if (indexOfCurrentAnim > Tae.SelectedTae.Animations.Count - 1)
-                                indexOfCurrentAnim = Tae.SelectedTae.Animations.Count - 1;
-
-                            if (indexOfCurrentAnim >= 0)
-                                Tae.SelectNewAnimRef(Tae.SelectedTae, Tae.SelectedTae.Animations[indexOfCurrentAnim]);
-                            else
-                                Tae.SelectNewAnimRef(Tae.SelectedTae, Tae.SelectedTae.Animations[0]);
-
-                            Tae.SelectedTae.SetIsModified(!Tae.IsReadOnlyFileMode);
                         }
-
-                        
                     }
-                    else
-                    {
-                        anim.MiniHeader = dlg.TaeAnimHeader;
-                        anim.ID = dlg.TaeAnimID;
-                        anim.AnimFileName = dlg.TaeAnimName;
-                        anim.SetIsModified(true);
-                        Tae.RecreateAnimList();
-                        Tae.UpdateSelectedTaeAnimInfoText();
-                    }
-                }
-            };
-            AddDialog(dlg);
+                };
+                AddDialog(dlg);
+            }));
         }
 
         public static void AskYesNo(string title, string question, Action<bool> onChoose,
             bool allowCancel = true, bool enterKeyForYes = true)
         {
-            var allowedCancelTypes = Dialog.CancelTypes.None;
-            if (allowCancel)
-                allowedCancelTypes |= Dialog.CancelTypes.Combo_ClickTitleBarX_PressEscape;
-            if (enterKeyForYes)
-                allowedCancelTypes |= Dialog.CancelTypes.PressEnter;
-            AskForMultiChoice(title, question, (cancelType, answer) =>
+            Task.Run(new Action(() =>
             {
-                if (cancelType == Dialog.CancelTypes.PressEnter)
-                    onChoose?.Invoke(true);
-                else if (cancelType == Dialog.CancelTypes.PressEscape || cancelType == Dialog.CancelTypes.ClickTitleBarX)
-                    onChoose?.Invoke(false);
-                else if (answer == "YES")
-                    onChoose?.Invoke(true);
-                else if (answer == "NO")
-                    onChoose?.Invoke(false);
+                var allowedCancelTypes = Dialog.CancelTypes.None;
+                if (allowCancel)
+                    allowedCancelTypes |= Dialog.CancelTypes.Combo_ClickTitleBarX_PressEscape;
+                if (enterKeyForYes)
+                    allowedCancelTypes |= Dialog.CancelTypes.PressEnter;
+                AskForMultiChoice(title, question, (cancelType, answer) =>
+                {
+                    if (cancelType == Dialog.CancelTypes.PressEnter)
+                        onChoose?.Invoke(true);
+                    else if (cancelType == Dialog.CancelTypes.PressEscape || cancelType == Dialog.CancelTypes.ClickTitleBarX)
+                        onChoose?.Invoke(false);
+                    else if (answer == "YES")
+                        onChoose?.Invoke(true);
+                    else if (answer == "NO")
+                        onChoose?.Invoke(false);
 
-            }, allowedCancelTypes, "YES", "NO");
+                }, allowedCancelTypes, "YES", "NO");
+            }));
         }
 
         public static void AskForMultiChoice(string title, string question,
             Action<Dialog.CancelTypes, string> onAnswer, Dialog.CancelTypes allowedCancelTypes, params string[] answers)
         {
-            var dlg = new Dialog.MultiChoice()
+            Task.Run(new Action(() =>
             {
-                AllowedCancelTypes = allowedCancelTypes,
-                Answers = answers.ToList(),
-                Question = question,
-                Title = title,
-            };
-            dlg.OnDismiss += () => onAnswer?.Invoke(dlg.CancelType, dlg.SelectedAnswer);
-            AddDialog(dlg);
+                var dlg = new Dialog.MultiChoice()
+                {
+                    AllowedCancelTypes = allowedCancelTypes,
+                    Answers = answers.ToList(),
+                    Question = question,
+                    Title = title,
+                };
+                dlg.OnDismiss += () => onAnswer?.Invoke(dlg.CancelType, dlg.SelectedAnswer);
+                AddDialog(dlg);
+            }));
         }
 
         public static void AskForInputString(string title, string question, string textHint,
-            Action<string> onResult, bool canBeCancelled)
+            Action<string> onResult, bool canBeCancelled, string startingText = null)
         {
-            var dlg = new Dialog.TextInput()
+
+            Task.Run(new Action(() =>
             {
-                AllowedCancelTypes = canBeCancelled ? 
-                    Dialog.CancelTypes.Combo_ClickTitleBarX_PressEscape : 
+                var dlg = new Dialog.TextInput()
+                {
+                    AllowedCancelTypes = canBeCancelled ?
+                    Dialog.CancelTypes.Combo_ClickTitleBarX_PressEscape :
                     Dialog.CancelTypes.None,
-                TextHint = textHint,
-                Question = question,
-                Title = title,
-            };
+                    TextHint = textHint,
+                    Question = question,
+                    Title = title,
+                    InputtedString = startingText ?? string.Empty,
+                };
 
-            dlg.OnDismiss += () =>
-            {
-                if (!dlg.WasCancelled)
-                    onResult?.Invoke(dlg.InputtedString);
-            };
+                dlg.OnDismiss += () =>
+                {
+                    if (!dlg.WasCancelled)
+                        onResult?.Invoke(dlg.InputtedString);
+                };
 
-            AddDialog(dlg);
+                AddDialog(dlg);
+            }));
+
+            
         }
     }
 }

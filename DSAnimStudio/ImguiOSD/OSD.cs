@@ -89,7 +89,7 @@ namespace DSAnimStudio.ImguiOSD
             RequestCollapse = false;
 
 
-            Focused = ImGui.IsAnyItemFocused() || ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow);
+            Focused = ImGui.IsAnyItemFocused() || ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow) || DialogManager.AnyDialogsShowing;
             Hovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow) || ImGui.IsAnyItemHovered();
 
             if (Focused || Hovered)

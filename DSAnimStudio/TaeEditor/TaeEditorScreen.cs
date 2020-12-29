@@ -1867,18 +1867,14 @@ namespace DSAnimStudio.TaeEditor
         {
             if (SelectedTaeAnim != null)
             {
-                PauseUpdate = true;
-                var keyboardTask = KeyboardInput.Show("Set Animation Name", "Set the name of the current animation.", SelectedTaeAnim.AnimFileName);
-                keyboardTask.Wait();
-                if (keyboardTask.Result != null)
+                DialogManager.AskForInputString("Set Animation Name", "Set the name of the current animation.", "", result =>
                 {
-                    if (SelectedTaeAnim.AnimFileName != keyboardTask.Result)
+                    if (SelectedTaeAnim.AnimFileName != result)
                     {
-                        SelectedTaeAnim.AnimFileName = keyboardTask.Result;
+                        SelectedTaeAnim.AnimFileName = result;
                         SelectedTaeAnim.SetIsModified(true);
                     }
-                }
-                PauseUpdate = false;
+                }, canBeCancelled: true, startingText: SelectedTaeAnim.AnimFileName);
             }
         }
 
@@ -2507,12 +2503,13 @@ namespace DSAnimStudio.TaeEditor
             }
 
 
-            if (PauseUpdate)
+            if (PauseUpdate || DialogManager.AnyDialogsShowing)
             {
                 return;
             }
 
-            Transport.Update(Main.DELTA_UPDATE);
+            if (!(OSD.Focused || DialogManager.AnyDialogsShowing))
+                Transport.Update(Main.DELTA_UPDATE);
 
             bool isOtherPaneFocused = ModelViewerBounds.Contains((int)Input.LeftClickDownAnchor.X, (int)Input.LeftClickDownAnchor.Y);
 

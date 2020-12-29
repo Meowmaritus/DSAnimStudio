@@ -502,50 +502,6 @@ namespace DSAnimStudio.ImguiOSD
             return v;
         }
 
-        public static int TaeAnimIDItem(string text, long currentValue)
-        {
-            string curIDText = "";
-            string hintText = "";
-
-            if (currentValue >= 0)
-            {
-                var animID_Lower = GameDataManager.GameTypeHasLongAnimIDs
-                ? (currentValue % 1_000000) : (currentValue % 1_0000);
-
-                var animID_Upper = GameDataManager.GameTypeHasLongAnimIDs
-                    ? (currentValue / 1_000000) : (currentValue / 1_0000);
-
-                if (GameDataManager.GameTypeHasLongAnimIDs)
-                {
-                    bool ds2Meme = GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YY_ZZZZ;
-                    curIDText = ds2Meme ? $"a{(animID_Upper):D2}_{animID_Lower:D6}" :
-                    $"a{(animID_Upper):D3}_{animID_Lower:D6}";
-                    if (ds2Meme)
-                    {
-                        curIDText = curIDText.Insert(curIDText.Length - 4, "_");
-                    }
-                }
-                else
-                {
-                    curIDText = $"a{(animID_Upper):D2}_{animID_Lower:D4}";
-                }
-            }
-            else
-            {
-                hintText = "(None)";
-            }
-            
-
-            ImGui.InputText(text, ref curIDText, 11);
-            var sb = new StringBuilder();
-            foreach (var c in curIDText)
-            {
-                if (char.IsDigit(c))
-                    sb.Append(c);
-            }
-            string final = sb.ToString();
-            return string.IsNullOrWhiteSpace(final) ? -1 : int.Parse(sb.ToString());
-        }
 
         public static bool Checkbox(string text, bool currentValue, bool enabled = true,
             string shortcut = null, Color? textColor = null, Color? shortcutColor = null)
