@@ -22,10 +22,15 @@ namespace DSAnimStudio
         {
             Clear();
 
-            var eventsByTime = graph.EventBoxes
-                .Where(b => b.MyEvent.Template != null)
-                .OrderBy(b => b.MyEvent.StartTime)
-                .ToList();
+            List<TaeEditAnimEventBox> eventsByTime = null;
+
+            lock (graph._lock_EventBoxManagement)
+            {
+                eventsByTime = graph.EventBoxes
+                    .Where(b => b.MyEvent.Template != null)
+                    .OrderBy(b => b.MyEvent.StartTime)
+                    .ToList();
+            }
 
             foreach (var ev in eventsByTime)
             {

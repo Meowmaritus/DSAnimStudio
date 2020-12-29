@@ -66,7 +66,7 @@ namespace DSAnimStudio.TaeEditor
             VariousItemClones = stuffToClone.Select(thing => TaeCloneStateItem.NewOrDefault(thing));
             BoxClones = new TaeCloneStateEnumerable<TaeEditAnimEventBox>(graph.EventBoxes);
             GroupRegionClones = new TaeCloneStateEnumerable<TaeEventGroupRegion>(graph.GroupRegions);
-            lock (graph._lock_sortedByRow)
+            lock (graph._lock_EventBoxManagement)
                 SortedByRowClone = graph.sortedByRow.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
         }
 
@@ -78,7 +78,7 @@ namespace DSAnimStudio.TaeEditor
             }
             Graph.EventBoxes = BoxClones.GetRestoredEnumerable().ToList();
             Graph.GroupRegions = GroupRegionClones.GetRestoredEnumerable().ToList();
-            lock (Graph._lock_sortedByRow)
+            lock (Graph._lock_EventBoxManagement)
                 Graph.sortedByRow = SortedByRowClone;
         }
     }

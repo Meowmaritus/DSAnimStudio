@@ -488,6 +488,7 @@ namespace DSAnimStudio
 
             WinForm.Shown += (o, e) =>
             {
+                LoadConfig();
                 FmodManager.InitTest();
             };
 

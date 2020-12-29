@@ -144,8 +144,6 @@ namespace DSAnimStudio
                 CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
                 CategoryEnableDraw[DbgPrimCategory.Other] = true;
 
-                CategoryEnableDraw[DbgPrimCategory.CameraPivot] = false;
-
                 CategoryEnableDraw[DbgPrimCategory.RootMotionPath] = true;
             }
         }
@@ -236,18 +234,12 @@ namespace DSAnimStudio
         {
             Main.TAE_EDITOR.Graph?.ViewportInteractor?.DrawDebug();
 
-            if (CategoryEnableDraw[DbgPrimCategory.CameraPivot])
-            {
-                GFX.World.DrawPrims();
-            }
+            GFX.World.DrawPrims();
         }
 
         public static void DrawDepthDisrespectPrims()
         {
-            if (CategoryEnableDraw[DbgPrimCategory.CameraPivot])
-            {
-                GFX.World.DrawOverPrims();
-            }
+            GFX.World.DrawOverPrims();
         }
 
         public static void DrawSkybox()

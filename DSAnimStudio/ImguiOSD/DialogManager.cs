@@ -10,6 +10,8 @@ namespace DSAnimStudio.ImguiOSD
 {
     public static class DialogManager
     {
+        public static bool AnyDialogsShowing { get; private set; } = false;
+
         private static List<Dialog> dialogs = new List<Dialog>();
         private static bool dialogsChanged = false;
         public static TaeEditorScreen Tae => Main.TAE_EDITOR;
@@ -32,6 +34,8 @@ namespace DSAnimStudio.ImguiOSD
             {
                 dialogs.Remove(q);
             }
+
+            AnyDialogsShowing = dialogs.Count > 0;
         }
 
         private static void AddDialog(Dialog dlg)
@@ -50,14 +54,45 @@ namespace DSAnimStudio.ImguiOSD
             var dlg = new Dialog.TaeAnimPropertiesEdit(anim);
             dlg.OnDismiss = () =>
             {
-                if (dlg.CancelType == Dialog.CancelTypes.None)
+                if (dlg.CancelType == Dialog.CancelTypes.ClickedAcceptButton)
                 {
-                    anim.MiniHeader = dlg.TaeAnimHeader;
-                    anim.ID = dlg.TaeAnimID;
-                    anim.AnimFileName = dlg.TaeAnimName;
-                    anim.SetIsModified(true);
-                    Tae.RecreateAnimList();
-                    Tae.UpdateSelectedTaeAnimInfoText();
+                    if (dlg.WasAnimDeleted)
+                    {
+                        if (Tae.SelectedTae.Animations.Count <= 1)
+                        {
+                            DialogOK("Can't Delete Last Animation",
+                                "Cannot delete the only animation remaining in the TAE.");
+                        }
+                        else
+                        {
+                            var indexOfCurrentAnim = Tae.SelectedTae.Animations.IndexOf(Tae.SelectedTaeAnim);
+                            Tae.SelectedTae.Animations.Remove(Tae.SelectedTaeAnim);
+
+                            Tae.RecreateAnimList();
+                            Tae.UpdateSelectedTaeAnimInfoText();
+
+                            if (indexOfCurrentAnim > Tae.SelectedTae.Animations.Count - 1)
+                                indexOfCurrentAnim = Tae.SelectedTae.Animations.Count - 1;
+
+                            if (indexOfCurrentAnim >= 0)
+                                Tae.SelectNewAnimRef(Tae.SelectedTae, Tae.SelectedTae.Animations[indexOfCurrentAnim]);
+                            else
+                                Tae.SelectNewAnimRef(Tae.SelectedTae, Tae.SelectedTae.Animations[0]);
+
+                            Tae.SelectedTae.SetIsModified(!Tae.IsReadOnlyFileMode);
+                        }
+
+                        
+                    }
+                    else
+                    {
+                        anim.MiniHeader = dlg.TaeAnimHeader;
+                        anim.ID = dlg.TaeAnimID;
+                        anim.AnimFileName = dlg.TaeAnimName;
+                        anim.SetIsModified(true);
+                        Tae.RecreateAnimList();
+                        Tae.UpdateSelectedTaeAnimInfoText();
+                    }
                 }
             };
             AddDialog(dlg);

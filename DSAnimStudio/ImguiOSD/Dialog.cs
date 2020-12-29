@@ -16,10 +16,13 @@ namespace DSAnimStudio.ImguiOSD
             ClickTitleBarX = 1 << 0,
             PressEscape = 1 << 1,
             PressEnter = 1 << 2,
+            ClickedAcceptButton = 1 << 3,
 
             Combo_ClickTitleBarX_PressEscape = ClickTitleBarX | PressEscape,
-            Combo_All = ClickTitleBarX | PressEscape | PressEnter,
+            Combo_All = ClickTitleBarX | PressEscape | PressEnter | ClickedAcceptButton,
         }
+
+        public readonly Guid UniqueInstanceGUID = Guid.NewGuid();
 
         public string Title;
 
@@ -51,21 +54,22 @@ namespace DSAnimStudio.ImguiOSD
             if (Title == null)
                 throw new InvalidOperationException("Dialog title cannot be null.");
 
+            // Check for topmost
             if (isTopMost)
-                ImGui.OpenPopup(Title);
+                ImGui.OpenPopup($"{Title}##{UniqueInstanceGUID}");
             bool isOpen = true;
 
             bool didPopupWindow;
             if (AllowsCancelType(CancelTypes.ClickTitleBarX))
             {
-                didPopupWindow = ImGui.BeginPopupModal(Title, ref isOpen,
+                didPopupWindow = ImGui.BeginPopupModal($"{Title}##{UniqueInstanceGUID}", ref isOpen,
                     ImGuiWindowFlags.AlwaysAutoResize |
                     ImGuiWindowFlags.NoSavedSettings |
                     ImGuiWindowFlags.NoCollapse);
             }
             else
             {
-                didPopupWindow = ImGuiEx.BeginPopupModal(Title,
+                didPopupWindow = ImGuiEx.BeginPopupModal($"{Title}##{UniqueInstanceGUID}",
                     ImGuiWindowFlags.AlwaysAutoResize |
                     ImGuiWindowFlags.NoSavedSettings |
                     ImGuiWindowFlags.NoCollapse);
@@ -73,7 +77,8 @@ namespace DSAnimStudio.ImguiOSD
 
             if (didPopupWindow)
             {
-                BuildInsideOfWindow();
+                if (isTopMost)
+                    BuildInsideOfWindow();
 
 
 

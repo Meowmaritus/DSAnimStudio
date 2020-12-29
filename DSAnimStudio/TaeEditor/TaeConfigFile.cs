@@ -352,7 +352,10 @@ namespace DSAnimStudio.TaeEditor
 
         public TaeConfigFile()
         {
-            EventSimulationsEnabled = new Dictionary<string, bool>();
+            lock (_lock_ThreadSensitiveStuff)
+            {
+                EventSimulationsEnabled = new Dictionary<string, bool>();
+            }
             //foreach (var kvp in TaeEventSimulationEnvironment.Entries)
             //{
             //    if (kvp.Value.MenuOptionName != null)

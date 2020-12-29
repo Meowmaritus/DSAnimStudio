@@ -12,7 +12,29 @@ namespace DSAnimStudio.TaeEditor
 
     public class TaePlaybackCursor
     {
-        public double CurrentTime;
+        private double _currentTimeVal = 0;
+        public double CurrentTime
+        {
+            get => _currentTimeVal;
+            set
+            {
+                if (double.IsNaN(value))
+                {
+                    _currentTimeVal = 0;
+                    throw new InvalidOperationException("Current time was set to NaN.");
+                }
+                else if (double.IsInfinity(value))
+                {
+                    _currentTimeVal = 0;
+                    throw new InvalidOperationException("Current time was set to infinity.");
+                }
+                else
+                {
+                    _currentTimeVal = value;
+                }
+                
+            }
+        }
 
         public void GotoFrame(float frame)
         {
@@ -285,7 +307,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (Scrubbing || JustStartedPlaying)
             {
-                CurrentLoopCount = (int)(CurrentTime / (MaxTime));
+                CurrentLoopCount = MaxTime >= 0 ? (int)(CurrentTime / (MaxTime)) : 0;
             }
 
             if (JustStartedPlaying || (CurrentLoopCount != OldLoopCount))
@@ -313,6 +335,7 @@ namespace DSAnimStudio.TaeEditor
 
                 try
                 {
+                    // Thread locked from outside this function
                     foreach (var box in eventBoxes)
                     {
                         if (!HkxAnimationLength.HasValue)

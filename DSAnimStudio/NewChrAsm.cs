@@ -451,17 +451,13 @@ namespace DSAnimStudio
                 }
             }
 
-            var rback = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                ? !RightWeaponFlipBackwards : RightWeaponFlipBackwards;
-
-            var rside = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                ? !RightWeaponFlipSideways : !RightWeaponFlipSideways;
-
-            var lback = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                ? !LeftWeaponFlipBackwards : LeftWeaponFlipBackwards;
-
-            var lside = (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                ? LeftWeaponFlipSideways : !LeftWeaponFlipSideways;
+            var isOldGame = GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R || 
+                GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DES;
+            var rback = isOldGame ? !RightWeaponFlipBackwards : RightWeaponFlipBackwards;
+            var rside = isOldGame ? !RightWeaponFlipSideways : !RightWeaponFlipSideways;
+            var lback = isOldGame ? !LeftWeaponFlipBackwards : LeftWeaponFlipBackwards;
+            var lside = isOldGame ? LeftWeaponFlipSideways : !LeftWeaponFlipSideways;
 
             DoWPN(RightWeapon, RightWeaponModel0, 0, RightWeaponBoneIndex, isLeft: false, rback, rside);
             DoWPN(RightWeapon, RightWeaponModel1, 1, RightWeaponBoneIndex, isLeft: false, rback, rside);

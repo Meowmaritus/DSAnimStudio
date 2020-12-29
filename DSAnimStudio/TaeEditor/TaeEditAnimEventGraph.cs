@@ -12,65 +12,80 @@ namespace DSAnimStudio.TaeEditor
 {
     public class TaeEditAnimEventGraph
     {
-        public void GenerateFakeDS3EventGroups()
+        public void GenerateFakeDS3EventGroups(bool threadLock = false)
         {
-            if (IsSimpleRemoGroupMode)
+            void doWholeThing()
             {
-                // REMOVE REDUNDANT EVENT GROUPS
-                MainScreen.SelectedTaeAnim.EventGroups.Clear();
-
-                //var cutsceneEntitySpecifyEventGroupIndexMap = new Dictionary<TAE.EventGroup.EventGroupDataStruct, int>();
-                foreach (var ev in MainScreen.SelectedTaeAnim.Events)
+                if (IsSimpleRemoGroupMode)
                 {
-                    if (ev.Group == null)
-                    {
-                        ev.Group = new TAE.EventGroup(0);
-                        ev.Group.GroupData = new TAE.EventGroup.EventGroupDataStruct();
-                    }
-                    else
-                    {
-                        var gdt = ev.Group.GroupData;
-                        ev.Group = new TAE.EventGroup(ev.Group.GroupType);
-                        ev.Group.GroupData = gdt;
-                    }
+                    // REMOVE REDUNDANT EVENT GROUPS
+                    MainScreen.SelectedTaeAnim.EventGroups.Clear();
 
-                    MainScreen.SelectedTaeAnim.EventGroups.Add(ev.Group);
+                    //var cutsceneEntitySpecifyEventGroupIndexMap = new Dictionary<TAE.EventGroup.EventGroupDataStruct, int>();
+                    foreach (var ev in MainScreen.SelectedTaeAnim.Events)
+                    {
+                        if (ev.Group == null)
+                        {
+                            ev.Group = new TAE.EventGroup(0);
+                            ev.Group.GroupData = new TAE.EventGroup.EventGroupDataStruct();
+                        }
+                        else
+                        {
+                            var gdt = ev.Group.GroupData;
+                            ev.Group = new TAE.EventGroup(ev.Group.GroupType);
+                            ev.Group.GroupData = gdt;
+                        }
+
+                        MainScreen.SelectedTaeAnim.EventGroups.Add(ev.Group);
+                    }
+                }
+                else if (IsFancyCollapsingRemoGroupMode)
+                {
+                    throw new NotImplementedException();
+                }
+                else
+                {
+                    // Always clear for anything not a REMO, which is the only example of event groups actually having meanings.
+                    MainScreen.SelectedTaeAnim.EventGroups.Clear();
+                    GroupRegions.Clear();
+
+                    // Only generate if supported or if user has option enabled to force use these in games where they usually aren't.
+                    if (EventBoxes.Count > 0 && GameDataManager.GameTypeUsesBoilerplateEventGroups)
+                    {
+                        int maxRow = EventBoxes.Max(evBox => evBox.Row);
+                        for (int i = 0; i <= maxRow; i++)
+                        {
+                            var eventsInThisGroup = EventBoxes.Where(ev => ev.Row == i).ToList();
+                            int fakeGroupType = eventsInThisGroup.FirstOrDefault()?.MyEvent?.Type ?? 0;
+                            if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                            {
+                                fakeGroupType = 0;
+                            }
+                            var group = new TAE.EventGroup(fakeGroupType);
+                            if (!GameDataManager.GameTypeUsesBoilerplateEventGroups)
+                            {
+                                group.GroupData = new TAE.EventGroup.EventGroupDataStruct();
+                            }
+
+                            foreach (var ev in eventsInThisGroup)
+                                ev.MyEvent.Group = group;
+                            MainScreen.SelectedTaeAnim.EventGroups.Add(group);
+                            //Graph.GroupRegions.Add(new TaeEventGroupRegion(Graph, SelectedTaeAnim, group));
+                        }
+                    }
                 }
             }
-            else if (IsFancyCollapsingRemoGroupMode)
+
+            if (threadLock)
             {
-                throw new NotImplementedException();
+                lock (_lock_EventBoxManagement)
+                {
+                    doWholeThing();
+                }
             }
             else
             {
-                // Always clear for anything not a REMO, which is the only example of event groups actually having meanings.
-                MainScreen.SelectedTaeAnim.EventGroups.Clear();
-                GroupRegions.Clear();
-
-                // Only generate if supported or if user has option enabled to force use these in games where they usually aren't.
-                if (EventBoxes.Count > 0 && GameDataManager.GameTypeUsesBoilerplateEventGroups)
-                {
-                    int maxRow = EventBoxes.Max(evBox => evBox.Row);
-                    for (int i = 0; i <= maxRow; i++)
-                    {
-                        var eventsInThisGroup = EventBoxes.Where(ev => ev.Row == i).ToList();
-                        int fakeGroupType = eventsInThisGroup.FirstOrDefault()?.MyEvent?.Type ?? 0;
-                        if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                        {
-                            fakeGroupType = 0;
-                        }
-                        var group = new TAE.EventGroup(fakeGroupType);
-                        if (!GameDataManager.GameTypeUsesBoilerplateEventGroups)
-                        {
-                            group.GroupData = new TAE.EventGroup.EventGroupDataStruct();
-                        }
-
-                        foreach (var ev in eventsInThisGroup)
-                            ev.MyEvent.Group = group;
-                        MainScreen.SelectedTaeAnim.EventGroups.Add(group);
-                        //Graph.GroupRegions.Add(new TaeEventGroupRegion(Graph, SelectedTaeAnim, group));
-                    }
-                }
+                doWholeThing();
             }
         }
 
@@ -437,7 +452,7 @@ namespace DSAnimStudio.TaeEditor
         public float RowHeight => (IsNewGraphVisiMode ? 20 : 32) 
             * (IsSimpleRemoGroupMode ? 1.5f : 1);
 
-        public object _lock_sortedByRow = new object();
+        public object _lock_EventBoxManagement = new object();
         public Dictionary<int, List<TaeEditAnimEventBox>> sortedByRow = new Dictionary<int, List<TaeEditAnimEventBox>>();
 
         private object _lock_VisualRowToLogicalRowMap = new object();
@@ -454,7 +469,7 @@ namespace DSAnimStudio.TaeEditor
         private List<TaeEditAnimEventBox> GetBoxesInLogicalRow(int row)
         {
             var result = new List<TaeEditAnimEventBox>();
-            lock (_lock_sortedByRow)
+            lock (_lock_EventBoxManagement)
             {
                 if (sortedByRow.ContainsKey(row))
                     result = sortedByRow[row];
@@ -466,11 +481,11 @@ namespace DSAnimStudio.TaeEditor
 
         public void RegisterEventBoxExistance(TaeEditAnimEventBox box)
         {
-            if (!EventBoxes.Contains(box))
-                EventBoxes.Add(box);
-
-            lock (_lock_sortedByRow)
+            lock (_lock_EventBoxManagement)
             {
+                if (!EventBoxes.Contains(box))
+                    EventBoxes.Add(box);
+
                 if (!sortedByRow.ContainsKey(box.Row))
                     sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
 
@@ -480,166 +495,166 @@ namespace DSAnimStudio.TaeEditor
 
         public void ChangeToNewAnimRef(TAE.Animation newAnimRef)
         {
-            foreach (var box in EventBoxes)
-                box.RowChanged -= Box_RowChanged;
-
-            EventBoxes.Clear();
-
-            GroupRegions.Clear();
-
-            GhostEventGraph = null;
-
-            lock (_lock_sortedByRow)
+            lock (_lock_EventBoxManagement)
             {
+                foreach (var box in EventBoxes)
+                    box.RowChanged -= Box_RowChanged;
+
+                EventBoxes.Clear();
+
+                GroupRegions.Clear();
+
+                GhostEventGraph = null;
+
                 sortedByRow.Clear();
-            }
-            AnimRef = newAnimRef;
 
-            if (AnimRef == null)
-                return;
+                AnimRef = newAnimRef;
 
-            void RegisterBoxToRow(TaeEditAnimEventBox box, int row)
-            {
-                lock (_lock_sortedByRow)
+                if (AnimRef == null)
+                    return;
+
+                void RegisterBoxToRow(TaeEditAnimEventBox box, int row)
                 {
                     if (sortedByRow.ContainsKey(row))
                         sortedByRow[row].Add(box);
                     else
                         sortedByRow.Add(row, new List<TaeEditAnimEventBox> { box });
                 }
-            }
 
-            bool legacyRowMode = AnimRef.EventGroups == null || AnimRef.EventGroups.Count == 0 || IsSimpleRemoGroupMode;
+                bool legacyRowMode = AnimRef.EventGroups == null || AnimRef.EventGroups.Count == 0 || IsSimpleRemoGroupMode;
 
-            if (GameDataManager.GameTypeUsesBoilerplateEventGroups)
-            {
-                legacyRowMode = false;
-            }
-            else
-            {
-                legacyRowMode = !(AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0);
-            }
-
-            if (IsSimpleRemoGroupMode)
-            {
-                legacyRowMode = true;
-            }
-
-            int currentRow = 0;
-            float farthestRightOnCurrentRow = 0;
-            int eventIndex = 0;
-
-            var orderedEvents = AnimRef.Events;
-
-            if ((IsFancyCollapsingRemoGroupMode || IsSimpleRemoGroupMode) && (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0))
-            {
-                GroupRegions.Clear();
-                orderedEvents = newAnimRef.Events.OrderBy(x => newAnimRef.EventGroups.IndexOf(x.Group)).ToList();
-            }
-
-            
-
-            foreach (var ev in orderedEvents)
-            {
-                int groupIndex = legacyRowMode ? -1 : AnimRef.EventGroups.IndexOf(ev.Group);
-
-                var newBox = new TaeEditAnimEventBox(this, ev, AnimRef);
-
-                if (newBox.Row >= 0)
+                if (GameDataManager.GameTypeUsesBoilerplateEventGroups)
                 {
-                    currentRow = newBox.Row;
-                    farthestRightOnCurrentRow = newBox.Right;
+                    legacyRowMode = false;
                 }
                 else
                 {
-                    if (legacyRowMode)
-                    {
-                        newBox.Row = currentRow;
+                    legacyRowMode = !(AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0);
+                }
 
-                        if (newBox.Left < farthestRightOnCurrentRow)
-                        {
-                            newBox.Row++;
-                            currentRow++;
-                            farthestRightOnCurrentRow = newBox.Right;
-                        }
-                        else
-                        {
-                            if (newBox.Right > farthestRightOnCurrentRow)
-                                farthestRightOnCurrentRow = newBox.Right;
-                        }
+                if (IsSimpleRemoGroupMode)
+                {
+                    legacyRowMode = true;
+                }
+
+                int currentRow = 0;
+                float farthestRightOnCurrentRow = 0;
+                int eventIndex = 0;
+
+                var orderedEvents = AnimRef.Events;
+
+                if ((IsFancyCollapsingRemoGroupMode || IsSimpleRemoGroupMode) && (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0))
+                {
+                    GroupRegions.Clear();
+                    orderedEvents = newAnimRef.Events.OrderBy(x => newAnimRef.EventGroups.IndexOf(x.Group)).ToList();
+                }
+
+
+
+                foreach (var ev in orderedEvents)
+                {
+                    int groupIndex = legacyRowMode ? -1 : AnimRef.EventGroups.IndexOf(ev.Group);
+
+                    var newBox = new TaeEditAnimEventBox(this, ev, AnimRef);
+
+                    if (newBox.Row >= 0)
+                    {
+                        currentRow = newBox.Row;
+                        farthestRightOnCurrentRow = newBox.Right;
                     }
                     else
                     {
-                        if (groupIndex >= 0)
-                            newBox.Row = currentRow = groupIndex;
+                        if (legacyRowMode)
+                        {
+                            newBox.Row = currentRow;
+
+                            if (newBox.Left < farthestRightOnCurrentRow)
+                            {
+                                newBox.Row++;
+                                currentRow++;
+                                farthestRightOnCurrentRow = newBox.Right;
+                            }
+                            else
+                            {
+                                if (newBox.Right > farthestRightOnCurrentRow)
+                                    farthestRightOnCurrentRow = newBox.Right;
+                            }
+                        }
                         else
                         {
-                            if (currentRow < AnimRef.EventGroups.Count)
-                                currentRow = AnimRef.EventGroups.Count;
-                            newBox.Row = currentRow;
+                            if (groupIndex >= 0)
+                                newBox.Row = currentRow = groupIndex;
+                            else
+                            {
+                                if (currentRow < AnimRef.EventGroups.Count)
+                                    currentRow = AnimRef.EventGroups.Count;
+                                newBox.Row = currentRow;
+                            }
                         }
+
                     }
-                    
+
+
+
+                    newBox.RowChanged += Box_RowChanged;
+
+                    RegisterBoxToRow(newBox, newBox.Row);
+                    EventBoxes.Add(newBox);
+
+                    eventIndex++;
                 }
 
-
-
-                newBox.RowChanged += Box_RowChanged;
-
-                RegisterBoxToRow(newBox, newBox.Row);
-                EventBoxes.Add(newBox);
-
-                eventIndex++;
-            }
-
-            if (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0 && (IsFancyCollapsingRemoGroupMode || IsSimpleRemoGroupMode))
-            {
-                GroupRegions.Clear();
-                foreach (var eg in newAnimRef.EventGroups)
+                if (AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0 && (IsFancyCollapsingRemoGroupMode || IsSimpleRemoGroupMode))
                 {
-                    var gr = new TaeEventGroupRegion(this, newAnimRef, eg);
-                    GroupRegions.Add(gr);
-                    var boxesInGroupRegion = EventBoxes.Where(evBox => evBox.MyEvent.Group == eg).ToList();
-                    foreach (var b in boxesInGroupRegion)
-                        gr.AddEvent(b);
+                    GroupRegions.Clear();
+                    foreach (var eg in newAnimRef.EventGroups)
+                    {
+                        var gr = new TaeEventGroupRegion(this, newAnimRef, eg);
+                        GroupRegions.Add(gr);
+                        var boxesInGroupRegion = EventBoxes.Where(evBox => evBox.MyEvent.Group == eg).ToList();
+                        foreach (var b in boxesInGroupRegion)
+                            gr.AddEvent(b);
+                    }
+
+                    foreach (var gr in GroupRegions)
+                        gr.CropRegionToEvents();
                 }
-
-                foreach (var gr in GroupRegions)
-                    gr.CropRegionToEvents();
-            }
-            else
-            {
-                GroupRegions.Clear();
-            }
-            
-
-            FixAllGroupBounds(ignoreUndoRedo: true);
-
-            if (IsSimpleRemoGroupMode)
-            {
-                GenerateFakeDS3EventGroups();
-            }
-
-            if (!IsFancyCollapsingRemoGroupMode)
-            {
-                foreach (var ev in EventBoxes)
+                else
                 {
-                    ev.VisualRow = ev.Row;
+                    GroupRegions.Clear();
                 }
+
+
+                FixAllGroupBounds(ignoreUndoRedo: true);
+
+                if (IsSimpleRemoGroupMode)
+                {
+                    GenerateFakeDS3EventGroups(threadLock: false);
+                }
+
+                if (!IsFancyCollapsingRemoGroupMode)
+                {
+                    foreach (var ev in EventBoxes)
+                    {
+                        ev.VisualRow = ev.Row;
+                    }
+                }
+
+                
+
+                //Console.WriteLine("EventGroups Start");
+                //for (int i = 0; i < AnimRef.EventGroups.Count; i++)
+                //{
+
+                //    Console.WriteLine(AnimRef.EventGroups[i].EventType);
+
+                //}
+                //Console.WriteLine("EventGroups End");
+
+                //GC.Collect();
             }
 
             InitGhostEventBoxes();
-
-            //Console.WriteLine("EventGroups Start");
-            //for (int i = 0; i < AnimRef.EventGroups.Count; i++)
-            //{
-
-            //    Console.WriteLine(AnimRef.EventGroups[i].EventType);
-
-            //}
-            //Console.WriteLine("EventGroups End");
-
-            //GC.Collect();
         }
 
         public void InitGhostEventBoxes()
@@ -713,7 +728,7 @@ namespace DSAnimStudio.TaeEditor
         {
             var box = (TaeEditAnimEventBox)sender;
 
-            lock (_lock_sortedByRow)
+            lock (_lock_EventBoxManagement)
             {
                 if (sortedByRow.ContainsKey(oldRow) && sortedByRow[oldRow].Contains(box))
                     sortedByRow[oldRow].Remove(box);
@@ -782,43 +797,50 @@ namespace DSAnimStudio.TaeEditor
                 {
                     foreach (var box in copyOfBoxes)
                     {
-                        if (MainScreen.SelectedEventBox == box)
-                            MainScreen.SelectedEventBox = null;
-
-                        if (MainScreen.MultiSelectedEventBoxes.Contains(box))
-                            MainScreen.MultiSelectedEventBoxes.Remove(box);
-
-                        box.RowChanged -= Box_RowChanged;
-
-                        var r = box.Row;
-
-                        lock (_lock_sortedByRow)
+                        lock (_lock_EventBoxManagement)
                         {
+                            if (MainScreen.SelectedEventBox == box)
+                                MainScreen.SelectedEventBox = null;
+
+                            if (MainScreen.MultiSelectedEventBoxes.Contains(box))
+                                MainScreen.MultiSelectedEventBoxes.Remove(box);
+
+                            box.RowChanged -= Box_RowChanged;
+
+                            var r = box.Row;
+
+
                             if (sortedByRow.ContainsKey(r))
                                 if (sortedByRow[r].Contains(box))
                                     sortedByRow[r].Remove(box);
+
+                            AnimRef.Events.Remove(box.MyEvent);
+
+                            EventBoxes.Remove(box);
+
+                            AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
+
                         }
-
-                        AnimRef.Events.Remove(box.MyEvent);
-
-                        EventBoxes.Remove(box);
-
-                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     }
 
-                    GenerateFakeDS3EventGroups();
+                    GenerateFakeDS3EventGroups(threadLock: true);
                 },
                 undoAction: () =>
                 {
                     MainScreen.MultiSelectedEventBoxes.Clear();
                     foreach (var box in copyOfBoxes)
                     {
-                        EventBoxes.Add(box);
-                        AnimRef.Events.Add(box.MyEvent);
+                        lock (_lock_EventBoxManagement)
+                        {
+                            EventBoxes.Add(box);
+                            AnimRef.Events.Add(box.MyEvent);
+                        }
+
+                        
 
                         var r = box.Row;
 
-                        lock (_lock_sortedByRow)
+                        lock (_lock_EventBoxManagement)
                         {
                             if (!sortedByRow.ContainsKey(r))
                                 sortedByRow.Add(r, new List<TaeEditAnimEventBox>());
@@ -839,7 +861,7 @@ namespace DSAnimStudio.TaeEditor
                         AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     }
 
-                    GenerateFakeDS3EventGroups();
+                    GenerateFakeDS3EventGroups(threadLock: true);
                 },
                 captureItems: new List<ITaeClonable>()
                 {
@@ -868,21 +890,24 @@ namespace DSAnimStudio.TaeEditor
                             kvp.Value.Remove(box);
                     }
 
-                    AnimRef.Events.Remove(box.MyEvent);
+                    lock (_lock_EventBoxManagement)
+                    {
+                        AnimRef.Events.Remove(box.MyEvent);
 
-                    EventBoxes.Remove(box);
+                        EventBoxes.Remove(box);
+                    }
 
                     AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
 
-                    GenerateFakeDS3EventGroups();
+                    GenerateFakeDS3EventGroups(threadLock: true);
                 },
                 undoAction: () =>
                 {
-                    EventBoxes.Add(box);
-                    AnimRef.Events.Add(box.MyEvent);
-
-                    lock (_lock_sortedByRow)
+                    lock (_lock_EventBoxManagement)
                     {
+                        EventBoxes.Add(box);
+                        AnimRef.Events.Add(box.MyEvent);
+
                         if (!sortedByRow.ContainsKey(box.Row))
                             sortedByRow.Add(box.Row, new List<TaeEditAnimEventBox>());
 
@@ -924,9 +949,12 @@ namespace DSAnimStudio.TaeEditor
 
             void DoPlaceEvent()
             {
-                MainScreen.SelectedTaeAnim.Events.Add(ev);
+                lock (_lock_EventBoxManagement)
+                {
+                    MainScreen.SelectedTaeAnim.Events.Add(ev);
+                }
 
-                lock (_lock_sortedByRow)
+                lock (_lock_EventBoxManagement)
                 {
                     if (!sortedByRow.ContainsKey(newBox.Row))
                         sortedByRow.Add(newBox.Row, new List<TaeEditAnimEventBox>());
@@ -937,7 +965,10 @@ namespace DSAnimStudio.TaeEditor
 
                 newBox.RowChanged += Box_RowChanged;
 
-                EventBoxes.Add(newBox);
+                lock (_lock_EventBoxManagement)
+                {
+                    EventBoxes.Add(newBox);
+                }
 
                 RegisterBoxGroupChange(newBox);
 
@@ -957,21 +988,23 @@ namespace DSAnimStudio.TaeEditor
                 },
                 undoAction: () =>
                 {
-                    EventBoxes.Remove(newBox);
-
-                    newBox.RowChanged -= Box_RowChanged;
-
-                    lock (_lock_sortedByRow)
+                    lock (_lock_EventBoxManagement)
                     {
+                        EventBoxes.Remove(newBox);
+
+                        newBox.RowChanged -= Box_RowChanged;
+
+                 
                         if (sortedByRow.ContainsKey(newBox.Row))
                             if (sortedByRow[newBox.Row].Contains(newBox))
                                 sortedByRow[newBox.Row].Remove(newBox);
+                    
+
+
+                        MainScreen.SelectedTaeAnim.Events.Remove(ev);
+
+                        AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                     }
-
-
-                    MainScreen.SelectedTaeAnim.Events.Remove(ev);
-
-                    AnimRef.SetIsModified(!MainScreen.IsReadOnlyFileMode);
                 },
                 captureItems: new List<ITaeClonable>
                 {
@@ -1174,7 +1207,7 @@ namespace DSAnimStudio.TaeEditor
                                 MainScreen.MultiSelectedEventBoxes.Clear();
                             }
 
-                            GenerateFakeDS3EventGroups();
+                            GenerateFakeDS3EventGroups(threadLock: true);
                         },
                         undoAction: () =>
                         {
@@ -1185,7 +1218,7 @@ namespace DSAnimStudio.TaeEditor
                                     DeleteEventBox(matchedBox, notUndoable: true);
                             }
 
-                            GenerateFakeDS3EventGroups();
+                            GenerateFakeDS3EventGroups(threadLock: true);
 
                             //DeleteMultipleEventBoxes(copyOfEvents, notUndoable: true);
 
@@ -1215,11 +1248,17 @@ namespace DSAnimStudio.TaeEditor
         {
             if (GhostEventGraph != null)
             {
-                PlaybackCursor.Update(GhostEventGraph.EventBoxes);
+                lock (GhostEventGraph._lock_EventBoxManagement)
+                {
+                    PlaybackCursor.Update(GhostEventGraph.EventBoxes);
+                }
             }
             else
             {
-                PlaybackCursor.Update(EventBoxes);
+                lock (_lock_EventBoxManagement)
+                {
+                    PlaybackCursor.Update(EventBoxes);
+                }
             }
             
         }
@@ -1826,7 +1865,7 @@ namespace DSAnimStudio.TaeEditor
                             int lastRow = (int)(dragRect.Bottom / RowHeight) + 1;
                             for (int i = firstRow; i <= lastRow; i++)
                             {
-                                lock (_lock_sortedByRow)
+                                lock (_lock_EventBoxManagement)
                                 {
                                     if (sortedByRow.ContainsKey(i))
                                     {
@@ -1889,7 +1928,7 @@ namespace DSAnimStudio.TaeEditor
                             int lastRow = (int)(dragRect.Bottom / RowHeight) + 1;
                             for (int i = firstRow; i <= lastRow; i++)
                             {
-                                lock (_lock_sortedByRow)
+                                lock (_lock_EventBoxManagement)
                                 {
                                     if (sortedByRow.ContainsKey(i))
                                     {
@@ -2878,9 +2917,12 @@ namespace DSAnimStudio.TaeEditor
                 }
 
 
-                foreach (var b in EventBoxes)
+                lock (_lock_EventBoxManagement)
                 {
-                    b.VisualRow = IsFancyCollapsingRemoGroupMode ? GetVisualRowFromLogicalRow(b.Row) : b.Row;
+                    foreach (var b in EventBoxes)
+                    {
+                        b.VisualRow = IsFancyCollapsingRemoGroupMode ? GetVisualRowFromLogicalRow(b.Row) : b.Row;
+                    }
                 }
             }
         }
@@ -2947,7 +2989,7 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            lock (_lock_sortedByRow)
+            lock (_lock_EventBoxManagement)
             {
                 foreach (var kvp in sortedByRow)
                 {

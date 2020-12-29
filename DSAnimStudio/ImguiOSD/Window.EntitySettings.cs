@@ -127,10 +127,13 @@ namespace DSAnimStudio.ImguiOSD
 
                         if (currentHitViewSource != newHitViewSource)
                         {
-                            Tae.Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Tae.Graph.EventBoxes);
-                            Tae.Config.HitViewDummyPolySource = newHitViewSource;
-                            Tae.Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Tae.Graph.EventBoxes);
-                            Tae.Graph.ViewportInteractor.OnScrubFrameChange();
+                            lock (Tae.Graph._lock_EventBoxManagement)
+                            {
+                                Tae.Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Tae.Graph.EventBoxes);
+                                Tae.Config.HitViewDummyPolySource = newHitViewSource;
+                                Tae.Graph.ViewportInteractor.EventSim.OnNewAnimSelected(Tae.Graph.EventBoxes);
+                                Tae.Graph.ViewportInteractor.OnScrubFrameChange();
+                            }
                         }
                     }
                 }

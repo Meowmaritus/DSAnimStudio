@@ -733,7 +733,10 @@ namespace DSAnimStudio.TaeEditor
             Main.Config.LoopEnabled_BeforeCombo = Main.Config.LoopEnabled;
             // Do this before setting current combo since inside here, it will check if there's a combo and not reset stuff if there's currently a combo happening.
             CurrentComboIndex = -1;
-            EventSim.OnNewAnimSelected(Graph.EventBoxes);
+            lock (Graph._lock_EventBoxManagement)
+            {
+                EventSim.OnNewAnimSelected(Graph.EventBoxes);
+            }
 
             if (isRecord)
                 CurrentComboRecorder.ClearRecording();
@@ -1215,7 +1218,10 @@ namespace DSAnimStudio.TaeEditor
 
                 CheckSimEnvironment();
 
-                EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                lock (Graph._lock_EventBoxManagement)
+                {
+                    EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                }
 
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)
                 {
@@ -1497,7 +1503,7 @@ namespace DSAnimStudio.TaeEditor
         
 
             if (EventSim != null &&
-                Graph.MainScreen.Config.EventSimulationsEnabled["EventSimSpEffects"] && 
+                EventSim.GetSimEnabled("EventSimSpEffects") && 
                 EventSim.SimulatedActiveSpEffects.Count > 0)
             {
                 printer.AppendLine("[Active SpEffects:]");

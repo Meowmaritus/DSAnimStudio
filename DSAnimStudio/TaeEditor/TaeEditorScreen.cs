@@ -1788,7 +1788,7 @@ namespace DSAnimStudio.TaeEditor
                 .Select(evBox => evBox.MyEvent)
                 .ToList();
 
-            Graph?.GenerateFakeDS3EventGroups();
+            Graph?.GenerateFakeDS3EventGroups(threadLock: true);
         }
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
@@ -2348,7 +2348,7 @@ namespace DSAnimStudio.TaeEditor
             PlaybackCursor.CurrentTime += PlaybackCursor.CurrentSnapInterval;
             PlaybackCursor.CurrentTime = Math.Floor(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
 
-            if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime)
+            if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime && PlaybackCursor.MaxTime > 0)
                 PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
 
             //PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
@@ -2549,7 +2549,7 @@ namespace DSAnimStudio.TaeEditor
                 var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
                 var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
 
-                if (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld)
+                if (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld && !DialogManager.AnyDialogsShowing)
                 {
                     if ((Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add)) && !isOtherPaneFocused)
                     {

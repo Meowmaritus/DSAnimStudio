@@ -15,6 +15,7 @@ namespace DSAnimStudio.ImguiOSD
             public long TaeAnimID;
             public string TaeAnimName;
             public TAE.Animation.AnimMiniHeader TaeAnimHeader;
+            public bool WasAnimDeleted = false;
 
             public TaeAnimPropertiesEdit(TAE.Animation anim)
             {
@@ -124,6 +125,25 @@ namespace DSAnimStudio.ImguiOSD
                     ImGui.Unindent();
                 }
 
+                ImGui.Separator();
+                ImGui.Button("Delete This Animation...");
+                if (ImGui.IsItemClicked())
+                {
+                    DialogManager.AskForMultiChoice("Permanently Delete Animation Entry?", $"Are you sure you want to delete the current animation?\nThis can NOT be undone!", (cancelType, answer) =>
+                    {
+                        if (answer == "YES")
+                        {
+                            WasAnimDeleted = true;
+                            CancelType = CancelTypes.ClickedAcceptButton;
+                            Dismiss();
+                            DialogManager.DialogOK("Success", "Animation deleted successfully.");
+                        }
+                    }, CancelTypes.Combo_ClickTitleBarX_PressEscape, "YES", "NO");
+
+                    
+                }
+                ImGui.Separator();
+
                 ImGui.Button("Cancel & Discard Changes");
                 if (ImGui.IsItemClicked())
                 {
@@ -134,7 +154,7 @@ namespace DSAnimStudio.ImguiOSD
                 ImGui.Button("Apply & Save Changes");
                 if (ImGui.IsItemClicked())
                 {
-                    CancelType = CancelTypes.None;
+                    CancelType = CancelTypes.ClickedAcceptButton;
                     Dismiss();
                 }
 

@@ -1392,18 +1392,28 @@ namespace DSAnimStudio.TaeEditor
             if (simName == null)
                 return false;
 
-            if (!Main.TAE_EDITOR.Config.EventSimulationsEnabled.ContainsKey(simName))
-                Main.TAE_EDITOR.Config.EventSimulationsEnabled.Add(simName, Entries[simName].IsEnabledByDefault);
+            bool result = false;
 
-            return Main.TAE_EDITOR.Config.EventSimulationsEnabled[simName];
+            lock (Main.Config._lock_ThreadSensitiveStuff)
+            {
+                if (!Main.TAE_EDITOR.Config.EventSimulationsEnabled.ContainsKey(simName))
+                    Main.TAE_EDITOR.Config.EventSimulationsEnabled.Add(simName, Entries[simName].IsEnabledByDefault);
+
+                result = Main.TAE_EDITOR.Config.EventSimulationsEnabled[simName];
+            }
+
+            return result;
         }
 
         private void SetSimEnabled(string simName, bool enabled)
         {
-            if (!Main.TAE_EDITOR.Config.EventSimulationsEnabled.ContainsKey(simName))
-                Main.TAE_EDITOR.Config.EventSimulationsEnabled.Add(simName, enabled);
-            else
-                Main.TAE_EDITOR.Config.EventSimulationsEnabled[simName] = enabled;
+            lock (Main.Config._lock_ThreadSensitiveStuff)
+            {
+                if (!Main.TAE_EDITOR.Config.EventSimulationsEnabled.ContainsKey(simName))
+                    Main.TAE_EDITOR.Config.EventSimulationsEnabled.Add(simName, enabled);
+                else
+                    Main.TAE_EDITOR.Config.EventSimulationsEnabled[simName] = enabled;
+            }
         }
 
         public void OnNewAnimSelected(List<TaeEditAnimEventBox> evBoxes)
