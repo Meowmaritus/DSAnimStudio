@@ -112,6 +112,10 @@ namespace DSAnimStudio.ImguiOSD
 
                 ImGui.Separator();
 
+                ImGui.InputText("Animation Name", ref TaeAnimName, 256);
+
+                ImGui.Separator();
+
                 ImGui.Text("Animation Type:");
 
                 ImGui.Indent();
