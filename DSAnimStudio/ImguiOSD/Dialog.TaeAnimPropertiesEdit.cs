@@ -46,20 +46,26 @@ namespace DSAnimStudio.ImguiOSD
             }
 
             public string TaeAnimID_String;
+            public string TaeAnimID_Error;
             public long? TaeAnimID_Value;
 
             public string ImportFromAnimID_String;
+            public string ImportFromAnimID_Error;
             public int? ImportFromAnimID_Value;
 
             public string TaeAnimName;
             public TAE.Animation.AnimMiniHeader TaeAnimHeader;
             public bool WasAnimDeleted = false;
 
-            public TaeAnimPropertiesEdit(TAE.Animation anim)
+            public bool IsMultiTaeSubID = false;
+
+            public TaeAnimPropertiesEdit(TAE.Animation anim, bool isMultiTaeSubID)
             {
                 Title = "Edit Animation Properties";
 
-                TaeAnimID_String = GetAnimIDString(anim.ID);
+                IsMultiTaeSubID = isMultiTaeSubID;
+
+                TaeAnimID_String = IsMultiTaeSubID ? anim.ID.ToString() : GetAnimIDString(anim.ID);
                 TaeAnimID_Value = anim.ID;
 
                 TaeAnimName = anim.AnimFileName;
@@ -89,25 +95,66 @@ namespace DSAnimStudio.ImguiOSD
 
             protected override void BuildInsideOfWindow()
             {
+                if (TaeAnimID_Value != null)
+                    TaeAnimID_Error = null;
+
+                if (ImportFromAnimID_Value != null)
+                    ImportFromAnimID_Error = null;
+
                 bool isCurrentlyStandard = TaeAnimHeader.Type == TAE.Animation.MiniHeaderType.Standard;
                 bool isCurrentlyImportOther = TaeAnimHeader.Type == TAE.Animation.MiniHeaderType.ImportOtherAnim;
 
                 if (TaeAnimID_Value == null)
                     ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
                 ImGui.InputText("Animation ID", ref TaeAnimID_String, 256);
+                if (ImGui.IsItemHovered() && TaeAnimID_Error != null)
+                    ImGui.SetTooltip(TaeAnimID_Error);
                 if (TaeAnimID_Value == null)
                     ImGui.PopStyleColor();
                 if (string.IsNullOrWhiteSpace(TaeAnimID_String))
                 {
                     TaeAnimID_Value = null;
+                    TaeAnimID_Error = "Animation entry ID must be specified.";
                 }
                 else if (long.TryParse(TaeAnimID_String.Replace("a", "").Replace("A", "").Replace("_", ""), out long animIdParsed))
                 {
-                    TaeAnimID_Value = animIdParsed;
+                    if (IsMultiTaeSubID && animIdParsed < 0)
+                    {
+                        TaeAnimID_Error = "Animation sub-ID cannot be a negative value.";
+                        TaeAnimID_Value = null;
+                    }
+                    else if (IsMultiTaeSubID && animIdParsed > (GameDataManager.GameTypeHasLongAnimIDs ? 999999 : 9999))
+                    {
+                        TaeAnimID_Error = $"Animation sub-ID cannot be so high it overflows into the next category (over {(GameDataManager.GameTypeHasLongAnimIDs ? 999999 : 9999)} for {GameDataManager.GameTypeName}).";
+                        TaeAnimID_Value = null;
+                    }
+                    else
+                    {
+                        TaeAnimID_Value = animIdParsed;
+                    }
+                    
                 }
                 else
                 {
                     TaeAnimID_Value = null;
+
+                    if (IsMultiTaeSubID)
+                    {
+                        TaeAnimID_Error = "Not a valid integer.";
+                    }
+                    else
+                    {
+                        if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXXX_YYYYYY)
+                            TaeAnimID_Error = "Invalid ID specified. Enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
+                        else if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YY_ZZZZ)
+                            TaeAnimID_Error = "Invalid ID specified. Enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
+                        else if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YYYY)
+                            TaeAnimID_Error = "Invalid ID specified. Enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
+                        else
+                            throw new NotImplementedException();
+                    }
+
+                    
                 }
 
                 ImGui.Separator();
@@ -171,6 +218,8 @@ namespace DSAnimStudio.ImguiOSD
                         if (ImportFromAnimID_Value == null)
                             ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
                         ImGui.InputText("Duplicate of Animation ID", ref ImportFromAnimID_String, 256);
+                        if (ImGui.IsItemHovered() && ImportFromAnimID_Error != null)
+                            ImGui.SetTooltip(ImportFromAnimID_Error);
                         if (ImportFromAnimID_Value == null)
                             ImGui.PopStyleColor();
                         if (string.IsNullOrWhiteSpace(ImportFromAnimID_String))
@@ -184,6 +233,14 @@ namespace DSAnimStudio.ImguiOSD
                         else
                         {
                             ImportFromAnimID_Value = null;
+                            if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXXX_YYYYYY)
+                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
+                            else if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YY_ZZZZ)
+                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
+                            else if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YYYY)
+                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
+                            else 
+                                throw new NotImplementedException();
                         }
 
                         asImportOtherAnim.Unknown = MenuBar.IntItem("Unknown Value", asImportOtherAnim.Unknown);
@@ -200,6 +257,8 @@ namespace DSAnimStudio.ImguiOSD
                         if (ImportFromAnimID_Value == null)
                             ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
                         ImGui.InputText("Import HKX ID", ref ImportFromAnimID_String, 256);
+                        if (ImGui.IsItemHovered() && ImportFromAnimID_Error != null)
+                            ImGui.SetTooltip(ImportFromAnimID_Error);
                         if (ImportFromAnimID_Value == null)
                             ImGui.PopStyleColor();
                         if (string.IsNullOrWhiteSpace(ImportFromAnimID_String))
@@ -213,6 +272,14 @@ namespace DSAnimStudio.ImguiOSD
                         else
                         {
                             ImportFromAnimID_Value = null;
+                            if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXXX_YYYYYY)
+                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
+                            else if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YY_ZZZZ)
+                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
+                            else if (GameDataManager.CurrentAnimIDFormatType == GameDataManager.AnimIDFormattingType.aXX_YYYY)
+                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
+                            else
+                                throw new NotImplementedException();
                         }
 
                         asStandard.AllowDelayLoad = MenuBar.CheckboxBig("Allow loading from DelayLoad ANIBNDs", asStandard.AllowDelayLoad);
@@ -249,14 +316,20 @@ namespace DSAnimStudio.ImguiOSD
 
                 bool invalidState = (ImportFromAnimID_Value == null || TaeAnimID_Value == null);
 
+                if (invalidState)
+                    Tools.PushGrayedOut();
                 ImGui.Button("Apply & Save Changes");
+                if (invalidState)
+                {
+                    Tools.PopGrayedOut();
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Cannot accept changes until the animation ID formatting errors (shown in red) are fixed.");
+                    }
+                }
                 if (ImGui.IsItemClicked())
                 {
-                    if (invalidState)
-                    {
-                        DialogManager.DialogOK("Errors Present", "Cannot accept changes until the animation ID formatting errors (shown in red) are fixed.");
-                    }
-                    else
+                    if (!invalidState)
                     {
                         CancelType = CancelTypes.ClickedAcceptButton;
                         Dismiss();

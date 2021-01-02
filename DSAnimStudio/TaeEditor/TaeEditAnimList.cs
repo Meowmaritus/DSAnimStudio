@@ -19,6 +19,7 @@ namespace DSAnimStudio.TaeEditor
             public float VerticalOffset;
             public long TaePrefix;
             public bool IsLargeID;
+            public bool IsRedErrorPrefix;
             public long FullID => (TaePrefix * (IsLargeID ? 1_000000 : 1_0000)) + Ref.ID;
         }
 
@@ -46,6 +47,8 @@ namespace DSAnimStudio.TaeEditor
         float StartDrawSectionOffset = -1;
         float StartDrawAnimOffsetInSection = -1;
         float StartDrawScroll = -1;
+
+        float DevNameStartX = 108;
 
         public void ClearStartDrawSkip()
         {
@@ -162,6 +165,8 @@ namespace DSAnimStudio.TaeEditor
             //    }
             //}
 
+            bool isMultiSectionTae = MainScreen.FileContainer.AllTAEDict.Count > 1;
+
             foreach (var kvp in MainScreen.FileContainer.AllTAEDict)
             {
                 var tae = kvp.Value;
@@ -171,7 +176,7 @@ namespace DSAnimStudio.TaeEditor
                 taeSection.SectionName = System.IO.Path.GetFileName(kvp.Key);
                 foreach (var anim in tae.Animations)
                 {
-                    var animID_Lower = GameDataManager.GameTypeHasLongAnimIDs
+                    var animID_Lower = isMultiSectionTae ? anim.ID : GameDataManager.GameTypeHasLongAnimIDs
                         ? (anim.ID % 1_000000) : (anim.ID % 1_0000);
 
                     var animID_Upper = taeSection.SectionName.StartsWith("a") ? 
@@ -208,7 +213,8 @@ namespace DSAnimStudio.TaeEditor
                         Ref = anim,
                         VerticalOffset = taeSection.HeightOfAllAnims,
                         TaePrefix = MainScreen.FileContainer.AllTAEDict.Count == 1 ? 0 : animID_Upper,
-                        IsLargeID = GameDataManager.GameTypeHasLongAnimIDs
+                        IsLargeID = GameDataManager.GameTypeHasLongAnimIDs,
+                        IsRedErrorPrefix = isMultiSectionTae && ((anim.ID > (GameDataManager.GameTypeHasLongAnimIDs ? 999999 : 9999) || anim.ID < 0))
                     };
 
 
@@ -470,6 +476,12 @@ namespace DSAnimStudio.TaeEditor
                                 animBlendWeight = animFileName != null ? MainScreen.Graph.ViewportInteractor.GetAnimWeight(animFileName) : -1;
                             }
 
+                            var animIDTextSize = font.MeasureString(animIDText);
+                            if ((animIDTextSize.X + 8) > DevNameStartX)
+                            {
+                                DevNameStartX = animIDTextSize.X + 8;
+                            }
+
                             string animNameText = (anim.Ref.AnimFileName ?? "<null>");
 
                             if (anim.Ref == MainScreen.SelectedTaeAnim)
@@ -510,12 +522,12 @@ namespace DSAnimStudio.TaeEditor
                             sb.DrawString(font, animIDText, new Vector2(
                                 GroupBraceMarginLeft + 4,
                                 (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))))
-                                 + Main.GlobalTaeEditorFontOffset, animNameColor);
+                                 + Main.GlobalTaeEditorFontOffset, anim.IsRedErrorPrefix ? Color.Red : animNameColor);
 
                             var animNameTextSize = font.MeasureString(animNameText);
 
                             var devNamePos = new Vector2(
-                                    108,
+                                    DevNameStartX,
                                     (int)(animsInSectionStartOffset + anim.VerticalOffset + (float)Math.Round((AnimHeight / 2f) - (font.LineSpacing / 2f))));
 
                             sb.DrawString(font, animNameText, devNamePos + (Vector2.One * 1.25f)

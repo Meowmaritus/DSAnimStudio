@@ -87,6 +87,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Edit TAE Header";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.TaeEditAnimPropertiesForm_FormClosing);
+            this.Load += new System.EventHandler(this.TaeEditTaeHeaderForm_Load);
             this.Shown += new System.EventHandler(this.TaeEditAnimPropertiesForm_Shown);
             this.ResumeLayout(false);
 

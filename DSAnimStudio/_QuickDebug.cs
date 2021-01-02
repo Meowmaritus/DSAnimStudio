@@ -43,6 +43,12 @@ namespace DSAnimStudio
                 Console.WriteLine("fatcsat");
             }
 
+            if (DebugTestButton("anim id red test"))
+            {
+                Main.TAE_EDITOR.SelectedTaeAnim.ID = -1234567899999999999;
+                Main.TAE_EDITOR.RecreateAnimList();
+            }
+
             if (DebugTestButton("Misc"))
             {
                 var test = @"C:\Program Files (x86)\Steam\steamapps\common\DARK SOULS REMASTERED - Nightfall\map\m10_02_00_00\m4100B2A10_Crash.flver";

@@ -36,6 +36,8 @@ namespace DSAnimStudio
             aXX_YY_ZZZZ,
         }
 
+        public static string GameTypeName => GameTypeNames.ContainsKey(GameType) ? GameTypeNames[GameType] : GameType.ToString();
+
         public static readonly Dictionary<SoulsGames, string> GameTypeNames =
             new Dictionary<SoulsGames, string>
         {
@@ -77,9 +79,11 @@ namespace DSAnimStudio
         public static bool GameTypeHasLongAnimIDs => CurrentAnimIDFormatType == AnimIDFormattingType.aXXX_YYYYYY ||
             CurrentAnimIDFormatType == AnimIDFormattingType.aXX_YY_ZZZZ;
 
+        public static bool GameTypeUsesLegacyEmptyEventGroups => IsGame(SoulsGames.DES | SoulsGames.DS1 | SoulsGames.DS1R);
+
         public static bool GameTypeUsesBoilerplateEventGroups => 
             IsGame(SoulsGames.DS3 | SoulsGames.SDT | SoulsGames.BB) || 
-            (IsGame(SoulsGames.DS1 | SoulsGames.DS1R) && Main.Config.SaveAdditionalEventRowInfoToLegacyGames);
+            (GameTypeUsesLegacyEmptyEventGroups && Main.Config.SaveAdditionalEventRowInfoToLegacyGames);
 
         public static AnimIDFormattingType CurrentAnimIDFormatType
         {

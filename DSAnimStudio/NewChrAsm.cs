@@ -858,6 +858,8 @@ namespace DSAnimStudio
                     return;
                 }
 
+                wpnMdl.Opacity = MODEL.Opacity;
+
                 bool renderWpn = true;
 
                 if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
@@ -891,10 +893,10 @@ namespace DSAnimStudio
                 }
                 else if ((DebugRightWeaponModelPositions && !isLeft) || (DebugLeftWeaponModelPositions && isLeft))
                 {
-                    float prevOpacity = GFX.FlverShader.Effect.Opacity;
-                    GFX.FlverShader.Effect.Opacity = 0.2f;
+                    float prevOpacity = wpnMdl.Opacity;
+                    wpnMdl.Opacity = 0.2f;
                     wpnMdl?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
-                    GFX.FlverShader.Effect.Opacity = prevOpacity;
+                    wpnMdl.Opacity = prevOpacity;
                 }
             }
 

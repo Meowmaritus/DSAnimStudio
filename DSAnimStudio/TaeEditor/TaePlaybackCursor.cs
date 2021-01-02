@@ -286,7 +286,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void Update(IEnumerable<TaeEditAnimEventBox> eventBoxes)
+        public void Update(IEnumerable<TaeEditAnimEventBox> eventBoxes, bool ignoreDeltaTime = false)
         {
             if (double.IsNaN(CurrentTime))
                 CurrentTime = 0;
@@ -322,7 +322,8 @@ namespace DSAnimStudio.TaeEditor
 
                 if (IsPlaying)
                 {
-                    CurrentTime += (Main.DELTA_UPDATE * BasePlaybackSpeed * ModPlaybackSpeed);
+                    if (!ignoreDeltaTime)
+                        CurrentTime += (Main.DELTA_UPDATE * BasePlaybackSpeed * ModPlaybackSpeed);
                     if (!Main.Config.LoopEnabled && CurrentTime > MaxTime)
                     {
                         CurrentTime = MaxTime;
@@ -458,7 +459,8 @@ namespace DSAnimStudio.TaeEditor
 
             CurrentLoopCountDelta = CurrentLoopCount - OldLoopCount;
 
-            UpdateScrubbing();
+            if (!ignoreDeltaTime)
+                UpdateScrubbing();
 
             OldLoopCount = CurrentLoopCount;
 

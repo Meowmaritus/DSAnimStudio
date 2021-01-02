@@ -1781,6 +1781,43 @@ namespace DSAnimStudio.TaeEditor
             Graph.ScrollViewer.ClampScroll();
         }
 
+        public void StripExtraEventGroupsInAllLoadedFilesIfNeeded()
+        {
+            bool wasStripped = false;
+            if (GameDataManager.GameTypeUsesLegacyEmptyEventGroups && !Main.Config.SaveAdditionalEventRowInfoToLegacyGames)
+            {
+
+                foreach (var tae in FileContainer.AllTAEDict)
+                {
+                    foreach (var anim in tae.Value.Animations)
+                    {
+                        foreach (var ev in anim.Events)
+                        {
+                            if (ev.Group != null)
+                            {
+                                ev.Group = null;
+                                anim.SetIsModified(true);
+                                tae.Value.SetIsModified(true);
+                                wasStripped = true;
+                            }
+                        }
+                        anim.EventGroups.Clear();
+                    }
+                }
+
+            }
+           
+            if (wasStripped)
+            {
+                DialogManager.DialogOK("Notice", "The Save Row Data To Legacy Games option is disabled " +
+                    "\nbut the file had row data in it from when the option was enabled previously. All row " +
+                    "\ndata has been stripped from the file as if the option has never been used before " +
+                    "\nand it will permanently save without this data present. If this is not desired, " +
+                    "\nthen re-enable the Save Row Data To Legacy Games option and RELOAD the current " +
+                    "\nanibnd WITHOUT SAVING, because saving will permently save the changes into the file.");
+            }
+        }
+
         public void CommitActiveGraphToTaeStruct()
         {
             Graph.EventBoxes = Graph.EventBoxes.OrderBy(evBox => evBox.MyEvent.StartTime + (evBox.Row * 1000)).ToList();
@@ -1793,6 +1830,9 @@ namespace DSAnimStudio.TaeEditor
 
         public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false)
         {
+
+            StripExtraEventGroupsInAllLoadedFilesIfNeeded();
+
             CommitActiveGraphToTaeStruct();
 
             Graph?.ViewportInteractor?.CurrentModel?.AnimContainer?.MarkAllAnimsReferenceBlendWeights();

@@ -83,6 +83,45 @@ namespace DSAnimStudio.ImguiOSD
                 bool clickedSaveAs = ClickItem("Save As...", enabled: Tae.IsFileOpen, shortcut: "Ctrl+Shift+S");
                 bool clickedExportTAE = ClickItem("Export *.TAE Containing The Currently Selected Animation...", enabled: Tae.SelectedTae != null);
                 ImGui.Separator();
+                var prevValueSaveAdditionalEventRowInfoToLegacyGames = Main.Config.SaveAdditionalEventRowInfoToLegacyGames;
+                var nextValueSaveAdditionalEventRowInfoToLegacyGames = Checkbox("Save Row Data To Legacy Games",
+                    prevValueSaveAdditionalEventRowInfoToLegacyGames, enabled: true,
+                    shortcut: "DeS/DS1 Only");
+                if (nextValueSaveAdditionalEventRowInfoToLegacyGames != prevValueSaveAdditionalEventRowInfoToLegacyGames)
+                {
+                    if (nextValueSaveAdditionalEventRowInfoToLegacyGames)
+                    {
+                        DialogManager.AskYesNo("Warning", "This option has not been tested in the long run and may cause the game to behave " +
+                            "\nstrangely, or it may not. Are you sure you wish to use this option? " +
+                            "\nNote: effect is reversable if you run into issues.", choice =>
+                            {
+                                if (choice)
+                                {
+                                    Main.Config.SaveAdditionalEventRowInfoToLegacyGames = true;
+
+                                    if (GameDataManager.GameTypeUsesLegacyEmptyEventGroups)
+                                    {
+                                        Tae.StripExtraEventGroupsInAllLoadedFilesIfNeeded();
+                                    }
+                                }
+                            }, allowCancel: true, enterKeyForYes: false);
+                    }
+                    else
+                    {
+                        DialogManager.AskYesNo("Warning", "Disabling this option will IMMEDIATELY REMOVE ALL of the extra row data from all " +
+                            "\nanimations in anibnd files which utilized this option previously and make them all use the standard " +
+                            "\nautomatic row sorting, which will PERMANENTLY save into the file when resaved. " +
+                            "\nAre you sure you wish to do this?", choice =>
+                            {
+                                if (choice)
+                                {
+                                    Main.Config.SaveAdditionalEventRowInfoToLegacyGames = false;
+                                    Tae.StripExtraEventGroupsInAllLoadedFilesIfNeeded();
+                                }
+                            }, allowCancel: true, enterKeyForYes: false);
+                    }
+                }
+                ImGui.Separator();
                 bool clickedLiveRefreshNow = ClickItem("(DS3/DS1R Only) Force Ingame Character Reload Now",
                     enabled: Tae.IsFileOpen &&
                     GameDataManager.GameType ==

@@ -23,7 +23,7 @@ namespace DSAnimStudio
     /// </summary>
     public class Main : Game
     {
-        public const string VERSION = "Version 3.0.4";
+        public const string VERSION = "Version 3.0.5";
 
         public static T ReloadMonoGameContent<T>(string path)
         {

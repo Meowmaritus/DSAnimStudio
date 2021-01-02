@@ -106,9 +106,11 @@ namespace DSAnimStudio.ImguiOSD
             ImGui.PushStyleColor(ImGuiCol.Button,
                 new System.Numerics.Vector4(49f / 255f, 83f / 255f, 123f / 255f, 1) * dv);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive,
-                new System.Numerics.Vector4(15f / 255f, 135f / 255f, 250f / 255f, 1) * dv);
+                new System.Numerics.Vector4(49f / 255f, 83f / 255f, 123f / 255f, 1) * dv);
+                //new System.Numerics.Vector4(15f / 255f, 135f / 255f, 250f / 255f, 1) * dv);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered,
-                new System.Numerics.Vector4(66f / 255f, 150f / 255f, 250f / 255f, 1) * dv);
+                new System.Numerics.Vector4(49f / 255f, 83f / 255f, 123f / 255f, 1) * dv);
+                //new System.Numerics.Vector4(66f / 255f, 150f / 255f, 250f / 255f, 1) * dv);
         }
 
         public static void PopGrayedOut()

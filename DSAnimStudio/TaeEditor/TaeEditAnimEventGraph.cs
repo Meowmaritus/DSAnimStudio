@@ -62,7 +62,7 @@ namespace DSAnimStudio.TaeEditor
                                 fakeGroupType = 0;
                             }
                             var group = new TAE.EventGroup(fakeGroupType);
-                            if (!GameDataManager.GameTypeUsesBoilerplateEventGroups)
+                            if (!GameDataManager.IsGame(SoulsAssetPipeline.SoulsGames.DS3 | SoulsAssetPipeline.SoulsGames.SDT | SoulsAssetPipeline.SoulsGames.BB))
                             {
                                 group.GroupData = new TAE.EventGroup.EventGroupDataStruct();
                             }
@@ -71,6 +71,13 @@ namespace DSAnimStudio.TaeEditor
                                 ev.MyEvent.Group = group;
                             MainScreen.SelectedTaeAnim.EventGroups.Add(group);
                             //Graph.GroupRegions.Add(new TaeEventGroupRegion(Graph, SelectedTaeAnim, group));
+                        }
+                    }
+                    else
+                    {
+                        foreach (var ev in EventBoxes)
+                        {
+                            ev.MyEvent.Group = null;
                         }
                     }
                 }
@@ -523,11 +530,7 @@ namespace DSAnimStudio.TaeEditor
 
                 bool legacyRowMode = AnimRef.EventGroups == null || AnimRef.EventGroups.Count == 0 || IsSimpleRemoGroupMode;
 
-                if (GameDataManager.GameTypeUsesBoilerplateEventGroups)
-                {
-                    legacyRowMode = false;
-                }
-                else
+                if (!GameDataManager.GameTypeUsesBoilerplateEventGroups)
                 {
                     legacyRowMode = !(AnimRef.EventGroups != null && AnimRef.EventGroups.Count > 0);
                 }

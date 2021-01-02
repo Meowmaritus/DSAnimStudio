@@ -100,5 +100,10 @@ namespace DSAnimStudio.TaeEditor
         {
             e.Cancel = !ReadyToExit;
         }
+
+        private void TaeEditTaeHeaderForm_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

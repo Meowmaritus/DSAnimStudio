@@ -736,6 +736,8 @@ namespace DSAnimStudio.TaeEditor
             lock (Graph._lock_EventBoxManagement)
             {
                 EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                //Graph.PlaybackCursor.Update(Graph.EventBoxes, ignoreDeltaTime: true);
+                //EventSim.OnSimulationFrameChange(Graph.EventBoxes, 0);
             }
 
             if (isRecord)
@@ -1221,6 +1223,8 @@ namespace DSAnimStudio.TaeEditor
                 lock (Graph._lock_EventBoxManagement)
                 {
                     EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                    //Graph.PlaybackCursor.Update(Graph.EventBoxes, ignoreDeltaTime: true);
+                    //EventSim.OnSimulationFrameChange(Graph.EventBoxes, 0);
                 }
 
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)

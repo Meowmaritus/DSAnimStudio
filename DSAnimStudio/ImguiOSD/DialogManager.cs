@@ -53,7 +53,7 @@ namespace DSAnimStudio.ImguiOSD
         {
             Task.Run(new Action(() =>
             {
-                var dlg = new Dialog.TaeAnimPropertiesEdit(anim);
+                var dlg = new Dialog.TaeAnimPropertiesEdit(anim, Tae.FileContainer.AllTAEDict.Count > 1);
                 dlg.OnDismiss = () =>
                 {
                     if (dlg.CancelType == Dialog.CancelTypes.ClickedAcceptButton)
