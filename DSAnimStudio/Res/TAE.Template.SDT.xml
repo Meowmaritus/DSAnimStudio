@@ -329,6 +329,7 @@
       <b name="IsFollowDummyPoly"/>
       <b name="IsRestrictToDummyPoly"/>
       <u8 name="ExtraSpawnCondition"/>
+      <u8 name="StateInfoByte"/>
     </event>
     <event id="99" name="SpawnRepeatingFFX">
       <s32 name="FFXID"/>
