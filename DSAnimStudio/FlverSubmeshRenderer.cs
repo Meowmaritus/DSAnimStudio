@@ -365,13 +365,19 @@ namespace DSAnimStudio
                 if (GameDataManager.GameType == SoulsAssetPipeline.SoulsGames.SDT)
                 {
                     var mtdTex = GameDataManager.LookupMTDTexture(flvr.Materials[mesh.MaterialIndex].MTD, matParam.Type);
-                    shortTexPath = Utils.GetShortIngameFileName(mtdTex.Path).ToLower();
-
+                    
                     texScaleVal /= mtdTex.UVScale;
 
-                    if (string.IsNullOrWhiteSpace(shortTexPath))
+                    // This can be null so store it first to check before accessing it
+                    string mtdTexShortFilename = Utils.GetShortIngameFileName(mtdTex.Path);
+                    if (string.IsNullOrWhiteSpace(mtdTexShortFilename))
                     {
                         shortTexPath = Utils.GetShortIngameFileName(matParam.Path).ToLower();
+                    }
+                    else
+                    {
+                        // We only want to use this if mtdTexShortFilename is valid, if not we will crash
+                        shortTexPath = mtdTexShortFilename.ToLower();
                     }
                 }
 
