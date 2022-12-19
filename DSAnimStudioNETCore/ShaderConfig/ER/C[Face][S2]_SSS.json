@@ -1,0 +1,207 @@
+{
+  "chrCustomizeType_Values": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "chrCustomizeType_Names": [
+    "None",
+    "Skin",
+    "Eyes",
+    "Hair",
+    "BodyHair",
+    "BodyHair_Base"
+  ],
+  "ChrCustomizeType": 0,
+  "EnableSSS": true,
+  "SSSColor": "1, 0.48, 0.35",
+  "SSSIntensity": 1.0,
+  "IsMetallic": true,
+  "NonMetallicSpecColor": "0, 0, 0",
+  "UndefinedMetallicValue": 0.5,
+  "UndefinedBlendMaskValue": 0.0,
+  "SwapNormalXY": false,
+  "IsDS2EmissiveFlow": false,
+  "IsShaderDoubleFaceCloth": false,
+  "IsDS3Veil": false,
+  "InvertBlendMaskMap": false,
+  "EnableBlendMask": true,
+  "BlendMaskFromNormalMap1Alpha": false,
+  "BlendMaskFromNormalMap1Alpha_IsReverse": false,
+  "BlendMaskMultByAlbedoMap2Alpha": false,
+  "BlendMaskMultByAlbedoMap2Alpha_IsReverse": false,
+  "SamplerConfigs": [
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_2_Mask3Map",
+      "TexType": 11,
+      "DefaultTexPath": "SYSTEX_Dummy_3m",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_3_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "AAT500_Beard_01_a",
+      "UVIndex": 0,
+      "UVGroup": 11
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_4_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_BlackAlpha_a",
+      "UVIndex": 0,
+      "UVGroup": 12
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_5_Mask3Map",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_3m",
+      "UVIndex": 0,
+      "UVGroup": 17
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_7_AlbedoMap",
+      "TexType": 1,
+      "DefaultTexPath": "SYSTEX_Dummy_a",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_0_NormalMap",
+      "TexType": 3,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_1_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_BlackAlpha_n",
+      "UVIndex": 0,
+      "UVGroup": 12
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_6_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "AAT500_skin_01_n",
+      "UVIndex": 0,
+      "UVGroup": 10
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_12_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "AAT500_skin_02_n",
+      "UVIndex": 0,
+      "UVGroup": 10
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_9_NormalMap",
+      "TexType": 103,
+      "DefaultTexPath": "AAT500_skin_03_n",
+      "UVIndex": 0,
+      "UVGroup": 10
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_2_Mask3Map",
+      "TexType": 11,
+      "DefaultTexPath": "SYSTEX_Dummy_3m",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_3_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "AAT500_Beard_01_a",
+      "UVIndex": 0,
+      "UVGroup": 11
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_4_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_BlackAlpha_a",
+      "UVIndex": 0,
+      "UVGroup": 12
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_5_Mask3Map",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_3m",
+      "UVIndex": 0,
+      "UVGroup": 17
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_7_AlbedoMap",
+      "TexType": 1,
+      "DefaultTexPath": "SYSTEX_Dummy_a",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_0_NormalMap",
+      "TexType": 3,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_1_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_BlackAlpha_n",
+      "UVIndex": 0,
+      "UVGroup": 12
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_6_NormalMap",
+      "TexType": 103,
+      "DefaultTexPath": "AAT500_skin_01_n",
+      "UVIndex": 2,
+      "UVGroup": 10
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_12_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "AAT500_skin_02_n",
+      "UVIndex": 0,
+      "UVGroup": 10
+    },
+    {
+      "Name": "C_Face_S2__SSS_snp_Texture2D_9_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "AAT500_skin_03_n",
+      "UVIndex": 0,
+      "UVGroup": 10
+    }
+  ],
+  "NewBlendOperation_Diffuse": 2,
+  "NewBlendOperation_Specular": 2,
+  "NewBlendOperation_Normal": 7,
+  "NewBlendOperation_Shininess": 2,
+  "NewBlendOperation_Emissive": 3,
+  "NewBlendReverseDir_Diffuse": false,
+  "NewBlendReverseDir_Specular": false,
+  "NewBlendReverseDir_Normal": false,
+  "NewBlendReverseDir_Shininess": false,
+  "NewBlendReverseDir_Emissive": false,
+  "NewBlendInverseVal_Diffuse": false,
+  "NewBlendInverseVal_Specular": false,
+  "NewBlendInverseVal_Normal": false,
+  "NewBlendInverseVal_Shininess": false,
+  "NewBlendInverseVal_Emissive": false,
+  "IsReflectMultInNormalAlpha": true,
+  "EmissiveMult": 1.0,
+  "EmissiveColorFromAlbedo": false,
+  "DirectLightingMult": 1.0,
+  "IndirectLightingMult": 1.0,
+  "DirectDiffuseMult": 1.0,
+  "DirectSpecularMult": 1.0,
+  "IndirectDiffuseMult": 1.0,
+  "IndirectSpecularMult": 1.0,
+  "SpecularPowerMult": 1.0,
+  "LdotNPowerMult": 1.0,
+  "UseFancyAlphas": true,
+  "EnableAlphas": true,
+  "FancyAlphaCutoff": 1.0
+}

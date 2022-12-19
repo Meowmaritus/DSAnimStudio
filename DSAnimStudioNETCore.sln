@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32210.238
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DSAnimStudioNETCore", "DSAnimStudioNETCore\DSAnimStudioNETCore.csproj", "{DA69B064-10D6-4E88-9823-2047897EA377}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonoGame.Framework.WindowsDX", "MonoGame\MonoGame.Framework\MonoGame.Framework.WindowsDX.csproj", "{A8CE039D-E73B-4B67-A635-CD0AD31B559F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoulsAssetPipeline", "SoulsAssetPipeline\SoulsAssetPipeline\SoulsAssetPipeline.csproj", "{43008932-FDC2-4E5B-8D5A-EAFB330F0715}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoulsFormats", "SoulsAssetPipeline\SoulsFormats\SoulsFormats\SoulsFormats.csproj", "{0A6510FE-81C2-4F25-9A08-95825751FE27}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Havoc", "SoulsAssetPipeline\Havoc\Havoc.csproj", "{CA5E1EE2-78EE-4081-9273-D4282FC0DD93}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DA69B064-10D6-4E88-9823-2047897EA377}.Debug|x64.ActiveCfg = Debug|x64
+		{DA69B064-10D6-4E88-9823-2047897EA377}.Debug|x64.Build.0 = Debug|x64
+		{DA69B064-10D6-4E88-9823-2047897EA377}.Release|x64.ActiveCfg = Release|x64
+		{DA69B064-10D6-4E88-9823-2047897EA377}.Release|x64.Build.0 = Release|x64
+		{A8CE039D-E73B-4B67-A635-CD0AD31B559F}.Debug|x64.ActiveCfg = Debug|x64
+		{A8CE039D-E73B-4B67-A635-CD0AD31B559F}.Debug|x64.Build.0 = Debug|x64
+		{A8CE039D-E73B-4B67-A635-CD0AD31B559F}.Release|x64.ActiveCfg = Release|x64
+		{A8CE039D-E73B-4B67-A635-CD0AD31B559F}.Release|x64.Build.0 = Release|x64
+		{43008932-FDC2-4E5B-8D5A-EAFB330F0715}.Debug|x64.ActiveCfg = Debug|x64
+		{43008932-FDC2-4E5B-8D5A-EAFB330F0715}.Debug|x64.Build.0 = Debug|x64
+		{43008932-FDC2-4E5B-8D5A-EAFB330F0715}.Release|x64.ActiveCfg = Release|x64
+		{43008932-FDC2-4E5B-8D5A-EAFB330F0715}.Release|x64.Build.0 = Release|x64
+		{0A6510FE-81C2-4F25-9A08-95825751FE27}.Debug|x64.ActiveCfg = Debug|x64
+		{0A6510FE-81C2-4F25-9A08-95825751FE27}.Debug|x64.Build.0 = Debug|x64
+		{0A6510FE-81C2-4F25-9A08-95825751FE27}.Release|x64.ActiveCfg = Release|x64
+		{0A6510FE-81C2-4F25-9A08-95825751FE27}.Release|x64.Build.0 = Release|x64
+		{CA5E1EE2-78EE-4081-9273-D4282FC0DD93}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CA5E1EE2-78EE-4081-9273-D4282FC0DD93}.Debug|x64.Build.0 = Debug|Any CPU
+		{CA5E1EE2-78EE-4081-9273-D4282FC0DD93}.Release|x64.ActiveCfg = Release|Any CPU
+		{CA5E1EE2-78EE-4081-9273-D4282FC0DD93}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {31A7CD42-95AF-4AB9-8AAC-FFDCE45F5FB1}
+	EndGlobalSection
+EndGlobal

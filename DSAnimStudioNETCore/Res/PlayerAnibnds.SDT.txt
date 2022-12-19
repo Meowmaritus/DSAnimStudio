@@ -1,0 +1,7 @@
+/chr/c0000_a000_hi.anibnd.dcx
+/chr/c0000_a000_lo.anibnd.dcx
+/chr/c0000_a000_md.anibnd.dcx
+/chr/c0000_a00x.anibnd.dcx
+/chr/c0000_a05x.anibnd.dcx
+/chr/c0000_a07x.anibnd.dcx
+/chr/c0000_a2xx.anibnd.dcx

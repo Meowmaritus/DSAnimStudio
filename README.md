@@ -1,3 +1,29 @@
+## Basic User Instructions (Unpacked Game):
+  1. Run application.
+  1. Go to `File`->`Open`
+  1. Load a .anibnd or .anibnd.dcx.
+  1. Enter the information required, such as game executable, ModEngine folder (if applicable), etc.
+  1. Select where the unpacked ANIBND should be saved (the "project directory").
+  1. Select an animation ID on the left pane
+  1. Drag some events around or otherwise mess with things (try the bottom-right pane for editing the highlighted event)
+  1. (Optional) Play with the model/animation viewer pane on the top-right.
+  1. (Optional) Play with the options in the menu bar.
+  1. Hit Ctrl+S to save.
+  1. Make sure your game is setup to load the edited loose ANIBND file. This is more of a general Souls modding thing that is too specific to cover here.
+
+## Basic User Instructions (Packed Game):
+  1. Run application.
+  1. Go to `File`->`Open From Packed Game Data Archives...`
+  1. Enter the information required, such as game executable, ModEngine folder (if applicable), etc.
+  1. Select which ANIBND/CHRBND you would like to use.
+  1. Select where the unpacked ANIBND should be saved (the "project directory").
+  1. Select an animation ID on the left pane
+  1. Drag some events around or otherwise mess with things (try the bottom-right pane for editing the highlighted event)
+  1. (Optional) Play with the model/animation viewer pane on the top-right.
+  1. (Optional) Play with the options in the menu bar.
+  1. Hit Ctrl+S to save.
+  1. Make sure your game is setup to load the edited loose ANIBND file. This is more of a general Souls modding thing that is too specific to cover here.
+  
 ## About DS Anim Studio:
 * Edits the TimeAct Editor files of Dark Souls, Bloodborne, Dark Souls 3, and Sekiro. These files control **everything** that happens on a specific frame of an animation, such as:
   * Activating invulnerability frames.
@@ -28,16 +54,7 @@
   * **Ctrl+V**: Paste at Mouse Cursor
   * **Ctrl+Shift+V**: Paste In-Place (keeps original start/end times, useful for copying between animations)
 * Edits the .anibnd or .anibnd.dcx files of the games directly. No need to use BND rebuilders.
-
-## User Instructions:
-  1. Run application.
-  1. Go to File -> Open
-  1. Load a .anibnd or .anibnd.dcx.
-  1. Select an animation ID on the left pane
-  1. Drag some events around or otherwise mess with things (try the bottom-right pane for editing the highlighted event)
-  1. (Optional) Play with the model/animation viewer pane on the top-right.
-  1. (Optional) Play with the options in the menu bar.
-  1. Hit Ctrl+S to save.
+  
 
 ## Breakdown of Game Support:
 | Game                                        | Edit Support | Events Mapped / Identified | Anim Viewer Support  |
@@ -47,27 +64,48 @@
 | **Dark Souls II**                           | No           | No                         | No (Never)           |
 | **Dark Souls II: Scholar of the First Sin** | No (may change in the future) | No        | No (Never)           |
 | **Dark Souls III**                          | **Yes**      | Lots of them               | **Yes**              |
-| **Bloodborne**                              | **Yes**      | No                         | **Yes**              |
-| **Sekiro: Shadows Die Twice**               | **Yes**      | Lots of them               | Sort of\*...         |
-\* For DS1R and Sekiro, you must do a slow and annoying downgrade process. See Version 2.0 changelog for more info.
+| **Bloodborne**                              | **Yes**      | Lots of them               | **Yes**              |
+| **Sekiro: Shadows Die Twice**               | **Yes**      | Lots of them               | **Yes**              |
+| **Elden Ring**                              | **Yes**      | Lots of them               | **Yes**              |
+\* For DS1R/Sekiro/Elden Ring, an animation downgrade process is no longer needed.
 
-## System Requirements:
-* Windows 7/8/8.1/10 (64-bit only)
-* [Microsoft .NET Framework 4.7.2](https://www.microsoft.com/net/download/thank-you/net472)
+## System Requirements (End Users):
+* Windows 7 SP1/8.1/10/11 (64-bit only)
+* [.NET Desktop Runtime 6.0 (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-6.0.12-windows-x64-installer)
 * **A DirectX 11 Compatible Graphics Device**, even if you're just modding DS1: PTDE
+  * Note: even though Elden Ring uses DirectX 12, DS Anim Studio still uses DirectX 11.
+  
+
+
+
+
+
+## System Requirements (Developers):
+* Windows 7 SP1/8.1/10/11 (64-bit only)
+* Visual Studio 2022
+* [.NET 6.0 SDK (Windows x64)](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/sdk-6.0.404-windows-x64-installer)
+* **A DirectX 11 Compatible Graphics Device**, even if you're just modding DS1: PTDE
+  * Note: even though Elden Ring uses DirectX 12, DS Anim Studio still uses DirectX 11.
+
+## Developer Instructions:
+* Clone repository (use `--recursive` in case I decide to put proper links to other repos).
+* Go to NuGet Package Manager Console and run the command `Update-Package -reinstall` to ensure all packages are correctly downloaded and installed.
+* `Build Solution` should now succeed.
+
+
+
 
 ## Special Thanks
-* River Nyxx - General .TAE file structure.
-* TKGP - Made some discoveries about the TAE format + made SoulsFormats, which this application depends on greatly.
+* [TKGP](https://github.com/JKAnderson) - Made some discoveries about the TAE format + made SoulsFormats, which this application depends on.
 * [Pav](https://github.com/JohrnaJohrna) - Tons and tons of TAE events mapped across all the games.
 * [Katalash](https://github.com/katalash) - Much help with animation file understanding.
-* [PredatorCZ](https://github.com/PredatorCZ) - Reverse engineered Spline-Compressed Animation entirely.
+* [PredatorCZ](https://github.com/PredatorCZ) - Reverse engineered Havok Spline-Compressed Animation entirely.
 * [Horkrux](https://github.com/horkrux) - Reverse engineered the header and swizzling used on non-PC platform textures.
-* StaydMcButtermuffin - Many hours of helping me write and debug the shaders + reversing some basic Dark Souls 3 shaders to aid in the process.
+* StaydMcButtermuffin - Many hours of helping me write and debug the shaders + reversing some basic Dark Souls 3 shaders to aid in the process. He also helped me understand Sekiro and Elden Ring shaders for the new versions of the application.
 
 ## Libraries Utilized
-* [My custom fork of SoulsFormats](https://github.com/Meowmaritus/SoulsFormats)
+* A slightly modified version of [TKGP's SoulsFormats library](https://github.com/JKAnderson/SoulsFormats), currently just included in this repo instead of its own thing.
 * [Newtonsoft Json.NET](https://www.newtonsoft.com/json)
-* A custom build of MonoGame Framework by Katalash fixing some of the shitty limitations
+* An edited version of MonoGame Framework where I added support for newer texture types.
 * A small portion of [HavokLib](https://github.com/PredatorCZ/HavokLib), specifically the spline-compressed animation decompressor, adapted for C#
 * A small portion of [Horkrux's copy of my fork of Wulf's BND Rebuilder](https://github.com/horkrux/DeS-BNDBuild), specifically the headerization and deswizzling of PS4 and PS3 textures, adapted for C# and modified to load the texture directly into MonoGame instead of save to a file.

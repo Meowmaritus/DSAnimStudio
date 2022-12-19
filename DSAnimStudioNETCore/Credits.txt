@@ -1,0 +1,33 @@
+DS ANIM STUDIO © 2018-2022 Meowmaritus
+SoulsAssetPipeline © 2020-2022 Meowmaritus
+
+MonoGame © 2009-2021 The MonoGame Team, Portions © The Mono.Xna Team
+SharpDX © 2010-2014 Alexandre Mutel
+Dear ImGui © 2014-2022 Omar Cornut
+TagTools © 2018 Skyth
+Havoc © 2018 Skyth
+NAudio © 2020 Mark Heath
+FMOD Ex SoundSystem © 2005-2011 Firelight Technologies Pty, Ltd.
+Newtonsoft.Json © 2007 James Newton-King
+RawInput.Sharp © 2019 mfakane
+BouncyCastle.Crypto © 2000 - 2021 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)
+Open Asset Import Library (Assimp) © 2006-2018 Assimp Development Team
+AssimpNet © 2012-2020 Nicholas Woodfield
+TexImpNet © 2016-2020 Nicholas Woodfield
+SoulsFormats by JKAnderson
+vgmstream © 2008-2019 Adam Gashlin, Fastelbja, Ronny Elfert, bnnm,
+                      Christopher Snowhill, NicknineTheEagle, bxaimc,
+                      Thealexbarney, CyberBotX, et al
+              
+SPECIAL THANKS TO:
+    Grimrukh
+    Dane Brennand
+    Shinki
+    Yrrruf
+    metachrono
+    Ian A Neinast
+    Eltripol
+    Katalash
+    Kalyon W Macphail
+    Castlevania Xu
+      & The other 263+ patrons on https://www.patreon.com/Meowmaritus

@@ -1,0 +1,83 @@
+{
+  "Name": "Fur_NTC_cloth",
+  "IsMetallic": true,
+  "NonMetallicSpecColor": "0, 0, 0",
+  "UndefinedMetallicValue": 0.5,
+  "UndefinedBlendMaskValue": 1.0,
+  "SwapNormalXY": false,
+  "IsDS2EmissiveFlow": false,
+  "IsShaderDoubleFaceCloth": false,
+  "IsDS3Veil": false,
+  "InvertBlendMaskMap": false,
+  "EnableBlendMask": true,
+  "BlendMaskFromNormalMap1Alpha": false,
+  "BlendMaskFromNormalMap1Alpha_IsReverse": false,
+  "BlendMaskMultByAlbedoMap2Alpha": false,
+  "BlendMaskMultByAlbedoMap2Alpha_IsReverse": false,
+  "SamplerConfigs": [
+    {
+      "Name": "Fur_NTC_snp_Texture2D_0_MetallicMap_0",
+      "TexType": 2,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "Fur_NTC_snp_Texture2D_1_AlbedoMap_0",
+      "TexType": 1,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "Fur_NTC_snp_Texture2D_2_AlbedoMap_1",
+      "TexType": 101,
+      "DefaultTexPath": "",
+      "UVIndex": 1,
+      "UVGroup": 1
+    },
+    {
+      "Name": "Fur_NTC_snp_Texture2D_3_NormalMap_0",
+      "TexType": 3,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "Fur_NTC_snp_Texture2D_4_NormalMap_1",
+      "TexType": 103,
+      "DefaultTexPath": "",
+      "UVIndex": 1,
+      "UVGroup": 0
+    }
+  ],
+  "NewBlendOperation_Diffuse": 2,
+  "NewBlendOperation_Specular": 2,
+  "NewBlendOperation_Normal": 7,
+  "NewBlendOperation_Shininess": 2,
+  "NewBlendOperation_Emissive": 3,
+  "NewBlendReverseDir_Diffuse": false,
+  "NewBlendReverseDir_Specular": false,
+  "NewBlendReverseDir_Normal": false,
+  "NewBlendReverseDir_Shininess": false,
+  "NewBlendReverseDir_Emissive": false,
+  "NewBlendInverseVal_Diffuse": false,
+  "NewBlendInverseVal_Specular": false,
+  "NewBlendInverseVal_Normal": false,
+  "NewBlendInverseVal_Shininess": false,
+  "NewBlendInverseVal_Emissive": false,
+  "IsReflectMultInNormalAlpha": false,
+  "EmissiveMult": 1.0,
+  "EmissiveColorFromAlbedo": false,
+  "DirectLightingMult": 1.0,
+  "IndirectLightingMult": 1.0,
+  "DirectDiffuseMult": 1.0,
+  "DirectSpecularMult": 1.0,
+  "IndirectDiffuseMult": 1.0,
+  "IndirectSpecularMult": 1.0,
+  "SpecularPowerMult": 1.0,
+  "LdotNPowerMult": 1.0,
+  "UseFancyAlphas": true,
+  "EnableAlphas": true,
+  "FancyAlphaCutoff": 1.0
+}

@@ -1,0 +1,97 @@
+{
+  "Name": "Character_AN_Blend_AMSN_[Fresnel]_cloth",
+  "IsMetallic": false,
+  "NonMetallicSpecColor": "0, 0, 0",
+  "UndefinedMetallicValue": 0.5,
+  "UndefinedBlendMaskValue": 1.0,
+  "SwapNormalXY": false,
+  "IsDS2EmissiveFlow": false,
+  "IsShaderDoubleFaceCloth": false,
+  "IsDS3Veil": false,
+  "InvertBlendMaskMap": false,
+  "EnableBlendMask": true,
+  "BlendMaskFromNormalMap1Alpha": true,
+  "BlendMaskFromNormalMap1Alpha_IsReverse": true,
+  "BlendMaskMultByAlbedoMap2Alpha": false,
+  "BlendMaskMultByAlbedoMap2Alpha_IsReverse": false,
+  "SamplerConfigs": [
+    {
+      "Name": "Character_AN_Blend_AMSN__Fresnel__snp_Texture2D_2_AlbedoMap_0",
+      "TexType": 1,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "Character_AN_Blend_AMSN__Fresnel__snp_Texture2D_3_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 1
+    },
+    {
+      "Name": "Character_AN_Blend_AMSN__Fresnel__snp_Texture2D_4_AlbedoMap",
+      "TexType": 101,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "Character_AN_Blend_AMSN__Fresnel__snp_Texture2D_0_ReflectanceMap_0",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "Character_AN_Blend_AMSN__Fresnel__snp_Texture2D_7_NormalMap_4",
+      "TexType": 3,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    },
+    {
+      "Name": "Character_AN_Blend_AMSN__Fresnel__snp_Texture2D_1_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 1
+    },
+    {
+      "Name": "Character_AN_Blend_AMSN__Fresnel__snp_Texture2D_5_NormalMap",
+      "TexType": 103,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 0
+    }
+  ],
+  "NewBlendOperation_Diffuse": 2,
+  "NewBlendOperation_Specular": 2,
+  "NewBlendOperation_Normal": 7,
+  "NewBlendOperation_Shininess": 2,
+  "NewBlendOperation_Emissive": 3,
+  "NewBlendReverseDir_Diffuse": false,
+  "NewBlendReverseDir_Specular": false,
+  "NewBlendReverseDir_Normal": false,
+  "NewBlendReverseDir_Shininess": false,
+  "NewBlendReverseDir_Emissive": false,
+  "NewBlendInverseVal_Diffuse": false,
+  "NewBlendInverseVal_Specular": false,
+  "NewBlendInverseVal_Normal": false,
+  "NewBlendInverseVal_Shininess": false,
+  "NewBlendInverseVal_Emissive": false,
+  "IsReflectMultInNormalAlpha": false,
+  "EmissiveMult": 1.0,
+  "EmissiveColorFromAlbedo": false,
+  "DirectLightingMult": 1.0,
+  "IndirectLightingMult": 1.0,
+  "DirectDiffuseMult": 1.0,
+  "DirectSpecularMult": 1.0,
+  "IndirectDiffuseMult": 1.0,
+  "IndirectSpecularMult": 1.0,
+  "SpecularPowerMult": 1.0,
+  "LdotNPowerMult": 1.0,
+  "UseFancyAlphas": true,
+  "EnableAlphas": true,
+  "FancyAlphaCutoff": 1.0
+}
