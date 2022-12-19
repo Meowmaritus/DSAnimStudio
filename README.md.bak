@@ -88,9 +88,9 @@
   * Note: even though Elden Ring uses DirectX 12, DS Anim Studio still uses DirectX 11.
 
 ## Developer Instructions:
-* Clone repository (use `git clone --recursive`).
-* Ensure that all NuGet packages are installed (should in theory do it on its own now).
-* `Build Solution` should succeed.
+* Clone repository (use `--recursive` in case I decide to put proper links to other repos).
+* Go to NuGet Package Manager Console and run the command `Update-Package -reinstall` to ensure all packages are correctly downloaded and installed.
+* `Build Solution` should now succeed.
 
 
 
