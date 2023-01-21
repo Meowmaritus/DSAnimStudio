@@ -16,6 +16,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace DSAnimStudio
 {
@@ -1255,15 +1256,30 @@ namespace DSAnimStudio
 
             if (Program.ARGS.Length > 0)
             {
-                TAE_EDITOR.FileContainerName = Program.ARGS[0];
+                var HasHandledArgs = false;
 
-                if (Program.ARGS.Length > 1)
-                    TAE_EDITOR.FileContainerName_Model = Program.ARGS[1];
+                for (var i = 0; i < Program.ARGS.Length; i++) {
+                    string ProgramArg = Program.ARGS[i];
 
-                LoadingTaskMan.DoLoadingTask("ProgramArgsLoad", "Loading ANIBND and associated model(s)...", progress =>
-                {
-                    TAE_EDITOR.LoadCurrentFile();
-                }, disableProgressBarByDefault: true);
+                    if (DSASURILoader.IsValid(ProgramArg))
+                    {
+                        DSASURILoader URILoader = new(ProgramArg, TAE_EDITOR);
+
+                        HasHandledArgs = URILoader.Process();
+                    }
+                }
+
+                if (!HasHandledArgs) {
+                    TAE_EDITOR.FileContainerName = Program.ARGS[0];
+
+                    if (Program.ARGS.Length > 1)
+                        TAE_EDITOR.FileContainerName_Model = Program.ARGS[1];
+
+                    LoadingTaskMan.DoLoadingTask("ProgramArgsLoad", "Loading ANIBND and associated model(s)...", progress =>
+                    {
+                        TAE_EDITOR.LoadCurrentFile();
+                    }, disableProgressBarByDefault: true);
+                }
 
                 //LoadDragDroppedFiles(Program.ARGS.ToDictionary(f => f, f => File.ReadAllBytes(f)));
             }
@@ -2022,5 +2038,44 @@ namespace DSAnimStudio
             }
             
         }
+
+        static public bool IsProtocolHandlerInstalled()
+        {
+            return Registry.CurrentUser.OpenSubKey("SOFTWARE\\Classes\\dsas", false) != null;
+        }
+
+        static public void RegisterProtocolHandler()
+        {
+            const string URIScheme = "dsas";
+            const string HandlerDisplayName = "DS Anim Studio";
+
+            using (var key = Registry.CurrentUser.CreateSubKey("SOFTWARE\\Classes\\" + URIScheme))
+            {
+                string applicationLocation = typeof(Main).Assembly.Location.Replace(".dll", ".exe");
+
+                key.SetValue("", "URL:" + HandlerDisplayName);
+                key.SetValue("URL Protocol", URIScheme);
+
+                using (var defaultIcon = key.CreateSubKey("DefaultIcon"))
+                {
+                    defaultIcon.SetValue("", applicationLocation + ",1");
+                }
+
+                using (var commandKey = key.CreateSubKey(@"shell\open\command"))
+                {
+                    commandKey.SetValue("", "\"" + applicationLocation + "\" \"%1\"");
+                }
+            }
+        }
+
+        static public void UnregisterProtocolHandler()
+        {
+            Registry.CurrentUser.DeleteSubKey("SOFTWARE\\Classes\\dsas\\shell\\open\\command", false);
+            Registry.CurrentUser.DeleteSubKey("SOFTWARE\\Classes\\dsas\\shell\\open", false);
+            Registry.CurrentUser.DeleteSubKey("SOFTWARE\\Classes\\dsas\\shell", false);
+            Registry.CurrentUser.DeleteSubKey("SOFTWARE\\Classes\\dsas\\DefaultIcon", false);
+            Registry.CurrentUser.DeleteSubKey("SOFTWARE\\Classes\\dsas", false);
+        }
+
     }
 }

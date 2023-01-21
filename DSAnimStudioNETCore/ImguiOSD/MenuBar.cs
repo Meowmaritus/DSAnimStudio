@@ -144,6 +144,7 @@ namespace DSAnimStudio.ImguiOSD
                 bool clickedSaveConfigManually = ClickItem("Save Config File");
                 Main.DisableConfigFileAutoSave = !Checkbox("Enable Config File Autosaving", !Main.DisableConfigFileAutoSave);
                 bool clickedLoadConfigManually = ClickItem("Reload Config File");
+                bool clickedToggleRegisterProtocolHandler = ClickItem(Main.IsProtocolHandlerInstalled() ? "Unregister Protocol Handler" : "Register Protocol Handler");
 
                 ImGui.Separator();
                 bool clickedExit = ClickItem("Exit");
@@ -223,6 +224,17 @@ namespace DSAnimStudio.ImguiOSD
                     if (clickedLoadConfigManually)
                     {
                         Main.LoadConfig(isManual: true);
+                    }
+
+                    if (clickedToggleRegisterProtocolHandler)
+                    {
+                        if (Main.IsProtocolHandlerInstalled())
+                        {
+                            Main.UnregisterProtocolHandler();
+                        } else
+                        {
+                            Main.RegisterProtocolHandler();
+                        }
                     }
 
                     if (clickedExit)
