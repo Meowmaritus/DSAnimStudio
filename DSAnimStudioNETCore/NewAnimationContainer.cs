@@ -22,6 +22,8 @@ namespace DSAnimStudio
         public static bool DISABLE_ANIM_LOAD_ERROR_HANDLER = false;
 #endif
 
+        public static bool Debug_ForceReferenceBoneLengths = false;
+
         public NewAnimSkeleton_HKX Skeleton = new NewAnimSkeleton_HKX();
 
         private object _lock_AnimCacheAndDict = new object();
@@ -899,6 +901,12 @@ namespace DSAnimStudio
                             }
                             Skeleton.HkxSkeleton[t].CurrentHavokTransform = NewBlendableTransform.Lerp(Skeleton.HkxSkeleton[t].RelativeReferenceTransform, tr, DebugAnimWeight);
                         }
+                    }
+
+
+                    if (Debug_ForceReferenceBoneLengths)
+                    {
+                        Skeleton.HkxSkeleton[t].CurrentHavokTransform.Translation = NVector3.Normalize(Skeleton.HkxSkeleton[t].CurrentHavokTransform.Translation) * Skeleton.HkxSkeleton[t].RelativeReferenceTransform.Translation.Length();
                     }
                 }
 

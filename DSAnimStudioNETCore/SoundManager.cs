@@ -411,9 +411,9 @@ namespace DSAnimStudio
 
                         int slot = Convert.ToInt32(evBox.MyEvent.Parameters["SlotID"]);
                         bool killSoundOnEventEnd = false;
-                        if (evBox.MyEvent.Template.ContainsKey("KillSoundOnEventEnd"))
+                        if (evBox.MyEvent.Template.ContainsKey("PlaybackBehaviorType"))
                         {
-                            killSoundOnEventEnd = (bool)(evBox.MyEvent.Parameters["KillSoundOnEventEnd"]);
+                            killSoundOnEventEnd = Convert.ToByte(evBox.MyEvent.Parameters["PlaybackBehaviorType"]) == 1;
                         }
 
                         if (evBox == tae.HoveringOverEventBox && tae.Input.RightClickHeld && (slot >= 0 || killSoundOnEventEnd))

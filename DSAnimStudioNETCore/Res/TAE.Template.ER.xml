@@ -149,6 +149,8 @@
         <entry value="123"  name="123: SetBool32_0x1E0"/>
         <!-- 0x14085A763 -->
         <entry value="124"  name="124: InvokeLockOnAutoSearch"/>
+
+        <entry value="143"  name="143: PVP IFrames"/>
       </s32>
       <!-- THE ARGS BELOW ARE MATCHED TO KEYWORDS IN THE ENUM VALUES ABOVE DO NOT CHANGE LOL -->
       <f32 name="ArgA"/>
@@ -561,7 +563,11 @@
       <s32 name="DummyPolyID"/>
       <s32 name="SlotID"/>
       <s16 name="StateInfo"/>
-      <b name="KillSoundOnEventEnd"/>
+      <u8 name="PlaybackBehaviorType">
+        <entry value="0" name="0: Play Until Sound Ends"/>
+        <entry value="1" name="1: Play Until Event Ends Then Cutoff"/>
+        <entry value="2" name="2: Unknown - Used on Torrent Double Jump"/>
+      </u8>
       <u8/>
       <s32/>
       <s32/>
@@ -1766,6 +1772,12 @@
       <s32 />
       <s32 />
     </event>
+
+
+    <event id="113" name="UnkType113">
+      <s32 assert="0"/>
+      <s32 assert="0"/>
+    </event>
   </bank>
 
   <bank id="29" name="Characters_ER_Alt_29" basedon="35">
@@ -1790,6 +1802,10 @@
 
   <bank id="34" name="Characters_ER_Alt_34" basedon="35">
 
+  </bank>
+  
+  <bank id="37" name="Characters_ER_New_37" basedon="35">
+    
   </bank>
 
 

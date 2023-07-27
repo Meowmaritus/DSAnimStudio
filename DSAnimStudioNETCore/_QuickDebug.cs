@@ -27,6 +27,7 @@ namespace DSAnimStudio
         public static void BuildDebugMenu()
         {
             // Dark Souls: Nightfall tests removed for public version lel
+            return;
         }
 
         private enum DebugValType
