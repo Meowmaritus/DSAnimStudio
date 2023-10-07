@@ -396,37 +396,53 @@ namespace DSAnimStudio.LiveRefresh
             }
         }
 
-        public static void ExecuteBufferFunction(byte[] array, byte[] argument)
+        public static void ExecuteBufferFunction(byte[] array, byte[] argument, int argLocationInAsmArray = 0x2)
         {
             var Size1 = 0x100;
             var Size2 = 0x100;
 
-            var address = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size1, 0x1000 | 0x2000, 0X40);
-            var bufferAddress = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size2, 0x1000 | 0x2000, 0X40);
+            var address = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size1, 0x1000 | 0x2000, 0x40);
+            var bufferAddress = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size2, 0x1000 | 0x2000, 0x40);
 
-            var bytjmp = 0x2;
-            var bytjmpAr = new byte[7];
-
-            WriteBytes(bufferAddress, argument);
-
-            bytjmpAr = BitConverter.GetBytes((long)bufferAddress);
-            Array.Copy(bytjmpAr, 0, array, bytjmp, bytjmpAr.Length);
-
-            if (address != IntPtr.Zero)
+            try
             {
-                if (WriteBytes(address, array))
+                //var bytjmp = 0x2;
+                var bytjmpAr = new byte[8];
+
+                WriteBytes(bufferAddress, argument);
+
+                bytjmpAr = BitConverter.GetBytes((long)bufferAddress);
+                Array.Copy(bytjmpAr, 0, array, argLocationInAsmArray, bytjmpAr.Length);
+
+                if (address != IntPtr.Zero && bufferAddress != IntPtr.Zero)
                 {
-                    
-                    var threadHandle = Kernel32.CreateRemoteThread(ProcessHandle, IntPtr.Zero, 0, address, IntPtr.Zero, 0, out var threadId);
-                    if (threadHandle != IntPtr.Zero)
+                    if (WriteBytes(address, array))
                     {
-                        Kernel32.WaitForSingleObject(threadHandle, 30000);
+
+                        var threadHandle = Kernel32.CreateRemoteThread(ProcessHandle, IntPtr.Zero, 0, address, IntPtr.Zero, 0, out var threadId);
+                        if (threadHandle != IntPtr.Zero)
+                        {
+                            Kernel32.WaitForSingleObject(threadHandle, 30000);
+                        }
+
                     }
-                    
+                    Kernel32.VirtualFreeEx(ProcessHandle, address, Size1, 2);
+                    Kernel32.VirtualFreeEx(ProcessHandle, bufferAddress, Size2, 2);
                 }
-                Kernel32.VirtualFreeEx(ProcessHandle, address, Size1, 2);
-                Kernel32.VirtualFreeEx(ProcessHandle, bufferAddress, Size2, 2);
             }
+            finally
+            {
+                if (address != IntPtr.Zero)
+                {
+                    Kernel32.VirtualFreeEx(ProcessHandle, address, Size1, 2);
+                }
+                if (bufferAddress != IntPtr.Zero)
+                {
+                    Kernel32.VirtualFreeEx(ProcessHandle, bufferAddress, Size2, 2);
+                }
+            }
+
+
         }
     }
 }

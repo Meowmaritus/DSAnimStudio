@@ -21,6 +21,7 @@ namespace DSAnimStudio.LiveRefresh
                     case SoulsAssetPipeline.SoulsGames.DS1R:
                     case SoulsAssetPipeline.SoulsGames.DS3:
                     case SoulsAssetPipeline.SoulsGames.ER:
+                    case SoulsAssetPipeline.SoulsGames.SDT:
                         return true;
                 }
             }
@@ -104,7 +105,52 @@ namespace DSAnimStudio.LiveRefresh
         {
             byte[] chrNameBytes = Encoding.Unicode.GetBytes(chrName);
 
-            if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+            if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.SDT)
+            {
+                try
+                {
+                    Memory.AttachProc("sekiro");
+
+                    if (Memory.ProcessHandle != IntPtr.Zero)
+                    {
+
+                        Memory.WriteBoolean(Memory.BaseAddress + 0x3D7A34F, true);
+
+                        var buffer = new byte[] {
+                            0x48, 0xB9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //mov rcx,0000000000000000 (read value at 143D7A1E0 and put it here)
+                            0x48, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //mov rdx,0000000000000000 (address of chr name string)
+                            0x48, 0x83, 0xEC, 0x28, // sub rsp,28 
+                            0xFF, 0x15, 0x02, 0x00, 0x00, 0x00, 0xEB, 0x08, 0x60, 0xAC, 0xA4, 0x40, 0x01, 0x00, 0x00, 0x00, //call 140A4AC60
+                            0x48, 0x83, 0xC4, 0x28, // add rsp,28
+                            0xC3, // ret
+                        };
+
+                        var ptrThingVal = Memory.ReadInt64((IntPtr)0x143D7A1E0);
+                        var ptrThingVal_AsBytes = BitConverter.GetBytes((long)ptrThingVal);
+                        Array.Copy(ptrThingVal_AsBytes, 0, buffer, 0x2, ptrThingVal_AsBytes.Length);
+
+                        Memory.ExecuteBufferFunction(buffer, chrNameBytes, argLocationInAsmArray: 0xC);
+
+                        return true;
+                    }
+                    else
+                    {
+                        ShowInjectionFailed();
+                    }
+
+
+                }
+                catch
+                {
+                    ShowInjectionFailed();
+                }
+                finally
+                {
+                    //Memory.CloseHandle();
+                }
+            }
+
+            else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 try
                 {
