@@ -813,81 +813,81 @@ namespace DSAnimStudio
                     if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Left)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand1];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand3];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand5];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand7];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_3];
                     }
                     else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Right)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand0];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand2];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand4];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand6];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_3];
                     }
                     // DS3 OVERRIDE MEME - RIGHT SPECIFIC
                     else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.BothHand)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand0];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand1];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand2];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand3];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_3];
                     }
                     else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.Sheath)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath1];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath3];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath5];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath7];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_3];
                     }
                     // REGULAR DS3 STUFF
                     else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHand)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand0];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand2];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand4];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand6];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_3];
                     }
                     else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandL)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath1];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath3];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath5];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath7];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightHang_3];
                     }
                     else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandR)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand0];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand1];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand2];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand3];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.rightBoth_3];
                     }
                 }
 
@@ -909,81 +909,81 @@ namespace DSAnimStudio
                     if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Left)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand1];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand3];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand5];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand7];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_3];
                     }
                     else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.OneHand_Right)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand0];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand2];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand4];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand6];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.right_3];
                     }
                     // DS3 OVERRIDE MEME - LEFT SPECIFIC
                     else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.BothHand)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand4];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand5];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand6];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand7];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_3];
                     }
                     else if (ds3OverrideMeme == NewChrAsm.DS3PairedWpnMemeKind.Sheath)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath0];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath2];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath4];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath6];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_3];
                     }
                     // REGULAR DS3 STUFF
                     else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.OneHand)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand1];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand3];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand5];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.OneHand7];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.left_3];
                     }
                     else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandL)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand4];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand5];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand6];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.BothHand7];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftBoth_3];
                     }
                     else if (chrAsm.WeaponStyle == NewChrAsm.WeaponStyleType.TwoHandR)
                     {
                         if (modelIndex == 0)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath0];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_0];
                         else if (modelIndex == 1)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath2];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_1];
                         else if (modelIndex == 2)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath4];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_2];
                         else if (modelIndex == 3)
-                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.Sheath6];
+                            return absorp.AbsorpPos[WepAbsorpPosParam.WepAbsorpPosType.leftHang_3];
                     }
                 }
 
@@ -1400,30 +1400,30 @@ namespace DSAnimStudio
         {
             public enum WepAbsorpPosType
             {
-                OneHand0,
-                OneHand1,
-                OneHand2,
-                OneHand3,
-                OneHand4,
-                OneHand5,
-                OneHand6,
-                OneHand7,
-                BothHand0,
-                BothHand1,
-                BothHand2,
-                BothHand3,
-                BothHand4,
-                BothHand5,
-                BothHand6,
-                BothHand7,
-                Sheath0,
-                Sheath1,
-                Sheath2,
-                Sheath3,
-                Sheath4,
-                Sheath5,
-                Sheath6,
-                Sheath7,
+                right_0,
+                left_0,
+                right_1,
+                left_1,
+                right_2,
+                left_2,
+                right_3,
+                left_3,
+                rightBoth_0,
+                rightBoth_1,
+                rightBoth_2,
+                rightBoth_3,
+                leftBoth_0,
+                leftBoth_1,
+                leftBoth_2,
+                leftBoth_3,
+                leftHang_0,
+                rightHang_0,
+                leftHang_1,
+                rightHang_1,
+                leftHang_2,
+                rightHang_2,
+                leftHang_3,
+                rightHang_3,
             }
 
             public Dictionary<WepAbsorpPosType, short> AbsorpPos = new Dictionary<WepAbsorpPosType, short>();
@@ -1446,36 +1446,39 @@ namespace DSAnimStudio
 
                 br.Position += 4;
 
-                AbsorpPos.Add(WepAbsorpPosType.OneHand0, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.OneHand1, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.BothHand0, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath0, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath1, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.OneHand2, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.OneHand3, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.BothHand1, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath2, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath3, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.OneHand4, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.OneHand5, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.BothHand2, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath4, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath5, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.OneHand6, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.OneHand7, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.BothHand3, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath6, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.Sheath7, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.right_0, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.left_0, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightBoth_0, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftHang_0, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightHang_0, br.ReadInt16());
+
+                AbsorpPos.Add(WepAbsorpPosType.right_1, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.left_1, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightBoth_1, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftHang_1, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightHang_1, br.ReadInt16());
+
+                AbsorpPos.Add(WepAbsorpPosType.right_2, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.left_2, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightBoth_2, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftHang_2, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightHang_2, br.ReadInt16());
+
+                AbsorpPos.Add(WepAbsorpPosType.right_3, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.left_3, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightBoth_3, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftHang_3, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.rightHang_3, br.ReadInt16());
 
                 Condition1 = br.ReadByte();
                 Condition2 = br.ReadByte();
                 Condition3 = br.ReadByte();
                 Condition4 = br.ReadByte();
 
-                AbsorpPos.Add(WepAbsorpPosType.BothHand4, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.BothHand5, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.BothHand6, br.ReadInt16());
-                AbsorpPos.Add(WepAbsorpPosType.BothHand7, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftBoth_0, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftBoth_1, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftBoth_2, br.ReadInt16());
+                AbsorpPos.Add(WepAbsorpPosType.leftBoth_3, br.ReadInt16());
             }
         }
 

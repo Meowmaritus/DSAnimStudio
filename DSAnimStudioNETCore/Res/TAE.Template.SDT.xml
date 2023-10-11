@@ -2084,4 +2084,8 @@
       <s32 assert="0"/>
     </event>
   </bank>
+
+  <bank id="0" name="test" basedon="14">
+
+  </bank>
 </event_template>
