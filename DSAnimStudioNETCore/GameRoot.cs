@@ -428,7 +428,7 @@ namespace DSAnimStudio
             if (gameType != lastGameType || forceReload)
             {
                 ProjectPath = $"{Path.GetDirectoryName(assetPath)}/_DSAS_PROJECT.json";
-                DefaultGameDir = Path.GetFullPath(Path.GetDirectoryName(assetPath) + "\\..\\");
+                DefaultGameDir = Path.GetFullPath(Path.GetDirectoryName(assetPath) + (GameRoot.GameType is SoulsGames.DES ? "\\..\\..\\" : "\\..\\"));
                 if (!overrideInterrootPicker)
                 {
                     var directoryDialog = new TaeEditor.TaeGameDirPicker();
