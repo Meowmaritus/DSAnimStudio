@@ -444,7 +444,17 @@ namespace DSAnimStudio
                     DataArchives.Add("dvdbnd3", new EblArchive("dvdbnd3", "dvdbnd3.bhd5", "dvdbnd3.bdt", GameType));
 
                 }
-                else if (GameType == SoulsGames.DS3 || GameType == SoulsGames.SDT)
+                else if (GameType == SoulsGames.DS3)
+                {
+                    DataArchives.Add("data1", new EblArchive("data1", "data1.bhd", "data1.bdt", GameType));
+                    DataArchives.Add("data2", new EblArchive("data2", "data2.bhd", "data2.bdt", GameType));
+                    DataArchives.Add("data3", new EblArchive("data3", "data3.bhd", "data3.bdt", GameType));
+                    DataArchives.Add("data4", new EblArchive("data4", "data4.bhd", "data4.bdt", GameType));
+                    DataArchives.Add("data5", new EblArchive("data5", "data5.bhd", "data5.bdt", GameType));
+                    DataArchives.Add("dlc1", new EblArchive("dlc1", "dlc1.bhd", "dlc1.bdt", GameType));
+                    DataArchives.Add("dlc2", new EblArchive("dlc2", "dlc2.bhd", "dlc2.bdt", GameType));
+                }
+                else if (GameType == SoulsGames.SDT)
                 {
                     DataArchives.Add("data1", new EblArchive("data1", "data1.bhd", "data1.bdt", GameType));
                     DataArchives.Add("data2", new EblArchive("data2", "data2.bhd", "data2.bdt", GameType));
