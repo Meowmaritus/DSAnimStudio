@@ -24,7 +24,7 @@ namespace DSAnimStudio
     /// </summary>
     public class Main : Game
     {
-        public const string VERSION = "4.9.8 [PUBLIC]";
+        public const string VERSION = "4.9.9 [PUBLIC]";
 
         public static void GCCollect()
         {
