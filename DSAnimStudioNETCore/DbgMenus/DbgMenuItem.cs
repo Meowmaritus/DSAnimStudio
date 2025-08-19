@@ -506,7 +506,8 @@ namespace DSAnimStudio.DbgMenus
 
         private Vector2 GetItemSize(int i)
         {
-            return FONT.MeasureString(GetActualItemDisplayText(i));
+            
+            return ImGuiDebugDrawer.MeasureString(GetActualItemDisplayText(i));
         }
 
         private float GetEntireMenuHeight()

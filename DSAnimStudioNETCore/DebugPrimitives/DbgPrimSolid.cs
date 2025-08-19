@@ -19,6 +19,18 @@ namespace DSAnimStudio.DebugPrimitives
 
         public int TriCount => Indices.Length / 3;
 
+        public void AddQuad_Backward(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color color)
+        {
+            AddTri_Backward(a, b, c, color);
+            AddTri_Backward(a, c, d, color);
+        }
+
+        public void AddQuad_Backward(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color colorA, Color colorB, Color colorC, Color colorD)
+        {
+            AddTri_Backward(a, b, c, colorA, colorB, colorC);
+            AddTri_Backward(c, d, a, colorC, colorD, colorA);
+        }
+
         public void AddQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color color)
         {
             AddTri(a, b, c, color);
@@ -36,14 +48,24 @@ namespace DSAnimStudio.DebugPrimitives
             AddTri(a, b, c, color, color, color);
         }
 
-        public void AddTri(Vector3 a, Vector3 b, Vector3 c, Color colorA, Color colorB, Color colorC)
+        public void AddTri_Backward(Vector3 a, Vector3 b, Vector3 c, Color color)
+        {
+            AddTri(c, b, a, color, color, color);
+        }
+
+        public void AddTri_Backward(Vector3 a, Vector3 b, Vector3 c, Color colorA, Color colorB, Color colorC, Vector2? uvA = null, Vector2? uvB = null, Vector2? uvC = null)
+        {
+            AddTri(c, b, a, colorC, colorB, colorA, uvC, uvB, uvA);
+        }
+
+        public void AddTri(Vector3 a, Vector3 b, Vector3 c, Color colorA, Color colorB, Color colorC, Vector2? uvA = null, Vector2? uvB = null, Vector2? uvC = null)
         {
             var dir = Vector3.Cross(b - a, c - a);
             var norm = Vector3.Normalize(dir);
 
-            var vertA = new VertexPositionColorNormal(a, colorA, norm);
-            var vertB = new VertexPositionColorNormal(b, colorB, norm);
-            var vertC = new VertexPositionColorNormal(c, colorC, norm);
+            var vertA = new VertexPositionColorNormalTexture(a, colorA, norm, uvA ?? Vector2.Zero);
+            var vertB = new VertexPositionColorNormalTexture(b, colorB, norm, uvB ?? Vector2.Zero);
+            var vertC = new VertexPositionColorNormalTexture(c, colorC, norm, uvC ?? Vector2.Zero);
 
             int vertIndexA = Array.IndexOf(Vertices, vertA);
             int vertIndexB = Array.IndexOf(Vertices, vertB);
@@ -99,7 +121,7 @@ namespace DSAnimStudio.DebugPrimitives
             }
         }
 
-        public override DbgPrim<DbgPrimSolidShader> Instantiate(string newName, Transform newLocation, Color? newNameColor = null)
+        public override DbgPrim<DbgPrimSolidShader> Instantiate(Transform newLocation)
         {
             var newPrim = new DbgPrimSolid();
             newPrim.Indices = Indices;
@@ -110,10 +132,6 @@ namespace DSAnimStudio.DebugPrimitives
             newPrim.NeedToRecreateIndexBuffer = NeedToRecreateIndexBuffer;
 
             newPrim.Transform = newLocation;
-
-            newPrim.Name = newName;
-
-            newPrim.NameColor = newNameColor ?? NameColor;
 
             return newPrim;
         }

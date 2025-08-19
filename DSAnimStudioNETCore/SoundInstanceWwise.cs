@@ -23,11 +23,11 @@ namespace DSAnimStudio
 
         public override bool IsCompletelyFinished => wem.State == WemPlaybackInstance.States.Stopped;
 
-        public override void InnerUpdate(float deltaTime, Matrix listener, bool stopRequested, Vector3 position)
+        public override void InnerUpdate(zzz_SoundManagerIns soundMan, float deltaTime, Matrix listener, bool stopRequested, Vector3 position)
         {
             if (stopRequested)
                 wem.Stop(immediate: false);
-            wem.Update(deltaTime, listener, position);
+            wem.Update(deltaTime, listener, position, PlayInfo);
         }
 
         public override void DisposeKill()

@@ -1,0 +1,41 @@
+//------------------------------------------------
+//--- 010 Editor v13.0.2 Binary Template
+//
+//      File: DSAProj.bt
+//   Authors: Meowmaritus
+//   Version: 2
+// File Mask: *.dsaproj
+//  ID Bytes: 44 50 52 4A
+//------------------------------------------------
+
+local int MAX_SUPPORTED_FILE_VERSION = 3;
+
+typedef struct
+{
+    ubyte HasValue;
+    if (HasValue != 0)
+    {
+        wstring Value;
+    }
+} NullPrefixUTF16;
+
+typedef struct 
+{
+    int Type;
+    float StartTime;
+    float EndTime;
+    int GroupIndex;
+    int Unk04;
+    int paramByteCount;
+    ubyte ParameterBytes[paramByteCount];
+    NullPrefixUTF16 EditorText;
+} Event;
+
+char magic[4]; Assert(magic == "DSCB");
+// This is same FILE_VERSION as the main DSAProj format. 
+// If an updated version adds new fields to NullPrefixUTF16 or Event you must 
+// add them to the event structs in this template as well.
+int FILE_VERSION;
+Assert(FILE_VERSION <= MAX_SUPPORTED_FILE_VERSION);
+int eventCount;
+Event Events[eventCount] <optimize=false>;

@@ -9,13 +9,9 @@ namespace DSAnimStudio.DebugPrimitives
 {
     public class DbgPrimSolidBone : DbgPrimSolid
     {
-        public DbgPrimSolidBone(bool isHkx, string name, Transform location, Quaternion rotation, float thickness, float length, Color color)
+        public DbgPrimSolidBone(Transform location, Quaternion rotation, float thickness, float length, Color color)
         {
-            Category = isHkx ? DbgPrimCategory.HkxBone : DbgPrimCategory.FlverBone;
-
             Transform = location;
-            NameColor = color;
-            Name = name;
 
             thickness = Math.Min(length / 2, thickness);
 

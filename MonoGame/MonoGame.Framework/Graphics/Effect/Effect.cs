@@ -11,10 +11,10 @@ namespace Microsoft.Xna.Framework.Graphics
 {
 	public class Effect : GraphicsResource
     {
-        struct MGFXHeader 
+        struct MGFXHeader
         {
             /// <summary>
-            /// The MonoGame Effect file format header identifier ("MGFX"). 
+            /// The MonoGame Effect file format header identifier ("MGFX").
             /// </summary>
             public static readonly int MGFXSignature = (BitConverter.IsLittleEndian) ? 0x5846474D: 0x4D474658;
 
@@ -23,7 +23,7 @@ namespace Microsoft.Xna.Framework.Graphics
             /// used to detect old packaged content.
             /// </summary>
             /// <remarks>
-            /// We should avoid supporting old versions for very long if at all 
+            /// We should avoid supporting old versions for very long if at all
             /// as users should be rebuilding content when packaging their game.
             /// </remarks>
             public const int MGFXVersion = 10;
@@ -40,7 +40,7 @@ namespace Microsoft.Xna.Framework.Graphics
         public EffectTechniqueCollection Techniques { get; private set; }
 
         public EffectTechnique CurrentTechnique { get; set; }
-  
+
         internal ConstantBuffer[] ConstantBuffers { get; private set; }
 
         private Shader[] _shaders;
@@ -55,7 +55,7 @@ namespace Microsoft.Xna.Framework.Graphics
             }
             this.GraphicsDevice = graphicsDevice;
 		}
-			
+
 		protected Effect(Effect cloneSource)
             : this(cloneSource.GraphicsDevice)
 		{
@@ -83,13 +83,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			//  - Names
 			//  - State Objects
 			//
-			// Are shared for every instance of an effect while the 
+			// Are shared for every instance of an effect while the
 			// parameter values and constant buffers are copied.
 			//
 			// This might need to change slightly if/when we support
 			// shared constant buffers as 'new' should return unique
 			// effects without any shared instance state.
- 
+
             //Read the header
             MGFXHeader header = ReadHeader(effectCode, index);
 			var effectKey = header.EffectKey;
@@ -109,7 +109,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 // Check file tail to ensure we parsed the content correctly.
                     var tail = reader.ReadInt32();
-                    if (tail != MGFXHeader.MGFXSignature) throw new ArgumentException("The MGFX effect code was not parsed correctly.", "effectCode");                    
+                    if (tail != MGFXHeader.MGFXSignature) throw new ArgumentException("The MGFX effect code was not parsed correctly.", "effectCode");
 
                 // Cache the effect for later in its original unmodified state.
                     graphicsDevice.EffectCache.Add(effectKey, cloneSource);
@@ -138,8 +138,8 @@ namespace Microsoft.Xna.Framework.Graphics
                 throw new Exception("This MGFX effect seems to be for a newer release of MonoGame.");
 
             if (header.Profile != Shader.Profile)
-                throw new Exception("This MGFX effect was built for a different platform!");          
-            
+                throw new Exception("This MGFX effect was built for a different platform!");
+
             return header;
         }
 
@@ -179,7 +179,7 @@ namespace Microsoft.Xna.Framework.Graphics
         }
 
         /// <summary>
-        /// Returns a deep copy of the effect where immutable types 
+        /// Returns a deep copy of the effect where immutable types
         /// are shared and mutable data is duplicated.
         /// </summary>
         /// <remarks>
@@ -234,9 +234,9 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private void ReadEffect (BinaryReader reader)
 		{
-			// TODO: Maybe we should be reading in a string 
+			// TODO: Maybe we should be reading in a string
 			// table here to save some bytes in the file.
-			
+
             ConstantBuffers = new ConstantBuffer[reader.ReadInt32()];
 
             for (var c = 0; c < ConstantBuffers.Length; c++)
@@ -244,7 +244,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 var name = reader.ReadString();
 
                 // Create the backing system memory buffer.
-                var sizeInBytes = (int)reader.ReadInt16();
+                var sizeInBytes = (int)reader.ReadInt32();
 
                 // Read the parameter index values.
                 var parameters = new int[reader.ReadInt32()];
@@ -252,14 +252,14 @@ namespace Microsoft.Xna.Framework.Graphics
                 for (var i = 0; i < parameters.Length; i++)
                 {
                     parameters[i] = reader.ReadInt32();
-                    offsets[i] = (int)reader.ReadUInt16();
+                    offsets[i] = (int)reader.ReadInt32();
                 }
 
                 ConstantBuffers[c] = new ConstantBuffer(GraphicsDevice,
                                                 sizeInBytes,
                                                 parameters,
                                                 offsets,
-                                                name);                 
+                                                name);
             }
 
             _shaders = new Shader[reader.ReadInt32()];
@@ -386,7 +386,7 @@ namespace Microsoft.Xna.Framework.Graphics
             var parameters = new EffectParameter[count];
 			for (var i = 0; i < count; i++)
 			{
-				var class_ = (EffectParameterClass)reader.ReadByte();				
+				var class_ = (EffectParameterClass)reader.ReadByte();
                 var type = (EffectParameterType)reader.ReadByte();
 				var name = reader.ReadString();
 				var semantic = reader.ReadString();
@@ -401,17 +401,17 @@ namespace Microsoft.Xna.Framework.Graphics
 				if (elements.Count == 0 && structMembers.Count == 0)
 				{
 					switch (type)
-					{						
+					{
                         case EffectParameterType.Bool:
                         case EffectParameterType.Int32:
 #if !OPENGL
-                            // Under most platforms we properly store integers and 
+                            // Under most platforms we properly store integers and
                             // booleans in an integer type.
                             //
                             // MojoShader on the otherhand stores everything in float
                             // types which is why this code is disabled under OpenGL.
 					        {
-					            var buffer = new int[rowCount * columnCount];								
+					            var buffer = new int[rowCount * columnCount];
                                 for (var j = 0; j < buffer.Length; j++)
                                     buffer[j] = reader.ReadInt32();
                                 data = buffer;
@@ -425,7 +425,7 @@ namespace Microsoft.Xna.Framework.Graphics
 								for (var j = 0; j < buffer.Length; j++)
                                     buffer[j] = reader.ReadSingle();
                                 data = buffer;
-                                break;							
+                                break;
                             }
 
                         case EffectParameterType.String:
@@ -435,14 +435,14 @@ namespace Microsoft.Xna.Framework.Graphics
 							throw new NotSupportedException();
 
                         default:
-                            // NOTE: We skip over all other types as they 
+                            // NOTE: We skip over all other types as they
                             // don't get added to the constant buffer.
 					        break;
 					}
                 }
 
 				parameters[i] = new EffectParameter(
-					class_, type, name, rowCount, columnCount, semantic, 
+					class_, type, name, rowCount, columnCount, semantic,
 					annotations, elements, structMembers, data);
 			}
 

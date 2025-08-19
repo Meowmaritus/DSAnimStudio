@@ -1,0 +1,32 @@
+DS ANIM STUDIO © 2018-2023 Meowmaritus
+SoulsAssetPipeline © 2020-2023 Meowmaritus
+
+===============================================================================================================================
+    This software should not be used for commercial purposes, including for developing fully Patreon-exlusive mods.
+
+    If you would like to use this software for a mod which is locked behind a Patreon pledge tier, you must make the full
+    version of your mod available to the public within 90 days of patrons getting access.
+===============================================================================================================================
+
+MonoGame © 2009-2021 The MonoGame Team, Portions © The Mono.Xna Team
+SharpDX © 2010-2014 Alexandre Mutel
+Dear ImGui © 2014-2022 Omar Cornut
+TagTools © 2018 Skyth
+Havoc © 2018 Skyth
+NAudio © 2020 Mark Heath
+FMOD Ex SoundSystem © 2005-2011 Firelight Technologies Pty, Ltd.
+Newtonsoft.Json © 2007 James Newton-King
+RawInput.Sharp © 2019 mfakane
+BouncyCastle.Crypto © 2000 - 2021 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)
+Open Asset Import Library (Assimp) © 2006-2018 Assimp Development Team
+AssimpNet © 2012-2020 Nicholas Woodfield, TexImpNet © 2016-2020 Nicholas Woodfield
+SoulsFormats by JKAnderson
+vgmstream © 2008-2019 Adam Gashlin, Fastelbja, Ronny Elfert, bnnm, Christopher Snowhill, 
+                      NicknineTheEagle, bxaimc, Thealexbarney, CyberBotX, et al
+              
+SPECIAL THANKS TO:
+    Atro,                        Connor Craig,               egor77,                     ek0spira,                   Ewraith,
+    Grimrukh,                    Liwu Mo,                    Michal Janiak,              NarberalGamma,              Runningwithelephants,
+    Silver Everett,              Stephen Meier,              Vania Xu,                   violetwrath,                Zhihan Hu,
+
+      & The other ~242 patrons on https://www.patreon.com/Meowmaritus

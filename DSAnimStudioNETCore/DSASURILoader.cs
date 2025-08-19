@@ -36,53 +36,79 @@ namespace DSAnimStudio
                     {
                         if (ParsedQuery.Get("suppress_prompts") != null)
                         {
-                            GameRoot.SuppressNextInterrootBrowsePrompt = true;
+                            zzz_DocumentManager.CurrentDocument.GameRoot.SuppressNextInterrootBrowsePrompt = true;
                             TAE_EDITOR.SuppressNextModelOverridePrompt = true;
                         }
 
-                        if (ParsedQuery.Get("c") != null)
-                        {
-                            TAE_EDITOR.FileContainerName = ParsedQuery.Get("c");
-                        }
+                        DSAProj.TaeContainerInfo containerInfo = null;
+                        //var containerType = DSAProj.TaeContainerInfo.ContainerTypes.Anibnd;
 
-                        if (ParsedQuery.Get("chr") != null)
+                        if (ParsedQuery.Get("t") != null)
                         {
-                            TAE_EDITOR.FileContainerName_Model = ParsedQuery.Get("chr");
-                        }
-
-                        var MostRecentContainer = Main.Config.RecentFilesList[0];
-
-                        if (MostRecentContainer != null && TAE_EDITOR.FileContainerName == "")
-                        {
-                            TAE_EDITOR.FileContainerName = MostRecentContainer.TaeFile;
-                        }
-
-                        if (TAE_EDITOR.FileContainerName_Model == "")
-                        {
-                            if (MostRecentContainer.ModelFile != null)
+                            string t = ParsedQuery.Get("t");
+                            if (t == "chr")
                             {
-                                TAE_EDITOR.FileContainerName_Model = MostRecentContainer.ModelFile;
+                                string anibndPath = ParsedQuery.Get("ani");
+                                string chrPath = ParsedQuery.Get("chr");
+                                containerInfo = new DSAProj.TaeContainerInfo.ContainerAnibnd(anibndPath, chrPath);
                             }
-                            else
+                            else if (t == "parts")
                             {
-                                TAE_EDITOR.FileContainerName_Model = "/chr/c0000.chrbnd.dcx";
-                            }
-                        }
-
-                        LoadingTaskMan.DoLoadingTask("DSASURILoader", "Loading ANIBND and associated model(s) from URI...", progress =>
-                        {
-                            TAE_EDITOR.LoadCurrentFile();
-
-                            var GoToAnimationIdParam = ParsedQuery.Get("id");
-                            if (GoToAnimationIdParam != null)
-                            {
-                                string GoToAnimationIdString = GoToAnimationIdParam.Replace("_", "").Replace("a", "");
-                                if (int.TryParse(GoToAnimationIdString, out int id))
+                                string partsbndPath = ParsedQuery.Get("part");
+                                string bindIdStr = ParsedQuery.Get("ani_id");
+                                if (bindIdStr != null)
                                 {
-                                    TAE_EDITOR.GotoAnimID(id, true, true, out _);
+                                    int bindID = int.Parse(bindIdStr);
+                                    containerInfo = new DSAProj.TaeContainerInfo.ContainerAnibndInBinder(partsbndPath, bindID);
                                 }
+
                             }
-                        }, disableProgressBarByDefault: true);
+                            else if (t == "obj")
+                            {
+                                string objbndPath = ParsedQuery.Get("obj");
+                                string bindIdStr = ParsedQuery.Get("ani_id");
+                                if (bindIdStr != null)
+                                {
+                                    int bindID = int.Parse(bindIdStr);
+                                    containerInfo = new DSAProj.TaeContainerInfo.ContainerAnibndInBinder(objbndPath, bindID);
+                                }
+
+                            }
+                        }
+
+                        if (containerInfo == null)
+                        {
+                            if (Main.Config.RecentFilesList.Count > 0)
+                            {
+                                containerInfo = Main.Config.RecentFilesList[0];
+                            }
+                        }
+                        if (containerInfo != null)
+                        {
+                            //zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTask("DSASURILoader", "Loading ANIBND and associated model(s) from URI...", progress =>
+                            //{
+
+
+
+                            //}, disableProgressBarByDefault: true);
+
+                            zzz_DocumentManager.RequestFileOpenRecent = true;
+                            zzz_DocumentManager.RequestFileOpenRecent_SelectedFile = containerInfo;
+                            zzz_DocumentManager.RequestFileOpenRecent_AfterOpenAction += (doc) =>
+                            {
+                                var GoToAnimationIdParam = ParsedQuery.Get("anim");
+                                if (GoToAnimationIdParam != null)
+                                {
+                                    string GoToAnimationIdString = GoToAnimationIdParam.Replace("_", "").Replace("a", "");
+                                    if (int.TryParse(GoToAnimationIdString, out int id))
+                                    {
+                                        doc.EditorScreen.GotoAnimID(SplitAnimID.FromFullID(doc.GameRoot, id), true, true, out _);
+                                    }
+                                }
+                            };
+                        }
+
+                            
 
                         return true;
                     }

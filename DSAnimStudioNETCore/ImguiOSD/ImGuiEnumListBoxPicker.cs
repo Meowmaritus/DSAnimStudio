@@ -22,13 +22,13 @@ namespace DSAnimStudio.ImguiOSD
 
         public void ShowPickerCombo(string label, string imguiTag, ref T val, T unmappedVal, string descriptionForTooltip = null, int imguiItemWidthBase = 320)
         {
-            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPIX * OSD.RenderScale * OSD.WidthScale);
+            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPI * OSD.RenderScale * OSD.WidthScale);
             ImGui.LabelText(" ", $"{(label ?? " ")}");
             ImGui.PopItemWidth();
 
             if (descriptionForTooltip != null)
-                TooltipManager.DoTooltip(label ?? " ", descriptionForTooltip ?? " ");
-            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPIX * OSD.RenderScale * OSD.WidthScale);
+                OSD.TooltipManager_ListBoxPicker.DoTooltip(label ?? " ", descriptionForTooltip ?? " ");
+            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPI * OSD.RenderScale * OSD.WidthScale);
             {
                 int currentItemIndex = itemValues.IndexOf(val);
                 //ImGui.ListBox($" ###{imguiTag}", ref currentItemIndex, itemNames, itemNames.Length);
@@ -41,13 +41,13 @@ namespace DSAnimStudio.ImguiOSD
 
         public void ShowPicker(string label, string imguiTag, ref T val, T unmappedVal, string descriptionForTooltip = null, int imguiItemWidthBase = 320)
         {
-            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPIX * OSD.RenderScale * OSD.WidthScale);
+            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPI * OSD.RenderScale * OSD.WidthScale);
             ImGui.LabelText(" ", $"{(label ?? " ")}###{imguiTag}");
             ImGui.PopItemWidth();
 
             if (descriptionForTooltip != null)
-                TooltipManager.DoTooltip(label ?? " ", descriptionForTooltip ?? " ");
-            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPIX * OSD.RenderScale * OSD.WidthScale);
+                OSD.TooltipManager_ListBoxPicker.DoTooltip(label ?? " ", descriptionForTooltip ?? " ");
+            ImGui.PushItemWidth(imguiItemWidthBase * Main.DPI * OSD.RenderScale * OSD.WidthScale);
             {
                 int currentItemIndex = itemValues.IndexOf(val);
                 ImGui.ListBox($" ###{imguiTag}", ref currentItemIndex, itemNames, itemNames.Length);

@@ -88,11 +88,32 @@ namespace DSAnimStudio
                 if (samplesUntilLoopEnd > 0 && samplesUntilLoopEnd < count)
                 {
                     var numSamplesAfterLoop = count - samplesUntilLoopEnd;
-                    int samplesReadUntilLoopEnd = provVolume.Read(buffer, offset, samplesUntilLoopEnd);
+
+                    var sampleReadCount_UntilLoopEnd = samplesUntilLoopEnd;
+
+                    if ((sampleReadCount_UntilLoopEnd % 4) != 0)
+                    {
+                        sampleReadCount_UntilLoopEnd -= (4 - (sampleReadCount_UntilLoopEnd % 4));
+                    }
+
+                    if (sampleReadCount_UntilLoopEnd < 0)
+                        sampleReadCount_UntilLoopEnd = 0;
+
+                    int samplesReadUntilLoopEnd = provVolume.Read(buffer, offset, sampleReadCount_UntilLoopEnd);
 
                     WaveSamplePosition = LoopStart;
 
-                    int samplesReadAfterLoopStart = provVolume.Read(buffer, offset + samplesUntilLoopEnd, numSamplesAfterLoop);
+                    var sampleReadCount_AfterLoop = numSamplesAfterLoop;
+
+                    if ((sampleReadCount_AfterLoop % 4) != 0)
+                    {
+                        sampleReadCount_AfterLoop -= (4 - (sampleReadCount_AfterLoop % 4));
+                    }
+
+                    if (sampleReadCount_AfterLoop < 0)
+                        sampleReadCount_AfterLoop = 0;
+
+                    int samplesReadAfterLoopStart = provVolume.Read(buffer, offset + samplesUntilLoopEnd, sampleReadCount_AfterLoop);
 
                     return samplesReadUntilLoopEnd + samplesReadAfterLoopStart;
                 }

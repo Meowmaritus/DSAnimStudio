@@ -38,8 +38,11 @@ namespace DSAnimStudio.LiveRefresh
 
         public static System.Diagnostics.Process AttachedProcess = null;
 
-        public static IntPtr EldenRing_CrashFixPtr = IntPtr.Zero;
-        public static IntPtr EldenRing_WorldChrManPtr = IntPtr.Zero;
+        public static IntPtr ER_CrashFixPtr = IntPtr.Zero;
+        public static IntPtr ER_WorldChrManPtr = IntPtr.Zero;
+
+        public static IntPtr AC6_CrashFixPtr = IntPtr.Zero;
+        public static IntPtr AC6_WorldChrManPtr = IntPtr.Zero;
 
         private static IntPtr ScanRelativeAob(AOBScanner aobScanner, string aob, int addrOffset, int endOfRelJumpInstr)
         {
@@ -57,7 +60,7 @@ namespace DSAnimStudio.LiveRefresh
         {
             lock (_iniLock)
             {
-                var iniFilePath = Main.Directory + "\\RES\\IngameReload.ini";
+                var iniFilePath = Main.Directory + $"\\RES\\IngameReload_{zzz_DocumentManager.CurrentDocument.GameRoot.GameType}.ini";
                 _ini = new Dictionary<string, string>();
                 if (System.IO.File.Exists(iniFilePath))
                 {
@@ -70,8 +73,8 @@ namespace DSAnimStudio.LiveRefresh
                         int equalsIndex = l.IndexOf("=");
                         if (equalsIndex < 0)
                             continue;
-                        string beforeEquals = l.Substring(0, equalsIndex).ToUpper();
-                        string afterEquals = l.Substring(equalsIndex + 1, l.Length - equalsIndex - 1);
+                        string beforeEquals = l.Substring(0, equalsIndex).Trim();
+                        string afterEquals = l.Substring(equalsIndex + 1, l.Length - equalsIndex - 1).Trim();
                         _ini[beforeEquals] = afterEquals;
                     }
                 }
@@ -131,23 +134,67 @@ namespace DSAnimStudio.LiveRefresh
             return result;
         }
 
-        public static void UpdateEldenRingAobs()
+        public static void UpdateAOBs_ER()
         {
             CheckIngameReloadINI();
 
             var aob = new AOBScanner(AttachedProcess);
-            EldenRing_WorldChrManPtr = Memory.ScanRelativeAob(aob, GetIngameReloadIniOption("EldenRing_WorldChrManPtr_AOB") ?? "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88 ?? ?? ?? ?? 75 06 89 B1 64 03 ?? ?? 0F 28 05 ?? ?? ?? ?? 4C 8D 45 E7",
-                GetIngameReloadIniOptionInt("EldenRing_WorldChrManPtr_JumpInstr_StartOffsetInAOB") ?? 3, GetIngameReloadIniOptionInt("EldenRing_WorldChrManPtr_JumpInstr_EndOffsetInAOB") ?? 7);
-            if (EldenRing_WorldChrManPtr == IntPtr.Zero)
-                NotificationManager.PushNotification("Live reload WARNING - Could not find Elden Ring WorldChrMan AOB");
-            EldenRing_WorldChrManPtr = Kernel32.ReadIntPtr(ProcessHandle, EldenRing_WorldChrManPtr, true);
+            ER_WorldChrManPtr = Memory.ScanRelativeAob(aob, GetIngameReloadIniOption("ER_WorldChrManPtr_AOB") ?? "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88 ?? ?? ?? ?? 75 06 89 B1 64 03 ?? ?? 0F 28 05 ?? ?? ?? ?? 4C 8D 45 E7",
+                GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_StartOffsetInAOB") ?? 3, GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_EndOffsetInAOB") ?? 7);
+            if (ER_WorldChrManPtr == IntPtr.Zero)
+                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring WorldChrMan AOB");
+            ER_WorldChrManPtr = Kernel32.ReadIntPtr(ProcessHandle, ER_WorldChrManPtr, true);
 
-            var crashPatchOffsetAob = AOBScanner.StringToAOB(GetIngameReloadIniOption("EldenRing_CrashPatchOffset_AOB") ?? "80 65 ?? FD 48 C7 45 ?? 07 00 00 00 ?? 8D 45 48 4C 89 60 ?? 48 83 78 ?? 08 72 03 48 8B 00 66 44 89 20 49 8B 8F ?? ?? ?? ?? 48 8B 01 48 ?? ??");
+            var crashPatchOffsetAob = AOBScanner.StringToAOB(GetIngameReloadIniOption("ER_CrashPatchOffset_AOB") ?? "80 65 ?? FD 48 C7 45 ?? 07 00 00 00 ?? 8D 45 48 4C 89 60 ?? 48 83 78 ?? 08 72 03 48 8B 00 66 44 89 20 49 8B 8F ?? ?? ?? ?? 48 8B 01 48 ?? ??");
             IntPtr crashPatchOffset = aob.Scan(crashPatchOffsetAob);
             if (crashPatchOffset == IntPtr.Zero)
-                NotificationManager.PushNotification("Live reload WARNING - Could not find Elden Ring crash patch AOB");
-            crashPatchOffset = crashPatchOffset + crashPatchOffsetAob.Length - (GetIngameReloadIniOptionInt("EldenRing_CrashPatchOffset_DistFromEndOfAOB")  ?? 3);
-            EldenRing_CrashFixPtr = crashPatchOffset;
+                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring crash patch AOB");
+            crashPatchOffset = crashPatchOffset + crashPatchOffsetAob.Length - (GetIngameReloadIniOptionInt("ER_CrashPatchOffset_DistFromEndOfAOB") ?? 3);
+            ER_CrashFixPtr = crashPatchOffset;
+        }
+
+        public static void UpdateAOBs_ERNR()
+        {
+            //ERNR TODO
+            CheckIngameReloadINI();
+
+            var aob = new AOBScanner(AttachedProcess);
+            ER_WorldChrManPtr = Memory.ScanRelativeAob(aob, GetIngameReloadIniOption("ER_WorldChrManPtr_AOB") ?? "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88 ?? ?? ?? ?? 75 06 89 B1 64 03 ?? ?? 0F 28 05 ?? ?? ?? ?? 4C 8D 45 E7",
+                GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_StartOffsetInAOB") ?? 3, GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_EndOffsetInAOB") ?? 7);
+            if (ER_WorldChrManPtr == IntPtr.Zero)
+                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring WorldChrMan AOB");
+            ER_WorldChrManPtr = Kernel32.ReadIntPtr(ProcessHandle, ER_WorldChrManPtr, true);
+
+            var crashPatchOffsetAob = AOBScanner.StringToAOB(GetIngameReloadIniOption("ER_CrashPatchOffset_AOB") ?? "80 65 ?? FD 48 C7 45 ?? 07 00 00 00 ?? 8D 45 48 4C 89 60 ?? 48 83 78 ?? 08 72 03 48 8B 00 66 44 89 20 49 8B 8F ?? ?? ?? ?? 48 8B 01 48 ?? ??");
+            IntPtr crashPatchOffset = aob.Scan(crashPatchOffsetAob);
+            if (crashPatchOffset == IntPtr.Zero)
+                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring crash patch AOB");
+            crashPatchOffset = crashPatchOffset + crashPatchOffsetAob.Length - (GetIngameReloadIniOptionInt("ER_CrashPatchOffset_DistFromEndOfAOB") ?? 3);
+            ER_CrashFixPtr = crashPatchOffset;
+        }
+
+        public static void UpdateAOBs_AC6()
+        {
+            CheckIngameReloadINI();
+
+            var aob = new AOBScanner(AttachedProcess);
+
+            var iniWorldChrManAob = GetIngameReloadIniOption("AC6_WorldChrManPtr_AOB");
+
+            AC6_WorldChrManPtr = Memory.ScanRelativeAob(aob, iniWorldChrManAob ?? "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88 ?? ?? ?? ?? 75 06 89 B1 64 03 ?? ?? 0F 28 05 ?? ?? ?? ?? 4C 8D 45 E7",
+                GetIngameReloadIniOptionInt("AC6_WorldChrManPtr_JumpInstr_StartOffsetInAOB") ?? 3, GetIngameReloadIniOptionInt("AC6_WorldChrManPtr_JumpInstr_EndOffsetInAOB") ?? 7);
+            if (AC6_WorldChrManPtr == IntPtr.Zero)
+                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find AC6 WorldChrMan AOB");
+            AC6_WorldChrManPtr = Kernel32.ReadIntPtr(ProcessHandle, AC6_WorldChrManPtr, true);
+
+            var iniCrashPtrAob = GetIngameReloadIniOption("AC6_CrashPatchOffset_AOB");
+
+            var crashPatchOffsetAob = AOBScanner.StringToAOB(iniCrashPtrAob ?? "80 65 ?? FD 48 C7 45 ?? 07 00 00 00 ?? 8D 45 48 4C 89 60 ?? 48 83 78 ?? 08 72 03 48 8B 00 66 44 89 20 49 8B 8F ?? ?? ?? ?? 48 8B 01 48 ?? ??");
+            IntPtr crashPatchOffset = aob.Scan(crashPatchOffsetAob);
+            if (crashPatchOffset == IntPtr.Zero)
+                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find AC6 crash patch AOB");
+            crashPatchOffset = crashPatchOffset + crashPatchOffsetAob.Length - (GetIngameReloadIniOptionInt("AC6_CrashPatchOffset_DistFromEndOfAOB") ?? 3);
+            AC6_CrashFixPtr = crashPatchOffset;
         }
 
         public static void AttachProc(string procName)
@@ -171,14 +218,18 @@ namespace DSAnimStudio.LiveRefresh
                     AttachedProcess = Process;
                     AttachedProcess.Exited += AttachedProcess_Exited;
 
-                    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER)
+                    if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER)
                     {
-                        UpdateEldenRingAobs();
+                        UpdateAOBs_ER();
+                    }
+                    else if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ERNR)
+                    {
+                        UpdateAOBs_ERNR();
                     }
                     else
                     {
-                        EldenRing_CrashFixPtr = IntPtr.Zero;
-                        EldenRing_WorldChrManPtr = IntPtr.Zero;
+                        ER_CrashFixPtr = IntPtr.Zero;
+                        ER_WorldChrManPtr = IntPtr.Zero;
                     }
                 }
                 catch
@@ -220,8 +271,8 @@ namespace DSAnimStudio.LiveRefresh
                 }
                 ProcessHandle = IntPtr.Zero;
             }
-            EldenRing_CrashFixPtr = IntPtr.Zero;
-            EldenRing_WorldChrManPtr = IntPtr.Zero;
+            ER_CrashFixPtr = IntPtr.Zero;
+            ER_WorldChrManPtr = IntPtr.Zero;
         }
 
         // read address
@@ -396,37 +447,53 @@ namespace DSAnimStudio.LiveRefresh
             }
         }
 
-        public static void ExecuteBufferFunction(byte[] array, byte[] argument)
+        public static void ExecuteBufferFunction(byte[] array, byte[] argument, int argLocationInAsmArray = 0x2)
         {
             var Size1 = 0x100;
             var Size2 = 0x100;
 
-            var address = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size1, 0x1000 | 0x2000, 0X40);
-            var bufferAddress = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size2, 0x1000 | 0x2000, 0X40);
+            var address = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size1, 0x1000 | 0x2000, 0x40);
+            var bufferAddress = Kernel32.VirtualAllocEx(ProcessHandle, IntPtr.Zero, Size2, 0x1000 | 0x2000, 0x40);
 
-            var bytjmp = 0x2;
-            var bytjmpAr = new byte[7];
-
-            WriteBytes(bufferAddress, argument);
-
-            bytjmpAr = BitConverter.GetBytes((long)bufferAddress);
-            Array.Copy(bytjmpAr, 0, array, bytjmp, bytjmpAr.Length);
-
-            if (address != IntPtr.Zero)
+            try
             {
-                if (WriteBytes(address, array))
+                //var bytjmp = 0x2;
+                var bytjmpAr = new byte[8];
+
+                WriteBytes(bufferAddress, argument);
+
+                bytjmpAr = BitConverter.GetBytes((long)bufferAddress);
+                Array.Copy(bytjmpAr, 0, array, argLocationInAsmArray, bytjmpAr.Length);
+
+                if (address != IntPtr.Zero && bufferAddress != IntPtr.Zero)
                 {
-                    
-                    var threadHandle = Kernel32.CreateRemoteThread(ProcessHandle, IntPtr.Zero, 0, address, IntPtr.Zero, 0, out var threadId);
-                    if (threadHandle != IntPtr.Zero)
+                    if (WriteBytes(address, array))
                     {
-                        Kernel32.WaitForSingleObject(threadHandle, 30000);
+
+                        var threadHandle = Kernel32.CreateRemoteThread(ProcessHandle, IntPtr.Zero, 0, address, IntPtr.Zero, 0, out var threadId);
+                        if (threadHandle != IntPtr.Zero)
+                        {
+                            Kernel32.WaitForSingleObject(threadHandle, 30000);
+                        }
+
                     }
-                    
+                    Kernel32.VirtualFreeEx(ProcessHandle, address, Size1, 2);
+                    Kernel32.VirtualFreeEx(ProcessHandle, bufferAddress, Size2, 2);
                 }
-                Kernel32.VirtualFreeEx(ProcessHandle, address, Size1, 2);
-                Kernel32.VirtualFreeEx(ProcessHandle, bufferAddress, Size2, 2);
             }
+            finally
+            {
+                if (address != IntPtr.Zero)
+                {
+                    Kernel32.VirtualFreeEx(ProcessHandle, address, Size1, 2);
+                }
+                if (bufferAddress != IntPtr.Zero)
+                {
+                    Kernel32.VirtualFreeEx(ProcessHandle, bufferAddress, Size2, 2);
+                }
+            }
+
+            
         }
     }
 }

@@ -9,27 +9,20 @@ namespace DSAnimStudio.DebugPrimitives
 {
     public interface IDbgPrim : IDisposable
     {
+        float ElapsedTime { get; set; }
+
         ParamData.AtkParam.DummyPolySource DmyPolySource { get; set; }
         Transform Transform { get; set; }
-        string Name { get; set; }
-        Color NameColor { get; set; }
         Color? OverrideColor { get; set; }
 
         object ExtraData { get; set; }
 
-        DbgPrimCategory Category { get; set; }
-
         bool EnableDraw { get; set; }
-        bool EnableDbgLabelDraw { get; set; }
-        bool EnableNameDraw { get; set; }
 
         List<IDbgPrim> Children { get; set; }
         List<IDbgPrim> UnparentedChildren { get; set; }
 
-        void Draw(IDbgPrim parent, Matrix world);
-        void LabelDraw(Matrix world);
-
-        void LabelDraw_Billboard(Matrix world);
+        void Draw(bool forceEnableDraw, IDbgPrim parent, Matrix world);
 
     }
 }

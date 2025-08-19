@@ -5,150 +5,175 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Diagnostics;
+using static DSAnimStudio.DSAProj;
+using static DSAnimStudio.ManagerAction;
+using System.Security.Cryptography;
+using System.Windows.Forms;
+using System.Text;
+using TAE = SoulsAssetPipeline.Animation.TAE;
 
 namespace DSAnimStudio.TaeEditor
 {
     public class TaeFileContainer
     {
+        public void ShowPopupForDSAProjRuntimeFlags(DSAProj.EditorFlags flags)
+        {
+            if (flags != EditorFlags.None)
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("The file loaded has been marked as modified (with '*') for the following issues:");
+                if ((flags & EditorFlags.NeedsResave_LegacySaveWithEventGroupsStripped) != 0)
+                    sb.AppendLine($"    -It has animation entries which were mistakenly saved with event groups enabled in a game that doesn't support them.");
+                if ((flags & EditorFlags.NeedsResave_DSAProjVersionOutdated) != 0)
+                    sb.AppendLine($"    -The *{DSAProj.EXT} file was saved with an older version of DS Anim Studio.");
+                if ((flags & EditorFlags.NeedsResave_NullAnimNameBug) != 0)
+                    sb.AppendLine($"    -The *{DSAProj.EXT} file was saved with a bug that caused all anim file names " +
+                                  $"to get wiped (anim file names have been loaded from the *.dsasbak file for any null file names).");
+                sb.AppendLine("\nIt is reccomended that you resave the file now to apply the fixes for the above issues.");
+                MessageBox.Show(sb.ToString(),
+                                "Notice", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
         private readonly TaeEditorScreen Editor;
 
-        public enum TaeFileContainerType
-        {
-            TAE,
-            ANIBND,
-            OBJBND,
-            REMOBND
-        }
+        //public enum TaeFileContainerType
+        //{
+        //    TAE,
+        //    ANIBND,
+        //    OBJBND,
+        //    REMOBND
+        //}
+
+        public DSAProj Proj;
+        
+        
 
         public TaeFileContainer(TaeEditorScreen editor)
         {
             Editor = editor;
         }
 
-        private string filePath
+        //private string filePath
+        //{
+        //    get => Editor.FileContainerName;
+        //    set => Editor.FileContainerName = value;
+        //}
+
+        //public TaeFileContainerType ContainerType { get; private set; }
+
+        private IBinder containerBinder;
+        private IBinder containerBinder_2010;
+        private bool containerBinder_2010_IsModified = false;
+
+        //private IBinder containerOBJBND;
+
+        //private string anibndPathInsideObjbnd = null;
+
+        public TaeContainerInfo Info = null;
+
+        public SoulsAssetPipeline.Animation.TAE.Template TaeTemplate = null;
+
+        public List<DSAProj.AnimCategory> AllTAE => Proj?.SAFE_GetAllAnimCategories() ?? new List<DSAProj.AnimCategory>();
+        private Dictionary<SplitAnimID, byte[]> hkxInBND = new Dictionary<SplitAnimID, byte[]>();
+        private Dictionary<SplitAnimID, byte[]> sibcamInBND = new Dictionary<SplitAnimID, byte[]>();
+
+        private void DeleteAnimHKX(SplitAnimID id)
         {
-            get => Editor.FileContainerName;
-            set => Editor.FileContainerName = value;
+            //if (ContainerType != TaeFileContainerType.ANIBND)
+            //    throw new NotImplementedException("Not supported for anything other than ANIBND right now.");
+
+            throw new NotImplementedException();
         }
 
-        public TaeFileContainerType ContainerType { get; private set; }
-
-        private IBinder containerANIBND;
-        private IBinder containerANIBND_2010;
-        private bool containerANIBND_2010_IsModified = false;
-
-        private IBinder containerOBJBND;
-
-        private string anibndPathInsideObjbnd = null;
-
-        private Dictionary<string, TAE> taeInBND = new Dictionary<string, TAE>();
-        private Dictionary<string, byte[]> hkxInBND = new Dictionary<string, byte[]>();
-        private Dictionary<string, byte[]> sibcamInBND = new Dictionary<string, byte[]>();
-        private List<int> taeSectionsInBND = new List<int>();
-
-        private void DeleteAnimHKX(string name)
+        public void AddNewHKX(SplitAnimID id, string name, byte[] data, out byte[] dataForAnimContainer)//, byte[] predeterminedDataHavok2010 = null)
         {
-            if (ContainerType != TaeFileContainerType.ANIBND)
-                throw new NotImplementedException("Not supported for anything other than ANIBND right now.");
+            throw new NotImplementedException();
 
-            BinderFile existingFile = containerANIBND.Files.FirstOrDefault(ff => ff.Name.Contains(name));
-            BinderFile existingFile_2010 = containerANIBND_2010?.Files.FirstOrDefault(ff => ff.Name.Contains(name));
-
-            if (existingFile != null)
-                containerANIBND.Files.Remove(existingFile);
-
-            if (existingFile_2010 != null)
-                containerANIBND_2010.Files.Remove(existingFile_2010);
-
-            if (hkxInBND.ContainsKey(name))
-                hkxInBND.Remove(name);
-        }
-
-        public void AddNewHKX(string name, byte[] data, out byte[] dataForAnimContainer)//, byte[] predeterminedDataHavok2010 = null)
-        {
             if (data == null)
             {
                 dataForAnimContainer = null;
                 return;
             }
 
-            if (ContainerType != TaeFileContainerType.ANIBND)
-                throw new NotImplementedException("Not supported for anything other than ANIBND right now.");
+            //if (ContainerType != TaeFileContainerType.ANIBND)
+            //    throw new NotImplementedException("Not supported for anything other than ANIBND right now.");
 
-            dataForAnimContainer = data;
+            //dataForAnimContainer = data;
 
-            if (ContainerType == TaeFileContainerType.ANIBND)
-            {
-                DeleteAnimHKX(name + ".hkx");
+            //if (ContainerType == TaeFileContainerType.ANIBND)
+            //{
+            //    DeleteAnimHKX(name + ".hkx");
 
-                hkxInBND.Add(name + ".hkx", data);
-                BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
-                containerANIBND.Files.Add(f);
-                containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
-                IsModified = true;
+            //    hkxInBND.Add(name + ".hkx", data);
+            //    BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
+            //    containerBinder.Files.Add(f);
+            //    containerBinder.Files = containerBinder.Files.OrderBy(bf => bf.ID).ToList();
+            //    IsModified = true;
             
 
-                //if (GameDataManager.GameTypeIsHavokTagfile)
-                //{
-                //    if (HavokDowngrade.SimpleCheckIfHkxBytesAre2015(data))
-                //    {
-                //        BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
-                //        containerANIBND.Files.Add(f);
-                //        containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
+            //    //if (GameDataManager.GameTypeIsHavokTagfile)
+            //    //{
+            //    //    if (HavokDowngrade.SimpleCheckIfHkxBytesAre2015(data))
+            //    //    {
+            //    //        BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
+            //    //        containerANIBND.Files.Add(f);
+            //    //        containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
 
 
-                //        byte[] bytes2010 = predeterminedDataHavok2010 ?? HavokDowngrade.DowngradeSingleFileInANIBND(containerANIBND, f, isUpgrade: false);
-                //        BinderFile f2010 = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", bytes2010);
-                //        containerANIBND_2010.Files.Add(f2010);
-                //        containerANIBND_2010.Files = containerANIBND_2010.Files.OrderBy(bf => bf.ID).ToList();
-                //        containerANIBND_2010_IsModified = true;
-                //        hkxInBND.Add(name + ".hkx", bytes2010);
+            //    //        byte[] bytes2010 = predeterminedDataHavok2010 ?? HavokDowngrade.DowngradeSingleFileInANIBND(containerANIBND, f, isUpgrade: false);
+            //    //        BinderFile f2010 = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", bytes2010);
+            //    //        containerANIBND_2010.Files.Add(f2010);
+            //    //        containerANIBND_2010.Files = containerANIBND_2010.Files.OrderBy(bf => bf.ID).ToList();
+            //    //        containerANIBND_2010_IsModified = true;
+            //    //        hkxInBND.Add(name + ".hkx", bytes2010);
 
-                //        dataForAnimContainer = bytes2010;
+            //    //        dataForAnimContainer = bytes2010;
 
-                //        IsModified = true;
-                //    }
-                //    else
-                //    {
-                //        hkxInBND.Add(name + ".hkx", data);
+            //    //        IsModified = true;
+            //    //    }
+            //    //    else
+            //    //    {
+            //    //        hkxInBND.Add(name + ".hkx", data);
 
-                //        BinderFile f2010 = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
-                //        containerANIBND_2010.Files.Add(f2010);
-                //        containerANIBND_2010.Files = containerANIBND_2010.Files.OrderBy(bf => bf.ID).ToList();
-                //        containerANIBND_2010_IsModified = true;
+            //    //        BinderFile f2010 = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
+            //    //        containerANIBND_2010.Files.Add(f2010);
+            //    //        containerANIBND_2010.Files = containerANIBND_2010.Files.OrderBy(bf => bf.ID).ToList();
+            //    //        containerANIBND_2010_IsModified = true;
 
-                //        byte[] bytes2015 = HavokDowngrade.DowngradeSingleFileInANIBND(containerANIBND_2010, f2010, isUpgrade: true);
+            //    //        byte[] bytes2015 = HavokDowngrade.DowngradeSingleFileInANIBND(containerANIBND_2010, f2010, isUpgrade: true);
 
-                //        BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", bytes2015);
-                //        containerANIBND.Files.Add(f);
-                //        containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
-                //        IsModified = true;
-                //    }
+            //    //        BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", bytes2015);
+            //    //        containerANIBND.Files.Add(f);
+            //    //        containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
+            //    //        IsModified = true;
+            //    //    }
 
-                //}
-                //else
-                //{
-                //    hkxInBND.Add(name + ".hkx", data);
-                //    BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
-                //    containerANIBND.Files.Add(f);
-                //    containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
-                //    IsModified = true;
-                //}
-            }
+            //    //}
+            //    //else
+            //    //{
+            //    //    hkxInBND.Add(name + ".hkx", data);
+            //    //    BinderFile f = new BinderFile(Binder.FileFlags.Flag1, int.Parse(name.Replace("_", "").Replace("a", "")), name + ".hkx", data);
+            //    //    containerANIBND.Files.Add(f);
+            //    //    containerANIBND.Files = containerANIBND.Files.OrderBy(bf => bf.ID).ToList();
+            //    //    IsModified = true;
+            //    //}
+            //}
             
         }
 
         public List<BinderFile> RelatedModelFiles = new List<BinderFile>();
 
-        public bool IsModified = false;
+        public bool IsModified => Proj?.SAFE_AnyModified() ?? false;
 
         public bool IsCurrentlyLoading { get; private set; } = false;
 
         public static readonly string DefaultSaveFilter =
             "Anim Container (*.ANIBND[.DCX]) |*.ANIBND*|" +
-            "Cutscene Container (*.REMOBND[.DCX]) |*.REMOBND*|" +
+            //"Cutscene Container (*.REMOBND[.DCX]) |*.REMOBND*|" +
             "Object Container (*.OBJBND[.DCX]) |*.OBJBND*|" +
-            "Loose TimeAct File (*.TAE) |*.TAE|" +
+            "Parts Container (*.PARTSBND[.DCX]) |*.PARTSBND*|" +
+            //"Loose TimeAct File (*.TAE) |*.TAE|" +
             "All Files|*.*";
 
         public static readonly string DefaultSaveFilter_Model =
@@ -157,7 +182,7 @@ namespace DSAnimStudio.TaeEditor
             //"Loose FLVER Model File (*.FLVER) |*.FLVER|" +
             "All Files|*.*";
 
-        public bool IsBloodborne => GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB;
+        public bool IsBloodborne => zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB;
 
         public string GetResaveFilter()
         {
@@ -167,241 +192,102 @@ namespace DSAnimStudio.TaeEditor
         //public Dictionary<int, TAE> StandardTAE { get; private set; } = null;
         //public Dictionary<int, TAE> PlayerTAE { get; private set; } = null;
 
-        public IReadOnlyList<TAE> AllTAE
-        {
-            get
-            {
-                IReadOnlyList<TAE> tae = null;
-                lock (_lock_loading)
-                {
-                    tae = taeInBND.Values.ToList();
-                }
-                return tae;
-            }
-        }
-
         private object _lock_loading = new object();
 
-        public IReadOnlyDictionary<string, byte[]> AllHKXDict
-        {
-            get
-            {
-                Dictionary<string, byte[]> result = null;
-                lock (_lock_loading)
-                {
-                    result = hkxInBND.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                }
-                return result;
-            }
-        }
+        // public IReadOnlyDictionary<SplitAnimID, byte[]> AllHKXDict
+        // {
+        //     get
+        //     {
+        //         Dictionary<SplitAnimID, byte[]> result = null;
+        //         lock (_lock_loading)
+        //         {
+        //             result = hkxInBND.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        //         }
+        //         return result;
+        //     }
+        // }
 
-        public IReadOnlyDictionary<string, byte[]> AllSibcamDict
-        {
-            get
-            {
-                Dictionary<string, byte[]> result = null;
-                lock (_lock_loading)
-                {
-                    result = sibcamInBND.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                }
-                return result;
-            }
-        }
+        // public IReadOnlyDictionary<string, byte[]> AllSibcamDict
+        // {
+        //     get
+        //     {
+        //         Dictionary<string, byte[]> result = null;
+        //         lock (_lock_loading)
+        //         {
+        //             result = sibcamInBND.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        //         }
+        //         return result;
+        //     }
+        // }
 
-        public IReadOnlyDictionary<string, TAE> AllTAEDict
-        {
-            get
-            {
-                Dictionary<string, TAE> result = null;
-                lock (_lock_loading)
-                {
-                    result = taeInBND.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                }
-                return result;
-            }
-        }
-
-        public IReadOnlyList<int> AllTAESections
-        {
-            get
-            {
-                List<int> result = null;
-                lock (_lock_loading)
-                {
-                    result = taeSectionsInBND.ToList();
-                }
-                return result;
-            }
-        }
-
-        private void RegistTaeSections(string taeName, TAE tae)
-        {
-            taeName = Utils.GetShortIngameFileName(taeName);
-            if (taeName.StartsWith("c"))
-            {
-                foreach (var anim in tae.Animations)
-                {
-                    int v = (int)(anim.ID / (GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000));
-                    if (!taeSectionsInBND.Contains(v))
-                        taeSectionsInBND.Add(v);
-                }
-            }
-            else if (taeName.StartsWith("a"))
-            {
-                int v = int.Parse(taeName.Substring(1));
-                if (!taeSectionsInBND.Contains(v))
-                    taeSectionsInBND.Add(v);
-            }
-        }
-
-        public (int Min, int Max) GetTaeSectionMinMax()
-        {
-            int min = -1;
-            int max = -1;
-            foreach (var s in taeSectionsInBND)
-            {
-                if (s < min)
-                    min = s;
-                if (s > max)
-                    max = s;
-            }
-            return (min, max);
-        }
+        
         
 
-        public (long Upper, long Lower) GetSplitAnimID(long id)
+        
+
+        
+
+        
+
+        
+
+        public static void CheckGameVersionForTaeInterop(string binderPath, IBinder binder)
         {
-            return ((GameRoot.GameTypeHasLongAnimIDs) ? (id / 1000000) : (id / 10000),
-                (GameRoot.GameTypeHasLongAnimIDs) ? (id % 1000000) : (id % 10000));
-        }
-
-        private (long UpperID, TAE.Animation Anim) GetTAEAnim(long compositeId)
-        {
-            var id = GetSplitAnimID(compositeId);
-
-            if (AllTAEDict.Count > 1)
-            {
-                var tae = GetTAE(id.Upper);
-                if (tae != null)
-                {
-                    var anim = GetAnimInTAE(tae, id.Lower);
-                    if (anim != null)
-                        return (id.Upper, anim);
-                }
-            }
-            else
-            {
-                var tae = AllTAEDict.First().Value;
-                var anim = GetAnimInTAE(tae, GetCompositeAnimID(id));
-                if (anim != null)
-                    return (id.Upper, anim);
-            }
-            return (0, null);
-        }
-
-        public TAE GetTAE(long id)
-        {
-            if (AllTAEDict.Count == 1)
-                return AllTAEDict.FirstOrDefault().Value;
-
-            foreach (var kvp in AllTAEDict)
-            {
-                if (kvp.Key.ToUpper().EndsWith($"{id:D2}.TAE"))
-                {
-                    return kvp.Value;
-                }
-            }
-            return null;
-        }
-
-        public TAE.Animation GetAnimInTAE(TAE tae, long id)
-        {
-            foreach (var a in tae.Animations)
-            {
-                if (a.ID == id)
-                    return a;
-            }
-            return null;
-        }
-
-        private long GetCompositeAnimID((long Upper, long Lower) id)
-        {
-            if (GameRoot.GameTypeHasLongAnimIDs)
-            {
-                return (id.Upper * 1_000000) + (id.Lower % 1_000000);
-            }
-            else
-            {
-                return (id.Upper * 1_0000) + (id.Lower % 1_0000);
-            }
-        }
-
-        public TAE.Animation GetAnimRef(int compositeID)
-        {
-            var anim = GetTAEAnim(compositeID);
-            return anim.Anim;
-        }
-
-        public (TAE, TAE.Animation) GetAnimRefFull(int compositeID)
-        {
-            var anim = GetTAEAnim(compositeID);
-            var tae = GetTAE(anim.UpperID);
-            return (tae, anim.Anim);
-        }
-
-        public static void CheckGameVersionForTaeInterop(string binderPath)
-        {
-            IBinder binder = null;
-            if (BND3.Is(binderPath))
-                binder = BND3.Read(binderPath);
-            else if (BND4.Is(binderPath))
-                binder = BND4.Read(binderPath);
             if (binder != null)
             {
                 var firstFile = binder.Files.FirstOrDefault();
                 if (firstFile != null)
                 {
-                    CheckGameVersionForTaeInterop(binderPath, firstFile.Name, false);
+                    CheckGameVersionForTaeInterop(binderPath, binder, firstFile.Name, false);
                 }
             }
+            //zzz_DocumentManager.CurrentDocument.GameRoot.InitializeFromBND(binderPath, binder);
         }
 
-        public static void CheckGameVersionForTaeInterop(string filePath, string internalFilePath, bool isRemo)
+        public static void CheckGameVersionForTaeInterop(string binderPath, IBinder binder, string internalFilePath, bool isRemo)
         {
             var check = internalFilePath.ToUpper();
-            string scratchFolder = GameRoot.GetParentDirectory(filePath);
+            string scratchFolder = zzz_DocumentManager.CurrentDocument.GameRoot.GetParentDirectory(binderPath);
             if (check.Contains("FRPG2"))
             {
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.DS2SOTFS, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.DS2SOTFS, scratchFolder);
             }
-            else if ((check.Contains(@"\FRPG\") && check.Contains(@"HKXX64")) || (check.Contains(@"TAENEW\X64") && isRemo))
+            else if (check.Contains(@"\FRPG\") && (check.Contains(@"INTERROOT_X64") || check.Contains(@"HKXX64") || (check.Contains(@"TAENEW\X64")) && isRemo))
             {
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.DS1R, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.DS1R, scratchFolder);
             }
-            else if ((check.Contains(@"\FRPG\") && check.Contains(@"HKXWIN32")) || (check.Contains(@"TAENEW\WIN32") && isRemo))
+            else if (check.Contains(@"\FRPG\") && (check.Contains(@"INTERROOT_WIN32") || check.Contains(@"HKXWIN32") || (check.Contains(@"TAENEW\WIN32")) && isRemo))
             {
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.DS1, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.DS1, scratchFolder);
             }
             else if (check.Contains(@"\SPRJ\"))
             {
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.BB, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.BB, scratchFolder);
             }
             else if (check.Contains(@"\FDP\"))
             {
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.DS3, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.DS3, scratchFolder);
             }
             else if (check.Contains(@"\DEMONSSOUL\"))
             {
                 //scratchFolder = GameRoot.GetParentDirectory(scratchFolder);
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.DES, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.DES, scratchFolder);
             }
             else if (check.Contains(@"\NTC\"))
             {
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.SDT, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.SDT, scratchFolder);
             }
             else if (check.Contains(@"\GR\"))
             {
-                GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.ER, scratchFolder);
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.ER, scratchFolder);
+            }
+            else if (check.Contains(@"\CL\"))
+            {
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.ERNR, scratchFolder);
+            }
+            else if (check.Contains(@"\FNR\"))
+            {
+                zzz_DocumentManager.CurrentDocument.GameRoot.Init(binderPath, SoulsAssetPipeline.SoulsGames.AC6, scratchFolder);
             }
         }
 
@@ -436,7 +322,7 @@ namespace DSAnimStudio.TaeEditor
             IBinder containerANIBND_2010 = null;
             if (!System.IO.File.Exists(origFilePath + ".2010"))
             {
-                LoadingTaskMan.DoLoadingTaskSynchronous(null, "Converting Demon's Souls Animations", innerProgress =>
+                zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTaskSynchronous(null, "Converting Demon's Souls Animations", innerProgress =>
                 {
                     File.Copy(origFilePath, origFilePath + ".2010", overwrite: true);
 
@@ -492,7 +378,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 System.IO.File.Copy(oodleSource, oodleTarget, true);
 
-                NotificationManager.PushNotification("Oodle compression library was automatically copied from game directory " +
+                zzz_NotificationManagerIns.PushNotification("Oodle compression library was automatically copied from game directory " +
                                     "to editor's '/lib' directory and Sekiro / Elden Ring files will load now.");
             }
 
@@ -510,7 +396,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 foreach (var f in bnd.Files)
                 {
-                    if (f.Name.ToLowerInvariant().EndsWith(".tae") && TAE.Is(f.Bytes))
+                    if (f.Name.ToLowerInvariant().EndsWith(".tae") && SoulsAssetPipeline.Animation.TAE.Is(f.Bytes))
                     {
                         result = true;
                         break;
@@ -532,7 +418,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 foreach (var f in bnd.Files)
                 {
-                    if (f.Name.ToLowerInvariant().EndsWith(".tae") && TAE.Is(f.Bytes))
+                    if (f.Name.ToLowerInvariant().EndsWith(".tae") || SoulsAssetPipeline.Animation.TAE.Is(f.Bytes))
                     {
                         result = true;
                         break;
@@ -542,292 +428,291 @@ namespace DSAnimStudio.TaeEditor
             return result;
         }
 
-        public void LoadFromPath(string file, string possibleFallbackPath)
+        // private void NewScanAssetsInBinder(IBinder binder, SoulsAssetPipeline.Animation.TAE.Template template)
+        // {
+        //     hkxInBND.Clear();
+        //     sibcamInBND.Clear();
+        //     if (binder != null)
+        //     {
+        //         // "data\Model\chr\blf\ver_0001.txt" which signals that its "ver_0001"
+        //         bool ver_0001 = binder.Files.Any(f => f.ID == 9999999);
+        //         int taeFileIDRangeMin = ver_0001 ? 5000000 : 3000000;
+        //         int taeFileIDRangeMax = ver_0001 ? 5999999 : 3999999;
+        //
+        //         foreach (var f in binder.Files)
+        //         {
+        //             var nameCheck = f.Name.Trim().ToLowerInvariant();
+        //             if (nameCheck.EndsWith(".hkx"))
+        //             {
+        //                 if (!hkxInBND.ContainsKey(nameCheck))
+        //                     hkxInBND[f.Name] = f.Bytes;
+        //
+        //                 var matchingSibcam = binder.Files.FirstOrDefault(s => s.Name.ToLower().EndsWith("camera_win32.sibcam") && s.ID == f.ID - 1);
+        //                 if (matchingSibcam != null)
+        //                 {
+        //                     if (!sibcamInBND.ContainsKey(f.Name))
+        //                         sibcamInBND.Add(f.Name, matchingSibcam.Bytes);
+        //                     else
+        //                         sibcamInBND[f.Name] = matchingSibcam.Bytes;
+        //                 }
+        //             }
+        //             // else if (f.ID >= taeFileIDRangeMin && f.ID <= taeFileIDRangeMax)
+        //             // {
+        //             //     Proj.RegisterTAE(f.Name, f, template);
+        //             // }
+        //         }
+        //     }
+        // }
+
+        private bool CheckIfDemonsSouls2010AnibndIsValid(IBinder bnd)
         {
-            lock (Main.TAE_EDITOR)
+            foreach (var f in bnd.Files)
             {
-                GameRoot.ClearInterroot();
-
-                IsCurrentlyLoading = true;
-
-                filePath = file;
-
-                string fileTypeCheck = Path.GetFileName(filePath).ToUpper();
-                bool isRemo = fileTypeCheck.Contains(".REMOBND");
-
-                containerANIBND = null;
-                containerANIBND_2010 = null;
-                containerANIBND_2010_IsModified = false;
-
-                taeSectionsInBND.Clear();
-                taeInBND.Clear();
-                hkxInBND.Clear();
-                sibcamInBND.Clear();
-
-                if (BND3.Is(file))
+                if (f.Bytes.Length >= 0x36)
                 {
-                    ContainerType = TaeFileContainerType.ANIBND;
-                    containerANIBND = BND3.Read(file);
-                }
-                else if (BND4.Is(file))
-                {
-                    ContainerType = TaeFileContainerType.ANIBND;
-                    containerANIBND = BND4.Read(file);
-                }
-                else if (TAE.Is(file))
-                {
-                    CheckGameVersionForTaeInterop(filePath, file, false);
-
-                    ContainerType = TaeFileContainerType.TAE;
-                    var t = TAE.Read(file);
-                    taeInBND.Add(file, t);
-
-                    if (t.Format == TAE.TAEFormat.SOTFS)
+                    using (var memStream = new MemoryStream(f.Bytes))
                     {
-                        GameRoot.Init(filePath, SoulsAssetPipeline.SoulsGames.DS2SOTFS,
-                            GameRoot.GetParentDirectory(filePath));
+                        var br = new BinaryReaderEx(false, memStream);
+                        var test = br.GetASCII(0x28, 14);
+                        if (test == "Havok-5.5.0-r1")
+                            return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+
+        public bool NewLoadFromContainerInfo(DSAProj.TaeContainerInfo info, out string errorMsg, TAE.Template template, zzz_DocumentIns parentDocument)
+        {
+
+            try
+            {
+                
+
+                var fileInfoValid = info.CheckValidity(out string infoErrorMsg, out IBinder binder);
+
+                
+
+                if (fileInfoValid)
+                {
+                    containerBinder = binder;
+
+                    string mainBinderPath = info.GetMainBinderName();
+
+                    if (parentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.DES)
+                    {
+                        string binder2010Path = info.GetMainBinderName() + ".2010";
+                        if (File.Exists(binder2010Path))
+                        {
+                            containerBinder_2010 = Utils.ReadBinder(binder2010Path);
+                            if (containerBinder_2010 == null || !CheckIfDemonsSouls2010AnibndIsValid(containerBinder_2010))
+                            {
+                                containerBinder_2010 = GenerateDemonsSoulsConvertedAnibnd(mainBinderPath);
+                            }
+                        }
+                        else
+                        {
+                            containerBinder_2010 = GenerateDemonsSoulsConvertedAnibnd(mainBinderPath);
+                        }
+                        containerBinder_2010_IsModified = false;
+                    }
+
+                    CheckGameVersionForTaeInterop(mainBinderPath, containerBinder);
+
+                    Editor.CheckAutoLoadXMLTemplate(mainBinderPath);
+                    Editor.ApplyAlreadySetTAETemplate();
+                    Info = info;
+
+                    var dsaprojName = info.GetDSAProjFileName();
+
+                    Proj = new DSAProj(parentDocument);
+                    
+                    if (File.Exists(dsaprojName))
+                    {
+                        Proj = new DSAProj(parentDocument);
+                        //Proj.DeserializeFromFile(dsaprojName);
+
+                        try
+                        {
+                            Proj.SAFE_DeserializeFromFile(dsaprojName, template);
+                        }
+                        catch (DSAProjTooNewException)
+                        {
+                            var choice = MessageBox.Show($"Associated *{DSAProj.EXT} file was saved with a newer version of DS Anim Studio. Cannot open.\n\n" +
+                                "Resetting everything to default.\nWARNING: >>>If you save, it will overwrite the incompatible file.<<<",
+                                $"Invalid Metadata (*{DSAProj.EXT}) File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                            Proj = DSAProj.CreateFromContainer(Info, template, parentDocument, checkValidity: false);
+                        }
+                        catch (Exception ex)
+                        {
+                            var choice = MessageBox.Show($"Associated *{DSAProj.EXT} file is invalid/corrupted. Cannot open.\n\n" +
+                                "Resetting everything to default.\nWARNING: >>>If you save, it will overwrite the corrupted file.<<<" +
+                                $"\n\nError shown below:\n{ex}",
+                                $"Invalid Metadata (*{DSAProj.EXT}) File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                            Proj = DSAProj.CreateFromContainer(Info, template, parentDocument, checkValidity: false);
+                        }
+
+                        var runtimeFlags = Proj.GetAllTAEsRuntimeFlags();
+                        if (runtimeFlags != EditorFlags.None)
+                            ShowPopupForDSAProjRuntimeFlags(runtimeFlags);
+
+                        
                     }
                     else
                     {
-                        throw new NotImplementedException("Non-DS2 loose .TAE files not supported yet.");
+                        Proj = DSAProj.CreateFromContainer(Info, template, parentDocument, checkValidity: false);
                     }
-                }
 
-                if (containerANIBND != null && possibleFallbackPath != null && File.Exists(possibleFallbackPath) && !containerANIBND.Files.Any(f => f.Name.ToLower().EndsWith(".tae")))
+
+                    //
+                    //
+                    // if (Proj.ContainerInfo is DSAProj.TaeContainerInfo.ContainerAnibnd asAnibnd)
+                    // {
+                    //     NewScanAssetsInBinder(containerBinder, template);
+                    // }
+                    // else if (Proj.ContainerInfo is DSAProj.TaeContainerInfo.ContainerAnibndInBinder asAnibndInBinder)
+                    // {
+                    //     foreach (var bf in containerBinder.Files)
+                    //     {
+                    //         if (bf.ID == asAnibndInBinder.BindID)
+                    //         {
+                    //             NewScanAssetsInBinder(Utils.ReadBinder(bf.Bytes), template);
+                    //         }
+                    //     }
+                    // }
+
+
+
+
+                    //if (File.Exists(Info.GetMainBinderName() + ".dsasbak"))
+                    //{
+                    //    var newlyGeneratedProj = DSAProj.CreateFromContainer(Info, template, parentDocument, checkValidity: false, readFromBackup: true);
+                    //    Proj.ScanAnimNamesFromOtherProj(newlyGeneratedProj);
+                    //}
+                    
+                    errorMsg = null;
+                    return true;
+                }
+                else
                 {
-
-                    LoadFromPath(possibleFallbackPath, null);
-                    return;
+                    errorMsg = infoErrorMsg;
+                    return false;
                 }
 
-                //void DoBnd(IBinder bnd)
-                //{
-
-                //}
-
-                if (ContainerType == TaeFileContainerType.ANIBND)
-                {
-                    foreach (var f in containerANIBND.Files)
-                    {
-                        CheckGameVersionForTaeInterop(filePath, f.Name, isRemo);
-                    }
-
-                    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES && !GameRoot.GameIsDemonsSoulsRemastered)
-                    {
-                        containerANIBND_2010 = GenerateDemonsSoulsConvertedAnibnd(filePath);
-                    }
-
-                    LoadingTaskMan.DoLoadingTaskSynchronous("TaeFileContainer_ANIBND", "Loading all TAE files in ANIBND...", innerProgress =>
-                    {
-                        double i = 0;
-                        foreach (var f in containerANIBND.Files)
-                        {
-                            //DESR .hkt hotfix
-                            if (f.Name.ToLowerInvariant().EndsWith(".hkt"))
-                                f.Name = f.Name.Substring(0, f.Name.Length - 3) + "hkx";
-
-                            innerProgress.Report(++i / containerANIBND.Files.Count);
-
-                            CheckGameVersionForTaeInterop(filePath, f.Name, isRemo);
-                            if (BND3.Is(f.Bytes))
-                            {
-                                ContainerType = TaeFileContainerType.OBJBND;
-                                containerOBJBND = containerANIBND;
-                                containerANIBND = BND3.Read(f.Bytes);
-                                anibndPathInsideObjbnd = f.Name;
-                                break;
-                            }
-                            else if (BND4.Is(f.Bytes))
-                            {
-                                ContainerType = TaeFileContainerType.OBJBND;
-                                containerOBJBND = containerANIBND;
-                                containerANIBND = BND4.Read(f.Bytes);
-                                anibndPathInsideObjbnd = f.Name;
-                                break;
-                            }
-                            else if (TAE.Is(f.Bytes))
-                            {
-                                if (!taeInBND.ContainsKey(f.Name))
-                                    taeInBND.Add(f.Name, TAE.Read(f.Bytes));
-                                else
-                                    taeInBND[f.Name] = TAE.Read(f.Bytes);
-                                RegistTaeSections(f.Name, taeInBND[f.Name]);
-                            }
-                            else if (f.Name.ToUpper().EndsWith(".HKX"))
-                            {
-                                if (!hkxInBND.ContainsKey(f.Name))
-                                    hkxInBND.Add(f.Name, f.Bytes);
-                                else
-                                    hkxInBND[f.Name] = f.Bytes;
-
-                                var matchingSibcam = containerANIBND.Files.FirstOrDefault(s => s.Name.ToLower().EndsWith("camera_win32.sibcam") && s.ID == f.ID - 1);
-                                if (matchingSibcam != null)
-                                {
-                                    if (!sibcamInBND.ContainsKey(f.Name))
-                                        sibcamInBND.Add(f.Name, matchingSibcam.Bytes);
-                                    else
-                                        sibcamInBND[f.Name] = matchingSibcam.Bytes;
-                                }
-                            }
-                        }
-                        innerProgress.Report(1);
-
-                        if (ContainerType == TaeFileContainerType.OBJBND)
-                        {
-                            i = 0;
-                            foreach (var f in containerANIBND.Files)
-                            {
-                                //DESR hotfix
-                                if (f.Name.ToLowerInvariant().EndsWith(".hkt"))
-                                    f.Name = f.Name.Substring(0, f.Name.Length - 3) + "hkx";
-
-                                innerProgress.Report(++i / containerANIBND.Files.Count);
-
-                                CheckGameVersionForTaeInterop(filePath, f.Name, isRemo);
-                                if (TAE.Is(f.Bytes))
-                                {
-                                    if (!taeInBND.ContainsKey(f.Name))
-                                        taeInBND.Add(f.Name, TAE.Read(f.Bytes));
-                                    else
-                                        taeInBND[f.Name] = TAE.Read(f.Bytes);
-                                    RegistTaeSections(f.Name, taeInBND[f.Name]);
-                                }
-                                else if (f.Name.ToUpper().EndsWith(".HKX"))
-                                {
-                                    if (!hkxInBND.ContainsKey(f.Name))
-                                        hkxInBND.Add(f.Name, f.Bytes);
-                                    else
-                                        hkxInBND[f.Name] = f.Bytes;
-
-                                    var matchingSibcam = containerANIBND.Files.FirstOrDefault(s => s.Name.ToLower().EndsWith("camera_win32.sibcam") && s.ID == f.ID - 1);
-                                    if (matchingSibcam != null)
-                                    {
-                                        if (!sibcamInBND.ContainsKey(f.Name))
-                                            sibcamInBND.Add(f.Name, matchingSibcam.Bytes);
-                                        else
-                                            sibcamInBND[f.Name] = matchingSibcam.Bytes;
-                                    }
-                                }
-                            }
-                            innerProgress.Report(1);
-                        }
-                    });
-                }
-
-                IsModified = false;
-                IsCurrentlyLoading = false;
+            }
+            catch (Exception ex) when (Main.EnableErrorHandler.TaeFileContainerLoad)
+            {
+                errorMsg = ex.Message;
+                return false;
             }
         }
 
-        public void SaveToPath(string file, IProgress<double> progress)
+        private void NewSaveAssetsToBinder(IBinder binder, IProgress<double> prog, double progStart, double progWeight)
         {
-            lock (Main.TAE_EDITOR)
+            bool ver_0001 = binder.Files.Any(f => f.ID == 9999999);
+            int taeFileIDRangeMin = ver_0001 ? 5000000 : 3000000;
+            int taeFileIDRangeMax = ver_0001 ? 5999999 : 3999999;
+
+            binder.Files.RemoveAll(f => f.ID >= taeFileIDRangeMin && f.ID <= taeFileIDRangeMax);
+
+            var taeBinderFiles = Proj.WriteTaeFilesForAnibnd(prog, progStart, progWeight);
+            binder.Files.AddRange(taeBinderFiles);
+
+
+            binder.Files = binder.Files.OrderBy(x => x.ID).ToList();
+
+            //Console.WriteLine("test");
+        }
+
+        public void NewSaveContainer(out bool savedDsaproj, out bool savedContainer, IProgress<double> prog, double progStart, double progWeight)
+        {
+            savedDsaproj = false;
+            savedContainer = false;
+            if (Info != null)
             {
-                //What the hell was this for?
-                //file = file.ToUpper();
-
-                if (ContainerType == TaeFileContainerType.ANIBND)
+                bool failed = false;
+                Proj.ScanForErrors();
+                if (Proj.ErrorContainer.AnyErrors())
                 {
-                    double i = 0;
-                    foreach (var f in containerANIBND.Files)
+                    
+                    try
                     {
-                        progress.Report((++i / containerANIBND.Files.Count) * 0.9);
-                        if (taeInBND.ContainsKey(f.Name))
+                        Proj.SAFE_SerializeToFile(Proj.ContainerInfo.GetDSAProjFileName(), prog, progStart, progWeight);
+                    }
+                    catch (Exception ex)
+                    {
+                        ImguiOSD.DialogManager.DialogOK("Error", $"Failed to save project file.\n\n{ex}");
+
+                        failed = true;
+                    }
+
+                    if (!failed)
+                    {
+                        Proj.SAFE_ClearAllModified();
+                        Proj.SAFE_ClearRuntimeFlagsOnAll(DSAProj.EditorFlags.Combo_AllNeedsResaveFlags);
+
+                        ImguiOSD.DialogManager.DialogOK("Error", $"Cannot output to game files due to errors (shown in the red 'ERRORS' window). " +
+                                                                 $"\nThe *{DSAProj.EXT} file has been saved so your work is safe and will not be lost upon closing." +
+                                                                 $"\nOnce you fix the errors, you may output to the game files by saving again.");
+                        savedDsaproj = true;
+                        savedContainer = false;
+                    }
+                    return;
+                }
+
+                savedContainer = false;
+                if (Proj.ContainerInfo is DSAProj.TaeContainerInfo.ContainerAnibnd asAnibnd)
+                {
+                    NewSaveAssetsToBinder(containerBinder, prog, progStart, progWeight * 0.9);
+                    savedContainer = true;
+                }
+                else if (Proj.ContainerInfo is DSAProj.TaeContainerInfo.ContainerAnibndInBinder asAnibndInBinder)
+                {
+                    foreach (var bf in containerBinder.Files)
+                    {
+                        if (bf.ID == asAnibndInBinder.BindID)
                         {
-                            bool needToSave = false;
-
-                            foreach (var anim in taeInBND[f.Name].Animations)
-                            {
-                                if (anim.GetIsModified())
-                                    needToSave = true;
-
-                                // Regardless of whether we need to save this TAE, this anim should 
-                                // be set to not modified :fatcat:
-                                anim.SetIsModified(false, updateGui: false);
-                            }
-
-                            if (needToSave)
-                            {
-                                f.Bytes = taeInBND[f.Name].Write();
-                                taeInBND[f.Name].SetIsModified(false, updateGui: false);
-                            }
+                            var binder = Utils.ReadBinder(bf.Bytes);
+                            NewSaveAssetsToBinder(binder, prog, progStart, progWeight * 0.9);
+                            bf.Bytes = Utils.WriteBinder(binder);
                         }
                     }
-
-                    if (containerANIBND is BND3 asBND3)
-                        asBND3.Write(file);
-                    else if (containerANIBND is BND4 asBND4)
-                        asBND4.Write(file);
-
-                    if (containerANIBND_2010 != null && containerANIBND_2010_IsModified)
-                    {
-                        if (containerANIBND_2010 is BND3 asBND3_2010)
-                            asBND3_2010.Write(file + ".2010");
-                        else if (containerANIBND_2010 is BND4 asBND4_2010)
-                            asBND4_2010.Write(file + ".2010");
-                    }
-
-                    progress.Report(1.0);
+                    savedContainer = true;
                 }
-                else if (ContainerType == TaeFileContainerType.OBJBND)
+
+
+                
+                try
                 {
-                    double i = 0;
-                    foreach (var f in containerANIBND.Files)
-                    {
-                        progress.Report((++i / containerANIBND.Files.Count) * 0.9);
-                        if (taeInBND.ContainsKey(f.Name))
-                        {
-                            bool needToSave = false;
-
-                            foreach (var anim in taeInBND[f.Name].Animations)
-                            {
-                                if (anim.GetIsModified())
-                                    needToSave = true;
-
-                                // Regardless of whether we need to save this TAE, this anim should 
-                                // be set to not modified :fatcat:
-                                anim.SetIsModified(false, updateGui: false);
-                            }
-
-                            if (needToSave)
-                            {
-                                f.Bytes = taeInBND[f.Name].Write();
-                                taeInBND[f.Name].SetIsModified(false, updateGui: false);
-                            }
-                        }
-                    }
-
-                    var anibndInObjbnd = containerOBJBND.Files.FirstOrDefault(f => f.Name == anibndPathInsideObjbnd);
-                    if (anibndInObjbnd == null)
-                    {
-                        throw new Exception("Error: Could not find ANIBND within the OBJBND (please report)");
-                    }
-
-                    if (containerANIBND is BND3 asBND3)
-                        anibndInObjbnd.Bytes = asBND3.Write();
-                    else if (containerANIBND is BND4 asBND4)
-                        anibndInObjbnd.Bytes = asBND4.Write();
-
-                    if (containerOBJBND is BND3 asOBJBND3)
-                        asOBJBND3.Write(file);
-                    else if (containerOBJBND is BND4 asOBJBND4)
-                        asOBJBND4.Write(file);
+                    Proj.SAFE_SerializeToFile(Proj.ContainerInfo.GetDSAProjFileName(), prog, progStart + 0.9, progWeight * 0.1);
                 }
-                else if (ContainerType == TaeFileContainerType.TAE)
+                catch (Exception ex)
                 {
-                    var tae = taeInBND[filePath];
-                    tae.Write(file);
+                    ImguiOSD.DialogManager.DialogOK("Error", $"Failed to save project file.\n\n{ex}");
 
-                    taeInBND.Clear();
-                    taeInBND.Add(file, taeInBND[filePath]);
-
-                    taeSectionsInBND.Clear();
-                    RegistTaeSections(file, taeInBND[filePath]);
-
-                    progress.Report(1.0);
+                    failed = true;
                 }
+                if (!failed)
+                {
+                    Proj.SAFE_ClearAllModified();
+                    Proj.SAFE_ClearRuntimeFlagsOnAll(DSAProj.EditorFlags.Combo_AllNeedsResaveFlags);
+                    savedDsaproj = true;
+                }
+                
 
-                IsModified = false;
+                if (savedContainer)
+                {
+                    var containerBinderBytes = Utils.WriteBinder(containerBinder);
+                    File.WriteAllBytes(Info.GetMainBinderName(), containerBinderBytes);
+                }
+            }
+            else
+            {
+                savedContainer = false;
+                savedDsaproj = false;
             }
         }
     }

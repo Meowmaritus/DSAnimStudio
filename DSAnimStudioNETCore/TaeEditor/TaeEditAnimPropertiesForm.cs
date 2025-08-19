@@ -13,9 +13,9 @@ namespace DSAnimStudio.TaeEditor
 
         readonly long originalID;
 
-        readonly TAE.Animation.AnimMiniHeader originalMiniHeader;
+        readonly TAE.Animation.AnimFileHeader originalMiniHeader;
 
-        readonly string originalDisplayName;
+        //readonly string originalDisplayName;
 
         private bool ReadyToExit = false;
 
@@ -25,14 +25,14 @@ namespace DSAnimStudio.TaeEditor
 
         public bool WasAnimDeleted = false;
 
-        public TAE.Animation.MiniHeaderType CurrentMiniHeaderType
+        public TAE.Animation.AnimFileHeaderType CurrentMiniHeaderType
         {
             get
             {
                 if (radioButtonMHStandard.Checked)
-                    return TAE.Animation.MiniHeaderType.Standard;
+                    return TAE.Animation.AnimFileHeaderType.Standard;
                 else if (radioButtonMHImportOtherAnimation.Checked)
-                    return TAE.Animation.MiniHeaderType.ImportOtherAnim;
+                    return TAE.Animation.AnimFileHeaderType.ImportOtherAnim;
                 else
                     throw new NotImplementedException("Mini header type not implemented");
             }
@@ -40,11 +40,11 @@ namespace DSAnimStudio.TaeEditor
 
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {
-            return ((GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+            return ((zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 ? (id / 1000000) : (id / 10000),
-                (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+                (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                 ? (id % 1000000) : (id % 10000));
         }
 
@@ -55,8 +55,8 @@ namespace DSAnimStudio.TaeEditor
 
             var splitID = GetSplitAnimID(compositeID);
 
-            if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+            if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 return $"a{splitID.Upper:D3}_{splitID.Lower:D6}";
             }
@@ -66,16 +66,16 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void MiniHeaderLoadValuesToGUI(TAE.Animation.AnimMiniHeader miniHeader)
+        private void MiniHeaderLoadValuesToGUI(TAE.Animation.AnimFileHeader miniHeader)
         {
-            if (miniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+            if (miniHeader is TAE.Animation.AnimFileHeader.Standard asStandard)
             {
                 checkBoxMHStandardImportEvents.Checked = asStandard.AllowDelayLoad;
                 checkBoxMHStandardImportHKX.Checked = asStandard.ImportsHKX;
                 checkBoxMHStandardLoopByDefault.Checked = asStandard.IsLoopByDefault;
                 textBoxMHStandardImportHKXFrom.Text = HKXNameFromCompositeID(asStandard.ImportHKXSourceAnimID);
             }
-            else if (miniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+            else if (miniHeader is TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOtherAnim)
             {
                 textBoxMHDuplicateSourceAnimID.Text = HKXNameFromCompositeID(asImportOtherAnim.ImportFromAnimID);
                 textBoxMHDuplicateUnk.Text = asImportOtherAnim.Unknown.ToString();
@@ -86,14 +86,14 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private string CurFormattingString() => (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3) ? "aXXX_YYYYY" : "aXX_YYYY";
+        private string CurFormattingString() => (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3) ? "aXXX_YYYYY" : "aXX_YYYY";
 
-        private TAE.Animation.AnimMiniHeader MiniHeaderSaveValuesFromGUI()
+        private TAE.Animation.AnimFileHeader MiniHeaderSaveValuesFromGUI()
         {
-            if (CurrentMiniHeaderType == TAE.Animation.MiniHeaderType.Standard)
+            if (CurrentMiniHeaderType == TAE.Animation.AnimFileHeaderType.Standard)
             {
-                var asStandard = new TAE.Animation.AnimMiniHeader.Standard();
+                var asStandard = new TAE.Animation.AnimFileHeader.Standard();
 
                 asStandard.AllowDelayLoad = checkBoxMHStandardImportEvents.Checked;
                 asStandard.ImportsHKX = checkBoxMHStandardImportHKX.Checked;
@@ -118,9 +118,9 @@ namespace DSAnimStudio.TaeEditor
 
                 return asStandard;
             }
-            else if (CurrentMiniHeaderType == TAE.Animation.MiniHeaderType.ImportOtherAnim)
+            else if (CurrentMiniHeaderType == TAE.Animation.AnimFileHeaderType.ImportOtherAnim)
             {
-                var asImportOtherAnim = new TAE.Animation.AnimMiniHeader.ImportOtherAnim();
+                var asImportOtherAnim = new TAE.Animation.AnimFileHeader.ImportOtherAnim();
 
                 if (string.IsNullOrWhiteSpace(textBoxMHDuplicateSourceAnimID.Text))
                 {
@@ -158,9 +158,9 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void MiniHeaderPrepareGUI(TAE.Animation.MiniHeaderType miniHeaderType)
+        private void MiniHeaderPrepareGUI(TAE.Animation.AnimFileHeaderType miniHeaderType)
         {
-            if (miniHeaderType == TAE.Animation.MiniHeaderType.Standard)
+            if (miniHeaderType == TAE.Animation.AnimFileHeaderType.Standard)
             {
                 //groupBoxMHStandard.Text = "Mini-Header Data: Standard";
 
@@ -188,7 +188,7 @@ namespace DSAnimStudio.TaeEditor
                 //checkBoxMHStandardImportHKX.Text = "Import the model animation data (.HKX) from this animation ID:";
 
             }
-            else if (miniHeaderType == TAE.Animation.MiniHeaderType.ImportOtherAnim)
+            else if (miniHeaderType == TAE.Animation.AnimFileHeaderType.ImportOtherAnim)
             {
                 //groupBoxMHStandard.Text = "Mini-Header Data: Direct Reference";
 
@@ -225,8 +225,8 @@ namespace DSAnimStudio.TaeEditor
 
         private string HKXSubIDDispNameFromInt_NoPrefix(long subID)
         {
-            if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+            if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ||
+                zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
             {
                 return $"{subID:D6}";
             }
@@ -239,7 +239,7 @@ namespace DSAnimStudio.TaeEditor
         private void LoadToGUI()
         {
             
-            textBoxDisplayName.Text = AnimRef.AnimFileName;
+            textBoxDisplayName.Text = AnimRef.Header.AnimFileName;
 
             if (IsAbsoluteAnimID)
             {
@@ -248,7 +248,7 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                labelAnimSubIDPrefix.Text = GameRoot.GameTypeHasLongAnimIDs ? "Animation Sub-ID: aXXX_" : "Animation Sub-ID: aXX_";
+                labelAnimSubIDPrefix.Text = zzz_DocumentManager.CurrentDocument.GameRoot.GameTypeHasLongAnimIDs ? "Animation Sub-ID: aXXX_" : "Animation Sub-ID: aXX_";
 
                 textBoxAnimSubID.Text = HKXSubIDDispNameFromInt_NoPrefix(AnimRef.ID);
             }
@@ -260,11 +260,11 @@ namespace DSAnimStudio.TaeEditor
             radioButtonMHStandard.Checked = false;
             radioButtonMHImportOtherAnimation.Checked = false;
 
-            if (AnimRef.MiniHeader.Type == TAE.Animation.MiniHeaderType.Standard)
+            if (AnimRef.Header.Type == TAE.Animation.AnimFileHeaderType.Standard)
             {
                 radioButtonMHStandard.Checked = true;
             }
-            else if (AnimRef.MiniHeader.Type == TAE.Animation.MiniHeaderType.ImportOtherAnim)
+            else if (AnimRef.Header.Type == TAE.Animation.AnimFileHeaderType.ImportOtherAnim)
             {
                 radioButtonMHImportOtherAnimation.Checked = true;
             }
@@ -273,7 +273,7 @@ namespace DSAnimStudio.TaeEditor
                 throw new NotImplementedException("Mini header type not implemented");
             }
 
-            MiniHeaderLoadValuesToGUI(AnimRef.MiniHeader);
+            MiniHeaderLoadValuesToGUI(AnimRef.Header);
         }
 
         public bool WriteFromGUI()
@@ -319,8 +319,8 @@ namespace DSAnimStudio.TaeEditor
             
 
             AnimRef.ID = savedSubID;
-            AnimRef.AnimFileName = savedDisplayName;
-            AnimRef.MiniHeader = savedMiniHeader;
+            AnimRef.Header = savedMiniHeader;
+            AnimRef.Header.AnimFileName = savedDisplayName;
 
             return true;
         }
@@ -330,8 +330,7 @@ namespace DSAnimStudio.TaeEditor
             IsAbsoluteAnimID = isAbsoluteAnimID;
             AnimRef = animRef;
             originalID = animRef.ID;
-            originalMiniHeader = animRef.MiniHeader.GetClone();
-            originalDisplayName = animRef.AnimFileName;
+            originalMiniHeader = animRef.Header.GetClone();
             InitializeComponent();
         }
 
@@ -355,8 +354,7 @@ namespace DSAnimStudio.TaeEditor
             else
             {
                 AnimRef.ID = originalID;
-                AnimRef.MiniHeader = originalMiniHeader;
-                AnimRef.AnimFileName = originalDisplayName;
+                AnimRef.Header = originalMiniHeader;
 
                 MessageBox.Show("Changes were not saved due to formatting errors.",
                     "Changes Not Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -366,8 +364,7 @@ namespace DSAnimStudio.TaeEditor
         private void buttonDiscardChanges_Click(object sender, EventArgs e)
         {
             AnimRef.ID = originalID;
-            AnimRef.MiniHeader = originalMiniHeader;
-            AnimRef.AnimFileName = originalDisplayName;
+            AnimRef.Header = originalMiniHeader;
 
             ReadyToExit = true;
             WereThingsChanged = false;
@@ -381,8 +378,7 @@ namespace DSAnimStudio.TaeEditor
             if (!ReadyToExit)
             {
                 AnimRef.ID = originalID;
-                AnimRef.MiniHeader = originalMiniHeader;
-                AnimRef.AnimFileName = originalDisplayName;
+                AnimRef.Header = originalMiniHeader;
 
                 WereThingsChanged = false;
                 WasAnimDeleted = false;
@@ -393,7 +389,7 @@ namespace DSAnimStudio.TaeEditor
         private void buttonDeleteAnim_Click(object sender, EventArgs e)
         {
             var yesNoDlgResult = MessageBox.Show(
-                $"Are you sure you want to delete animation entry {originalID}?\nThis can NOT be undone!",
+                $"Are you sure you want to delete animation entry {originalID}?",
                 "Permanently Delete Animation Entry?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (yesNoDlgResult == DialogResult.Yes)
@@ -406,7 +402,7 @@ namespace DSAnimStudio.TaeEditor
 
         private void TaeEditAnimPropertiesForm_Load(object sender, EventArgs e)
         {
-            //this.Scale(new System.Drawing.SizeF(Main.DPIX, Main.DPIY));
+            //this.Scale(new System.Drawing.SizeF(Main.DPI, Main.DPI));
             //RescaleConstantsForDpi(96, 96 * 2);
         }
 
@@ -415,7 +411,7 @@ namespace DSAnimStudio.TaeEditor
             if (radioButtonMHStandard.Checked)
             {
                 radioButtonMHImportOtherAnimation.Checked = false;
-                MiniHeaderPrepareGUI(TAE.Animation.MiniHeaderType.Standard);
+                MiniHeaderPrepareGUI(TAE.Animation.AnimFileHeaderType.Standard);
             }
         }
 
@@ -424,7 +420,7 @@ namespace DSAnimStudio.TaeEditor
             if (radioButtonMHImportOtherAnimation.Checked)
             {
                 radioButtonMHStandard.Checked = false;
-                MiniHeaderPrepareGUI(TAE.Animation.MiniHeaderType.ImportOtherAnim);
+                MiniHeaderPrepareGUI(TAE.Animation.AnimFileHeaderType.ImportOtherAnim);
             }
         }
 

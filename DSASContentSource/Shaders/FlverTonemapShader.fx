@@ -16,6 +16,8 @@ sampler2D SpriteTextureSampler = sampler_state
 
 float Epsilon = 0.0000001;
 
+int SSAA = 1;
+
 float2 ScreenSize = float2(1280, 720);
 
 float SceneContrast = 0.5;
@@ -43,7 +45,20 @@ float B16(float2 avCoords)
 
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
-    float4 color = tex2D(SpriteTextureSampler,input.TextureCoordinates);
+    float4 color = float4(0,0,0,0);
+    
+    float2 samplePixelSize = float2(1.0 / (ScreenSize.x * SSAA), 1.0 / (ScreenSize.y * SSAA));
+    
+    for (int x = 0; x < SSAA; x++)
+    {
+        for (int y = 0; y < SSAA; y++)
+        {
+            color += tex2D(SpriteTextureSampler,input.TextureCoordinates + (float2(x,y)*samplePixelSize));
+        }
+    }
+    
+    color /= (SSAA*SSAA);
+    
     //color /= color * 0.25 + 1.0;
     //color *= 1.25 / (color + 1.0);
     
@@ -71,9 +86,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     float dither = (noise - 0.5) / 255.0;
     color += dither;
     
-    //color = float4(noise, noise, noise, 1);
-    
-	return float4(color.rgb, 1);
+    return float4(color.rgb, 1);
 }
 
 technique SpriteDrawing

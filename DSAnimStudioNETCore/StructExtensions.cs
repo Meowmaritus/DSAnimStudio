@@ -118,6 +118,19 @@ namespace DSAnimStudio
         public static System.Numerics.Vector2 TopRightCornerN(this Rectangle r) => new System.Numerics.Vector2(r.Right, r.Top);
         public static System.Numerics.Vector2 BottomLeftCornerN(this Rectangle r) => new System.Numerics.Vector2(r.Left, r.Bottom);
         public static System.Numerics.Vector2 BottomRightCornerN(this Rectangle r) => new System.Numerics.Vector2(r.Right, r.Bottom);
+
+
+        public static System.Numerics.Vector2 TopLeftCornerN(this RectF r) => new System.Numerics.Vector2(r.Left, r.Top);
+        public static System.Numerics.Vector2 TopRightCornerN(this RectF r) => new System.Numerics.Vector2(r.Right, r.Top);
+        public static System.Numerics.Vector2 BottomLeftCornerN(this RectF r) => new System.Numerics.Vector2(r.Left, r.Bottom);
+        public static System.Numerics.Vector2 BottomRightCornerN(this RectF r) => new System.Numerics.Vector2(r.Right, r.Bottom);
+
+        public static Rectangle ToRectRounded(this RectF r) => new Rectangle(
+            (int)Math.Round(r.X), 
+            (int)Math.Round(r.Y), 
+            (int)Math.Round(r.Right) - (int)Math.Round(r.Left), 
+            (int)Math.Round(r.Bottom) - (int)Math.Round(r.Top));
+
         public static Vector2 Center(this Rectangle r) => new Vector2(r.Center.X, r.Center.Y);
 
         public static Rectangle GetUniformShrunkFromBorder(this Rectangle r, int shrinkAmount)

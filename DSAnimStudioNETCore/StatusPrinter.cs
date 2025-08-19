@@ -16,22 +16,28 @@ namespace DSAnimStudio
         {
             public Color? Color;
             public string Text;
+            public float? ShadowThickness = null;
+            public bool? EnableShadowCardinals = null;
         }
 
         public Vector2? Position;
         public Vector3 Position3D = Vector3.Zero;
         public Color? Color;
         public Color? ShadowColor;
+        public float? ShadowThickness = null;
+        public bool? EnableShadowCardinals = null;
 
         public float BaseScale = 1.0f;
 
         public bool ScaleByEffectiveSSAA = false;
 
-        public StatusPrinter(Vector2? pos, Color? color = null, Color? shadowColor = null)
+        public StatusPrinter(Vector2? pos = null, Color? color = null, Color? shadowColor = null, float? shadowThickness = null, bool? enableShadowCardinals = null)
         {
             Position = pos;
             Color = color;
             ShadowColor = shadowColor;
+            ShadowThickness = shadowThickness;
+            EnableShadowCardinals = enableShadowCardinals;
         }
 
         private List<StatusLine> statusLines = new List<StatusLine>();
@@ -46,12 +52,14 @@ namespace DSAnimStudio
             AppendLine("");
         }
 
-        public void AppendLine(string text, Color? color = null)
+        public void AppendLine(string text, Color? color = null, float? shadowThickness = null, bool? enableShadowCardinals = null)
         {
             statusLines.Add(new StatusLine()
             {
                 Text = text,
                 Color = color,
+                ShadowThickness = shadowThickness,
+                EnableShadowCardinals = enableShadowCardinals,
             });
         }
 
@@ -81,7 +89,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void Draw()
+        public void Draw(out float finalHeight)
         {
             lock (_lock)
             {
@@ -106,30 +114,41 @@ namespace DSAnimStudio
                     screenPos3D -= new Vector3(GFX.Device.Viewport.X, GFX.Device.Viewport.Y, 0);
 
                     if (screenPos3D.Z >= 1)
+                    {
+                        finalHeight = 0;
                         return;
+                    }
 
                     //screenPos3D += new Vector3(4, 4, 0) * scale;
 
-                    currentPos = new Vector2(screenPos3D.X, screenPos3D.Y) / Main.DPIVector;
+                    currentPos = new Vector2(screenPos3D.X, screenPos3D.Y) / Main.DPIVector / (float)GFX.EffectiveSSAA;
                 }
 
-                currentPos = new Vector2((float)Math.Round(currentPos.X), (float)Math.Round(currentPos.Y));
+                currentPos = new Vector2((float)Math.Round(currentPos.X), (float)Math.Round(currentPos.Y)) * GFX.EffectiveSSAA;
 
+                var posBeforeDraw = currentPos;
+                
                 foreach (var line in statusLines)
                 {
-
                     if (string.IsNullOrWhiteSpace(line.Text))
                     {
-                        currentPos.Y += (ImGuiDebugDrawer.BaseFontSize * scale) / 2;
+                        currentPos.Y += ((Main.ImGuiFontPixelSize * scale) / 2) * GFX.EffectiveSSAA;
                         continue;
                     }
 
-
                     var color = line.Color ?? Color ?? Microsoft.Xna.Framework.Color.Cyan;
-                    ImGuiDebugDrawer.DrawText(line.Text, currentPos, color, shadowColor: ShadowColor, fontSize: ImGuiDebugDrawer.BaseFontSize * scale);
+                    float shadowThickness = ShadowThickness ?? line.ShadowThickness ?? 1;
+                    bool shadowCardinals = EnableShadowCardinals ?? line.EnableShadowCardinals ?? false;
+                    ImGuiDebugDrawer.DrawText(line.Text, currentPos, color, shadowColor: ShadowColor, 
+                        fontSize: Main.ImGuiFontPixelSize * scale, includeCardinalShadows: shadowCardinals, 
+                        shadowThickness: shadowThickness, inverseSSAAScale: true);
 
-                    currentPos.Y += (ImGuiDebugDrawer.BaseFontSize * scale) * line.Text.Split("\n").Length;
+                    currentPos.Y += ((Main.ImGuiFontPixelSize * scale) * line.Text.Split("\n").Length) * GFX.EffectiveSSAA;
                 }
+                
+                var posAfterDraw = currentPos;
+
+                finalHeight = posAfterDraw.Y - posBeforeDraw.Y;
             }
         }
     }

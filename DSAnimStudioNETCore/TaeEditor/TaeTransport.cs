@@ -7,18 +7,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DSAnimStudio.ImguiOSD;
 
 namespace DSAnimStudio.TaeEditor
 {
     public class TaeTransport
     {
-        public Rectangle Rect = new Rectangle(0, 0, 64, 64);
+        public Rectangle Rect => OSD.SpWindowNewTransport.GetRect().ToRectRounded();
 
         public TaeEditorScreen MainScreen;
 
         List<TransportButton> Buttons = new List<TransportButton>();
 
-        TaePlaybackCursor PlaybackCursor => MainScreen.Graph.PlaybackCursor;
+        public TaePlaybackCursor PlaybackCursor = null;
 
         int ButtonCageThickness = 4;
         int ButtonSeparatorThickness = 2;
@@ -38,21 +39,23 @@ namespace DSAnimStudio.TaeEditor
                     PlaybackCursor.CurrentTime = 0;
                     MainScreen.Graph?.ViewportInteractor?.CurrentModel?.AnimContainer?.ResetAll();
                     PlaybackCursor.StartTime = 0;
-                    MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
+                    MainScreen.Graph.ViewportInteractor.NewScrub();
                     MainScreen.Graph.ViewportInteractor.CurrentModel.AnimContainer.ResetRootMotion();
 
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.ResetRootMotion();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.ResetRootMotion();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.ResetRootMotion();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.ResetRootMotion();
-
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.ResetRootMotion();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.ResetRootMotion();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.ResetRootMotion();
-                    MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.ResetRootMotion();
+                    var asm = MainScreen.Graph.ViewportInteractor.CurrentModel.ChrAsm;
+                    if (asm != null)
+                    {
+                        foreach (var slot in asm.WeaponSlots)
+                        {
+                            slot.AccessAllModels(model =>
+                            {
+                                model.AnimContainer?.ResetRootMotion();
+                            });
+                        }
+                    }
 
                     MainScreen.Graph.ViewportInteractor.ResetRootMotion();
-                    MainScreen.Graph.ScrollToPlaybackCursor(1);
+                    MainScreen.Graph.LayoutManager.ScrollToPlaybackCursor(-1, modTime: false);
                     PlaybackCursor.IgnoreCurrentRelativeScrub();
                 },
                 GetHotkey = b => MainScreen.Input.KeyHeld(Keys.Home),
@@ -60,19 +63,14 @@ namespace DSAnimStudio.TaeEditor
 
             Buttons.Add(new TransportButton()
             {
-                GetDebugText = () => "[]",
-                GetIsEnabled = () => PlaybackCursor.CurrentTime != PlaybackCursor.StartTime,//MainScreen.Graph.PlaybackCursor.IsPlaying,
+                GetDebugText = () => "⇒",
+                GetIsEnabled = () => true,//MainScreen.Graph.PlaybackCursor.IsPlaying,
                 OnClick = () =>
                 {
                     var start = PlaybackCursor.StartTime;
-                    PlaybackCursor.IsPlaying = false;
-                    PlaybackCursor.CurrentTime = start;
-                    //MainScreen.Graph.ViewportInteractor.OnScrubFrameChange(forceCustomTimeDelta: 0);
-                    MainScreen.Graph.PlaybackCursor.UpdateScrubbing();
-                    //MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.StartTime);
-                    MainScreen.Graph.ScrollToPlaybackCursor(1);
+                    MainScreen.HardReset(startPlayback: true);
                 },
-                GetHotkey = b => (MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && !MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyHeld(Keys.Space),
+                GetHotkey = b => (MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && !MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyDown(Keys.Space),
             });
 
             Buttons.Add(new TransportButton()
@@ -89,12 +87,17 @@ namespace DSAnimStudio.TaeEditor
                 GetIsEnabled = () => PlaybackCursor.IsPlaying || (PlaybackCursor.CurrentTime != PlaybackCursor.MaxTime),
                 OnClick = () =>
                 {
-                    PlaybackCursor.IsPlaying = false;
-                    PlaybackCursor.CurrentTime = PlaybackCursor.MaxTime;
-                    PlaybackCursor.StartTime = PlaybackCursor.MaxTime;
+
+                    MainScreen.Graph.PlaybackCursor.IsPlaying = false;
+                    MainScreen.Graph.ViewportInteractor.ActionSim.GhettoFix_DisableSimulationTemporarily = 4;
+                    MainScreen.Graph.PlaybackCursor.CurrentTime = PlaybackCursor.MaxTime;
+                    MainScreen.Graph.PlaybackCursor.StartTime = PlaybackCursor.MaxTime;
+
                     MainScreen.Graph.PlaybackCursor.UpdateScrubbing();
+                    MainScreen.Graph.ViewportInteractor.NewScrub(absolute: false, time: 0, forceRefreshTimeact: true);
+                    //MainScreen.Graph.ViewportInteractor.ActionSim.GhettoFix_DisableSimulationTemporarily = false;
                     //MainScreen.Graph.ViewportInteractor.ResetRootMotion((float)MainScreen.Graph.PlaybackCursor.MaxTime);
-                    MainScreen.Graph.ScrollToPlaybackCursor(1);
+                    MainScreen.Graph.LayoutManager.ScrollToPlaybackCursor(-1, modTime: false);
                 },
                 GetHotkey = b => MainScreen.Input.KeyHeld(Keys.End),
             });
@@ -104,7 +107,7 @@ namespace DSAnimStudio.TaeEditor
             Buttons.Add(new TransportButton()
             {
                 GetDebugText = () => MainScreen.Config.LoopEnabled_BeforeCombo ? "[LOOP]" : "[ONCE]",
-                GetIsEnabled = () => (MainScreen.Graph?.ViewportInteractor?.CurrentComboIndex ?? -1) < 0,
+                GetIsEnabled = () => !(MainScreen.Graph?.ViewportInteractor?.NewIsComboActive ?? false),
                 OnClick = () => MainScreen.Config.LoopEnabled_BeforeCombo = MainScreen.Config.LoopEnabled = !MainScreen.Config.LoopEnabled,
                 GetHotkey = b => (!MainScreen.Input.ShiftHeld && !MainScreen.Input.AltHeld && MainScreen.Input.CtrlHeld) && MainScreen.Input.KeyDown(Keys.L),
                 CustomWidth = 48,
@@ -154,7 +157,7 @@ namespace DSAnimStudio.TaeEditor
 
         public void Update(float elapsedSeconds)
         {
-            if (MainScreen.Graph == null)
+            if (MainScreen.Graph == null || PlaybackCursor == null)
                 return;
 
             //// Count + 1 because for example 4 buttons would have these cages: |B|B|B|B|
@@ -179,7 +182,7 @@ namespace DSAnimStudio.TaeEditor
 
             int buttonCageHeight = ButtonSize + (ButtonCageThickness * 2);
             int buttonCageStartX = Rect.Width - buttonCageWidth - 8;
-            int buttonCageStartY = (int)Math.Round((Rect.Height / 2.0) - (buttonCageHeight / 2.0));
+            int buttonCageStartY = 0;
 
             int horizontalOffset = buttonCageStartX;
 
@@ -218,16 +221,17 @@ namespace DSAnimStudio.TaeEditor
 
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, SpriteFont smallFont)
         {
-            if (MainScreen.Graph == null)
+            if (MainScreen.Graph == null || MainScreen.Graph.PlaybackCursor == null)
                 return;
 
             var oldViewport = gd.Viewport;
             gd.Viewport = new Viewport(Rect.DpiScaled());
             {
-                sb.Begin(transformMatrix: Main.DPIMatrix);
+                //sb.Begin(transformMatrix: Main.DPIMatrix);
                 try
                 {
-                    var str = MainScreen.Graph.PlaybackCursor.GetFrameCounterText(MainScreen.Config.LockFramerateToOriginalAnimFramerate);
+                    var str = MainScreen.Graph.PlaybackCursor.GetFrameCounterText(MainScreen.Config
+                        .LockFramerateToOriginalAnimFramerate);
                     //sb.Draw(boxTex, new Rectangle(0, 0, Rect.Width, Rect.Height), Color.DarkGray);
                     //var strSize = smallFont.MeasureString(str);
                     //var strSize = ImGuiDebugDrawer.MeasureString(str, 16);
@@ -241,7 +245,15 @@ namespace DSAnimStudio.TaeEditor
                         Buttons[i].Draw(sb, boxTex, smallFont);
                     }
                 }
-                finally { sb.End(); }
+                catch (Exception ex) when (Main.EnableErrorHandler.DrawTransport)
+                {
+                    if (Main.IsDebugBuild)
+                        Console.WriteLine("breakpoint");
+                }
+                finally
+                {
+                    //sb.End();
+                }
             }
             gd.Viewport = oldViewport;
         }
@@ -358,8 +370,8 @@ namespace DSAnimStudio.TaeEditor
 
                 if (IsSeparator)
                 {
-                    sb.Draw(boxTex, Rect, Color.DarkGray * 0.35f);
-
+                    //sb.Draw(boxTex, Rect, Color.DarkGray * 0.35f);
+                    ImGuiDebugDrawer.DrawRect(Rect, Color.DarkGray * 0.35f);
                     return;
                 }
 
@@ -388,7 +400,8 @@ namespace DSAnimStudio.TaeEditor
                     fgColor = GetInactiveForeColor?.Invoke() ?? (fgColor * 0.5f);
                 }
 
-                sb.Draw(boxTex, Rect, bgColor);
+                //sb.Draw(boxTex, Rect, bgColor);
+                ImGuiDebugDrawer.DrawRect(Rect, bgColor);
 
                 string dbgTxt = GetDebugText?.Invoke();
 

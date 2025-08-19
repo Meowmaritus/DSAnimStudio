@@ -78,8 +78,8 @@ namespace DSAnimStudio
                                     writer.WriteStartElement("hkparam");
                                     {
                                         writer.WriteAttributeString("name", "bones");
-                                        writer.WriteAttributeString("numelements", $"{skeleton.HkxSkeleton.Count}");
-                                        foreach (var b in skeleton.HkxSkeleton)
+                                        writer.WriteAttributeString("numelements", $"{skeleton.Bones.Count}");
+                                        foreach (var b in skeleton.Bones)
                                         {
                                             writer.WriteStartElement("hkobject");
                                             {
@@ -106,12 +106,12 @@ namespace DSAnimStudio
                                     writer.WriteStartElement("hkparam");
                                     {
                                         writer.WriteAttributeString("name", "referencePose");
-                                        writer.WriteAttributeString("numelements", $"{skeleton.HkxSkeleton.Count}");
+                                        writer.WriteAttributeString("numelements", $"{skeleton.Bones.Count}");
                                         var sb = new StringBuilder();
-                                        foreach (var b in skeleton.HkxSkeleton)
+                                        foreach (var b in skeleton.Bones)
                                         {
                                             sb.Append("\n\t\t\t\t");
-                                            var tr = b.RelativeReferenceTransform;
+                                            var tr = b.ReferenceLocalTransform;
                                             sb.Append($"({tr.Translation.X:0.000000} " +
                                                 $"{tr.Translation.Y:0.000000} " +
                                                 $"{tr.Translation.Z:0.000000})");
@@ -298,15 +298,15 @@ namespace DSAnimStudio
             return compressedHkx;
         }
 
-        public byte[] ExportHKX(NewAnimationContainer.AnimHkxInfo hkxInfo, HKX skeletonHKX, ExportAnimsFileType fileType, out bool userRequestCancel, string hkxNameForErrorMsg)
+        public byte[] ExportHKX(NewAnimationContainer animContainer, NewAnimationContainer.AnimHkxInfo hkxInfo, HKX skeletonHKX, ExportAnimsFileType fileType, out bool userRequestCancel, string hkxNameForErrorMsg)
         {
-            var hkx = NewAnimationContainer.GetHkxStructOfAnim(hkxInfo.HkxBytes, hkxInfo.CompendiumBytes);
-            var result = ExportHKX(hkx, skeletonHKX, fileType, out bool reqCancel, hkxNameForErrorMsg);
+            var hkx = animContainer.GetHkxStructOfAnim(hkxInfo.HkxBytes, hkxInfo.CompendiumBytes);
+            var result = ExportHKX(animContainer, hkx, skeletonHKX, fileType, out bool reqCancel, hkxNameForErrorMsg);
             userRequestCancel = reqCancel;
             return result;
         }
 
-        public byte[] ExportHKX(HKX hkx, HKX skeletonHKX, ExportAnimsFileType fileType, out bool userRequestCancel, string hkxNameForErrorMsg)
+        public byte[] ExportHKX(NewAnimationContainer animContainer, HKX hkx, HKX skeletonHKX, ExportAnimsFileType fileType, out bool userRequestCancel, string hkxNameForErrorMsg)
         {
             bool requestCancel = false;
             byte[] result = null;

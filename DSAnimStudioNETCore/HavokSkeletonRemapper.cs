@@ -139,11 +139,11 @@ namespace DSAnimStudio
                 Skeleton = skeleton;
                 BoneIndicesInChain = boneChain;
 
-                baseTransforms = new NewBlendableTransform[skeleton.HkxSkeleton.Count];
-                testTransformMults = new float[skeleton.HkxSkeleton.Count];
-                testTransformDirections = new Quaternion[skeleton.HkxSkeleton.Count];
+                baseTransforms = new NewBlendableTransform[skeleton.Bones.Count];
+                testTransformMults = new float[skeleton.Bones.Count];
+                testTransformDirections = new Quaternion[skeleton.Bones.Count];
 
-                for (int i = 0; i < Skeleton.HkxSkeleton.Count; i++)
+                for (int i = 0; i < Skeleton.Bones.Count; i++)
                 {
                     testTransformMults[i] = 1;
                 }
@@ -159,12 +159,12 @@ namespace DSAnimStudio
 
             private Matrix GetTestFKOfBone(int boneIndex)
             {
-                var bone = Skeleton.HkxSkeleton[boneIndex];
+                var bone = Skeleton.Bones[boneIndex];
                 Matrix m = GetTestTransform(boneIndex).GetMatrix().ToXna();
                 while (bone.ParentIndex >= 0)
                 {
                     int index = bone.ParentIndex;
-                    bone = Skeleton.HkxSkeleton[index];
+                    bone = Skeleton.Bones[index];
                     m *= GetTestTransform(index).GetMatrix().ToXna();
                 }
                 return m;
@@ -174,7 +174,7 @@ namespace DSAnimStudio
             {
                 baseTransforms = boneTransforms.ToArray();
 
-                for (int i = 0; i < Skeleton.HkxSkeleton.Count; i++)
+                for (int i = 0; i < Skeleton.Bones.Count; i++)
                 {
                     testTransformMults[i] = 0;
                     var dirBone = Vector3.Transform(Vector3.Forward, baseTransforms[i].Rotation.ToXna());
@@ -252,12 +252,12 @@ namespace DSAnimStudio
 
         public NewBlendableTransform GetTargetFKTransform(int boneIndex)
         {
-            var bone = TargetSkeleton.HkxSkeleton[boneIndex];
+            var bone = TargetSkeleton.Bones[boneIndex];
             var m = target_blendableTransforms[boneIndex].GetMatrix().ToXna();
             while (bone.ParentIndex >= 0)
             {
                 int index = bone.ParentIndex;
-                bone = TargetSkeleton.HkxSkeleton[index];
+                bone = TargetSkeleton.Bones[index];
                 m *= target_blendableTransforms[index].GetMatrix().ToXna();
             }
             return MatToTransform(m);
@@ -294,10 +294,10 @@ namespace DSAnimStudio
                 }
                 currentMatrix = target_blendableTransforms[i].GetMatrix().ToXna() * currentMatrix;
                 currentScale *= target_blendableTransforms[i].Scale.ToXna();
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_Target(c, currentMatrix, currentScale);
             }
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_Target(root, Matrix.Identity, Vector3.One);
         }
 
@@ -349,41 +349,41 @@ namespace DSAnimStudio
         {
             SourceSkeleton = sourceSkeleton;
             TargetSkeleton = targetSkeleton;
-            source_blendableTransforms = new NewBlendableTransform[sourceSkeleton.HkxSkeleton.Count];
-            source_absoluteBoneMatrices = new Matrix[sourceSkeleton.HkxSkeleton.Count];
-            source_absoluteBoneMatrices_ForIK = new Matrix[SourceSkeleton.HkxSkeleton.Count];
+            source_blendableTransforms = new NewBlendableTransform[sourceSkeleton.Bones.Count];
+            source_absoluteBoneMatrices = new Matrix[sourceSkeleton.Bones.Count];
+            source_absoluteBoneMatrices_ForIK = new Matrix[SourceSkeleton.Bones.Count];
 
-            target_absoluteBoneMatrices_targetBaseIdle = new Matrix[TargetSkeleton.HkxSkeleton.Count];
-            target_absoluteBoneMatrices_targetBlendIdle = new Matrix[TargetSkeleton.HkxSkeleton.Count];
-            target_absoluteBoneMatrices_twoHandIdle = new Matrix[TargetSkeleton.HkxSkeleton.Count];
-            target_absoluteBoneMatrices_retargetedSourceIdle = new Matrix[TargetSkeleton.HkxSkeleton.Count];
-            target_absoluteBoneMatrices = new Matrix[TargetSkeleton.HkxSkeleton.Count];
+            target_absoluteBoneMatrices_targetBaseIdle = new Matrix[TargetSkeleton.Bones.Count];
+            target_absoluteBoneMatrices_targetBlendIdle = new Matrix[TargetSkeleton.Bones.Count];
+            target_absoluteBoneMatrices_twoHandIdle = new Matrix[TargetSkeleton.Bones.Count];
+            target_absoluteBoneMatrices_retargetedSourceIdle = new Matrix[TargetSkeleton.Bones.Count];
+            target_absoluteBoneMatrices = new Matrix[TargetSkeleton.Bones.Count];
 
             SourceBoneCustomMappingByTargetBone = sourceBoneCustomMappingByTargetBone;
 
             
 
-            for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+            for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
             {
-                if (TargetSkeleton.HkxSkeleton[i].Name == masterName)
+                if (TargetSkeleton.Bones[i].Name == masterName)
                     targetBoneIndex_Master = i;
-                else if (TargetSkeleton.HkxSkeleton[i].Name == pelvisName)
+                else if (TargetSkeleton.Bones[i].Name == pelvisName)
                     targetBoneIndex_Pelvis = i;
-                if (SourceBoneCustomMappingByTargetBone.ContainsKey(TargetSkeleton.HkxSkeleton[i].Name))
+                if (SourceBoneCustomMappingByTargetBone.ContainsKey(TargetSkeleton.Bones[i].Name))
                 {
-                    sourceBonesByTargetBones.Add(i, SourceSkeleton.HkxSkeleton.FindIndex(h => h.Name == SourceBoneCustomMappingByTargetBone[TargetSkeleton.HkxSkeleton[i].Name]));
+                    sourceBonesByTargetBones.Add(i, SourceSkeleton.Bones.FindIndex(h => h.Name == SourceBoneCustomMappingByTargetBone[TargetSkeleton.Bones[i].Name]));
                 }
                 else
                 {
-                    sourceBonesByTargetBones.Add(i, SourceSkeleton.HkxSkeleton.FindIndex(h => BoneNameMatches(TargetSkeleton.HkxSkeleton[i].Name, h.Name)));
+                    sourceBonesByTargetBones.Add(i, SourceSkeleton.Bones.FindIndex(h => BoneNameMatches(TargetSkeleton.Bones[i].Name, h.Name)));
                 }
 
-                targetBoneIndicesByName.Add(TargetSkeleton.HkxSkeleton[i].Name, i);
+                targetBoneIndicesByName.Add(TargetSkeleton.Bones[i].Name, i);
             }
 
-            for (int i = 0; i < SourceSkeleton.HkxSkeleton.Count; i++)
+            for (int i = 0; i < SourceSkeleton.Bones.Count; i++)
             {
-                sourceBoneIndicesByName.Add(SourceSkeleton.HkxSkeleton[i].Name, i);
+                sourceBoneIndicesByName.Add(SourceSkeleton.Bones[i].Name, i);
             }
 
             var targetIKChain_leftArm = new List<int>();
@@ -400,32 +400,32 @@ namespace DSAnimStudio
             targetIKChain_rightArm.Add(targetBoneIndicesByName["R_Clavicle"]);
             //ikSolver_RightArm = new IKSolver(targetSkeleton, targetIKChain_leftArm);
 
-            target_blendableTransforms = new NewBlendableTransform[targetSkeleton.HkxSkeleton.Count];
-            target_blendableTransforms_lastFrameIK = new NewBlendableTransform[targetSkeleton.HkxSkeleton.Count];
-            target_blendPartType = new BlendPartType[TargetSkeleton.HkxSkeleton.Count];
+            target_blendableTransforms = new NewBlendableTransform[targetSkeleton.Bones.Count];
+            target_blendableTransforms_lastFrameIK = new NewBlendableTransform[targetSkeleton.Bones.Count];
+            target_blendPartType = new BlendPartType[TargetSkeleton.Bones.Count];
 
             // Target Anim upper root check
             void WalkTree_UpperRootCheck(int i, BlendPartType curBlendPartType)
             {
-                if (TargetSkeleton.HkxSkeleton[i].Name == "L_UpperArm")
+                if (TargetSkeleton.Bones[i].Name == "L_UpperArm")
                     curBlendPartType = BlendPartType.ArmL;
-                else if (TargetSkeleton.HkxSkeleton[i].Name == "R_UpperArm")
+                else if (TargetSkeleton.Bones[i].Name == "R_UpperArm")
                     curBlendPartType = BlendPartType.ArmR;
-                else if (TargetSkeleton.HkxSkeleton[i].Name == "L_Thigh")
+                else if (TargetSkeleton.Bones[i].Name == "L_Thigh")
                     curBlendPartType = BlendPartType.LegL;
-                else if (TargetSkeleton.HkxSkeleton[i].Name == "R_Thigh")
+                else if (TargetSkeleton.Bones[i].Name == "R_Thigh")
                     curBlendPartType = BlendPartType.LegR;
 
                 target_blendPartType[i] = curBlendPartType;
 
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_UpperRootCheck(c, curBlendPartType);
             }
 
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_UpperRootCheck(root, BlendPartType.Core);
 
-            for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+            for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
             {
                 target_absoluteBoneMatrices_targetBlendIdle[i] = Matrix.Identity;
                 target_absoluteBoneMatrices_targetBaseIdle[i] = Matrix.Identity;
@@ -443,10 +443,10 @@ namespace DSAnimStudio
                 currentMatrix = target_blendableTransforms[i].GetMatrix().ToXna() * currentMatrix;
                 currentScale *= target_blendableTransforms[i].Scale.ToXna();
                 target_absoluteBoneMatrices_retargetedSourceIdle[i] = Matrix.CreateScale(currentScale) * currentMatrix;
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_Idle_Source(c, currentMatrix, currentScale);
             }
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_Idle_Source(root, Matrix.Identity, Vector3.One);
 
             // Target Anim
@@ -456,10 +456,10 @@ namespace DSAnimStudio
                 currentMatrix = target_blendableTransforms[i].GetMatrix().ToXna() * currentMatrix;
                 currentScale *= target_blendableTransforms[i].Scale.ToXna();
                 target_absoluteBoneMatrices_targetBaseIdle[i] = Matrix.CreateScale(currentScale) * currentMatrix;
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_Idle_Target(c, currentMatrix, currentScale);
             }
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_Idle_Target(root, Matrix.Identity, Vector3.One);
 
             if (blendToIdleAnim != null)
@@ -471,15 +471,15 @@ namespace DSAnimStudio
                     currentMatrix = target_blendableTransforms[i].GetMatrix().ToXna() * currentMatrix;
                     currentScale *= target_blendableTransforms[i].Scale.ToXna();
                     target_absoluteBoneMatrices_targetBlendIdle[i] = Matrix.CreateScale(currentScale) * currentMatrix;
-                    foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                    foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                         WalkTree_IdleBlend_Target(c, currentMatrix, currentScale);
                 }
-                foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+                foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                     WalkTree_IdleBlend_Target(root, Matrix.Identity, Vector3.One);
             }
             else
             {
-                for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+                for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
                 {
                     target_absoluteBoneMatrices_targetBlendIdle[i] = target_absoluteBoneMatrices_targetBaseIdle[i];
                 }
@@ -494,15 +494,15 @@ namespace DSAnimStudio
                     currentMatrix = target_blendableTransforms[i].GetMatrix().ToXna() * currentMatrix;
                     currentScale *= target_blendableTransforms[i].Scale.ToXna();
                     target_absoluteBoneMatrices_twoHandIdle[i] = Matrix.CreateScale(currentScale) * currentMatrix;
-                    foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                    foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                         WalkTree_IdleBlend_Target(c, currentMatrix, currentScale);
                 }
-                foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+                foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                     WalkTree_IdleBlend_Target(root, Matrix.Identity, Vector3.One);
             }
             else
             {
-                for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+                for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
                 {
                     target_absoluteBoneMatrices_twoHandIdle[i] = target_absoluteBoneMatrices_targetBaseIdle[i];
                 }
@@ -562,9 +562,9 @@ namespace DSAnimStudio
                 
             }
 
-            if (idleCorrectBlendConfig.SourceBoneAbsCorrectMatrices != null && idleCorrectBlendConfig.SourceBoneAbsCorrectMatrices.ContainsKey(SourceSkeleton.HkxSkeleton[sourceBoneIndex].Name))
+            if (idleCorrectBlendConfig.SourceBoneAbsCorrectMatrices != null && idleCorrectBlendConfig.SourceBoneAbsCorrectMatrices.ContainsKey(SourceSkeleton.Bones[sourceBoneIndex].Name))
             {
-                var correctMatrix = idleCorrectBlendConfig.SourceBoneAbsCorrectMatrices[SourceSkeleton.HkxSkeleton[sourceBoneIndex].Name];
+                var correctMatrix = idleCorrectBlendConfig.SourceBoneAbsCorrectMatrices[SourceSkeleton.Bones[sourceBoneIndex].Name];
                 absoluteMatrix = correctMatrix * absoluteMatrix;
             }
 
@@ -608,7 +608,7 @@ namespace DSAnimStudio
         {
             for (int i = 0; i < target_blendableTransforms.Length; i++)
             {
-                target_blendableTransforms[i] = TargetSkeleton.HkxSkeleton[i].RelativeReferenceTransform;
+                target_blendableTransforms[i] = TargetSkeleton.Bones[i].ReferenceLocalTransform;
             }
 
             // Source Anim
@@ -619,10 +619,10 @@ namespace DSAnimStudio
                 currentScale *= source_blendableTransforms[i].Scale.ToXna();
                 source_absoluteBoneMatrices[i] = Matrix.CreateScale(currentScale) * (currentMatrix);
 
-                foreach (var c in SourceSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in SourceSkeleton.Bones[i].ChildIndices)
                     WalkTree_SourceAnim(c, currentMatrix, currentScale);
             }
-            foreach (var root in SourceSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in SourceSkeleton.TopLevelBoneIndices)
                 WalkTree_SourceAnim(root, Matrix.Identity, Vector3.One);
 
             void WalkTree_SourceAnim_ForIK(int i, Matrix currentMatrix, Vector3 currentScale)
@@ -632,10 +632,10 @@ namespace DSAnimStudio
                 currentScale *= transform.Scale.ToXna();
                 source_absoluteBoneMatrices_ForIK[i] = Matrix.CreateScale(currentScale) * (currentMatrix);
 
-                foreach (var c in SourceSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in SourceSkeleton.Bones[i].ChildIndices)
                     WalkTree_SourceAnim_ForIK(c, currentMatrix, currentScale);
             }
-            foreach (var root in SourceSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in SourceSkeleton.TopLevelBoneIndices)
                 WalkTree_SourceAnim_ForIK(root, Matrix.Identity, Vector3.One);
 
             if (cfg.MirrorAnimation)
@@ -675,8 +675,8 @@ namespace DSAnimStudio
                     {
                         MirrorBoneMatrices(ref source_absoluteBoneMatrices, boneIndexL, boneIndexR);
                         MirrorBoneMatrices(ref source_absoluteBoneMatrices_ForIK, boneIndexL, boneIndexR);
-                        mirroredBones.Add(SourceSkeleton.HkxSkeleton[boneIndexL].Name);
-                        mirroredBones.Add(SourceSkeleton.HkxSkeleton[boneIndexR].Name);
+                        mirroredBones.Add(SourceSkeleton.Bones[boneIndexL].Name);
+                        mirroredBones.Add(SourceSkeleton.Bones[boneIndexR].Name);
                     }
                     else
                     {
@@ -684,7 +684,7 @@ namespace DSAnimStudio
                         source_absoluteBoneMatrices[sourceBoneIndicesByName[b]] = GetMirroredBoneMatrix(source_absoluteBoneMatrices[idx]);
                         source_absoluteBoneMatrices_ForIK[sourceBoneIndicesByName[b]] = GetMirroredBoneMatrix(source_absoluteBoneMatrices_ForIK[idx]);
 
-                        if (SourceSkeleton.HkxSkeleton[idx].Name == "RootPos")
+                        if (SourceSkeleton.Bones[idx].Name == "RootPos")
                         {
                             source_absoluteBoneMatrices[sourceBoneIndicesByName[b]] = Matrix.CreateRotationZ(MathHelper.Pi) * source_absoluteBoneMatrices[sourceBoneIndicesByName[b]];
                             source_absoluteBoneMatrices_ForIK[sourceBoneIndicesByName[b]] =  Matrix.CreateRotationZ(MathHelper.Pi) * source_absoluteBoneMatrices_ForIK[sourceBoneIndicesByName[b]];
@@ -743,9 +743,9 @@ namespace DSAnimStudio
                     if (relativeMatrix.Decompose(out Vector3 s, out Quaternion r, out Vector3 t))
                         target_blendableTransforms[i] = new NewBlendableTransform(t.ToCS(), s.ToCS(), r.ToCS());
 
-                    if (TargetSkeleton.HkxSkeleton[i].Name.ToLower() != "master")
+                    if (TargetSkeleton.Bones[i].Name.ToLower() != "master")
                     {
-                        target_blendableTransforms[i].Translation = TargetSkeleton.HkxSkeleton[i].RelativeReferenceTransform.Translation;
+                        target_blendableTransforms[i].Translation = TargetSkeleton.Bones[i].ReferenceLocalTransform.Translation;
                     }
 
 
@@ -761,10 +761,10 @@ namespace DSAnimStudio
                 target_absoluteBoneMatrices[i] = target_blendableTransforms[i].GetMatrixScale().ToXna() * currentMatrix;
                 currentScale *= target_blendableTransforms[i].Scale.ToXna();
 
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_TargetAnim(c, currentMatrix, currentScale);
             }
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_TargetAnim(root, Matrix.Identity, Vector3.One);
 
             if (cfg.ArmIK.L_Enabled)
@@ -949,15 +949,15 @@ namespace DSAnimStudio
 
 
 
-            thing.HkxBoneIndexToTransformTrackMap = new int[TargetSkeleton.HkxSkeleton.Count];
-            thing.TransformTrackIndexToHkxBoneMap = new int[TargetSkeleton.HkxSkeleton.Count];
+            thing.HkxBoneIndexToTransformTrackMap = new int[TargetSkeleton.Bones.Count];
+            thing.TransformTrackIndexToHkxBoneMap = new int[TargetSkeleton.Bones.Count];
 
-            for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+            for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
             {
                 thing.HkxBoneIndexToTransformTrackMap[i] = i;
                 thing.TransformTrackIndexToHkxBoneMap[i] = i;
-                thing.TransformTrackNames.Add(TargetSkeleton.HkxSkeleton[i].Name);
-                thing.TransformTrackToBoneIndices.Add(TargetSkeleton.HkxSkeleton[i].Name, i);
+                thing.TransformTrackNames.Add(TargetSkeleton.Bones[i].Name);
+                thing.TransformTrackToBoneIndices.Add(TargetSkeleton.Bones[i].Name, i);
 
                 target_blendableTransforms_lastFrameIK[i] = NewBlendableTransform.Identity;
             }

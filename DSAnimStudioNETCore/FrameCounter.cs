@@ -17,17 +17,23 @@ namespace DSAnimStudio
         public float AverageFramesPerSecond { get; private set; }
         public float CurrentFramesPerSecond { get; private set; }
 
-        public const int MAXIMUM_SAMPLES = 4;
+        public int MAXIMUM_SAMPLES => GFX.Display.AverageFPSSampleSize;
 
         private Queue<float> _sampleBuffer = new Queue<float>();
 
+        private int maxSamplesLastFrame = -1;
+
         public bool Update(float deltaTime)
         {
+            int maxSamples = MAXIMUM_SAMPLES;
+            if (maxSamplesLastFrame != maxSamples)
+                _sampleBuffer.Clear();
+
             CurrentFramesPerSecond = 1.0f / deltaTime;
 
             _sampleBuffer.Enqueue(CurrentFramesPerSecond);
 
-            if (_sampleBuffer.Count > MAXIMUM_SAMPLES)
+            if (_sampleBuffer.Count > maxSamples)
             {
                 _sampleBuffer.Dequeue();
                 AverageFramesPerSecond = _sampleBuffer.Average(i => i);
@@ -39,6 +45,9 @@ namespace DSAnimStudio
 
             TotalFrames++;
             TotalSeconds += deltaTime;
+
+            maxSamplesLastFrame = maxSamples;
+
             return true;
         }
     }

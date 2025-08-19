@@ -46,7 +46,7 @@ namespace DSAnimStudio
                 bool succeeded = false;
                 try
                 {
-                    File.AppendAllText("DSAnimStudio_Log.txt",
+                    File.AppendAllText($"{Main.Directory}\\DSAnimStudio_Log.txt",
                       $"{(hasBeenAWhileSinceLastLog ? "\n\n\n\n\n" : "")}[{DateTime.Now.ToString("yyyy.MM.dd HH:mm:ss")}][{category.ToUpper()}] " +
                       $"{message}\n");
 
@@ -83,7 +83,7 @@ namespace DSAnimStudio
 
             if (isIgnored || alwaysPushOnly)
             {
-                NotificationManager.PushNotification(shortDescForNotif ? messageBeforeColon + ". See details in DSAnimStudio_Log.txt" : $"{messageBeforeColon}:\n{ex.ToString()}", 0.5f, fadeDuration: 0.15f, color: NotificationManager.ColorError);
+                zzz_NotificationManagerIns.PushNotification(shortDescForNotif ? messageBeforeColon + ". See details in DSAnimStudio_Log.txt" : $"{messageBeforeColon}:\n{ex.ToString()}", 0.5f, fadeDuration: 0.15f, color: zzz_NotificationManagerIns.ColorError);
                 return true;
             }
             else
@@ -91,7 +91,7 @@ namespace DSAnimStudio
 
                 var dlgBox = new ExceptionHandleForm();
 
-                string file = Main.TAE_EDITOR.FileContainerName;
+                string file = zzz_DocumentManager.CurrentDocument.EditorScreen.NewFileContainerName;
                 string fileBackupPath = $"{file}.{(DateTime.Now.ToString("yyyy.MM.dd_HH.mm.ss").Replace(".", ""))}.errbak";
                 dlgBox.InitializeForException(ex, messageBeforeColon, fileBackupPath);
                 var result = dlgBox.ShowDialog();

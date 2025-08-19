@@ -12,16 +12,22 @@ namespace DSAnimStudio.GFXShaders
     {
         public FlverTonemapShader Effect => this;
 
+        public int SSAA
+        {
+            get => Parameters[nameof(SSAA)].GetValueInt32();
+            set => Parameters[nameof(SSAA)].SetValue(value);
+        }
+
         public Vector2 ScreenSize
         {
-            get
-            {
-                return Parameters["ScreenSize"].GetValueVector2();
-            }
-            set
-            {
-                Parameters["ScreenSize"].SetValue(value);
-            }
+            get => Parameters[nameof(ScreenSize)].GetValueVector2();
+            set => Parameters[nameof(ScreenSize)].SetValue(value);
+        }
+
+        public Texture2D SpriteTexture
+        {
+            get => Parameters[nameof(SpriteTexture)].GetValueTexture2D();
+            set => Parameters[nameof(SpriteTexture)].SetValue(value);
         }
 
 

@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using Microsoft.Xna.Framework;
 using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
@@ -17,16 +18,16 @@ namespace DSAnimStudio.ImguiOSD
                 if (id < 0)
                     return "";
 
-                var animID_Lower = GameRoot.GameTypeHasLongAnimIDs
+                var animID_Lower = zzz_DocumentManager.CurrentDocument.GameRoot.GameTypeHasLongAnimIDs
                 ? (id % 1_000000) : (id % 1_0000);
 
-                var animID_Upper = GameRoot.GameTypeHasLongAnimIDs
+                var animID_Upper = zzz_DocumentManager.CurrentDocument.GameRoot.GameTypeHasLongAnimIDs
                     ? (id / 1_000000) : (id / 1_0000);
 
                 string curIDText;
-                if (GameRoot.GameTypeHasLongAnimIDs)
+                if (zzz_DocumentManager.CurrentDocument.GameRoot.GameTypeHasLongAnimIDs)
                 {
-                    bool ds2Meme = GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YY_ZZZZ;
+                    bool ds2Meme = zzz_DocumentManager.CurrentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YY_ZZZZ;
                     if (ds2Meme)
                     {
                         curIDText = $"a{(animID_Upper):D2}_{animID_Lower:D6}";
@@ -45,33 +46,46 @@ namespace DSAnimStudio.ImguiOSD
                 return curIDText;
             }
 
+            public DSAProj Proj;
+
             public string TaeAnimID_String;
             public string TaeAnimID_Error;
-            public long? TaeAnimID_Value;
+            public SplitAnimID? TaeAnimID_Value;
+
+            public Color? TaeAnimCustomColor;
 
             public string ImportFromAnimID_String;
             public string ImportFromAnimID_Error;
             public int? ImportFromAnimID_Value;
 
-            public string TaeAnimName;
-            public TAE.Animation.AnimMiniHeader TaeAnimHeader;
+            public string OrigTaeAnimName;
+            public string NewTaeAnimName;
+
+            public DSAProj.EditorInfo OrigEditInfo;
+            public DSAProj.EditorInfo NewEditInfo;
+
+            public TAE.Animation.AnimFileHeader TaeAnimHeader;
             public bool WasAnimDeleted = false;
 
-            public bool IsMultiTaeSubID = false;
+            public DSAProj.Animation OriginalAnimation;
 
-            public TAE.Animation OriginalAnimation;
+            public bool HasAnyUnsavedChanges = false;
 
-            public bool AnyUnsavedChanges()
+
+
+            public bool CheckForAnyUnsavedChanges()
             {
-                if (OriginalAnimation.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim origAsImportOtherAnim &&
-                    TaeAnimHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim newAsImportOtherAnim)
+                var headerClone = OriginalAnimation.SAFE_GetHeaderClone();
+
+                if (headerClone is TAE.Animation.AnimFileHeader.ImportOtherAnim origAsImportOtherAnim &&
+                    TaeAnimHeader is TAE.Animation.AnimFileHeader.ImportOtherAnim newAsImportOtherAnim)
                 {
                     if (origAsImportOtherAnim.ImportFromAnimID != newAsImportOtherAnim.ImportFromAnimID
                         || origAsImportOtherAnim.Unknown != newAsImportOtherAnim.Unknown)
                         return true;
                 }
-                else if (OriginalAnimation.MiniHeader is TAE.Animation.AnimMiniHeader.Standard origAsStandard &&
-                    TaeAnimHeader is TAE.Animation.AnimMiniHeader.Standard newAsStandard)
+                else if (headerClone is TAE.Animation.AnimFileHeader.Standard origAsStandard &&
+                    TaeAnimHeader is TAE.Animation.AnimFileHeader.Standard newAsStandard)
                 {
                     if (origAsStandard.ImportsHKX != newAsStandard.ImportsHKX
                         || origAsStandard.IsLoopByDefault != newAsStandard.IsLoopByDefault
@@ -84,44 +98,64 @@ namespace DSAnimStudio.ImguiOSD
                     return true;
                 }
 
-                if (OriginalAnimation.ID != TaeAnimID_Value || OriginalAnimation.AnimFileName != TaeAnimName)
+                if (OriginalAnimation.SplitID != TaeAnimID_Value 
+                    || !OrigEditInfo.SerializeToBytes(Proj).SequenceEqual(NewEditInfo.SerializeToBytes(Proj))
+                    || NewTaeAnimName != OrigTaeAnimName)
                     return true;
 
                 return false;
             }
 
-            public TaeAnimPropertiesEdit(TAE.Animation anim, bool isMultiTaeSubID)
+            public TaeAnimPropertiesEdit(DSAProj proj, DSAProj.Animation anim)
+                : base("Edit Animation Properties")
             {
-                Title = "Edit Animation Properties";
+                Proj = proj;
+                AllowedResultTypes = ResultTypes.Accept | ResultTypes.Cancel;
+                InputFlags = InputFlag.EscapeKeyToCancel | InputFlag.TitleBarXToCancel;
+                CancelHandledByInheritor = true;
+                AcceptHandledByInheritor = true;
 
-                IsMultiTaeSubID = isMultiTaeSubID;
-
-                TaeAnimID_String = IsMultiTaeSubID ? anim.ID.ToString() : GetAnimIDString(anim.ID);
-                TaeAnimID_Value = anim.ID;
+                TaeAnimID_String = anim.SplitID.GetFormattedIDString(proj);
+                TaeAnimID_Value = anim.SplitID;
                 OriginalAnimation = anim;
-                TaeAnimName = anim.AnimFileName;
-                if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+
+                anim.SafeAccessHeader(header =>
                 {
-                    TaeAnimHeader = new TAE.Animation.AnimMiniHeader.ImportOtherAnim()
+                    OrigTaeAnimName = header.AnimFileName;
+                    NewTaeAnimName = OrigTaeAnimName;
+
+                    var animEditInfoBytes = anim.Info.SerializeToBytes(proj);
+                    OrigEditInfo = new DSAProj.EditorInfo();
+                    OrigEditInfo.DeserializeFromBytes(animEditInfoBytes, proj.Template, proj);
+                    NewEditInfo = new DSAProj.EditorInfo();
+                    NewEditInfo.DeserializeFromBytes(animEditInfoBytes, proj.Template, proj);
+                    if (header is TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOtherAnim)
                     {
-                        ImportFromAnimID = asImportOtherAnim.ImportFromAnimID,
-                        Unknown = asImportOtherAnim.Unknown,
-                    };
-                    ImportFromAnimID_String = GetAnimIDString(asImportOtherAnim.ImportFromAnimID);
-                    ImportFromAnimID_Value = asImportOtherAnim.ImportFromAnimID;
-                }
-                else if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
-                {
-                    TaeAnimHeader = new TAE.Animation.AnimMiniHeader.Standard()
+                        TaeAnimHeader = new TAE.Animation.AnimFileHeader.ImportOtherAnim()
+                        {
+                            ImportFromAnimID = asImportOtherAnim.ImportFromAnimID,
+                            Unknown = asImportOtherAnim.Unknown,
+                        };
+                        ImportFromAnimID_String = GetAnimIDString(asImportOtherAnim.ImportFromAnimID);
+                        ImportFromAnimID_Value = asImportOtherAnim.ImportFromAnimID;
+                    }
+                    else if (header is TAE.Animation.AnimFileHeader.Standard asStandard)
                     {
-                        AllowDelayLoad = asStandard.AllowDelayLoad,
-                        ImportHKXSourceAnimID = asStandard.ImportHKXSourceAnimID,
-                        ImportsHKX = asStandard.ImportsHKX,
-                        IsLoopByDefault = asStandard.IsLoopByDefault,
-                    };
-                    ImportFromAnimID_String = GetAnimIDString(asStandard.ImportHKXSourceAnimID);
-                    ImportFromAnimID_Value = asStandard.ImportHKXSourceAnimID;
-                }
+                        TaeAnimHeader = new TAE.Animation.AnimFileHeader.Standard()
+                        {
+                            AllowDelayLoad = asStandard.AllowDelayLoad,
+                            ImportHKXSourceAnimID = asStandard.ImportHKXSourceAnimID,
+                            ImportsHKX = asStandard.ImportsHKX,
+                            IsLoopByDefault = asStandard.IsLoopByDefault,
+                        };
+                        ImportFromAnimID_String = GetAnimIDString(asStandard.ImportHKXSourceAnimID);
+                        ImportFromAnimID_Value = asStandard.ImportHKXSourceAnimID;
+                    }
+
+                    //TaeAnimCustomColor = anim.Info.CustomColor;
+                });
+
+               
             }
 
             protected override void BuildInsideOfWindow()
@@ -132,12 +166,16 @@ namespace DSAnimStudio.ImguiOSD
                 if (ImportFromAnimID_Value != null)
                     ImportFromAnimID_Error = null;
 
-                bool isCurrentlyStandard = TaeAnimHeader.Type == TAE.Animation.MiniHeaderType.Standard;
-                bool isCurrentlyImportOther = TaeAnimHeader.Type == TAE.Animation.MiniHeaderType.ImportOtherAnim;
+                bool isCurrentlyStandard = TaeAnimHeader.Type == TAE.Animation.AnimFileHeaderType.Standard;
+                bool isCurrentlyImportOther = TaeAnimHeader.Type == TAE.Animation.AnimFileHeaderType.ImportOtherAnim;
+
+                bool anyValueAdjusted = false;
 
                 if (TaeAnimID_Value == null)
                     ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
-                ImGui.InputText("Animation ID", ref TaeAnimID_String, 256);
+
+                anyValueAdjusted |= ImGui.InputText("Animation ID", ref TaeAnimID_String, 256); 
+
                 if (ImGui.IsItemHovered() && TaeAnimID_Error != null)
                     ImGui.SetTooltip(TaeAnimID_Error);
                 if (TaeAnimID_Value == null)
@@ -147,50 +185,51 @@ namespace DSAnimStudio.ImguiOSD
                     TaeAnimID_Value = null;
                     TaeAnimID_Error = "Animation entry ID must be specified.";
                 }
-                else if (long.TryParse(TaeAnimID_String.Replace("a", "").Replace("A", "").Replace("_", ""), out long animIdParsed))
-                {
-                    if (IsMultiTaeSubID && animIdParsed < 0)
-                    {
-                        TaeAnimID_Error = "Animation sub-ID cannot be a negative value.";
-                        TaeAnimID_Value = null;
-                    }
-                    else if (IsMultiTaeSubID && animIdParsed > (GameRoot.GameTypeHasLongAnimIDs ? 999999 : 9999))
-                    {
-                        TaeAnimID_Error = $"Animation sub-ID cannot be so high it overflows into the next category (over {(GameRoot.GameTypeHasLongAnimIDs ? 999999 : 9999)} for {GameRoot.GameTypeName}).";
-                        TaeAnimID_Value = null;
-                    }
-                    else
-                    {
-                        TaeAnimID_Value = animIdParsed;
-                    }
-                    
-                }
                 else
                 {
-                    TaeAnimID_Value = null;
+                    
+                    bool parseSuccess = SplitAnimID.TryParse(Proj.ParentDocument.GameRoot, TaeAnimID_String, out SplitAnimID animIdParsed,
+                        out string detailedError);
 
-                    if (IsMultiTaeSubID)
+                    if (parseSuccess)
                     {
-                        TaeAnimID_Error = "Not a valid integer.";
+                        TaeAnimID_Error = null;
+                        TaeAnimID_Value = animIdParsed;
                     }
                     else
                     {
-                        if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXXX_YYYYYY)
-                            TaeAnimID_Error = "Invalid ID specified. Enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
-                        else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YY_ZZZZ)
-                            TaeAnimID_Error = "Invalid ID specified. Enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
-                        else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YYYY)
-                            TaeAnimID_Error = "Invalid ID specified. Enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
-                        else
-                            throw new NotImplementedException();
+                        TaeAnimID_Error = detailedError;
+                        TaeAnimID_Value = null;
                     }
-
+                    
+                 
                     
                 }
+
+                var newAnimName = NewTaeAnimName ?? "%null%";
+
+                anyValueAdjusted |= ImGui.InputText("Anim File Name", ref newAnimName, 256);
+
+                if (newAnimName == "%null%")
+                    NewTaeAnimName = null;
+                else
+                    NewTaeAnimName = newAnimName;
 
                 ImGui.Separator();
 
-                ImGui.InputText("Animation Name", ref TaeAnimName, 256);
+                
+                bool editInfoAnyFieldFocused = false;
+                NewEditInfo.ShowImGui(ref editInfoAnyFieldFocused, Proj,
+                    GetRect(subtractScrollBar: true).DpiScaled(), 
+                    GetRect(subtractScrollBar: false).DpiScaled(), modified =>
+                {
+                    
+                }, showTagsOnly: false, out bool anyInfoUpdated);
+
+                if (anyInfoUpdated)
+                    anyValueAdjusted = true;
+
+                //Tools.CustomColorPicker("Custom Display Color", $"{OriginalAnimation.GUID}__PropetiesEditor__CustomColor", ref TaeAnimCustomColor);
 
                 ImGui.Separator();
 
@@ -201,167 +240,212 @@ namespace DSAnimStudio.ImguiOSD
                     ImGui.MenuItem("Original Anim Entry", "", isCurrentlyStandard);
                     bool clickedStandard = ImGui.IsItemClicked();
 
-                    ImGui.MenuItem("Clone Anim Entry", "", TaeAnimHeader.Type == TAE.Animation.MiniHeaderType.ImportOtherAnim);
+                    ImGui.MenuItem("Clone Anim Entry", "", TaeAnimHeader.Type == TAE.Animation.AnimFileHeaderType.ImportOtherAnim);
                     bool clickedImportOther = ImGui.IsItemClicked();
 
                     if (clickedStandard && !isCurrentlyStandard)
                     {
-                        DialogManager.AskForMultiChoice("Change Animation Type",
-                            "Change animation type, losing the values you entered?", 
-                            (cancelType, answer) =>
+                        DialogManager.AskYesNo("Change Animation Type", "Change animation type, losing the values you entered?",
+                            choice =>
                             {
-                                if (cancelType != CancelTypes.None)
-                                    return;
-
-                                if (answer == "YES")
+                                if (choice)
                                 {
-                                    TaeAnimHeader = new TAE.Animation.AnimMiniHeader.Standard();
+                                    TaeAnimHeader = new TAE.Animation.AnimFileHeader.Standard();
+                                    HasAnyUnsavedChanges = true;
                                 }
-                            }, CancelTypes.Combo_ClickTitleBarX_PressEscape, "YES", "NO");
+                            });
                     }
                     else if (clickedImportOther && !isCurrentlyImportOther)
                     {
-                        DialogManager.AskForMultiChoice("Change Animation Type",
-                            "Change animation type, losing the values you entered?", 
-                            (cancelType, answer) =>
+                        DialogManager.AskYesNo("Change Animation Type", "Change animation type, losing the values you entered?",
+                            choice =>
                             {
-                                if (cancelType != CancelTypes.None)
-                                    return;
-
-                                if (answer == "YES")
+                                if (choice)
                                 {
-                                    TaeAnimHeader = new TAE.Animation.AnimMiniHeader.ImportOtherAnim();
+                                    TaeAnimHeader = new TAE.Animation.AnimFileHeader.ImportOtherAnim();
+                                    HasAnyUnsavedChanges = true;
                                 }
-                            }, CancelTypes.Combo_ClickTitleBarX_PressEscape, "YES", "NO");
+                            });
                     }
                 }
                 ImGui.Unindent();
-                
 
 
-
-
-                if (TaeAnimHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
-                {
-                    ImGui.Text("Properties - Clone Anim Entry:");
-                    ImGui.Indent();
-                    {
-                        if (ImportFromAnimID_Value == null)
-                            ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
-                        ImGui.InputText("Clone Anim Entry ID", ref ImportFromAnimID_String, 256);
-                        if (ImGui.IsItemHovered() && ImportFromAnimID_Error != null)
-                            ImGui.SetTooltip(ImportFromAnimID_Error);
-                        if (ImportFromAnimID_Value == null)
-                            ImGui.PopStyleColor();
-                        if (string.IsNullOrWhiteSpace(ImportFromAnimID_String))
+                bool isNull = TaeAnimHeader.IsNullHeader;
+                anyValueAdjusted |= ImGui.Checkbox("Is Null Header", ref isNull);
+                if (isNull && !TaeAnimHeader.IsNullHeader)
+                { 
+                    DialogManager.AskYesNo("Wipe Header To Null", "Change animation header to null? Properties below the checkbox will be erased.",
+                        choice =>
                         {
-                            ImportFromAnimID_Value = asImportOtherAnim.ImportFromAnimID = -1;
-                        }
-                        else if (int.TryParse(ImportFromAnimID_String.Replace("a", "").Replace("A", "").Replace("_", ""), out int importFromIdParsed))
-                        {
-                            ImportFromAnimID_Value = asImportOtherAnim.ImportFromAnimID = importFromIdParsed;
-                        }
-                        else
-                        {
-                            ImportFromAnimID_Value = null;
-                            if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXXX_YYYYYY)
-                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
-                            else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YY_ZZZZ)
-                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
-                            else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YYYY)
-                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
-                            else 
-                                throw new NotImplementedException();
-                        }
-
-                        asImportOtherAnim.Unknown = MenuBar.IntItem("Unknown Value", asImportOtherAnim.Unknown);
-                    }
-                    ImGui.Unindent();
+                            if (choice)
+                            {
+                                TaeAnimHeader.IsNullHeader = true;
+                                HasAnyUnsavedChanges = true;
+                            }
+                        });
                 }
-                else if (TaeAnimHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+                else if (!isNull && TaeAnimHeader.IsNullHeader)
                 {
-                    ImGui.Text("Properties - Original Anim Entry:");
-                    ImGui.Indent();
+                    TaeAnimHeader.IsNullHeader = false;
+                }
+
+                if (!TaeAnimHeader.IsNullHeader)
+                {
+
+
+                    if (TaeAnimHeader is TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOtherAnim)
                     {
-                        asStandard.ImportsHKX = MenuBar.CheckboxBig("Override HKX", asStandard.ImportsHKX);
-
-                        if (ImportFromAnimID_Value == null)
-                            ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
-                        ImGui.InputText("Override HKX ID", ref ImportFromAnimID_String, 256);
-                        if (ImGui.IsItemHovered() && ImportFromAnimID_Error != null)
-                            ImGui.SetTooltip(ImportFromAnimID_Error);
-                        if (ImportFromAnimID_Value == null)
-                            ImGui.PopStyleColor();
-                        if (string.IsNullOrWhiteSpace(ImportFromAnimID_String))
+                        ImGui.Text("Properties - Clone Anim Entry:");
+                        ImGui.Indent();
                         {
-                            ImportFromAnimID_Value = asStandard.ImportHKXSourceAnimID = -1;
-                        }
-                        else if (int.TryParse(ImportFromAnimID_String.Replace("a", "").Replace("A", "").Replace("_", ""), out int importFromIdParsed))
-                        {
-                            ImportFromAnimID_Value = asStandard.ImportHKXSourceAnimID = importFromIdParsed;
-                        }
-                        else
-                        {
-                            ImportFromAnimID_Value = null;
-                            if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXXX_YYYYYY)
-                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
-                            else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YY_ZZZZ)
-                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
-                            else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YYYY)
-                                ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
+                            //Tools.InputTextNullable("Animation Name", ref TaeAnimName, 256);
+                            //ImGui.Separator();
+                            if (ImportFromAnimID_Value == null)
+                                ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
+                            anyValueAdjusted |= ImGui.InputText("Clone Anim Entry ID", ref ImportFromAnimID_String, 256);
+                            if (ImGui.IsItemHovered() && ImportFromAnimID_Error != null)
+                                ImGui.SetTooltip(ImportFromAnimID_Error);
+                            if (ImportFromAnimID_Value == null)
+                                ImGui.PopStyleColor();
+                            if (string.IsNullOrWhiteSpace(ImportFromAnimID_String))
+                            {
+                                ImportFromAnimID_Value = asImportOtherAnim.ImportFromAnimID = -1;
+                            }
+                            else if (int.TryParse(ImportFromAnimID_String.Replace("a", "").Replace("A", "").Replace("_", ""), out int importFromIdParsed))
+                            {
+                                ImportFromAnimID_Value = asImportOtherAnim.ImportFromAnimID = importFromIdParsed;
+                            }
                             else
-                                throw new NotImplementedException();
-                        }
+                            {
+                                ImportFromAnimID_Value = null;
+                                if (zzz_DocumentManager.CurrentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXXX_YYYYYY)
+                                    ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
+                                else if (zzz_DocumentManager.CurrentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YY_ZZZZ)
+                                    ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
+                                else if (zzz_DocumentManager.CurrentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YYYY)
+                                    ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
+                                else
+                                    throw new NotImplementedException();
+                            }
 
-                        asStandard.AllowDelayLoad = MenuBar.CheckboxBig("Allow loading from DelayLoad ANIBNDs", asStandard.AllowDelayLoad);
-                        asStandard.IsLoopByDefault = MenuBar.CheckboxBig("Loop By Default", asStandard.IsLoopByDefault);
+                            int prevUnknownVal = asImportOtherAnim.Unknown;
+                            asImportOtherAnim.Unknown = MenuBar.IntItem("Unknown Value", asImportOtherAnim.Unknown);
+                            if (prevUnknownVal != asImportOtherAnim.Unknown)
+                                anyValueAdjusted = true;
+                        }
+                        ImGui.Unindent();
                     }
-                    ImGui.Unindent();
+                    else if (TaeAnimHeader is TAE.Animation.AnimFileHeader.Standard asStandard)
+                    {
+                        ImGui.Text("Properties - Original Anim Entry:");
+                        ImGui.Indent();
+                        {
+                            //Tools.InputTextNullable("Animation Name", ref TaeAnimName, 256);
+                            //ImGui.Separator();
+                            bool prevImportsHKX = asStandard.ImportsHKX;
+                            asStandard.ImportsHKX = MenuBar.CheckboxBig("Override HKX", asStandard.ImportsHKX);
+                            if (prevImportsHKX != asStandard.ImportsHKX)
+                                anyValueAdjusted = true;
+
+                            if (ImportFromAnimID_Value == null)
+                                ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 0, 0, 1));
+
+                            anyValueAdjusted |= ImGui.InputText("Override HKX ID", ref ImportFromAnimID_String, 256);
+
+                            if (ImGui.IsItemHovered() && ImportFromAnimID_Error != null)
+                                ImGui.SetTooltip(ImportFromAnimID_Error);
+                            if (ImportFromAnimID_Value == null)
+                                ImGui.PopStyleColor();
+                            if (string.IsNullOrWhiteSpace(ImportFromAnimID_String))
+                            {
+                                ImportFromAnimID_Value = asStandard.ImportHKXSourceAnimID = -1;
+                            }
+                            else if (int.TryParse(ImportFromAnimID_String.Replace("a", "").Replace("A", "").Replace("_", ""), out int importFromIdParsed))
+                            {
+                                ImportFromAnimID_Value = asStandard.ImportHKXSourceAnimID = importFromIdParsed;
+                            }
+                            else
+                            {
+                                ImportFromAnimID_Value = null;
+                                if (zzz_DocumentManager.CurrentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXXX_YYYYYY)
+                                    ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXXX_YYYYYY' format or 'XXXYYYYYY' format.";
+                                else if (zzz_DocumentManager.CurrentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YY_ZZZZ)
+                                    ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YY_ZZZZ' format or 'XXYYZZZZ' format.";
+                                else if (zzz_DocumentManager.CurrentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YYYY)
+                                    ImportFromAnimID_Error = "Invalid ID specified. Leave the box blank to specify no animation or enter an ID in either 'aXX_YYYY' format or 'XXYYYY' format.";
+                                else
+                                    throw new NotImplementedException();
+                            }
+                            bool prevAllowDelayLoad = asStandard.AllowDelayLoad;
+                            bool prevIsLoopByDefault = asStandard.IsLoopByDefault;
+                            asStandard.AllowDelayLoad = MenuBar.CheckboxBig("Allow loading from DelayLoad ANIBNDs", asStandard.AllowDelayLoad);
+                            asStandard.IsLoopByDefault = MenuBar.CheckboxBig("Loop By Default", asStandard.IsLoopByDefault);
+                            if (asStandard.AllowDelayLoad != prevAllowDelayLoad || asStandard.IsLoopByDefault != prevIsLoopByDefault)
+                                anyValueAdjusted = true;
+                        }
+                        ImGui.Unindent();
+                    }
                 }
 
                 ImGui.Separator();
                 ImGui.Button("Delete This Animation...");
                 if (ImGui.IsItemClicked())
                 {
-                    DialogManager.AskForMultiChoice("Permanently Delete Animation Entry?", $"Are you sure you want to delete the current animation?\nThis can NOT be undone!", (cancelType, answer) =>
-                    {
-                        if (answer == "YES")
+                    DialogManager.AskYesNo("Permanently Delete Animation Entry?", $"Are you sure you want to delete the current animation?",
+                        choice =>
                         {
-                            WasAnimDeleted = true;
-                            CancelType = CancelTypes.ClickedAcceptButton;
-                            Dismiss();
-                            DialogManager.DialogOK("Success", "Animation deleted successfully.");
-                        }
-                    }, CancelTypes.Combo_ClickTitleBarX_PressEscape, "YES", "NO");
-
+                            if (choice)
+                            {
+                                WasAnimDeleted = true;
+                                ResultType = ResultTypes.Accept;
+                                Dismiss();
+                            }
+                            
+                        });
                     
                 }
                 ImGui.Separator();
 
-                ImGui.Button("Cancel & Discard Changes");
-                if (ImGui.IsItemClicked())
+                bool clickedCancel = Tools.SimpleClickButton("Cancel") || IsTitleBarXRequested;
+                //bool pressedEscape = IsEscapeKeyRequested;
+
+                if (anyValueAdjusted && !HasAnyUnsavedChanges)
                 {
-                    CancelType = CancelTypes.ClickTitleBarX;
-                    Dismiss();
+                    HasAnyUnsavedChanges = CheckForAnyUnsavedChanges();
+                    //HasAnyUnsavedChanges = true;
                 }
 
-                if (Main.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
+                if (clickedCancel || IsEscapeKeyRequested)
                 {
-                    bool unsavedChanges = AnyUnsavedChanges();
+                    //bool unsavedChanges = CheckForAnyUnsavedChanges();
                     bool forceClose = Main.Input.ShiftHeld;
-                    if (!unsavedChanges || forceClose)
+                    if (!HasAnyUnsavedChanges || forceClose)
                     {
-                        CancelType = CancelTypes.PressEscape;
+                        ResultType = ResultTypes.Cancel;
                         Dismiss();
+                    }
+                    else
+                    {
+                        DialogManager.AskYesNo("Unsaved Changes", "You have unsaved changes, would you like to discard them and close this dialog?", choice =>
+                        {
+                            if (choice == true)
+                            {
+                                ResultType = ResultTypes.Cancel;
+                                Dismiss();
+                            }
+                        });
                     }
                 }
 
-                bool invalidState = (ImportFromAnimID_Value == null || TaeAnimID_Value == null);
+                bool isInvalidState = (ImportFromAnimID_Value == null || TaeAnimID_Value == null);
 
-                if (invalidState)
+                bool grayedOutAcceptButton = isInvalidState || !HasAnyUnsavedChanges;
+
+                if (grayedOutAcceptButton)
                     Tools.PushGrayedOut();
-                ImGui.Button("Apply & Save Changes");
-                if (invalidState)
+                ImGui.Button("Save & Accept");
+                if (grayedOutAcceptButton)
                 {
                     Tools.PopGrayedOut();
                     if (ImGui.IsItemHovered())
@@ -371,9 +455,9 @@ namespace DSAnimStudio.ImguiOSD
                 }
                 if (ImGui.IsItemClicked())
                 {
-                    if (!invalidState)
+                    if (!grayedOutAcceptButton)
                     {
-                        CancelType = CancelTypes.ClickedAcceptButton;
+                        ResultType = ResultTypes.Accept;
                         Dismiss();
                     }
                    

@@ -23,10 +23,10 @@ namespace DSAnimStudio
             ViewportInteractor?.Graph?.PlaybackCursor?.ClearRemoState();
         }
 
-        public static FmodManager.FmodEventUpdater StreamedBGM = null;
+        public static NewFmodIns.FmodEventUpdater StreamedBGM = null;
         public static void StartStreamedBGM()
         {
-            StreamedBGM = FmodManager.PlaySE(4, (int.Parse(RemoName.Substring(3, 6)) * 1000) + 1, -1);
+            zzz_DocumentManager.CurrentDocument.Fmod.PlaySE(4, (int.Parse(RemoName.Substring(3, 6)) * 1000) + 1, -1);
         }
         public static void StopStreamedBGM()
         {
@@ -54,10 +54,12 @@ namespace DSAnimStudio
             if (StreamedBGM != null && !StreamedBGM.EventIsOver)
                 StreamedBGM.Stop(true);
 
-            TaeEventSimulationEnvironment.GlobalPlaybackInstanceStop();
+            //TaeActionSimulationEnvironment.GlobalPlaybackInstanceStop();
 
-            ViewportInteractor.Graph.MainScreen.SelectNewAnimRef(ViewportInteractor.Graph.MainScreen.SelectedTae,
-                ViewportInteractor.Graph.MainScreen.SelectedTae.Animations.First());
+            zzz_DocumentManager.CurrentDocument.SoundManager.StopAllSounds(immediate: true);
+
+            ViewportInteractor.Graph.MainScreen.SelectNewAnimRef(ViewportInteractor.Graph.MainScreen.SelectedAnimCategory,
+                ViewportInteractor.Graph.MainScreen.SelectedAnimCategory.SAFE_GetFirstAnimInList(throwIfEmpty: true));
             ViewportInteractor.Graph.MainScreen.HardReset();
 
             ViewportInteractor.Graph.PlaybackCursor.Scrubbing = false;
@@ -73,7 +75,7 @@ namespace DSAnimStudio
 
         public static NewAnimationContainer AnimContainer = null;
 
-        public static SIBCAM CurrentCutSibcam = null;
+        public static SIBCAM2 CurrentCutSibcam = null;
 
         public static string RemoName = "scnXXXXXX";
 
@@ -109,7 +111,7 @@ namespace DSAnimStudio
 
         private static Dictionary<string, RemoCutCache> remoCutsLoaded = new Dictionary<string, RemoCutCache>();
         private static Dictionary<string, byte[]> remoCutHkxDict = new Dictionary<string, byte[]>();
-        private static Dictionary<string, SIBCAM> remoCutSibcamDict = new Dictionary<string, SIBCAM>();
+        private static Dictionary<string, SIBCAM2> remoCutSibcamDict = new Dictionary<string, SIBCAM2>();
 
 
         public static void NukeEntireRemoSystemAndGoBackToNormalDSAnimStudio()
@@ -138,19 +140,19 @@ namespace DSAnimStudio
 
             lock (_lock_remodict)
             {
-                remoCutHkxDict.Clear();
-                foreach (var hkx in fileContainer.AllHKXDict)
-                {
-                    remoCutHkxDict.Add(Utils.GetShortIngameFileName(hkx.Key) + ".hkx", hkx.Value);
-                }
-
-                remoCutSibcamDict.Clear();
-                foreach (var sibcam in fileContainer.AllSibcamDict)
-                {
-                    remoCutSibcamDict.Add(Utils.GetShortIngameFileName(sibcam.Key) + ".hkx", SIBCAM.Read(sibcam.Value));
-                }
-
-                remoCutsLoaded.Clear();
+                // remoCutHkxDict.Clear();
+                // foreach (var hkx in fileContainer.AllHKXDict)
+                // {
+                //     remoCutHkxDict.Add(Utils.GetShortIngameFileName(hkx.Key) + ".hkx", hkx.Value);
+                // }
+                //
+                // remoCutSibcamDict.Clear();
+                // foreach (var sibcam in fileContainer.AllSibcamDict)
+                // {
+                //     remoCutSibcamDict.Add(Utils.GetShortIngameFileName(sibcam.Key) + ".hkx", SIBCAM.Read(sibcam.Value));
+                // }
+                //
+                // remoCutsLoaded.Clear();
             }
 
             DisposeAllModels();
@@ -179,14 +181,15 @@ namespace DSAnimStudio
 
         public static void DisposeAllModels()
         {
-            foreach (var m in remoModelDict)
-            {
-                m.Value?.Dispose();
-            }
-            remoModelDict?.Clear();
-            Scene.ClearScene();
-            TexturePool.Flush();
-            remoModelDict = new Dictionary<string, Model>();
+
+            //foreach (var m in remoModelDict)
+            //{
+            //    m.Value?.Dispose();
+            //}
+            //remoModelDict?.Clear();
+            //zzz_DocumentManager.CurrentDocument.Scene?.ClearScene();
+            //zzz_DocumentManager.CurrentDocument.TexturePool.Flush();
+            //remoModelDict = new Dictionary<string, Model>();
         }
 
         public static void LoadRemoCut(string cutHkxName)
@@ -280,40 +283,40 @@ namespace DSAnimStudio
 
        
 
-        public static Model LookupModelOfEventGroup(TAE.EventGroup group)
+        public static Model LookupModelOfEventGroup(DSAProj.ActionTrack group)
         {
             var sb = new StringBuilder();
-            if (group.GroupData.DataType == TAE.EventGroup.EventGroupDataType.ApplyToSpecificCutsceneEntity)
+            if (group.TrackData.DataType == TAE.ActionTrack.ActionTrackDataType.ApplyToSpecificCutsceneEntity)
             {
-                if (group.GroupData.Block >= 0 || group.GroupData.Area >= 0)
+                if (group.TrackData.Block >= 0 || group.TrackData.Area >= 0)
                 {
-                    sb.Append($"A{group.GroupData.Area:D2}_{group.GroupData.Block:D2}_");
+                    sb.Append($"A{group.TrackData.Area:D2}_{group.TrackData.Block:D2}_");
                 }
 
-                if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Character)
-                    sb.Append($"c{group.GroupData.CutsceneEntityIDPart1:D4}_{group.GroupData.CutsceneEntityIDPart2:D4}");
-                else if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.Object)
-                    sb.Append($"o{group.GroupData.CutsceneEntityIDPart1:D4}_{group.GroupData.CutsceneEntityIDPart2:D4}");
-                else if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.DummyNode)
-                    sb.Append($"d{group.GroupData.CutsceneEntityIDPart1:D4}_{group.GroupData.CutsceneEntityIDPart2:D4}");
-                else if (group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece)
+                if (group.TrackData.CutsceneEntityType == TAE.ActionTrack.ActionTrackDataStruct.EntityTypes.Character)
+                    sb.Append($"c{group.TrackData.CutsceneEntityIDPart1:D4}_{group.TrackData.CutsceneEntityIDPart2:D4}");
+                else if (group.TrackData.CutsceneEntityType == TAE.ActionTrack.ActionTrackDataStruct.EntityTypes.Object)
+                    sb.Append($"o{group.TrackData.CutsceneEntityIDPart1:D4}_{group.TrackData.CutsceneEntityIDPart2:D4}");
+                else if (group.TrackData.CutsceneEntityType == TAE.ActionTrack.ActionTrackDataStruct.EntityTypes.DummyNode)
+                    sb.Append($"d{group.TrackData.CutsceneEntityIDPart1:D4}_{group.TrackData.CutsceneEntityIDPart2:D4}");
+                else if (group.TrackData.CutsceneEntityType == TAE.ActionTrack.ActionTrackDataStruct.EntityTypes.MapPiece)
                 {
-                    if (group.GroupData.Block >= 0)
-                        sb.Append($"m{group.GroupData.CutsceneEntityIDPart1:D4}B{group.GroupData.Block}");
+                    if (group.TrackData.Block >= 0)
+                        sb.Append($"m{group.TrackData.CutsceneEntityIDPart1:D4}B{group.TrackData.Block}");
                     else
-                        sb.Append($"m{group.GroupData.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}");
+                        sb.Append($"m{group.TrackData.CutsceneEntityIDPart1:D4}B{RemoManager.BlockInt}");
 
-                    if (group.GroupData.CutsceneEntityIDPart2 > 0)
+                    if (group.TrackData.CutsceneEntityIDPart2 > 0)
                     {
-                        sb.Append($"_{group.GroupData.CutsceneEntityIDPart2:D4}");
+                        sb.Append($"_{group.TrackData.CutsceneEntityIDPart2:D4}");
                     }
                 }
 
-                var mdls = Scene.Models.ToList();
+                var mdls = zzz_DocumentManager.CurrentDocument.Scene.Models.ToList();
                 var foundModel = mdls.FirstOrDefault(m => m.Name == sb.ToString());
                 if (foundModel == null &&
-                    group.GroupData.CutsceneEntityType == TAE.EventGroup.EventGroupDataStruct.EntityTypes.MapPiece
-                    && group.GroupData.CutsceneEntityIDPart2 == 0)
+                    group.TrackData.CutsceneEntityType == TAE.ActionTrack.ActionTrackDataStruct.EntityTypes.MapPiece
+                    && group.TrackData.CutsceneEntityIDPart2 == 0)
                 {
                     sb.Append("_0000");
                     foundModel = mdls.FirstOrDefault(m => m.Name == sb.ToString());
@@ -326,8 +329,8 @@ namespace DSAnimStudio
 
         private static void LoadRemoHKX(byte[] hkxBytes, string animName)
         {
-            Scene.DisableModelDrawing();
-            Scene.DisableModelDrawing2();
+            zzz_DocumentManager.CurrentDocument.Scene.DisableModelDrawing();
+            zzz_DocumentManager.CurrentDocument.Scene.DisableModelDrawing2();
 
             HKX packfile = null;
             HKX.HKAAnimationBinding hk_binding = null;
@@ -368,28 +371,30 @@ namespace DSAnimStudio
 
             
 
-            var animContainer = new NewAnimationContainer();
+            var animContainer = new NewAnimationContainer(zzz_DocumentManager.CurrentDocument.Proj, null, zzz_DocumentManager.CurrentDocument);
 
             AnimContainer = animContainer;
 
-            animContainer.ClearAnimations();
+            //animContainer.ClearAnimations();
 
             animContainer.Skeleton.LoadHKXSkeleton(packfile);
 
-            var testIdleAnimThing = new NewHavokAnimation_SplineCompressed(animName,
+            var testIdleAnimThing = new NewHavokAnimation_SplineCompressed(-1, animName,
                 animContainer.Skeleton, null, hk_binding, hk_anim, animContainer, fileSize: -1);
 
-            animContainer.AddNewAnimation(animName, testIdleAnimThing);
+            animContainer.AddNewAnimation_Deprecated(SplitAnimID.Invalid, animName, testIdleAnimThing);
 
-            animContainer.ChangeToNewAnimation(animName, animWeight: 1, startTime: 0, clearOldLayers: true);
+            //animContainer.ChangeToNewAnimation(-1, animWeight: 1, startTime: 0, clearOldLayers: true);
 
-            var modelNames = animContainer.Skeleton.TopLevelHkxBoneIndices.Select(b => animContainer.Skeleton.HkxSkeleton[b].Name).ToList();
+            var modelNames = animContainer.Skeleton.TopLevelBoneIndices.Select(b => animContainer.Skeleton.Bones[b].Name).ToList();
+
+            var fmod = zzz_DocumentManager.CurrentDocument.Fmod;
 
             CurrentCutHits.Clear();
             CurrentCutOtherBlocks.Clear();
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
-                Scene.Models.Clear();
+                zzz_DocumentManager.CurrentDocument.Scene.Models.Clear();
             }
             foreach (var name in modelNames)
             {
@@ -402,8 +407,8 @@ namespace DSAnimStudio
                     if (name.StartsWith("c"))
                     {
                         string shortName = name.Substring(0, 5);
-                        mdl = GameRoot.LoadCharacter(shortName, shortName);
-                        FmodManager.LoadInterrootFEV(shortName);
+                        mdl = zzz_DocumentManager.CurrentDocument.GameRoot.LoadCharacter(shortName, shortName)[0];
+                        fmod.LoadInterrootFEV(shortName);
 
                         if (mdl.IS_PLAYER)
                         {
@@ -413,12 +418,12 @@ namespace DSAnimStudio
                     else if (name.StartsWith("o"))
                     {
                         string shortName = name.Substring(0, 5);
-                        mdl = GameRoot.LoadObject(shortName);
-                        FmodManager.LoadInterrootFEV(shortName);
+                        mdl = zzz_DocumentManager.CurrentDocument.GameRoot.LoadObject(shortName);
+                        fmod.LoadInterrootFEV(shortName);
                     }
                     else if (name.StartsWith("m"))
                     {
-                        mdl = GameRoot.LoadMapPiece(AreaInt, BlockInt, 0, 0, int.Parse(name.Substring(1, 4)));
+                        mdl = zzz_DocumentManager.CurrentDocument.GameRoot.LoadMapPiece(AreaInt, BlockInt, 0, 0, int.Parse(name.Substring(1, 4)));
                     }
                     else if (name.StartsWith("A"))
                     {
@@ -428,19 +433,17 @@ namespace DSAnimStudio
                         if (b != BlockInt && !CurrentCutOtherBlocks.Contains(b))
                             CurrentCutOtherBlocks.Add(b);
 
-                        mdl = GameRoot.LoadMapPiece(a, b, 0, 0, int.Parse(name.Substring(8, 4)));
+                        mdl = zzz_DocumentManager.CurrentDocument.GameRoot.LoadMapPiece(a, b, 0, 0, int.Parse(name.Substring(8, 4)));
                     }
                     else if (name.StartsWith("d"))
                     {
                         // TODO
                         // Dummy entity e.g. 'd0000_0000'. Apparently just acts as a single DummyPoly?
-                        mdl = GameRoot.LoadCharacter("c1000", "c1000");
-                        mdl.RemoDummyTransformPrim = 
-                            new DebugPrimitives.DbgPrimWireArrow(name, new Transform(Microsoft.Xna.Framework.Matrix.CreateScale(0.25f) 
-                            * mdl.CurrentTransform.WorldMatrix), Microsoft.Xna.Framework.Color.Lime)
-                            {
-                                Category = DebugPrimitives.DbgPrimCategory.AlwaysDraw
-                            };
+                        mdl = zzz_DocumentManager.CurrentDocument.GameRoot.LoadCharacter("c1000", "c1000")[0];
+                        mdl.RemoDummyTransformPrim =
+                            new DebugPrimitives.DbgPrimWireArrow(new Transform(
+                                Microsoft.Xna.Framework.Matrix.CreateScale(0.25f)
+                                * mdl.CurrentTransform.WorldMatrix), Microsoft.Xna.Framework.Color.Lime);
                         mdl.RemoDummyTransformTextPrint = new StatusPrinter(null, Microsoft.Xna.Framework.Color.Lime);
                         mdl.RemoDummyTransformTextPrint.AppendLine(name);
                         mdl.IS_REMO_DUMMY = true;
@@ -473,19 +476,19 @@ namespace DSAnimStudio
                     mdl.IsRemoModel = true;
                     mdl.Name = name;
                     mdl.SkeletonFlver.RevertToReferencePose();
-                    mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
-                    mdl.UpdateSkeleton();
+                    mdl.SkeletonFlver.MapToOtherSkeleton(animContainer.Skeleton);
+                    //mdl.UpdateSkeleton();
 
-                    lock (Scene._lock_ModelLoad_Draw)
+                    lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
                     {
-                        Scene.Models.Add(mdl);
+                        zzz_DocumentManager.CurrentDocument.Scene.Models.Add(mdl);
                     }
                 }
             }
 
 
 
-            var msbBytes = GameData.ReadFile($@"/map/MapStudio/m{AreaInt:D2}_{BlockInt:D2}_00_00.msb");
+            var msbBytes = zzz_DocumentManager.CurrentDocument.GameData.ReadFile($@"/map/MapStudio/m{AreaInt:D2}_{BlockInt:D2}_00_00.msb");
 
             var msb = MSB1.Read(msbBytes);
 
@@ -529,16 +532,16 @@ namespace DSAnimStudio
                         mdl.AnimContainer = animContainer;
                         mdl.IsRemoModel = true;
                         mdl.SkeletonFlver.RevertToReferencePose();
-                        mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
-                        mdl.UpdateSkeleton();
-                        lock (Scene._lock_ModelLoad_Draw)
+                        mdl.SkeletonFlver.MapToOtherSkeleton(animContainer.Skeleton);
+                        //mdl.UpdateSkeleton();
+                        lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
                         {
-                            Scene.Models.Add(mdl);
+                            zzz_DocumentManager.CurrentDocument.Scene.Models.Add(mdl);
                         }
                         continue;
                     }
                     
-                    mdl = GameRoot.LoadMapPiece(AreaInt, BlockInt, 0, 0, int.Parse(mapPiece.ModelName.Substring(1, 4)));
+                    mdl = zzz_DocumentManager.CurrentDocument.GameRoot.LoadMapPiece(AreaInt, BlockInt, 0, 0, int.Parse(mapPiece.ModelName.Substring(1, 4)));
                     mdl.AnimContainer = animContainer;
                     mdl.IsRemoModel = true;
                     mdl.Name = thisEntityName;
@@ -551,12 +554,12 @@ namespace DSAnimStudio
 
                     mdl.IS_REMO_NOTSKINNED = true;
 
-                    mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
-                    mdl.UpdateSkeleton();
+                    mdl.SkeletonFlver.MapToOtherSkeleton(animContainer.Skeleton);
+                    //mdl.UpdateSkeleton();
 
-                    lock (Scene._lock_ModelLoad_Draw)
+                    lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
                     {
-                        Scene.Models.Add(mdl);
+                        zzz_DocumentManager.CurrentDocument.Scene.Models.Add(mdl);
                     }
 
                     remoModelDict.Add(thisEntityName, mdl);
@@ -578,16 +581,16 @@ namespace DSAnimStudio
                         mdl.AnimContainer = animContainer;
                         mdl.IsRemoModel = true;
                         mdl.SkeletonFlver.RevertToReferencePose();
-                        mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
-                        mdl.UpdateSkeleton();
-                        lock (Scene._lock_ModelLoad_Draw)
+                        mdl.SkeletonFlver.MapToOtherSkeleton(animContainer.Skeleton);
+                        //mdl.UpdateSkeleton();
+                        lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
                         {
-                            Scene.Models.Add(mdl);
+                            zzz_DocumentManager.CurrentDocument.Scene.Models.Add(mdl);
                         }
                         continue;
                     }
 
-                    mdl = GameRoot.LoadObject(mapPiece.ModelName);
+                    mdl = zzz_DocumentManager.CurrentDocument.GameRoot.LoadObject(mapPiece.ModelName);
                     mdl.AnimContainer = animContainer;
                     mdl.IsRemoModel = true;
                     mdl.Name = thisEntityName;
@@ -600,45 +603,45 @@ namespace DSAnimStudio
                     mdl.IS_REMO_NOTSKINNED = true;
 
                     mdl.SkeletonFlver.RevertToReferencePose();
-                    mdl.SkeletonFlver.MapToSkeleton(animContainer.Skeleton, isRemo: true);
+                    mdl.SkeletonFlver.MapToOtherSkeleton(animContainer.Skeleton);
 
-                    mdl.UpdateSkeleton();
+                    //mdl.UpdateSkeleton();
 
-                    lock (Scene._lock_ModelLoad_Draw)
+                    lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
                     {
-                        Scene.Models.Add(mdl);
+                        zzz_DocumentManager.CurrentDocument.Scene.Models.Add(mdl);
                     }
 
                     remoModelDict.Add(thisEntityName, mdl);
                 }
             }
 
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
-                Scene.Models = Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
+                zzz_DocumentManager.CurrentDocument.Scene.Models = zzz_DocumentManager.CurrentDocument.Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
             }
             
 
             CurrentCut = animName;
 
-            animContainer.ScrubRelative(0);
+            //animContainer.ScrubAbsolute(0, ScrubTypes.All);
 
             List<Model> mdls = null;
 
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
-                mdls = Scene.Models.ToList();
+                mdls = zzz_DocumentManager.CurrentDocument.Scene.Models.ToList();
             }
             
-            foreach (var m in mdls)
-            {
-                m.UpdateSkeleton();
-            }
+            //foreach (var m in mdls)
+            //{
+            //    m.UpdateSkeleton();
+            //}
 
             GFX.CurrentWorldView.Update(0);
 
-            Scene.EnableModelDrawing();
-            Scene.EnableModelDrawing2();
+            zzz_DocumentManager.CurrentDocument.Scene.EnableModelDrawing();
+            zzz_DocumentManager.CurrentDocument.Scene.EnableModelDrawing2();
 
             ResumeStreamedBGM();
 

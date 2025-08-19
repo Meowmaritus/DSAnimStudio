@@ -11,13 +11,19 @@ namespace DSAnimStudio.ImguiOSD
     {
         public class TextInput : Dialog
         {
+            public Func<string, string> CheckErrorFunc;
+            
             public string Question;
             public string TextHint;
             public string InputtedString = string.Empty;
+            public string CurrentError = null;
+
+            public bool RefreshTextFocus = true;
 
             ImGuiInputTextCallback TextCallbackDelegate;
 
-            public unsafe TextInput()
+            public unsafe TextInput(string title)
+                : base(title)
             {
                 TextCallbackDelegate = (data) =>
                 {
@@ -31,14 +37,43 @@ namespace DSAnimStudio.ImguiOSD
                 //ImGui.PushTextWrapPos(ImGui.GetFontSize() * 400);
                 //ImGui.TextWrapped(Question);
                 //ImGui.PopTextWrapPos();
-                ImGui.SetKeyboardFocusHere();
 
+                EnterKeyToAccept = false;
+
+                if (RefreshTextFocus)
+                {
+                    ImGui.SetKeyboardFocusHere();
+                    RefreshTextFocus = false;
+                }
+
+                var oldText = InputtedString;
+                
                 bool accepted = ImGui.InputTextWithHint(Question, TextHint, ref InputtedString,
-                    256, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackAlways | ImGuiInputTextFlags.AutoSelectAll,
+                    256, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackAlways,
                     TextCallbackDelegate);
+
+                if (oldText != InputtedString)
+                {
+                    CurrentError = CheckErrorFunc?.Invoke(InputtedString);
+                }
+
+                if (CurrentError != null)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
+                    ImGui.Text(CurrentError);
+                    ImGui.PopStyleColor();
+                }
+                
+                
                 if (accepted)
                 {
-                    Dismiss();
+                    if (CurrentError == null)
+                    {
+                        ResultType = ResultTypes.Accept;
+                        Dismiss();
+                    }
+                    else
+                        RefreshTextFocus = true;
                 }
             }
         }

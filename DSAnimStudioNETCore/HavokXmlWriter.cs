@@ -114,7 +114,12 @@ namespace DSAnimStudio
 
             writer.WriteStartElement("hkparam");
             {
-                var data = hkArray.GetArrayData().Elements;
+                var arrayData = hkArray.GetArrayData();
+                List<T> data = new List<T>();
+                if (arrayData != null)
+                {
+                    data = hkArray.GetArrayData().Elements;
+                }
                 writer.WriteAttributeString("name", paramName);
                 writer.WriteAttributeString("numelements", data.Count.ToString());
 

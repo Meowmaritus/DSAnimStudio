@@ -25,12 +25,25 @@ namespace DSAnimStudio.TaeEditor
         public Rectangle Viewport => ViewportDisplayRect;
 
         public Rectangle RelativeViewport => new Rectangle((int)Scroll.X, (int)Scroll.Y, ViewportDisplayRect.Width, ViewportDisplayRect.Height);
+        public Rectangle RelativeViewportRounded => new Rectangle((int)RoundedScroll.X, (int)RoundedScroll.Y, ViewportDisplayRect.Width, ViewportDisplayRect.Height);
 
         public Vector2 Scroll;
 
-        public Vector2 RoundedScroll => new Vector2(MathF.Round(Scroll.X), MathF.Round(Scroll.Y));
+        public enum ScrollRoundingModes
+        {
+            None,
+            Pixel,
+            Integer,
+            
+        }
 
-        private Vector2 MaxScroll;
+        public double RoundingUnitX;
+        public double RoundingUnitY;
+        
+        public Vector2 RoundedScroll => new Vector2(RoundingUnitX > 0 ? ((float)(Math.Round(Scroll.X / RoundingUnitX) * RoundingUnitX)) : Scroll.X, 
+            RoundingUnitY > 0 ? ((float)(Math.Round(Scroll.Y / RoundingUnitY) * RoundingUnitY)) : Scroll.Y);
+
+        public Vector2 MaxScroll { get; private set; }
 
         private Rectangle HorizontalBoxValidArea;
         private Rectangle HorizontalBox;
@@ -166,14 +179,16 @@ namespace DSAnimStudio.TaeEditor
                 FullDisplayRect.Width - (DisableVerticalScroll ? 0 : ScrollBarThickness),
                 FullDisplayRect.Height - (DisableHorizontalScroll ? 0 : ScrollBarThickness));
 
-            MaxScroll = new Vector2(DisableHorizontalScroll ? 0 : VirtualAreaSize.X - ViewportDisplayRect.Width,
+            var newMaxScroll = new Vector2(DisableHorizontalScroll ? 0 : VirtualAreaSize.X - ViewportDisplayRect.Width,
                 DisableVerticalScroll ? 0 : VirtualAreaSize.Y - ViewportDisplayRect.Height);
 
-            if (MaxScroll.X < 0)
-                MaxScroll.X = 0;
+            if (newMaxScroll.X < 0)
+                newMaxScroll.X = 0;
 
-            if (MaxScroll.Y < 0)
-                MaxScroll.Y = 0;
+            if (newMaxScroll.Y < 0)
+                newMaxScroll.Y = 0;
+
+            MaxScroll = newMaxScroll;
 
             HorizontalBoxValidArea = new Rectangle(FullDisplayRect.X + ScrollBarThickness, 
                 FullDisplayRect.Bottom - ScrollBarThickness,
@@ -231,6 +246,11 @@ namespace DSAnimStudio.TaeEditor
         public Matrix GetScrollMatrix()
         {
             return Matrix.CreateTranslation(-(float)Math.Round(Scroll.X), -(float)Math.Round(Scroll.Y), 0);
+        }
+
+        public Matrix GetScrollMatrixYOnly()
+        {
+            return Matrix.CreateTranslation(0, -(float)Math.Round(Scroll.Y), 0);
         }
 
         public void UpdateInput(FancyInputHandler input, float elapsedSeconds, bool allowScrollWheel)
@@ -320,7 +340,7 @@ namespace DSAnimStudio.TaeEditor
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex, Texture2D arrowTex)
         {
             var oldViewport = gd.Viewport;
-            gd.Viewport = new Viewport(gd.Viewport.Bounds.DpiScaledExcludePos());
+            gd.Viewport = new Viewport(gd.Viewport.Bounds);
             //{
             sb.Begin(transformMatrix: Main.DPIMatrix);
             try
@@ -330,42 +350,111 @@ namespace DSAnimStudio.TaeEditor
 
                 if (!DisableHorizontalScroll)
                 {
-                    sb.Draw(boxTex, HorizontalBoxValidArea, Main.Colors.GuiColorEventGraphScrollbarBackground);
-                    sb.Draw(boxTex, HorizontalBox, CurrentScroll == ScrollbarType.Horizontal ?
-                        Main.Colors.GuiColorEventGraphScrollbarForegroundActive : Main.Colors.GuiColorEventGraphScrollbarForegroundInactive);
+                    ImGuiDebugDrawer.DrawRect(HorizontalBoxValidArea, Main.Colors.GuiColorActionGraphScrollbarBackground);
+                    ImGuiDebugDrawer.DrawRect(HorizontalBox, CurrentScroll == ScrollbarType.Horizontal ?
+                        Main.Colors.GuiColorActionGraphScrollbarForegroundActive : Main.Colors.GuiColorActionGraphScrollbarForegroundInactive);
+                    ImGuiDebugDrawer.DrawRect(ScrollLeftArrowBox, ScrollLeftButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive
+                        : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive);
+                    ImGuiDebugDrawer.DrawRect(ScrollRightArrowBox, ScrollRightButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive
+                        : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive);
 
-                    sb.Draw(boxTex, ScrollLeftArrowBox,
-                        ScrollLeftButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
-                        : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
-                    sb.Draw(boxTex, ScrollRightArrowBox,
-                        ScrollRightButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
-                        : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
 
-                    sb.Draw(arrowTex, new Vector2(ScrollLeftArrowBox.X, ScrollLeftArrowBox.Y) + Vector2.One * 8, null, ScrollLeftButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
-                    : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, MathHelper.PiOver2 * 3, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                    //sb.Draw(boxTex, HorizontalBoxValidArea, Main.Colors.GuiColorEventGraphScrollbarBackground);
+                    //sb.Draw(boxTex, HorizontalBox, CurrentScroll == ScrollbarType.Horizontal ?
+                    //    Main.Colors.GuiColorEventGraphScrollbarForegroundActive : Main.Colors.GuiColorEventGraphScrollbarForegroundInactive);
 
-                    sb.Draw(arrowTex, new Vector2(ScrollRightArrowBox.X, ScrollRightArrowBox.Y) + Vector2.One * 8, null, ScrollRightButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
-                   : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, MathHelper.PiOver2 * 1, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                    //sb.Draw(boxTex, ScrollLeftArrowBox,
+                    //    ScrollLeftButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
+                    //    : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
+                    //sb.Draw(boxTex, ScrollRightArrowBox,
+                    //    ScrollRightButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
+                    //    : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
+
+                   // sb.Draw(arrowTex, new Vector2(ScrollLeftArrowBox.X, ScrollLeftArrowBox.Y) + Vector2.One * 8, null, ScrollLeftButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
+                   // : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, MathHelper.PiOver2 * 3, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+
+                   // sb.Draw(arrowTex, new Vector2(ScrollRightArrowBox.X, ScrollRightArrowBox.Y) + Vector2.One * 8, null, ScrollRightButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
+                   //: Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, MathHelper.PiOver2 * 1, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+
+                    float trianglePointDist = 4;
+                    Vector2 leftA = new Vector2(ScrollLeftArrowBox.Center.X + trianglePointDist, ScrollLeftArrowBox.Center.Y + trianglePointDist);
+                    Vector2 leftB = new Vector2(ScrollLeftArrowBox.Center.X - trianglePointDist, ScrollLeftArrowBox.Center.Y);
+                    Vector2 leftC = new Vector2(ScrollLeftArrowBox.Center.X + trianglePointDist, ScrollLeftArrowBox.Center.Y - trianglePointDist);
+
+
+                    Vector2 rightA = new Vector2(ScrollRightArrowBox.Center.X - trianglePointDist, ScrollRightArrowBox.Center.Y - trianglePointDist);
+                    Vector2 rightB = new Vector2(ScrollRightArrowBox.Center.X + trianglePointDist, ScrollRightArrowBox.Center.Y);
+                    Vector2 rightC = new Vector2(ScrollRightArrowBox.Center.X - trianglePointDist, ScrollRightArrowBox.Center.Y + trianglePointDist);
+
+                    ImGuiDebugDrawer.DrawTriangle(leftA, leftB, leftC, ScrollLeftButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive
+                    : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive);
+
+                    ImGuiDebugDrawer.DrawTriangle(rightA, rightB, rightC, ScrollRightButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive
+                   : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive);
+
+                    //ImGuiDebugDrawer.DrawLine(leftA, leftB, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(leftB, leftC, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(leftC, leftA, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(rightA, rightB, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(rightB, rightC, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(rightC, rightA, Color.Black);
                 }
 
                 if (!DisableVerticalScroll)
                 {
-                    sb.Draw(boxTex, VerticalBoxValidArea, Main.Colors.GuiColorEventGraphScrollbarBackground);
-                    sb.Draw(boxTex, VerticalBox, CurrentScroll == ScrollbarType.Vertical ?
-                        Main.Colors.GuiColorEventGraphScrollbarForegroundActive : Main.Colors.GuiColorEventGraphScrollbarForegroundInactive);
+                    ImGuiDebugDrawer.DrawRect(VerticalBoxValidArea, Main.Colors.GuiColorActionGraphScrollbarBackground);
+                    ImGuiDebugDrawer.DrawRect(VerticalBox, CurrentScroll == ScrollbarType.Vertical ?
+                        Main.Colors.GuiColorActionGraphScrollbarForegroundActive : Main.Colors.GuiColorActionGraphScrollbarForegroundInactive);
+                    ImGuiDebugDrawer.DrawRect(ScrollUpArrowBox, ScrollUpButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive
+                        : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive);
+                    ImGuiDebugDrawer.DrawRect(ScrollDownArrowBox, ScrollDownButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive
+                        : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive);
 
-                    sb.Draw(boxTex, ScrollUpArrowBox,
-                        ScrollUpButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
-                        : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
-                    sb.Draw(boxTex, ScrollDownArrowBox,
-                        ScrollDownButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
-                        : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
+                    //sb.Draw(boxTex, VerticalBoxValidArea, Main.Colors.GuiColorEventGraphScrollbarBackground);
+                    //sb.Draw(boxTex, VerticalBox, CurrentScroll == ScrollbarType.Vertical ?
+                    //    Main.Colors.GuiColorEventGraphScrollbarForegroundActive : Main.Colors.GuiColorEventGraphScrollbarForegroundInactive);
 
-                    sb.Draw(arrowTex, new Vector2(ScrollUpArrowBox.X, ScrollUpArrowBox.Y) + Vector2.One * 8, null, ScrollUpButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
-                    : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, 0, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                    //sb.Draw(boxTex, ScrollUpArrowBox,
+                    //    ScrollUpButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
+                    //    : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
+                    //sb.Draw(boxTex, ScrollDownArrowBox,
+                    //    ScrollDownButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive
+                    //    : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive);
 
-                    sb.Draw(arrowTex, new Vector2(ScrollDownArrowBox.X, ScrollDownArrowBox.Y) + Vector2.One * 8, null, ScrollDownButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
-                   : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, MathHelper.Pi, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+                   // sb.Draw(arrowTex, new Vector2(ScrollUpArrowBox.X, ScrollUpArrowBox.Y) + Vector2.One * 8, null, ScrollUpButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
+                   // : Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, 0, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+
+                   // sb.Draw(arrowTex, new Vector2(ScrollDownArrowBox.X, ScrollDownArrowBox.Y) + Vector2.One * 8, null, ScrollDownButtonHeld ? Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundInactive
+                   //: Main.Colors.GuiColorEventGraphScrollbarArrowButtonForegroundActive, MathHelper.Pi, Vector2.One * 8, Vector2.One, SpriteEffects.None, 0);
+
+
+
+                    float trianglePointDist = 4;
+                    Vector2 upA = new Vector2(ScrollUpArrowBox.Center.X - trianglePointDist, ScrollUpArrowBox.Center.Y + trianglePointDist);
+                    Vector2 upB = new Vector2(ScrollUpArrowBox.Center.X, ScrollUpArrowBox.Center.Y - trianglePointDist);
+                    Vector2 upC = new Vector2(ScrollUpArrowBox.Center.X + trianglePointDist, ScrollUpArrowBox.Center.Y + trianglePointDist);
+
+
+                    Vector2 downA = new Vector2(ScrollDownArrowBox.Center.X + trianglePointDist, ScrollDownArrowBox.Center.Y - trianglePointDist);
+                    Vector2 downB = new Vector2(ScrollDownArrowBox.Center.X, ScrollDownArrowBox.Center.Y + trianglePointDist);
+                    Vector2 downC = new Vector2(ScrollDownArrowBox.Center.X - trianglePointDist, ScrollDownArrowBox.Center.Y - trianglePointDist);
+
+
+
+                    ImGuiDebugDrawer.DrawTriangle(upA, upB, upC, ScrollUpButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive
+                    : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive);
+
+                    ImGuiDebugDrawer.DrawTriangle(downA, downB, downC, ScrollDownButtonHeld ? Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundInactive
+                   : Main.Colors.GuiColorActionGraphScrollbarArrowButtonForegroundActive);
+
+
+                    //ImGuiDebugDrawer.DrawLine(upA, upB, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(upB, upC, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(upC, upA, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(downA, downB, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(downB, downC, Color.Black);
+                    //ImGuiDebugDrawer.DrawLine(downC, downA, Color.Black);
+
                 }
             }
             finally 

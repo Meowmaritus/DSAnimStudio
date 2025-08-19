@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
+using SoulsAssetPipeline;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,24 @@ namespace DSAnimStudio
     public class FlverShaderConfig
     {
         //public string Name;
+
+
+        public FlverShaderConfig()
+        {
+
+        }
+
+        public static FlverShaderConfig GetDefaultConfigForGame(SoulsGames game)
+        {
+            FlverShaderConfig cfg = new FlverShaderConfig();
+
+            if (game is SoulsGames.ER or SoulsGames.ERNR)
+            {
+                cfg.EmissiveColorFromAlbedo = true;
+            }
+
+            return cfg;
+        }
 
         public static FlverShaderConfig GetShaderConfig(string name)
         {
@@ -37,11 +56,19 @@ namespace DSAnimStudio
         public string[] chrCustomizeType_Names = Enum.GetNames<FlverMaterial.ChrCustomizeTypes>();
         public FlverMaterial.ChrCustomizeTypes ChrCustomizeType;
 
+        public bool ChrCustomizeUseNormalMapAlpha = false;
+
         public bool EnableSSS;
         public Vector3 SSSColor = new Vector3(1, 0.48f, 0.35f);
         public float SSSIntensity = 1;
 
         public bool IsMetallic;
+
+        public float MetallicSpecularIncreasePower = 1;
+        public float MetallicSpecularIncreaseMult = 1;
+        public float MetallicDiffuseDecreaseMult = 1;
+
+        public bool InvertMetallic = false;
         public Vector3 NonMetallicSpecColor;
         public float UndefinedMetallicValue = 0.5f;
         public float UndefinedBlendMaskValue = 0;
@@ -81,7 +108,10 @@ namespace DSAnimStudio
         public bool NewBlendInverseVal_Shininess = false;
         public bool NewBlendInverseVal_Emissive = false;
 
+        public bool IsAlbedoAlphaMultInNormalAlpha = false;
+
         public bool IsReflectMultInNormalAlpha = false;
+        public bool IsMetallicInNormalAlpha = false;
 
         public float EmissiveMult = 1;
         public bool EmissiveColorFromAlbedo = false;
@@ -100,6 +130,9 @@ namespace DSAnimStudio
         public bool UseFancyAlphas = true;
         public bool EnableAlphas = true;
         public float FancyAlphaCutoff = 1;
+
+        
+        
 
         private static volatile System.Reflection.FieldInfo[] _fields = null;
         static FlverShaderConfig()
@@ -161,7 +194,7 @@ namespace DSAnimStudio
 
         private static string GetShaderGlobalDefaultFilePath(string shaderName)
         {
-            var result = System.IO.Path.Combine(Main.Directory, @$"ShaderConfig\{GameRoot.GameType}\{shaderName}.json");
+            var result = System.IO.Path.Combine(Main.Directory, @$"ShaderConfig\{zzz_DocumentManager.CurrentDocument.GameRoot.GameType}\{shaderName}.json");
             var dir = System.IO.Path.GetDirectoryName(result);
             if (!System.IO.Directory.Exists(dir))
                 System.IO.Directory.CreateDirectory(dir);

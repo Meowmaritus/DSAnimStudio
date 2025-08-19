@@ -8,87 +8,158 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio.ImguiOSD
 {
-    public static class TooltipManager
+    public class TooltipManager
     {
-        private static WinformsTooltipHelper tooltipHelper = new WinformsTooltipHelper();
+        //private static WinformsTooltipHelper tooltipHelper = new WinformsTooltipHelper();
+        private Window.Tooltip TooltipWindow = new Window.Tooltip();
 
-        private static float tooltipTimer = 0;
-        public static float TooltipDelay = 0.25f;
+        private float tooltipTimer = 0;
+        public float TooltipDelay => (Main.Config?.TooltipDelayMS ?? 1000) / 1000f;
 
-        private static bool hoveringOverAnythingThisFrame = false;
-        private static string currentHoverIDKey = null;
-        private static string prevHoverIDKey = null;
+        public float MouseMoveDistToClose = 1;
+        
+        private bool hoveringOverAnythingThisFrame = false;
+        private string currentHoverIDKey = null;
+        private string prevHoverIDKey = null;
 
-        private static string desiredTooltipText = null;
+        private string desiredTooltipText = null;
 
-        public static void CancelTooltip()
+        private System.Numerics.Vector2 mouseLocationSpawnedFrom;
+
+        private ImguiOSD.Window lastWindowFocused = null;
+
+        public void CancelTooltip()
         {
             tooltipTimer = 0;
             currentHoverIDKey = null;
             desiredTooltipText = null;
         }
 
-        public static void DoTooltip(string idKey, string text)
+        public void DoTooltip(string idKey, string text)
         {
-            if (ImGui.IsItemHovered())
+            bool hovered = ImGui.IsItemHovered();
+            DoTooltipManual(idKey, text, hovered);
+        }
+        
+        public void DoTooltipManual(string idKey, string text, bool isHovering)
+        {
+            if (isHovering)
             {
+                
                 currentHoverIDKey = idKey;
                 desiredTooltipText = text;
-                //if (!tooltipTexts.ContainsKey(idKey))
-                //    tooltipTexts.Add(idKey, text);
-                //else
-                //    tooltipTexts[idKey] = text;
                 hoveringOverAnythingThisFrame = true;
+
+                if (prevHoverIDKey != currentHoverIDKey)
+                {
+                    mouseLocationSpawnedFrom = Main.Input.MousePosition.ToNumerics();
+                    //tooltipTimer = 0;
+                }
             }
+            
         }
 
-        public static void PostUpdate()
+        public void MouseMove()
         {
-            if (!hoveringOverAnythingThisFrame)
+            if ((Main.Input.MousePosition - mouseLocationSpawnedFrom).LengthSquared() >= (MouseMoveDistToClose * MouseMoveDistToClose))
             {
-                tooltipTimer = 0;
-                desiredTooltipText = null;
                 currentHoverIDKey = null;
+                tooltipTimer = 0;
+                TooltipWindow.IsOpen = false;
+                if (lastWindowFocused != null)
+                {
+                    ImGui.SetWindowFocus(lastWindowFocused.ImguiTag);
+                    OSD.ActualFocusedWindow = lastWindowFocused;
+                    lastWindowFocused = null;
+                }
+            }
+        }
+        
+        public void PostUpdate(float deltaTime, float offsetX, float offsetY)
+        {
+            if (Main.Input.AnyMouseButtonDown)
+            {
+                currentHoverIDKey = null;
+                tooltipTimer = 0;
+                TooltipWindow.IsOpen = false;
+                if (lastWindowFocused != null)
+                {
+                    ImGui.SetWindowFocus(lastWindowFocused.ImguiTag);
+                    OSD.ActualFocusedWindow = lastWindowFocused;
+                    lastWindowFocused = null;
+                }
+            }
+            
+            if (currentHoverIDKey != null)
+            {
+                if (tooltipTimer >= TooltipDelay && !OSD.AnyFieldFocused)
+                {
+                    var curMousePos = Main.Input.MousePosition * Main.DPI;
+                    TooltipWindow.TooltipPos = new System.Numerics.Vector2(curMousePos.X + offsetX + (32 * Main.DPI),
+                        curMousePos.Y + offsetY + (32 * Main.DPI));
+                    TooltipWindow.SetTooltipText(desiredTooltipText, 600 * Main.DPI);
+                    TooltipWindow.IsOpen = true;
+                }
+                else
+                {
+                    mouseLocationSpawnedFrom = Main.Input.MousePosition.ToNumerics();
+                    lastWindowFocused = OSD.ActualFocusedWindow;
+                    tooltipTimer += deltaTime;
+                }
+
+                
             }
             else
             {
-                if (currentHoverIDKey != prevHoverIDKey)
-                {
-                    tooltipTimer = 0;
-
-                    tooltipHelper.Update(false, 0);
-                }
-
-                //if (currentHoverIDKey != null)
-                //{
-                //    if (tooltipTimer < TooltipDelay)
-                //    {
-                //        tooltipTimer += elapsedTime;
-                //    }
-                //    else
-                //    {
-                //        ImGui.SetTooltip(desiredTooltipText);
-                //    }
-                //}
-
-
+                TooltipWindow.IsOpen = false;
+                
+                tooltipTimer = 0;
             }
 
-
-
+            TooltipWindow.UniqueImguiInstanceNoSavedSettings = true;
+            Window currentFocusedWindow = null;
+            bool anyFieldFocused = false;
+            TooltipWindow.Update(ref currentFocusedWindow, ref anyFieldFocused);
+            //
+            // ImGuiDebugDrawer.DrawText($"currentHoverIDKey: {currentHoverIDKey}" +
+            //                           $"\nprevHoverIDKey: {prevHoverIDKey}" +
+            //                           $"\ntooltipTimer: {tooltipTimer}", new Vector2(32, 32), Color.Cyan);
+            //
+            // ImGuiDebugDrawer.DrawRect(mouseLocationSpawnedFrom, new Vector2(32, 32), Color.Cyan, 0, false);
+            //
             prevHoverIDKey = currentHoverIDKey;
+            //hoveringOverAnythingThisFrame = false;
         }
 
-        public static void PreUpdate(float elapsedTime, float offsetX, float offsetY)
+        public void PreUpdate(float elapsedTime, float offsetX, float offsetY)
         {
-            var mousePos = ImGui.GetMousePos();
-            tooltipHelper.DrawPosition = new Vector2(mousePos.X + offsetX + 16, mousePos.Y + offsetY + 16);
+            //var mousePos = ImGui.GetMousePos();
 
-            tooltipHelper.Update(currentHoverIDKey != null, elapsedTime);
+            // if (hoveringOverAnythingThisFrame)
+            // {
+            //     TooltipWindow.Position = new System.Numerics.Vector2(desiredMousePosition.X + offsetX + 16,
+            //         desiredMousePosition.Y + offsetY + 16);
+            //     TooltipWindow.SetTooltipText(desiredTooltipText, 300);
+            //     TooltipWindow.IsOpen = true;
+            //     TooltipWindow.Update();
+            // }
+            // else
+            // {
+            //     TooltipWindow.IsOpen = false;
+            //     TooltipWindow.Update();
+            // }
+            
+            
+            
+            
+            //bruh
+            // tooltipHelper.DrawPosition = new Vector2(mousePos.X + offsetX + 16, mousePos.Y + offsetY + 16);
+            //
+            // tooltipHelper.Update(currentHoverIDKey != null, elapsedTime);
+            //
+            // tooltipHelper.UpdateTooltip(Main.WinForm, currentHoverIDKey, desiredTooltipText);
 
-            tooltipHelper.UpdateTooltip(Main.WinForm, currentHoverIDKey, desiredTooltipText);
-
-            var curModelViewerBounds = Main.TAE_EDITOR.ModelViewerBounds;
+            //var curModelViewerBounds = zzz_DocumentManager.CurrentDocument.EditorScreen.ModelViewerBounds;
 
             //if (!IsInit && oldModelViewerBounds != curModelViewerBounds)
             //{
@@ -97,6 +168,7 @@ namespace DSAnimStudio.ImguiOSD
 
 
             hoveringOverAnythingThisFrame = false;
+            currentHoverIDKey = null;
         }
     }
 }

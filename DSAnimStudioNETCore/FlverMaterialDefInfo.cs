@@ -126,6 +126,7 @@ namespace DSAnimStudio
 
         public static string MaterialBinderPath;
         public static string MaterialBinderExtraPath;
+        public static string MaterialBinderExtra2Path;
         public static string ShaderBdleBinderPath;
         public static string ShaderGXFlverBdleBinderPath;
 
@@ -153,7 +154,7 @@ namespace DSAnimStudio
                 {
                     _binderCache.Clear();
                 }
-                GC.Collect();
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, false);
             }
 
             if (flushTimer > -1)
@@ -175,7 +176,7 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    var data = GameData.ReadFile(path);
+                    var data = zzz_DocumentManager.CurrentDocument.GameData.ReadFile(path);
                     if (data != null)
                     {
                         if (BND3.Is(data))
@@ -198,12 +199,13 @@ namespace DSAnimStudio
 
 
         private static Dictionary<string, FlverMaterialDefInfo> MaterialBinderDefInfos = new Dictionary<string, FlverMaterialDefInfo>();
-        public static void LoadMaterialBinders(string path, string extraPath)
+        public static void LoadMaterialBinders(string path, string extraPath, string extra2Path = null)
         {
             lock (_lock_MaterialBinderDefInfos)
             {
                 MaterialBinderPath = path;
                 MaterialBinderExtraPath = extraPath;
+                MaterialBinderExtra2Path = extra2Path;
 
                 MaterialBinderDefInfos.Clear();
             }
@@ -273,6 +275,7 @@ namespace DSAnimStudio
 
             var MaterialBinder = LoadBinder(MaterialBinderPath);
             var MaterialBinderExtra = LoadBinder(MaterialBinderExtraPath);
+            var MaterialBinderExtra2 = LoadBinder(MaterialBinderExtra2Path);
 
             FlverMaterialDefInfo result = null;
             string nameCheck = Utils.GetShortIngameFileName(mtdName).ToLower();
@@ -284,26 +287,38 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    if (MaterialBinderExtra != null)
-                    {
-                        var binderFileMatch = MaterialBinderExtra.Files.FirstOrDefault(f => Utils.GetShortIngameFileName(f.Name).ToLower() == nameCheck);
-                        if (binderFileMatch != null && !MaterialBinderDefInfos.ContainsKey(nameCheck))
-                        {
-                            result = FromFile(nameCheck, binderFileMatch.Bytes, GameRoot.GameType);
-                            MaterialBinderDefInfos.Add(nameCheck, result);
-                        }
-                    }
+                    
 
                     if (MaterialBinder != null)
                     {
                         var binderFileMatch = MaterialBinder.Files.FirstOrDefault(f => Utils.GetShortIngameFileName(f.Name).ToLower() == nameCheck);
                         if (binderFileMatch != null && !MaterialBinderDefInfos.ContainsKey(nameCheck))
                         {
-                            result = FromFile(nameCheck, binderFileMatch.Bytes, GameRoot.GameType);
+                            result = FromFile(nameCheck, binderFileMatch.Bytes, zzz_DocumentManager.CurrentDocument.GameRoot.GameType);
                             MaterialBinderDefInfos.Add(nameCheck, result);
                         }
                     }
-                    
+
+                    if (MaterialBinderExtra != null)
+                    {
+                        var binderFileMatch = MaterialBinderExtra.Files.FirstOrDefault(f => Utils.GetShortIngameFileName(f.Name).ToLower() == nameCheck);
+                        if (binderFileMatch != null && !MaterialBinderDefInfos.ContainsKey(nameCheck))
+                        {
+                            result = FromFile(nameCheck, binderFileMatch.Bytes, zzz_DocumentManager.CurrentDocument.GameRoot.GameType);
+                            MaterialBinderDefInfos.Add(nameCheck, result);
+                        }
+                    }
+
+                    if (MaterialBinderExtra2 != null)
+                    {
+                        var binderFileMatch = MaterialBinderExtra2.Files.FirstOrDefault(f => Utils.GetShortIngameFileName(f.Name).ToLower() == nameCheck);
+                        if (binderFileMatch != null && !MaterialBinderDefInfos.ContainsKey(nameCheck))
+                        {
+                            result = FromFile(nameCheck, binderFileMatch.Bytes, zzz_DocumentManager.CurrentDocument.GameRoot.GameType);
+                            MaterialBinderDefInfos.Add(nameCheck, result);
+                        }
+                    }
+
                 }
             }
 
@@ -338,7 +353,7 @@ namespace DSAnimStudio
             var res = new EldenRingMetaparamInfo();
             var bin = new SoulsFormats.BinaryReaderEx(false, bytes);
             bin.Position = 0xC;
-            int samplerCount = bin.ReadInt32();
+            int samplerCount = bin.ReadByte();
             for (int i = 0; i < samplerCount; i++)
             {
                 bin.Position = 0x98 + (0x30 * i);
@@ -387,16 +402,19 @@ namespace DSAnimStudio
                 }
                 else
                 {
-                    var EldenRingShaderbdle = LoadBinder($@"/shader/shaderbdle.shaderbdlebnd.dcx");
+                    var EldenRingShaderbdle = zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6 ? LoadBinder($@"/shader_d3d12/shaderbdle.shaderbdlebnd.dcx") : LoadBinder($@"/shader/shaderbdle.shaderbdlebnd.dcx");
 
-                    var matchingFile = EldenRingShaderbdle.Files.FirstOrDefault(x => Utils.GetShortIngameFileName(x.Name) == shaderName);
-                    if (matchingFile != null)
+                    if (EldenRingShaderbdle != null)
                     {
-                        var innerShaderbdle = BND4.Read(matchingFile.Bytes);
-                        var matchingMetaparamFile = innerShaderbdle.Files.FirstOrDefault(x => x.Name.ToLower().EndsWith(".metaparam"));
-                        var metaparamInfo = ReadMetaParam(matchingMetaparamFile.Bytes);
-                        cache_Metaparam.Add(shaderName, metaparamInfo);
-                        result = metaparamInfo;
+                        var matchingFile = EldenRingShaderbdle.Files.FirstOrDefault(x => Utils.GetShortIngameFileName(x.Name) == shaderName);
+                        if (matchingFile != null)
+                        {
+                            var innerShaderbdle = BND4.Read(matchingFile.Bytes);
+                            var matchingMetaparamFile = innerShaderbdle.Files.FirstOrDefault(x => x.Name.ToLower().EndsWith(".metaparam"));
+                            var metaparamInfo = ReadMetaParam(matchingMetaparamFile.Bytes);
+                            cache_Metaparam.Add(shaderName, metaparamInfo);
+                            result = metaparamInfo;
+                        }
                     }
                 }
 
@@ -413,7 +431,7 @@ namespace DSAnimStudio
 
             FlverMaterialDefInfo result = null;
 
-            if (game == SoulsGames.ER)
+            if (game is SoulsGames.ER or SoulsGames.ERNR or SoulsGames.AC6)
             {
                 var br = new BinaryReaderEx(false, bytes);
 

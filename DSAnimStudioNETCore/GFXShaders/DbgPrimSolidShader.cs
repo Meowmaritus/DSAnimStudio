@@ -19,6 +19,14 @@ namespace DSAnimStudio.GFXShaders
             DiffuseColor = Vector3.One * 2;
             TextureEnabled = false;
         }
+        
+        public DbgPrimSolidShader(GraphicsDevice device, byte[] customBytecode) : base(device, customBytecode)
+        {
+            LightingEnabled = true;
+            VertexColorEnabled = true;
+            DiffuseColor = Vector3.One * 2;
+            TextureEnabled = false;
+        }
 
         protected DbgPrimSolidShader(BasicEffect cloneSource) : base(cloneSource)
         {

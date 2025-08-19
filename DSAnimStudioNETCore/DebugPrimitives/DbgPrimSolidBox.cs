@@ -18,7 +18,6 @@ namespace DSAnimStudio.DebugPrimitives
         public DbgPrimSolidBox(Transform location, Vector3 min, Vector3 max, Color color)
         {
             Transform = location;
-            NameColor = color;
 
             // 3 Letters of below names: 
             // [T]op/[B]ottom, [F]ront/[B]ack, [L]eft/[R]ight

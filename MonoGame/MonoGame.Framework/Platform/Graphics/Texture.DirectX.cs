@@ -26,6 +26,18 @@ namespace Microsoft.Xna.Framework.Graphics
                 return resource.SharedHandle;
         }
 
+        /// <summary>
+        /// Gets the native pointer to a texture.
+        /// </summary>
+        /// <returns>
+        /// The pointer of the texture.
+        /// </returns>
+        public IntPtr GetNativePointer()
+        {
+            using (var resource = GetTexture().QueryInterface<SharpDX.DXGI.Resource>())
+                return resource.NativePointer;
+        }
+
         internal abstract Resource CreateTexture();
 
         internal Resource GetTexture()

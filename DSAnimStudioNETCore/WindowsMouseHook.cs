@@ -72,24 +72,31 @@ namespace DSAnimStudio
 
 		static void RawInputReceived(object sender, RawInputEventArgs e)
 		{
-			// Catch your input here!
-			var data = e.Data;
-
-			// You can identify the source device using Header.DeviceHandle or just Device.
-			var sourceDeviceHandle = data.Header.DeviceHandle;
-			var sourceDevice = data.Device;
-
-			// The data will be an instance of either RawInputMouseData, RawInputKeyboardData, or RawInputHidData.
-			// They contain the raw input data in their properties.
-			switch (data)
+			try
 			{
-				case RawInputMouseData mouse:
-					//if (mouse.Mouse.Flags != Linearstar.Windows.RawInput.Native.RawMouseFlags.None)
-					//{
-					//	RawMouseMoved?.Invoke(mouse.Mouse.LastX, mouse.Mouse.LastY);
-					//}
-					RawMouseMoved?.Invoke(mouse.Mouse.LastX, mouse.Mouse.LastY);
-					break;
+				// Catch your input here!
+				var data = e.Data;
+
+				// You can identify the source device using Header.DeviceHandle or just Device.
+				var sourceDeviceHandle = data.Header.DeviceHandle;
+				var sourceDevice = data.Device;
+
+				// The data will be an instance of either RawInputMouseData, RawInputKeyboardData, or RawInputHidData.
+				// They contain the raw input data in their properties.
+				switch (data)
+				{
+					case RawInputMouseData mouse:
+						//if (mouse.Mouse.Flags != Linearstar.Windows.RawInput.Native.RawMouseFlags.None)
+						//{
+						//	RawMouseMoved?.Invoke(mouse.Mouse.LastX, mouse.Mouse.LastY);
+						//}
+						RawMouseMoved?.Invoke(mouse.Mouse.LastX, mouse.Mouse.LastY);
+						break;
+				}
+			}
+			catch
+			{
+
 			}
 		}
 

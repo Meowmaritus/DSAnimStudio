@@ -49,7 +49,7 @@ namespace DSAnimStudio.TaeEditor
 
             //checkedListBoxHkxSelect.Items.Add("Skeleton.hkx", true);
 
-            curAnimContainer = Scene.MainModel.AnimContainer;
+            curAnimContainer = zzz_DocumentManager.CurrentDocument.Scene.MainModel.AnimContainer;
 
             //for (int i = 0; i < curAnimationList.Count; i++)
             //{
@@ -332,9 +332,11 @@ namespace DSAnimStudio.TaeEditor
                     if (!System.IO.Directory.Exists(exportDirectory))
                         System.IO.Directory.CreateDirectory(exportDirectory);
 
+                    bool userRequestCancelSkeleton = false;
+
                     //byte[] exportedSkeletonBytes = exporter.ExportSkeleton(animContainer.Skeleton.SkeletonPackfile, exportAsFileType, out bool userRequestCancelSkeleton);
-                    byte[] exportedSkeletonBytes = exporter.ExportHKX(animContainer.Skeleton.SkeletonPackfile, null, exportAsFileType, 
-                        out bool userRequestCancelSkeleton, "Skeleton.hkx");
+                    byte[] exportedSkeletonBytes = isExportSkeleton ? exporter.ExportHKX(animContainer, animContainer.Skeleton.SkeletonPackfile, null, exportAsFileType, 
+                        out userRequestCancelSkeleton, "Skeleton.hkx") : null;
 
                     bool isXML = exportAsFileType == ToolExportAllAnims.ExportAnimsFileType.Havok2010_2_XML;
 
@@ -374,7 +376,7 @@ namespace DSAnimStudio.TaeEditor
                             var animHkxInfo = animContainer.FindAnimationBytes(animNames[i]);
 
                             //byte[] exportedAnimBytes = exporter.ExportAnim(animHkxInfo, exportAsFileType, out bool userRequestCancelAnim, animShortName);
-                            byte[] exportedAnimBytes = exporter.ExportHKX(animHkxInfo, skelHkxForAnims, exportAsFileType, out bool userRequestCancelAnim, animShortName);
+                            byte[] exportedAnimBytes = exporter.ExportHKX(animContainer, animHkxInfo, skelHkxForAnims, exportAsFileType, out bool userRequestCancelAnim, animShortName);
 
                             if (exportedAnimBytes != null && !userRequestCancelAnim)
                             {
@@ -408,7 +410,8 @@ namespace DSAnimStudio.TaeEditor
                             }
                             else
                             {
-                                SetStatusAndProgress($"{(i + 2)}/{progMax}", i + 2, progMax);
+                                int progVal = (i + 1 + (isExportSkeleton ? 1 : 0));
+                                SetStatusAndProgress($"{progVal}/{progMax}", progVal, progMax);
                             }
 
                             

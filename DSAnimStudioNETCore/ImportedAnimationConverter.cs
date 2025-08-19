@@ -196,7 +196,7 @@ namespace DSAnimStudio
 
             byte[] finalHkxDataToImport = null;
 
-            var selectedGame = forceGame ?? GameRoot.GameType;
+            var selectedGame = forceGame ?? zzz_DocumentManager.CurrentDocument.GameRoot.GameType;
 
             if (selectedGame == SoulsAssetPipeline.SoulsGames.DS1R)
             {

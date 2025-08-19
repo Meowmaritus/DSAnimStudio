@@ -19,21 +19,21 @@ namespace DSAnimStudio
 
         private int[] TransformTrackIndexToHkxBoneMap => data_compressed.TransformTrackIndexToHkxBoneMap;
 
-        private HavokAnimationData_SplineCompressed data_compressed => (HavokAnimationData_SplineCompressed)data;
+        private HavokAnimationData_SplineCompressed data_compressed => (HavokAnimationData_SplineCompressed)Data;
 
         public int BlockCount => data_compressed.BlockCount;
         public int NumFramesPerBlock => data_compressed.NumFramesPerBlock;
 
         int CurrentBlock => data_compressed.GetBlock(CurrentFrame);
 
-        public NewHavokAnimation_SplineCompressed(string name, NewAnimSkeleton_HKX skeleton, 
+        public NewHavokAnimation_SplineCompressed(long id, string name, NewAnimSkeleton_HKX skeleton, 
             HKX.HKADefaultAnimatedReferenceFrame refFrame, HKX.HKAAnimationBinding binding, HKX.HKASplineCompressedAnimation anim, NewAnimationContainer container, int fileSize)
-            : base(new HavokAnimationData_SplineCompressed(name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), fileSize)
+            : base(new HavokAnimationData_SplineCompressed(id, name, skeleton.OriginalHavokSkeleton, refFrame, binding, anim), fileSize)
         {
         }
 
         public NewHavokAnimation_SplineCompressed(NewHavokAnimation_SplineCompressed toClone)
-            : base (toClone.data, toClone.FileSize)
+            : base (toClone.Data, toClone.FileSize)
         {
 
         }

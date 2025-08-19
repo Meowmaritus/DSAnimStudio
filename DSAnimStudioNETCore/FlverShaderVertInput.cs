@@ -20,7 +20,6 @@ namespace DSAnimStudio
         public Vector4 Color;
         public Vector4 BoneIndices;
         public Vector4 BoneWeights;
-        public Vector4 BoneIndicesBank;
         public Vector2 TextureCoordinate;
         public Vector2 TextureCoordinate2;
         public Vector2 TextureCoordinate3;
@@ -77,9 +76,6 @@ namespace DSAnimStudio
             offset += sizeof(float) * 4;
 
             elements.Add(new VertexElement(offset, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 0));
-            offset += sizeof(float) * 4;
-
-            elements.Add(new VertexElement(offset, VertexElementFormat.Vector4, VertexElementUsage.BlendIndices, 1));
             offset += sizeof(float) * 4;
 
             elements.Add(new VertexElement(offset, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 0));
@@ -148,7 +144,6 @@ namespace DSAnimStudio
                 hashCode = (hashCode * 397) ^ Color.GetHashCode();
                 hashCode = (hashCode * 397) ^ BoneIndices.GetHashCode();
                 hashCode = (hashCode * 397) ^ BoneWeights.GetHashCode();
-                hashCode = (hashCode * 397) ^ BoneIndicesBank.GetHashCode();
                 hashCode = (hashCode * 397) ^ TextureCoordinate.GetHashCode();
                 hashCode = (hashCode * 397) ^ TextureCoordinate2.GetHashCode();
                 hashCode = (hashCode * 397) ^ TextureCoordinate3.GetHashCode();
@@ -179,7 +174,6 @@ namespace DSAnimStudio
                 && (left.Color == right.Color)
                 && (left.BoneIndices == right.BoneIndices)
                 && (left.BoneWeights == right.BoneWeights)
-                && (left.BoneIndicesBank == right.BoneIndicesBank)
                 && (left.TextureCoordinate == right.TextureCoordinate)
                 && (left.TextureCoordinate2 == right.TextureCoordinate2)
                 && (left.TextureCoordinate3 == right.TextureCoordinate3)

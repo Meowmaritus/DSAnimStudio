@@ -26,6 +26,15 @@ namespace Microsoft.Xna.Framework.Graphics
         }
 
         /// <summary>
+        /// Creates a new SpriteEffect, with custom bytecode.
+        /// </summary>
+        public SpriteEffect(GraphicsDevice device, byte[] customBytecode)
+            : base(device, customBytecode)
+        {
+            CacheEffectParameters();
+        }
+
+        /// <summary>
         /// An optional matrix used to transform the sprite geometry. Uses <see cref="Matrix.Identity"/> if null.
         /// </summary>
         public Matrix? TransformMatrix { get; set; }

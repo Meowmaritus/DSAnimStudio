@@ -24,8 +24,6 @@ namespace DSAnimStudio.DebugPrimitives
 
             BackfaceCulling = false;
 
-            Category = DbgPrimCategory.Skybox;
-
             Vector3 min = -Vector3.One * Radius;
             Vector3 max = Vector3.One * Radius;
 
@@ -65,14 +63,14 @@ namespace DSAnimStudio.DebugPrimitives
             AddTri(bbr, tfr, bfr);
         }
 
-        public void AddTri(Vector3 a, Vector3 b, Vector3 c)
+        public void AddTri(Vector3 a, Vector3 b, Vector3 c, Vector2? uvA = null, Vector2? uvB = null, Vector2? uvC = null)
         {
             //var dir = Vector3.Cross(b - a, c - a);
             //var norm = Vector3.Normalize(dir);
 
-            var vertA = new VertexPositionColorNormal(a, Color.White, Vector3.Zero);
-            var vertB = new VertexPositionColorNormal(b, Color.White, Vector3.Zero);
-            var vertC = new VertexPositionColorNormal(c, Color.White, Vector3.Zero);
+            var vertA = new VertexPositionColorNormalTexture(a, Color.White, Vector3.Zero, uvA ?? Vector2.Zero);
+            var vertB = new VertexPositionColorNormalTexture(b, Color.White, Vector3.Zero, uvB ?? Vector2.Zero);
+            var vertC = new VertexPositionColorNormalTexture(c, Color.White, Vector3.Zero, uvC ?? Vector2.Zero);
 
             int vertIndexA = Array.IndexOf(Vertices, vertA);
             int vertIndexB = Array.IndexOf(Vertices, vertB);
@@ -125,7 +123,7 @@ namespace DSAnimStudio.DebugPrimitives
             IndexBuffer?.Dispose();
         }
 
-        public override DbgPrim<SkyboxShader> Instantiate(string newName, Transform newLocation, Color? newNameColor = null)
+        public override DbgPrim<SkyboxShader> Instantiate(Transform newLocation)
         {
             var newPrim = new DbgPrimSkybox();
             newPrim.Indices = Indices;
@@ -136,10 +134,6 @@ namespace DSAnimStudio.DebugPrimitives
             newPrim.NeedToRecreateIndexBuffer = NeedToRecreateIndexBuffer;
 
             newPrim.Transform = newLocation;
-
-            newPrim.Name = newName;
-
-            newPrim.NameColor = newNameColor ?? NameColor;
 
             return newPrim;
         }

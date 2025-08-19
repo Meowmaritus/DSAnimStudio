@@ -769,6 +769,7 @@ namespace FMOD
 
             eventsystemnew = new EventSystem();
             eventsystemnew.setRaw(eventsystemraw);
+            eventsystemnew.Created = true;
             eventsystem = eventsystemnew;
 
             return result;
@@ -788,18 +789,38 @@ namespace FMOD
     */
     public class EventSystem
     {
+        public bool Created = false;
         // Initialization / system functions.
         public RESULT init                      (int maxchannels, INITFLAGS flags, IntPtr extradriverdata)
         {
-            return FMOD_EventSystem_Init(eventsystemraw, maxchannels, flags, extradriverdata, EVENT_INITFLAGS.NORMAL);
+            RESULT result = FMOD_EventSystem_Init(eventsystemraw, maxchannels, flags, extradriverdata, EVENT_INITFLAGS.NORMAL);
+            if (result == RESULT.OK)
+            {
+                Created = true;
+            }
+            return result;
         }
         public RESULT init                      (int maxchannels, INITFLAGS flags, IntPtr extradriverdata, EVENT_INITFLAGS eventflags)
         {
-            return FMOD_EventSystem_Init(eventsystemraw, maxchannels, flags, extradriverdata, eventflags);
+            RESULT result = FMOD_EventSystem_Init(eventsystemraw, maxchannels, flags, extradriverdata, eventflags);
+            if (result == RESULT.OK)
+            {
+                Created = true;
+            }
+
+            return result;
         }
         public RESULT release                   ()
         {
-            return FMOD_EventSystem_Release(eventsystemraw);
+            RESULT result = FMOD_EventSystem_Release(eventsystemraw);
+            // if (result == RESULT.OK)
+            // {
+            //     Created = false;
+            // }
+            
+            Created = false;
+
+            return result;
         }
         public RESULT update                    ()
         {
@@ -934,6 +955,7 @@ namespace FMOD
         }
         public RESULT unload                    ()
         {
+            
             return FMOD_EventSystem_Unload(eventsystemraw);
         }
                                                             
@@ -2421,6 +2443,8 @@ namespace FMOD
     */
     public class Event
     {
+        public EventSystem eventSysParent;
+
         public RESULT release                    ()
         {
             return FMOD_Event_Release(eventraw, 0, 1);

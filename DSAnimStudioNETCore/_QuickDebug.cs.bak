@@ -4877,8 +4877,8 @@ namespace DSAnimStudio
 
             if (false && DebugTestButton("anim id red test"))
             {
-                Main.TAE_EDITOR.SelectedTaeAnim.ID = -1234567899999999999;
-                Main.TAE_EDITOR.RecreateAnimList();
+                zzz_DocumentManager.CurrentDocument.EditorScreen.SelectedTaeAnim.ID = -1234567899999999999;
+                zzz_DocumentManager.CurrentDocument.EditorScreen.RecreateAnimList();
             }
 
             if (false && DebugTestButton("hoodie test"))
@@ -5230,7 +5230,7 @@ namespace DSAnimStudio
                         // Register this new bone as a sibling.
                         if (flverLastRootBoneIndex >= 0)
                             imp.Flver.Bones[flverLastRootBoneIndex].NextSiblingIndex = (short)imp.Flver.Bones.Count;
-                        //imp.Flver.Bones.Add(new FLVER.Bone()
+                        //imp.Flver.Bones.Add(new FLVER.Node()
                         //{
                         //    Name = memeBoneName,
                         //    Translation = System.Numerics.Vector3.Zero,
@@ -5387,14 +5387,14 @@ namespace DSAnimStudio
                 var compressedHkx = importedAnim.WriteToSplineCompressedHKX2010Bytes(SplineCompressedAnimation.RotationQuantizationType.THREECOMP40, 0.001f, Main.Directory);
 
                 //byte[] animData = File.ReadAllBytes(filePath_compressedHkx);
-                Main.TAE_EDITOR.FileContainer.AddNewHKX(Utils.GetFileNameWithoutAnyExtensions(Scene.MainModel.AnimContainer.CurrentAnimationName), compressedHkx, out byte[] dataForAnimContainer);
-                Main.TAE_EDITOR.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(Scene.MainModel.AnimContainer.CurrentAnimationName, dataForAnimContainer);
+                zzz_DocumentManager.CurrentDocument.EditorScreen.FileContainer.AddNewHKX(Utils.GetFileNameWithoutAnyExtensions(Scene.MainModel.AnimContainer.CurrentAnimationName), compressedHkx, out byte[] dataForAnimContainer);
+                zzz_DocumentManager.CurrentDocument.EditorScreen.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(Scene.MainModel.AnimContainer.CurrentAnimationName, dataForAnimContainer);
 
                 //importedFlver.WriteToHavok2010InterleavedUncompressedXML(@"C:\DarkSoulsModding\CUSTOM ANIM\c2570\ShieldBashVanilla.fbx.saptest.xml");
 
                 lock (Scene._lock_ModelLoad_Draw)
                 {
-                    Main.TAE_EDITOR.SelectNewAnimRef(Main.TAE_EDITOR.SelectedTae, Main.TAE_EDITOR.SelectedTaeAnim);
+                    zzz_DocumentManager.CurrentDocument.EditorScreen.SelectNewAnimRef(zzz_DocumentManager.CurrentDocument.EditorScreen.SelectedTae, zzz_DocumentManager.CurrentDocument.EditorScreen.SelectedTaeAnim);
                     //var anim = new NewHavokAnimation(importedAnim, Scene.MainModel.AnimContainer.Skeleton, Scene.MainModel.AnimContainer);
                     //string animName = Scene.MainModel.AnimContainer.CurrentAnimationName;
                     //Scene.MainModel.AnimContainer.AddNewAnimation(animName, anim);

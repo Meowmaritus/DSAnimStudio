@@ -9,21 +9,21 @@ namespace DSAnimStudio
 {
     public class SoundInstanceFmod : SoundInstance
     {
-        private FmodManager.FmodEventUpdater fmod = null;
+        private NewFmodIns.FmodEventUpdater fmod = null;
         public override bool IsCompletelyFinished => fmod?.EventIsOver ?? true;
 
-        public SoundInstanceFmod(FmodManager.FmodEventUpdater fmod)
+        public SoundInstanceFmod(NewFmodIns.FmodEventUpdater fmod)
         {
             this.fmod = fmod;
             if (fmod == null)
                 Console.WriteLine("breakpoint");
         }
 
-        public override void InnerUpdate(float deltaTime, Matrix listener, bool stopRequested, Vector3 position)
+        public override void InnerUpdate(zzz_SoundManagerIns soundMan, float deltaTime, Matrix listener, bool stopRequested, Vector3 position)
         {
             if (stopRequested)
                 fmod?.Stop(false);
-            fmod?.Update(deltaTime, Matrix.Identity, position);
+            fmod?.Update(soundMan, deltaTime, Matrix.Identity, position);
         }
 
         public override void DisposeKill()

@@ -86,6 +86,11 @@ namespace DSAnimStudio
 
         private static byte[] erRegulationKey = ParseHexString("99 BF FC 36 6A 6B C8 C6 F5 82 7D 09 36 02 D6 76 C4 28 92 A0 1C 20 7F B0 24 D3 AF 4E 49 3F EF 99");
 
+        private static byte[] ac6RegulationKey = ParseHexString("10 CE ED 47 7B 7C D9 D7 E6 93 8E 11 47 13 E7 87 D5 39 13 B1 0D 31 8E C1 35 E4 BE 50 50 4E 0E 10");
+
+        // ERNR TODO
+        private static byte[] ernrRegulationKey = ParseHexString("9a 8e e9 0c 4c 01 a4 31 68 a1 7d 9d 75 e4 a7 d0 21 07 eb cf 43 d5 ac b0 55 4f 94 16 01 b5 79 18");
+
         /// <summary>
         /// Decrypts and unpacks DS3's regulation BND4 from the specified path.
         /// </summary>
@@ -94,13 +99,37 @@ namespace DSAnimStudio
             return DecryptERRegulation(File.ReadAllBytes(path));
         }
 
+
+        /// <summary>
+        /// Decrypts and unpacks DS3's regulation BND4 from the specified path.
+        /// </summary>
+        public static BND4 DecryptAC6Regulation(string path)
+        {
+            return DecryptAC6Regulation(File.ReadAllBytes(path));
+        }
+
+
         /// <summary>
         /// Decrypts and unpacks DS3's regulation BND4 from the specified path.
         /// </summary>
         public static BND4 DecryptERRegulation(byte[] bytes)
         {
             bytes = DecryptByteArray(erRegulationKey, bytes);
+            //File.WriteAllBytes($"{Main.Directory}\\DEBUG_DECRYPTEDREGULATION_ER.bin", bytes);
             return BND4.Read(bytes);
+        }
+
+        /// <summary>
+        /// Decrypts and unpacks DS3's regulation BND4 from the specified path.
+        /// </summary>
+        public static BND4 DecryptENRRRegulation(byte[] bytes)
+        {
+            bytes = DecryptByteArray(ernrRegulationKey, bytes);
+            return BND4.Read(bytes);
+
+            // ERNR DEBUG PLACEHOLDER
+            //var memeBytes = File.ReadAllBytes(@"C:\Nightreign Stuff\GameParam_prod.bnd");
+            //return BND4.Read(memeBytes);
         }
 
         /// <summary>
@@ -123,6 +152,43 @@ namespace DSAnimStudio
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllBytes(path, bytes);
         }
+
+
+
+
+
+        /// <summary>
+        /// Decrypts and unpacks DS3's regulation BND4 from the specified path.
+        /// </summary>
+        public static BND4 DecryptAC6Regulation(byte[] bytes)
+        {
+            bytes = DecryptByteArray(ac6RegulationKey, bytes);
+            return BND4.Read(bytes);
+        }
+
+        /// <summary>
+        /// Decrypts and unpacks DS3's regulation BND4 from the specified path.
+        /// </summary>
+        public static byte[] DecryptEAC6RegulationRaw(string path)
+        {
+            byte[] bytes = File.ReadAllBytes(path);
+            bytes = DecryptByteArray(ac6RegulationKey, bytes);
+            return bytes;
+        }
+
+        /// <summary>
+        /// Repacks and encrypts DS3's regulation BND4 to the specified path.
+        /// </summary>
+        public static void EncryptAC6Regulation(string path, BND4 bnd)
+        {
+            byte[] bytes = bnd.Write();
+            bytes = EncryptByteArray(ac6RegulationKey, bytes);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllBytes(path, bytes);
+        }
+
+
+
 
 
         private static byte[] DecryptByteArray(byte[] key, byte[] secret)

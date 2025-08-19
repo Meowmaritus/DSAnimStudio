@@ -40,11 +40,13 @@ namespace DSAnimStudio
         public float Pitch => BasePitch;
         public float Pan => vorbisLoop.Pan;
 
+        public float VolumeDecayDist => 10 * (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6 ? 10 : 1);
 
+        public bool StreamStopped { get; private set; } = false;
         public bool StopRequested = false;
 
         public readonly float BaseVolume;
-        private static float fadeInOutVolumeRatio = 1;
+        private float fadeInOutVolumeRatio = 1;
         public readonly float BasePitch;
 
         public float DistanceFalloff = 20;
@@ -62,10 +64,15 @@ namespace DSAnimStudio
 
         private object _locker = new object();
 
-        private void TryRequestStop()
+        private void TryRequestStop(SoundPlayInfo playInfo)
         {
             if (State != States.Playing)
                 return;
+
+            if (playInfo.DoNotKillOneShotUntilComplete && !vorbisLoop.LoopEnabled && !StreamStopped)
+            {
+                return;
+            }
 
             State = States.StopFadeOutDelay;
 
@@ -77,7 +84,7 @@ namespace DSAnimStudio
                 {
                     fadeInOutVolumeRatio = 0;
                     State = States.Stopped;
-                    Wwise.StopSound(MixerOut);
+                    NAudioManager.StopSound(MixerOut);
                     vorbisStream?.Dispose();
                     vorbisStream = null;
                     vorbisWaveReader?.Dispose();
@@ -97,7 +104,7 @@ namespace DSAnimStudio
             {
                 if (immediate)
                 {
-                    Wwise.StopSound(MixerOut);
+                    NAudioManager.StopSound(MixerOut);
                     vorbisStream?.Dispose();
                     vorbisStream = null;
                     vorbisWaveReader?.Dispose();
@@ -117,26 +124,34 @@ namespace DSAnimStudio
         {
             lock (_locker)
             {
-                State = States.StartFadeInDelay;
-                if (FadeInDelay == 0)
+                if (State == States.NotStartedYet)
                 {
-                    fadeInOutVolumeRatio = 0;
-                    State = States.StartFadeInTransition;
-                    lock (_locker)
+                    State = States.StartFadeInDelay;
+                    if (FadeInDelay == 0)
                     {
-                        Wwise.PlaySound(MixerOut);
-                    }
-                    if (FadeInDuration == 0)
-                    {
-                        fadeInOutVolumeRatio = 1;
-                        State = States.Playing;
+                        fadeInOutVolumeRatio = 0;
+                        State = States.StartFadeInTransition;
+                        if (!NAudioManager.PlaySound(MixerOut))
+                        {
+                            State = States.Stopped;
+                        }
+                        else
+                        {
+                            if (FadeInDuration == 0)
+                            {
+                                fadeInOutVolumeRatio = 1;
+                                State = States.Playing;
+                            }
+                        }
+
                     }
                 }
+                
                 
             }
         }
 
-        public WemPlaybackInstance(uint wemid, Wwise.LoadedWEM loadedOgg, float volume, float pitch, Matrix listener, float distanceFalloff, bool enableLoop,
+        public WemPlaybackInstance(uint wemid, zzz_WwiseManagerInst.LoadedWEM loadedOgg, float volume, float pitch, Matrix listener, float distanceFalloff, bool enableLoop,
             float fadeOutDuration, float fadeOutDelay, float fadeInDuration, float fadeInDelay)
         {
             WEMID = wemid;
@@ -155,7 +170,14 @@ namespace DSAnimStudio
 
                 vorbisLoop.LoopEnabled = loadedOgg.LoopEnabled && enableLoop;
                 vorbisLoop.LoopStart = loadedOgg.LoopStart;
+
+                if ((vorbisLoop.LoopStart % 4) != 0)
+                    vorbisLoop.LoopStart -= (4 - (vorbisLoop.LoopStart % 4));
+
                 vorbisLoop.LoopEnd = loadedOgg.LoopEnd;
+
+                if ((vorbisLoop.LoopEnd % 4) != 0)
+                    vorbisLoop.LoopEnd -= (4 - (vorbisLoop.LoopEnd % 4));
                 vorbisLoop.SampleCount = loadedOgg.TotalSampleCount;
 
                 var pitchChange = new WdlResamplingSampleProvider_Meme(vorbisLoop, vorbisLoop.WaveFormat.SampleRate, vorbisLoop.WaveFormat.SampleRate, pitch);
@@ -174,7 +196,7 @@ namespace DSAnimStudio
 
                 DistanceFalloff = distanceFalloff;
 
-                if (Wwise.DEBUG_DUMP_ALL_WEM)
+                if (zzz_WwiseManagerInst.DEBUG_DUMP_ALL_WEM)
                 {
                     var timestamp = DateTime.Now.ToString("yyyy_MM_dd__HH_mm_ss_fffffff");
 
@@ -214,11 +236,16 @@ namespace DSAnimStudio
             return pan * panMult;
         }
 
-        public void Update(float deltaTime, Matrix listener, Vector3 position)
+        public float GetSoundDistDecay(float dist)
+        {
+            return VolumeDecayDist / dist;
+        }
+
+        public void Update(float deltaTime, Matrix listener, Vector3 position, SoundPlayInfo playInfo)
         {
             if (StopRequested)
             {
-                TryRequestStop();
+                TryRequestStop(playInfo);
             }
 
             if (State == States.StopFadeOutDelay)
@@ -257,9 +284,12 @@ namespace DSAnimStudio
                 {
                     lock (_locker)
                     {
-                        Wwise.PlaySound(MixerOut);
+                        if (!NAudioManager.PlaySound(MixerOut))
+                            State = States.Stopped;
+                        else
+                            State = States.StartFadeInTransition;
                     }
-                    State = States.StartFadeInTransition;
+                    
                 }
             }
             else if (State == States.StartFadeInTransition)
@@ -286,24 +316,23 @@ namespace DSAnimStudio
 
             Vector3 offsetFromListener = Vector3.Transform(position * new Vector3(1,1,-1), Matrix.Invert(listener));
 
-            float volumeRatio = 10 / offsetFromListener.Length();
+            float volumeRatio = GetSoundDistDecay(offsetFromListener.Length());
             //volumeRatio *= volumeRatio;
             volumeRatio = MathHelper.Clamp(volumeRatio, 0, 1);
-            float volume = BaseVolume * volumeRatio * fadeInOutVolumeRatio * (SoundManager.AdjustSoundVolume / 100f);
+            float volume = BaseVolume * volumeRatio * fadeInOutVolumeRatio * (zzz_DocumentManager.CurrentDocument.SoundManager.AdjustSoundVolume / 100f);
 
             var pan = Calculate2DPan(offsetFromListener, PanWidth);
             pan = MathHelper.Clamp(pan, -1, 1);
-
-            bool streamStopped = false;
 
             lock (_locker)
             {
                 vorbisLoop.Volume = volume;
                 vorbisLoop.Pan = pan;
-                streamStopped = vorbisLoop.IsActuallyOver && !vorbisLoop.LoopEnabled;
+                if (vorbisLoop.IsActuallyOver && !vorbisLoop.LoopEnabled)
+                    StreamStopped = true;
             }
 
-            if (streamStopped)
+            if (StreamStopped)
                 StopRequested = true;
         }
 

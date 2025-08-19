@@ -10,6 +10,8 @@ namespace DSAnimStudio
 {
     public class NewMesh : IDisposable, IHighlightableThing
     {
+        public bool ExceedsBoneCount = false;
+        
         public static NewMesh GetDummyMesh()
         {
             NewMesh mesh = new NewMesh();
@@ -87,19 +89,19 @@ namespace DSAnimStudio
             return result;
         }
 
-        public NewMesh(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
+        public NewMesh(Model containingModel, FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
-            LoadFLVER2(flver, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
+            LoadFLVER2(containingModel, flver, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
         }
 
-        public NewMesh(FLVER0 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
+        public NewMesh(Model containingModel, FLVER0 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
-            LoadFLVER0(flver, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
+            LoadFLVER0(containingModel, flver, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
         }
 
-        private void LoadFLVER2(FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
+        private void LoadFLVER2(Model containingModel, FLVER2 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
             Flver2Header = flver.Header;
@@ -122,7 +124,7 @@ namespace DSAnimStudio
                 Submeshes = new List<FlverSubmeshRenderer>();
             }
 
-            
+            int i = 0;
             foreach (var submesh in flver.Meshes)
             {
                 // Blacklist some materials that don't have good shaders and just make the viewer look like a mess
@@ -134,8 +136,11 @@ namespace DSAnimStudio
                     if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
                         continue;
                 }
-                var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
+                var smm = new FlverSubmeshRenderer(i, containingModel, this, flver, submesh, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
 
+                if (smm.ExceedsBoneCount)
+                    ExceedsBoneCount = true;
+                
                 Bounds = new BoundingBox();
 
                 lock (_lock_submeshes)
@@ -143,10 +148,11 @@ namespace DSAnimStudio
                     Submeshes.Add(smm);
                     Bounds = BoundingBox.CreateMerged(Bounds, smm.Bounds);
                 }
+                i++;
             }
         }
 
-        private void LoadFLVER0(FLVER0 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
+        private void LoadFLVER0(Model containingModel, FLVER0 flver, bool useSecondUV, Dictionary<string, int> boneIndexRemap = null,
             bool ignoreStaticTransforms = false)
         {
             Flver2Header = null;
@@ -168,6 +174,7 @@ namespace DSAnimStudio
                 Submeshes = new List<FlverSubmeshRenderer>();
             }
 
+            int i = 0;
             foreach (var submesh in flver.Meshes)
             {
                 // Blacklist some materials that don't have good shaders and just make the viewer look like a mess
@@ -179,8 +186,11 @@ namespace DSAnimStudio
                     if (mtd.ShaderPath.Contains("FRPG_Water_Reflect.spx"))
                         continue;
                 }
-                var smm = new FlverSubmeshRenderer(this, flver, submesh, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
+                var smm = new FlverSubmeshRenderer(i, containingModel, this, flver, submesh, useSecondUV, boneIndexRemap, ignoreStaticTransforms);
 
+                if (smm.ExceedsBoneCount)
+                    ExceedsBoneCount = true;
+                
                 Bounds = new BoundingBox();
 
                 lock (_lock_submeshes)
@@ -188,11 +198,12 @@ namespace DSAnimStudio
                     Submeshes.Add(smm);
                     Bounds = BoundingBox.CreateMerged(Bounds, smm.Bounds);
                 }
+                i++;
             }
         }
 
         public void Draw(int lod, bool motionBlur, bool forceNoBackfaceCulling, bool isSkyboxLol, Model model,
-            NewAnimSkeleton_FLVER skeleton = null, Action<Exception> onDrawFail = null)
+            NewAnimSkeleton_FLVER skeleton, Action<Exception> onDrawFail, Model basePlayerModel)
         {
             if (TextureReloadQueued)
             {
@@ -200,31 +211,37 @@ namespace DSAnimStudio
                 TextureReloadQueued = false;
             }
 
+            var isSoloView = zzz_DocumentManager.CurrentDocument.Scene.AnyMaterialSoloVisible();
+            
+
             lock (_lock_submeshes)
             {
                 if (Submeshes == null)
                     return;
 
-                FlverMaterial soloViewMaterial = null;
-                foreach (var m in Materials)
-                {
-                    if (m.IsSoloVisible)
-                    {
-                        soloViewMaterial = m;
-                        break;
-                    }
-                }
+                //FlverMaterial soloViewMaterial = null;
+                //foreach (var m in Materials)
+                //{
+                    
+                //    if (m.IsSoloVisible)
+                //    {
+                //        soloViewMaterial = m;
+                //        break;
+                //    }
+                //}
 
                 foreach (var submesh in Submeshes)
                 {
                     try
                     {
-                        if (soloViewMaterial == null || soloViewMaterial == submesh.NewMaterial)
-                            submesh.Draw(lod, motionBlur, DrawMask, forceNoBackfaceCulling, skeleton, onDrawFail, model);
+                        var soloVisiFlag = isSoloView ? zzz_DocumentManager.CurrentDocument.Scene.GetMaterialSoloVisible(model, this, submesh.NewMaterial) : true;
+                        if (soloVisiFlag)
+                            submesh.Draw(lod, motionBlur, DrawMask, forceNoBackfaceCulling, skeleton, onDrawFail, model, basePlayerModel);
                     }
-                    catch (Exception ex)
+                    catch (Exception handled_ex) when (Main.EnableErrorHandler.NewMeshDraw)
                     {
-                        onDrawFail?.Invoke(ex);
+                        Main.HandleError(nameof(Main.EnableErrorHandler.NewMeshDraw), handled_ex);
+                        onDrawFail?.Invoke(handled_ex);
                     }
                 }
             }
@@ -253,6 +270,13 @@ namespace DSAnimStudio
                 }
 
                 Submeshes = null;
+            }
+
+            if (Materials != null)
+            {
+                foreach (var m in Materials)
+                    m.Dispose();
+                Materials = null;
             }
         }
     }

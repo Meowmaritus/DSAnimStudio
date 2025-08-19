@@ -10,12 +10,42 @@ using System.Threading.Tasks;
 using ImGuiNET;
 using DSAnimStudio.ImguiOSD;
 using DSAnimStudio.DebugPrimitives;
+using DSAnimStudio.GFXShaders;
+using Newtonsoft.Json.Linq;
+using SoulsAssetPipeline;
+using System.Reflection.Metadata;
+using System.Xml.Linq;
+using System.Runtime;
 
 namespace DSAnimStudio.TaeEditor
 {
     public class TaeViewportInteractor
     {
-        public readonly TaeEditAnimEventGraph Graph;
+        public readonly NewGraph Graph;
+
+        public zzz_DocumentIns ParentDocument => Graph?.MainScreen?.ParentDocument;
+
+        private object __lock__is_still_loading = new object();
+        private bool __is_still_loading = true;
+        public bool IS_STILL_LOADING
+        {
+            get
+            {
+                bool result = true;
+                lock (__lock__is_still_loading)
+                {
+                    result = __is_still_loading;
+                }
+                return result;
+            }
+            private set
+            {
+                lock ( __lock__is_still_loading)
+                {
+                    __is_still_loading = value;
+                }
+            }
+        }
 
         public enum TaeEntityType
         {
@@ -27,9 +57,33 @@ namespace DSAnimStudio.TaeEditor
             REMO
         }
 
+        public float ModPlaybackSpeed_GrabityRate = 1.0f;
+        public float ModPlaybackSpeed_Event603 = 1.0f;
+        public float ModPlaybackSpeed_Event608 = 1.0f;
+        public float ModPlaybackSpeed_NightfallEvent7032 = 1.0f;
+        public float ModPlaybackSpeed_AC6Event9700 = 1.0f;
+
+        //TODO, obviously
+        public bool NewIsComboActive => Combo?.PlaybackState == NewCombo.PlaybackStates.Playing;
+        public NewCombo Combo = null;
+
+        public void CancelCombo()
+        {
+            //TODO
+            Combo = null;
+        }
+
+        public void RequestCombo(List<NewCombo.Entry> entries)
+        {
+            Combo = new NewCombo();
+            Combo.Entries = entries.ToList();
+            Combo.Init(CurrentModel.AnimContainer, Graph.MainScreen);
+            Combo.StartPlayback();
+        }
+        
         public bool IsBlendingActive => 
-            (CurrentComboIndex >= 0 && Main.Config.GetEventSimulationEnabled("EventSimBasicBlending_Combos") == true) ||
-            (CurrentComboIndex < 0 && Main.Config.GetEventSimulationEnabled("EventSimBasicBlending") == true);
+            (NewIsComboActive && Main.Config.SimEnabled_BasicBlending_ComboViewer) ||
+            (!NewIsComboActive && Main.Config.SimEnabled_BasicBlending);
 
         private TaeEntityType _entityType = TaeEntityType.NONE;
         public TaeEntityType EntityType
@@ -38,11 +92,13 @@ namespace DSAnimStudio.TaeEditor
             set
             {
                 _entityType = value;
-                OSD.WindowEntitySettings.EntityType = value;
+                OSD.WindowEntity.EntityType = value;
             }
         }
 
-        public TaeEventSimulationEnvironment EventSim { get; private set; }
+        
+
+        public TaeActionSimulationEnvironment ActionSim { get; private set; }
 
         public static DebugPrimitives.DbgPrimWireArrow DbgPrim_RootMotionStartPoint = null;
         public static DebugPrimitives.DbgPrimWireArrow DbgPrim_RootMotionCurrentPoint = null;
@@ -54,7 +110,7 @@ namespace DSAnimStudio.TaeEditor
         public Queue<Transform> DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue = new Queue<Transform>();
         public Queue<Transform> DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop = new Queue<Transform>();
         private float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
-        private float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold => 1f / Main.Config.RootMotionPathUpdateRate;
+        private float DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold => 1f / Main.HelperDraw.RootMotionTrailUpdateRate;
 
         public void HardResetRootMotionToStartHere()
         {
@@ -72,24 +128,21 @@ namespace DSAnimStudio.TaeEditor
             lock (_lock_UpdateAndDrawRootMotionPoints)
             {
                 if (DbgPrim_RootMotionStartPoint == null)
-                    DbgPrim_RootMotionStartPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Start Point", new Transform(Matrix.CreateScale(0.25f)), Color.White)
+                    DbgPrim_RootMotionStartPoint = new DebugPrimitives.DbgPrimWireArrow(new Transform(Matrix.CreateScale(0.25f)), Color.White)
                     {
-                        Category = DbgPrimCategory.AlwaysDraw,
                         OverrideColor = Main.Colors.ColorHelperRootMotionStartLocation,
                     };
 
                 if (DbgPrim_RootMotionCurrentPoint == null)
-                    DbgPrim_RootMotionCurrentPoint = new DebugPrimitives.DbgPrimWireArrow("Root Motion Current Point", new Transform(Matrix.CreateScale(0.15f)), Color.White)
+                    DbgPrim_RootMotionCurrentPoint = new DebugPrimitives.DbgPrimWireArrow( new Transform(Matrix.CreateScale(0.15f)), Color.White)
                     {
-                        Category = DbgPrimCategory.AlwaysDraw,
                         OverrideColor = Main.Colors.ColorHelperRootMotionCurrentLocation,
                     };
 
                 if (DbgPrim_RootMotionPathLine == null)
                 {
-                    DbgPrim_RootMotionPathLine = new DbgPrimWireBone("Root Motion Trail Piece", new Transform(Matrix.Identity), Color.White)
+                    DbgPrim_RootMotionPathLine = new DbgPrimWireBone(new Transform(Matrix.Identity), Color.White)
                     {
-                        Category = DbgPrimCategory.AlwaysDraw,
                         OverrideColor = Main.Colors.ColorHelperRootMotionTrail,
                     };
                 }
@@ -104,11 +157,38 @@ namespace DSAnimStudio.TaeEditor
 
         }
 
+        public void RegisterWorldShift(Vector3 v)
+        {
+            if (v.LengthSquared() > 0)
+            {
+                lock (_lock_UpdateAndDrawRootMotionPoints)
+                {
+                    var shiftMatrix = Matrix.CreateTranslation(v);
+                    var transforms = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.ToList();
+                    var transformsPrevLoop = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop.ToList();
+                    for (int i = 0; i < transforms.Count; i++)
+                    {
+                        transforms[i] = new Transform(transforms[i].WorldMatrix * shiftMatrix);
+                    }
+                    for (int i = 0; i < transformsPrevLoop.Count; i++)
+                    {
+                        transformsPrevLoop[i] = new Transform(transformsPrevLoop[i].WorldMatrix * shiftMatrix);
+                    }
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue = new Queue<Transform>(transforms);
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop = new Queue<Transform>(transformsPrevLoop);
+                    DbgPrim_RootMotionCurrentPoint.Transform.ApplyShift(shiftMatrix);
+                    DbgPrim_RootMotionStartPoint.Transform.ApplyShift(shiftMatrix);
+                    DbgPrim_RootMotionStartPoint_Matrix *= shiftMatrix;
+                    DbgPrim_RootMotionStartPoint_Matrix_PrevLoop *= shiftMatrix;
+                }
+            }
+        }
+
         public void UpdateAndDrawRootMotionPoints(NewBlendableTransform absoluteRootMotionLocation, bool doDraw, float animDeltaTime = 0, float programDeltaTime = 0)
         {
             CreateRootMotionPoints();
 
-            if (!Main.Config.RootMotionPathEnabled)
+            if (!Main.HelperDraw.EnableRootMotionTrail)
             {
                 DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
                 DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop.Clear();
@@ -123,10 +203,10 @@ namespace DSAnimStudio.TaeEditor
 
                 if (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime >= DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_TimeDeltaThreshold)
                 {
-                    if (Main.Config.RootMotionPathEnabled)
+                    if (Main.HelperDraw.EnableRootMotionTrail)
                         DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Enqueue(new Transform(Matrix.CreateScale(0.15f) * absoluteRootMotionLocation.GetMatrix().ToXna()));
 
-                    while (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Count > Main.Config.RootMotionPathSampleMax && Main.Config.RootMotionPathSampleMax < TaeConfigFile.RootMotionPathSampleMaxInfinityValue)
+                    while (DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Count > Main.HelperDraw.RootMotionTrailSampleMax && Main.HelperDraw.RootMotionTrailSampleMax < HelperDrawConfig.RootMotionTrailSampleMaxInfinityValue)
                         DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Dequeue();
 
                     DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_CurrentTime = 0;
@@ -141,7 +221,7 @@ namespace DSAnimStudio.TaeEditor
 
                 
 
-                if (Graph.MainScreen.Config.WrapRootMotion && !(CurrentComboIndex >= 0 && IsComboRecording))
+                if (Graph.MainScreen.Config.CameraFollowsRootMotionZX && !(NewIsComboActive))
                 {
                     GFX.CurrentWorldView.RootMotionFollow_EnableWrap = true;
 
@@ -154,8 +234,21 @@ namespace DSAnimStudio.TaeEditor
                     GFX.CurrentWorldView.RootMotionFollow_EnableWrap = false;
                 }
 
-                //Vector3 globalTranslationOffset = (GFX.World.RootMotionFollow_Translation_WrappedIfApplicable.ToCS() - absoluteRootMotionLocation.Translation).ToXna();
-                Vector3 globalTranslationOffset = (GFX.CurrentWorldView.RootMotionFollow_Translation_WrappedIfApplicable - GFX.CurrentWorldView.RootMotionFollow_Translation) * new Vector3(1, 0, 1);
+                if (Graph.MainScreen.Config.CameraFollowsRootMotionY && !(NewIsComboActive))
+                {
+                    GFX.CurrentWorldView.RootMotionFollow_EnableWrap_Y = true;
+
+                    //rootMotionDispLocation.Translation.X = rootMotionDispLocation.Translation.X % 1;
+
+                    //rootMotionDispLocation.Translation.Z = rootMotionDispLocation.Translation.Z % 1;
+                }
+                else
+                {
+                    GFX.CurrentWorldView.RootMotionFollow_EnableWrap_Y = false;
+                }
+
+
+                //Vector3 globalTranslationOffset = (GFX.CurrentWorldView.RootMotionFollow_Translation_WrappedIfApplicable - GFX.CurrentWorldView.RootMotionFollow_Translation) * new Vector3(1, 0, 1);
 
                 //if (Graph.MainScreen.Config.WrapRootMotion && !(CurrentComboIndex >= 0 && IsComboRecording))
                 //{
@@ -165,24 +258,22 @@ namespace DSAnimStudio.TaeEditor
                 //}
 
 
-
-
-                    if (doDraw && Main.Config.RootMotionPathEnabled)
+                if (doDraw && Main.HelperDraw.EnableRootMotionStartTransform)
                 {
                     DbgPrim_RootMotionStartPoint.OverrideColor = Main.Colors.ColorHelperRootMotionStartLocation;
-                    DbgPrim_RootMotionStartPoint.Transform = new Transform(DbgPrim_RootMotionStartPoint_Matrix);
-                    DbgPrim_RootMotionStartPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                    DbgPrim_RootMotionStartPoint.Transform = new Transform(DBG.NewTransformSizeMatrix * DbgPrim_RootMotionStartPoint_Matrix);
+                    DbgPrim_RootMotionStartPoint.Draw(true, null, Matrix.Identity);
 
                     DbgPrim_RootMotionStartPoint.OverrideColor = Main.Colors.ColorHelperRootMotionStartLocation_PrevLoop;
-                    DbgPrim_RootMotionStartPoint.Transform = new Transform(DbgPrim_RootMotionStartPoint_Matrix_PrevLoop);
-                    DbgPrim_RootMotionStartPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                    DbgPrim_RootMotionStartPoint.Transform = new Transform(DBG.NewTransformSizeMatrix * DbgPrim_RootMotionStartPoint_Matrix_PrevLoop);
+                    DbgPrim_RootMotionStartPoint.Draw(true, null, Matrix.Identity);
                 }
 
                 
 
                 DbgPrim_RootMotionPathLine.OverrideColor = Main.Colors.ColorHelperRootMotionTrail;
 
-                if (doDraw)
+                if (doDraw && Main.HelperDraw.EnableRootMotionTrail)
                 {
                     var asList = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.ToList();
 
@@ -199,10 +290,16 @@ namespace DSAnimStudio.TaeEditor
                                 var curPos = Vector3.Transform(Vector3.Zero, asList[i].WorldMatrix);
                                 var nextPos = Vector3.Transform(Vector3.Zero, asList[i + 1].WorldMatrix);
                                 float length = (nextPos - curPos).Length();
+
+                                var posDelta = nextPos - curPos;
+                                var isCompletelyVertical = posDelta.X == 0 && posDelta.Z == 0;
+                                var lineDirMatrix = isCompletelyVertical ? (Matrix.CreateRotationX(MathHelper.PiOver2) * Matrix.CreateTranslation(curPos)) : Matrix.CreateWorld(curPos, posDelta, Vector3.Up);
+                                
+                                
+                                
                                 DbgPrim_RootMotionPathLine.Transform = new Transform(Matrix.CreateScale(length) *
-                                    Matrix.CreateRotationY(MathHelper.PiOver2) *
-                                    Matrix.CreateWorld(curPos, nextPos - curPos, Vector3.Up));
-                                DbgPrim_RootMotionPathLine.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                                    Matrix.CreateRotationY(MathHelper.PiOver2) * lineDirMatrix);
+                                DbgPrim_RootMotionPathLine.Draw(true, null, Matrix.Identity);
                             }
                         }
                     }
@@ -226,10 +323,15 @@ namespace DSAnimStudio.TaeEditor
                                     var curPos = Vector3.Transform(Vector3.Zero, asList[i].WorldMatrix);
                                     var nextPos = Vector3.Transform(Vector3.Zero, asList[i + 1].WorldMatrix);
                                     float length = (nextPos - curPos).Length();
+                                    
+                                    var posDelta = nextPos - curPos;
+                                    var isCompletelyVertical = posDelta.X == 0 && posDelta.Z == 0;
+                                    var lineDirMatrix = isCompletelyVertical ? (Matrix.CreateRotationX(MathHelper.PiOver2) * Matrix.CreateTranslation(curPos)) : Matrix.CreateWorld(curPos, posDelta, Vector3.Up);
+
+                                    
                                     DbgPrim_RootMotionPathLine.Transform = new Transform(Matrix.CreateScale(length) *
-                                        Matrix.CreateRotationY(MathHelper.PiOver2) *
-                                        Matrix.CreateWorld(curPos, nextPos - curPos, Vector3.Up));
-                                    DbgPrim_RootMotionPathLine.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                                        Matrix.CreateRotationY(MathHelper.PiOver2) * lineDirMatrix);
+                                    DbgPrim_RootMotionPathLine.Draw(true, null, Matrix.Identity);
                                 }
                             }
                         }
@@ -239,62 +341,67 @@ namespace DSAnimStudio.TaeEditor
                 if (doDraw)
                 {
                     DbgPrim_RootMotionCurrentPoint.OverrideColor = Main.Colors.ColorHelperRootMotionCurrentLocation;
-                    DbgPrim_RootMotionCurrentPoint.Transform = new Transform(Matrix.CreateScale(0.25f) * absoluteRootMotionLocation.GetMatrix().ToXna());
+                    DbgPrim_RootMotionCurrentPoint.Transform = new Transform(DBG.NewTransformSizeMatrix * Matrix.CreateScale(0.25f) * absoluteRootMotionLocation.GetMatrix().ToXna());
 
-                    if (Main.Config.RootMotionPathEnabled)
-                        DbgPrim_RootMotionCurrentPoint.Draw(null, Matrix.CreateTranslation(globalTranslationOffset));
+                    if (Main.HelperDraw.EnableRootMotionTransform)
+                        DbgPrim_RootMotionCurrentPoint.Draw(true, null, Matrix.Identity);
                 }
 
                 float lerpSMult = programDeltaTime / (1f / 60f);
 
                 if (!doDraw)
                 {
+                    //var oldCamTrans = cameraTrans;
 
-                    if (Graph.MainScreen.Config.CameraFollowsRootMotionZX)
-                    {
-                        cameraTrans.X = MathHelper.Lerp(cameraTrans.X, rootMotionDispLocation.Translation.X, MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionZX_Interpolation) * lerpSMult, 0, 1));
-                        cameraTrans.Z = MathHelper.Lerp(cameraTrans.Z, rootMotionDispLocation.Translation.Z, MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionZX_Interpolation) * lerpSMult, 0, 1));
-                    }
-                    else
-                    {
-                        //if ((GFX.World.RootMotionFollow_Translation * new Vector3(1, 0, 1)).LengthSquared() != 0)
-                        //{
-                        //    GFX.World.CameraOrbitOrigin.X += GFX.World.RootMotionFollow_Translation.X;
-                        //    GFX.World.CameraOrbitOrigin.Z += GFX.World.RootMotionFollow_Translation.Z;
-                        //}
+                    //if (Graph.MainScreen.Config.CameraFollowsRootMotionZX || Graph.MainScreen.Config.CameraFollowsRootMotionY)
+                    //{
+                        
+                    //    Vector3 deltaToTarget = (rootMotionDispLocation.Translation - cameraTrans);
+                    //    float distToTarget = deltaToTarget.Length();
+                    //    //float test_CamSpeed = 12 * programDeltaTime; // 3 meters per second
+                    //    float test_CamSpeed = distToTarget;// MathHelper.Lerp(3 * programDeltaTime, distToTarget, lerpSMult * (1 - Graph.MainScreen.Config.CameraFollowsRootMotionZX_Interpolation));
+                    //    if (distToTarget > 0)
+                    //    {
+                    //        test_CamSpeed = Math.Min(test_CamSpeed, distToTarget);
+                    //        cameraTrans += Vector3.Normalize(deltaToTarget) * test_CamSpeed;
+                    //    }
+                    //    //float lerpS = MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionZX_Interpolation) * lerpSMult, 0, 1);
+                    //    //cameraTrans.X = MathHelper.LerpPrecise(cameraTrans.X, rootMotionDispLocation.Translation.X, MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionZX_Interpolation) * lerpSMult, 0, 1));
+                    //    //cameraTrans.Z = MathHelper.LerpPrecise(cameraTrans.Z, rootMotionDispLocation.Translation.Z, MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionZX_Interpolation) * lerpSMult, 0, 1));
 
-                        //GFX.World.RootMotionFollow_Translation *= new Vector3(0, 1, 0);
-                    }
+                    //    //cameraTrans.X = (float)(((1d - (double)lerpS) * (double)cameraTrans.X) + ((double)rootMotionDispLocation.Translation.X * (double)lerpS));
+                    //    //cameraTrans.Z = (float)(((1d - (double)lerpS) * (double)cameraTrans.Z) + ((double)rootMotionDispLocation.Translation.Z * (double)lerpS));
+
+                    //    //cameraTrans.X = rootMotionDispLocation.Translation.X;
+                    //    //cameraTrans.Z = rootMotionDispLocation.Translation.Z;
+
+                    //    if (!Graph.MainScreen.Config.CameraFollowsRootMotionZX)
+                    //    {
+                    //        cameraTrans.Z = oldCamTrans.Z;
+                    //        cameraTrans.X = oldCamTrans.X;
+                    //    }
+
+                    //    if (!Graph.MainScreen.Config.CameraFollowsRootMotionY)
+                    //    {
+                    //        cameraTrans.Y = oldCamTrans.Y;
+                    //    }
+                    //}
 
 
-                    if (Graph.MainScreen.Config.CameraFollowsRootMotionY)
-                    {
-                        cameraTrans.Y = MathHelper.Lerp(cameraTrans.Y, rootMotionDispLocation.Translation.Y, MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionY_Interpolation) * lerpSMult, 0, 1));
-                    }
-                    else
-                    {
-                        //if (GFX.World.RootMotionFollow_Translation.Y != 0)
-                        //{
-                        //    GFX.World.CameraOrbitOrigin.Y += GFX.World.RootMotionFollow_Translation.Y;
-                        //}
+                    //if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
+                    //{
+                    //    GFX.CurrentWorldView.RootMotionFollow_Rotation = NewBlendableTransform.Lerp(NewBlendableTransform.FromRootMotionSample(new System.Numerics.Vector4(0, 0, 0, GFX.CurrentWorldView.RootMotionFollow_Rotation)), rootMotionDispLocation,
+                    //        MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionRotation_Interpolation) * lerpSMult, 0, 1)).GetWrappedYawAngle();
+                    //}
+                    //else
+                    //{
+                    //    if (GFX.CurrentWorldView.RootMotionFollow_Rotation != 0)
+                    //    {
+                    //        GFX.CurrentWorldView.CameraLookDirection *= Quaternion.CreateFromYawPitchRoll(GFX.CurrentWorldView.RootMotionFollow_Rotation, 0, 0);
+                    //    }
 
-                        //GFX.World.RootMotionFollow_Translation *= new Vector3(1, 0, 1);
-                    }
-
-                    if (Graph.MainScreen.Config.CameraFollowsRootMotionRotation)
-                    {
-                        GFX.CurrentWorldView.RootMotionFollow_Rotation = NewBlendableTransform.Lerp(NewBlendableTransform.FromRootMotionSample(new System.Numerics.Vector4(0, 0, 0, GFX.CurrentWorldView.RootMotionFollow_Rotation)), rootMotionDispLocation,
-                            MathHelper.Clamp((1 - Graph.MainScreen.Config.CameraFollowsRootMotionRotation_Interpolation) * lerpSMult, 0, 1)).GetWrappedYawAngle();
-                    }
-                    else
-                    {
-                        if (GFX.CurrentWorldView.RootMotionFollow_Rotation != 0)
-                        {
-                            GFX.CurrentWorldView.CameraLookDirection *= Quaternion.CreateFromYawPitchRoll(GFX.CurrentWorldView.RootMotionFollow_Rotation, 0, 0);
-                        }
-
-                        GFX.CurrentWorldView.RootMotionFollow_Rotation = 0;
-                    }
+                    //    GFX.CurrentWorldView.RootMotionFollow_Rotation = 0;
+                    //}
 
                     //if (Graph.MainScreen.Config.WrapRootMotion && !(CurrentComboIndex >= 0 && IsComboRecording))
                     //{
@@ -302,28 +409,28 @@ namespace DSAnimStudio.TaeEditor
                     //    cameraTrans.Z = cameraTrans.Z % 1;
                     //}
 
-                    GFX.CurrentWorldView.RootMotionFollow_Translation = cameraTrans;
+                    //GFX.CurrentWorldView.RootMotionFollow_Translation = cameraTrans;
 
                     //if (Graph.MainScreen.Config.WrapRootMotion && !(CurrentComboIndex >= 0 && IsComboRecording))
                     //{
                     //    rootMotionDispLocation.Translation.X = rootMotionDispLocation.Translation.X % 1;
                     //    rootMotionDispLocation.Translation.Z = rootMotionDispLocation.Translation.Z % 1;
                     //}
-                    rootMotionDispLocation.Translation = absoluteRootMotionLocation.Translation;
+                    //rootMotionDispLocation.Translation = absoluteRootMotionLocation.Translation;
 
-                    if (Graph.MainScreen.Config.WrapRootMotion && !(CurrentComboIndex >= 0 && IsComboRecording))
-                    {
-                        //rootMotionDispLocation.Translation.X = rootMotionDispLocation.Translation.X % 1;
-                        //rootMotionDispLocation.Translation.Z = rootMotionDispLocation.Translation.Z % 1;
+                    //if (Graph.MainScreen.Config.WrapRootMotion && !(NewIsComboActive))
+                    //{
+                    //    //rootMotionDispLocation.Translation.X = rootMotionDispLocation.Translation.X % 1;
+                    //    //rootMotionDispLocation.Translation.Z = rootMotionDispLocation.Translation.Z % 1;
 
-                        rootMotionDispLocation.Translation += ((GFX.CurrentWorldView.RootMotionFollow_Translation_WrappedIfApplicable - GFX.CurrentWorldView.RootMotionFollow_Translation) * new Vector3(1, 1, 1)).ToCS();
-                        rootMotionDispLocation.Translation.Y = absoluteRootMotionLocation.Translation.Y;
-                    }
+                    //    //rootMotionDispLocation.Translation += ((GFX.CurrentWorldView.RootMotionFollow_Translation_WrappedIfApplicable - GFX.CurrentWorldView.RootMotionFollow_Translation) * new Vector3(1, 1, 1)).ToCS();
+                    //    //rootMotionDispLocation.Translation.Y = absoluteRootMotionLocation.Translation.Y;
+                    //}
 
-                    CurrentModel.StartTransform = CurrentModel.CurrentTransform = new Transform(rootMotionDispLocation.GetMatrix().ToXna());
+                    //CurrentModel.StartTransform = CurrentModel.CurrentTransform = new Transform(CurrentModel.OriginOffsetMatrix * rootMotionDispLocation.GetMatrix().ToXna());
 
                     //GFX.World.UpdateDummyPolyFollowRefPoint(isFirstTime: false);
-                    GFX.CurrentWorldView.Update(0);
+                    //GFX.CurrentWorldView.Update(0);
                 }
             }
         }
@@ -332,12 +439,91 @@ namespace DSAnimStudio.TaeEditor
         {
             CreateRootMotionPoints();
 
-            var curTransform = Matrix.CreateScale(0.5f) * (CurrentModel?.AnimContainer?.RootMotionTransform ?? NewBlendableTransform.Identity).GetMatrix().ToXna();
 
+
+            float floorDifference = 0;
+
+            if (Main.Config.ResetFloorOnAnimStart)
+            {
+                lock (DBG._lock_NewGrid3D)
+                {
+                    if (DBG.NewGrid3D != null)
+                    {
+                        //var modelFollowPos = Vector3.Zero;
+
+                        ParentDocument.Scene.AccessMainModel(model =>
+                        {
+                            //modelFollowPos = model.CurrentTransformPosition;
+                            model.CurrentTransform = model.StartTransform = new Transform(model.CurrentTransform.WorldMatrix * Matrix.CreateTranslation(0, -model.CurrentTransformPosition.Y, 0));
+
+                            model.AnimContainer.ResetRootMotionYOnly(out float yValue);
+                            floorDifference = -yValue;
+
+                            model.NewForceSyncUpdate();
+
+                            ParentDocument.WorldViewManager.CurrentView.Update(0);
+                        });
+
+                        //DBG.NewGrid3D.WorldShiftOffset = new Vector3(0, modelFollowPos.Y, 0);
+                  
+                        DBG.NewGrid3D.ResetWorldShiftOffset();
+                    }
+                }
+            }
+
+            if (Main.Config.ResetHeadingOnAnimStart)
+            {
+                lock (DBG._lock_NewGrid3D)
+                {
+                    if (DBG.NewGrid3D != null)
+                    {
+                        //var modelFollowPos = Vector3.Zero;
+
+                        ParentDocument.Scene.AccessMainModel(model =>
+                        {
+                            //modelFollowPos = model.CurrentTransformPosition;
+                            var tr = model.CurrentTransform.WorldMatrix.ToNewBlendableTransform();
+                            tr.Rotation = System.Numerics.Quaternion.Identity;
+                            model.CurrentTransform = new Transform(tr.GetXnaMatrixFull());
+
+                            model.AnimContainer.ResetRootMotionWOnly();
+                        });
+
+                        //DBG.NewGrid3D.WorldShiftOffset = new Vector3(0, modelFollowPos.Y, 0);
+
+
+                    }
+                }
+            }
+
+            if (floorDifference != 0)
+            {
+                var queuedTransforms = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.ToList();
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
+                foreach (var tr in queuedTransforms)
+                {
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Enqueue(
+                        new Transform(tr.WorldMatrix * Matrix.CreateTranslation(0, floorDifference, 0)));
+                }
+                
+                var queuedTransforms_PrevLoop = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.ToList();
+                DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop.Clear();
+                foreach (var tr in queuedTransforms_PrevLoop)
+                {
+                    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop.Enqueue(
+                        new Transform(tr.WorldMatrix * Matrix.CreateTranslation(0, floorDifference, 0)));
+                }
+
+                DbgPrim_RootMotionStartPoint_Matrix *= Matrix.CreateTranslation(0, floorDifference, 0);
+                DbgPrim_RootMotionStartPoint_Matrix_PrevLoop *= Matrix.CreateTranslation(0, floorDifference, 0);
+            }
+            
+            var curTransform = Matrix.CreateScale(0.5f) * (CurrentModel?.AnimContainer?.RootMotionTransform ?? NewBlendableTransform.Identity).GetMatrix().ToXna();
+            
             if (DbgPrim_RootMotionStartPoint_Matrix != curTransform)
             {
                 // Force update last frame.
-                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, 0);
+                UpdateAndDrawRootMotionPoints(CurrentModel?.AnimContainer?.RootMotionTransform ?? NewBlendableTransform.Identity, false, 0);
             }
 
             lock (_lock_UpdateAndDrawRootMotionPoints)
@@ -352,10 +538,40 @@ namespace DSAnimStudio.TaeEditor
                     DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue_PrevLoop = DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue;
                     DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue = new Queue<Transform>();
                     DbgPrim_RootMotionStartPoint_Matrix = curTransform;
+                    //CurrentModel?.SetAnimStartTransform(curTransform);
+                    //CurrentModel?.ResetAttackDistMeasureAccumulation();
                 }
 
-                
+                CurrentModel?.SetAnimStartTransform(curTransform);
+                CurrentModel?.ResetAttackDistMeasureAccumulation();
             }
+
+            
+
+            //if (Main.Config.ResetGridOriginAtAnimStart)
+            //{
+
+            //    Matrix worldShift = Matrix.Identity;
+
+            //    lock (DBG._lock_NewGrid3D)
+            //    {
+            //        if (DBG.NewGrid3D != null)
+            //        {
+            //            DBG.NewGrid3D.OriginOffsetForWrap = Vector3.Zero;
+
+            //            worldShift = Matrix.Invert(CurrentModel.CurrentTransform.WorldMatrix);
+
+            //        }
+            //    }
+
+            //    GFX.CurrentWorldView.RegisterWorldShift(Vector3.Transform(Vector3.Zero, worldShift));
+
+            //    var inverseModelRotationMatrix = Matrix.Invert(Matrix.CreateFromQuaternion(CurrentModel.CurrentTransform.WorldMatrix.ToNewBlendableTransform().Rotation));
+
+            //    GFX.CurrentWorldView.RegisterWorldShift_Rotation(inverseModelRotationMatrix);
+
+            //    //CurrentModel.CurrentTransform = CurrentModel.StartTransform = new Transform(Matrix.Identity);
+            //}
 
             // Force update first frame.
             UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, 0);
@@ -364,10 +580,26 @@ namespace DSAnimStudio.TaeEditor
 
         //public static float StatusTextScale = 100.0f;
 
-        public Model CurrentModel => Scene.MainModel;
+        public Model CurrentModel => ParentDocument.Scene.MainModel;
 
         public void SetEntityType(TaeEntityType entityType)
         {
+            if (ParentDocument.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR)
+            {
+                if (entityType == TaeEntityType.PC)
+                    CurrentModel.EldenRingHandPoseAnimID = new SplitAnimID() { CategoryID = -1, SubID = 9 };
+                else if (entityType == TaeEntityType.NPC)
+                    CurrentModel.EldenRingHandPoseAnimID = new SplitAnimID() { CategoryID = -1, SubID = 43000 };
+                else
+                    CurrentModel.EldenRingHandPoseAnimID = SplitAnimID.Invalid;
+            }
+            else
+            {
+                CurrentModel.EldenRingHandPoseAnimID = SplitAnimID.Invalid;
+            }
+
+            CurrentModel.NewForceSyncUpdate();
+
             EntityType = entityType;
 
             if (entityType != TaeEntityType.NPC && CurrentModel != null)
@@ -379,16 +611,25 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            if (!(entityType == TaeEntityType.PC || entityType == TaeEntityType.REMO))
+            if (entityType == TaeEntityType.PC)
             {
-                OSD.WindowEditPlayerEquip.IsOpen = false;
+                OSD.WindowEquipment.IsOpen = true;
             }
+            else if (entityType == TaeEntityType.NPC && ParentDocument.GameRoot.GameType is SoulsGames.AC6)
+            {
+                OSD.WindowEquipment.IsOpen = true;
+            }
+            
+            // if (!(entityType == TaeEntityType.PC || entityType == TaeEntityType.REMO))
+            // {
+            //     OSD.WindowEquipment.IsOpen = false;
+            // }
           
         }
 
-        
 
-        public void InitializeCharacterModel(Model mdl, bool isRemo)
+
+        public void InitializeCharacterModel(Model mdl, bool isRemo, bool isActive = true)
         {
             lock (mdl)
             {
@@ -404,21 +645,39 @@ namespace DSAnimStudio.TaeEditor
 
                     mdl.ChrAsm.EquipmentModelsUpdated += ChrAsm_EquipmentModelsUpdated;
 
-                    if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(GameRoot.GameType))
+                    if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(ParentDocument.GameRoot.GameType))
                     {
                         Graph.MainScreen.Config.ChrAsmConfigurations.Add
-                            (GameRoot.GameType, new NewChrAsmCfgJson());
+                            (ParentDocument.GameRoot.GameType, new NewChrAsmCfgJson());
                     }
 
-                    Graph.MainScreen.Config.ChrAsmConfigurations[GameRoot.GameType]
+                    Graph.MainScreen.Config.ChrAsmConfigurations[ParentDocument.GameRoot.GameType]
                         .WriteToChrAsm(mdl.ChrAsm);
 
-                    mdl.ChrAsm.UpdateModels(isAsync: true);
+                    mdl.ChrAsm.UpdateModels(isAsync: true, onCompleteAction: null, forceReloadUnchanged: false, disableCache: false);
 
                     Graph.MainScreen.HardReset();
-                    OnScrubFrameChange(0);
+                    NewScrub();
 
                     SetEntityType(isRemo ? TaeEntityType.REMO : TaeEntityType.PC);
+
+                    if (ParentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                        GFX.CurrentWorldView.SetStartPositionForCharacterModel(height: 16, diameter: 10, posYOffset: -2.5f);
+                    else
+                        GFX.CurrentWorldView.SetStartPositionForCharacterModel(height: 2.25f, diameter: 1, posYOffset: -0.2f);
+
+                    if (ParentDocument.GameRoot.GameType is SoulsGames.AC6)
+                    {
+                        mdl.ChrHitCapsuleHeight = 15f; //TODO: Get actual value
+                        mdl.ChrHitCapsuleRadius = 04f; //TODO: Get actual value
+                        mdl.ChrHitCapsuleYOffset = 0; //TODO: Get actual value
+                    }
+                    else
+                    {
+                        mdl.ChrHitCapsuleHeight = 1.5f;
+                        mdl.ChrHitCapsuleRadius = 0.4f;
+                        mdl.ChrHitCapsuleYOffset = 0;
+                    }
                 }
                 else
                 {
@@ -428,6 +687,30 @@ namespace DSAnimStudio.TaeEditor
 
                     lock (mdl._lock_NpcParams)
                     {
+                        if (mdl.NpcParam != null)
+                        {
+                            mdl.ChrHitCapsuleHeight = mdl.NpcParam.HitHeight;
+                            mdl.ChrHitCapsuleRadius = mdl.NpcParam.HitRadius;
+                            mdl.ChrHitCapsuleYOffset = mdl.NpcParam.HitYOffset;
+
+                            GFX.CurrentWorldView.SetStartPositionForCharacterModel(mdl.NpcParam.HitHeight, mdl.NpcParam.HitRadius * 2, mdl.NpcParam.HitYOffset);
+                        }
+                        else
+                        {
+                            if (ParentDocument.GameRoot.GameType is SoulsGames.AC6)
+                            {
+                                mdl.ChrHitCapsuleHeight = 15f; //TODO: Get actual value
+                                mdl.ChrHitCapsuleRadius = 04f; //TODO: Get actual value
+                                mdl.ChrHitCapsuleYOffset = 0; //TODO: Get actual value
+                            }
+                            else
+                            {
+                                mdl.ChrHitCapsuleHeight = 1.5f;
+                                mdl.ChrHitCapsuleRadius = 0.4f;
+                                mdl.ChrHitCapsuleYOffset = 0;
+                            }
+                           
+                        }
 
                         mdl.NpcMaterialNamesPerMask = mdl.GetMaterialNamesPerMask();
 
@@ -462,198 +745,329 @@ namespace DSAnimStudio.TaeEditor
                     //}
 
                 }
+
+
+                
+
+                //mdl.IsVisible = isActive;
             }
         }
 
-        public TaeViewportInteractor(TaeEditAnimEventGraph graph)
+        public TaeViewportInteractor(NewGraph graph)
         {
             
             RemoManager.NukeEntireRemoSystemAndGoBackToNormalDSAnimStudio();
             
 
-            OSD.WindowEditPlayerEquip.IsOpen = false;
+            OSD.WindowEquipment.IsOpen = false;
 
             Graph = graph;
-            Graph.PlaybackCursor.PlaybackStarted += PlaybackCursor_PlaybackStarted;
-            Graph.PlaybackCursor.PlaybackFrameChange += PlaybackCursor_PlaybackFrameChange;
-            Graph.PlaybackCursor.ScrubFrameChange += PlaybackCursor_ScrubFrameChange;
-            Graph.PlaybackCursor.PlaybackEnded += PlaybackCursor_PlaybackEnded;
-            Graph.PlaybackCursor.EventBoxEnter += PlaybackCursor_EventBoxEnter;
-            Graph.PlaybackCursor.EventBoxMidst += PlaybackCursor_EventBoxMidst;
-            Graph.PlaybackCursor.EventBoxExit += PlaybackCursor_EventBoxExit;
-            Graph.PlaybackCursor.PlaybackLooped += PlaybackCursor_PlaybackLooped;
+            //Graph.PlaybackCursor.PlaybackFrameChange += PlaybackCursor_PlaybackFrameChange;
+            //Graph.PlaybackCursor.ScrubFrameChange += PlaybackCursor_ScrubFrameChange;
 
             //V2.0
             //NewAnimationContainer.AutoPlayAnimContainersUponLoading = false;
 
-            Scene.ClearScene();
-            TexturePool.Flush();
+            ParentDocument.Scene.ClearScene();
+            ParentDocument.TexturePool.Flush();
 
-            var shortFileName = Utils.GetFileNameWithoutAnyExtensions(
-                Utils.GetFileNameWithoutDirectoryOrExtension(Graph.MainScreen.FileContainerName)).ToLower();
+            var shortFileName = Utils.GetShortIngameFileName(Graph.MainScreen.NewFileContainerName).ToLower();
 
-            var fileName = Graph.MainScreen.FileContainerName.ToLower();
+            var containerInfo = Graph.MainScreen.FileContainer.Info;
 
-            var modelFileName = Graph.MainScreen.FileContainerName_Model ?? Graph.MainScreen.FileContainerName;
+            var fileName = Graph.MainScreen.NewFileContainerName.ToLower();
+
+            var modelFileName = Graph.MainScreen.NewFileContainerName_Model ?? Graph.MainScreen.NewFileContainerName;
 
             var shortFileName_Model = Utils.GetFileNameWithoutAnyExtensions(
                 Utils.GetFileNameWithoutDirectoryOrExtension(modelFileName)).ToLower();
 
             var fileName_Model = modelFileName.ToLower();
 
-            if (shortFileName.StartsWith("c"))
+            ParentDocument.LoadingTaskMan.DoLoadingTask("NewModelLoad", "Loading Model...", prog =>
             {
-                if (!Graph.MainScreen.SuppressNextModelOverridePrompt && GameRoot.GameType is not SoulsAssetPipeline.SoulsGames.DES)
+                IS_STILL_LOADING = true;
+                try
                 {
-
-                    var newChrbndName = GameData.ShowPickInsideBndPath("/chr/", @".*\/c\d\d\d\d.chrbnd.dcx$", $@"/chr/{shortFileName.Substring(0, 4)}",
-                        $"Choose Character Model for '{shortFileName}.anibnd.dcx'", $@"/chr/{shortFileName}.chrbnd.dcx");
-                    if (newChrbndName != null)
+                    if (shortFileName.StartsWith("c"))
                     {
-                        modelFileName = fileName_Model = newChrbndName;
-                        shortFileName_Model = Utils.GetFileNameWithoutAnyExtensions(
-                            Utils.GetFileNameWithoutDirectoryOrExtension(modelFileName)).ToLower();
+                        if (!Graph.MainScreen.SuppressNextModelOverridePrompt && ParentDocument.GameRoot.GameType is not SoulsAssetPipeline.SoulsGames.DES)
+                        {
+                            
+                            var newChrbndName = ParentDocument.GameData.ShowPickInsideBndPath("/chr/", @".*\/c\d\d\d\d.chrbnd.dcx$", $@"/chr/{shortFileName.Substring(0, 4)}",
+                                $"Choose Character Model for '{shortFileName}.anibnd.dcx'", $@"/chr/{shortFileName}.chrbnd.dcx");
+                            if (newChrbndName != null)
+                            {
+                                modelFileName = fileName_Model = newChrbndName;
+                                shortFileName_Model = Utils.GetFileNameWithoutAnyExtensions(
+                                    Utils.GetFileNameWithoutDirectoryOrExtension(modelFileName)).ToLower();
+                            }
+                            else
+                            {
+                                System.Windows.Forms.MessageBox.Show("Unable to find any characters in game data. " +
+                                    "Make sure your directories are setup properly on the 'Setup Project Directories' menu.", "Error", System.Windows.Forms.MessageBoxButtons.OK,
+                                    System.Windows.Forms.MessageBoxIcon.Error);
+
+                                Main.REQUEST_REINIT_EDITOR = true;
+                                return;
+                            }
+
+                        }
+                        else
+                        {
+                            Graph.MainScreen.SuppressNextModelOverridePrompt = false;
+                        }
+
+
+                        var loadedModels = ParentDocument.GameRoot.LoadCharacter(shortFileName.Substring(0, 5), shortFileName_Model.Substring(0, 5));
+
+                        var models = ParentDocument.Scene.Models.ToList();
+                        foreach (var m in models)
+                        {
+                            if (m != null)
+                                InitializeCharacterModel(m, isRemo: false, isActive: ParentDocument.Scene.MainModel == m);
+                        }
+
+                        if (loadedModels.Length == 0 || !loadedModels.Any(x => x != null))
+                        {
+                            ParentDocument.Scene.SetMainModelAsDummy();
+                            return;
+                        }
+
+                        CurrentModel?.NewForceSyncUpdate();
+
+                        GFX.CurrentWorldView.NewDoRecenterAction = () =>
+                        {
+                            GFX.CurrentWorldView.CameraLookDirection = Quaternion.Identity;
+                        };
+
+                        LoadFmodSoundsForCurrentModel();
+
+
+
+
+                        ParentDocument.GameRoot.LoadSystex();
                     }
-                    else
+                    else if (shortFileName.StartsWith("o"))
                     {
-                        System.Windows.Forms.MessageBox.Show("Unable to find any characters in game data. " +
-                            "Make sure your directories are setup properly on the 'Setup Project Directories' menu.", "Error", System.Windows.Forms.MessageBoxButtons.OK,
-                            System.Windows.Forms.MessageBoxIcon.Error);
+                        
 
-                        Main.REQUEST_REINIT_EDITOR = true;
-                        return;
+                        //GameRoot.LoadObject(shortFileName);
+
+                        //GFX.CurrentWorldView.NewDoRecenterAction = () =>
+                        //{
+                        //    GFX.CurrentWorldView.CameraLookDirection = Quaternion.Identity;
+                        //};
+                        //GFX.CurrentWorldView.NewRecenter();
+
+                        //LoadSoundsForCurrentModel();
+
+                        //throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
+
+                        if (containerInfo is DSAProj.TaeContainerInfo.ContainerAnibndInBinder asAnibndInBinder)
+                        {
+                            var model = ParentDocument.GameRoot.NewLoadObj(shortFileName, asAnibndInBinder.BindID - 400);
+                            //InitializeCharacterModel(model, isRemo: false, isActive: true);
+                            ////var models = Scene.Models.ToList();
+                            //foreach (var m in models)
+                            //{
+                            //    if (m != null)
+                            //        InitializeCharacterModel(m, isRemo: false, isActive: Scene.MainModel == m);
+                            //}
+
+                            if (model == null)
+                            {
+                                ParentDocument.Scene.SetMainModelAsDummy();
+                                return;
+                            }
+
+                            SetEntityType(TaeEntityType.OBJ);
+
+                            CurrentModel.NewForceSyncUpdate();
+
+                            GFX.CurrentWorldView.NewDoRecenterAction = () =>
+                            {
+                                GFX.CurrentWorldView.CameraLookDirection = Quaternion.Identity;
+                            };
+
+                            LoadFmodSoundsForCurrentModel();
+
+                            ParentDocument.GameRoot.LoadSystex();
+                        }
+
+
+                    }
+                    else if (fileName.EndsWith(".partsbnd") || fileName.EndsWith(".partsbnd.dcx"))
+                    {
+                        
+
+                        //throw new NotImplementedException("PARTS NOT SUPPORTED YET");
+                        if (containerInfo is DSAProj.TaeContainerInfo.ContainerAnibndInBinder asAnibndInBinder)
+                        {
+                            var model = ParentDocument.GameRoot.NewLoadParts(shortFileName, asAnibndInBinder.BindID - 400);
+                            //InitializeCharacterModel(model, isRemo: false, isActive: true);
+                            ////var models = Scene.Models.ToList();
+                            //foreach (var m in models)
+                            //{
+                            //    if (m != null)
+                            //        InitializeCharacterModel(m, isRemo: false, isActive: Scene.MainModel == m);
+                            //}
+                            if (model == null)
+                            {
+                                ParentDocument.Scene.SetMainModelAsDummy();
+                                return;
+                            }
+
+                            SetEntityType(TaeEntityType.PARTS);
+
+                            CurrentModel.NewForceSyncUpdate();
+
+                            GFX.CurrentWorldView.NewDoRecenterAction = () =>
+                            {
+                                GFX.CurrentWorldView.CameraLookDirection = Quaternion.Identity;
+                            };
+
+                            LoadFmodSoundsForCurrentModel();
+
+                            ParentDocument.GameRoot.LoadSystex();
+                        }
+                    }
+                    else if (fileName.EndsWith(".remobnd") || fileName.EndsWith(".remobnd.dcx"))
+                    {
+                        SetEntityType(TaeEntityType.REMO);
+
+                        ParentDocument.Scene.DisableModelDrawing();
+
+                        RemoManager.ViewportInteractor = this;
+
+                        RemoManager.DisposeAllModels();
+                        RemoManager.RemoName = Utils.GetShortIngameFileName(Graph.MainScreen.NewFileContainerName);
+
+                        var fmod = ParentDocument.Fmod;
+
+                        fmod.Purge();
+                        if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
+                        ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                        {
+                            fmod.LoadInterrootFEV("main");
+                            var dlc = fmod.GetFevPathFromInterroot("main", isDs1Dlc: true);
+                            if (System.IO.File.Exists(dlc))
+                                fmod.LoadFEV(dlc);
+
+                            fmod.LoadInterrootFEV("smain");
+                            dlc = fmod.GetFevPathFromInterroot("smain", isDs1Dlc: true);
+                            if (System.IO.File.Exists(dlc))
+                                fmod.LoadFEV(dlc);
+
+                            fmod.LoadInterrootFEV($"m{RemoManager.AreaInt:D2}");
+                            dlc = fmod.GetFevPathFromInterroot($"m{RemoManager.AreaInt:D2}", isDs1Dlc: true);
+                            if (System.IO.File.Exists(dlc))
+                                fmod.LoadFEV(dlc);
+
+                            fmod.LoadInterrootFEV($"sm{RemoManager.AreaInt:D2}");
+                            dlc = fmod.GetFevPathFromInterroot($"sm{RemoManager.AreaInt:D2}", isDs1Dlc: true);
+                            if (System.IO.File.Exists(dlc))
+                                fmod.LoadFEV(dlc);
+
+                            fmod.LoadInterrootFEV($"p{RemoManager.RemoName.Substring(3)}");
+                            dlc = fmod.GetFevPathFromInterroot($"p{RemoManager.RemoName.Substring(3)}", isDs1Dlc: true);
+                            if (System.IO.File.Exists(dlc))
+                                fmod.LoadFEV(dlc);
+                        }
+
+                        RemoManager.LoadRemoDict(Graph.MainScreen.FileContainer);
+
+                        if (ParentDocument.Scene.Models.Count == 0)
+                            ParentDocument.GameRoot.LoadCharacter("c0000", "c0000");
+
+                        lock (ParentDocument.Scene._lock_ModelLoad_Draw)
+                        {
+                            ParentDocument.Scene.Models = ParentDocument.Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
+                        }
+
+                        ParentDocument.GameRoot.LoadSystex();
+
+                        //throw new NotImplementedException("REMO NOT SUPPORTED YET");
                     }
 
+
+
+                    InitializeForCurrentModel();
+
+                    ParentDocument.Scene.EnableModelDrawing();
+                    if (ParentDocument.Scene.IsEmpty)
+                        ParentDocument.Scene.SetMainModelAsDummy();
+
+                    if (!CurrentModel.IS_PLAYER)
+                        ParentDocument.Scene.EnableModelDrawing2();
+
+                    //if (ParentDocument.GameRoot.GameTypeUsesWwise)
+                    //{
+                    //    Wwise.InitLookupBanks();
+                    //}
+                    
+                    Graph?.MainScreen?.SelectNewAnimRef(Graph.MainScreen.SelectedAnimCategory, Graph.MainScreen.SelectedAnim);
                 }
-                else
+                finally
                 {
-                    Graph.MainScreen.SuppressNextModelOverridePrompt = false;
+                    Main.MainThreadLazyDispatch(() =>
+                    {
+                        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                        //GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: false, compacting: true);
+                        //GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: false);
+                        GC.Collect();
+                    }, waitForAllLoadingTasks: true);
+                    IS_STILL_LOADING = false;
                 }
-
-                GameRoot.LoadCharacter(shortFileName.Substring(0, 5), shortFileName_Model.Substring(0, 5));
-
-                InitializeCharacterModel(CurrentModel, isRemo: false);
-
-                CurrentModel.AfterAnimUpdate(timeDelta: 0);
-
-                GFX.CurrentWorldView.NewDoRecenterAction = () =>
-                {
-                    GFX.CurrentWorldView.CameraLookDirection = Quaternion.Identity;
-                };
-                
-                LoadSoundsForCurrentModel();
-            }
-            else if (shortFileName.StartsWith("o"))
-            {
-                SetEntityType(TaeEntityType.OBJ);
-
-                GameRoot.LoadObject(shortFileName);
-
-                GFX.CurrentWorldView.NewDoRecenterAction = () =>
-                {
-                    GFX.CurrentWorldView.CameraLookDirection = Quaternion.Identity;
-                };
-                GFX.CurrentWorldView.NewRecenter();
-
-                LoadSoundsForCurrentModel();
-
-                //throw new NotImplementedException("OBJECTS NOT SUPPORTED YET");
-            }
-            else if (fileName.EndsWith(".partsbnd") || fileName.EndsWith(".partsbnd.dcx"))
-            {
-                SetEntityType(TaeEntityType.PARTS);
-
-                throw new NotImplementedException("PARTS NOT SUPPORTED YET");
-            }
-            else if (fileName.EndsWith(".remobnd") || fileName.EndsWith(".remobnd.dcx"))
-            {
-                SetEntityType(TaeEntityType.REMO);
-
-                Scene.DisableModelDrawing();
-
-                RemoManager.ViewportInteractor = this;
-
-                RemoManager.DisposeAllModels();
-                RemoManager.RemoName = Utils.GetShortIngameFileName(Graph.MainScreen.FileContainerName);
-
-
-
-                FmodManager.Purge();
-                if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                {
-                    FmodManager.LoadInterrootFEV("main");
-                    var dlc = FmodManager.GetFevPathFromInterroot("main", isDs1Dlc: true);
-                    if (System.IO.File.Exists(dlc))
-                        FmodManager.LoadFEV(dlc);
-
-                    FmodManager.LoadInterrootFEV("smain");
-                    dlc = FmodManager.GetFevPathFromInterroot("smain", isDs1Dlc: true);
-                    if (System.IO.File.Exists(dlc))
-                        FmodManager.LoadFEV(dlc);
-
-                    FmodManager.LoadInterrootFEV($"m{RemoManager.AreaInt:D2}");
-                    dlc = FmodManager.GetFevPathFromInterroot($"m{RemoManager.AreaInt:D2}", isDs1Dlc: true);
-                    if (System.IO.File.Exists(dlc))
-                        FmodManager.LoadFEV(dlc);
-
-                    FmodManager.LoadInterrootFEV($"sm{RemoManager.AreaInt:D2}");
-                    dlc = FmodManager.GetFevPathFromInterroot($"sm{RemoManager.AreaInt:D2}", isDs1Dlc: true);
-                    if (System.IO.File.Exists(dlc))
-                        FmodManager.LoadFEV(dlc);
-
-                    FmodManager.LoadInterrootFEV($"p{RemoManager.RemoName.Substring(3)}");
-                    dlc = FmodManager.GetFevPathFromInterroot($"p{RemoManager.RemoName.Substring(3)}", isDs1Dlc: true);
-                    if (System.IO.File.Exists(dlc))
-                        FmodManager.LoadFEV(dlc);
-                }
-                
-                RemoManager.LoadRemoDict(Graph.MainScreen.FileContainer);
-
-                if (Scene.Models.Count == 0)
-                    GameRoot.LoadCharacter("c0000", "c0000");
-
-                lock (Scene._lock_ModelLoad_Draw)
-                {
-                    Scene.Models = Scene.Models.OrderBy(m => m.IS_PLAYER ? 0 : 1).ToList();
-                }
-
-                //throw new NotImplementedException("REMO NOT SUPPORTED YET");
-            }
-
-            
-
-            InitializeForCurrentModel();
-
-            Scene.EnableModelDrawing();
-            if (Scene.IsEmpty)
-                GameRoot.LoadCharacter("c1000", "c1000");
-
-            if (!CurrentModel.IS_PLAYER)
-                Scene.EnableModelDrawing2();
+            });
         }
 
-        public void LoadSoundsForCurrentModel(bool fresh = true)
+        public void LoadFmodSoundsForCurrentModel(bool fresh = true)
         {
-            if (fresh)
-                FmodManager.Purge();
-            if (!FmodManager.IsFevLoaded(CurrentModel.Name) || !FmodManager.AreMainFevsLoaded())
-            {
-                FmodManager.LoadMainFEVs();
-                FmodManager.LoadInterrootFEV(CurrentModel.Name);
-            }
+            var document = Graph.MainScreen.ParentDocument;
+
+            document.SoundManager.PurgeLoadedAssets();
+            document.SoundManager.SetEngineToCurrentGame(document.GameRoot.GameType);
+            document.SoundManager.ClearBankLists(masterList: false, lookupList: true);
+            document.SoundManager.CopySoundBanksFromProjToThis();
+
+            //if (document.SoundManager.EngineType is zzz_SoundManagerIns.EngineTypes.FMOD)
+            //{
+            //    if (!document.Fmod.IsFevLoaded(CurrentModel?.Name) || !document.Fmod.AreMainFevsLoaded())
+            //    {
+            //        document.Fmod.LoadMainFEVs();
+            //        document.Fmod.LoadInterrootFEV(CurrentModel?.Name);
+            //    }
+            //}
+            //else if (document.SoundManager.EngineType is zzz_SoundManagerIns.EngineTypes.Wwise)
+            //{
+            //    var soundBankNames = document.SoundManager.GetAdditionalSoundBankNames();
+            //    Wwise.PurgeLoadedAssets(document.SoundManager);
+            //    Wwise.AddLookupBanks(soundBankNames);
+            //}
+            //else if (document.SoundManager.EngineType is zzz_SoundManagerIns.EngineTypes.MagicOrchestra)
+            //{
+            //    var soundBankNames = document.SoundManager.GetAdditionalSoundBankNames();
+            //    MagicOrchestra.PurgeLoadedAssets(document.SoundManager);
+            //    MagicOrchestra.AddLookupBanks(soundBankNames);
+            //}
+
+            ////if (ParentDocument.GameRoot.GameTypeUsesWwise)
+            ////{
+            ////    Wwise.InitLookupBanks();
+            ////}
         }
 
         public void InitializeForCurrentModel()
         {
             if (CurrentModel != null)
             {
-                if (CurrentModel?.AnimContainer.Skeleton != null)
-                    CurrentComboRecorder = new HavokRecorder(CurrentModel.AnimContainer.Skeleton.HkxSkeleton);
+                // if (CurrentModel?.AnimContainer.Skeleton != null)
+                //     CurrentComboRecorder = new HavokRecorder(CurrentModel.AnimContainer.Skeleton.Bones);
 
-                GFX.CurrentWorldView.OrbitCamDistanceInput = (CurrentModel.Bounds.Max - CurrentModel.Bounds.Min).Length() * 4f;
-                if (GFX.CurrentWorldView.OrbitCamDistanceInput < 0.5f)
-                    GFX.CurrentWorldView.OrbitCamDistanceInput = 5;
+                //GFX.CurrentWorldView.OrbitCamDistanceInput = (CurrentModel.Bounds.Max - CurrentModel.Bounds.Min).Length() * 4f;
+                //if (GFX.CurrentWorldView.OrbitCamDistanceInput < 0.5f)
+                //    GFX.CurrentWorldView.OrbitCamDistanceInput = 5;
 
                 lock (CurrentModel._lock_NpcParams)
                 {
@@ -679,8 +1093,9 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                OSD.WindowEntitySettings.IsOpen = true;
+                OSD.WindowEntity.IsOpen = true;
             }
+
         }
 
         private void ChrAsm_EquipmentModelsUpdated(object sender, EventArgs e)
@@ -688,21 +1103,19 @@ namespace DSAnimStudio.TaeEditor
             if (Graph == null || Graph.PlaybackCursor == null || Graph.MainScreen.PlaybackCursor == null)
                 return;
 
-            Graph.MainScreen.SelectNewAnimRef(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
+            Graph.MainScreen.SelectNewAnimRef(Graph.MainScreen.SelectedAnimCategory, Graph.MainScreen.SelectedAnim);
 
             //V2.0: Scrub weapon anims to the current frame.
 
-            CurrentModel.ChrAsm?.RightWeaponModel0?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm?.RightWeaponModel1?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm?.RightWeaponModel2?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm?.RightWeaponModel3?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm?.LeftWeaponModel0?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm?.LeftWeaponModel1?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm?.LeftWeaponModel2?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
-            CurrentModel.ChrAsm?.LeftWeaponModel3?.ScrubAnimRelative(timeDelta: CurrentModel.AnimContainer.CurrentAnimTime);
+            if (CurrentModel.ChrAsm != null)
+            {
+                CurrentModel.ChrAsm.UpdateWeaponTransforms(0);
+                CurrentModel.ChrAsm.UpdateEquipmentAnimation(0, forceSyncUpdate: true);
+            }
+
 
             //V2.0: Update stuff probably
-            CurrentModel.AfterAnimUpdate(0);
+            CurrentModel.NewForceSyncUpdate();
         }
 
         //private void EquipForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
@@ -712,114 +1125,113 @@ namespace DSAnimStudio.TaeEditor
 
         public void SaveChrAsm()
         {
-            if (CurrentModel.ChrAsm != null)
+            if (CurrentModel?.ChrAsm != null)
             {
-                if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(GameRoot.GameType))
+                if (!Graph.MainScreen.Config.ChrAsmConfigurations.ContainsKey(ParentDocument.GameRoot.GameType))
                 {
                     Graph.MainScreen.Config.ChrAsmConfigurations.Add
-                        (GameRoot.GameType, new NewChrAsmCfgJson());
+                        (ParentDocument.GameRoot.GameType, new NewChrAsmCfgJson());
                 }
 
-                Graph.MainScreen.Config.ChrAsmConfigurations[GameRoot.GameType].CopyFromChrAsm(CurrentModel.ChrAsm);
+                Graph.MainScreen.Config.ChrAsmConfigurations[ParentDocument.GameRoot.GameType].CopyFromChrAsm(CurrentModel.ChrAsm);
             }
         }
 
-        private void PlaybackCursor_PlaybackFrameChange(object sender, EventArgs e)
-        {
-            Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
-            Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
-
-
-            var timeDelta = (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
-            if (EntityType == TaeEntityType.REMO)
-            {
-                bool remoCutAdv = RemoManager.UpdateCutAdvance();
-                if (remoCutAdv)
-                    return;
-            }
-
-            //V2.0
-            //CurrentModel.AnimContainer.IsPlaying = false;
-            CurrentModel.AnimContainer.EnableLooping = Main.Config.LoopEnabled;
-            CurrentModel.ScrubAnimRelative(timeDelta, updateSkeleton: false);
-
-
-            // Update skeleton before world for camera follow DummyPoly mode
-            CurrentModel.UpdateSkeleton();
-            // Update root motion before world for camera follow root motion mode
-            UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, timeDelta);
-            GFX.CurrentWorldView.Update(0);
-            CurrentModel.AfterAnimUpdate(timeDelta);
-            
-
-
-
-            if (UpdateCombo())
-            {
-                return;
-            }
-
-            //V2.0
-            //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
-
-            CheckSimEnvironment();
-            try
-            {
-                EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.CurrentTimeMod);
-            }
-            catch
-            {
-
-            }
-
-            if (EntityType == TaeEntityType.REMO)
-            {
-                RemoManager.UpdateRemoTime((float)Graph.PlaybackCursor.GUICurrentTimeMod);
-            }
-
-            GFX.CurrentWorldView.Update(0);
-
-            
-        }
+        // private void PlaybackCursor_PlaybackFrameChange(object sender, EventArgs e)
+        // {
+        //     // if (Graph.PlaybackCursor.Scrubbing)
+        //     //     return;
+        //     
+        //     Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
+        //     Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
+        //
+        //
+        //     var timeDelta = (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
+        //     if (EntityType == TaeEntityType.REMO)
+        //     {
+        //         bool remoCutAdv = RemoManager.UpdateCutAdvance();
+        //         if (remoCutAdv)
+        //             return;
+        //     }
+        //
+        //     //V2.0
+        //     //CurrentModel.AnimContainer.IsPlaying = false;
+        //     CurrentModel.AnimContainer.EnableLooping = Main.Config.LoopEnabled;
+        //     CurrentModel.ScrubAnim(absolute: true, (float)(Graph.PlaybackCursor.GUICurrentTime), true, true);
+        //     // Update root motion before world for camera follow root motion mode
+        //     UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, timeDelta);
+        //     GFX.CurrentWorldView.Update(0);
+        //     CurrentModel.AfterAnimUpdate(timeDelta);
+        //
+        //     //V2.0
+        //     //CurrentModel.ChrAsm?.UpdateWeaponTransforms(timeDelta);
+        //
+        //     CheckSimEnvironment();
+        //
+        //     ActionSim.IsRemoModeEnabled = (EntityType == TaeEntityType.REMO);
+        //     ActionSim.GraphForRemoSpecifically = Graph;
+        //
+        //
+        //     try
+        //     {
+        //         var pb = Graph.PlaybackCursor;
+        //         ActionSim.OnSimulationFrameChange(Graph, Graph.MainScreen.Proj.GetAnimation, Graph.MainScreen.SelectedAnim.NewID, pb.JustStartedPlaying && (pb.Scrubbing || pb.IsPlaying));
+        //         //var childGraphs = Graph.GetChildGraphs();
+        //         //foreach (var graph in childGraphs)
+        //         //{
+        //         //    graph.PlaybackCursor = Graph.PlaybackCursor;
+        //         //    graph.EventSim?.OnSimulationFrameChange(graph.AnimRef.Events.OrderBy(x => x.StartTime).ToList(), (float)pb.CurrentTimeMod, (float)pb.OldCurrentTimeMod, pb.JustStartedPlaying && (pb.Scrubbing || pb.IsPlaying), pb.CurrentLoopCountDelta, (float)pb.MaxTime, timeDelta);
+        //         //}
+        //     }
+        //     catch
+        //     {
+        //
+        //     }
+        //
+        //     
+        //     Graph.PlaybackCursor.ModPlaybackSpeed_GrabityRate = ActionSim.ModPlaybackSpeed_GrabityRate;
+        //     Graph.PlaybackCursor.ModPlaybackSpeed_Event603 = ActionSim.ModPlaybackSpeed_Event603;
+        //     Graph.PlaybackCursor.ModPlaybackSpeed_Event608 = ActionSim.ModPlaybackSpeed_Event608;
+        //     Graph.PlaybackCursor.ModPlaybackSpeed_NightfallEvent7032 = ActionSim.ModPlaybackSpeed_NightfallEvent7032;
+        //     Graph.PlaybackCursor.ModPlaybackSpeed_AC6Event9700 = ActionSim.ModPlaybackSpeed_AC6Event9700;
+        //
+        //
+        //     if (EntityType == TaeEntityType.REMO)
+        //     {
+        //         RemoManager.UpdateRemoTime((float)Graph.PlaybackCursor.GUICurrentTimeMod);
+        //     }
+        //
+        //     GFX.CurrentWorldView.Update(0);
+        //
+        //     
+        // }
 
         private void CheckSimEnvironment()
         {
-            if (EventSim == null || EventSim.MODEL != CurrentModel)
+            if (ActionSim == null || ActionSim.MODEL != CurrentModel)
             {
-                EventSim = new TaeEventSimulationEnvironment(Graph, CurrentModel);
+                ActionSim = new TaeActionSimulationEnvironment(ParentDocument, CurrentModel);
+                Graph.ActionSim = ActionSim;
             }
         }
 
-        private void PlaybackCursor_EventBoxExit(object sender, TaeEditAnimEventBox e)
-        {
-            CheckSimEnvironment();
-            EventSim.OnEventExit(e);
-        }
+        //public void NewScrubKeepRootMotion(bool absolute = false, float time = 0, bool foreground = true, bool background = true, bool forceRefreshTimeact = false)
+        //{
+        //    var prevRootMotion = CurrentModel.AnimContainer.RootMotionTransformVec;
+        //    NewScrub(absolute, time, foreground, background, forceRefreshTimeact);
+        //    CurrentModel.AnimContainer.AddRelativeRootMotionRotation
+        //}
 
-        private void PlaybackCursor_EventBoxMidst(object sender, TaeEditAnimEventBox e)
-        {
-            CheckSimEnvironment();
-            EventSim.OnEventMidFrame(e);
-        }
 
-        private void PlaybackCursor_EventBoxEnter(object sender, TaeEditAnimEventBox e)
-        {
-            CheckSimEnvironment();
-            EventSim.OnEventEnter(e);
-        }
-
-        private void PlaybackCursor_PlaybackEnded(object sender, EventArgs e)
-        {
-            CheckSimEnvironment();
-            EventSim.OnSimulationEnd(Graph.EventBoxesToSimulate);
-        }
-
-        public void OnScrubFrameChange(float? forceCustomTimeDelta = null, bool doNotScrubBackgroundLayers = false)
+        public void NewScrub(bool absolute = false, float time = 0, bool foreground = true, 
+            bool background = true, bool forceRefreshTimeact = false, bool ignoreRootMotion = false)
         {
             Graph.PlaybackCursor.HkxAnimationLength = CurrentModel?.AnimContainer?.CurrentAnimDuration;
             Graph.PlaybackCursor.SnapInterval = CurrentModel?.AnimContainer?.CurrentAnimFrameDuration;
 
-            var timeDelta = forceCustomTimeDelta ?? (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
+            
+
+            //var timeDelta = forceCustomTimeDelta ?? (float)(Graph.PlaybackCursor.GUICurrentTime - Graph.PlaybackCursor.OldGUICurrentTime);
 
             //TODO: Check if this is going to deadlock
           
@@ -827,31 +1239,65 @@ namespace DSAnimStudio.TaeEditor
             {
                 //V2.0
                 //CurrentModel.AnimContainer.IsPlaying = false;
-                CurrentModel.AnimContainer.EnableLooping = Main.Config.LoopEnabled;
-                CurrentModel.ScrubAnimRelative(timeDelta, doNotScrubBackgroundLayers);
-
-                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, timeDelta);
-
-                CurrentModel.AfterAnimUpdate(timeDelta);
+                //CurrentModel.AnimContainer.Proj = Graph.MainScreen.Proj;
+                if (!NewIsComboActive)
+                    CurrentModel.AnimContainer.EnableLooping = Main.Config.LoopEnabled;
+                //CurrentModel.ScrubAnim(absolute, time, foreground, background, out float timeDelta);
 
                 
 
-                if (CurrentComboIndex >= 0 && IsComboRecording && !CurrentComboDisableAdvance_DuringAnimSwitch)
-                {
-                    if (UpdateCombo())
-                        return;
-                }
+                var pb = Graph.PlaybackCursor;
 
                 //TODO: Check if putting this inside the lock() fixes.
                 CheckSimEnvironment();
-                if (!LoadingTaskMan.AnyTasksRunning())
-                {
-                    EventSim.OnSimulationFrameChange(Graph.EventBoxesToSimulate, (float)Graph.PlaybackCursor.GUICurrentTimeMod);
-                }
-            }
-            catch
-            {
 
+                if (!ParentDocument.LoadingTaskMan.AnyInteractionBlockingTasks() || forceRefreshTimeact)
+                {
+                    
+                    // Uses "GUI" times in playback cursor specifically since it's for scrubbing, which might have snap to frames enabled.
+                    ActionSim.OnSimulationFrameChange(Graph, Graph.MainScreen.Proj.SAFE_GetFirstAnimationFromFullID, Graph.MainScreen.SelectedAnim.SplitID, pb.JustStartedPlaying);
+                    //var childGraphs = Graph.GetChildGraphs();
+                    //foreach (var graph in childGraphs)
+                    //{
+                    //    graph.PlaybackCursor = Graph.PlaybackCursor;
+                    //    graph.EventSim.OnSimulationFrameChange(graph.AnimRef.Events.OrderBy(x => x.StartTime).ToList(), (float)pb.GUICurrentTimeMod, (float)pb.OldGUICurrentTimeMod, pb.JustStartedPlaying && (pb.Scrubbing || pb.IsPlaying), pb.CurrentLoopCountDelta, (float)pb.MaxTime, timeDelta);
+                    //}
+                }
+
+                CurrentModel.NewScrubSimTime(absolute, time, true, true, out float timeDelta, 
+                    baseSlotOnly: absolute && !NewAnimationContainer.GLOBAL_SYNC_FORCE_REFRESH, 
+                    forceSyncUpdate: NewAnimationContainer.GLOBAL_SYNC_FORCE_REFRESH, ignoreRootMotion);
+
+                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, timeDelta);
+
+                if (!ignoreRootMotion)
+                {
+                    
+
+                    if (Graph.PlaybackCursor.CurrentLoopCountDelta != 0 && timeDelta != 0)
+                        MarkRootMotionStart();
+                }
+
+                //CurrentModel?.NewUpdateByAnimTick(timeDelta, forceSyncUpdate: false);
+
+
+               
+
+                ActionSim.IsRemoModeEnabled = (EntityType == TaeEntityType.REMO);
+                ActionSim.GraphForRemoSpecifically = Graph;
+
+               
+
+                Graph.PlaybackCursor.ModPlaybackSpeed_GrabityRate = ActionSim.ModPlaybackSpeed_GrabityRate;
+                Graph.PlaybackCursor.ModPlaybackSpeed_Event603 = ActionSim.ModPlaybackSpeed_Event603;
+                Graph.PlaybackCursor.ModPlaybackSpeed_Event608 = ActionSim.ModPlaybackSpeed_Event608;
+                Graph.PlaybackCursor.ModPlaybackSpeed_NightfallEvent7032 = ActionSim.ModPlaybackSpeed_NightfallEvent7032;
+                Graph.PlaybackCursor.ModPlaybackSpeed_AC6Event9700 = ActionSim.ModPlaybackSpeed_AC6Event9700;
+            }
+            catch(Exception ex) when (Main.EnableErrorHandler.ActionSimUpdate_Inner)
+            {
+                if (Main.IsDebugBuild)
+                    Console.WriteLine("test");
             }
             
             //V2.0
@@ -865,615 +1311,6 @@ namespace DSAnimStudio.TaeEditor
             {
                 RemoManager.UpdateRemoTime((float)Graph.PlaybackCursor.GUICurrentTimeMod);
             }
-        }
-
-        public void StartCombo(bool isLoop, bool isRecord, TaeComboEntry[] entries, bool isRecordingHkxOnly, bool is60Fps)
-        {
-            if (CurrentComboIndex >= 0)
-            {
-                // Just in case?
-                CancelCombo();
-            }
-
-            CurrentCombo_FloatBackup_RootMotionMultXZ = Main.Config.RootMotionTranslationMultiplierXZ;
-            CurrentCombo_FloatBackup_RootMotionMultY = Main.Config.RootMotionTranslationMultiplierY;
-            CurrentCombo_FloatBackup_PlaybackSpeed = TaeEditor.TaePlaybackCursor.GlobalBasePlaybackSpeed;
-
-            
-
-            CurrentComboDisableAdvance_DuringAnimSwitch = false;
-
-            Main.Config.LoopEnabled_BeforeCombo = Main.Config.LoopEnabled;
-
-            Graph.PlaybackCursor.IsPlayingCombo = true;
-
-            // Do this before setting current combo since inside here, it will check if there's a combo and not reset stuff if there's currently a combo happening.
-            // Uhh, what?
-            CurrentComboIndex = -1;
-            lock (Graph._lock_EventBoxManagement)
-            {
-                EventSim.OnNewAnimSelected(Graph.EventBoxes);
-                //Graph.PlaybackCursor.Update(Graph.EventBoxes, ignoreDeltaTime: true);
-                //EventSim.OnSimulationFrameChange(Graph.EventBoxes, 0);
-            }
-
-            if (isRecord)
-                CurrentComboRecorder.ClearRecording();
-
-            CurrentComboLoop = isLoop;
-            IsComboRecording = false;
-            IsComboRecordingEnding = false;
-            CurrentComboRecorder.RecordHkxOnly = isRecordingHkxOnly;
-            CurrentComboRecorder.SampleFrameRate = is60Fps ? 60 : 30;
-            CurrentCombo = entries;
-            CurrentComboIndex = 0;
-            if (CurrentModel.ChrAsm != null)
-            {
-                CurrentModel.ChrAsm.WeaponStyle = CurrentModel.ChrAsm.StartWeaponStyle;
-            }
-
-            Graph.MainScreen.HardReset();
-            StartCurrentComboEntry(true, isRecord);
-            RemoveTransition();
-        }
-
-        private void StartCurrentComboEntry(bool isFirstTime, bool isRecord = false)
-        {
-            
-
-            var type = CurrentCombo[CurrentComboIndex].ComboType;
-
-
-            if (type == TaeComboMenu.TaeComboAnimType.PlayerRH)
-            {
-                EventSim.OverrideHitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.RightWeapon0;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.PlayerLH)
-            {
-                EventSim.OverrideHitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.LeftWeapon0;
-            }
-            else
-            {
-                EventSim.OverrideHitViewDummyPolySource = ParamData.AtkParam.DummyPolySource.Body;
-            }
-
-
-            if (type == TaeComboMenu.TaeComboAnimType.SetPlaybackSpeed)
-            {
-                TaePlaybackCursor.GlobalBasePlaybackSpeed = CurrentCombo[CurrentComboIndex].SetValueFloat;
-                GoToNextItemInCombo();
-                return;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.SetRootMotionMultXZ)
-            {
-                Main.Config.RootMotionTranslationMultiplierXZ = CurrentCombo[CurrentComboIndex].SetValueFloat;
-                GoToNextItemInCombo();
-                return;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.SetRootMotionMultY)
-            {
-                Main.Config.RootMotionTranslationMultiplierY = CurrentCombo[CurrentComboIndex].SetValueFloat;
-                GoToNextItemInCombo();
-                return;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.SetBlend)
-            {
-                CurrentComboBlendFramesForNext_Base = CurrentCombo[CurrentComboIndex].SetValueFloat;
-                GoToNextItemInCombo();
-                return;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.SetBlendSine)
-            {
-                CurrentComboBlendFramesForNext_Base = CurrentCombo[CurrentComboIndex].SetValueFloat;
-                CurrentComboBlendFramesAreSineForNext_Base = true;
-                GoToNextItemInCombo();
-                return;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.SetUpperBodyBlend)
-            {
-                CurrentComboBlendFramesForNext_UpperBody = CurrentCombo[CurrentComboIndex].SetValueFloat;
-                GoToNextItemInCombo();
-                return;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.SetUpperBodyBlendSine)
-            {
-                CurrentComboBlendFramesForNext_UpperBody = CurrentCombo[CurrentComboIndex].SetValueFloat;
-                CurrentComboBlendFramesAreSineForNext_UpperBody = true;
-                GoToNextItemInCombo();
-                return;
-            }
-            else if (type == TaeComboMenu.TaeComboAnimType.SetUpperBodyAnim)
-            {
-                CurrentComboSetUpperBodyAnim_Active_ForNext = true;
-                CurrentComboSetUpperBodyAnim_AnimID_ForNext = CurrentCombo[CurrentComboIndex].SetUpperBodyAnim_AnimID;
-                CurrentComboSetUpperBodyAnim_StartFrame_ForNext = CurrentCombo[CurrentComboIndex].SetUpperBodyAnim_StartFrame;
-                GoToNextItemInCombo();
-                return;
-            }
-
-            
-
-
-            if (CurrentComboBlendFramesForNext_Base >= 0)
-            {
-                CurrentComboBlendFramesOverride_Base = CurrentComboBlendFramesForNext_Base;
-                CurrentComboBlendFramesForNext_Base = -1;
-            }
-            else
-            {
-                CurrentComboBlendFramesOverride_Base = -1;
-            }
-
-            CurrentComboBlendFramesAreSine_Base = CurrentComboBlendFramesAreSineForNext_Base;
-            CurrentComboBlendFramesAreSineForNext_Base = false;
-
-            CurrentComboBlendFramesOverrideStartPoint_Base = -1;
-
-            if (CurrentComboBlendFramesForNext_UpperBody >= 0)
-            {
-                CurrentComboBlendFramesOverride_UpperBody = CurrentComboBlendFramesForNext_UpperBody;
-                CurrentComboBlendFramesForNext_UpperBody = -1;
-            }
-            else
-            {
-                CurrentComboBlendFramesOverride_UpperBody = -1;
-            }
-
-            CurrentComboBlendFramesAreSine_UpperBody = CurrentComboBlendFramesAreSineForNext_UpperBody;
-            CurrentComboBlendFramesAreSineForNext_UpperBody = false;
-
-            CurrentComboBlendFramesOverrideStartPoint_UpperBody = -1;
-
-            if (CurrentCombo.Length > 1 || CurrentCombo[CurrentComboIndex].StartFrame < 0 || isFirstTime)
-            {
-                List<float> animLayerEndTimes = new List<float>();
-                if (CurrentComboIndex > 0)
-                {
-                    lock (CurrentModel.AnimContainer._lock_AnimationLayers)
-                    {
-                        var layers = CurrentModel.AnimContainer.AnimationLayers.ToList();
-                        foreach (var al in layers)
-                            animLayerEndTimes.Add(al.CurrentTime);
-                    }
-                }
-
-                CurrentComboDisableAdvance_DuringAnimSwitch = true;
-                var gotoAnimResult = Graph.MainScreen.GotoAnimID(CurrentCombo[CurrentComboIndex].AnimID, false, ignoreIfAlreadySelected: false, out TAE.Animation foundAnimRef, CurrentCombo[CurrentComboIndex].StartFrame);
-                CurrentComboDisableAdvance_DuringAnimSwitch = false;
-
-                if (gotoAnimResult)
-                {
-                    CurrentCombo[CurrentComboIndex].ResolvedAnimRef = foundAnimRef;
-                    OnScrubFrameChange(0);
-
-                    if (CurrentComboBlendFramesOverride_Base >= 0)
-                    {
-                        var ac = CurrentModel.AnimContainer;
-                        lock (ac._lock_AnimationLayers)
-                        {
-                            var layersCopy = ac.AnimationLayers.Where(la => !la.IsUpperBody).ToList();
-                            for (int i = 0; i < layersCopy.Count; i++)
-                            {
-                                if (i == layersCopy.Count - 1)
-                                    layersCopy[i].Weight = 0;
-                                else
-                                    layersCopy[i].Weight = layersCopy[i].ReferenceWeight;
-                            }
-                        }
-                    }
-
-                    
-                    //// lol idk why 
-                    //Graph.PlaybackCursor.RestartFromBeginning();
-
-                    //if (CurrentCombo[CurrentComboIndex].StartFrame > 0)
-                    //{
-                    //    Graph.PlaybackCursor.GotoFrame(CurrentCombo[CurrentComboIndex].StartFrame, ignoreTimeDelta: true);
-                    //    CurrentComboBlendFramesOverrideStartPoint = Graph.PlaybackCursor.CurrentTime;
-                    //}
-                }
-                else
-                {
-                    CancelCombo();
-                    return;
-                }
-
-                
-
-                //if (CurrentComboIndex > 0)
-                //{
-                //    lock (CurrentModel.AnimContainer._lock_AnimationLayers)
-                //    {
-                //        var layers = CurrentModel.AnimContainer.AnimationLayers.ToList();
-                //        for (int i = 0; i < layers.Count - 1; i++)
-                //        {
-                //            int oldIndex = animLayerEndTimes.Count - 1 - i;
-                //            int newIndex = layers.Count - 2 - i;
-                //            if (oldIndex >= 0 && oldIndex < animLayerEndTimes.Count && newIndex >= 0 && newIndex > layers.Count)
-                //                layers[newIndex].ScrubRelative(animLayerEndTimes[oldIndex] - layers[newIndex].CurrentTime);
-                //        }
-                //    }
-                //}
-            }
-            else
-            {
-                if (CurrentCombo[CurrentComboIndex].StartFrame >= 0)
-                {
-                    Graph.MainScreen.HardReset();
-                    Graph.PlaybackCursor.GotoFrame(CurrentCombo[CurrentComboIndex].StartFrame, ignoreTimeDelta: true);
-                    lock (CurrentModel.AnimContainer._lock_AnimationLayers)
-                    {
-                        var layer = CurrentModel.AnimContainer.AnimationLayers[CurrentModel.AnimContainer.AnimationLayers.Count - 1];
-                        layer.ScrubRelative((float)Graph.PlaybackCursor.CurrentTime);
-                    }
-                    Graph.PlaybackCursor.UpdateScrubbing();
-                    Graph.PlaybackCursor.ForceScrub(hkxDeltaTime: 0, taeDeltaTime: (float)Graph.PlaybackCursor.CurrentTime);
-                }
-            }
-
-            if (CurrentComboSetUpperBodyAnim_Active_ForNext)
-            {
-
-                int animID = CurrentComboSetUpperBodyAnim_AnimID_ForNext;
-                if (animID == -1)
-                {
-                    CurrentModel.AnimContainer.ChangeToNewAnimation(null, 0, 0, true, isUpperBody: true);
-                }
-                else
-                {
-                    var animName = GameRoot.SplitAnimID.FromFullID(animID).GetFormattedIDString() + ".hkx";
-                    var animRef = Graph.MainScreen.GetAnimRefFromID(animID);
-                    if (animRef != null)
-                    {
-                        var listInfo = Graph.MainScreen.GetAnimListInfoOfAnim(animRef);
-                        if (Graph.MainScreen.AnimationListScreen.AnimTaeSections.ContainsKey((int)listInfo.TaePrefix))
-                        {
-                            animName = GetFinalAnimFileName(Graph.MainScreen.AnimationListScreen.AnimTaeSections[(int)listInfo.TaePrefix].Tae, animRef);
-                        }
-                    }
-                    
-                    float startFrame = (CurrentComboSetUpperBodyAnim_StartFrame_ForNext >= 0)
-                        ? CurrentComboSetUpperBodyAnim_StartFrame_ForNext : 0;
-                    CurrentModel.AnimContainer.ChangeToNewAnimation(animName, 1, startFrame, false, isUpperBody: true);
-
-
-                    Graph.PlaybackCursor.ForceScrub(hkxDeltaTime: 0, taeDeltaTime: (float)Graph.PlaybackCursor.CurrentTime);
-
-                    if (CurrentComboBlendFramesOverride_UpperBody >= 0)
-                    {
-                        var ac = CurrentModel.AnimContainer;
-                        lock (ac._lock_AnimationLayers)
-                        {
-                            var layersCopy = ac.AnimationLayers.Where(la => la.IsUpperBody).ToList();
-                            for (int i = 0; i < layersCopy.Count; i++)
-                            {
-                                if (i == layersCopy.Count - 1)
-                                    layersCopy[i].Weight = 0;
-                                else
-                                    layersCopy[i].Weight = layersCopy[i].ReferenceWeight;
-                            }
-                        }
-                    }
-                }
-
-                CurrentComboSetUpperBodyAnim_Active_ForNext = false;
-                CurrentComboSetUpperBodyAnim_AnimID_ForNext = -1;
-                CurrentComboSetUpperBodyAnim_StartFrame_ForNext = -1;
-            }
-
-            if (isRecord)
-            {
-                if (Graph.PlaybackCursor.IsPlaying)
-                {
-                    Graph.PlaybackCursor.Transport_PlayPause(isUserInput: false);
-                }
-
-                //RecordCurrentComboFrame();
-
-                IsComboRecording = true;
-            }
-            else
-            {
-                if (!Graph.PlaybackCursor.IsPlaying)
-                {
-                    Graph.PlaybackCursor.Transport_PlayPause(isUserInput: false);
-                }
-            }
-
-            
-        }
-
-        public TaeComboEntry[] CurrentCombo = new TaeComboEntry[0];
-        public bool CurrentComboDisableAdvance_DuringAnimSwitch = false;
-        public List<TAE.Event>[] CurrentCombo_EventListRecordings;
-        public int CurrentComboIndex = -1;
-        public bool CurrentComboLoop = false;
-        public bool IsComboRecording = false;
-        public bool IsComboRecordingEnding = false;
-        private Vector4 CurrentComboRecordLastRootMotion = Vector4.Zero;
-        private HavokRecorder CurrentComboRecorder;
-
-        public bool CurrentComboBlendFramesAreSineForNext_Base = false;
-        public bool CurrentComboBlendFramesAreSine_Base = false;
-        public float CurrentComboBlendFramesForNext_Base = -1;
-        public float CurrentComboBlendFramesOverride_Base = -1;
-        public double CurrentComboBlendFramesOverrideStartPoint_Base = -1;
-
-        public bool CurrentComboBlendFramesAreSineForNext_UpperBody = false;
-        public bool CurrentComboBlendFramesAreSine_UpperBody = false;
-        public float CurrentComboBlendFramesForNext_UpperBody = -1;
-        public float CurrentComboBlendFramesOverride_UpperBody = -1;
-        public double CurrentComboBlendFramesOverrideStartPoint_UpperBody = -1;
-
-        public bool CurrentComboSetUpperBodyAnim_Active_ForNext = false;
-        public int CurrentComboSetUpperBodyAnim_AnimID_ForNext = -1;
-        public float CurrentComboSetUpperBodyAnim_StartFrame_ForNext = -1;
-
-        public float GetComboBlendOverrideIfApplicable_Base()
-        {
-            if (CurrentComboIndex < 0 || CurrentComboBlendFramesOverride_Base < 0)
-                return -1;
-
-            if (CurrentComboBlendFramesOverride_Base == 0)
-                return 1;
-
-            float blend = (float)((Graph.PlaybackCursor.CurrentTime - CurrentComboBlendFramesOverrideStartPoint_Base) / (CurrentComboBlendFramesOverride_Base * Graph.PlaybackCursor.CurrentSnapInterval));
-            if (blend > 1)
-                blend = 1;
-            if (blend < 0)
-                blend = 0;
-            return blend;
-        }
-
-        public float GetComboBlendOverrideIfApplicable_UpperBody()
-        {
-            if (CurrentComboIndex < 0 || CurrentComboBlendFramesOverride_UpperBody < 0)
-                return -1;
-
-            if (CurrentComboBlendFramesOverride_UpperBody == 0)
-                return 1;
-
-            float blend = (float)((Graph.PlaybackCursor.CurrentTime - CurrentComboBlendFramesOverrideStartPoint_UpperBody) / (CurrentComboBlendFramesOverride_UpperBody * Graph.PlaybackCursor.CurrentSnapInterval));
-            if (blend > 1)
-                blend = 1;
-            if (blend < 0)
-                blend = 0;
-            return blend;
-        }
-
-        public float CurrentCombo_FloatBackup_RootMotionMultXZ;
-        public float CurrentCombo_FloatBackup_RootMotionMultY;
-        public float CurrentCombo_FloatBackup_PlaybackSpeed;
-
-        public void CancelCombo()
-        {
-            if (CurrentComboIndex >= 0)
-            {
-                Main.Config.RootMotionTranslationMultiplierXZ = CurrentCombo_FloatBackup_RootMotionMultXZ;
-                Main.Config.RootMotionTranslationMultiplierY = CurrentCombo_FloatBackup_RootMotionMultY;
-                TaeEditor.TaePlaybackCursor.GlobalBasePlaybackSpeed = CurrentCombo_FloatBackup_PlaybackSpeed;
-            }
-
-            Main.Config.LoopEnabled = Main.Config.LoopEnabled_BeforeCombo;
-            IsComboRecording = false;
-            CurrentComboIndex = -1;
-            EventSim.OverrideHitViewDummyPolySource = null;
-
-            CurrentComboBlendFramesForNext_Base = -1;
-            CurrentComboBlendFramesOverride_Base = -1;
-            CurrentComboBlendFramesOverrideStartPoint_Base = -1;
-
-            CurrentComboBlendFramesForNext_UpperBody = -1;
-            CurrentComboBlendFramesOverride_UpperBody = -1;
-            CurrentComboBlendFramesOverrideStartPoint_UpperBody = -1;
-
-            CurrentComboBlendFramesAreSineForNext_Base = false;
-            CurrentComboBlendFramesAreSineForNext_UpperBody = false;
-            CurrentComboBlendFramesAreSine_Base = false;
-            CurrentComboBlendFramesAreSine_UpperBody = false;
-
-            CurrentComboSetUpperBodyAnim_Active_ForNext = false;
-            CurrentComboSetUpperBodyAnim_AnimID_ForNext = -1;
-            CurrentComboSetUpperBodyAnim_StartFrame_ForNext = -1;
-
-            Graph.PlaybackCursor.IsPlayingCombo = false;
-
-            CurrentComboDisableAdvance_DuringAnimSwitch = false;
-
-            CurrentModel.AnimContainer.ChangeToNewAnimation(null, 0, 0, true, isUpperBody: true);
-        }
-
-        private void GoToNextItemInCombo()
-        {
-            CurrentComboIndex++;
-            if (CurrentComboIndex < CurrentCombo.Length)
-            {
-                StartCurrentComboEntry(false);
-            }
-            else
-            {
-                if (CurrentComboLoop)
-                {
-                    CurrentComboIndex = 0;
-                    StartCurrentComboEntry(false);
-                }
-                else
-                {
-                    if (Graph.PlaybackCursor.IsPlaying)
-                        Graph.PlaybackCursor.Transport_PlayPause(isUserInput: false);
-
-                    if (IsComboRecording && !IsComboRecordingEnding)
-                    {
-                        IsComboRecordingEnding = true;
-                        if (CurrentComboRecorder.FrameCount == 0)
-                            RecordCurrentComboFrame();
-                        CurrentComboRecorder?.FinalizeRecording(Graph.MainScreen, CurrentCombo);
-                    }
-
-                    CancelCombo();
-                }
-
-                
-            }
-        }
-
-        private void RecordCurrentComboFrame()
-        {
-            Vector3 curModelPosition = Vector3.Transform(Vector3.Zero, CurrentModel.CurrentTransform.WorldMatrix);
-
-            //throw new NotImplementedException();
-            Vector4 curRootMotionLocation = new Vector4(curModelPosition, CurrentModel.AnimContainer.RootMotionTransformVec.W);
-            Vector4 rootMotionDelta = curRootMotionLocation - CurrentComboRecordLastRootMotion;
-            CurrentComboRecorder.AddFrame(rootMotionDelta, CurrentModel.AnimContainer.Skeleton.HkxSkeleton);
-            CurrentComboRecordLastRootMotion = curRootMotionLocation;
-        }
-
-        private bool UpdateCombo()
-        {
-            if ((Graph.PlaybackCursor.Scrubbing) && !IsComboRecording)
-                return false;
-
-
-            if (CurrentComboIndex >= 0)
-            {
-                Main.Config.LoopEnabled = false;
-
-                if (CurrentComboIndex < CurrentCombo.Length)
-                {
-                    if (CurrentCombo[CurrentComboIndex].EventRowCache.Count == 0)
-                    {
-                        foreach (var eventBox in Graph.EventBoxes)
-                        {
-                            CurrentCombo[CurrentComboIndex].EventRowCache.Add(eventBox.MyEvent, eventBox.Row);
-                        }
-                    }
-
-                    if (CurrentCombo[CurrentComboIndex].ResolvedEndTime <= 0)
-                    {
-                        if (CurrentCombo[CurrentComboIndex].EndFrame >= 0)
-                        {
-                            CurrentCombo[CurrentComboIndex].ResolvedEndTime = TaeExtensionMethods.RoundTo30FPS((float)(CurrentCombo[CurrentComboIndex].EndFrame * Graph.PlaybackCursor.CurrentSnapInterval));
-                        }
-                        else
-                        {
-                            if (CurrentComboIndex >= CurrentCombo.Length - 1)
-                            {
-                                CurrentCombo[CurrentComboIndex].ResolvedEndTime = Graph.EventBoxesToSimulate.Max(x => x.MyEvent.EndTime);
-                            }
-                            else if (CurrentCombo[CurrentComboIndex].Event0CancelType >= 0)
-                            {
-                                foreach (var eventBox in Graph.EventBoxesToSimulate.OrderBy(x => x.MyEvent.StartTime))
-                                {
-                                    if (eventBox.MyEvent.Type == 0 && eventBox.MyEvent.Template != null)
-                                    {
-                                        var cancelTypeAsInt = Convert.ToInt32(eventBox.MyEvent.Parameters["JumpTableID"]);
-                                        if (cancelTypeAsInt == CurrentCombo[CurrentComboIndex].Event0CancelType)
-                                        {
-                                            CurrentCombo[CurrentComboIndex].ResolvedEndTime = TaeExtensionMethods.RoundTo30FPS(eventBox.MyEvent.StartTime);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (CurrentCombo[CurrentComboIndex].ResolvedEndTime <= 0)
-                                CurrentCombo[CurrentComboIndex].ResolvedEndTime = TaeExtensionMethods.RoundTo30FPS((float)Graph.PlaybackCursor.MaxTime);
-                        }
-                    }
-
-                    if (CurrentCombo[CurrentComboIndex].ResolvedStartTime < 0)
-                    {
-                        if (CurrentCombo[CurrentComboIndex].StartFrame >= 0)
-                        {
-                            CurrentCombo[CurrentComboIndex].ResolvedStartTime = TaeExtensionMethods.RoundTo30FPS((float)(CurrentCombo[CurrentComboIndex].StartFrame * Graph.PlaybackCursor.CurrentSnapInterval));
-                        }
-                        else
-                        {
-                            CurrentCombo[CurrentComboIndex].ResolvedStartTime = 0;
-                        }
-                    }
-
-
-                    if ((Graph.PlaybackCursor.MaxTime > 0 && (Graph.PlaybackCursor.CurrentTime >= Graph.PlaybackCursor.MaxTime)) ||
-                        (CurrentCombo[CurrentComboIndex].EndFrame >= 0 && Graph.PlaybackCursor.CurrentFrame >= CurrentCombo[CurrentComboIndex].EndFrame))
-                    {
-                        if (CurrentCombo[CurrentComboIndex].EndFrame >= 0)
-                        {
-                            Graph.PlaybackCursor.CurrentTime = (CurrentCombo[CurrentComboIndex].EndFrame * Graph.PlaybackCursor.CurrentSnapInterval);
-                        }
-                        //else
-                        //{
-                        //    Graph.PlaybackCursor.CurrentTime = Graph.PlaybackCursor.MaxTime - 0.00005f;
-                        //}
-                        
-                        //Graph.PlaybackCursor.UpdateScrubbing();
-
-                        GoToNextItemInCombo();
-                        return true;
-                    }
-                    else if (CurrentComboIndex < CurrentCombo.Length - 1 || CurrentComboLoop)
-                    {
-                        foreach (var eventBox in Graph.EventBoxesToSimulate)
-                        {
-                            if (eventBox.PlaybackHighlight && eventBox.MyEvent.Type == 0 && eventBox.MyEvent.Template != null)
-                            {
-                                //var cancelTypeAsStr = eventBox.MyEvent.Template["JumpTableID"].ValueToString(eventBox.MyEvent.Parameters["JumpTableID"]);
-                                //if (cancelTypeAsStr == CurrentCombo[CurrentComboIndex].Event0CancelType)
-                                //{
-                                //    GoToNextItemInCombo();
-                                //    return;
-                                //}
-                                var cancelTypeAsInt = Convert.ToInt32(eventBox.MyEvent.Parameters["JumpTableID"]);
-                                if (cancelTypeAsInt == CurrentCombo[CurrentComboIndex].Event0CancelType)
-                                {
-                                    CurrentCombo[CurrentComboIndex].ResolvedEndTime = TaeExtensionMethods.RoundTo30FPS((float)Graph.PlaybackCursor.CurrentTime);
-                                    GoToNextItemInCombo();
-                                    return true;
-                                }
-                            }
-                        }
-
-                    }
-
-
-
-
-                }
-                else
-                {
-                    if (!IsComboRecordingEnding)
-                    {
-                        if (CurrentComboRecorder.FrameCount == 0)
-                            RecordCurrentComboFrame();
-                        IsComboRecordingEnding = true;
-                        CurrentComboRecorder.FinalizeRecording(Graph.MainScreen, CurrentCombo);
-                        CancelCombo();
-                    }
-                    return true;
-                }
-
-
-                
-            }
-
-            return false;
-        }
-
-        private void PlaybackCursor_ScrubFrameChange(object sender, EventArgs e)
-        {
-            OnScrubFrameChange();
-        }
-
-        private void PlaybackCursor_PlaybackStarted(object sender, EventArgs e)
-        {
-            CheckSimEnvironment();
-            EventSim.OnSimulationStart(Graph.EventBoxesToSimulate);
-        }
-
-        private void PlaybackCursor_PlaybackLooped(object sender, EventArgs e)
-        {
-            CheckSimEnvironment();
-            EventSim.OnSimulationStart(Graph.EventBoxesToSimulate);
         }
 
         //Model lastRightWeaponModelTAEWasReadFrom = null;
@@ -1585,73 +1422,16 @@ namespace DSAnimStudio.TaeEditor
 
         public void ResetRootMotion()
         {
-            CurrentModel.AnimContainer?.ResetRootMotion();
+            CurrentModel?.AnimContainer?.ResetRootMotion();
             MarkRootMotionStart();
         }
 
         public void RemoveTransition()
         {
-            void DoAnimContainer(NewAnimationContainer animContainer)
-            {
-                if (animContainer == null)
-                    return;
-                if (animContainer != null && animContainer.AnimationLayers.Count > 1)
-                {
-                    lock (animContainer._lock_AnimationLayers)
-                    {
-                        animContainer.RemoveCurrentTransitions();
-                    }
-                }
-            }
-
-            DoAnimContainer(CurrentModel?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel0?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel1?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel2?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.RightWeaponModel3?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel0?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel1?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel2?.AnimContainer);
-            DoAnimContainer(CurrentModel?.ChrAsm?.LeftWeaponModel3?.AnimContainer);
+            CurrentModel.AnimContainer.NewSetBlendDurationOfSlot(NewAnimSlot.SlotTypes.Base, SplitAnimID.Invalid, -1, false);
+            CurrentModel.AnimContainer.RemoveTransition();
         }
-
-        public float GetAnimWeight(string animName)
-        {
-            float ret = -1;
-            if (CurrentModel?.AnimContainer != null)
-            {
-                lock (CurrentModel.AnimContainer._lock_AnimationLayers)
-                {
-                    if ((CurrentModel?.AnimContainer?.AnimationLayers.Count ?? -1) < 2)
-                    {
-                        ret = -1;
-                    }
-                    var check = CurrentModel?.AnimContainer?.GetAnimLayerIndexByName(animName) ?? -1;
-                    if (check >= 0)
-                    {
-                        ret = CurrentModel.AnimContainer.AnimationLayers[check].Weight;
-                    }
-                    else ret = -1;
-                }
-            }
-
-            return ret;
-        }
-
-        public string GetCurrentTransition()
-        {
-            string name = null;
-            if (CurrentModel?.AnimContainer != null )
-            {
-                lock (CurrentModel.AnimContainer._lock_AnimationLayers)
-                {
-                    if (CurrentModel.AnimContainer.AnimationLayers.Count == 2)
-                        name = CurrentModel.AnimContainer.AnimationLayers[0].Name;
-                }
-            }
-
-            return name;
-        }
+        
 
         public void RootMotionSendHome()
         {
@@ -1661,59 +1441,95 @@ namespace DSAnimStudio.TaeEditor
                 CurrentModel.AnimContainer.ResetRootMotion();
                 //CurrentModel.AnimContainer.CurrentRootMotionDirection = 0;
 
-                CurrentModel.ChrAsm?.RightWeaponModel0?.AnimContainer?.ResetRootMotion();
-                CurrentModel.ChrAsm?.RightWeaponModel1?.AnimContainer?.ResetRootMotion();
-                CurrentModel.ChrAsm?.RightWeaponModel2?.AnimContainer?.ResetRootMotion();
-                CurrentModel.ChrAsm?.RightWeaponModel3?.AnimContainer?.ResetRootMotion();
-
-                CurrentModel.ChrAsm?.LeftWeaponModel0?.AnimContainer?.ResetRootMotion();
-                CurrentModel.ChrAsm?.LeftWeaponModel1?.AnimContainer?.ResetRootMotion();
-                CurrentModel.ChrAsm?.LeftWeaponModel2?.AnimContainer?.ResetRootMotion();
-                CurrentModel.ChrAsm?.LeftWeaponModel3?.AnimContainer?.ResetRootMotion();
+                if (CurrentModel.ChrAsm != null)
+                {
+                    foreach (var slot in CurrentModel.ChrAsm.WeaponSlots)
+                    {
+                        slot.AccessAllModels(model =>
+                        {
+                            model.AnimContainer?.ResetRootMotion();
+                        });
+                    }
+                }
             }
         }
+        
 
-        public string GetFinalAnimFileName(TAE tae, TAE.Animation anim)
+        public void OnNewAnimSelected(float startTime, bool disableHkxSelect, DSAProj.Animation animRef)
         {
             if (EntityType == TaeEntityType.REMO)
             {
-                return $"a{anim.ID:D4}.hkx";
-            }
-
-            if (CurrentModel == null || CurrentModel?.AnimContainer == null || Graph == null || Graph?.MainScreen?.FileContainer?.AllTAEDict == null)
-                return null;
-
-            if (Graph.MainScreen.FileContainer.IsCurrentlyLoading)
-                return null;
-
-            var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
-            return mainChrSolver.GetHKXName(tae, anim);
-        }
-
-        public void OnNewAnimSelected(float startTime)
-        {
-            if (EntityType == TaeEntityType.REMO)
-            {
-                RemoManager.LoadRemoCut($"a{ Graph.MainScreen.SelectedTaeAnim.ID:D4}.hkx");
-                RemoManager.AnimContainer.ScrubRelative(0);
+                RemoManager.LoadRemoCut($"a{((long)Graph.MainScreen.SelectedAnim.SplitID.SubID):D4}.hkx");
+                //RemoManager.AnimContainer.ScrubRelative(0, ScrubTypes.All);
                 GFX.CurrentWorldView.Update(0);
             }
             else if (CurrentModel != null)
             {
-                var mainChrSolver = new TaeAnimRefChainSolver(Graph.MainScreen.FileContainer.AllTAEDict, CurrentModel.AnimContainer.Animations);
-                var mainChrAnimName = mainChrSolver.GetHKXName(Graph.MainScreen.SelectedTae, Graph.MainScreen.SelectedTaeAnim);
+                //var mainChrAnimName = Graph.MainScreen.SelectedAnim.GetHkxID(Graph.MainScreen.Proj);
+
+                //if (Main.Config.ResetFloorOnAnimStart)
+                //{
+                //    lock (DBG._lock_NewGrid3D)
+                //    {
+                //        if (DBG.NewGrid3D != null)
+                //        {
+                //            var modelFollowPos = Vector3.Zero;
+
+                //            ParentDocument.Scene.AccessMainModel(model =>
+                //            {
+                //                modelFollowPos = model.CurrentTransformPosition;
+                //            });
+
+                //            DBG.NewGrid3D.WorldShiftOffset = new Vector3(0, -modelFollowPos.Y, 0);
+
+                //        }
+                //    }
+                //}
+
 
                 //V2.0: See if this needs something similar in the new system.
                 //CurrentModel.AnimContainer.StoreRootMotionRotation();
 
                 //CurrentModel.AnimContainer.CurrentAnimation.RotMatrixAtStartOfAnim
 
-                CurrentModel.AnimContainer.ChangeToNewAnimation(mainChrAnimName, animWeight: 0, startTime, clearOldLayers: false);
 
-                CurrentModel.ChrAsm?.SelectWeaponAnimations(mainChrAnimName);
+
+                if (!disableHkxSelect)
+                {
+                    NewAnimationContainer.GLOBAL_SYNC_FORCE_REFRESH = true;
+                    try
+                    {
+                        CurrentModel.AnimContainer.RequestAnim(NewAnimSlot.SlotTypes.Base, Graph.MainScreen.SelectedAnim.SplitID, forceNew: true, animWeight: 1, startTime: 0, blendDuration: animRef?.SAFE_GetBlendDuration() ?? 0);
+                        CurrentModel.NewScrubSimTime(absolute: false, time: 0, foreground: true, background: true, out _, forceSyncUpdate: true);
+                    }
+                    finally
+                    {
+                        NewAnimationContainer.GLOBAL_SYNC_FORCE_REFRESH = false;
+                    }
+                    
+                    
+                }
+                
+                
+
+                //CurrentModel.ChrAsm?.SelectWeaponAnimations(mainChrAnimName)
+                var asm = CurrentModel.ChrAsm;
+                if (asm != null)
+                {
+                    asm.SelectPartsAnimations(Graph.MainScreen.SelectedAnim.SplitID);
+                }
+
+                var ac6Parts = CurrentModel.AC6NpcParts;
+                if (ac6Parts != null)
+                {
+                    ac6Parts.SelectAnimation(Graph.MainScreen.SelectedAnim.SplitID);
+                }
+
 
                 prevRootMotionLoopCount = 0;
                 MarkRootMotionStart();
+
+
 
                 //lock (CurrentModel.AnimContainer._lock_AnimationLayers)
                 //{
@@ -1743,80 +1559,90 @@ namespace DSAnimStudio.TaeEditor
 
                 CheckSimEnvironment();
 
-                lock (Graph._lock_EventBoxManagement)
+                lock (Graph._lock_ActionBoxManagement)
                 {
-                    EventSim.OnNewAnimSelected(Graph.EventBoxes);
+                    ActionSim.OnNewAnimSelected(Graph.GetActionListCopy_UsesLock());
                     //Graph.PlaybackCursor.Update(Graph.EventBoxes, ignoreDeltaTime: true);
                     //EventSim.OnSimulationFrameChange(Graph.EventBoxes, 0);
                 }
 
+
+                //V2.0: Check
+                //CurrentModel.AnimContainer.CurrentAnimation.Reset(CurrentModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
+
+                //CurrentModel.AnimContainer.CurrentAnimation.SyncRootMotion(CurrentModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
+
+                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
+
                 if (CurrentModel.AnimContainer.CurrentAnimation != null)
                 {
-                    //V2.0: Check
-                    //CurrentModel.AnimContainer.CurrentAnimation.Reset(CurrentModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
-
-                    CurrentModel.AnimContainer.CurrentAnimation.SyncRootMotion(CurrentModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
-
-                    UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
-
-                    OnScrubFrameChange(0);
-
-                    CurrentModel.ScrubAnimRelative(0);
-
-                    MarkRootMotionStart();
-
-                    CurrentModel.UpdateAnimation();
-
-                    UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
+                    NewScrub();
                 }
                 else
                 {
-                    CurrentModel.SkeletonFlver.RevertToReferencePose();
+                    CurrentModel.SkeletonFlver?.RevertToReferencePose();
+                    CurrentModel.AnimContainer.CompletelyClearAllSlots();
                 }
+
+                CurrentModel.NewForceSyncUpdate();
+
+                MarkRootMotionStart();
+
+                //CurrentModel.NewUpdate(0);
+
+                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
+
+
+                //if (CurrentModel.AnimContainer.CurrentAnimation != null)
+                //{
+                //    //V2.0: Check
+                //    //CurrentModel.AnimContainer.CurrentAnimation.Reset(CurrentModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
+
+                //    //CurrentModel.AnimContainer.CurrentAnimation.SyncRootMotion(CurrentModel.AnimContainer.RootMotionTransform.GetRootMotionVector4());
+
+                //    UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
+
+                //    if (CurrentModel.AnimContainer.CurrentAnimation != null)
+                //        NewScrub();
+                //    else
+                //        CurrentModel.SkeletonFlver?.RevertToReferencePose();
+
+                //    CurrentModel.NewForceSyncUpdate();
+
+                //    MarkRootMotionStart();
+
+                //    //CurrentModel.NewUpdate(0);
+
+                //    UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false);
+                //}
+                //else
+                //{
+                //    CurrentModel.SkeletonFlver?.RevertToReferencePose();
+                //}
+
+                //if (asm != null)
+                //{
+                //    asm.Update(0);
+                //}
             }
-            
+
+            NewScrub();
+            ParentDocument.WorldViewManager.CurrentView.Update(0);
         }
 
-        public bool IsAnimLoaded(string name)
+        public bool IsAnimLoaded(SplitAnimID name)
         {
-            if (EntityType == TaeEntityType.REMO)
-            {
-                return RemoManager.RemoCutLoaded(name);
-            }
-            else
-            {
-                return CurrentModel?.AnimContainer?.IsAnimLoaded(name) ?? false;
-            }
+            return CurrentModel?.AnimContainer?.IsAnimLoaded(name) ?? false;
            
         }
 
         float modelDirectionLastFrame = 0;
 
-        private int lastFrameForTrails = -1;
-
         public void GeneralUpdate_BeforePrimsDraw()
         {
-            DBG.DbgPrimXRay = Graph.MainScreen.Config.DbgPrimXRay;
-
             if (CurrentModel != null)
             {
-                int frame = (int)Math.Round(Graph.PlaybackCursor.CurrentTime / (1.0 / 60.0));
-
-                if (Graph.PlaybackCursor.ContinuousTimeDelta != 0)
-                {
-                    if (frame != lastFrameForTrails)
-                        EventSim?.UpdateAllBladeSFXsLowHz();
-
-
-                    EventSim?.UpdateAllBladeSFXsLive();
-
-                }
-
-
-
-
-
-                lastFrameForTrails = frame;
+                //int frame = (int)Math.Round(Graph.PlaybackCursor.CurrentTime / (1.0 / 60.0));
             }
             else
             {
@@ -1827,25 +1653,32 @@ namespace DSAnimStudio.TaeEditor
 
         int prevRootMotionLoopCount = -1;
 
-        public void GeneralUpdate(bool allowPlaybackManipulation = true)
+        public void GeneralUpdate(float timeDelta, bool allowPlaybackManipulation = true)
         {
             
 
             
             if (CurrentModel != null)
             {
-                // allowPlaybackManipulation==false prevents infinite recursion.
-                if (allowPlaybackManipulation && IsComboRecording && CurrentComboIndex >= 0)
+                if (ActionSim.GhettoFix_DisableSimulationTemporarily > 0)
                 {
-                    Graph.PlaybackCursor.IsPlaying = false;
-                    Graph.PlaybackCursor.Scrubbing = true;
-                    Graph.PlaybackCursor.IsStepping = false;
-                    Graph.PlaybackCursor.CurrentTime += CurrentComboRecorder.DeltaTime;
-                    Graph.PlaybackCursor.UpdateScrubbing();
-                    RecordCurrentComboFrame();
+                    ActionSim.GhettoFix_DisableSimulationTemporarily--;
                 }
 
-                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, 0, Main.DELTA_UPDATE);
+                // allowPlaybackManipulation==false prevents infinite recursion.
+                // if (allowPlaybackManipulation && IsComboRecording && CurrentComboIndex >= 0)
+                // {
+                //     Graph.PlaybackCursor.IsPlaying = false;
+                //     Graph.PlaybackCursor.Scrubbing = true;
+                //     Graph.PlaybackCursor.IsStepping = false;
+                //     Graph.PlaybackCursor.CurrentTime += CurrentComboRecorder.DeltaTime;
+                //     Graph.PlaybackCursor.UpdateScrubbing();
+                //     RecordCurrentComboFrame();
+                // }
+    
+                CurrentModel?.NewUpdateByFixedProgramTick(timeDelta);
+                //CurrentModel?.AnimContainer?.Scrub(false, 0, false, false, out _, false);
+                UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, false, 0, timeDelta);
             }
 
             if (CurrentModel.AnimContainer?.CurrentAnimation?.RootMotion != null)
@@ -1863,24 +1696,35 @@ namespace DSAnimStudio.TaeEditor
             //{
             //    DbgPrim_DbgPrim_RootMotionMidstPoint_TransformQueue.Clear();
             //}
-
+            if (Combo != null)
+                Combo.PlaybackSpeed = Graph?.PlaybackCursor?.EffectivePlaybackSpeed ?? 1;
+            Combo?.Update(timeDelta);
         }
 
         public void DrawDebug()
         {
             if (CurrentModel != null)
             {
-                EventSim?.DrawAllBladeSFXs(CurrentModel.CurrentTransform.WorldMatrix);
+                //EventSim?.DrawAllBladeSFXs(CurrentModel.CurrentTransform.WorldMatrix);
 
                 UpdateAndDrawRootMotionPoints(CurrentModel.AnimContainer.RootMotionTransform, true);
             }
 
             
         }
-
+        
+        
         private StatusPrinter BuildStatus(TaeConfigFile.ViewportStatusTypes type)
         {
+            
+
             var printer = new StatusPrinter(Vector2.One * 4, Main.Colors.GuiColorViewportStatus);
+
+            if (IS_STILL_LOADING)
+                return printer;
+
+            if (CurrentModel == null)
+                return printer;
 
             string getAnimSizeString(string prefix, long animSize)
             {
@@ -1901,32 +1745,49 @@ namespace DSAnimStudio.TaeEditor
                 //    return $"{prefix}{(1.0 * MemoryUsage / MEM_GB):0.00} GB";
             }
 
+            var animDebugReport = CurrentModel.AnimContainer.GetAllSlotsDebugReports();
+
             if (type is TaeConfigFile.ViewportStatusTypes.Condensed)
             {
-                var firstAnim = CurrentModel.AnimContainer.AnimationLayers.LastOrDefault();
+                
+                var firstAnim = CurrentModel.AnimContainer.CurrentAnimation;
                 if (firstAnim != null)
-                    printer.AppendLine($"Anim: {firstAnim.Name}");
-
-                lock (CurrentModel.AnimContainer._lock_AdditiveOverlays)
                 {
-                    var overlays = CurrentModel.AnimContainer.AdditiveBlendOverlays.Values;
-                    foreach (var anim in overlays)
-                        if (anim.Weight > 0)
-                            printer.AppendLine($"     +{anim.Name}[{anim.Weight:0.00}]");
+                    var debugReportEntries = animDebugReport[NewAnimSlot.SlotTypes.Base].AnimEntries;
+                    if (debugReportEntries.Count > 0)
+                    {
+                        printer.AppendLine($"Anim: <{debugReportEntries[0].ID.GetFormattedIDString(ParentDocument.GameRoot)}>{debugReportEntries[0].Name}");
+                    }
                 }
 
-                if (CurrentModel?.ChrAsm?.RightWeapon != null)
+                foreach (var kvp in animDebugReport)
                 {
-                    var atk = CurrentModel.ChrAsm.RightWeapon.WepMotionCategory;
-                    var spAtk = CurrentModel.ChrAsm.RightWeapon.SpAtkCategory;
-                    printer.AppendLine($"R WPN: WP_A_{CurrentModel.ChrAsm.RightWeapon.EquipModelID:D4}[a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}]");
+                    if (kvp.Key == NewAnimSlot.SlotTypes.Base)
+                        continue;
+                        
+                    var debugReportForThisSlot =
+                        kvp.Value.AnimEntries.FirstOrDefault();
+                    if (debugReportForThisSlot != null)
+                    {
+                        if (debugReportForThisSlot.Weight > 0)
+                            printer.AppendLine($"     +<{debugReportForThisSlot.ID.GetFormattedIDString(ParentDocument.GameRoot)}>{debugReportForThisSlot.Name}[{debugReportForThisSlot.Weight:0.00}]");
+                    }
                 }
 
-                if (CurrentModel?.ChrAsm?.LeftWeapon != null)
+                if (CurrentModel?.ChrAsm != null)
                 {
-                    var atk = CurrentModel.ChrAsm.LeftWeapon.WepMotionCategory;
-                    var spAtk = CurrentModel.ChrAsm.LeftWeapon.SpAtkCategory;
-                    printer.AppendLine($"L WPN: WP_A_{CurrentModel.ChrAsm.LeftWeapon.EquipModelID:D4}[a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}]");
+                    foreach (var slot in CurrentModel.ChrAsm.WeaponSlots)
+                    {
+                        if (slot.EquipParam != null)
+                        {
+                            if (slot.EquipSlotType is NewChrAsm.EquipSlotTypes.SekiroGrapplingHook
+                                or NewChrAsm.EquipSlotTypes.SekiroMortalBlade)
+                                continue;
+                            var atk = slot.EquipParam.WepMotionCategory;
+                            var spAtk = slot.EquipParam.SpAtkCategory;
+                            printer.AppendLine($"{slot.SlotDisplayNameShort}: {slot.EquipParam.GetPartBndName_Short(slot.EquipSlotType)}[a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}]");
+                        }
+                    }
                 }
 
                 return printer;
@@ -1958,33 +1819,34 @@ namespace DSAnimStudio.TaeEditor
 
             if (CurrentModel != null && CurrentModel.AnimContainer != null)
             {
-                if (CurrentModel.SkeletonFlver.BoneLimitExceeded)
+                bool exceedsBoneCount = false;
+                if (CurrentModel.USE_GLOBAL_BONE_MATRIX)
                 {
-                    printer.AppendLine($"Warning: Model exceeds max bone count.", Main.Colors.GuiColorViewportStatusMaxBoneCountExceeded);
-                }
-
-                printer.AppendLine($"[ANIMATION LAYERS:]");
-                lock (CurrentModel.AnimContainer._lock_AnimationLayers)
-                {
-                    foreach (var anim in CurrentModel.AnimContainer.AnimationLayers)
-                        printer.AppendLine($"    [x{anim.Weight:0.00}] [x{anim.CurrentTime:00.000}/{anim.Duration:00.000}] {anim.Name}{getAnimSizeString("", anim.FileSize)}");
-                }
-                printer.AppendLine($"[ADDITIVE ANIMATION LAYERS:]");
-                lock (CurrentModel.AnimContainer._lock_AdditiveOverlays)
-                {
-                    var overlays = CurrentModel.AnimContainer.AdditiveBlendOverlays.Values;
-                    foreach (var anim in overlays)
-                        if (anim.Weight > 0)
-                            printer.AppendLine($"    [x{anim.Weight:0.00}] [x{anim.CurrentTime:00.000}/{anim.Duration:00.000}] {anim.Name}{getAnimSizeString("", anim.FileSize)}");
-                }
-
-                if (CurrentComboIndex >= 0)
-                {
-                    printer.AppendLine();
-                    printer.AppendLine($"Playing Combo ({(CurrentComboLoop ? "Looping" : "Once")}):", Main.Colors.GuiColorViewportStatusCombo);
-                    for (int c = 0; c < CurrentCombo.Length; c++)
+                    if (CurrentModel.SkeletonFlver.Bones.Count > FlverShader.BoneMatrixSize)
                     {
-                        printer.AppendLine($"    {(CurrentComboIndex == c ? "■" : "□")} {CurrentCombo[c]}", Main.Colors.GuiColorViewportStatusCombo);
+                        printer.AppendLine($"Warning: Model '{CurrentModel.Name}' exceeds max per-submesh bone count of {FlverShader.BoneMatrixSize}.", Main.Colors.GuiColorViewportStatusMaxBoneCountExceeded);
+                    }
+                }
+                else
+                {
+                    if (CurrentModel.ExceedsBoneCount)
+                    {
+                        printer.AppendLine($"Warning: Model '{CurrentModel.Name}' exceeds max per-FLVER bone count of {FlverShader.BoneMatrixSize}.", Main.Colors.GuiColorViewportStatusMaxBoneCountExceeded);
+                    }
+                }
+
+                printer.AppendLine($"[ANIMATION SLOTS:]");
+                foreach (var kvp in animDebugReport)
+                {
+                    // if (kvp.Key == NewAnimSlot.SlotTypes.Base)
+                    //     continue;
+                    //     
+                    var dr =
+                        kvp.Value.AnimEntries.FirstOrDefault();
+                    if (dr != null)
+                    {
+                        printer.AppendLine($"  {kvp.Key}:");
+                        printer.AppendLine($"    [x{dr.Weight:0.00}] [x{dr.Time:00.000}|{dr.PrevTime:00.000}/{dr.Duration:00.000}] [{dr.LoopCount}|{dr.PrevLoopCount} Loops] <{dr.ID.GetFormattedIDString(ParentDocument.GameRoot)}>{dr.Name}{getAnimSizeString("", dr.AnimFileSize)}");
                     }
                 }
             }
@@ -1995,49 +1857,50 @@ namespace DSAnimStudio.TaeEditor
 
                 void DoWpnAnim(string wpnKind, Model wpnMdl)
                 {
+                    var wpnAnimDbgReport = wpnMdl.AnimContainer.GetAllSlotsDebugReports();
+                    
                     printer.AppendLine(wpnKind);
                     if (wpnMdl?.AnimContainer?.CurrentAnimation != null)
                     {
-                        lock (wpnMdl.AnimContainer._lock_AnimationLayers)
+                        
+                        foreach (var kvp in wpnAnimDbgReport)
                         {
-                            foreach (var anim in wpnMdl.AnimContainer.AnimationLayers)
-                                printer.AppendLine($"            [x{anim.Weight:0.00}] [x{anim.CurrentTime:00.000}/{anim.Duration:00.000}] {anim.Name}");
+                            if (kvp.Key == NewAnimSlot.SlotTypes.Base)
+                                continue;
+                        
+                            var dr =
+                                kvp.Value.AnimEntries.FirstOrDefault();
+                            if (dr != null)
+                            {
+                                printer.AppendLine($"      {kvp.Key}:");
+                                printer.AppendLine($"        [x{dr.Weight:0.00}] [x{dr.Time:00.000}/{dr.Duration:00.000}] {dr.Name}{getAnimSizeString("", dr.AnimFileSize)}");
+                            }
                         }
                     }
                 }
 
-                if (CurrentModel?.ChrAsm?.RightWeapon != null)
+                if (CurrentModel?.ChrAsm != null)
                 {
-                    printer.AppendLine("[Right Weapon]");
+                    foreach (var slot in CurrentModel.ChrAsm.WeaponSlots)
+                    {
+                        var equipParam = slot.EquipParam;
+                        if (equipParam != null)
+                        {
+                            printer.AppendLine($"[{slot.SlotDisplayName}]");
 
-                    var atk = CurrentModel.ChrAsm.RightWeapon.WepMotionCategory;
-                    var spAtk = CurrentModel.ChrAsm.RightWeapon.SpAtkCategory;
+                            var atk = equipParam.WepMotionCategory;
+                            var spAtk = equipParam.SpAtkCategory;
 
-                    printer.AppendLine($"    Part:            WP_A_{CurrentModel.ChrAsm.RightWeapon.EquipModelID:D4}");
-                    printer.AppendLine($"    Moveset(s):      a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
+                            printer.AppendLine(
+                                $"    Part:            {equipParam.GetPartBndName_Short(slot.EquipSlotType)}");
+                            printer.AppendLine($"    Moveset(s):      a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
 
-                    DoWpnAnim("    MDL 0", CurrentModel?.ChrAsm?.RightWeaponModel0);
-                    DoWpnAnim("    MDL 1", CurrentModel?.ChrAsm?.RightWeaponModel1);
-                    DoWpnAnim("    MDL 2", CurrentModel?.ChrAsm?.RightWeaponModel2);
-                    DoWpnAnim("    MDL 3", CurrentModel?.ChrAsm?.RightWeaponModel3);
-                }
-
-
-
-                if (CurrentModel?.ChrAsm?.LeftWeapon != null)
-                {
-                    printer.AppendLine("[Left Weapon]");
-
-                    var atk = CurrentModel.ChrAsm.LeftWeapon.WepMotionCategory;
-                    var spAtk = CurrentModel.ChrAsm.LeftWeapon.SpAtkCategory;
-
-                    printer.AppendLine($"    Part:            WP_A_{CurrentModel.ChrAsm.LeftWeapon.EquipModelID:D4}");
-                    printer.AppendLine($"    Moveset(s):      a{atk:D2}{(spAtk > 0 ? $", a{spAtk:D2}" : "")}");
-
-                    DoWpnAnim("    MDL 0", CurrentModel?.ChrAsm?.LeftWeaponModel0);
-                    DoWpnAnim("    MDL 1", CurrentModel?.ChrAsm?.LeftWeaponModel1);
-                    DoWpnAnim("    MDL 2", CurrentModel?.ChrAsm?.LeftWeaponModel2);
-                    DoWpnAnim("    MDL 3", CurrentModel?.ChrAsm?.LeftWeaponModel3);
+                            slot.AccessModel(0, model => DoWpnAnim("    MDL 0", model));
+                            slot.AccessModel(1, model => DoWpnAnim("    MDL 1", model));
+                            slot.AccessModel(2, model => DoWpnAnim("    MDL 2", model));
+                            slot.AccessModel(3, model => DoWpnAnim("    MDL 3", model));
+                        }
+                    }
                 }
 
 
@@ -2046,13 +1909,13 @@ namespace DSAnimStudio.TaeEditor
 
             }
 
-            if (EventSim != null &&
-                Main.Config.GetEventSimulationEnabled("EventSimSpEffects") &&
-                EventSim.SimulatedActiveSpEffects.Count > 0)
+            if (ActionSim != null &&
+                Main.Config.SimEnabled_SpEffects &&
+                ActionSim.SimulatedActiveSpEffects.Count > 0)
             {
                 printer.AppendLine("[Active SpEffects:]");
 
-                foreach (var spe in EventSim.SimulatedActiveSpEffects)
+                foreach (var spe in ActionSim.SimulatedActiveSpEffects)
                 {
                     printer.AppendLine("    " + spe);
                 }
@@ -2069,7 +1932,34 @@ namespace DSAnimStudio.TaeEditor
                 var printer = BuildStatus(type);
                 printer.BaseScale = (scale / 100) * 0.8f;
 
-                printer.Draw();
+                if (Main.Debug.EnableImGuiFocusDebug)
+                {
+                    printer.AppendLine("--------------------");
+                    printer.AppendLine("[IMGUI OSD FOCUS DEBUG]");
+                    printer.AppendLine($"ActualFocusedWindow.NewImguiWindowTitle={(OSD.ActualFocusedWindow?.NewImguiWindowTitle ?? "<NULL>")}");
+                    printer.AppendLine($"{nameof(OSD.AnyFieldFocused)}={OSD.AnyFieldFocused}");
+                    printer.AppendLine($"{nameof(OSD.AuxFocus)}={OSD.AuxFocus}");
+                    printer.AppendLine($"{nameof(OSD.Focused)}={OSD.Focused}");
+                    printer.AppendLine($"{nameof(OSD.FocusedWindow)}.NewImguiWindowTitle={(OSD.FocusedWindow?.NewImguiWindowTitle ?? "<NULL>")}");
+                    printer.AppendLine($"{nameof(OSD.Hovered)}={OSD.Hovered}");
+                    printer.AppendLine("--------------------");
+                }
+
+                printer.Draw(out float finalHeight);
+
+                Vector2 additionalMemeLocation = new Vector2(4, 4 + finalHeight);
+
+                if (Main.Debug.EnableViewportAnimLayerDebug)
+                {
+                    
+                
+                    CurrentModel?.AnimContainer?.DrawDebug(ref additionalMemeLocation);
+                    CurrentModel?.ChrAsm?.DrawAnimLayerDebug(ref additionalMemeLocation);
+
+
+                }
+
+                
             }
         }
 

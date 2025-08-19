@@ -31,8 +31,8 @@ namespace DSAnimStudio.DebugPrimitives
 
         public void AddLine(Vector3 start, Vector3 end, Color startColor, Color endColor)
         {
-            var startVert = new VertexPositionColorNormal(start, startColor, Vector3.Zero);
-            var endVert = new VertexPositionColorNormal(end, endColor, Vector3.Zero);
+            var startVert = new VertexPositionColorNormalTexture(start, startColor, Vector3.Zero, Vector2.Zero);
+            var endVert = new VertexPositionColorNormalTexture(end, endColor, Vector3.Zero, Vector2.One);
             int startIndex = Array.IndexOf(Vertices, startVert);
             int endIndex = Array.IndexOf(Vertices, endVert);
 
@@ -69,6 +69,8 @@ namespace DSAnimStudio.DebugPrimitives
             AddIndex(endIndex);
         }
 
+
+
         protected override void DisposeBuffers()
         {
             if (!KeepBuffersAlive)
@@ -79,7 +81,7 @@ namespace DSAnimStudio.DebugPrimitives
             //VertBuffer?.Dispose();
         }
 
-        public override DbgPrim<DbgPrimWireShader> Instantiate(string newName, Transform newLocation, Color? newNameColor = null)
+        public override DbgPrim<DbgPrimWireShader> Instantiate(Transform newLocation)
         {
             var newPrim = new DbgPrimWire();
             newPrim.Indices = Indices;
@@ -90,10 +92,7 @@ namespace DSAnimStudio.DebugPrimitives
             newPrim.NeedToRecreateIndexBuffer = NeedToRecreateIndexBuffer;
 
             newPrim.Transform = newLocation;
-
-            newPrim.Name = newName;
-
-            newPrim.NameColor = newNameColor ?? NameColor;
+            
 
             return newPrim;
         }

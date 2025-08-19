@@ -19,15 +19,36 @@ namespace DSAnimStudio.DebugPrimitives
 
         private static DbgPrimGeometryData GeometryData = null;
 
-        public DbgPrimWireArrow(string name, Transform location, Color color)
+        DbgPrimSolidArrow ExtraVisibilityPrim = null;
+
+        public static bool ForceEnableExtraVisibilityOnAll = false;
+        public bool EnableExtraVisibility = false;
+        public bool ExtraVisibilityIgnoresAlpha = false;
+
+        //public float ExtraVisibilityThickness = 1.2f;
+        //public static float GlobalExtraVisibilityThicknessMult = 1;
+
+        protected override void PreDraw(bool forceDraw, IDbgPrim parentPrim, Matrix world)
         {
+            if (EnableExtraVisibility || ForceEnableExtraVisibilityOnAll)
+            {
+                //float scale = ExtraVisibilityThickness * GlobalExtraVisibilityThicknessMult;
+                ExtraVisibilityPrim.Transform = Transform;// new Transform(Matrix.CreateScale(scale, scale, 1) * Transform.WorldMatrix);
+                ExtraVisibilityPrim.BackfaceCulling = false;
+                ExtraVisibilityPrim.DisableLighting = true;
+                ExtraVisibilityPrim.OverrideColor = Color.Black * (ExtraVisibilityIgnoresAlpha ? 1 : ((float)(OverrideColor?.A ?? 255) / 255f));
+                ExtraVisibilityPrim.Wireframe = false;
+                ExtraVisibilityPrim.BackfaceCulling = true;
+                ExtraVisibilityPrim.Draw(forceDraw, parentPrim, world);
+            }
+        }
+
+        public DbgPrimWireArrow(Transform location, Color color)
+        {
+            ExtraVisibilityPrim = new DbgPrimSolidArrow(location, color, 0.08f);
+
             KeepBuffersAlive = true;
-
-            Category = DbgPrimCategory.HkxBone;
-
             Transform = location;
-            NameColor = color;
-            Name = name;
 
             if (GeometryData != null)
             {

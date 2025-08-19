@@ -70,7 +70,7 @@
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(383, 18);
             this.label1.TabIndex = 3;
-            this.label1.Text = "Note: This will reset all parameters of this event to default values.";
+            this.label1.Text = "Note: This will reset all parameters of this action to default values.";
             // 
             // label2
             // 
@@ -143,7 +143,7 @@
             this.ShowInTaskbar = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Change Event Type";
+            this.Text = "Change Action Type";
             this.Load += new System.EventHandler(this.InspectorFormChangeEventType_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

@@ -11,7 +11,6 @@ namespace DSAnimStudio.DebugPrimitives
     {
         public DbgPrimWireGrid(Color originColor, Color color, int unitRange, float unitSize)
         {
-            NameColor = color;
             for (int h = -unitRange; h <= unitRange; h++)
             {
                 AddLine(new Vector3(h, 0, unitRange) * unitSize,

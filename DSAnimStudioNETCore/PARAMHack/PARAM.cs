@@ -70,6 +70,15 @@ namespace SoulsFormats
 		
         private BinaryReaderEx RowReader;
 
+        public void DisposeRowReader()
+        {
+            if (RowReader?.Stream != null)
+            {
+                RowReader.Stream?.Dispose();
+                RowReader = null;
+            }
+        }
+
         /// <summary>
         /// Deserializes file data from a stream.
         /// </summary>
@@ -105,7 +114,10 @@ namespace SoulsFormats
                 br.AssertInt32(0);
                 long paramTypeOffset = br.ReadInt64();
                 br.AssertPattern(0x14, 0x00);
-                ParamType = br.GetASCII(paramTypeOffset);
+                if (paramTypeOffset < br.Length)
+                    ParamType = br.GetASCII(paramTypeOffset);
+                else
+                    ParamType = "";
                 actualStringsOffset = paramTypeOffset;
             }
             else

@@ -1,0 +1,104 @@
+[NAVIGATION]
+Alt+Left/Alt+Right and Mouse side buttons:
+    Navigates backward/forward in your history of selected animations, just like a web browser.
+Up/Down:
+    Selects previous/next animation.
+    Hold shift to skip several animations.
+    Hold Ctrl to navigate entire TAEs instead of animations.
+Page Up / Page Down:
+    Selects the same sub-ID within the previous/next TAE (e.g. goes from a25_4000 to a26_4000)
+
+
+[PLAYBACK]
+Space Bar:
+    Play/Pause animation.
+Ctrl+R Key:
+    Reset animation/root motion/sounds (performs a "Hard Reset").
+Shift+Space Bar:
+    Reset animation/root motion/sounds (performs a "Hard Reset") and immediately starts playing the animation from the beginning.
+Ctrl+Space Bar:
+    Re-selects the current animation, applying a blend transition if blending is enabled under the "Simulation" tab.
+Ctrl+R Key:
+    Reset animation/root motion/sounds (performs a "Hard Reset").
+Left/Right Arrow Keys:
+    Goes to previous/next frame.
+Home/End:
+    Go to start of animation / end of animation.
+    
+    
+[GRAPH]
+Left Click + Drag on Timeline:
+    Scrub animation frame.
+Left Click + Hold Shift + Drag on Timeline:
+    Scrub animation frame while ignoring autoscroll.
+Left Click + Drag Middle of Selected Action:
+    Move whole action.
+Left Click + Drag Left/Right Side of Selected Action:
+    Move start/end of action.
+Left Click:
+    Select action under mouse cursor.
+Left Click and Drag:
+    Drag selection rectangle to highlight multiple actions.
+Shift + Left Click:
+    Add to current selection (works for drag multiselect as well).
+Ctrl + Left Click:
+    Subtract from current selection (works for drag multiselect as well).
+Ctrl + Right Click:
+    Place a new action at mouse cursor. Defaults to the same type as the first action on that track (ideally you have all the same type of action on a single track).
+Delete:
+    Delete highlighted action(s).
+Ctrl+A:
+    Select all actions in graph.
+Ctrl+X/Ctrl+C/Ctrl+V:
+    CUT/COPY/PASTE.
+Ctrl+F:
+    Open "Find Value" dialog.
+Ctrl+G:
+    Open "Go To Animation ID" dialog.
+Ctrl+H:
+    Open "Go To TAE ID" dialog.
+Ctrl+I:
+    Open "Import From Animation ID" dialog.
+F1:
+    Change type of highlighted action (if you only have 1 selected).
+F2:
+    Change name of current Animation.
+Shift+F2:
+    Change name of current TAE.
+F3:
+    Open Animation properties editor.
+Shift+F3:
+    Open TAE properties editor.
+F4:
+    Go to referenced animation (for animations that reference others).
+F5:
+    Force ingame hot reload (when supported).
+F6: 
+    Resort tracks and regenerate their names.
+    Hold Shift to do it to all animations.
+Ctrl+Mouse Wheel in Graph:
+    Zoom timeline in/out.
+Ctrl+(+/-/0):
+   Zoom in/out/reset
+Insert:
+   Duplicates current animation to a new entry.
+   Hold Shift to duplicate the current TAE to a new TAE file instead.
+
+    
+[VIEWPORT]
+Mouse Wheel in Viewport:
+    Zoom in/out.
+    Shift to go faster.
+    Ctrl to go slower.
+Right click and drag:
+    Move camera pivot point up/down/left/right.
+    Hold Ctrl to move pivot point forward/backward/left/right instead.
+Left click and drag:
+    Rotate camera around pivot point.
+Middle click:
+    Reset camera.
+Ctrl+Plus/Minus:
+    Zoom in/out smoothly.
+    Hold shift to speed up dramatically.
+Ctrl+0:
+    Reset zoom level.

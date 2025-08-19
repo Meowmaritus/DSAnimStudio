@@ -11,7 +11,6 @@ namespace DSAnimStudio.DebugPrimitives
     {
         public DbgPrimWireCylinder(Transform location, float range, float height, int numSegments, Color color)
         {
-            NameColor = color;
             Transform = location;
 
             float top = height / 2;
@@ -20,8 +19,8 @@ namespace DSAnimStudio.DebugPrimitives
             for (int i = 0; i < numSegments; i++)
             {
                 float angle = (1.0f * i / numSegments) * MathHelper.TwoPi;
-                float x = (float)Math.Cos(angle);
-                float z = (float)Math.Sin(angle);
+                float x = (float)Math.Cos(angle) * range;
+                float z = (float)Math.Sin(angle) * range;
                 //Very last one wraps around to the first one
                 if (i == numSegments - 1)
                 {

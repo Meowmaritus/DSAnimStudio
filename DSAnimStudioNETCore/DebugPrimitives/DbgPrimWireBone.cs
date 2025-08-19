@@ -13,14 +13,12 @@ namespace DSAnimStudio.DebugPrimitives
 
         private static DbgPrimGeometryData GeometryData = null;
 
-        public DbgPrimWireBone(string name, Transform location, Color color, float length, float thickness)
+        public DbgPrimWireBone(Transform location, Color color, float length, float thickness)
         {
             KeepBuffersAlive = false;
 
             Transform = location;
-            NameColor = color;
             OverrideColor = color;
-            Name = name;
 
             Vector3 pt_start = Vector3.Zero;
             Vector3 pt_cardinal1 = Vector3.Up * thickness + Vector3.Right * thickness;
@@ -50,14 +48,12 @@ namespace DSAnimStudio.DebugPrimitives
             FinalizeBuffers(true);
         }
 
-        public DbgPrimWireBone(string name, Transform location, Color color)
+        public DbgPrimWireBone(Transform location, Color color)
         {
             KeepBuffersAlive = true;
 
             Transform = location;
-            NameColor = color;
             OverrideColor = color;
-            Name = name;
 
             if (GeometryData != null)
             {

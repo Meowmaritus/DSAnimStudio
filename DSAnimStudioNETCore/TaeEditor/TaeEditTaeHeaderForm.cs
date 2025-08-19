@@ -8,7 +8,7 @@ namespace DSAnimStudio.TaeEditor
 {
     public partial class TaeEditTaeHeaderForm : Form
     {
-        TAE Tae;
+        DSAProj.AnimCategory Tae;
 
         //readonly TAEHeader copyOfOriginalHeader;
 
@@ -16,7 +16,7 @@ namespace DSAnimStudio.TaeEditor
 
         public bool WereThingsChanged = false;
 
-        public TaeEditTaeHeaderForm(TAE tae)
+        public TaeEditTaeHeaderForm(DSAProj.AnimCategory tae)
         {
             Tae = tae;
 

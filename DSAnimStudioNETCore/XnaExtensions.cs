@@ -1,9 +1,16 @@
-﻿using Microsoft.Xna.Framework;
+﻿using HKX2;
+using Microsoft.Xna.Framework;
+using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Quaternion = Microsoft.Xna.Framework.Quaternion;
+using Vector2 = Microsoft.Xna.Framework.Vector2;
+using Vector3 = Microsoft.Xna.Framework.Vector3;
+using Vector4 = Microsoft.Xna.Framework.Vector4;
 
 namespace DSAnimStudio
 {
@@ -13,6 +20,138 @@ namespace DSAnimStudio
         //{
         //    if (direction == Vector3.Up)
         //}
+
+        public static Matrix ExtractTranslationAndHeading(this Matrix m)
+        {
+            var root = Vector3.Transform(Vector3.Zero, m);
+            var forward = Vector3.Transform(Vector3.Forward, m);
+            var direction = Vector3.Normalize(forward - root);
+            float headingAngle = MathF.Atan2(-direction.X, -direction.Z);
+            return Matrix.CreateRotationY(headingAngle) * Matrix.CreateTranslation(root);
+        }
+
+        public static float ExtractHeading(this Matrix m)
+        {
+            var root = Vector3.Transform(Vector3.Zero, m);
+            var forward = Vector3.Transform(Vector3.Forward, m);
+            var direction = Vector3.Normalize(forward - root);
+            return MathF.Atan2(-direction.X, -direction.Z);
+        }
+
+        public static Color MultiplyAlpha(this Color c, float mult)
+        {
+            float r = c.R / 255f;
+            float g = c.G / 255f;
+            float b = c.B / 255f;
+            float a = c.A / 255f;
+            return new Color(r, g, b, a * mult);
+        }
+
+        public static Vector3 GetHSL(this Color c)
+        {
+            float _R = (c.R / 255f);
+            float _G = (c.G / 255f);
+            float _B = (c.B / 255f);
+
+            float _Min = Math.Min(Math.Min(_R, _G), _B);
+            float _Max = Math.Max(Math.Max(_R, _G), _B);
+            float _Delta = _Max - _Min;
+
+            float H = 0;
+            float S = 0;
+            float L = (float)((_Max + _Min) / 2.0f);
+
+            if (_Delta != 0)
+            {
+                if (L < 0.5f)
+                {
+                    S = (float)(_Delta / (_Max + _Min));
+                }
+                else
+                {
+                    S = (float)(_Delta / (2.0f - _Max - _Min));
+                }
+
+
+                if (_R == _Max)
+                {
+                    H = (_G - _B) / _Delta;
+                }
+                else if (_G == _Max)
+                {
+                    H = 2f + (_B - _R) / _Delta;
+                }
+                else if (_B == _Max)
+                {
+                    H = 4f + (_R - _G) / _Delta;
+                }
+            }
+
+            return new Vector3(H, S, L);
+        }
+        
+        public static bool ApproxEquals(this float f, float other, float precision = 0.001f)
+        {
+            // Test
+            return f == other;
+            //return Math.Abs(f - other) <= precision;
+        }
+        
+        public static uint GetImguiPackedValue(this Color c)
+        {
+            return new Color(new Vector4(c.R / 255f, c.G / 255f, c.B / 255f, c.A / 255f) * (c.A / 255f)).PackedValue;
+        }
+
+        public static bool HasAnyNaN(this Matrix m)
+        {
+            return float.IsNaN(m.M11) || float.IsNaN(m.M12) || float.IsNaN(m.M13) || float.IsNaN(m.M14) ||
+                float.IsNaN(m.M21) || float.IsNaN(m.M22) || float.IsNaN(m.M23) || float.IsNaN(m.M24) ||
+                float.IsNaN(m.M31) || float.IsNaN(m.M32) || float.IsNaN(m.M33) || float.IsNaN(m.M34) ||
+                float.IsNaN(m.M41) || float.IsNaN(m.M42) || float.IsNaN(m.M43) || float.IsNaN(m.M44);
+        }
+
+        public static bool HasAnyInfinity(this Matrix m)
+        {
+            return float.IsInfinity(m.M11) || float.IsInfinity(m.M12) || float.IsInfinity(m.M13) || float.IsInfinity(m.M14) ||
+                float.IsInfinity(m.M21) || float.IsInfinity(m.M22) || float.IsInfinity(m.M23) || float.IsInfinity(m.M24) ||
+                float.IsInfinity(m.M31) || float.IsInfinity(m.M32) || float.IsInfinity(m.M33) || float.IsInfinity(m.M34) ||
+                float.IsInfinity(m.M41) || float.IsInfinity(m.M42) || float.IsInfinity(m.M43) || float.IsInfinity(m.M44);
+        }
+
+        public static Matrix GetXnaMatrix(this NewBlendableTransform t)
+        {
+            return t.GetMatrix().ToXna();
+        }
+
+        public static Matrix GetXnaMatrixScale(this NewBlendableTransform t)
+        {
+            return t.GetMatrixScale().ToXna();
+        }
+
+        public static Matrix GetXnaMatrixFull(this NewBlendableTransform t)
+        {
+            return t.GetMatrixFull().ToXna();
+        }
+
+        public static NewBlendableTransform ToNewBlendableTransform(this Matrix m)
+        {
+            if (m.Decompose(out Vector3 aS, out Quaternion aR, out Vector3 aT))
+            {
+                return new NewBlendableTransform(aT.ToCS(), aS.ToCS(), Quaternion.Normalize(aR).ToCS());
+            }
+            
+            return NewBlendableTransform.Identity;
+        }
+        
+        public static NewBlendableTransform ToNewBlendableTransform(this Matrix4x4 m)
+        {
+            if (Matrix4x4.Decompose(m, out System.Numerics.Vector3 aS, out System.Numerics.Quaternion aR, out System.Numerics.Vector3 aT))
+            {
+                return new NewBlendableTransform(aT, aS, System.Numerics.Quaternion.Normalize(aR));
+            }
+            
+            return NewBlendableTransform.Identity;
+        }
 
         public static Vector2 RoundInt(this Vector2 v) => Vector2.Round(v);
 
@@ -43,37 +182,55 @@ namespace DSAnimStudio
         public static Rectangle DpiScaled(this Rectangle rect)
         {
             return new Rectangle(
-                (int)Math.Round(rect.X * Main.DPIX),
-                (int)Math.Round(rect.Y * Main.DPIY),
-                (int)Math.Round(rect.Width * Main.DPIX),
-                (int)Math.Round(rect.Height * Main.DPIY));
+                (int)Math.Round(rect.X * Main.DPI),
+                (int)Math.Round(rect.Y * Main.DPI),
+                (int)Math.Round(rect.Width * Main.DPI),
+                (int)Math.Round(rect.Height * Main.DPI));
         }
 
         public static System.Drawing.Rectangle DpiScaled(this System.Drawing.Rectangle rect)
         {
             return new System.Drawing.Rectangle(
-                (int)Math.Round(rect.X * Main.DPIX),
-                (int)Math.Round(rect.Y * Main.DPIY),
-                (int)Math.Round(rect.Width * Main.DPIX),
-                (int)Math.Round(rect.Height * Main.DPIY));
+                (int)Math.Round(rect.X * Main.DPI),
+                (int)Math.Round(rect.Y * Main.DPI),
+                (int)Math.Round(rect.Width * Main.DPI),
+                (int)Math.Round(rect.Height * Main.DPI));
+        }
+
+        public static RectF DpiScaled(this RectF rect)
+        {
+            return new RectF(
+                rect.X * Main.DPI,
+                rect.Y * Main.DPI,
+                rect.Width * Main.DPI,
+                rect.Height * Main.DPI);
         }
 
         public static Rectangle InverseDpiScaled(this Rectangle rect)
         {
             return new Rectangle(
-                (int)Math.Round(rect.X / Main.DPIX),
-                (int)Math.Round(rect.Y / Main.DPIY),
-                (int)Math.Round(rect.Width / Main.DPIX),
-                (int)Math.Round(rect.Height / Main.DPIY));
+                (int)Math.Round(rect.X / Main.DPI),
+                (int)Math.Round(rect.Y / Main.DPI),
+                (int)Math.Round(rect.Width / Main.DPI),
+                (int)Math.Round(rect.Height / Main.DPI));
         }
 
         public static System.Drawing.Rectangle InverseDpiScaled(this System.Drawing.Rectangle rect)
         {
             return new System.Drawing.Rectangle(
-                (int)Math.Round(rect.X / Main.DPIX),
-                (int)Math.Round(rect.Y / Main.DPIY),
-                (int)Math.Round(rect.Width / Main.DPIX),
-                (int)Math.Round(rect.Height / Main.DPIY));
+                (int)Math.Round(rect.X / Main.DPI),
+                (int)Math.Round(rect.Y / Main.DPI),
+                (int)Math.Round(rect.Width / Main.DPI),
+                (int)Math.Round(rect.Height / Main.DPI));
+        }
+
+        public static RectF InverseDpiScaled(this RectF rect)
+        {
+            return new RectF(
+                rect.X / Main.DPI,
+                rect.Y / Main.DPI,
+                rect.Width / Main.DPI,
+                rect.Height / Main.DPI);
         }
 
         public static Rectangle DpiScaledExcludePos(this Rectangle rect)
@@ -81,8 +238,8 @@ namespace DSAnimStudio
             return new Rectangle(
                 rect.X,
                 rect.Y,
-                (int)Math.Round(rect.Width * Main.DPIX),
-                (int)Math.Round(rect.Height * Main.DPIY));
+                (int)Math.Round(rect.Width * Main.DPI),
+                (int)Math.Round(rect.Height * Main.DPI));
         }
 
         public static System.Drawing.Rectangle DpiScaledExcludePos(this System.Drawing.Rectangle rect)
@@ -90,8 +247,8 @@ namespace DSAnimStudio
             return new System.Drawing.Rectangle(
                 rect.X,
                 rect.Y,
-                (int)Math.Round(rect.Width * Main.DPIX),
-                (int)Math.Round(rect.Height * Main.DPIY));
+                (int)Math.Round(rect.Width * Main.DPI),
+                (int)Math.Round(rect.Height * Main.DPI));
         }
 
         public static Rectangle InverseDpiScaledExcludePos(this Rectangle rect)
@@ -99,8 +256,8 @@ namespace DSAnimStudio
             return new Rectangle(
                 rect.X,
                 rect.Y,
-                (int)Math.Round(rect.Width / Main.DPIX),
-                (int)Math.Round(rect.Height / Main.DPIY));
+                (int)Math.Round(rect.Width / Main.DPI),
+                (int)Math.Round(rect.Height / Main.DPI));
         }
 
         public static System.Drawing.Rectangle InverseDpiScaledExcludePos(this System.Drawing.Rectangle rect)
@@ -108,8 +265,8 @@ namespace DSAnimStudio
             return new System.Drawing.Rectangle(
                 rect.X,
                 rect.Y,
-                (int)Math.Round(rect.Width / Main.DPIX),
-                (int)Math.Round(rect.Height / Main.DPIY));
+                (int)Math.Round(rect.Width / Main.DPI),
+                (int)Math.Round(rect.Height / Main.DPI));
         }
 
         public static Quaternion QuatLookRotation(Vector3 forward, Vector3 up)
@@ -191,10 +348,10 @@ namespace DSAnimStudio
             return (r - (b * s)) / (1 - s);
         }
 
-        public static Quaternion GetQuatOfBladePosDelta(NewDummyPolyManager.DummyPolyBladePos fromPos, NewDummyPolyManager.DummyPolyBladePos toPos)
-        {
-            return QuatFromToRotation(fromPos.Start - fromPos.End, toPos.Start - toPos.End);
-        }
+        //public static Quaternion GetQuatOfBladePosDelta(NewDummyPolyManager.DummyPolyBladePos fromPos, NewDummyPolyManager.DummyPolyBladePos toPos)
+        //{
+        //    return QuatFromToRotation(fromPos.Start - fromPos.End, toPos.Start - toPos.End);
+        //}
 
         public static Microsoft.Xna.Framework.Matrix ToXna(this System.Numerics.Matrix4x4 matrix)
         {
@@ -230,6 +387,12 @@ namespace DSAnimStudio
         {
             return new Microsoft.Xna.Framework.Vector4(vector.X, vector.Y, vector.Z, vector.W);
         }
+
+        public static Color PackToXnaColor(this System.Numerics.Vector4 vector)
+        {
+            return new Color(vector.X, vector.Y, vector.Z, vector.W);
+        }
+
 
         public static Microsoft.Xna.Framework.Quaternion ToXna(this System.Numerics.Quaternion quaternion)
         {

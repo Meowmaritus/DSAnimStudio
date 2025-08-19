@@ -19,12 +19,39 @@ namespace DSAnimStudio
 {
     public class DBG
     {
+        //public static float NewTransformSize = 1;
+        public static Matrix NewTransformSizeMatrix = Matrix.Identity;
+        public static Matrix NewTransformSizeMatrix_Bones = Matrix.Identity;
+        public static Matrix NewTransformSizeMatrix_DummyPoly = Matrix.Identity;
+
+        public static bool BoostTransformVisibility_Bones = false;
+        public static bool BoostTransformVisibility_DummyPoly = false;
+
+        public static bool BoostTransformVisibility_Bones_IgnoreAlpha = false;
+        public static bool BoostTransformVisibility_DummyPoly_IgnoreAlpha = false;
+
+        public static void CalcTransformSizeMatrix(float userTransformSize, float userTransformSize_Bones, float userTransformSize_DummyPoly)
+        {
+            NewTransformSizeMatrix = Matrix.CreateScale(((zzz_DocumentManager.CurrentDocument?.GameRoot?.GameType == SoulsAssetPipeline.SoulsGames.AC6) ? 5 : 1) * userTransformSize);
+            NewTransformSizeMatrix_Bones = Matrix.CreateScale(((zzz_DocumentManager.CurrentDocument?.GameRoot?.GameType == SoulsAssetPipeline.SoulsGames.AC6) ? 5 : 1)
+            * userTransformSize * userTransformSize_Bones);
+            NewTransformSizeMatrix_DummyPoly = Matrix.CreateScale(((zzz_DocumentManager.CurrentDocument?.GameRoot?.GameType == SoulsAssetPipeline.SoulsGames.AC6) ? 5 : 1)
+            * userTransformSize * userTransformSize_DummyPoly);
+        }
+
         public static bool ShowPrimitiveNametags = true;
         public static bool SimpleTextLabelSize = false;
         public static float PrimitiveNametagSize = 1;
 
-        public static DbgPrimWireGrid DbgPrim_Grid_XZ;
-        public static DbgPrimWireGrid DbgPrim_Grid_XY;
+        public static DbgPrimWireGrid DbgPrim_OldGrid_XZ;
+        public static DbgPrimWireGrid DbgPrim_OldGrid_XZ_AC6Extra;
+        public static DbgPrimWireGrid DbgPrim_OldGrid_XY;
+
+        public static object _lock_NewGrid3D = new object();
+        public static object _lock_NewSimpleGrid = new object();
+        public static NewGrid3D NewGrid3D;
+        public static NewSimpleGrid NewSimpleGrid;
+
         public static DbgPrimSkybox DbgPrim_Skybox;
 
         public static DbgPrimWireSphere DbgPrim_SoundEvent;
@@ -35,39 +62,39 @@ namespace DSAnimStudio
 
         public static object _lock_DebugDrawEnablers = new object();
 
-        public static Dictionary<DbgPrimCategory, bool> CategoryEnableDraw = new Dictionary<DbgPrimCategory, bool>();
-        public static Dictionary<DbgPrimCategory, bool> CategoryEnableDbgLabelDraw = new Dictionary<DbgPrimCategory, bool>();
-        public static Dictionary<DbgPrimCategory, bool> CategoryEnableNameDraw = new Dictionary<DbgPrimCategory, bool>();
+        // public static Dictionary<DbgPrimCategory, bool> CategoryEnableDraw = new Dictionary<DbgPrimCategory, bool>();
+        // public static Dictionary<DbgPrimCategory, bool> CategoryEnableDbgLabelDraw = new Dictionary<DbgPrimCategory, bool>();
+        // public static Dictionary<DbgPrimCategory, bool> CategoryEnableNameDraw = new Dictionary<DbgPrimCategory, bool>();
 
-        public static bool GetCategoryEnableDraw(DbgPrimCategory category)
-        {
-            bool result = false;
-            lock (DBG._lock_DebugDrawEnablers)
-            {
-                result = CategoryEnableDraw[category];
-            }
-            return result;
-        }
-
-        public static bool GetCategoryEnableDbgLabelDraw(DbgPrimCategory category)
-        {
-            bool result = false;
-            lock (DBG._lock_DebugDrawEnablers)
-            {
-                result = CategoryEnableDbgLabelDraw[category];
-            }
-            return result;
-        }
-
-        public static bool GetCategoryEnableNameDraw(DbgPrimCategory category)
-        {
-            bool result = false;
-            lock (DBG._lock_DebugDrawEnablers)
-            {
-                result = CategoryEnableNameDraw[category];
-            }
-            return result;
-        }
+        // public static bool GetCategoryEnableDraw(DbgPrimCategory category)
+        // {
+        //     bool result = false;
+        //     lock (DBG._lock_DebugDrawEnablers)
+        //     {
+        //         result = CategoryEnableDraw[category];
+        //     }
+        //     return result;
+        // }
+        //
+        // public static bool GetCategoryEnableDbgLabelDraw(DbgPrimCategory category)
+        // {
+        //     bool result = false;
+        //     lock (DBG._lock_DebugDrawEnablers)
+        //     {
+        //         result = CategoryEnableDbgLabelDraw[category];
+        //     }
+        //     return result;
+        // }
+        //
+        // public static bool GetCategoryEnableNameDraw(DbgPrimCategory category)
+        // {
+        //     bool result = false;
+        //     lock (DBG._lock_DebugDrawEnablers)
+        //     {
+        //         result = CategoryEnableNameDraw[category];
+        //     }
+        //     return result;
+        // }
 
         public static Texture2D UV_CHECK_TEX { get; private set; }
         static string UV_CHECK_TEX_NAME => $@"{Main.Directory}\Content\UVCheck";
@@ -114,66 +141,66 @@ namespace DSAnimStudio
 
         static DBG()
         {
-            lock (DBG._lock_DebugDrawEnablers)
-            {
-                CategoryEnableDraw.Clear();
-                CategoryEnableDbgLabelDraw.Clear();
-                CategoryEnableNameDraw.Clear();
-
-                var categories = (DbgPrimCategory[])Enum.GetValues(typeof(DbgPrimCategory));
-                foreach (var c in categories)
-                {
-                    CategoryEnableDraw.Add(c, false);
-                    CategoryEnableDbgLabelDraw.Add(c, false);
-                    CategoryEnableNameDraw.Add(c, false);
-                }
-
-                CategoryEnableDraw[DbgPrimCategory.FlverBone] = false;
-                CategoryEnableDraw[DbgPrimCategory.HkxBone] = false;
-
-                DbgPrimXRay = true;
-
-                CategoryEnableDraw[DbgPrimCategory.DummyPolyHelper] = true;
-
-                CategoryEnableDraw[DbgPrimCategory.DummyPolySpawnArrow] = true;
-
-                CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
-
-                CategoryEnableDraw[DbgPrimCategory.SoundEvent] = false;
-                //CategoryEnableNameDraw[DbgPrimCategory.SoundEvent] = true;
-
-                CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
-                CategoryEnableDraw[DbgPrimCategory.Other] = true;
-
-                CategoryEnableDraw[DbgPrimCategory.RootMotionPath] = true;
-            }
+            // lock (DBG._lock_DebugDrawEnablers)
+            // {
+            //     CategoryEnableDraw.Clear();
+            //     CategoryEnableDbgLabelDraw.Clear();
+            //     CategoryEnableNameDraw.Clear();
+            //
+            //     var categories = (DbgPrimCategory[])Enum.GetValues(typeof(DbgPrimCategory));
+            //     foreach (var c in categories)
+            //     {
+            //         CategoryEnableDraw.Add(c, false);
+            //         CategoryEnableDbgLabelDraw.Add(c, false);
+            //         CategoryEnableNameDraw.Add(c, false);
+            //     }
+            //
+            //     CategoryEnableDraw[DbgPrimCategory.FlverBone] = false;
+            //     CategoryEnableDraw[DbgPrimCategory.HkxBone] = false;
+            //
+            //     DbgPrimXRay = true;
+            //
+            //     CategoryEnableDraw[DbgPrimCategory.DummyPolyHelper] = true;
+            //
+            //     CategoryEnableDraw[DbgPrimCategory.DummyPolySpawnArrow] = true;
+            //
+            //     CategoryEnableNameDraw[DbgPrimCategory.DummyPolyHelper] = true;
+            //
+            //     CategoryEnableDraw[DbgPrimCategory.SoundEvent] = false;
+            //     //CategoryEnableNameDraw[DbgPrimCategory.SoundEvent] = true;
+            //
+            //     CategoryEnableDraw[DbgPrimCategory.Skybox] = true;
+            //     CategoryEnableDraw[DbgPrimCategory.Other] = true;
+            //
+            //     CategoryEnableDraw[DbgPrimCategory.RootMotionPath] = true;
+            // }
         }
 
-        public static bool DbgPrimXRay = false;
+        //public static bool DbgPrimXRay = false;
 
-        public static Color COLOR_FLVER_BONE = Color.Yellow;
+        //public static Color COLOR_FLVER_BONE = Color.Yellow;
         //public static string COLOR_FLVER_BONE_NAME = "Yellow";
 
         //public static Color COLOR_HKX_BONE = Color.Aqua;
         //public static string COLOR_HKX_BONE_NAME = "Aqua";
 
-        public static Color COLOR_FLVER_BONE_BBOX = Color.Lime;
+        //public static Color COLOR_FLVER_BONE_BBOX = Color.Lime;
         //public static string COLOR_FLVER_BONE_BBOX_NAME = "Lime";
 
-        public static Color COLOR_DUMMY_POLY = Color.MonoGameOrange;
-        public static Color COLOR_DUMMY_POLY_DBG = Color.Yellow;
+        //public static Color COLOR_DUMMY_POLY = Color.MonoGameOrange;
+        //public static Color COLOR_DUMMY_POLY_DBG = Color.Yellow;
         //public static string COLOR_DUMMY_POLY_NAME = "Orange";
 
-        public static Color COLOR_SOUND_EVENT = Color.Red;
+        //public static Color COLOR_SOUND_EVENT = Color.Red;
         //public static string COLOR_SOUND_EVENT_NAME = "Red";
 
         private static object _lock_primitives = new object();
 
-        public static bool EnableMenu = false;
+        public static bool EnableMenu => false;// Main.IsDebugBuild;
 
         public static bool EnableKeyboardInput = false;
         public static bool EnableMouseInput = true;
-        public static bool EnableGamePadInput = false;
+        public static bool EnableGamePadInput = true;
 
         public static MouseState DisabledMouseState;
         public static KeyboardState DisabledKeyboardState;
@@ -206,20 +233,23 @@ namespace DSAnimStudio
         public static void CreateDebugPrimitives()
         {
             // This is the green grid, which is just hardcoded lel
-            DbgPrim_Grid_XZ = new DbgPrimWireGrid(new Color(127, 127, 127), new Color(127, 127, 127), 100, 1);
-            DbgPrim_Grid_XZ.OverrideColor = new Color(32, 112, 39);
-            DbgPrim_Grid_XZ.Transform = Transform.Default;
+            DbgPrim_OldGrid_XZ = new DbgPrimWireGrid(new Color(127, 127, 127), new Color(127, 127, 127), 100, 1);
+            DbgPrim_OldGrid_XZ.OverrideColor = new Color(32, 112, 39);
+            DbgPrim_OldGrid_XZ.Transform = Transform.Default;
 
-            DbgPrim_Grid_XY = new DbgPrimWireGrid(new Color(127, 127, 127), new Color(127, 127, 127), 100, 1);
-            DbgPrim_Grid_XY.OverrideColor = new Color(32, 39, 112);
-            DbgPrim_Grid_XY.Transform = new Transform(Matrix.CreateRotationX(MathHelper.PiOver2));
+            DbgPrim_OldGrid_XZ_AC6Extra = new DbgPrimWireGrid(new Color(127, 127, 127), new Color(127, 127, 127), 100, 10);
+            DbgPrim_OldGrid_XZ_AC6Extra.OverrideColor = new Color(32, 112, 39);
+            DbgPrim_OldGrid_XZ_AC6Extra.Transform = new Transform(new Vector3(0, 0.001f, 0), Quaternion.Identity);
+
+            DbgPrim_OldGrid_XY = new DbgPrimWireGrid(new Color(127, 127, 127), new Color(127, 127, 127), 100, 1);
+            DbgPrim_OldGrid_XY.OverrideColor = new Color(32, 39, 112);
+            DbgPrim_OldGrid_XY.Transform = new Transform(Matrix.CreateRotationX(MathHelper.PiOver2));
 
             //DbgPrim_Grid.OverrideColor = Color.Green;
             DbgPrim_Skybox = new DbgPrimSkybox();
 
-            DbgPrim_SoundEvent = new DbgPrimWireSphere(Transform.Default, COLOR_SOUND_EVENT);
-            DbgPrim_SoundEvent.NameColor = COLOR_SOUND_EVENT;
-            DbgPrim_SoundEvent.Category = DbgPrimCategory.SoundEvent;
+            DbgPrim_SoundEvent = new DbgPrimWireSphere(Transform.Default, Main.Colors.ColorHelperSoundEventTransforms);
+            DbgPrim_SoundEvent.OverrideColor = Main.Colors.ColorHelperSoundEventTransforms;
 
             
             DbgPrim_Skybox.Transform = new Transform(Matrix.CreateScale(100));
@@ -240,7 +270,7 @@ namespace DSAnimStudio
 
         public static void DrawDepthRespectPrims()
         {
-            Main.TAE_EDITOR.Graph?.ViewportInteractor?.DrawDebug();
+            zzz_DocumentManager.CurrentDocument.EditorScreen.Graph?.ViewportInteractor?.DrawDebug();
 
             GFX.CurrentWorldView.DrawPrims();
         }
@@ -252,22 +282,82 @@ namespace DSAnimStudio
 
         public static void DrawSkybox()
         {
-            if (Environment.DrawCubemap)
+            if (ViewportEnvironment.DrawCubemap)
             {
                 GFX.CurrentWorldView.ApplyViewToShader_Skybox(GFX.SkyboxShader);
-                DbgPrim_Skybox.Draw(null, Matrix.Identity);
+                DbgPrim_Skybox.Draw(false, null, Matrix.Identity);
             }
         }
 
-        public static void DrawBehindPrims()
+        public static void RegenNewGrid3DPrimitive()
+        {
+            lock (_lock_NewGrid3D)
+            {
+                if (NewGrid3D != null)
+                {
+                    NewGrid3D.GridPrim?.Dispose();
+                    NewGrid3D.GridPrim = new DbgPrimNewGrid3D();
+                }
+            }
+        }
+
+        public static void DrawGrid()
         {
 
-            if (GFX.CurrentWorldView.ShowGrid)
+            if (GFX.CurrentWorldView.ShowGrid_Old)
             {
-                DbgPrim_Grid_XZ.Draw(null, Matrix.Identity);
-                //DbgPrim_Grid_XY.Draw(null, Matrix.Identity);
+                if (GFX.CurrentWorldView.ShowGrid10u && zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                {
+                    var oldColor = DbgPrim_OldGrid_XZ.OverrideColor.Value;
+                    DbgPrim_OldGrid_XZ_AC6Extra.OverrideColor = oldColor;
+                    DbgPrim_OldGrid_XZ_AC6Extra.Draw(false, null, Matrix.Identity);
+                    var newColor = oldColor;
+                    newColor.A = 128;
+                    DbgPrim_OldGrid_XZ.OverrideColor = newColor;
+                    DbgPrim_OldGrid_XZ.Draw(false, null, Matrix.Identity);
+                    DbgPrim_OldGrid_XZ.OverrideColor = oldColor;
+                    //DbgPrim_Grid_XY.Draw(null, Matrix.Identity);
+                }
+                else
+                {
+                    DbgPrim_OldGrid_XZ.Draw(false, null, Matrix.Identity);
+
+                    //DbgPrim_Grid_XY.Draw(null, Matrix.Identity);
+                }
             }
+
+            if (GFX.CurrentWorldView.ShowGrid_New3D)
+            {
+                lock (_lock_NewGrid3D)
+                {
+                    if (NewGrid3D == null)
+                        NewGrid3D = new NewGrid3D();
+
+                    NewGrid3D.GridPrim.BackfaceCulling = false;
+                    NewGrid3D.Draw(GFX.CurrentWorldView);
+                }
+            }
+
+            if (GFX.CurrentWorldView.ShowGrid_NewSimple)
+            {
+                lock (_lock_NewSimpleGrid)
+                {
+                    if (NewSimpleGrid == null)
+                        NewSimpleGrid = new NewSimpleGrid();
+
+                    NewSimpleGrid.Draw(GFX.CurrentWorldView);
+                }
+            }
+            
         }
+
+        //public static void Draw3DLine(Vector3 a, Vector3 b, Color color, float thickness = 1)
+        //{
+        //    var v = GFX.CurrentWorldView;
+        //    a = v.ProjectVector3(a);
+        //    b = v.ProjectVector3(b);
+        //    ImGuiDebugDrawer.DrawLine3D(new Vector2(a.X, a.Y), new Vector2(b.X, b.Y), color, );
+        //}
 
         public static void DrawPrimitives()
         {
@@ -278,45 +368,58 @@ namespace DSAnimStudio
 
             GFX.CurrentWorldView.Update(0);
 
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
-                foreach (var mdl in Scene.Models)
+                foreach (var mdl in zzz_DocumentManager.CurrentDocument.Scene.Models)
                 {
                     mdl.DrawAllPrimitiveShapes();
                 }
             }
 
-            if (CategoryEnableDraw[DbgPrimCategory.SoundEvent])
+            if (Main.HelperDraw.EnableSoundInstanceTransforms || Main.HelperDraw.EnableSoundInstanceNames)
             {
-                Dictionary<Vector3, List<string>> textsOnLocations = SoundManager.GetDebugDrawInstances();
+                var dbgDrawInsts = zzz_DocumentManager.CurrentDocument.SoundManager.GetDebugDrawInstances();
 
                 var sb = new StringBuilder();
-
-                foreach (var kvp in textsOnLocations)
+                if (Main.HelperDraw.EnableSoundInstanceTransforms)
                 {
-                    DbgPrim_SoundEvent.Transform = new Transform(Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(kvp.Key));
-                    DbgPrim_SoundEvent.Draw(null, Matrix.Identity);
+                    foreach (var kvp in dbgDrawInsts)
+                    {
+                        DbgPrim_SoundEvent.Transform =
+                            new Transform(Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(kvp.Key));
+                        DbgPrim_SoundEvent.Draw(true, null, Matrix.Identity);
+
+                        foreach (var offset in kvp.Value.PositionOffsets)
+                        {
+                            ImGuiDebugDrawer.DrawLine3D(kvp.Key - offset, kvp.Key, Main.Colors.ColorHelperSoundEventTransforms);
+                        }
+                        
+                    }
                 }
 
-                GFX.SpriteBatchBeginForText();
-                foreach (var kvp in textsOnLocations)
+                if (Main.HelperDraw.EnableSoundInstanceNames)
                 {
-                    sb.Clear();
+                    GFX.SpriteBatchBeginForText();
+                    foreach (var kvp in dbgDrawInsts)
+                    {
+                        sb.Clear();
 
-                    var sorted = kvp.Value.OrderBy(x => x);
+                        var sorted = kvp.Value.Info.OrderBy(x => x);
 
-                    foreach (var thing in sorted)
-                        sb.AppendLine(thing);
+                        foreach (var thing in sorted)
+                            sb.AppendLine(thing);
 
-                    DrawTextOn3DLocation_FixedPixelSize(
-                        Matrix.CreateTranslation(kvp.Key),
-                        Vector3.Zero,
-                        sb.ToString(), COLOR_SOUND_EVENT, 2,
-                        startAndEndSpriteBatchForMe: false, 
-                        screenPixelOffset: Vector2.One * 16, 
-                        fontOverride: DEBUG_FONT_SMALL);
+                        DrawTextOn3DLocation_FixedPixelSize(
+                            Matrix.CreateTranslation(kvp.Key),
+                            Vector3.Zero,
+                            sb.ToString(), Main.Colors.ColorHelperSoundEventTexts, 2,
+                            startAndEndSpriteBatchForMe: false,
+                            screenPixelOffset: Vector2.One * 16,
+                            fontOverride: DEBUG_FONT_SMALL);
+                    }
+
+                    GFX.SpriteBatchEnd();
                 }
-                GFX.SpriteBatchEnd();
 
                 //FmodManager.DbgPrimCamPos.Draw(null, Matrix.Identity);
             }
@@ -324,9 +427,9 @@ namespace DSAnimStudio
             if (RemoManager.EnableDummyPrims)
             {
                 List<Model> mdls = null;
-                lock (Scene._lock_ModelLoad_Draw)
+                lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
                 {
-                    mdls = Scene.Models.ToList();
+                    mdls = zzz_DocumentManager.CurrentDocument.Scene.Models.ToList();
                 }
 
                 foreach (var m in mdls)
@@ -351,11 +454,11 @@ namespace DSAnimStudio
             else
                 BeepVolume = 0;
 
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
                 GFX.SpriteBatchBeginForText();
 
-                foreach (var mdl in Scene.Models)
+                foreach (var mdl in zzz_DocumentManager.CurrentDocument.Scene.Models)
                 {
                     mdl.DrawAllPrimitiveTexts();
                 }
@@ -398,7 +501,7 @@ namespace DSAnimStudio
             BeepSound.Play();
             //BeepSound.Pause();
 
-            SpriteBatch3DBillboardEffect = new BasicEffect(GFX.Device)
+            SpriteBatch3DBillboardEffect = new BasicEffect(GFX.Device, Main.BasicEffectBytecode)
             {
                 TextureEnabled = true,
                 VertexColorEnabled = true,
@@ -859,7 +962,7 @@ namespace DSAnimStudio
 
             //if (startAndEndSpriteBatchForMe)
             //    GFX.SpriteBatchEnd();
-            ImGuiDebugDrawer.DrawText(text, pos - scaleOrigin, color, Color.Black * (color.A / 255f) * (color.A / 255f), 20 * scale);
+            ImGuiDebugDrawer.DrawText(text, pos - scaleOrigin, color, Color.Black * (color.A / 255f) * (color.A / 255f), Main.ImGuiFontPixelSize * scale);
         }
 
         public static void DrawOutlinedText(
@@ -913,18 +1016,18 @@ namespace DSAnimStudio
                 return Primitives;
             }
 
-            public void ClearPrimitives(DbgPrimCategory category)
-            {
-                lock (_lock_primitives)
-                {
-                    var primsToClear = Primitives.Where(p => p.Category == category).ToList();
-                    foreach (var p in primsToClear)
-                    {
-                        Primitives.Remove(p);
-                        p.Dispose();
-                    }
-                }
-            }
+            // public void ClearPrimitives(DbgPrimCategory category)
+            // {
+            //     lock (_lock_primitives)
+            //     {
+            //         var primsToClear = Primitives.Where(p => p.Category == category).ToList();
+            //         foreach (var p in primsToClear)
+            //         {
+            //             Primitives.Remove(p);
+            //             p.Dispose();
+            //         }
+            //     }
+            // }
 
             public void AddPrimitive(IDbgPrim primitive)
             {
@@ -950,33 +1053,33 @@ namespace DSAnimStudio
                     PrimitivesMarkedForDeletion.Add(prim);
             }
 
-            public void DrawPrimitiveNames()
-            {
-                lock (_lock_primitives)
-                {
-                    foreach (var p in GetPrimitivesByDistance())
-                    {
-                        if (ShowPrimitiveNametags)
-                        {
-                            if (!string.IsNullOrWhiteSpace(p.Name) && p.EnableNameDraw &&
-                                DBG.CategoryEnableNameDraw[p.Category])
-                            {
-                                DrawTextOn3DLocation(p.Transform.WorldMatrix * MODEL.CurrentTransform.WorldMatrix,
-                                    Vector3.Zero,
-                                    p.Name.Trim(), p.NameColor, PrimitiveNametagSize,
-                                    startAndEndSpriteBatchForMe: false, screenPixelOffset: Vector2.One * 32);
-                                //Draw3DBillboard(p.Name, p.Transform.WorldMatrix * 
-                                //    MODEL.CurrentTransform.WorldMatrix, p.NameColor);
-                            }
+            // public void DrawPrimitiveNames(bool forceEnableDraw)
+            // {
+            //     lock (_lock_primitives)
+            //     {
+            //         foreach (var p in GetPrimitivesByDistance())
+            //         {
+            //             if (forceEnableDraw || ShowPrimitiveNametags)
+            //             {
+            //                 if (!string.IsNullOrWhiteSpace(p.Name) && p.EnableNameDraw &&
+            //                     (forceEnableDraw || DBG.CategoryEnableNameDraw[p.Category]))
+            //                 {
+            //                     DrawTextOn3DLocation(p.Transform.WorldMatrix * MODEL.CurrentTransform.WorldMatrix,
+            //                         Vector3.Zero,
+            //                         p.Name.Trim(), p.NameColor, PrimitiveNametagSize,
+            //                         startAndEndSpriteBatchForMe: false, screenPixelOffset: Vector2.One * 32);
+            //                     //Draw3DBillboard(p.Name, p.Transform.WorldMatrix * 
+            //                     //    MODEL.CurrentTransform.WorldMatrix, p.NameColor);
+            //                 }
+            //
+            //                 p.LabelDraw(MODEL.CurrentTransform.WorldMatrix);
+            //                 //p.LabelDraw_Billboard(MODEL.CurrentTransform.WorldMatrix);
+            //             }
+            //         }
+            //     }
+            // }
 
-                            p.LabelDraw(MODEL.CurrentTransform.WorldMatrix);
-                            //p.LabelDraw_Billboard(MODEL.CurrentTransform.WorldMatrix);
-                        }
-                    }
-                }
-            }
-
-            public void DrawPrimitives()
+            public void DrawPrimitives(bool enableDraw)
             {
                 PrimitivesMarkedForDeletion.Clear();
 
@@ -988,7 +1091,7 @@ namespace DSAnimStudio
                 {
                     foreach (var p in GetPrimitivesByDistance())
                     {
-                        p.Draw(null, MODEL.CurrentTransform.WorldMatrix);
+                        p.Draw(enableDraw, null, MODEL.CurrentTransform.WorldMatrix);
                     }
                 }
 

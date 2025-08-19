@@ -1,0 +1,382 @@
+<internal_simulation_template>
+
+  <event id="0" name="JumpTable">
+    <field name="JumpTableID" type="s32" offset="0x0"/>
+    <field name="StateInfo" type="s16" offset="0xE" only_in="DS3,SDT,ER,ERNR,AC6"/>
+  </event>
+
+  <event id="300" name="JumpTableEx">
+    <field name="JumpTableID" type="s16" offset="0x0"/>
+  </event>
+  
+  <event id="1" name="InvokeAttackBehavior">
+    <field name="Index" type="s32" offset="0x4"/>
+    <field name="BehaviorJudgeID" type="s32" offset="0x8">
+      <override game="DES" offset="0x14"/>
+    </field>
+    <field name="StateInfo" type="s16" offset="0xE" not_in="DES,DS1"/>
+    <field name="Source" type="u8" offset="0xD" not_in="DES,DS1,BB"/>
+  </event>
+  
+  <event id="2" name="InvokeBulletBehavior">
+    <field name="DummyPolyID" type="s32" offset="0x0"/>
+    <field name="Index" type="s32" offset="0x4"/>
+    <field name="BehaviorJudgeID" type="s32" offset="0x8"/>
+    <field name="StateInfo" type="s16" offset="0xE"/>
+    <field name="Source" type="u8" offset="0x13" only_in="ER,ERNR"/>
+  </event>
+
+  <event id="4" name="InvokeBulletBehavior_Type4" only_in="SDT">
+    <field name="DummyPolyID" type="s32" offset="0x0"/>
+    <field name="Index" type="s32" offset="0x4"/>
+    <field name="BehaviorJudgeID" type="s32" offset="0x8"/>
+    <field name="StateInfo" type="s16" offset="0xE"/>
+  </event>
+
+  <event id="5" name="InvokeCommonBehavior">
+    <field name="Index" type="s32" offset="0x0"/>
+    <field name="BehaviorJudgeID" type="s32" offset="0x4"/>
+  </event>
+
+  <event id="307" name="InvokePCBehavior">
+    <field name="Index" type="s16" offset="0x2"/>
+    <field name="PCBehaviorType" type="s32" offset="0x4"/>
+    <field name="BehaviorJudgeID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="8" name="InvokeBulletBehaviorDefaultSpawn" only_in="AC6">
+    <field name="Index" type="s32" offset="0x0"/>
+    <field name="BehaviorJudgeID" type="s32" offset="0x4"/>
+  </event>
+
+  <event id="32" name="SetWeaponStyle">
+    <field name="WeaponStyle" type="s32" offset="0x0"/>
+  </event>
+
+  <event id="66" name="AddSpEffect_Multiplayer">
+    <field name="SpEffectID" type="s32" offset="0x0"/>
+  </event>
+
+  <event id="67" name="AddSpEffect">
+    <field name="SpEffectID" type="s32" offset="0x0"/>
+  </event>
+
+  <event id="302" name="AddSpEffect_DragonForm">
+    <field name="SpEffectID" type="s32" offset="0x0"/>
+  </event>
+
+  <event id="331" name="AddSpEffect_WeaponArts" only_in="DS3,SDT,ER,ERNR">
+    <field name="SpEffectID_EnoughFP" type="s32" offset="0x0"/>
+    <field name="SpEffectID_NotEnoughFP" type="s32" offset="0x4"/>
+  </event>
+
+  <event id="797" name="AddSpEffect_CultRitualCompletion" only_in="DS3,SDT,ER,ERNR">
+    <field name="SpEffectID" type="s32" offset="0x0"/>
+  </event>
+  
+  <event id="401" name="AddSpEffect_Multiplayer_401">
+    <field name="SpEffectID" type="s32" offset="0x0"/>
+  </event>
+
+  <event id="224" name="SetTurnSpeed">
+    <field name="TurnSpeed" type="f32" offset="0x0"/>
+    <field name="IsLockOnCheck" type="b" offset="0x4" not_in="DES,DS1"/>
+    <field name="UnkNewArg" type="u8" offset="0x5" only_in="ER,ERNR"/>
+  </event>
+  
+  <event id="304" name="InvokeThrowDamageBehavior">
+    <field name="Index" type="s16" offset="0x2"/>
+    <field name="BehaviorJudgeID" type="s32" offset="0x4"/>
+  </event>
+  
+  <event id="318" name="InvokeGunBehavior">
+    <field name="BehaviorJudgeID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="313" name="SetAdditiveAnim_BB" only_in="BB">
+    <field name="AnimType" type="s32" offset="0x0"/>
+    <field name="WeightAtEventStart" type="f32" offset="0x4"/>
+    <field name="WeightAtEventEnd" type="f32" offset="0x8"/>
+  </event>
+
+  <event id="601" name="SetAdditiveAnim" not_in="DES,DS1,BB">
+    <field name="AnimType" type="s32" offset="0x0"/>
+    <field name="WeightAtEventStart" type="f32" offset="0x4"/>
+    <field name="WeightAtEventEnd" type="f32" offset="0x8"/>
+    <field name="AnimType2" type="s32" offset="0xC" only_in="SDT"/>
+  </event>
+
+  <event id="303" name="SetAdditiveAnimType303" only_in="AC6">
+    <field name="AnimType" type="s32" offset="0x0"/>
+    <field name="DirectAnimID" type="s32" offset="0x4"/>
+    <field name="WeightAtEventStart" type="f32" offset="0x8"/>
+    <field name="WeightAtEventEnd" type="f32" offset="0xC"/>
+  </event>
+
+
+
+
+  <event id="128" name="PlaySound_CenterBody">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+  </event>
+
+  <event id="129" name="PlaySound_ByStateInfo">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+    <field name="DummyPolyID" type="s32" offset="0x8"/>
+    <field name="SlotID" type="s32" offset="0xC"/>
+    <field name="StateInfo" type="s16" offset="0x10" not_in="DES,DS1,BB"/>
+    <field name="PlaybackBehaviorType" type="u8" offset="0x12" only_in="ER,ERNR"/>
+    <field name="PlaybackBehaviorType_AC6" type="u8" offset="0x22" only_in="AC6"/>
+  </event>
+
+  <event id="130" name="PlaySound_ByDummyPoly_PlayerVoice" only_in="DES,DS1,DS3,SDT,BB">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+    <field name="DummyPolyID" type="s32" offset="0x8"/>
+    <field name="SlotID" type="s32" offset="0xC"/>
+  </event>
+
+  <event id="131" name="PlaySound_ByDummypoly" only_in="DS3,SDT,BB">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+    <field name="DummyPolyID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="132" name="PlaySound_Weapon" only_in="DS3,ER,ERNR,SDT,BB">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+  </event>
+
+  <event id="133" name="PlaySound_Wwise_Unk133" only_in="ER,ERNR">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="134" name="PlaySound_Wwise_Unk134" only_in="ER,ERNR">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+  </event>
+
+  <event id="144" name="InvokeRumbleCam_Local">
+    <field name="RumbleCamID" type="s16" offset="0x0"/>
+    <field name="DummyPolyID" type="u16" offset="0x2"/>
+    <field name="FalloffStart" type="f32" offset="0x4"/>
+    <field name="FalloffEnd" type="f32" offset="0x8"/>
+  </event>
+
+  <event id="145" name="InvokeRumbleCam_Global">
+    <field name="RumbleCamID" type="s16" offset="0x0"/>
+    <field name="Condition" type="u16" offset="0x2"/>
+  </event>
+
+  <event id="146" name="InvokeRumbleCam_Global2" only_in="SDT">
+    <field name="RumbleCamID" type="s16" offset="0x0"/>
+    <field name="Condition" type="u16" offset="0x2"/>
+    <field name="UnkFlag" type="b" offset="0x4"/>
+  </event>
+
+  <event id="147" name="InvokeRumbleCam_Local2" only_in="SDT">
+    <field name="RumbleCamID" type="s16" offset="0x0"/>
+    <field name="DummyPolyID" type="u16" offset="0x2"/>
+    <field name="FalloffStart" type="f32" offset="0x4"/>
+    <field name="FalloffEnd" type="f32" offset="0x8"/>
+    <field name="UnkFlag" type="b" offset="0xC"/>
+  </event>
+
+  <event id="712" name="DS3_OverrideWeaponModelLocations" only_in="DS3,ER,ERNR">
+    <field name="RHModel0_WepInvisibleTypeFilter" type="u8" offset="0x0"/>
+    <field name="RHModel0_ChangeType" type="s8" offset="0x1"/>
+    <field name="RHModel1_WepInvisibleTypeFilter" type="u8" offset="0x2"/>
+    <field name="RHModel1_ChangeType" type="s8" offset="0x3"/>
+    <field name="RHModel2_WepInvisibleTypeFilter" type="u8" offset="0x4"/>
+    <field name="RHModel2_ChangeType" type="s8" offset="0x5"/>
+    <field name="RHModel3_WepInvisibleTypeFilter" type="u8" offset="0x6"/>
+    <field name="RHModel3_ChangeType" type="s8" offset="0x7"/>
+    <field name="LHModel0_WepInvisibleTypeFilter" type="u8" offset="0x8"/>
+    <field name="LHModel0_ChangeType" type="s8" offset="0x9"/>
+    <field name="LHModel1_WepInvisibleTypeFilter" type="u8" offset="0xA"/>
+    <field name="LHModel1_ChangeType" type="s8" offset="0xB"/>
+    <field name="LHModel2_WepInvisibleTypeFilter" type="u8" offset="0xC"/>
+    <field name="LHModel2_ChangeType" type="s8" offset="0xD"/>
+    <field name="LHModel3_WepInvisibleTypeFilter" type="u8" offset="0xE"/>
+    <field name="LHModel3_ChangeType" type="s8" offset="0xF"/>
+    <field name="IsEnabledWhile1Handing" type="b" offset="0x10"/>
+    <field name="IsEnabledWhile2HandingRightWeapon" type="b" offset="0x11"/>
+    <field name="IsEnabledWhile2HandingLeftWeapon" type="b" offset="0x12"/>
+  </event>
+
+  <event id="715" name="SDT_OverrideWeaponModelLocation" only_in="SDT">
+    <field name="WeaponModelType" type="u8" offset="0x0"/>
+    <field name="Model0DummyPolyID" type="s32" offset="0x4"/>
+    <field name="Model1DummyPolyID" type="s32" offset="0x8"/>
+    <field name="Model2DummyPolyID" type="s32" offset="0xC"/>
+    <field name="Model3DummyPolyID" type="s32" offset="0x10"/>
+    <field name="UnkField1" type="s32" offset="0x14"/>
+    <field name="UnkField2" type="s32" offset="0x18"/>
+  </event>
+
+  <!-- TODO: Check which games this is used in. -->
+  <event id="10130" name="PlaySound_WanderGhost" only_in="BB,DS3,ER,ERNR">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+  </event>
+  
+  
+  
+  
+  
+  
+  
+  <!-- aasdfkjhafsgjadfglkjhsdfkgjh -->
+  <event id="95" name="FFX__FFX95" only_in="DS3,SDT,ER,ERNR">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+    <field name="StateInfo" type="u16" offset="0x10" only_in="ER,ERNR"/>
+  </event>
+
+  <event id="96" name="FFX__FFX96">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+    <field name="StateInfo" type="u16" offset="0x10" only_in="SDT,ER,ERNR"/>
+  </event>
+
+
+  <event id="99" name="FFX__FFX99" only_in="DES,DS1,BB">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="100" name="FFX__FFX100" not_in="ER,ERNR">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="104" name="FFX__FFX104" only_in="DES,DS1">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="108" name="FFX__FFX108" only_in="DES,DS1,BB">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="109" name="FFX__FFX109" only_in="DES,DS1,BB">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="112" name="FFX__SpawnFFX_ByFloor">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+  </event>
+
+  <event id="114" name="FFX__SpawnFFX_GoodsAndMagic">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolySource" type="s16" offset="0x4"/>
+    <field name="DummyPolyID" type="s16" offset="0x6"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+    <field name="ParamType" type="u8" offset="0xD" not_in="DES,DS1"/>
+    <field name="SFXIndexID" type="u8" offset="0xE" not_in="DES,DS1"/>
+  </event>
+
+  <event id="115" name="FFX__SpawnFFX_GoodsAndMagic2">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolySource" type="s16" offset="0x4"/>
+    <field name="DummyPolyID" type="s16" offset="0x6"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+    <field name="ParamType" type="u8" offset="0xD" not_in="DES,DS1"/>
+    <field name="SFXIndexID" type="u8" offset="0xE" not_in="DES,DS1"/>
+  </event>
+
+  <event id="116" name="FFX__SpawnFFX_Throw">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="117" name="FFX__SpawnFFX_ThrowDirection" not_in="DES,DS1">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="118" name="FFX__SpawnFFX_Blade">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolySource" type="s16" offset="0x4"/>
+    <field name="DummyPolyBladeBaseID" type="s16" offset="0x6"/>
+    <field name="DummyPolyBladeTipID" type="s16" offset="0x8"/>
+    <field name="SlotID" type="s32" offset="0xA"/>
+  </event>
+
+  <event id="119" name="FFX__SpawnFFX_Body_ForEventDuration">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s16" offset="0x4"/>
+    <field name="SlotID" type="s32" offset="0x8"/>
+  </event>
+
+  <event id="121" name="FFX__DS3_SpawnFFX_121" only_in="DS3,SDT,ER,ERNR">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s16" offset="0x4"/>
+  </event>
+
+  <event id="122" name="FFX__DS3_SpawnFFX_BySpEffect1" only_in="DS3,SDT,ER,ERNR">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s16" offset="0x4"/>
+    <field name="NeedsSpEffectID" type="s16" offset="0xA"/>
+  </event>
+
+  <event id="123" name="FFX__DS3_SpawnFFX_BySpEffect2" only_in="DS3,SDT,ER,ERNR">
+    <field name="FFXID" type="s32" offset="0x0"/>
+    <field name="DummyPolyID" type="s32" offset="0x4"/>
+    <field name="NeedsSpEffectID" type="s16" offset="0xA"/>
+  </event>
+
+
+  <event id="7003" name="NF_PlaySoundEx" only_in="DS1">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+    <field name="DummyPolyID" type="s32" offset="0x8"/>
+    <field name="SlotID" type="s32" offset="0xC"/>
+    <field name="RequiredSpEffectID" type="s32" offset="0x10"/>
+  </event>
+
+  <event id="7031" name="NF_PlayDummyPolyFollowSound" only_in="DS1">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+    <field name="DummyPolyID" type="s32" offset="0x8"/>
+    <field name="Lifetime" type="f32" offset="0xC"/>
+  </event>
+
+  <event id="7052" name="NF_PlayDummyPolyFollowSoundEx" only_in="DS1">
+    <field name="SoundType" type="s32" offset="0x0"/>
+    <field name="SoundID" type="s32" offset="0x4"/>
+    <field name="DummyPolyID" type="s32" offset="0x8"/>
+    <field name="LifetimeMin" type="f32" offset="0xC"/>
+    <field name="LifetimeMax" type="f32" offset="0x10"/>
+    <field name="ExInfoID" type="s32" offset="0x14"/>
+    <field name="CooldownMin" type="f32" offset="0x18"/>
+    <field name="CooldownMax" type="f32" offset="0x1C"/>
+    <field name="RepeatDuringAction" type="b" offset="0x20"/>
+    <field name="StopAllSoundsWhenActionEnds" type="b" offset="0x21"/>
+  </event>
+
+
+
+
+
+  <event id="9700" name="AC6_UnkSpeedGradient" only_in="AC6">
+    <field name="Speed" type="f32grad" offset="0x0"/>
+  </event>
+
+</internal_simulation_template>

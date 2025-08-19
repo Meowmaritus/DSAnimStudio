@@ -63,13 +63,16 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     float3 mipB = texCUBElod(EnvironmentMapSampler, float4(viewVec * float3(-1,1,-1), 1));
     float3 mipC = texCUBElod(EnvironmentMapSampler, float4(viewVec * float3(-1,1,-1), 2));
     float3 mipD = texCUBElod(EnvironmentMapSampler, float4(viewVec * float3(-1,1,-1), 3));
+    float3 mipE = texCUBElod(EnvironmentMapSampler, float4(viewVec * float3(-1,1,-1), 4));
     
     mipA *= mipA;
     mipB *= mipB;
     mipC *= mipC;
     mipD *= mipD;
+    mipE *= mipE;
 
-    return float4(((mipA + mipB + mipC + mipD) / 4) * AmbientLightMult * SceneBrightness, 1);
+    return float4(((mipA + mipB + mipC + mipD + mipE) / 5) * AmbientLightMult * SceneBrightness, 1);
+    //return float4(mipD * AmbientLightMult * SceneBrightness, 1);
 
     // Get the initial color at this pixel.   
     // float3 color = texCUBElod(EnvironmentMapSampler, float4(viewVec, 0));

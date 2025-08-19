@@ -110,13 +110,13 @@ namespace DSAnimStudio
 
             Main.SaveConfig();
 
-            var boneDefaultTransforms = Scene.MainModel.AnimContainer.Skeleton.HkxSkeleton.ToDictionary(x => x.Name, x => x.RelativeReferenceTransform);
+            var boneDefaultTransforms = zzz_DocumentManager.CurrentDocument.Scene.MainModel.AnimContainer.Skeleton.Bones.ToDictionary(x => x.Name, x => x.ReferenceLocalTransform);
             var boneNames = boneDefaultTransforms.Keys.ToList();
             var importSettings = new SoulsAssetPipeline.AnimationImporting.AnimationImporter.AnimationImportSettings
             {
                 SceneScale = ImportConfig.SceneScale,
                 ExistingBoneDefaults = boneDefaultTransforms,
-                ExistingHavokAnimationTemplate = Scene.MainModel.AnimContainer.CurrentAnimation.data,
+                ExistingHavokAnimationTemplate = zzz_DocumentManager.CurrentDocument.Scene.MainModel.AnimContainer.CurrentAnimation.Data,
                 ResampleToFramerate = ImportConfig.SampleToFramerate,
                 RootMotionNodeName = ImportConfig.RootMotionNodeName,
                 FlipQuaternionHandedness = ImportConfig.TurnQuaternionsInsideOut,
@@ -153,13 +153,13 @@ namespace DSAnimStudio
 
         private void buttonImport_Click(object sender, EventArgs e)
         {
-            if (!(GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3))
+            if (!(zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R || zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3))
             {
                 ImguiOSD.DialogManager.DialogOK("Not Supported", "Only supported on DS1 PTDE, DS1R, and DS3 for now.");
                 return;
             }
 
-            LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_AnimFBXImport", "Importing Animation To Current...", prog =>
+            zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_AnimFBXImport", "Importing Animation To Current...", prog =>
             {
                 Invoke(new Action(() =>
                 {
@@ -171,11 +171,13 @@ namespace DSAnimStudio
                 {
                     var finalHkxDataToImport = ImportAnimToHKX();
 
-                    MainScreen.FileContainer.AddNewHKX(Utils.GetFileNameWithoutAnyExtensions(Scene.MainModel.AnimContainer.CurrentAnimationName), finalHkxDataToImport, out byte[] dataForAnimContainer);
+                    var curID = zzz_DocumentManager.CurrentDocument.Scene.MainModel.AnimContainer.CurrentAnimationID;
+                    
+                    MainScreen.FileContainer.AddNewHKX(curID, $"{curID}.hkx", finalHkxDataToImport, out byte[] dataForAnimContainer);
 
                     if (dataForAnimContainer != null)
                     {
-                        MainScreen.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(Scene.MainModel.AnimContainer.CurrentAnimationName, dataForAnimContainer);
+                        MainScreen.Graph.ViewportInteractor.CurrentModel.AnimContainer.AddNewHKXToLoad(curID, $"{curID}.hkx", dataForAnimContainer);
 
                         MainScreen.ReselectCurrentAnimation();
                         MainScreen.HardReset();
@@ -206,7 +208,7 @@ namespace DSAnimStudio
                         buttonImportToLooseHKX.Enabled = true;
                     }));
                 }
-            }, disableProgressBarByDefault: true, isUnimportant: true);
+            }, disableProgressBarByDefault: true, flags: zzz_LoadingTaskManIns.TaskFlags.AllowsInteraction);
 
         }
 
@@ -234,13 +236,13 @@ namespace DSAnimStudio
 
         private void buttonImportToLooseHKX_Click(object sender, EventArgs e)
         {
-            if (!(GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3))
+            if (!(zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R || zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3))
             {
                 ImguiOSD.DialogManager.DialogOK("Not Supported", "Only supported on DS1 PTDE, DS1R, and DS3 for now.");
                 return;
             }
 
-            LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_AnimFBXImport", "Importing Animation To Current...", prog =>
+            zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_AnimFBXImport", "Importing Animation To Current...", prog =>
             {
                 Invoke(new Action(() =>
                 {
@@ -266,24 +268,24 @@ namespace DSAnimStudio
                             dlg.InitialDirectory = potentialDefaultDir;
                     }
 
-                    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1)
+                    if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1)
                     {
                         dlg.Filter = "HKX 2010 x32 - For DS1: PTDE (*.HKX)|*.HKX";
                         dlg.Title = "Save Dark Souls: PTDE Format Animation File";
                     }
-                    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                    else if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                     {
                         dlg.Filter = "HKX 2015 x64 - For DS1R (*.HKX)|*.HKX";
                         dlg.Title = "Save Dark Souls Remastered Format Animation File";
                     }
-                    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
+                    else if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
                     {
                         dlg.Filter = "HKX 2014 x64 - For DS3 (*.HKX)|*.HKX";
                         dlg.Title = "Save Dark Souls III Format Animation File";
                     }
                     else
                     {
-                        throw new NotImplementedException($"Current GameType not supported by the save loose HKX code: '{GameRoot.GameType}'");
+                        throw new NotImplementedException($"Current GameType not supported by the save loose HKX code: '{zzz_DocumentManager.CurrentDocument.GameRoot.GameType}'");
                     }
 
 
@@ -309,12 +311,12 @@ namespace DSAnimStudio
                         buttonImportToLooseHKX.Enabled = true;
                     }));
                 }
-            }, disableProgressBarByDefault: true, isUnimportant: true);
+            }, disableProgressBarByDefault: true, flags: zzz_LoadingTaskManIns.TaskFlags.AllowsInteraction);
         }
 
         private void buttonImportDirectlyTest_Click(object sender, EventArgs e)
         {
-            LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_AnimFBXImport", "Importing Animation To Current...", prog =>
+            zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_AnimFBXImport", "Importing Animation To Current...", prog =>
             {
                 Invoke(new Action(() =>
                 {
@@ -325,7 +327,10 @@ namespace DSAnimStudio
                 try
                 {
                     var anim = ImportAnim();
-                    Scene.MainModel.AnimContainer.AddNewAnimation(Scene.MainModel.AnimContainer.CurrentAnimationName, new NewHavokAnimation(anim, fileSize: -1));
+                    zzz_DocumentManager.CurrentDocument.Scene.MainModel.AnimContainer.AddNewAnimation_Deprecated(
+                        zzz_DocumentManager.CurrentDocument.Scene.MainModel.AnimContainer.CurrentAnimationID, 
+                        $"{zzz_DocumentManager.CurrentDocument.Scene.MainModel.AnimContainer.CurrentAnimationID}.hkx", 
+                        new NewHavokAnimation(anim, fileSize: -1));
                     MainScreen.ReselectCurrentAnimation();
                     MainScreen.HardReset();
 
@@ -346,7 +351,7 @@ namespace DSAnimStudio
                         buttonImportToLooseHKX.Enabled = true;
                     }));
                 }
-            }, disableProgressBarByDefault: true, isUnimportant: true);
+            }, disableProgressBarByDefault: true, flags: zzz_LoadingTaskManIns.TaskFlags.AllowsInteraction);
 
             
         }

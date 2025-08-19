@@ -11,25 +11,11 @@ namespace DSAnimStudio
     {
         public SoulsAssetPipeline.SoulsGames GameType;
         public bool IsFemale;
-        public int HeadID = -1;
-        public int BodyID = -1;
-        public int ArmsID = -1;
-        public int LegsID = -1;
-        public int RightWeaponID = -1;
-        //public int RightWeaponModelIndex = 0;
-        public int LeftWeaponID = -1;
-        //public int LeftWeaponModelIndex = 0;
-        //public bool LeftWeaponFlipBackwards = true;
-        //public bool LeftWeaponFlipSideways = true;
-        //public bool RightWeaponFlipBackwards = true;
-        //public bool RightWeaponFlipSideways = false;
+        public ParamData.PartSuffixType CurrentPartSuffixType = ParamData.PartSuffixType.None;
+        public bool EnablePartsFileCaching = true;
+        public Dictionary<NewChrAsm.EquipSlotTypes, int> EquipIDs = new Dictionary<NewChrAsm.EquipSlotTypes, int>();
+        public Dictionary<NewChrAsm.EquipSlotTypes, NewEquipSlot_Armor.DirectEquipInfo> DirectEquipInfos = new Dictionary<NewChrAsm.EquipSlotTypes, NewEquipSlot_Armor.DirectEquipInfo>();
         public NewChrAsm.WeaponStyleType WeaponStyle = NewChrAsm.WeaponStyleType.OneHand;
-        public string FaceName_Male = "";
-        public string FaceName_Female = "";
-        public string FacegenName = "";
-
-        public string HairName_Male = "";
-        public string HairName_Female = "";
 
 
         private Dictionary<FlverMaterial.ChrCustomizeTypes, Vector4> chrCustomize = new Dictionary<FlverMaterial.ChrCustomizeTypes, Vector4>();
@@ -57,33 +43,29 @@ namespace DSAnimStudio
         public void WriteToChrAsm(NewChrAsm chrAsm)
         {
             chrAsm.IsFemale = IsFemale;
-            chrAsm.HeadID = HeadID;
-            chrAsm.BodyID = BodyID;
-            chrAsm.ArmsID = ArmsID;
-            chrAsm.LegsID = LegsID;
-            chrAsm.RightWeaponID = RightWeaponID;
-            //chrAsm.RightWeaponModelIndex = RightWeaponModelIndex;
-            chrAsm.LeftWeaponID = LeftWeaponID;
-            //chrAsm.LeftWeaponModelIndex = LeftWeaponModelIndex;
-            //chrAsm.LeftWeaponFlipBackwards = LeftWeaponFlipBackwards;
-            //chrAsm.LeftWeaponFlipSideways = LeftWeaponFlipSideways;
-            //chrAsm.RightWeaponFlipBackwards = RightWeaponFlipBackwards;
-            //chrAsm.RightWeaponFlipSideways = RightWeaponFlipSideways;
+            chrAsm.CurrentPartSuffixType = CurrentPartSuffixType;
+            chrAsm.EnablePartsFileCaching = EnablePartsFileCaching;
+
+            chrAsm.ForAllWeaponSlots(slot =>
+            {
+                if (EquipIDs.ContainsKey(slot.EquipSlotType))
+                    slot.EquipID = EquipIDs[slot.EquipSlotType];
+            });
+
+            chrAsm.ForAllArmorSlots(slot =>
+            {
+                if (slot.UsesEquipParam && EquipIDs.ContainsKey(slot.EquipSlotType))
+                    slot.EquipID = EquipIDs[slot.EquipSlotType];
+                if (!slot.UsesEquipParam && DirectEquipInfos.ContainsKey(slot.EquipSlotType))
+                    slot.DirectEquip = DirectEquipInfos[slot.EquipSlotType];
+            });
+
+
+
+
+
             chrAsm.StartWeaponStyle = WeaponStyle;
-            var faces = chrAsm.PossibleFaceModels;
-            var facegens = chrAsm.PossibleFacegenModels;
-            var hairs = chrAsm.PossibleHairModels;
-            chrAsm.FaceIndex_Male = faces.IndexOf(FaceName_Male);
-            chrAsm.FaceIndex_Female = faces.IndexOf(FaceName_Female);
-            if (chrAsm.FaceIndex < 0)
-                chrAsm.FaceIndex = chrAsm.GetDefaultFaceIndexForCurrentGame(chrAsm.IsFemale);
-            chrAsm.HairIndex_Male = faces.IndexOf(HairName_Male);
-            chrAsm.HairIndex_Female = faces.IndexOf(HairName_Female);
-            if (chrAsm.HairIndex < 0)
-                chrAsm.HairIndex = chrAsm.GetDefaultHairIndexForCurrentGame(chrAsm.IsFemale);
-            chrAsm.FacegenIndex = facegens.IndexOf(FacegenName);
-            if (chrAsm.FacegenIndex < 0)
-                chrAsm.FacegenIndex = chrAsm.GetDefaultFacegenIndexForCurrentGame();
+            chrAsm.WeaponStyle = WeaponStyle;
             //chrAsm.UpdateModels();
             var chrCustomizeDict = ChrCustomize.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
@@ -95,38 +77,36 @@ namespace DSAnimStudio
             }
 
             chrAsm.ChrCustomize = chrCustomizeDict;
+
+            chrAsm.Update(0, forceSyncUpdate: true);
         }
 
         public void CopyFromChrAsm(NewChrAsm chrAsm)
         {
-            GameType = GameRoot.GameType;
+            GameType = zzz_DocumentManager.CurrentDocument.GameRoot.GameType;
             IsFemale = chrAsm.IsFemale;
-            HeadID = chrAsm.HeadID;
-            BodyID = chrAsm.BodyID;
-            ArmsID = chrAsm.ArmsID;
-            LegsID = chrAsm.LegsID;
-            RightWeaponID = chrAsm.RightWeaponID;
-            //RightWeaponModelIndex = chrAsm.RightWeaponModelIndex;
-            LeftWeaponID = chrAsm.LeftWeaponID;
-            //LeftWeaponModelIndex = chrAsm.LeftWeaponModelIndex;
-            //LeftWeaponFlipBackwards = chrAsm.LeftWeaponFlipBackwards;
-            //LeftWeaponFlipSideways = chrAsm.LeftWeaponFlipSideways;
-            //RightWeaponFlipBackwards = chrAsm.RightWeaponFlipBackwards;
-            //RightWeaponFlipSideways = chrAsm.RightWeaponFlipSideways;
+            CurrentPartSuffixType = chrAsm.CurrentPartSuffixType;
+            EnablePartsFileCaching = chrAsm.EnablePartsFileCaching;
+
+            EquipIDs.Clear();
+            DirectEquipInfos.Clear();
+
+            chrAsm.ForAllWeaponSlots(slot =>
+            {
+                EquipIDs[slot.EquipSlotType] = slot.EquipID;
+            });
+
+            chrAsm.ForAllArmorSlots(slot =>
+            {
+                if (slot.UsesEquipParam)
+                    EquipIDs[slot.EquipSlotType] = slot.EquipID;
+                else
+                    DirectEquipInfos[slot.EquipSlotType] = slot.DirectEquip;
+            });
+
+          
+
             WeaponStyle = chrAsm.StartWeaponStyle;
-            var faces = chrAsm.PossibleFaceModels;
-            var facegens = chrAsm.PossibleFacegenModels;
-            var hairs = chrAsm.PossibleHairModels;
-            int faceIndex_Male = chrAsm.FaceIndex_Male;
-            int faceIndex_Female = chrAsm.FaceIndex_Female;
-            int hairIndex_Male = chrAsm.HairIndex_Male;
-            int hairIndex_Female = chrAsm.HairIndex_Female;
-            int facegenIndex = chrAsm.FacegenIndex;
-            FaceName_Male = faceIndex_Male >= 0 ? faces[faceIndex_Male] : "";
-            FaceName_Female = faceIndex_Female >= 0 ? faces[faceIndex_Female] : "";
-            FacegenName = facegenIndex >= 0 ? facegens[facegenIndex] : "";
-            HairName_Male = hairIndex_Male >= 0 ? hairs[hairIndex_Male] : "";
-            HairName_Female = hairIndex_Female >= 0 ? hairs[hairIndex_Female] : "";
             ChrCustomize = chrAsm.ChrCustomize.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
     }

@@ -1,217 +1,420 @@
-﻿using Microsoft.Xna.Framework;
+﻿using DSAnimStudio.TaeEditor;
+using HKX2;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SoulsAssetPipeline;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
 
 namespace DSAnimStudio
 {
     public class NewChrAsm : IDisposable
     {
-        public void Update(float timeDelta)
+
+
+        public bool AC6LeftWeaponBaySwapped = false;
+        public bool AC6RightWeaponBaySwapped = false;
+
+        private object _lock_boneMappersAndGluersUpdateOrder = new object();
+        private List<NewEquipSlot> boneMappersAndGluersUpdateOrder = new List<NewEquipSlot>(); 
+
+        private void CreateGluers()
         {
-            if (GameRoot.GameTypeUsesWwise)
+            ForAllArmorSlots(slot =>
             {
-                Wwise.ArmorMaterial_Top = Body?.DefMaterialType ?? -1;
-                Wwise.ArmorMaterial_Bottom = Legs?.DefMaterialType ?? -1;
+                if (slot.EquipSlotType >= EquipSlotTypes.Facegen1 && slot.EquipSlotType <= EquipSlotTypes.FacegenMax)
+                {
+                    slot.AccessAllModels(model =>
+                    {
+                        model.BoneGluer = new NewBoneGluer(leader: MODEL, follower: model, mode: NewBoneGluer.GlueModes.ShiftEntireSkeleton, NewBoneGluer.GlueMethods.MatchEverything);
+                        model.BoneGluer.AddGlueEntry(leaderBone: "Head", followerBone: "Head");
+                    });
+
+                }
+                else if (slot.EquipSlotType == EquipSlotTypes.OldShittyFacegen)
+                {
+                    slot.AccessAllModels(model =>
+                    {
+                        model.BoneGluer = new NewBoneGluer(leader: MODEL, follower: model, 
+                            mode: NewBoneGluer.GlueModes.ShiftEntireSkeleton, NewBoneGluer.GlueMethods.MatchEverything);
+                        model.BoneGluer.AddGlueEntry(leaderBone: "Head", followerBone: "Head");
+                    });
+
+                }
+                else if (slot.EquipSlotType == EquipSlotTypes.Arms && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                {
+                    var bodySlot = GetArmorSlot(EquipSlotTypes.Body);
+                    bodySlot.AccessAllModels(bodyModel =>
+                    {
+                        slot.AccessAllModels(armsModel =>
+                        {
+                            armsModel.BoneGluer = new NewBoneGluer(leader: bodyModel, follower: armsModel, 
+                                mode: NewBoneGluer.GlueModes.ShiftChildBones, NewBoneGluer.GlueMethods.MatchEverything);
+                            // armsModel.BoneGluer.AddGlueEntry(leaderBone: "Offset_L_Clavicle", followerBone: "Offset_L_Clavicle");
+                            // armsModel.BoneGluer.AddGlueEntry(leaderBone: "Offset_R_Clavicle", followerBone: "Offset_R_Clavicle");
+
+                            armsModel.BoneGluer.AddGlueEntry(leaderBone: "Offset_L_Clavicle", followerBone: "Offset_L_Clavicle");
+                            armsModel.BoneGluer.AddGlueEntry(leaderBone: "Offset_R_Clavicle", followerBone: "Offset_R_Clavicle");
+                        });
+                    });
+                    
+                }
+                else if (slot.EquipSlotType == EquipSlotTypes.Body && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                {
+                    var legsSlot = GetArmorSlot(EquipSlotTypes.Legs);
+                    legsSlot.AccessAllModels(legsModel =>
+                    {
+                        slot.AccessAllModels(bodyModel =>
+                        {
+                            bodyModel.BoneGluer = new NewBoneGluer(leader: legsModel, follower: bodyModel, 
+                                mode: NewBoneGluer.GlueModes.ShiftEntireSkeleton, NewBoneGluer.GlueMethods.MatchEverything);
+                            bodyModel.BoneGluer.AddGlueEntry(leaderBone: "BD_Root", followerBone: "BD_Root");
+                            //bodyModel.BoneGluer.AddGlueEntry(leaderBone: "SpineLink", followerBone: "SpineLink");
+                        });
+                    });
+
+                    
+                }
+                else if (slot.EquipSlotType == EquipSlotTypes.Head && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                {
+                    var bodySlot = GetArmorSlot(EquipSlotTypes.Body);
+                    bodySlot.AccessAllModels(bodyModel =>
+                    {
+                        slot.AccessAllModels(headModel =>
+                        {
+                            headModel.BoneGluer = new NewBoneGluer(leader: bodyModel, follower: headModel, 
+                                mode: NewBoneGluer.GlueModes.ShiftChildBones, NewBoneGluer.GlueMethods.MatchEverything);
+                            headModel.BoneGluer.AddGlueEntry(leaderBone: "Neck", followerBone: "Neck");
+                            //headModel.BoneGluer.AddGlueEntry(leaderBone: "Head", followerBone: "Head");
+
+                            //headModel.EquipPartsSkeletonRemapper = new ModelSkeletonRemapper(leader: bodyModel, follower: headModel);
+                        });
+                    });
+
+                }
+
+                // else if (slot.EquipSlotType == EquipSlotTypes.Legs && GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                // {
+                //     
+                //         slot.AccessAllModels(legsModel =>
+                //         {
+                //             legsModel.UpdateSkeleton();
+                //
+                //             legsModel.EquipPartsSkeletonRemapper = new ModelSkeletonRemapper(leader: MODEL, follower: legsModel);
+                //         });
+                //
+                // }
+            });
+
+            lock (_lock_boneMappersAndGluersUpdateOrder)
+            {
+                boneMappersAndGluersUpdateOrder.Clear();
+                var slot_Head = GetGenericEquipSlot(EquipSlotTypes.Head);
+                var slot_Body = GetGenericEquipSlot(EquipSlotTypes.Body);
+                var slot_Arms = GetGenericEquipSlot(EquipSlotTypes.Arms);
+                var slot_Legs = GetGenericEquipSlot(EquipSlotTypes.Legs);
+                if (slot_Legs != null)
+                    boneMappersAndGluersUpdateOrder.Add(slot_Legs);
+                if (slot_Body != null)
+                    boneMappersAndGluersUpdateOrder.Add(slot_Body);
+                if (slot_Arms != null)
+                    boneMappersAndGluersUpdateOrder.Add(slot_Arms);
+                if (slot_Head != null)
+                    boneMappersAndGluersUpdateOrder.Add(slot_Head);
+
+                ForAllArmorSlots(slot =>
+                {
+                    if (!boneMappersAndGluersUpdateOrder.Contains(slot))
+                        boneMappersAndGluersUpdateOrder.Add(slot);
+                });
+
+                // ForAllWeaponSlots(slot =>
+                // {
+                //     if (!boneMappersAndGluersUpdateOrder.Contains(slot))
+                //         boneMappersAndGluersUpdateOrder.Add(slot);
+                // });
             }
-            else
+        }
+
+        public bool UpdateAllMappersAndGluers()
+        {
+            bool any = false;
+            lock (_lock_boneMappersAndGluersUpdateOrder)
             {
-                FmodManager.ArmorMaterial = Body?.DefMaterialType ?? 0;
+                foreach (var slot in boneMappersAndGluersUpdateOrder)
+                {
+                    slot.AccessAllModels(model =>
+                    {
+                        if (model.SkeletonRemapper != null)
+                        {
+                            any = true;
+                            // This writes the FK of all bones to .FKMatrix, grabbing the remapped values as needed.
+                            model.SkeletonRemapper.Update();
+                        }
+                    });
+                }
+
+
+                foreach (var slot in boneMappersAndGluersUpdateOrder)
+                {
+                    slot.AccessAllModels(model =>
+                    {
+                        if (model.BoneGluer != null)
+                        {
+                            any = true;
+                            // This modifies .FKMatrix of some bones.
+                            model.BoneGluer.Update();
+                        }
+                    });
+                }
             }
 
+            return any;
+        }
+
+        public void CreateSkelRemappersForArmorModel(EquipSlotTypes slot)
+        {
+            var armorSlot = GetArmorSlot(slot);
+            armorSlot.AccessAllModels(model =>
+            {
+                CreateSkelRemappersForArmorModel(slot, model);
+            });
+        }
+
+        private void CreateSkelRemappersForArmorModel(EquipSlotTypes slotType, Model m)
+        {
+            if (m != null)
+            {
+                // if (m.EquipPartsSkeletonRemapper != null)
+                //     m.EquipPartsSkeletonRemapper?.Dispose();
+                var remapMode = Document.GameRoot.CurrentGameSkeletonRemapperMode;
+
+                // if (slotType == EquipSlotTypes.Legs)
+                // {
+                //     remapMode = NewSkeletonMapper.RemapModes.RetargetRelativeAndDirectFKOrientation;
+                // }
+                
+                m.SkeletonRemapper = new NewSkeletonMapper(leader: MODEL, follower: m, remapMode);
+            }
+        }
+
+
+
+        public void RegenSkelRemappersAndGluers()
+        {
+            ForAllArmorSlots(slot =>
+            {
+                slot.AccessAllModels(model => CreateSkelRemappersForArmorModel(slot.EquipSlotType, model));
+                
+            });
+
+            CreateGluers();
+        }
+
+        public void Update(float timeDelta, bool forceSyncUpdate)
+        {
+            
+            if (Document.SoundManager.EngineType is zzz_SoundManagerIns.EngineTypes.Wwise)
+            {
+                Document.SoundManager.WwiseManager.ArmorMaterial_Top = GetArmorSlot(EquipSlotTypes.Body)?.EquipParam?.DefMaterialType ?? -1;
+                Document.SoundManager.WwiseManager.ArmorMaterial_Bottom = GetArmorSlot(EquipSlotTypes.Legs)?.EquipParam?.DefMaterialType ?? -1;
+            }
+            else if (Document.SoundManager.EngineType is zzz_SoundManagerIns.EngineTypes.FMOD)
+            {
+                int defType = GetArmorSlot(EquipSlotTypes.Body)?.EquipParam?.DefMaterialType ?? -1;
+                if (defType >= 0)
+                {
+                    if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.DS3 && Document.ParamManager.SeMaterialConvertParam.ContainsKey(defType))
+                        defType = Document.ParamManager.SeMaterialConvertParam[defType].MaterialSe;
+                    Document.Fmod.ArmorMaterial = defType;
+                }
+                else
+                {
+                    Document.Fmod.ArmorMaterial = 0;
+                }
+                
+            }
+            else if (Document.SoundManager.EngineType is zzz_SoundManagerIns.EngineTypes.MagicOrchestra)
+            {
+                int defType = GetArmorSlot(EquipSlotTypes.Body)?.EquipParam?.DefMaterialType ?? -1;
+                if (defType >= 0)
+                {
+                    Document.Fmod.ArmorMaterial = defType;
+                }
+                else
+                {
+                    Document.Fmod.ArmorMaterial = 0;
+                }
+            }
+
+            
             UpdateWeaponTransforms(timeDelta);
-            UpdateWeaponAnimation(timeDelta);
+            UpdateArmorTransforms(timeDelta);
+
+            // This is called last and ends up applying all the needed sync updates to the equipment models.
+            UpdateEquipmentAnimation(timeDelta, forceSyncUpdate);
+
+            //ForAllWeaponModels(model =>
+            //{
+            //    model.DummyPolyMan?.UpdateAllHitPrims();
+            //});
+            //ForAllArmorModels(model =>
+            //{
+            //    model.DummyPolyMan?.UpdateAllHitPrims();
+            //});
+
         }
 
-        public enum EquipSlot
+        public enum EquipSlotTypes
         {
-            Head,
-            Body,
-            Arms,
-            Legs,
-            RightWeapon,
-            LeftWeapon,
-            Face,
-            Facegen,
-            Hair,
+            Head = 0,
+            Body = 1,
+            Arms = 2,
+            Legs = 3,
+            Face = 4,
+            Hair = 5,
+            OldShittyFacegen = 6,
+
+            AC6Booster_NotImlementedYet = 10,
+
+            RightWeapon = 100,
+            LeftWeapon = 101,
+
+            AC6BackRightWeapon = 110,
+            AC6BackLeftWeapon = 111,
+
+            AC6BackRightWeaponRail = 120,
+            AC6BackLeftWeaponRail = 121,
+
+            SekiroMortalBlade = 130,
+            SekiroGrapplingHook = 131,
+
+            Facegen1 = 1000,
+            Facegen2 = 1001,
+            Facegen3 = 1002,
+            Facegen4 = 1003,
+            Facegen5 = 1004,
+            Facegen6 = 1005,
+            Facegen7 = 1006,
+            Facegen8 = 1007,
+            Facegen9 = 1008,
+            Facegen10 = 1009,
+            FacegenMax = Facegen10,
+
+            
+            
+            Debug1 = 100000000,
+            Debug2,
+            Debug3,
+            Debug4,
+            Debug5,
         }
 
-        public enum DS3PairedWpnMemeKind : sbyte
+        public enum DS3MemeAbsorpTaeType : sbyte
         {
             None = -1,
-            OneHand_Left = 0,
-            OneHand_Right = 1,
-            BothHand = 2,
-            Sheath = 3,
+            Left = 0,
+            Right = 1,
+            AnyBoth = 2,
+            AnyHang = 3,
             MaintainPreviousValue = 4,
             PositionForFriedeScythe = 5,
             Unknown6 = 6,
         }
 
-        public bool IsRightWeaponFriedesScythe()
-        {
-            return RightWeaponID == 10180000;
-        }
-
-        public enum ProstheticOverrideModelType
-        {
-            RightWeapon = 0,
-            LeftWeapon = 1,
-        }
-
-        public class ProstheticOverrideEntry
-        {
-            public int Model0DummyPolyID = -1;
-            public int Model1DummyPolyID = -1;
-            public int Model2DummyPolyID = -1;
-            public int Model3DummyPolyID = -1;
-            public int this[int idx]
-            {
-                get
-                {
-                    if (idx == 0)
-                        return Model0DummyPolyID;
-                    else if (idx == 1)
-                        return Model1DummyPolyID;
-                    else if (idx == 2)
-                        return Model2DummyPolyID;
-                    else if (idx == 3)
-                        return Model3DummyPolyID;
-                    return -1;
-                }
-            }
-        }
-
-        private object _lock_ProstheticOverrides = new object();
         public void ClearSekiroProstheticOverrideTae()
         {
-            
-            lock (_lock_ProstheticOverrides)
+            ForAllWeaponSlots(slot =>
             {
-                SekiroProstheticOverrideTaeActive = false;
-                SekiroProstheticOverrideEntries.Clear();
-            }
+                //slot.SekiroProstheticOverrideDmy0 = -1;
+                //slot.SekiroProstheticOverrideDmy1 = -1;
+                //slot.SekiroProstheticOverrideDmy2 = -1;
+                //slot.SekiroProstheticOverrideDmy3 = -1;
+                slot.SekiroProstheticOverrideTaeActive = false;
+            });
         }
 
-        public void RegistSekiroProstheticOverride(ProstheticOverrideModelType type, 
+        public void RegistSekiroProstheticOverride(EquipSlotTypes slotType, 
             int model0DummyPoly, int model1DummyPoly, int model2DummyPoly, int model3DummyPoly)
         {
-            lock (_lock_ProstheticOverrides)
+            ForAllWeaponSlots(slot =>
             {
-                if (!SekiroProstheticOverrideEntries.ContainsKey(type))
-                    SekiroProstheticOverrideEntries.Add(type, new ProstheticOverrideEntry()
-                    {
-                        Model0DummyPolyID = model0DummyPoly,
-                        Model1DummyPolyID = model1DummyPoly,
-                        Model2DummyPolyID = model2DummyPoly,
-                        Model3DummyPolyID = model3DummyPoly,
-                    });
-            }
+                if (slot.EquipSlotType == slotType)
+                {
+                    slot.SekiroProstheticOverrideDmy0 = model0DummyPoly;
+                    slot.SekiroProstheticOverrideDmy1 = model1DummyPoly;
+                    slot.SekiroProstheticOverrideDmy2 = model2DummyPoly;
+                    slot.SekiroProstheticOverrideDmy3 = model3DummyPoly;
+                    slot.SekiroProstheticOverrideTaeActive = true;
+                }
+            });
         }
 
-        public bool SekiroProstheticOverrideTaeActive = false;
-
-        public int? GetSekiroProstheticDummyPoly(ProstheticOverrideModelType type, int modelIdx)
-        {
-            int? result = null;
-            lock (_lock_ProstheticOverrides)
-            {
-                if (SekiroProstheticOverrideEntries.ContainsKey(type))
-                    result = SekiroProstheticOverrideEntries[type][modelIdx];
-            }
-            return result;
-        }
-
-        public bool GetSekiroProstheticVisible(ProstheticOverrideModelType type, int modelIdx)
-        {
-            bool result = true;
-            lock (_lock_ProstheticOverrides)
-            {
-                result = SekiroProstheticOverrideEntries.ContainsKey(type) && SekiroProstheticOverrideEntries[type][modelIdx] >= 0;
-            }
-            return result;
-        }
-
-        public Dictionary<ProstheticOverrideModelType, ProstheticOverrideEntry> SekiroProstheticOverrideEntries
-            = new Dictionary<ProstheticOverrideModelType, ProstheticOverrideEntry>();
-
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeR0 = DS3PairedWpnMemeKind.None;
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeR1 = DS3PairedWpnMemeKind.None;
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeR2 = DS3PairedWpnMemeKind.None;
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeR3 = DS3PairedWpnMemeKind.None;
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeL0 = DS3PairedWpnMemeKind.None;
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeL1 = DS3PairedWpnMemeKind.None;
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeL2 = DS3PairedWpnMemeKind.None;
-        public DS3PairedWpnMemeKind DS3PairedWeaponMemeL3 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeR0 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeR1 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeR2 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeR3 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeL0 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeL1 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeL2 = DS3PairedWpnMemeKind.None;
+        //public DS3PairedWpnMemeKind DS3PairedWeaponMemeL3 = DS3PairedWpnMemeKind.None;
 
         public void ClearDS3PairedWeaponMeme()
         {
-            DS3PairedWeaponMemeR0 = DS3PairedWpnMemeKind.None;
-            DS3PairedWeaponMemeR1 = DS3PairedWpnMemeKind.None;
-            DS3PairedWeaponMemeR2 = DS3PairedWpnMemeKind.None;
-            DS3PairedWeaponMemeR3 = DS3PairedWpnMemeKind.None;
-            DS3PairedWeaponMemeL0 = DS3PairedWpnMemeKind.None;
-            DS3PairedWeaponMemeL1 = DS3PairedWpnMemeKind.None;
-            DS3PairedWeaponMemeL2 = DS3PairedWpnMemeKind.None;
-            DS3PairedWeaponMemeL3 = DS3PairedWpnMemeKind.None;
+            ForAllWeaponSlots(slot =>
+            {
+                slot.Model0MemeAbsorp = DS3MemeAbsorpTaeType.None;
+                slot.Model1MemeAbsorp = DS3MemeAbsorpTaeType.None;
+                slot.Model2MemeAbsorp = DS3MemeAbsorpTaeType.None;
+                slot.Model3MemeAbsorp = DS3MemeAbsorpTaeType.None;
+            });
         }
 
-        public byte DS3PairedWeaponMemeR0_Flag = 255;
-        public byte DS3PairedWeaponMemeR1_Flag = 255;
-        public byte DS3PairedWeaponMemeR2_Flag = 255;
-        public byte DS3PairedWeaponMemeR3_Flag = 255;
-        public byte DS3PairedWeaponMemeL0_Flag = 255;
-        public byte DS3PairedWeaponMemeL1_Flag = 255;
-        public byte DS3PairedWeaponMemeL2_Flag = 255;
-        public byte DS3PairedWeaponMemeL3_Flag = 255;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterR0 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterR1 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterR2 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterR3 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterL0 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterL1 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterL2 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
+        //public ParamData.WepAbsorpPosParam.WepInvisibleTypes WepInvisibleTypeFilterL3 = ParamData.WepAbsorpPosParam.WepInvisibleTypes.Undefined;
 
-        public DS3PairedWpnMemeKind GetDS3PairedWpnMemeKindR(int modelIndex)
+        public void SetWeaponVisibleByUser(EquipSlotTypes slot, bool isVisible)
         {
-            int ds3ConditionFlag = GameRoot.GameTypeUsesWepAbsorpPosParam
-                ? (RightWeapon?.GetDS3TaeConditionFlag(modelIndex) ?? -1) : -1;
-
-            if (modelIndex == 0 && DS3PairedWeaponMemeR0_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeR0;
-            else if (modelIndex == 1 && DS3PairedWeaponMemeR1_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeR1;
-            else if (modelIndex == 2 && DS3PairedWeaponMemeR2_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeR2;
-            else if (modelIndex == 3 && DS3PairedWeaponMemeR3_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeR3;
-
-            return DS3PairedWpnMemeKind.None;
+            var wpn = GetWpnSlot(slot);
+            wpn.SetWeaponVisibleByUser(isVisible, isVisible, isVisible, isVisible);
         }
 
-        public DS3PairedWpnMemeKind GetDS3PairedWpnMemeKindL(int modelIndex)
+        public void ClearAllWeaponHiddenByTae()
         {
-            int ds3ConditionFlag = GameRoot.GameTypeUsesWepAbsorpPosParam
-                ? (LeftWeapon?.GetDS3TaeConditionFlag(modelIndex) ?? -1) : -1;
-
-            if (modelIndex == 0 && DS3PairedWeaponMemeL0_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeL0;
-            else if (modelIndex == 1 && DS3PairedWeaponMemeL1_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeL1;
-            else if (modelIndex == 2 && DS3PairedWeaponMemeL2_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeL2;
-            else if (modelIndex == 3 && DS3PairedWeaponMemeL3_Flag == ds3ConditionFlag)
-                return DS3PairedWeaponMemeL3;
-
-            return DS3PairedWpnMemeKind.None;
+            ForAllWeaponSlots(slot => slot.SetWeaponHide_Tae(false, false, false, false));
         }
 
-        public const int FRIEDE_SCYTHE_LH_DUMMYPOLY_ID = 21;
+        public void SetWeaponHiddenByTae(EquipSlotTypes slot, bool? hide0, bool? hide1, bool? hide2, bool? hide3)
+        {
+            var wpn = GetWpnSlot(slot);
+            wpn.SetWeaponHide_Tae(hide0, hide1, hide2, hide3);
+        }
+
+        public void SetWeaponHiddenByAbsorpPos(EquipSlotTypes slot, bool? hide0, bool? hide1, bool? hide2, bool? hide3)
+        {
+            var wpn = GetWpnSlot(slot);
+            wpn.SetWeaponHide_AbsorpPos(hide0, hide1, hide2, hide3);
+        }
 
         public enum WeaponStyleType : int
         {
             None = 0,
             OneHand = 1,
-            TwoHandL = 2,
-            TwoHandR = 3,
+            LeftBoth = 2,
+            RightBoth = 3,
             OneHandTransformedL = 4,
             OneHandTransformedR = 5,
         }
@@ -223,255 +426,230 @@ namespace DSAnimStudio
             FormB,
         }
 
-        public object _lock_doingAnythingWithWeaponModels = new object();
+        public bool IsFemale;
+        public ParamData.PartSuffixType CurrentPartSuffixType = ParamData.PartSuffixType.None;
+        public bool EnablePartsFileCaching = true;
 
-        private bool _isFemale = false;
-        public bool IsFemale
+        private object _lock_ArmorSlots = new object();
+        public List<NewEquipSlot_Armor> ArmorSlots = new List<NewEquipSlot_Armor>();
+        public Dictionary<EquipSlotTypes, NewEquipSlot_Armor> ArmorSlots_ByEquipSlot = new Dictionary<EquipSlotTypes, NewEquipSlot_Armor>();
+
+        //TODO:BoosterModel
+
+        //public Model AC6BackRightWeaponRailModel = null;
+        //public Model AC6BackLeftWeaponRailModel = null;
+
+        public void ForAllArmorSlots(Action<NewEquipSlot_Armor> doAction)
         {
-            get
+            lock (_lock_ArmorSlots)
             {
-                bool result = false;
-                lock (_lock_EquipParam)
+                foreach (var slot in ArmorSlots)
                 {
-                    result = _isFemale;
+                    doAction(slot);
                 }
-                return result;
-            }
-            set
-            {
-                lock (_lock_EquipParam)
-                {
-                    _isFemale = value;
-                }
-
-                if (FaceIndex == -1)
-                    FaceIndex = GetDefaultFaceIndexForCurrentGame(_isFemale);
-                if (FaceIndex >= 0)
-                    LoadNewFace(PossibleFaceModels[FaceIndex]);
             }
         }
 
-        private int _headID = -1;
-        private int _bodyID = -1;
-        private int _armsID = -1;
-        private int _legsID = -1;
-        private int _rightWeaponID = -1;
-        //private int _rightWeaponModelIndex = 0;
-        private int _leftWeaponID = -1;
-        //private int _leftWeaponModelIndex = 0;
-
-        public NewMesh HeadMesh = null;
-        public NewMesh BodyMesh = null;
-        public NewMesh ArmsMesh = null;
-        public NewMesh LegsMesh = null;
-        public NewMesh FaceMesh = null;
-        public NewMesh FacegenMesh = null;
-        public NewMesh HairMesh = null;
+        public void ForAllArmorModels(Action<Model> doAction)
+        {
+            ForAllArmorSlots(slot => slot.AccessAllModels(model => doAction(model)));
+        }
 
         public NewAnimSkeleton_FLVER Skeleton { get; private set; } = null;
 
-        public int RightWeaponBoneIndex = -1;
-        private Model _rightWeaponModel0 = null;
-        private Model _rightWeaponModel1 = null;
-        private Model _rightWeaponModel2 = null;
-        private Model _rightWeaponModel3 = null;
+        //private Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
 
-        public int LeftWeaponBoneIndex = -1;
-        private Model _leftWeaponModel0 = null;
-        private Model _leftWeaponModel1 = null;
-        private Model _leftWeaponModel2 = null;
-        private Model _leftWeaponModel3 = null;
+        public zzz_DocumentIns Document;
 
-        public Model RightWeaponModel0
+        public Model MODEL;
+
+        public List<NewEquipSlot_Weapon> WeaponSlots = new List<NewEquipSlot_Weapon>();
+        //public List<NewChrAsmArmorSlot> NewArmorSlots = new List<NewChrAsmArmorSlot>();
+
+        private static Dictionary<EquipSlotTypes, NewEquipSlot_Weapon> WeaponSlots_ByEquipSlot = new Dictionary<EquipSlotTypes, NewEquipSlot_Weapon>();
+
+
+        public void SetWeaponID(EquipSlotTypes slotType, int id)
         {
-            get
+            WeaponSlots_ByEquipSlot[slotType].EquipID = id;
+        }
+
+        public int GetWeaponID(EquipSlotTypes slotType)
+        {
+            return WeaponSlots_ByEquipSlot[slotType].EquipID;
+        }
+
+        private void InitWeaponSlots()
+        {
+            WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.RightWeapon, "Right Weapon", "R WPN"));
+            WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.LeftWeapon, "Left Weapon", "L WPN"));
+            if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
             {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _rightWeaponModel0;
-                return result;
+                WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.AC6BackRightWeapon, "Back-Right Weapon", "BK-R WPN"));
+                WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.AC6BackLeftWeapon, "Back-Left Weapon", "BK-L WPN"));
+
+                WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.AC6BackRightWeaponRail, "Back-Right Weapon Rail", "BK-R RAIL"));
+                WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.AC6BackLeftWeaponRail, "Back-Left Weapon Rail", "BK-L RAIL"));
+                
             }
-            private set
+
+            if (Document.GameRoot.GameType is SoulsGames.SDT)
             {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _rightWeaponModel0 = value;
-                }
+                WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.SekiroMortalBlade, "Mortal Blade", "MB"));
+                WeaponSlots.Add(new NewEquipSlot_Weapon(this, EquipSlotTypes.SekiroGrapplingHook, "Grappling Hook", "GH"));
+            }
+            //ac6 additional weapons
+            //if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            //{
+            //    WeaponSlots.Add(new NewChrAsmWpnSlot(this, EquipSlot.RightBackWeapon, "Right Back Weapon", "R Back WPN"));
+            //    WeaponSlots.Add(new NewChrAsmWpnSlot(this, EquipSlot.LeftBackWeapon, "Left Back Weapon", "L Back WPN"));
+            //}
+
+            WeaponSlots_ByEquipSlot.Clear();
+            foreach (var slot in WeaponSlots)
+            {
+                WeaponSlots_ByEquipSlot[slot.EquipSlotType] = slot;
+            }
+
+            if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                WeaponSlots_ByEquipSlot[EquipSlotTypes.RightWeapon].SlotDisplayName = "Right Front Weapon";
+                WeaponSlots_ByEquipSlot[EquipSlotTypes.RightWeapon].SlotDisplayNameShort = "R Front Weapon";
+
+                WeaponSlots_ByEquipSlot[EquipSlotTypes.LeftWeapon].SlotDisplayName = "Left Front Weapon";
+                WeaponSlots_ByEquipSlot[EquipSlotTypes.LeftWeapon].SlotDisplayNameShort = "L Front Weapon";
+            }
+
+
+            ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Head, "Head", "HD", usesEquipParam: true));
+            ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Body, "Body", "BD", usesEquipParam: true));
+            ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Arms, "Arms", "AM", usesEquipParam: true));
+            ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Legs, "Legs", "LG", usesEquipParam: true));
+
+            ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Face, "Face", "FC", usesEquipParam: false));
+            ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Hair, "Hair", "HR", usesEquipParam: false));
+
+            if (Document.GameRoot.GameTypeUsesOldShittyFacegen)
+            {
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.OldShittyFacegen, "Legacy Facegen", "FG", usesEquipParam: false));
+            }
+            else
+            {
+                
+
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen1, "Facegen 1", "FG1", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen2, "Facegen 2", "FG2", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen3, "Facegen 3", "FG3", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen4, "Facegen 4", "FG4", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen5, "Facegen 5", "FG5", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen6, "Facegen 6", "FG6", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen7, "Facegen 7", "FG7", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen8, "Facegen 8", "FG8", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen9, "Facegen 9", "FG9", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Facegen10, "Facegen 10", "FG10", usesEquipParam: false));
+            }
+
+            if (Main.IsDebugBuild)
+            {
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Debug1, "Debug 1", "DBG1", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Debug2, "Debug 2", "DBG2", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Debug3, "Debug 3", "DBG3", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Debug4, "Debug 4", "DBG4", usesEquipParam: false));
+                ArmorSlots.Add(new NewEquipSlot_Armor(this, EquipSlotTypes.Debug5, "Debug 5", "DBG5", usesEquipParam: false));
+            }
+
+            //NewArmorSlots.Add(new NewChrAsmArmorSlot(this, EquipSlot.Head, "Head", "HD"));
+            //NewArmorSlots.Add(new NewChrAsmArmorSlot(this, EquipSlot.Body, "Body", "BD"));
+            //NewArmorSlots.Add(new NewChrAsmArmorSlot(this, EquipSlot.Arms, "Arms", "AM"));
+            //NewArmorSlots.Add(new NewChrAsmArmorSlot(this, EquipSlot.Legs, "Legs", "LG"));
+
+            ArmorSlots_ByEquipSlot.Clear();
+            foreach (var slot in ArmorSlots)
+            {
+                ArmorSlots_ByEquipSlot[slot.EquipSlotType] = slot;
             }
         }
 
-        public Model RightWeaponModel1
-        {
-            get
-            {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _rightWeaponModel1;
-                return result;
-            }
-            private set
-            {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _rightWeaponModel1 = value;
-                }
-            }
-        }
-
-        public Model RightWeaponModel2
-        {
-            get
-            {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _rightWeaponModel2;
-                return result;
-            }
-            private set
-            {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _rightWeaponModel2 = value;
-                }
-            }
-        }
-
-        public Model RightWeaponModel3
-        {
-            get
-            {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _rightWeaponModel3;
-                return result;
-            }
-            private set
-            {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _rightWeaponModel3 = value;
-                }
-            }
-        }
-
-        public void SetRightWeaponVisible(bool isVisible)
-        {
-            RightWeaponModel0?.SetIsVisible(isVisible);
-            RightWeaponModel1?.SetIsVisible(isVisible);
-            RightWeaponModel2?.SetIsVisible(isVisible);
-            RightWeaponModel3?.SetIsVisible(isVisible);
-        }
-
-        public void SetLeftWeaponVisible(bool isVisible)
-        {
-            LeftWeaponModel0?.SetIsVisible(isVisible);
-            LeftWeaponModel1?.SetIsVisible(isVisible);
-            LeftWeaponModel2?.SetIsVisible(isVisible);
-            LeftWeaponModel3?.SetIsVisible(isVisible);
-        }
-
-        public Model LeftWeaponModel0
-        {
-            get
-            {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _leftWeaponModel0;
-                return result;
-            }
-            private set
-            {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _leftWeaponModel0 = value;
-                }
-            }
-        }
-
-        public Model LeftWeaponModel1
-        {
-            get
-            {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _leftWeaponModel1;
-                return result;
-            }
-            private set
-            {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _leftWeaponModel1 = value;
-                }
-            }
-        }
-
-        public Model LeftWeaponModel2
-        {
-            get
-            {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _leftWeaponModel2;
-                return result;
-            }
-            private set
-            {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _leftWeaponModel2 = value;
-                }
-            }
-        }
-
-        public Model LeftWeaponModel3
-        {
-            get
-            {
-                Model result = null;
-                lock (_lock_doingAnythingWithWeaponModels)
-                    result = _leftWeaponModel3;
-                return result;
-            }
-            private set
-            {
-                lock (_lock_doingAnythingWithWeaponModels)
-                {
-                    _leftWeaponModel3 = value;
-                }
-            }
-        }
-
-        private bool LeftWeaponFlipBackwards = false;
-        private bool LeftWeaponFlipSideways = false;
-        private bool RightWeaponFlipBackwards = false;
-        private bool RightWeaponFlipSideways = false;
-
-        private Dictionary<string, int> boneIndexRemap = new Dictionary<string, int>();
-
-        public readonly Model MODEL;
-
-        public bool DebugRightWeaponModelPositions = false;
-        public bool DebugLeftWeaponModelPositions = false;
-
-        public NewChrAsm(Model mdl)
+        public NewChrAsm(zzz_DocumentIns doc, Model mdl)
         {
             MODEL = mdl;
+            Document = doc;
+            InitWeaponSlots();
+        }
+
+        public void UpdateArmorTransforms(float timeDelta)
+        {
+            ForAllArmorModels(m =>
+            {
+                m.CurrentTransform = m.StartTransform = MODEL.CurrentTransform;
+                //m.SkeletonFlver?.RevertToReferencePose();
+                
+                //m.BoneGluer?.ForceGlueUpdate();
+            });
         }
 
         public void UpdateWeaponTransforms(float timeDelta)
         {
-            LeftWeaponFlipBackwards = GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsAssetPipeline.SoulsGames.SDT;
-            LeftWeaponFlipSideways = false;
-            RightWeaponFlipBackwards = GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsAssetPipeline.SoulsGames.SDT;
-            RightWeaponFlipSideways = false;
+            if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                WeaponStyle = WeaponStyleType.None;
+            }
+            else
+            {
+                AC6LeftWeaponBaySwapped = false;
+                AC6RightWeaponBaySwapped = false;
+            }
 
-            if (GameRoot.GameType != SoulsAssetPipeline.SoulsGames.DS3)
+            var LeftWeaponFlipBackwards = Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.SDT;
+            var LeftWeaponFlipSideways = false;
+            var RightWeaponFlipBackwards = Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.SDT;
+            var RightWeaponFlipSideways = false;
+
+
+            var isOldGame = Document.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
+                Document.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ||
+                Document.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES;
+
+
+
+            //todo: test new backwards/sideways memes
+
+
+
+            foreach (var slot in WeaponSlots)
+            {
+                //slot.WeaponFlipBackwards = false;
+                //slot.WeaponFlipSideways = false;
+                //slot.WeaponFlipUpsideDown = false;
+
+                //if (slot.WeaponModel0 != null && slot.WeaponModel0.AnimContainer == null)
+                //    slot.WeaponModel0.ApplyBindPose = false;
+
+                //if (slot.WeaponModel1 != null && slot.WeaponModel1.AnimContainer == null)
+                //    slot.WeaponModel1.ApplyBindPose = false;
+
+                //if (slot.WeaponModel2 != null && slot.WeaponModel2.AnimContainer == null)
+                //    slot.WeaponModel2.ApplyBindPose = false;
+
+                //if (slot.WeaponModel3 != null && slot.WeaponModel3.AnimContainer == null)
+                //    slot.WeaponModel3.ApplyBindPose = false;
+
+                //slot.WeaponModel0?.AnimContainer?.Update();
+                //slot.WeaponModel1?.AnimContainer?.Update();
+                //slot.WeaponModel2?.AnimContainer?.Update();
+                //slot.WeaponModel3?.AnimContainer?.Update();
+
+
+
+                slot.UpdateAbsorp(WeaponStyle, this);
+            }
+
+            if (Document.GameRoot.GameType != SoulsAssetPipeline.SoulsGames.DS3)
             {
                 ClearDS3PairedWeaponMeme();
             }
 
-            void DoWPN(ParamData.EquipParamWeapon wpn, Model wpnMdl, int modelIdx, int defaultBoneIndex, bool isLeft, bool backward, bool sideways)
+            void DoWPN(ParamData.EquipParamWeapon wpn, Model wpnMdl, int modelIdx, int defaultBoneIndex, NewEquipSlot_Weapon wpnSlot)
             {
                 if (wpn == null || wpnMdl == null)
                     return;
@@ -479,76 +657,131 @@ namespace DSAnimStudio
                 if (wpnMdl != null)
                 {
                     Matrix absoluteWeaponTransform = Matrix.Identity;
+                    bool hiddenByAbsorpPos = false;
 
-                    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB)
+                    bool directSetTransform = false;
+
+                    int modelIdxForAbsorpPos = modelIdx;
+
+                    //if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                    //{
+                    //    if (wpnSlot.EquipSlotType == EquipSlot.RightWeapon)
+                    //        modelIdxForAbsorpPos = 0;
+                    //    else if (wpnSlot.EquipSlotType == EquipSlot.AC6BackRightWeapon)
+                    //        modelIdxForAbsorpPos = 1;
+                    //    if (wpnSlot.EquipSlotType == EquipSlot.LeftWeapon)
+                    //        modelIdxForAbsorpPos = 0;
+                    //    if (wpnSlot.EquipSlotType == EquipSlot.AC6BackLeftWeapon)
+                    //        modelIdxForAbsorpPos = 1;
+                    //}
+                    
+
+                    // if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB)
+                    // {
+                    //     var dummyPolyID = wpnSlot.GetFinalAbsorpModelDmyPoly(modelIdx);
+                    //     dummyPolyID = dummyPolyID % 1000;
+                    //     if (dummyPolyID >= 0 && MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
+                    //     {
+                    //         absoluteWeaponTransform = MODEL.DummyPolyMan.DummyPolyByRefID[dummyPolyID][0].CurrentMatrix;
+                    //     }
+                    //     else
+                    //     {
+                    //         //absoluteWeaponTransform = Matrix.CreateScale(0);
+                    //         //TEST REMOVE LATER:
+                    //         absoluteWeaponTransform =
+                    //                 Skeleton.Bones[defaultBoneIndex].ReferenceMatrix
+                    //                 * Skeleton[defaultBoneIndex];
+                    //         hiddenByAbsorpPos = true;
+                    //     }
+                    // }
+                    // else 
+                    if (Document.GameRoot.GameTypeUsesWepAbsorpPosParam || Document.GameRoot.GameType is SoulsGames.BB)
                     {
-                        var dummyPolyID = isLeft ? wpn.BB_GetLeftWeaponDummyPoly(this, modelIdx)
-                            : wpn.BB_GetRightWeaponDummyPoly(this, modelIdx);
-                        dummyPolyID = dummyPolyID % 1000;
-                        if (dummyPolyID >= 0 && MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
-                        {
-                            absoluteWeaponTransform = MODEL.DummyPolyMan.DummyPolyByRefID[dummyPolyID][0].CurrentMatrix;
-                        }
-                        else
-                        {
-                            //absoluteWeaponTransform = Matrix.CreateScale(0);
-                            //TEST REMOVE LATER:
-                            absoluteWeaponTransform =
-                                    Skeleton.FlverSkeleton[defaultBoneIndex].ReferenceMatrix
-                                    * Skeleton[defaultBoneIndex];
-                        }
-                    }
-                    else if (GameRoot.GameTypeUsesWepAbsorpPosParam)
-                    {
-                        
+                        var dummyPolyID = wpnSlot.GetFinalAbsorpModelDmyPoly(modelIdx);
+                        var dummyPolyMan = GetDummyManager(ParamData.AtkParam.DummyPolySource.BaseModel);
 
-                        var dummyPolyID = isLeft ? wpn.DS3_GetLeftWeaponDummyPoly(this, modelIdx)
-                            : wpn.DS3_GetRightWeaponDummyPoly(this, modelIdx);
+                        Matrix hotfix_OffsetMatrix_ForWeaponFollowWeapon = Matrix.Identity;
 
-
-                        // Testing 
-                        if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.SDT && SekiroProstheticOverrideTaeActive)
+                        //TODO: Test ER
+                        if (dummyPolyID >= 1000 && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6 or SoulsAssetPipeline.SoulsGames.ER or SoulsGames.ERNR)
                         {
-                            dummyPolyID = GetSekiroProstheticDummyPoly(isLeft ?
-                                ProstheticOverrideModelType.LeftWeapon : ProstheticOverrideModelType.RightWeapon, modelIdx) ?? dummyPolyID;
-                        }
+                            dummyPolyMan = GetDummyPolySpawnPlace(ParamData.AtkParam.DummyPolySource.BaseModel, dummyPolyID, MODEL.DummyPolyMan);
 
-                        // Temp workaround
-                        if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER && dummyPolyID > 0)
-                        {
+                            //Fix for weapon dummypoly being relative to weapon's current transform
+                            if (dummyPolyMan?.MODEL != null && dummyPolyMan.MODEL.IS_PLAYER_WEAPON)
+                                hotfix_OffsetMatrix_ForWeaponFollowWeapon = dummyPolyMan.MODEL.CurrentTransform.WorldMatrix 
+                                    * Matrix.Invert(MODEL.CurrentTransform.WorldMatrix);
+
                             dummyPolyID %= 1000;
                         }
 
-                        if (dummyPolyID >= 0 && MODEL.DummyPolyMan.DummyPolyByRefID.ContainsKey(dummyPolyID))
-                        {
-                            absoluteWeaponTransform = MODEL.DummyPolyMan.DummyPolyByRefID[dummyPolyID][0].CurrentMatrix;
 
-                            if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.SDT)
+                        if (dummyPolyID >= 0 && dummyPolyMan.NewCheckDummyPolyExists(dummyPolyID))
+                        {
+                            absoluteWeaponTransform = dummyPolyMan.NewGetDummyPolyByRefID(dummyPolyID)[0].CurrentMatrix
+                                * hotfix_OffsetMatrix_ForWeaponFollowWeapon;
+
+                            if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.SDT or SoulsAssetPipeline.SoulsGames.AC6)
                             {
                                 absoluteWeaponTransform = Matrix.CreateRotationX(MathHelper.Pi) * absoluteWeaponTransform;
+
+                                //if (wpnSlot.IsLeftHandSlotType)
+                                //    absoluteWeaponTransform = Matrix.CreateRotationX(MathHelper.Pi) * absoluteWeaponTransform;
+
                             }
                         }
                         else
                         {
                             absoluteWeaponTransform = Matrix.CreateScale(0);
+                            hiddenByAbsorpPos = true;
                         }
 
 
+
+                        if (wpnSlot.IsAbsorpSkeletonBind && Document.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR)
+                        {
+                            int boneIndex = dummyPolyID;
+                            List<NewBone> flverBones = null;
+                            wpnSlot.ManipModels(manip =>
+                            {
+                                if (modelIdx == 0)
+                                    flverBones = manip.Model0?.SkeletonFlver?.Bones;
+                                else if (modelIdx == 1)
+                                    flverBones = manip.Model1?.SkeletonFlver?.Bones;
+                                else if (modelIdx == 2)
+                                    flverBones = manip.Model2?.SkeletonFlver?.Bones;
+                                else if (modelIdx == 3)
+                                    flverBones = manip.Model3?.SkeletonFlver?.Bones;
+                            });
+                            if (flverBones != null && boneIndex >= 0 && boneIndex < flverBones.Count)
+                            {
+                                var bone = flverBones[boneIndex];
+                                var matchingBone = MODEL.AnimContainer.Skeleton.GetBoneByName(bone.Name);
+                                if (matchingBone != null)
+                                {
+                                    absoluteWeaponTransform = Matrix.Invert(bone.FKMatrix) * matchingBone.FKMatrix;
+                                    //absoluteWeaponTransform = matchingBone.FKMatrix * Matrix.Invert(bone.FKMatrix);
+                                    //absoluteWeaponTransform = Matrix.CreateRotationY(MathHelper.Pi);
+                                    //absoluteWeaponTransform = Matrix.Identity;
+                                    hiddenByAbsorpPos = false;
+                                    directSetTransform = true;
+                                }
+                            }
+                        }
                     }
-                    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
-                        GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ||
-                        GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES)
+                    else if (Document.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
+                        Document.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ||
+                        Document.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES)
                     {
                         // Weapon
                         if (modelIdx == 0)
                         {
-                            absoluteWeaponTransform = Skeleton.FlverSkeleton[defaultBoneIndex].ReferenceMatrix
-                                * Skeleton[defaultBoneIndex];
+                            absoluteWeaponTransform = Skeleton.Bones[defaultBoneIndex].FKMatrix;
                         }
                         // Sheath
                         else if (modelIdx == 1)
                         {
-                            if (isLeft)
+                            if (wpnSlot.IsLeftHandSlotType)
                             {
                                 //TODO: Get sheath pos of left weapon here
                             }
@@ -559,6 +792,7 @@ namespace DSAnimStudio
 
                             // TEMP: Just make sheaths invisible PepeHands
                             absoluteWeaponTransform = Matrix.CreateScale(0);
+                            hiddenByAbsorpPos = true;
                         }
                         
                     }
@@ -568,227 +802,267 @@ namespace DSAnimStudio
                         absoluteWeaponTransform = Matrix.Identity;
                     }
 
-                    if (DebugRightWeaponModelPositions && !isLeft)
+                    if (wpnSlot.DebugWeaponModelPositions)
                     {
-                        if (modelIdx == 0)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-0.5f, 0, 2);
-                        else if (modelIdx == 1)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-1.5f, 0, 2);
-                        else if (modelIdx == 2)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-2.5f, 0, 2);
-                        else if (modelIdx == 3)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(-3.5f, 0, 2);
-                    }
-                    else if (DebugLeftWeaponModelPositions && isLeft)
-                    {
-                        if (modelIdx == 0)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(0.5f, 0, 2);
-                        else if (modelIdx == 1)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(1.5f, 0, 2);
-                        else if (modelIdx == 2)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(2.5f, 0, 2);
-                        else if (modelIdx == 3)
-                            absoluteWeaponTransform = Matrix.CreateTranslation(3.5f, 0, 2);
-                    }
-
-                    wpnMdl.StartTransform = wpnMdl.CurrentTransform = new Transform(
-                            (backward ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
-                            * (sideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
-                            * absoluteWeaponTransform * MODEL.CurrentTransform.WorldMatrix);
-
-                    wpnMdl.AnimContainer.ResetRootMotion();
-
-                    wpnMdl.AfterAnimUpdate(timeDelta, ignorePosWrap: true);
-                }
-            }
-
-            var isOldGame = GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || 
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R || 
-                GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES;
-            var rback = isOldGame ? !RightWeaponFlipBackwards : RightWeaponFlipBackwards;
-            var rside = isOldGame ? !RightWeaponFlipSideways : !RightWeaponFlipSideways;
-            var lback = isOldGame ? !LeftWeaponFlipBackwards : LeftWeaponFlipBackwards;
-            var lside = isOldGame ? LeftWeaponFlipSideways : !LeftWeaponFlipSideways;
-
-            DoWPN(RightWeapon, RightWeaponModel0, 0, RightWeaponBoneIndex, isLeft: false, rback, rside);
-            DoWPN(RightWeapon, RightWeaponModel1, 1, RightWeaponBoneIndex, isLeft: false, rback, rside);
-            DoWPN(RightWeapon, RightWeaponModel2, 2, RightWeaponBoneIndex, isLeft: false, rback, rside);
-            DoWPN(RightWeapon, RightWeaponModel3, 3, RightWeaponBoneIndex, isLeft: false, rback, rside);
-
-            DoWPN(LeftWeapon, LeftWeaponModel0, 0, LeftWeaponBoneIndex, isLeft: true, lback, lside);
-            DoWPN(LeftWeapon, LeftWeaponModel1, 1, LeftWeaponBoneIndex, isLeft: true, lback, lside);
-            DoWPN(LeftWeapon, LeftWeaponModel2, 2, LeftWeaponBoneIndex, isLeft: true, lback, lside);
-            DoWPN(LeftWeapon, LeftWeaponModel3, 3, LeftWeaponBoneIndex, isLeft: true, lback, lside);
-        }
-
-        public void SelectWeaponAnimations(string playerAnimName)
-        {
-            string GetMatchingAnim(IEnumerable<string> animNames, string desiredName)
-            {
-                if (desiredName == null)
-                    return null;
-
-                desiredName = desiredName.Replace(".hkx", "");
-                foreach (var a in animNames)
-                {
-                    if (a.StartsWith(desiredName))
-                        return a;
-                }
-                return null;
-            }
-
-            void DoWPN(Model wpnMdl)
-            {
-                if (wpnMdl == null)
-                    return;
-
-                if (wpnMdl.AnimContainer.Skeleton?.OriginalHavokSkeleton == null)
-                {
-                    wpnMdl.SkeletonFlver?.RevertToReferencePose();
-                }
-
-
-                if (wpnMdl != null && wpnMdl.AnimContainer != null)
-                {
-                    if (wpnMdl.AnimContainer.Animations.Count > 0)
-                    {
-                        var matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, playerAnimName);
-                        string selectedWpnAnimName = null;
-                        if (matching != null)
+                        if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
                         {
-                            selectedWpnAnimName = matching;
+                            Vector3 offset = Vector3.Zero;
+                            offset.X = (4 * modelIdx);
+
+
+                            if (wpnSlot.AC6IsRailSlotType)
+                                offset.Z = 4;
+                            else if (wpnSlot.AC6IsBackSlotType)
+                                offset.Z = 8;
+                            else
+                                offset.Z = 12;
+
+                            if (wpnSlot.IsLeftHandSlotType)
+                                offset.X *= -1;
+
+                            absoluteWeaponTransform = Matrix.CreateTranslation(offset);
+                            directSetTransform = false;
                         }
                         else
                         {
-                            matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, GameRoot.GameTypeHasLongAnimIDs ? "a999_000000.hkx" : "a99_0000.hkx");
-                            if (matching != null)
+                            if (!wpnSlot.IsLeftHandSlotType)
                             {
-                                selectedWpnAnimName = matching;
+                                if (modelIdx == 0)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(-0.5f, 0, 2);
+                                else if (modelIdx == 1)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(-1.5f, 0, 2);
+                                else if (modelIdx == 2)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(-2.5f, 0, 2);
+                                else if (modelIdx == 3)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(-3.5f, 0, 2);
+                                directSetTransform = false;
                             }
                             else
                             {
-                                matching = GetMatchingAnim(wpnMdl.AnimContainer.Animations.Keys, GameRoot.GameTypeHasLongAnimIDs ? "a000_000000.hkx" : "a00_0000.hkx");
-                                if (matching != null)
+                                if (modelIdx == 0)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(0.5f, 0, 2);
+                                else if (modelIdx == 1)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(1.5f, 0, 2);
+                                else if (modelIdx == 2)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(2.5f, 0, 2);
+                                else if (modelIdx == 3)
+                                    absoluteWeaponTransform = Matrix.CreateTranslation(3.5f, 0, 2);
+                                directSetTransform = false;
+                            }
+                        }
+                    }
+
+                    
+
+                    if (hiddenByAbsorpPos)
+                    {
+                        wpnMdl.IsHiddenByAbsorpPos = true;
+                        // Undo scale(0) matrix if debug force shown is enabled
+                        if (wpnMdl.Debug_ForceShowNoMatterWhat)
+                        {
+                            absoluteWeaponTransform = Matrix.Identity;
+                        }
+                    }
+                    else
+                    {
+                        wpnMdl.IsHiddenByAbsorpPos = false;
+                    }
+
+
+
+
+
+                    
+
+                    //absoluteWeaponTransform = Matrix.CreateRotationX(MathHelper.PiOver2) * absoluteWeaponTransform;
+
+                    var rback = isOldGame ? !RightWeaponFlipBackwards : RightWeaponFlipBackwards;
+                    var rside = isOldGame ? !RightWeaponFlipSideways : !RightWeaponFlipSideways;
+                    var lback = isOldGame ? !LeftWeaponFlipBackwards : LeftWeaponFlipBackwards;
+                    var lside = isOldGame ? LeftWeaponFlipSideways : !LeftWeaponFlipSideways;
+
+                    if (wpnSlot.IsLeftHandSlotType)
+                    {
+                        wpnSlot.WeaponFlipBackwards = lback;
+                        wpnSlot.WeaponFlipSideways = lside;
+                    }
+                    else
+                    {
+                        wpnSlot.WeaponFlipBackwards = rback;
+                        wpnSlot.WeaponFlipSideways = rside;
+                    }
+
+                    if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                        wpnSlot.WeaponFlipUpsideDown = true;
+                    else
+                        wpnSlot.WeaponFlipUpsideDown = false;
+
+                    if (directSetTransform)
+                    {
+                        wpnMdl.StartTransform = wpnMdl.CurrentTransform = new Transform(absoluteWeaponTransform * MODEL.CurrentTransform.WorldMatrix);
+                    }
+                    else
+                    {
+                        wpnMdl.StartTransform = wpnMdl.CurrentTransform = new Transform(
+                            (wpnSlot.WeaponFlipBackwards ? Matrix.CreateRotationX(MathHelper.Pi) : Matrix.Identity)
+                            * (wpnSlot.WeaponFlipSideways ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity)
+                            * (wpnSlot.WeaponFlipUpsideDown ? Matrix.CreateRotationZ(MathHelper.Pi) : Matrix.Identity)
+                            * absoluteWeaponTransform * MODEL.CurrentTransform.WorldMatrix);
+                    }
+
+                    
+
+                    wpnMdl.AnimContainer.ResetRootMotion();
+
+                    //wpnMdl.NewUpdateByAnimTick();
+                }
+            }
+
+
+            // For AC6, update weapon rails before everything else.
+            if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                foreach (var slot in WeaponSlots)
+                {
+                    if (slot.EquipSlotType is EquipSlotTypes.AC6BackLeftWeaponRail or EquipSlotTypes.AC6BackRightWeaponRail)
+                    {
+                        slot.AccessModel(0, model => DoWPN(slot.EquipParam, model, 0, slot.WeaponBoneIndex, slot));
+                        slot.AccessModel(1, model => DoWPN(slot.EquipParam, model, 1, slot.WeaponBoneIndex, slot));
+                        slot.AccessModel(2, model => DoWPN(slot.EquipParam, model, 2, slot.WeaponBoneIndex, slot));
+                        slot.AccessModel(3, model => DoWPN(slot.EquipParam, model, 3, slot.WeaponBoneIndex, slot));
+                    }
+                    
+                }
+            }
+            
+
+            foreach (var slot in WeaponSlots)
+            {
+                if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6 && slot.EquipSlotType is EquipSlotTypes.AC6BackLeftWeaponRail or EquipSlotTypes.AC6BackRightWeaponRail)
+                    continue;
+
+                slot.AccessModel(0, model => DoWPN(slot.EquipParam, model, 0, slot.WeaponBoneIndex, slot));
+                slot.AccessModel(1, model => DoWPN(slot.EquipParam, model, 1, slot.WeaponBoneIndex, slot));
+                slot.AccessModel(2, model => DoWPN(slot.EquipParam, model, 2, slot.WeaponBoneIndex, slot));
+                slot.AccessModel(3, model => DoWPN(slot.EquipParam, model, 3, slot.WeaponBoneIndex, slot));
+            }
+        }
+
+        public void SelectPartsAnimations(SplitAnimID playerTaeAnimID)
+        {
+            foreach (var slot in WeaponSlots)
+            {
+                slot.SelectAnimation(Document, playerTaeAnimID);
+            }
+
+            ForAllArmorModels(m =>
+            {
+                m.TaeManager_ForParts?.SelectTaeAnimation(Document, playerTaeAnimID, forceNew: true);
+            });
+        }
+        
+        private void DoEquipmentModelAnimUpdate(Model model, float timeDelta, bool forceSyncUpdate, bool isArmor)
+        {
+            
+            if (model == null)
+                return;
+
+            //if (model.AnimContainer.Skeleton?.OriginalHavokSkeleton == null)
+            //{
+            //    model.SkeletonFlver?.RevertToReferencePose();
+            //}
+
+
+            if (model != null && model.AnimContainer != null)
+            {
+                if (!model.ApplyBindPose)
+                {
+                    if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                    {
+                        model.AnimContainer.EnableLooping = true;
+                        model.NewScrubSimTime(absolute: false, timeDelta, foreground: true, background: true, out _, forceSyncUpdate: forceSyncUpdate);
+                    }
+                    else
+                    {
+                        
+
+                        if (isArmor)
+                        {
+                            model.AnimContainer.EnableLooping = MODEL.AnimContainer.EnableLooping;
+                            model.NewScrubSimTime(absolute: false, timeDelta, foreground: false, background: true, out _, forceSyncUpdate: forceSyncUpdate);
+
+                            var unloopedTime = MODEL.AnimContainer.CurrentAnimTime;
+
+                            MODEL.AnimContainer.AccessAnimSlots(slots =>
+                            {
+                                if (slots.ContainsKey(NewAnimSlot.SlotTypes.Base))
                                 {
-                                    selectedWpnAnimName = matching;
+                                    var foregroundAnim = slots[NewAnimSlot.SlotTypes.Base].GetForegroundAnimation();
+                                    if (foregroundAnim != null)
+                                    {
+                                        unloopedTime = foregroundAnim.CurrentTimeUnlooped;
+                                    }
                                 }
-                                else
-                                {
-                                    selectedWpnAnimName = wpnMdl.AnimContainer.Animations.Keys.First();
-                                }
+                            });
+
+                            model.NewScrubSimTime(absolute: true, unloopedTime, foreground: true, background: false, out _, forceSyncUpdate: forceSyncUpdate);
+                        }
+                        else
+                        {
+                            model.AnimContainer.EnableLooping = false;
+                            model.NewScrubSimTime(absolute: false, timeDelta, foreground: false, background: true, out _, forceSyncUpdate: forceSyncUpdate);
+
+                            if (MODEL.AnimContainer.CurrentAnimDuration.HasValue && model.AnimContainer.CurrentAnimDuration.HasValue)
+                            {
+                                float curModTime = MODEL.AnimContainer.CurrentAnimTime % MODEL.AnimContainer.CurrentAnimDuration.Value;
+                                // Limit time
+                                if (curModTime > model.AnimContainer.CurrentAnimDuration.Value)
+                                    curModTime = model.AnimContainer.CurrentAnimDuration.Value;
+
+                                model.NewScrubSimTime(absolute: true, curModTime, foreground: true, background: false, out _, forceSyncUpdate: forceSyncUpdate);
                             }
                         }
 
-                        //TODO: Check if this is actually accurate and doesn't cause random issues with syncing
-                        wpnMdl.AnimContainer.ChangeToNewAnimation(selectedWpnAnimName, animWeight: MODEL.AnimContainer?.CurrentAnimation?.Weight ?? 1, 
-                            startTime: MODEL.AnimContainer?.CurrentAnimTime ?? 0, clearOldLayers: false);
                     }
+                    
                 }
+
+                //if (model.TaeManager_ForParts != null)
+                //    model.TaeManager_ForParts.UpdateTae();
+
             }
 
-            DoWPN(RightWeaponModel0);
-            DoWPN(RightWeaponModel1);
-            DoWPN(RightWeaponModel2);
-            DoWPN(RightWeaponModel3);
+            //model?.NewUpdateByAnimTick();
 
-            DoWPN(LeftWeaponModel0);
-            DoWPN(LeftWeaponModel1);
-            DoWPN(LeftWeaponModel2);
-            DoWPN(LeftWeaponModel3);
+
         }
 
-        
-
-        public void UpdateWeaponAnimation(float timeDelta)
+        public void UpdateEquipmentAnimation(float timeDelta, bool forceSyncUpdate)
         {
-            string GetMatchingAnim(IEnumerable<string> animNames, string desiredName)
-            {
-                if (desiredName == null)
-                    return null;
-
-                desiredName = desiredName.Replace(".hkx", "");
-                foreach (var a in animNames)
-                {
-                    if (a.StartsWith(desiredName))
-                        return a;
-                }
-                return null;
-            }
-
-            void DoWPN(Model wpnMdl)
-            {
-                if (wpnMdl == null)
-                    return;
-
-                if (wpnMdl.SkeletonFlver != null)
-                    wpnMdl.UpdateSkeleton();
-
-                if (wpnMdl.AnimContainer.Skeleton?.OriginalHavokSkeleton == null)
-                {
-                    wpnMdl.SkeletonFlver?.RevertToReferencePose();
-                }
-
-
-                if (wpnMdl != null && wpnMdl.AnimContainer != null)
-                {
-                    if (!wpnMdl.ApplyBindPose)
-                    {
-                        //V2.0
-                        //RightWeaponModel.AnimContainer.IsLoop = false;
-
-                        wpnMdl.ScrubAnimRelative(timeDelta);
-                        //wpnMdl.AfterAnimUpdate(timeDelta);
-
-                        if (MODEL.AnimContainer.CurrentAnimDuration.HasValue && wpnMdl.AnimContainer.CurrentAnimDuration.HasValue)
-                        {
-                            float curModTime = MODEL.AnimContainer.CurrentAnimTime % MODEL.AnimContainer.CurrentAnimDuration.Value;
-
-                            // Make subsequent loops of player anim be the subsequent loops of the weapon anim so it will not blend
-                            if (MODEL.AnimContainer.CurrentAnimTime >= MODEL.AnimContainer.CurrentAnimDuration.Value)
-                                curModTime += wpnMdl.AnimContainer.CurrentAnimDuration.Value;
-
-                            wpnMdl.ScrubAnimRelative(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
-                            //wpnMdl.AfterAnimUpdate(curModTime - wpnMdl.AnimContainer.CurrentAnimTime);
-                        }
-                    }
-                    //else
-                    //{
-                    //    wpnMdl?.Skeleton?.RevertToReferencePose();
-                    //}
-                }
-
-
-            }
-
-            DoWPN(RightWeaponModel0);
-            DoWPN(RightWeaponModel1);
-            DoWPN(RightWeaponModel2);
-            DoWPN(RightWeaponModel3);
-
-            DoWPN(LeftWeaponModel0);
-            DoWPN(LeftWeaponModel1);
-            DoWPN(LeftWeaponModel2);
-            DoWPN(LeftWeaponModel3);
+            ForAllWeaponModels(model => DoEquipmentModelAnimUpdate(model, timeDelta, forceSyncUpdate, isArmor: false));
+            ForAllArmorModels(model => DoEquipmentModelAnimUpdate(model, timeDelta, forceSyncUpdate, isArmor: true));
         }
 
         public void InitSkeleton(NewAnimSkeleton_FLVER skeleton)
         {
             Skeleton = skeleton;
-            boneIndexRemap = new Dictionary<string, int>();
-            for (int i = 0; i < skeleton.FlverSkeleton.Count; i++)
+            //boneIndexRemap = new Dictionary<string, int>();
+            for (int i = 0; i < skeleton.Bones.Count; i++)
             {
-                if (skeleton.FlverSkeleton[i].Name == "R_Weapon")
+                if (skeleton.Bones[i].Name == "R_Weapon")
                 {
-                    RightWeaponBoneIndex = i;
+                    var rightWeapon = GetWpnSlot(EquipSlotTypes.RightWeapon);
+                    rightWeapon.WeaponBoneIndex = i;
                 }
-                else if (skeleton.FlverSkeleton[i].Name == "L_Weapon")
+                else if (skeleton.Bones[i].Name == "L_Weapon")
                 {
-                    LeftWeaponBoneIndex = i;
+                    var leftWeapon = GetWpnSlot(EquipSlotTypes.LeftWeapon);
+                    leftWeapon.WeaponBoneIndex = i;
                 }
-                if (!boneIndexRemap.ContainsKey(skeleton.FlverSkeleton[i].Name))
-                {
-                    boneIndexRemap.Add(skeleton.FlverSkeleton[i].Name, i);
-                }
+                //if (!boneIndexRemap.ContainsKey(skeleton.FlverSkeleton[i].Name))
+                //{
+                //    boneIndexRemap.Add(skeleton.FlverSkeleton[i].Name, i);
+                //}
             }
         }
 
@@ -804,12 +1078,15 @@ namespace DSAnimStudio
         //    //}
         //}
 
-        private NewMesh LoadArmorMesh(IBinder partsbnd)
+        public Model LoadArmorMesh(IBinder partsbnd, bool ignoreBindIDs)
         {
             // doesn't need _lock_doingAnythingWithModels because the thing it's called from has that and it's private.
             List<TPF> tpfs = new List<TPF>();
             FLVER2 flver2 = null;
             FLVER0 flver0 = null;
+
+            //IBinder anibnd = null;
+
             foreach (var f in partsbnd.Files)
             {
                 string nameCheck = f.Name.ToLower();
@@ -822,10 +1099,10 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        NotificationManager.PushNotification($"Failed to read TPF '{f.Name}' from inside binder. Exception:\n{ex}");
+                        zzz_NotificationManagerIns.PushNotification($"Failed to read TPF '{f.Name}' from inside binder. Exception:\n{ex}");
                     }
                 }
-                else if (GameRoot.GameType != SoulsAssetPipeline.SoulsGames.DES && (flver2 == null && nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
+                else if (Document.GameRoot.GameType != SoulsAssetPipeline.SoulsGames.DES && (flver2 == null && nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
                 {
                     try
                     {
@@ -834,14 +1111,13 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        NotificationManager.PushNotification($"Failed to read FLVER2 '{f.Name}' from inside binder. Exception:\n{ex}");
+                        zzz_NotificationManagerIns.PushNotification($"Failed to read FLVER2 '{f.Name}' from inside binder. Exception:\n{ex}");
                         flver2 = null;
                     }
                 }
-                else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES && (flver0 == null && nameCheck.EndsWith(".flver") || FLVER0.Is(f.Bytes)))
+                else if (Document.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES && (flver0 == null && nameCheck.EndsWith(".flver") || FLVER0.Is(f.Bytes)))
                 {
                     flver0 = FLVER0.Read(f.Bytes);
-
                     try
                     {
                         var readFlver0 = FLVER0.Read(f.Bytes);
@@ -849,243 +1125,120 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        NotificationManager.PushNotification($"Failed to read FLVER0 '{f.Name}' from inside binder. Exception:\n{ex}");
+                        zzz_NotificationManagerIns.PushNotification($"Failed to read FLVER0 '{f.Name}' from inside binder. Exception:\n{ex}");
                         flver0 = null;
                     }
                 }
+
+                //if (nameCheck.EndsWith(".anibnd"))
+                //{
+                //    if (BND3.IsRead(f.Bytes, out BND3 asBND3))
+                //        anibnd = asBND3;
+                //    else if (BND4.IsRead(f.Bytes, out BND4 asBND4))
+                //        anibnd = asBND4;
+                //}
             }
 
             foreach (var tpf in tpfs)
             {
-                TexturePool.AddTpf(tpf);
+                Document.TexturePool.AddTpf(tpf);
             }
 
-            NewMesh mesh = null;
+            Model mdl = new Model(Document, null, "ArmorModel", partsbnd, modelIndex: ignoreBindIDs ? -1 : 0, null, ignoreStaticTransforms: true, 
+                isBodyPart: true);
 
-            if (GameRoot.GameType != SoulsAssetPipeline.SoulsGames.DES && flver2 != null)
-            {
-                mesh = new NewMesh(flver2, false, boneIndexRemap);
-            }
-            else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES && flver0 != null)
-            {
-                mesh = new NewMesh(flver0, false, boneIndexRemap);
-            }
-            Scene.RequestTextureLoad();
+            mdl.ModelType = Model.ModelTypes.ChrAsmChildModel;
+            mdl.PARENT_PLAYER_MODEL = MODEL;
 
-            return mesh;
+            //mdl.SkeletonFlver.RevertToReferencePose();
+
+            //NewMesh mesh = null;
+
+            //if (GameRoot.GameType != SoulsAssetPipeline.SoulsGames.DES && flver2 != null)
+            //{
+            //    mesh = new NewMesh(flver2, false, boneIndexRemap);
+            //}
+            //else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES && flver0 != null)
+            //{
+            //    mesh = new NewMesh(flver0, false, boneIndexRemap);
+            //}
+            Document.Scene.RequestTextureLoad();
+
+            return mdl;
         }
 
-        public void LoadArmorPartsbnd(IBinder partsbnd, EquipSlot slot, string partsName)
-        {
-            NewMesh oldMesh = null;
+        
 
-            if (slot == EquipSlot.Head)
-                oldMesh = HeadMesh;
-            else if (slot == EquipSlot.Body)
-                oldMesh = BodyMesh;
-            else if (slot == EquipSlot.Arms)
-                oldMesh = ArmsMesh;
-            else if (slot == EquipSlot.Legs)
-                oldMesh = LegsMesh;
-            else if (slot == EquipSlot.Face)
-                oldMesh = FaceMesh;
-            else if (slot == EquipSlot.Facegen)
-                oldMesh = FacegenMesh;
-            else if (slot == EquipSlot.Hair)
-                oldMesh = HairMesh;
 
-            NewMesh newMesh = LoadArmorMesh(partsbnd);
-
-            if (newMesh != null)
-            {
-                newMesh.Name = partsName;
-            }
-
-            if (slot == EquipSlot.Head)
-                HeadMesh = newMesh;
-            else if (slot == EquipSlot.Body)
-                BodyMesh = newMesh;
-            else if (slot == EquipSlot.Arms)
-                ArmsMesh = newMesh;
-            else if (slot == EquipSlot.Legs)
-                LegsMesh = newMesh;
-            else if (slot == EquipSlot.Face)
-                FaceMesh = newMesh;
-            else if (slot == EquipSlot.Facegen)
-                FacegenMesh = newMesh;
-            else if (slot == EquipSlot.Hair)
-                HairMesh = newMesh;
-
-            oldMesh?.Dispose();
-
-            FlverMaterialDefInfo.FlushBinderCache();
-        }
-
-        public void LoadArmorPartsbnd(byte[] partsbndBytes, EquipSlot slot, string partsName)
-        {
-            if (partsbndBytes != null)
-            {
-                if (BND3.Is(partsbndBytes))
-                {
-                    LoadArmorPartsbnd(BND3.Read(partsbndBytes), slot, partsName);
-                }
-                else
-                {
-                    LoadArmorPartsbnd(BND4.Read(partsbndBytes), slot, partsName);
-                }
-            }
-            else
-            {
-                if (slot == EquipSlot.Head)
-                {
-                    var oldMdl = HeadMesh;
-                    HeadMesh = null;
-                    oldMdl?.Dispose();
-                }
-                else if (slot == EquipSlot.Body)
-                {
-                    var oldMdl = BodyMesh;
-                    BodyMesh = null;
-                    oldMdl?.Dispose();
-                }
-                else if (slot == EquipSlot.Arms)
-                {
-                    var oldMdl = ArmsMesh;
-                    ArmsMesh = null;
-                    oldMdl?.Dispose();
-                }
-                else if (slot == EquipSlot.Legs)
-                {
-                    var oldMdl = LegsMesh;
-                    LegsMesh = null;
-                    oldMdl?.Dispose();
-                }
-                else if (slot == EquipSlot.Face)
-                {
-                    var oldMdl = FaceMesh;
-                    FaceMesh = null;
-                    oldMdl?.Dispose();
-                }
-                else if (slot == EquipSlot.Facegen)
-                {
-                    var oldMdl = FacegenMesh;
-                    FacegenMesh = null;
-                    oldMdl?.Dispose();
-                }
-                else if (slot == EquipSlot.Hair)
-                {
-                    var oldMdl = HairMesh;
-                    HairMesh = null;
-                    oldMdl?.Dispose();
-                }
-            }
-           
-        }
 
         public void Draw(bool[] mask, int lod = 0, bool motionBlur = false, bool forceNoBackfaceCulling = false, bool isSkyboxLol = false)
         {
-            try
-            {
-                UpdateWeaponTransforms(0);
-                MODEL.AfterAnimUpdate(0);
-            }
-            catch
-            {
+            bool erHideGauntletsForBeastClaw = false;
 
-            }
+            //try
+            //{
+            //    //UpdateWeaponTransforms(0);
+            //    //UpdateArmorTransforms(0);
+            //    MODEL.NewUpdate(0);
+            //}
+            //catch (Exception handled_ex) when (Main.EnableErrorHandler.NewChrAsm_Draw_AfterAnimUpdateCall)
+            //{
+            //    Main.HandleError(nameof(Main.EnableErrorHandler.NewChrAsm_Draw_AfterAnimUpdateCall), handled_ex);
+            //}
 
-            if (FaceMesh != null)
+            if (Document.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR)
             {
-                FaceMesh.DrawMask = mask;
-                FaceMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL, onDrawFail: (ex) =>
+                ForAllWeaponSlots(slot =>
                 {
-                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>FACE failed to draw:\n\n{ex}", 
-                        Vector3.Transform(new Vector3(-3f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix), 
-                        Color.Red, Color.Black, 10);
-                });
-            }
-
-            if (HairMesh != null)
-            {
-                HairMesh.DrawMask = mask;
-                HairMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL, onDrawFail: (ex) =>
-                {
-                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>HAIR failed to draw:\n\n{ex}",
-                        Vector3.Transform(new Vector3(-3f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
-                        Color.Red, Color.Black, 10);
-                });
-            }
-
-            if (FacegenMesh != null)
-            {
-                if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER)
-                {
-                    for (int i = 0; i < 3; i++)
+                    if (slot.IsERHideGlovesModel)
                     {
-                        FacegenMesh.DrawMask[i] = mask[i];
+                        erHideGauntletsForBeastClaw = true;
                     }
+                });
+            }
+
+            ForAllArmorSlots(slot =>
+            {
+                if (slot.EquipSlotType == EquipSlotTypes.Arms && (Document.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR) && erHideGauntletsForBeastClaw)
+                {
+                    return;
                 }
-                else
-                {
-                    FacegenMesh.DrawMask = mask;
-                }
 
-                FacegenMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL, onDrawFail: (ex) =>
+                slot.AccessAllModels(model =>
                 {
-                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>FACEGEN failed to draw:\n\n{ex}",
-                        Vector3.Transform(new Vector3(-2f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
-                        Color.Red, Color.Black, 10);
+                    model.Opacity = MODEL.Opacity;
+
+                    if ((Document.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR) && slot.EquipSlotType >= EquipSlotTypes.Facegen1 &&
+                        slot.EquipSlotType <= EquipSlotTypes.FacegenMax)
+                    {
+                        if (model.DrawMask == mask)
+                        {
+                            // Dereference.
+                            model.DrawMask = new bool[mask.Length];
+                        }
+
+                        for (int i = 0; i < model.DrawMask.Length; i++)
+                        {
+                            if (i <= 2)
+                                model.DrawMask[i] = MODEL.DrawMask[i];
+                            else
+                                model.DrawMask[i] = false;
+                        }
+                    }
+                    else
+                    {
+                        model.DrawMask = mask;
+                    }
+
+                    model.CurrentTransform = MODEL.CurrentTransform;
+                    //model.DebugAnimWeight_Deprecated = MODEL.DebugAnimWeight_Deprecated;
+                    model.Draw(0, false, false, false, MODEL);
                 });
-            }
+                
+            });
 
-            if (HeadMesh != null)
-            {
-                //HeadMesh.DrawMask = mask;
-                HeadMesh.DrawMask = new bool[98];
-                for (int i = 0; i < 98; i++)
-                    HeadMesh.DrawMask[i] = true;
-                HeadMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL, onDrawFail: (ex) =>
-                {
-                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>HEAD failed to draw:\n\n{ex}",
-                        Vector3.Transform(new Vector3(-1f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
-                        Color.Red, Color.Black, 10);
-                });
-            }
 
-            if (BodyMesh != null)
-            {
-                BodyMesh.DrawMask = mask;
-                BodyMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL, onDrawFail: (ex) =>
-                {
-                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>BODY failed to draw:\n\n{ex}",
-                        Vector3.Transform(new Vector3(1f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
-                        Color.Red, Color.Black, 10);
-                });
-            }
-
-            if (ArmsMesh != null)
-            {
-                ArmsMesh.DrawMask = mask;
-                ArmsMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL, onDrawFail: (ex) =>
-                {
-                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>ARMS failed to draw:\n\n{ex}",
-                        Vector3.Transform(new Vector3(2f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
-                        Color.Red, Color.Black, 10);
-                });
-            }
-
-            if (LegsMesh != null)
-            {
-                LegsMesh.DrawMask = mask;
-                LegsMesh?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL, onDrawFail: (ex) =>
-                {
-                    ImGuiDebugDrawer.DrawText3D($"{MODEL.Name}=>LEGS failed to draw:\n\n{ex}",
-                        Vector3.Transform(new Vector3(3f, -0.5f, 0.25f), MODEL.CurrentTransform.WorldMatrix),
-                        Color.Red, Color.Black, 10);
-                });
-            }
-
-            void DrawWeapon(ParamData.EquipParamWeapon wpn, Model wpnMdl, int modelIdx, bool isLeft)
+            void DrawWeapon(ParamData.EquipParamWeapon wpn, Model wpnMdl, int modelIdx, bool isLeft, NewEquipSlot_Weapon wpnSlot)
             {
                 if (wpn == null || wpnMdl == null)
                 {
@@ -1094,146 +1247,70 @@ namespace DSAnimStudio
 
                 wpnMdl.Opacity = MODEL.Opacity;
 
-                bool renderWpn = true;
+                bool renderWpn = !wpnMdl.IsHiddenByAbsorpPos;
 
                 
 
-                if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                {
-                    renderWpn = (modelIdx == 0);
-                }
-                else if (GameRoot.GameTypeUsesWepAbsorpPosParam)
-                {
-                    var dummyPolyID = isLeft ? wpn.DS3_GetLeftWeaponDummyPoly(this, modelIdx)
-                            : wpn.DS3_GetRightWeaponDummyPoly(this, modelIdx);
+                //if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                //{
+                //    renderWpn = (modelIdx == 0);
+                //}
+                //else if (GameRoot.GameTypeUsesWepAbsorpPosParam)
+                //{
+                //    var dummyPolyID = isLeft ? wpn.DS3_GetLeftWeaponDummyPoly(this, modelIdx)
+                //            : wpn.DS3_GetRightWeaponDummyPoly(this, modelIdx);
 
-                    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.SDT && SekiroProstheticOverrideTaeActive)
-                    {
-                        dummyPolyID = GetSekiroProstheticDummyPoly(isLeft ? 
-                            ProstheticOverrideModelType.LeftWeapon : ProstheticOverrideModelType.RightWeapon, modelIdx) ?? dummyPolyID;
-                    }
+                //    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.SDT && SekiroProstheticOverrideTaeActive)
+                //    {
+                //        dummyPolyID = GetSekiroProstheticDummyPoly(isLeft ? 
+                //            ProstheticOverrideModelType.LeftWeapon : ProstheticOverrideModelType.RightWeapon, modelIdx) ?? dummyPolyID;
+                //    }
 
-                    // Temp workaround
-                    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER && dummyPolyID > 0)
-                    {
-                        dummyPolyID %= 1000;
-                    }
+                //    // Temp workaround
+                //    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER && dummyPolyID > 0)
+                //    {
+                //        dummyPolyID %= 1000;
+                //    }
 
-                    if (dummyPolyID < 0)
-                    {
-                        renderWpn = false;
-                    }
-                }
-                else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB)
-                {
-                    var dummyPolyID = isLeft ? wpn.BB_GetLeftWeaponDummyPoly(this, modelIdx)
-                            : wpn.BB_GetRightWeaponDummyPoly(this, modelIdx);
+                //    if (dummyPolyID < 0)
+                //    {
+                //        renderWpn = false;
+                //    }
+                //}
+                //else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB)
+                //{
+                //    var dummyPolyID = isLeft ? wpn.BB_GetLeftWeaponDummyPoly(this, modelIdx)
+                //            : wpn.BB_GetRightWeaponDummyPoly(this, modelIdx);
 
-                    if (dummyPolyID < 0)
-                    {
-                        renderWpn = false;
-                    }
-                }
+                //    if (dummyPolyID < 0)
+                //    {
+                //        renderWpn = false;
+                //    }
+                //}
 
                 if (renderWpn)
                 {
-                    wpnMdl?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+                    wpnMdl?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL);
                 }
-                else if ((DebugRightWeaponModelPositions && !isLeft) || (DebugLeftWeaponModelPositions && isLeft))
+                else if (wpnSlot.DebugWeaponModelPositions)
                 {
+                    bool prevForceDraw = wpnMdl.Debug_ForceShowNoMatterWhat;
+                    wpnMdl.Debug_ForceShowNoMatterWhat = true;
                     float prevOpacity = wpnMdl.Opacity;
                     wpnMdl.Opacity = 0.2f;
-                    wpnMdl?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol);
+
+                    wpnMdl?.Draw(lod, motionBlur, forceNoBackfaceCulling, isSkyboxLol, MODEL);
                     wpnMdl.Opacity = prevOpacity;
+                    wpnMdl.Debug_ForceShowNoMatterWhat = prevForceDraw;
                 }
             }
 
-            DrawWeapon(RightWeapon, RightWeaponModel0, 0, isLeft: false);
-            DrawWeapon(RightWeapon, RightWeaponModel1, 1, isLeft: false);
-            DrawWeapon(RightWeapon, RightWeaponModel2, 2, isLeft: false);
-            DrawWeapon(RightWeapon, RightWeaponModel3, 3, isLeft: false);
-
-            DrawWeapon(LeftWeapon, LeftWeaponModel0, 0, isLeft: true);
-            DrawWeapon(LeftWeapon, LeftWeaponModel1, 1, isLeft: true);
-            DrawWeapon(LeftWeapon, LeftWeaponModel2, 2, isLeft: true);
-            DrawWeapon(LeftWeapon, LeftWeaponModel3, 3, isLeft: true);
-        }
-
-        public int HeadID
-        {
-            get => _headID;
-            set
+            foreach (var slot in WeaponSlots)
             {
-                if (_headID != value)
-                {
-                    _headID = value;
-                    OnEquipmentChanged(EquipSlot.Head);
-                }
-            }
-        }
-
-        public int BodyID
-        {
-            get => _bodyID;
-            set
-            {
-                if (_bodyID != value)
-                {
-                    _bodyID = value;
-                    OnEquipmentChanged(EquipSlot.Body);
-                }
-            }
-        }
-
-        public int ArmsID
-        {
-            get => _armsID;
-            set
-            {
-                if (_armsID != value)
-                {
-                    _armsID = value;
-                    OnEquipmentChanged(EquipSlot.Arms);
-                }
-            }
-        }
-
-        public int LegsID
-        {
-            get => _legsID;
-            set
-            {
-                if (_legsID != value)
-                {
-                    _legsID = value;
-                    OnEquipmentChanged(EquipSlot.Legs);
-                }
-            }
-        }
-
-        public int RightWeaponID
-        {
-            get => _rightWeaponID;
-            set
-            {
-                if (_rightWeaponID != value)
-                {
-                    _rightWeaponID = value;
-                    OnEquipmentChanged(EquipSlot.RightWeapon);
-                }
-            }
-        }
-
-        public int LeftWeaponID
-        {
-            get => _leftWeaponID;
-            set
-            {
-                if (_leftWeaponID != value)
-                {
-                    _leftWeaponID = value;
-                    OnEquipmentChanged(EquipSlot.LeftWeapon);
-                }
+                slot.AccessModel(0, model => DrawWeapon(slot.EquipParam, model, 0, slot.IsLeftHandSlotType, slot));
+                slot.AccessModel(1, model => DrawWeapon(slot.EquipParam, model, 1, slot.IsLeftHandSlotType, slot));
+                slot.AccessModel(2, model => DrawWeapon(slot.EquipParam, model, 2, slot.IsLeftHandSlotType, slot));
+                slot.AccessModel(3, model => DrawWeapon(slot.EquipParam, model, 3, slot.IsLeftHandSlotType, slot));
             }
         }
 
@@ -1246,7 +1323,7 @@ namespace DSAnimStudio
             {
                 if (WeaponStyle == WeaponStyleType.OneHand || WeaponStyle == WeaponStyleType.OneHandTransformedL)
                     return BB_WeaponState.FormA;
-                else if (WeaponStyle == WeaponStyleType.TwoHandR || WeaponStyle == WeaponStyleType.OneHandTransformedR)
+                else if (WeaponStyle == WeaponStyleType.RightBoth || WeaponStyle == WeaponStyleType.OneHandTransformedR)
                     return BB_WeaponState.FormB;
                 else
                     return BB_WeaponState.Sheathed;
@@ -1259,23 +1336,17 @@ namespace DSAnimStudio
             {
                 if (WeaponStyle == WeaponStyleType.OneHand || WeaponStyle == WeaponStyleType.OneHandTransformedR)
                     return BB_WeaponState.FormA;
-                else if (WeaponStyle == WeaponStyleType.TwoHandL || WeaponStyle == WeaponStyleType.OneHandTransformedL)
+                else if (WeaponStyle == WeaponStyleType.LeftBoth || WeaponStyle == WeaponStyleType.OneHandTransformedL)
                     return BB_WeaponState.FormB;
                 else
                     return BB_WeaponState.Sheathed;
             }
         }
 
-        private int lastHeadLoaded = -1;
-        private int lastBodyLoaded = -1;
-        private int lastArmsLoaded = -1;
-        private int lastLegsLoaded = -1;
-        private int lastRightWeaponLoaded = -1;
-        private int lastLeftWeaponLoaded = -1;
 
-        public event EventHandler<EquipSlot> EquipmentChanged;
+        public event EventHandler<EquipSlotTypes> EquipmentChanged;
 
-        private void OnEquipmentChanged(EquipSlot slot)
+        private void OnEquipmentChanged(EquipSlotTypes slot)
         {
             EquipmentChanged?.Invoke(this, slot);
         }
@@ -1286,877 +1357,515 @@ namespace DSAnimStudio
             EquipmentModelsUpdated?.Invoke(this, EventArgs.Empty);
         }
 
-        public ParamData.EquipParamProtector Head
-            => ParamManager.EquipParamProtector.ContainsKey(HeadID)
-            ? ParamManager.EquipParamProtector[HeadID] : null;
-
-        public ParamData.EquipParamProtector Body
-            => ParamManager.EquipParamProtector.ContainsKey(BodyID)
-            ? ParamManager.EquipParamProtector[BodyID] : null;
-
-        public ParamData.EquipParamProtector Arms
-            => ParamManager.EquipParamProtector.ContainsKey(ArmsID)
-            ? ParamManager.EquipParamProtector[ArmsID] : null;
-
-        public ParamData.EquipParamProtector Legs
-            => ParamManager.EquipParamProtector.ContainsKey(LegsID)
-            ? ParamManager.EquipParamProtector[LegsID] : null;
-
-        public ParamData.EquipParamWeapon RightWeapon
-            => ParamManager.EquipParamWeapon.ContainsKey(RightWeaponID)
-            ? ParamManager.EquipParamWeapon[RightWeaponID] : null;
-
-        public ParamData.EquipParamWeapon LeftWeapon
-            => ParamManager.EquipParamWeapon.ContainsKey(LeftWeaponID)
-            ? ParamManager.EquipParamWeapon[LeftWeaponID] : null;
-
         public void UpdateMasks()
         {
             MODEL.ResetDrawMaskToAllVisible();
 
-            if (Head != null)
-                MODEL.DefaultDrawMask = Head.ApplyInvisFlagsToMask(MODEL.DrawMask);
-            if (Body != null)
-                MODEL.DefaultDrawMask = Body.ApplyInvisFlagsToMask(MODEL.DrawMask);
-            if (Arms != null)
-                MODEL.DefaultDrawMask = Arms.ApplyInvisFlagsToMask(MODEL.DrawMask);
-            if (Legs != null)
-                MODEL.DefaultDrawMask = Legs.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            //if (Head != null)
+            //    MODEL.DefaultDrawMask = Head.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            //if (Body != null)
+            //    MODEL.DefaultDrawMask = Body.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            //if (Arms != null)
+            //    MODEL.DefaultDrawMask = Arms.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            //if (Legs != null)
+            //    MODEL.DefaultDrawMask = Legs.ApplyInvisFlagsToMask(MODEL.DrawMask);
+
+            bool erHideGauntletsForBeastClaw = false;
+
+            if (Document.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR)
+            {
+                ForAllWeaponSlots(slot =>
+                {
+                    if (slot.IsERHideGlovesModel)
+                    {
+                        erHideGauntletsForBeastClaw = true;
+                    }
+                    if (slot.IsERApplyHideMask)
+                    {
+                        var both = (WeaponStyle is WeaponStyleType.LeftBoth && slot.IsLeftHandSlotType) || 
+                        (WeaponStyle is WeaponStyleType.RightBoth && !slot.IsLeftHandSlotType);
+
+                        var oneL = slot.IsLeftHandSlotType && (WeaponStyle is WeaponStyleType.OneHand or WeaponStyleType.OneHandTransformedL or WeaponStyleType.OneHandTransformedR);
+                        var oneR = !slot.IsLeftHandSlotType && (WeaponStyle is WeaponStyleType.OneHand or WeaponStyleType.OneHandTransformedL or WeaponStyleType.OneHandTransformedR);
+
+                        var absorp = slot.AbsorpPosParam;
+                        if (oneL || both)
+                        {
+                            if (absorp.ERHideMaskLH1 >= 0 && absorp.ERHideMaskLH1 < MODEL.DrawMask.Length)
+                                MODEL.DrawMask[absorp.ERHideMaskLH1] = false;
+                            if (absorp.ERHideMaskLH2 >= 0 && absorp.ERHideMaskLH2 < MODEL.DrawMask.Length)
+                                MODEL.DrawMask[absorp.ERHideMaskLH2] = false;
+                        }
+
+                        if (oneR || both)
+                        {
+                            if (absorp.ERHideMaskRH1 >= 0 && absorp.ERHideMaskRH1 < MODEL.DrawMask.Length)
+                                MODEL.DrawMask[absorp.ERHideMaskRH1] = false;
+                            if (absorp.ERHideMaskRH2 >= 0 && absorp.ERHideMaskRH2 < MODEL.DrawMask.Length)
+                                MODEL.DrawMask[absorp.ERHideMaskRH2] = false;
+                        }
+                    }
+                });
+            }
+
+            ForAllArmorSlots(slot =>
+            {
+                if (slot.EquipSlotType == EquipSlotTypes.Arms && (Document.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR) && erHideGauntletsForBeastClaw)
+                {
+                    return;
+                }
+
+                if (slot.EquipParam != null)
+                    MODEL.DefaultDrawMask = slot.EquipParam.ApplyInvisFlagsToMask(MODEL.DrawMask);
+            });
+
+            //TODO:Booster
 
             MODEL.ResetDrawMaskToDefault();
         }
 
-        private object _lock_EquipParam = new object();
-        private List<string> _possibleFaceModels = new List<string>();
-        private List<string> _possibleFacegenModels = new List<string>();
-        private List<string> _possibleHairModels = new List<string>();
-        private int _faceIndex_Male = -1;
-        private int _faceIndex_Female = -1;
-        private int _hairIndex_Male = -1;
-        private int _hairIndex_Female = -1;
-
-        public int FaceIndex_Male
-        {
-            get
-            {
-                int result = -1;
-                lock (_lock_EquipParam)
-                {
-                    result = _faceIndex_Male;
-                }
-                return result;
-            }
-            set
-            {
-                int oldIndex = -1;
-                lock (_lock_EquipParam)
-                {
-                    oldIndex = _faceIndex_Male;
-                    _faceIndex_Male = value;
-                }
-                if (oldIndex != value && !IsFemale)
-                {
-                    if (value >= 0)
-                        LoadNewFace(PossibleFaceModels[FaceIndex]);
-                    else
-                        LoadNewFace(null);
-                    UpdateModels(isAsync: true, onCompleteAction: null, forceReloadArmor: false);
-                }
-
-            }
-        }
-
-        public int FaceIndex_Female
-        {
-            get
-            {
-                int result = -1;
-                lock (_lock_EquipParam)
-                {
-                    result = _faceIndex_Female;
-                }
-                return result;
-            }
-            set
-            {
-                int oldIndex = -1;
-                lock (_lock_EquipParam)
-                {
-                    oldIndex = _faceIndex_Female;
-                    _faceIndex_Female = value;
-                }
-                if (oldIndex != value && IsFemale)
-                {
-                    if (value >= 0)
-                        LoadNewFace(PossibleFaceModels[FaceIndex]);
-                    else
-                        LoadNewFace(null);
-                    UpdateModels(isAsync: true, onCompleteAction: null, forceReloadArmor: false);
-                }
-
-            }
-        }
-
-        public int FaceIndex
-        {
-            get
-            {
-                int result = -1;
-                lock (_lock_EquipParam)
-                {
-                    result = _isFemale ? _faceIndex_Female : _faceIndex_Male;
-                }
-                return result;
-            }
-            set
-            {
-                int oldIndex = -1;
-                lock (_lock_EquipParam)
-                {
-                    if (_isFemale)
-                    {
-                        oldIndex = _faceIndex_Female;
-                        _faceIndex_Female = value;
-                    }
-                    else
-                    {
-                        oldIndex = _faceIndex_Male;
-                        _faceIndex_Male = value;
-                    }
-                }
-                if (oldIndex != value)
-                {
-                    if (value >= 0)
-                        LoadNewFace(PossibleFaceModels[FaceIndex]);
-                    else
-                        LoadNewFace(null);
-                    UpdateModels(isAsync: true, onCompleteAction: null, forceReloadArmor: false);
-                }
-
-            }
-        }
-
         public Dictionary<FlverMaterial.ChrCustomizeTypes, Vector4> ChrCustomize = new Dictionary<FlverMaterial.ChrCustomizeTypes, Vector4>();
 
-        private int _facegenIndex = -1;
-        public int FacegenIndex
+        public void UpdateModels(bool isAsync, Action onCompleteAction, bool forceReloadUnchanged, bool disableCache)
         {
-            get
+            Document.LoadingTaskMan.DoLoadingTask("ChrAsm_UpdateModels", "Updating c0000 models...", progress =>
             {
-                int result = -1;
-                lock (_lock_EquipParam)
+                var progMax = 1.0 * GetWpnSlotCount() + GetArmorSlotCount();
+                var progCurrent = 0.0;
+                void incrementProg()
                 {
-                    result = _facegenIndex;
+                    progCurrent += 1.0;
+                    progress.Report(progCurrent / progMax);
                 }
-                return result;
-            }
-            set
-            {
-                int oldIndex = -1;
-                lock (_lock_EquipParam)
+
+                ForAllArmorSlots(slot =>
                 {
-                    oldIndex = _facegenIndex;
-                    _facegenIndex = value;
-                }
-                if (value != oldIndex)
-                {
-                    if (value >= 0)
-                        LoadNewFacegen(PossibleFacegenModels[FacegenIndex]);
+                    bool equipChanged = false;
+
+                    if (slot.UsesEquipParam)
+                        equipChanged = slot.EquipID != slot.lastEquipIDLoaded;
                     else
-                        LoadNewFacegen(null);
-                    UpdateModels(isAsync: true, onCompleteAction: null, forceReloadArmor: false);
-                }
-            }
-        }
+                        equipChanged = slot.DirectEquip != slot.lastDirectEquipLoaded;
 
-        public int HairIndex_Male
-        {
-            get
-            {
-                int result = -1;
-                lock (_lock_EquipParam)
-                {
-                    result = _hairIndex_Male;
-                }
-                return result;
-            }
-            set
-            {
-                int oldIndex = -1;
-                lock (_lock_EquipParam)
-                {
-                    oldIndex = _hairIndex_Male;
-                    _hairIndex_Male = value;
-                }
-                if (oldIndex != value && !IsFemale)
-                {
-                    if (value >= 0)
-                        LoadNewHair(PossibleFaceModels[HairIndex]);
-                    else
-                        LoadNewHair(null);
-                    UpdateModels(isAsync: true, onCompleteAction: null, forceReloadArmor: false);
-                }
-
-            }
-        }
-
-        public int HairIndex_Female
-        {
-            get
-            {
-                int result = -1;
-                lock (_lock_EquipParam)
-                {
-                    result = _hairIndex_Female;
-                }
-                return result;
-            }
-            set
-            {
-                int oldIndex = -1;
-                lock (_lock_EquipParam)
-                {
-                    oldIndex = _hairIndex_Female;
-                    _hairIndex_Female = value;
-                }
-                if (oldIndex != value && IsFemale)
-                {
-                    if (value >= 0)
-                        LoadNewHair(PossibleHairModels[HairIndex]);
-                    else
-                        LoadNewHair(null);
-                    UpdateModels(isAsync: true, onCompleteAction: null, forceReloadArmor: false);
-                }
-
-            }
-        }
-
-        public int HairIndex
-        {
-            get
-            {
-                int result = -1;
-                lock (_lock_EquipParam)
-                {
-                    result = _isFemale ? _hairIndex_Female : _hairIndex_Male;
-                }
-                return result;
-            }
-            set
-            {
-                int oldIndex = -1;
-                lock (_lock_EquipParam)
-                {
-                    if (_isFemale)
+                    if (slot.EquipSlotType == EquipSlotTypes.OldShittyFacegen)
                     {
-                        oldIndex = _hairIndex_Female;
-                        _hairIndex_Female = value;
+                        if (!slot.CheckIfModelLoaded())
+                            equipChanged = true;
                     }
-                    else
+
+                        if (equipChanged || forceReloadUnchanged)
                     {
-                        oldIndex = _hairIndex_Male;
-                        _hairIndex_Male = value;
-                    }
-                }
-                if (oldIndex != value)
-                {
-                    if (value >= 0)
-                        LoadNewHair(PossibleHairModels[HairIndex]);
-                    else
-                        LoadNewHair(null);
-                    UpdateModels(isAsync: true, onCompleteAction: null, forceReloadArmor: false);
-                }
-
-            }
-        }
-
-        public List<string> PossibleFaceModels
-        {
-            get
-            {
-                List<string> result = null;
-                lock (_lock_EquipParam)
-                {
-                    if (_possibleFaceModels == null || _possibleFaceModels.Count == 0)
-                        _possibleFaceModels = GameData.SearchFiles(@"/parts", @".*fc_\w_\d\d\d\d.partsbnd.dcx").ToList();
-                    result = _possibleFaceModels;
-                }
-                return result ?? new List<string>();
-            }
-        }
-
-        public List<string> PossibleFacegenModels
-        {
-            get
-            {
-                List<string> result = null;
-                lock (_lock_EquipParam)
-                {
-                    if (_possibleFacegenModels == null || _possibleFacegenModels.Count == 0)
-                    {
-                        _possibleFacegenModels = GameData.SearchFiles(@"/parts", @".*fg_\w_\d\d\d\d.partsbnd.dcx").ToList();
-                        if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.DES or SoulsAssetPipeline.SoulsGames.DS1 or SoulsAssetPipeline.SoulsGames.DS1R)
+                        Model newMesh = null;
+                        if (slot.CanEquipOnGender(IsFemale))
                         {
-                            _possibleFacegenModels.Add("/facegen/facegen.fgbnd");
-                        }
-                    }
-                    result = _possibleFacegenModels;
-                }
-                return result ?? new List<string>();
-            }
-        }
+                            var partsName = Utils.GetShortIngameFileName(slot.GetPartsbndName(IsFemale, CurrentPartSuffixType));
+                            var partsbnd = slot.GetPartsbnd(IsFemale, CurrentPartSuffixType, disableCache);
+                            if (partsbnd != null)
+                                newMesh = LoadArmorMesh(partsbnd, ignoreBindIDs: slot.EquipSlotType == EquipSlotTypes.OldShittyFacegen);
 
-        public List<string> PossibleHairModels
-        {
-            get
-            {
-                List<string> result = null;
-                lock (_lock_EquipParam)
-                {
-                    if (_possibleHairModels == null || _possibleHairModels.Count == 0)
-                    {
-                        _possibleHairModels = GameData.SearchFiles(@"/parts", @".*hr_\w_\d\d\d\d.partsbnd.dcx").ToList();
-                    }
-                    result = _possibleHairModels;
-                }
-                return result ?? new List<string>();
-            }
-        }
-
-        private void LoadNewFace(string fileName)
-        {
-            if (fileName != null && FaceMesh != null && Utils.GetShortIngameFileName(fileName).ToLower() == Utils.GetShortIngameFileName(FaceMesh.Name).ToLower())
-                return;
-
-            var oldMesh = FaceMesh;
-            FaceMesh = null;
-            oldMesh?.Dispose();
-
-            if (fileName != null)
-                LoadArmorPartsbnd(GameData.ReadFile(fileName), EquipSlot.Face, Utils.GetShortIngameFileName(fileName));
-        }
-
-        public void LoadNewFacegen(string fileName)
-        {
-            if (fileName != null && FacegenMesh != null && Utils.GetShortIngameFileName(fileName).ToLower() == Utils.GetShortIngameFileName(FacegenMesh.Name).ToLower())
-                return;
-
-            var oldMesh = FacegenMesh;
-            FacegenMesh = null;
-            oldMesh?.Dispose();
-
-            if (fileName != null)
-                LoadArmorPartsbnd(GameData.ReadFile(fileName), EquipSlot.Facegen, Utils.GetShortIngameFileName(fileName));
-        }
-
-        public void LoadNewHair(string fileName)
-        {
-            if (fileName != null && HairMesh != null && Utils.GetShortIngameFileName(fileName).ToLower() == Utils.GetShortIngameFileName(HairMesh.Name).ToLower())
-                return;
-
-            var oldMesh = HairMesh;
-            HairMesh = null;
-            oldMesh?.Dispose();
-
-            if (fileName != null)
-                LoadArmorPartsbnd(GameData.ReadFile(fileName), EquipSlot.Hair, Utils.GetShortIngameFileName(fileName));
-        }
-
-        public int GetDefaultFaceIndexForCurrentGame(bool isFemale)
-        {
-            var faces = PossibleFaceModels;
-            if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.SDT)
-                return faces.IndexOf($@"/parts/fc_{(IsFemale ? "f" : "m")}_0210.partsbnd.dcx");
-            else
-                return faces.IndexOf($@"/parts/fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx");
-        }
-
-        public int GetDefaultHairIndexForCurrentGame(bool isFemale)
-        {
-            var hairs = PossibleHairModels;
-            if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.SDT)
-                return -1;
-            else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER)
-                return hairs.IndexOf($@"/parts/hr_a_0000.partsbnd.dcx");
-            else
-                return hairs.IndexOf($@"/parts/hr_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx");
-        }
-
-        public int GetDefaultFacegenIndexForCurrentGame()
-        {
-            var facegens = PossibleFacegenModels;
-            if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.DS1 
-                or SoulsAssetPipeline.SoulsGames.DS1R 
-                or SoulsAssetPipeline.SoulsGames.DES)
-                return facegens.IndexOf($@"/facegen/facegen.fgbnd");
-            else
-                return facegens.IndexOf($@"/parts/fg_a_0100.partsbnd.dcx");
-        }
-
-        public void UpdateModels(bool isAsync = false, Action onCompleteAction = null, bool forceReloadArmor = false)
-        {
-            LoadingTaskMan.DoLoadingTask("ChrAsm_UpdateModels", "Updating c0000 models...", progress =>
-            {
-                //if (updateFaceAndBody)
-                //{
-                //    var oldMesh = FaceMesh;
-                //    FaceMesh = null;
-                //    oldMesh?.Dispose();
-
-                //    oldMesh = FacegenMesh;
-                //    FacegenMesh = null;
-                //    oldMesh?.Dispose();
-
-                //    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3)
-                //    {
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
-                //    }
-                //    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER)
-                //    {
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
-                //        FacegenMesh?.HideAllDrawMask();
-                //    }
-                //    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB)
-                //    {
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fg_a_0100.partsbnd.dcx"), EquipSlot.Facegen);
-                //    }
-                //    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.SDT)
-                //    {
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fc_m_0100.partsbnd.dcx"), EquipSlot.Face);
-                //    }
-                //    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DES)
-                //    {
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/fc_{(IsFemale ? "f" : "m")}_0000.partsbnd.dcx"), EquipSlot.Face);
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/facegen/facegen.fgbnd"), EquipSlot.Facegen);
-                //    }
-                //    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
-                //    {
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/FC_{(IsFemale ? "F" : "M")}_0000.partsbnd.dcx"), EquipSlot.Face);
-                //        //LoadArmorPartsbnd(GameDataManager.GetInterrootPath($@"facegen\FaceGen.fgbnd"), EquipSlot.Facegen);
-                //    }
-                //    else if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1)
-                //    {
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/parts/FC_{(IsFemale ? "F" : "M")}_0000.partsbnd"), EquipSlot.Face);
-                //        LoadArmorPartsbnd(GameData.ReadFile($@"/facegen/FaceGen.fgbnd"), EquipSlot.Facegen);
-                //    }
-                //}
-
-                if (HeadID != lastHeadLoaded || forceReloadArmor)
-                {
-                    if (Head != null && Head.CanEquipOnGender(IsFemale))
-                    {
-                        LoadArmorPartsbnd(Head.GetPartBndFile(IsFemale), EquipSlot.Head, Utils.GetShortIngameFileName(Head.GetPartBndName(IsFemale)));
-                        lastHeadLoaded = HeadID;
-                    }
-                    else
-                    {
-                        var oldMesh = HeadMesh;
-                        HeadMesh = null;
-                        oldMesh?.Dispose();
-                    }
-                }
-
-                progress.Report(1.0 / 6.0);
-
-                if (BodyID != lastBodyLoaded || forceReloadArmor)
-                {
-                    if (Body != null && Body.CanEquipOnGender(IsFemale))
-                    {
-                        LoadArmorPartsbnd(Body.GetPartBndFile(IsFemale), EquipSlot.Body, Utils.GetShortIngameFileName(Body.GetPartBndName(IsFemale)));
-                        lastBodyLoaded = BodyID;
-                    }
-                    else
-                    {
-                        var oldMesh = BodyMesh;
-                        BodyMesh = null;
-                        oldMesh?.Dispose();
-                    }
-                }
-
-                progress.Report(2.0 / 6.0);
-
-                if (ArmsID != lastArmsLoaded || forceReloadArmor)
-                {
-                    if (Arms != null && Arms.CanEquipOnGender(IsFemale))
-                    {
-                        LoadArmorPartsbnd(Arms.GetPartBndFile(IsFemale), EquipSlot.Arms, Utils.GetShortIngameFileName(Arms.GetPartBndName(IsFemale)));
-                        lastArmsLoaded = ArmsID;
-                    }
-                    else
-                    {
-                        var oldMesh = ArmsMesh;
-                        ArmsMesh = null;
-                        oldMesh?.Dispose();
-                    }
-                }
-
-                progress.Report(3.0 / 6.0);
-
-                if (LegsID != lastLegsLoaded || forceReloadArmor)
-                {
-                    if (Legs != null && Legs.CanEquipOnGender(IsFemale))
-                    {
-                        LoadArmorPartsbnd(Legs.GetPartBndFile(IsFemale), EquipSlot.Legs, Utils.GetShortIngameFileName(Legs.GetPartBndName(IsFemale)));
-                        lastLegsLoaded = LegsID;
-                    }
-                    else
-                    {
-                        var oldMesh = LegsMesh;
-                        LegsMesh = null;
-                        oldMesh?.Dispose();
-                    }
-                }
-
-                progress.Report(4.0 / 6.0);
-
-                if ((RightWeaponID != lastRightWeaponLoaded))
-                {
-                    if (RightWeapon != null)
-                    {
-                        
-                        //TODO
-                        try
-                        {
-                            var weaponFile = RightWeapon.GetPartBndFile();
-                            var shortWeaponName = RightWeapon.GetPartBndName();
-                            IBinder weaponBnd = null;
-
-                            if (weaponFile != null)
+                            if (newMesh != null)
                             {
-                                if (BND3.Is(weaponFile))
-                                    weaponBnd = BND3.Read(weaponFile);
-                                else
-                                    weaponBnd = BND4.Read(weaponFile);
+                                newMesh.Name = partsName ?? slot.SlotDisplayName;
+                                newMesh.SkeletonFlver?.RevertToReferencePose();
+                                newMesh.AnimContainer?.Skeleton?.RevertToReferencePose();
 
-                                var newRightWeaponModel0 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 0, null, ignoreStaticTransforms: true);
-                                if (newRightWeaponModel0.AnimContainer == null)
+                                CreateSkelRemappersForArmorModel(slot.EquipSlotType, newMesh);
+
+
+                                newMesh.TaeManager_ForParts = NewChrAsmWpnTaeManager.LoadPartsbnd(Document, newMesh, slot.EquipSlotType == EquipSlotTypes.OldShittyFacegen ? -1 : 0, partsbnd);
+                                newMesh.AnimContainer.EquipmentTaeManager = newMesh.TaeManager_ForParts;
+                            }
+
+                            
+                        }
+
+                        slot.ManipModel(manip =>
+                        {
+                            var oldModel = manip.Model;
+                            manip.Model = newMesh;
+                            oldModel?.Dispose();
+                        });
+
+                        if (slot.UsesEquipParam)
+                            slot.lastEquipIDLoaded = slot.EquipID;
+                        else
+                            slot.lastDirectEquipLoaded = slot.DirectEquip;
+                    }
+                    incrementProg();
+                });
+
+               
+
+
+                void DoWeaponSlot(NewEquipSlot_Weapon slot)
+                {
+                    if ((slot.EquipID != slot.lastEquipIDLoaded) || forceReloadUnchanged)
+                    {
+                        if (slot.EquipParam != null)
+                        {
+
+                            //TODO
+                            try
+                            {
+                                var weaponBnd = slot.EquipParam.GetPartBnd(slot.EquipSlotType, disableCache);
+
+                                if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
                                 {
-                                    newRightWeaponModel0?.Dispose();
-                                    newRightWeaponModel0 = null;
+                                    slot.EquipParam.LoadAC6PartBndTextureFile();
                                 }
-                                else
+
+                                var shortWeaponName = slot.EquipParam.GetPartBndName(slot.EquipSlotType);
+
+                               
+
+                                if (weaponBnd != null)
                                 {
-                                    newRightWeaponModel0.IS_PLAYER_WEAPON = true;
-                                    newRightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 10000;
-                                    newRightWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 0 - ";
-                                }
+                                    Model[] newWeaponModels = new Model[4];
+
+                                    for (int i = 0; i < 4; i++)
+                                    {
+                                        var newWpnMdl = new Model(Document, null, shortWeaponName, weaponBnd, modelIndex: i, null, ignoreStaticTransforms: true);
+                                        if (newWpnMdl.AnimContainer == null)
+                                        {
+                                            newWpnMdl?.Dispose();
+                                            newWpnMdl = null;
+                                        }
+                                        else
+                                        {
+                                            newWpnMdl.IS_PLAYER_WEAPON = true;
+                                            newWpnMdl.ModelType = Model.ModelTypes.ChrAsmChildModel;
+                                            newWpnMdl.PARENT_PLAYER_MODEL = MODEL;
+                                            newWpnMdl.DummyPolyMan.GlobalDummyPolyIDOffset = (slot.IsLeftHandSlotType ? 20000 : 10000) + (i * 1000);
+                                            newWpnMdl.DummyPolyMan.GlobalDummyPolyIDPrefix = slot.SlotDisplayNameShort + " - ";
+                                        }
+                                        newWeaponModels[i] = newWpnMdl;
+                                    }
+
+
+
+                                    slot.ManipModels(manip =>
+                                    {
+                                        var oldRightWeaponModel0 = manip.Model0;
+                                        var oldRightWeaponModel1 = manip.Model1;
+                                        var oldRightWeaponModel2 = manip.Model2;
+                                        var oldRightWeaponModel3 = manip.Model3;
+
+                                        manip.Model0 = newWeaponModels[0];
+                                        manip.Model1 = newWeaponModels[1];
+                                        manip.Model2 = newWeaponModels[2];
+                                        manip.Model3 = newWeaponModels[3];
+
+                                        if (manip.Model0 != null && manip.Model0.MainMesh != null)
+                                            manip.Model0.MainMesh.Name = manip.Model0.Name;
+                                        if (manip.Model1 != null && manip.Model1.MainMesh != null)
+                                            manip.Model1.MainMesh.Name = manip.Model1.Name;
+                                        if (manip.Model2 != null && manip.Model2.MainMesh != null)
+                                            manip.Model2.MainMesh.Name = manip.Model2.Name;
+                                        if (manip.Model3 != null && manip.Model3.MainMesh != null)
+                                            manip.Model3.MainMesh.Name = manip.Model3.Name;
+
+                                        
+
+
+                                        oldRightWeaponModel0?.Dispose();
+                                        oldRightWeaponModel1?.Dispose();
+                                        oldRightWeaponModel2?.Dispose();
+                                        oldRightWeaponModel3?.Dispose();
+                                    });
+                                    slot.LoadPartsbndAfterModels(Document, shortWeaponName, weaponBnd);
                                     
-                                var newRightWeaponModel1 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
-                                if (newRightWeaponModel1.AnimContainer == null)
-                                {
-                                    newRightWeaponModel1?.Dispose();
-                                    newRightWeaponModel1 = null;
-                                }
-                                else
-                                {
-                                    newRightWeaponModel1.IS_PLAYER_WEAPON = true;
-                                    newRightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 11000;
-                                    newRightWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 1 - ";
-                                }
 
-                                var newRightWeaponModel2 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
-                                if (newRightWeaponModel2.AnimContainer == null)
-                                {
-                                    newRightWeaponModel2?.Dispose();
-                                    newRightWeaponModel2 = null;
-                                }
-                                else
-                                {
-                                    newRightWeaponModel2.IS_PLAYER_WEAPON = true;
-                                    newRightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 12000;
-                                    newRightWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 2 - ";
-                                }
 
-                                var newRightWeaponModel3 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
-                                if (newRightWeaponModel3.AnimContainer == null)
-                                {
-                                    newRightWeaponModel3?.Dispose();
-                                    newRightWeaponModel3 = null;
                                 }
-                                else
+                            }
+                            catch (Exception ex)
+                            {
+                                slot.lastEquipIDLoaded = -1;
+
+
+                                slot.ManipModels(manip =>
                                 {
-                                    newRightWeaponModel3.IS_PLAYER_WEAPON = true;
-                                    newRightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 13000;
-                                    newRightWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "R WPN Model 3 - ";
-                                }
+                                    var oldRightWeaponModel0 = manip.Model0;
+                                    var oldRightWeaponModel1 = manip.Model1;
+                                    var oldRightWeaponModel2 = manip.Model2;
+                                    var oldRightWeaponModel3 = manip.Model3;
 
-                                var oldRightWeaponModel0 = RightWeaponModel0;
-                                var oldRightWeaponModel1 = RightWeaponModel1;
-                                var oldRightWeaponModel2 = RightWeaponModel2;
-                                var oldRightWeaponModel3 = RightWeaponModel3;
+                                    manip.Model0 = null;
+                                    manip.Model1 = null;
+                                    manip.Model2 = null;
+                                    manip.Model3 = null;
 
-                                RightWeaponModel0 = newRightWeaponModel0;
-                                RightWeaponModel1 = newRightWeaponModel1;
-                                RightWeaponModel2 = newRightWeaponModel2;
-                                RightWeaponModel3 = newRightWeaponModel3;
+                                    oldRightWeaponModel0?.Dispose();
+                                    oldRightWeaponModel1?.Dispose();
+                                    oldRightWeaponModel2?.Dispose();
+                                    oldRightWeaponModel3?.Dispose();
+                                });
 
-                                if (RightWeaponModel0 != null && RightWeaponModel0.MainMesh != null)
-                                    RightWeaponModel0.MainMesh.Name = RightWeaponModel0.Name;
-                                if (RightWeaponModel1 != null && RightWeaponModel1.MainMesh != null)
-                                    RightWeaponModel1.MainMesh.Name = RightWeaponModel1.Name;
-                                if (RightWeaponModel2 != null && RightWeaponModel2.MainMesh != null)
-                                    RightWeaponModel2.MainMesh.Name = RightWeaponModel2.Name;
-                                if (RightWeaponModel3 != null && RightWeaponModel3.MainMesh != null)
-                                    RightWeaponModel3.MainMesh.Name = RightWeaponModel3.Name;
+                                
+
+                                System.Windows.Forms.MessageBox.Show(
+                                    $"Failed to load right-hand weapon model:\n\n{ex}",
+                                    "Failed To Load RH Weapon Model",
+                                    System.Windows.Forms.MessageBoxButtons.OK,
+                                    System.Windows.Forms.MessageBoxIcon.Error);
+                            }
+                            slot.lastEquipIDLoaded = slot.EquipID;
+                        }
+                        else
+                        {
+                            slot.lastEquipIDLoaded = -1;
+
+
+                            slot.ManipModels(manip =>
+                            {
+                                var oldRightWeaponModel0 = manip.Model0;
+                                var oldRightWeaponModel1 = manip.Model1;
+                                var oldRightWeaponModel2 = manip.Model2;
+                                var oldRightWeaponModel3 = manip.Model3;
+
+                                manip.Model0 = null;
+                                manip.Model1 = null;
+                                manip.Model2 = null;
+                                manip.Model3 = null;
 
                                 oldRightWeaponModel0?.Dispose();
                                 oldRightWeaponModel1?.Dispose();
                                 oldRightWeaponModel2?.Dispose();
                                 oldRightWeaponModel3?.Dispose();
-                            }
+                            });
                         }
-                        catch (Exception ex)
-                        {
-                            lastRightWeaponLoaded = -1;
-
-                            var oldRightWeaponModel0 = RightWeaponModel0;
-                            var oldRightWeaponModel1 = RightWeaponModel1;
-                            var oldRightWeaponModel2 = RightWeaponModel2;
-                            var oldRightWeaponModel3 = RightWeaponModel3;
-
-                            RightWeaponModel0 = null;
-                            RightWeaponModel1 = null;
-                            RightWeaponModel2 = null;
-                            RightWeaponModel3 = null;
-
-                            oldRightWeaponModel0?.Dispose();
-                            oldRightWeaponModel1?.Dispose();
-                            oldRightWeaponModel2?.Dispose();
-                            oldRightWeaponModel3?.Dispose();
-
-                            System.Windows.Forms.MessageBox.Show(
-                                $"Failed to load right-hand weapon model:\n\n{ex}",
-                                "Failed To Load RH Weapon Model",
-                                System.Windows.Forms.MessageBoxButtons.OK,
-                                System.Windows.Forms.MessageBoxIcon.Error);
-                        }
-                        lastRightWeaponLoaded = RightWeaponID;
                     }
-                    else
-                    {
-                        lastRightWeaponLoaded = -1;
 
-                        var oldRightWeaponModel0 = RightWeaponModel0;
-                        var oldRightWeaponModel1 = RightWeaponModel1;
-                        var oldRightWeaponModel2 = RightWeaponModel2;
-                        var oldRightWeaponModel3 = RightWeaponModel3;
 
-                        RightWeaponModel0 = null;
-                        RightWeaponModel1 = null;
-                        RightWeaponModel2 = null;
-                        RightWeaponModel3 = null;
-
-                        oldRightWeaponModel0?.Dispose();
-                        oldRightWeaponModel1?.Dispose();
-                        oldRightWeaponModel2?.Dispose();
-                        oldRightWeaponModel3?.Dispose();
-                    }
+                    incrementProg();
                 }
 
-                progress.Report(5.0 / 6.0);
+                int wpnSlotIndex = 0;
 
-                if ((LeftWeaponID != lastLeftWeaponLoaded))
+                foreach (var slot in WeaponSlots)
                 {
-                    if (LeftWeapon != null)
-                    {
-                        
-                        //TODO
-                        try
-                        {
-                            var weaponFile = LeftWeapon.GetPartBndFile();
-                            var shortWeaponName = LeftWeapon.GetPartBndName();
-                            IBinder weaponBnd = null;
-
-                            if (weaponFile != null)
-                            {
-                                if (BND3.Is(weaponFile))
-                                    weaponBnd = BND3.Read(weaponFile);
-                                else
-                                    weaponBnd = BND4.Read(weaponFile);
-
-                                var newLeftWeaponModel0 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 0, null, ignoreStaticTransforms: true);
-                                if (newLeftWeaponModel0.AnimContainer == null)
-                                {
-                                    newLeftWeaponModel0?.Dispose();
-                                    newLeftWeaponModel0 = null;
-                                }
-                                else
-                                {
-                                    newLeftWeaponModel0.IS_PLAYER_WEAPON = true;
-                                    newLeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDOffset = 20000;
-                                    newLeftWeaponModel0.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 0 - ";
-                                }
-
-                                var newLeftWeaponModel1 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 1, null, ignoreStaticTransforms: true);
-                                if (newLeftWeaponModel1.AnimContainer == null)
-                                {
-                                    newLeftWeaponModel1?.Dispose();
-                                    newLeftWeaponModel1 = null;
-                                }
-                                else
-                                {
-                                    newLeftWeaponModel1.IS_PLAYER_WEAPON = true;
-                                    newLeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDOffset = 21000;
-                                    newLeftWeaponModel1.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 1 - ";
-                                }
-
-                                var newLeftWeaponModel2 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 2, null, ignoreStaticTransforms: true);
-                                if (newLeftWeaponModel2.AnimContainer == null)
-                                {
-                                    newLeftWeaponModel2?.Dispose();
-                                    newLeftWeaponModel2 = null;
-                                }
-                                else
-                                {
-                                    newLeftWeaponModel2.IS_PLAYER_WEAPON = true;
-                                    newLeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDOffset = 22000;
-                                    newLeftWeaponModel2.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 2 - ";
-                                }
-
-                                var newLeftWeaponModel3 = new Model(null, shortWeaponName, weaponBnd, modelIndex: 3, null, ignoreStaticTransforms: true);
-                                if (newLeftWeaponModel3.AnimContainer == null)
-                                {
-                                    newLeftWeaponModel3?.Dispose();
-                                    newLeftWeaponModel3 = null;
-                                }
-                                else
-                                {
-                                    newLeftWeaponModel3.IS_PLAYER_WEAPON = true;
-                                    newLeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDOffset = 23000;
-                                    newLeftWeaponModel3.DummyPolyMan.GlobalDummyPolyIDPrefix = "L WPN Model 3 - ";
-                                }
-
-                                var oldLeftWeaponModel0 = LeftWeaponModel0;
-                                var oldLeftWeaponModel1 = LeftWeaponModel1;
-                                var oldLeftWeaponModel2 = LeftWeaponModel2;
-                                var oldLeftWeaponModel3 = LeftWeaponModel3;
-
-                                LeftWeaponModel0 = newLeftWeaponModel0;
-                                LeftWeaponModel1 = newLeftWeaponModel1;
-                                LeftWeaponModel2 = newLeftWeaponModel2;
-                                LeftWeaponModel3 = newLeftWeaponModel3;
-
-                                if (LeftWeaponModel0 != null && LeftWeaponModel0.MainMesh != null)
-                                    LeftWeaponModel0.MainMesh.Name = LeftWeaponModel0.Name;
-                                if (LeftWeaponModel1 != null && LeftWeaponModel1.MainMesh != null)
-                                    LeftWeaponModel1.MainMesh.Name = LeftWeaponModel1.Name;
-                                if (LeftWeaponModel2 != null && LeftWeaponModel2.MainMesh != null)
-                                    LeftWeaponModel2.MainMesh.Name = LeftWeaponModel2.Name;
-                                if (LeftWeaponModel3 != null && LeftWeaponModel3.MainMesh != null)
-                                    LeftWeaponModel3.MainMesh.Name = LeftWeaponModel3.Name;
-
-                                oldLeftWeaponModel0?.Dispose();
-                                oldLeftWeaponModel1?.Dispose();
-                                oldLeftWeaponModel2?.Dispose();
-                                oldLeftWeaponModel3?.Dispose();
-
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            lastLeftWeaponLoaded = -1;
-
-                            var oldLeftWeaponModel0 = LeftWeaponModel0;
-                            var oldLeftWeaponModel1 = LeftWeaponModel1;
-                            var oldLeftWeaponModel2 = LeftWeaponModel2;
-                            var oldLeftWeaponModel3 = LeftWeaponModel3;
-
-                            LeftWeaponModel0 = null;
-                            LeftWeaponModel1 = null;
-                            LeftWeaponModel2 = null;
-                            LeftWeaponModel3 = null;
-
-                            oldLeftWeaponModel0?.Dispose();
-                            oldLeftWeaponModel1?.Dispose();
-                            oldLeftWeaponModel2?.Dispose();
-                            oldLeftWeaponModel3?.Dispose();
-
-                            System.Windows.Forms.MessageBox.Show(
-                                $"Failed to load left-hand weapon model:\n\n{ex}",
-                                "Failed To Load LH Weapon Model",
-                                System.Windows.Forms.MessageBoxButtons.OK,
-                                System.Windows.Forms.MessageBoxIcon.Error);
-                        }
-                        lastLeftWeaponLoaded = LeftWeaponID;
-                    }
-                    else
-                    {
-                        lastLeftWeaponLoaded = -1;
-                        var oldLeftWeaponModel0 = LeftWeaponModel0;
-                        var oldLeftWeaponModel1 = LeftWeaponModel1;
-                        var oldLeftWeaponModel2 = LeftWeaponModel2;
-                        var oldLeftWeaponModel3 = LeftWeaponModel3;
-
-                        LeftWeaponModel0 = null;
-                        LeftWeaponModel1 = null;
-                        LeftWeaponModel2 = null;
-                        LeftWeaponModel3 = null;
-
-                        oldLeftWeaponModel0?.Dispose();
-                        oldLeftWeaponModel1?.Dispose();
-                        oldLeftWeaponModel2?.Dispose();
-                        oldLeftWeaponModel3?.Dispose();
-                    }
-
+                    DoWeaponSlot(slot);
+                    wpnSlotIndex++;
                 }
 
+                UpdateWeaponTransforms(0);
                 UpdateMasks();
 
-                progress.Report(6.0 / 6.0);
+                //if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                //{
+                //    if (HeadModel != null)
+                //        HeadModel.DummyPolyMan.GlobalDummyPolyIDOffset = 1000;
+                //    if (BodyModel != null)
+                //        BodyModel.DummyPolyMan.GlobalDummyPolyIDOffset = 2000;
+                //    if (ArmsModel != null)
+                //        ArmsModel.DummyPolyMan.GlobalDummyPolyIDOffset = 3000;
+                //    if (LegsModel != null)
+                //        LegsModel.DummyPolyMan.GlobalDummyPolyIDOffset = 4000;
+                //}
+
+                progress.Report(1.0);
                 onCompleteAction?.Invoke();
-                OnEquipmentModelsUpdated();
-            }, waitForTaskToComplete: !isAsync, isUnimportant: true);
+
+                //ForAllArmorModels(m =>
+                //{
+                //    if (m.EquipPartsSkeletonRemapper == null)
+                //    {
+                //        m.SkeletonFlver.RevertToReferencePose();
+
+                //        m.EquipPartsSkeletonRemapper = new ModelSkeletonRemapper(
+                //            ModelSkeletonRemapper.RemapTypes.FollowerHavokToLeaderHavok,
+                //            leader: MODEL, follower: m);
+                //    }
+                //});
+
+                RegenSkelRemappersAndGluers();
+
+                UpdateWeaponTransforms(0);
+                UpdateEquipmentAnimation(0, forceSyncUpdate: true);
                 
+                OnEquipmentModelsUpdated();
+
+                FlverMaterialDefInfo.FlushBinderCache();
+            }, waitForTaskToComplete: !isAsync);
+                
+        }
+
+        public void AccessArmorSlot(EquipSlotTypes slot, Action<NewEquipSlot_Armor> doAction)
+        {
+            lock (_lock_ArmorSlots)
+            {
+                if (ArmorSlots_ByEquipSlot.ContainsKey(slot))
+                    doAction(ArmorSlots_ByEquipSlot[slot]);
+            }
+        }
+
+        public int GetWpnSlotCount()
+        {
+            int result = 0;
+            lock (_lock_ArmorSlots)
+            {
+                result = WeaponSlots.Count;
+            }
+            return result;
+        }
+        public int GetArmorSlotCount()
+        {
+            int result = 0;
+            lock (_lock_ArmorSlots)
+            {
+                result = ArmorSlots.Count;
+            }
+            return result;
+        }
+
+        public NewEquipSlot GetGenericEquipSlot(EquipSlotTypes slotType)
+        {
+            if (ArmorSlots_ByEquipSlot.ContainsKey(slotType))
+                return ArmorSlots_ByEquipSlot[slotType];
+            else if (WeaponSlots_ByEquipSlot.ContainsKey(slotType))
+                return WeaponSlots_ByEquipSlot[slotType];
+            return null;
+        }
+
+        public NewEquipSlot_Armor GetArmorSlot(EquipSlotTypes slotType)
+        {
+            return ArmorSlots_ByEquipSlot[slotType];
+        }
+
+        public NewEquipSlot_Weapon GetWpnSlot(EquipSlotTypes slotType)
+        {
+            return WeaponSlots_ByEquipSlot[slotType];
         }
 
         public ParamData.AtkParam.DummyPolySource GetDummySourceFromManager(NewDummyPolyManager manager)
         {
-            if (manager == null)
-                return ParamData.AtkParam.DummyPolySource.Body;
-            if (manager == MODEL.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.Body;
-            else if (manager == RightWeaponModel0?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.RightWeapon0;
-            else if (manager == RightWeaponModel1?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.RightWeapon1;
-            else if (manager == RightWeaponModel2?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.RightWeapon2;
-            else if (manager == RightWeaponModel3?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.RightWeapon3;
-            else if (manager == LeftWeaponModel0?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.LeftWeapon0;
-            else if (manager == LeftWeaponModel1?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.LeftWeapon1;
-            else if (manager == LeftWeaponModel2?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.LeftWeapon2;
-            else if (manager == LeftWeaponModel3?.DummyPolyMan)
-                return ParamData.AtkParam.DummyPolySource.LeftWeapon3;
-            return ParamData.AtkParam.DummyPolySource.Body;
+            if (manager == null || manager == MODEL.DummyPolyMan)
+                return ParamData.AtkParam.DummyPolySource.BaseModel;
+
+            ParamData.AtkParam.DummyPolySource? result = null;
+
+            if (Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                var headSlot = GetArmorSlot(EquipSlotTypes.Head);
+                headSlot.AccessAllModels(model =>
+                {
+                    if (model.DummyPolyMan == manager)
+                        result = ParamData.AtkParam.DummyPolySource.HeadPart;
+                });
+                if (result != null)
+                    return result.Value;
+
+                var bodySlot = GetArmorSlot(EquipSlotTypes.Body);
+                bodySlot.AccessAllModels(model =>
+                {
+                    if (model.DummyPolyMan == manager)
+                        result = ParamData.AtkParam.DummyPolySource.BodyPart;
+                });
+                if (result != null)
+                    return result.Value;
+
+                var armsSlot = GetArmorSlot(EquipSlotTypes.Arms);
+                armsSlot.AccessAllModels(model =>
+                {
+                    if (model.DummyPolyMan == manager)
+                        result = ParamData.AtkParam.DummyPolySource.ArmsPart;
+                });
+                if (result != null)
+                    return result.Value;
+
+                var legsSlot = GetArmorSlot(EquipSlotTypes.Legs);
+                legsSlot.AccessAllModels(model =>
+                {
+                    if (model.DummyPolyMan == manager)
+                        result = ParamData.AtkParam.DummyPolySource.LegsPart;
+                });
+                if (result != null)
+                    return result.Value;
+
+            }
+
+            foreach (var slot in WeaponSlots)
+            {
+                if (slot.GetDummyPolyManager(0) == manager)
+                    return slot.DmySource0;
+                else if (slot.GetDummyPolyManager(1) == manager)
+                    return slot.DmySource1;
+                else if (slot.GetDummyPolyManager(2) == manager)
+                    return slot.DmySource2;
+                else if (slot.GetDummyPolyManager(3) == manager)
+                    return slot.DmySource3;
+            }
+
+
+            //if (manager == HeadModel?.DummyPolyMan && GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            //    return ParamData.AtkParam.DummyPolySource.HeadPart;
+            //else if (manager == BodyModel?.DummyPolyMan && GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            //    return ParamData.AtkParam.DummyPolySource.BodyPart;
+            //else if (manager == ArmsModel?.DummyPolyMan && GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            //    return ParamData.AtkParam.DummyPolySource.ArmsPart;
+            //else if (manager == LegsModel?.DummyPolyMan && GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            //    return ParamData.AtkParam.DummyPolySource.LegsPart;
+
+
+            return ParamData.AtkParam.DummyPolySource.BaseModel;
         }
 
         public NewDummyPolyManager GetDummyManager(ParamData.AtkParam.DummyPolySource src)
         {
-            if (src == ParamData.AtkParam.DummyPolySource.Body)
+
+
+            if (src == ParamData.AtkParam.DummyPolySource.BaseModel)
                 return MODEL.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.RightWeapon0)
-                return RightWeaponModel0?.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.RightWeapon1)
-                return RightWeaponModel1?.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.RightWeapon2)
-                return RightWeaponModel2?.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.RightWeapon3)
-                return RightWeaponModel3?.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.LeftWeapon0)
-                return LeftWeaponModel0?.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.LeftWeapon1)
-                return LeftWeaponModel1?.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.LeftWeapon2)
-                return LeftWeaponModel2?.DummyPolyMan;
-            else if (src == ParamData.AtkParam.DummyPolySource.LeftWeapon3)
-                return LeftWeaponModel3?.DummyPolyMan;
+
+            NewDummyPolyManager result = null;
+            if (src == ParamData.AtkParam.DummyPolySource.HeadPart && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                var headSlot = GetArmorSlot(EquipSlotTypes.Head);
+                headSlot.AccessAllModels(headModel =>
+                {
+                    result = headModel.DummyPolyMan;
+                });
+            }
+            else if (src == ParamData.AtkParam.DummyPolySource.BodyPart && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                var bodySlot = GetArmorSlot(EquipSlotTypes.Body);
+                bodySlot.AccessAllModels(bodyModel =>
+                {
+                    result = bodyModel.DummyPolyMan;
+                });
+            }
+            else if (src == ParamData.AtkParam.DummyPolySource.ArmsPart && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                var armsSlot = GetArmorSlot(EquipSlotTypes.Arms);
+                armsSlot.AccessAllModels(armsModel =>
+                {
+                    result = armsModel.DummyPolyMan;
+                });
+            }
+            else if (src == ParamData.AtkParam.DummyPolySource.LegsPart && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+            {
+                var legsSlot = GetArmorSlot(EquipSlotTypes.Legs);
+                legsSlot.AccessAllModels(legsModel =>
+                {
+                    result = legsModel.DummyPolyMan;
+                });
+            }
+
+            if (result != null)
+                return result;
+
+
+            foreach (var slot in WeaponSlots)
+            {
+                if (slot.DmySource0 == src)
+                    return slot.GetDummyPolyManager(0);
+                else if (slot.DmySource1 == src)
+                    return slot.GetDummyPolyManager(1);
+                if (slot.DmySource2 == src)
+                    return slot.GetDummyPolyManager(2);
+                if (slot.DmySource3 == src)
+                    return slot.GetDummyPolyManager(3);
+            }
 
             return null;
         }
@@ -2170,94 +1879,127 @@ namespace DSAnimStudio
             NewDummyPolyManager wpnDmy = null;
             if (check == 0)
                 wpnDmy = GetDummyManager(defaultDummySource);
+
+            else if (check == 1 && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.HeadPart);
+            else if (check == 2 && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.BodyPart);
+            else if (check == 3 && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.ArmsPart);
+            else if (check == 4 && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.LegsPart);
+
             else if (check == 10)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon0);
             else if (check == 11)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon1);
-            else if (check == 12)
+            else if (check == 12 && Document.GameRoot.GameType is not SoulsAssetPipeline.SoulsGames.AC6)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon2);
-            else if (check == 13)
+            else if (check == 13 && Document.GameRoot.GameType is not SoulsAssetPipeline.SoulsGames.AC6)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.RightWeapon3);
             else if (check == 20)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon0);
             else if (check == 21)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon1);
-            else if (check == 22)
+            else if (check == 22 && Document.GameRoot.GameType is not SoulsAssetPipeline.SoulsGames.AC6)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon2);
-            else if (check == 23)
+            else if (check == 23 && Document.GameRoot.GameType is not SoulsAssetPipeline.SoulsGames.AC6)
                 wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.LeftWeapon3);
+
+
+            //tentatively
+            else if (check == 17 && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.AC6BackRightWeaponRail);
+            else if (check == 19 && Document.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                wpnDmy = GetDummyManager(ParamData.AtkParam.DummyPolySource.AC6BackLeftWeaponRail);
+
+
             else
                 wpnDmy = bodyDmyForFallback;
 
-            if (!wpnDmy.DummyPolyByRefID.ContainsKey(dmy % 1000))
+            if (wpnDmy == null)
+                wpnDmy = bodyDmyForFallback;
+
+            if (!wpnDmy.NewCheckDummyPolyExists(dmy % 1000))
                 return bodyDmyForFallback;
             else
                 return wpnDmy;
         }
 
-        public void ForeachWeaponModel(Action<Model> doAction)
+        public void ForAllWeaponSlots(Action<NewEquipSlot_Weapon> doAction)
         {
-            if (RightWeaponModel0 != null)
-                doAction(RightWeaponModel0);
+            foreach (var slot in WeaponSlots)
+            {
+                doAction(slot);
+            }
+        }
 
-            if (RightWeaponModel1 != null)
-                doAction(RightWeaponModel1);
+        public void ForAllWeaponModels(Action<Model> doAction)
+        {
+            foreach (var slot in WeaponSlots)
+            {
+                slot.AccessAllModels(model =>
+                {
+                    doAction(model);
+                });
+            }
+        }
+        
+        public void DrawAnimLayerDebug(ref Vector2 pos)
+        {
+            foreach (var slot in WeaponSlots)
+            {
+                slot.DrawAnimLayerDebug(ref pos);
+            }
 
-            if (RightWeaponModel2 != null)
-                doAction(RightWeaponModel2);
-
-            if (RightWeaponModel3 != null)
-                doAction(RightWeaponModel3);
-
-            if (LeftWeaponModel0 != null)
-                doAction(LeftWeaponModel0);
-
-            if (LeftWeaponModel1 != null)
-                doAction(LeftWeaponModel1);
-
-            if (LeftWeaponModel2 != null)
-                doAction(LeftWeaponModel2);
-
-            if (LeftWeaponModel3 != null)
-                doAction(LeftWeaponModel3);
+            foreach (var slot in ArmorSlots)
+            {
+                slot.DrawAnimLayerDebug(ref pos);
+            }
         }
 
         public void TryToLoadTextures()
         {
-            FaceMesh?.TryToLoadTextures();
-            FacegenMesh?.TryToLoadTextures();
-            HairMesh?.TryToLoadTextures();
-            HeadMesh?.TryToLoadTextures();
-            BodyMesh?.TryToLoadTextures();
-            ArmsMesh?.TryToLoadTextures();
-            LegsMesh?.TryToLoadTextures();
-            RightWeaponModel0?.TryToLoadTextures();
-            RightWeaponModel1?.TryToLoadTextures();
-            RightWeaponModel2?.TryToLoadTextures();
-            RightWeaponModel3?.TryToLoadTextures();
-            LeftWeaponModel0?.TryToLoadTextures();
-            LeftWeaponModel1?.TryToLoadTextures();
-            LeftWeaponModel2?.TryToLoadTextures();
-            LeftWeaponModel3?.TryToLoadTextures();
+
+            ForAllArmorModels(model => model.TryToLoadTextures());
+
+            foreach (var slot in WeaponSlots)
+                slot.TryToLoadTextures();
+            
         }
 
         public void Dispose()
         {
-            FaceMesh?.Dispose();
-            FacegenMesh?.Dispose();
-            HairMesh?.Dispose();
-            HeadMesh?.Dispose();
-            BodyMesh?.Dispose();
-            ArmsMesh?.Dispose();
-            LegsMesh?.Dispose();
-            RightWeaponModel0?.Dispose();
-            RightWeaponModel1?.Dispose();
-            RightWeaponModel2?.Dispose();
-            RightWeaponModel3?.Dispose();
-            LeftWeaponModel0?.Dispose();
-            LeftWeaponModel1?.Dispose();
-            LeftWeaponModel2?.Dispose();
-            LeftWeaponModel3?.Dispose();
+            foreach (var slot in ArmorSlots)
+                slot.Dispose();
+            ArmorSlots.Clear();
+            ArmorSlots = null;
+
+
+            foreach (var slot in WeaponSlots)
+                slot.Dispose();
+            WeaponSlots.Clear();
+            WeaponSlots = null;
+
+
+            this.boneMappersAndGluersUpdateOrder?.Clear();
+            boneMappersAndGluersUpdateOrder = null;
+
+            this.ChrCustomize?.Clear();
+            ChrCustomize = null;
+
+            this.EquipmentChanged = null;
+            this.EquipmentModelsUpdated = null;
+
+            if (Skeleton != null)
+            {
+                Skeleton.MODEL = null;
+                Skeleton = null;
+            }
+
+
+            MODEL = null;
+            Document = null;
         }
     }
 }

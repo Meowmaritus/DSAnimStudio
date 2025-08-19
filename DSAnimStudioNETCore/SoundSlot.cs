@@ -10,6 +10,11 @@ namespace DSAnimStudio
 {
     public class SoundSlot
     {
+        public SoundSlot()
+        {
+
+        }
+
         public SoundPlayInfo PlayInfo;
         public enum States
         {
@@ -20,6 +25,7 @@ namespace DSAnimStudio
         }
         public bool UpdatingPosition = true;
         public Vector3 Position;
+        public Vector3 PositionOffset;
 
         public Func<Vector3> GetPosFunc { get; set; }
         public Task<List<SoundInstance>> BackgroundInitializeTask;
@@ -33,11 +39,11 @@ namespace DSAnimStudio
         {
             Instances.Add(inst);
         }
-        public void Play(Matrix listener)
+        public void Play(zzz_SoundManagerIns soundMan, Matrix listener)
         {
             foreach (var inst in Instances)
             {
-                inst.Update(0, listener, Position);
+                inst.Update(soundMan, 0, listener, Position + PositionOffset);
                 inst.Play();
             }
             State = States.Playing;
@@ -49,20 +55,33 @@ namespace DSAnimStudio
         }
         public void KillImmediately()
         {
+            if (Instances.Count > 0 && Instances.Any(inst => !inst.IsCompletelyFinished))
+            {
+                Console.WriteLine("test");
+            }
             foreach (var inst in Instances)
                 inst.DisposeKill();
             Instances.Clear();
             SlotCompletelyEmpty = true;
         }
-        public void Update(float deltaTime, Matrix listener)
+        public void Update(zzz_SoundManagerIns soundMan, float deltaTime, Matrix listener)
         {
+            if (SlotCompletelyEmpty)
+                return;
+            
             //System.Diagnostics.Debug.WriteLine($"SoundSlot Update - {State} - UpdatingPosition={UpdatingPosition}");
             if (State is States.InitializingInBgThread)
             {
                 if (BackgroundInitializeTask.IsCompleted)
                 {
                     Instances = BackgroundInitializeTask.Result;
-                    Play(listener);
+                    if (Instances == null || Instances.Count == 0)
+                    {
+                        KillImmediately();
+                        return;
+                    }
+
+                    Play(soundMan, listener);
                 }
                 else
                 {
@@ -73,12 +92,13 @@ namespace DSAnimStudio
             if (UpdatingPosition && State is States.InitializingInBgThread or States.Playing)
             {
                 Position = GetPosFunc();
+                PositionOffset = Vector3.Zero;
             }
 
             bool anyStillPlaying = false;
             foreach (var inst in Instances)
             {
-                inst.Update(deltaTime, listener, Position);
+                inst.Update(soundMan, deltaTime, listener, Position + PositionOffset);
                 if (!inst.IsCompletelyFinished)
                     anyStillPlaying = true;
             }

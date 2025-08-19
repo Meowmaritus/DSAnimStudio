@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using SoulsAssetPipeline.Animation;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,56 @@ namespace DSAnimStudio.TaeEditor
 
     public class TaePlaybackCursor
     {
+        public readonly NewGraph Graph;
+
+        public TaePlaybackCursor(NewGraph graph)
+        {
+            Graph = graph;
+        }
+
+        public void NewApplyRelativeScrub(double t)
+        {
+            CurrentTime += t;
+            if (CurrentTime < 0)
+                CurrentTime = 0;
+            if (!Main.Config.LoopEnabled && CurrentTime > MaxTime)
+                CurrentTime = MaxTime;
+            StartTime = CurrentTime;
+            Scrubbing = true;
+            IsPlaying = false;
+        }
+        
+        public void CopyValuesFrom(TaePlaybackCursor pb)
+        {
+            this.MaxTime = pb.MaxTime;
+            this.ContinuousTimeDelta = pb.ContinuousTimeDelta;
+            this.CurrentTime = pb.CurrentTime;
+            this.HkxAnimationFrameLength = pb.HkxAnimationFrameLength;
+            this.HkxAnimationLength = pb.HkxAnimationLength;
+            this.HKXDeltaTime = pb.HKXDeltaTime;
+            this.IsPlaying = pb.IsPlaying;
+            this.IsPlayingCombo = pb.IsPlayingCombo;
+            this.IsPlayingRemoFullPreview = pb.IsPlayingRemoFullPreview;
+            this.IsRepeat = pb.IsRepeat;
+            this.IsStepping = pb.IsStepping;
+            this.JustStartedPlaying = pb.JustStartedPlaying;
+            this.ModPlaybackSpeed_Event603 = pb.ModPlaybackSpeed_Event603;
+            this.ModPlaybackSpeed_Event608 = pb.ModPlaybackSpeed_Event608;
+            this.ModPlaybackSpeed_GrabityRate =     pb.ModPlaybackSpeed_GrabityRate;
+            this.ModPlaybackSpeed_NightfallEvent7032 = pb.ModPlaybackSpeed_NightfallEvent7032;
+            this.OldCurrentTime = pb.OldCurrentTime;
+            this.OldGUICurrentFrame = pb.OldGUICurrentFrame;
+            this.OldGUICurrentTime = pb.OldGUICurrentTime;
+            this.OldIsPlaying = pb.OldIsPlaying;
+            this.prevScrubbing = pb.prevScrubbing;
+            this.Scrubbing = pb.Scrubbing;
+            this.SnapInterval = pb.SnapInterval;
+            this.StartTime = pb.StartTime;
+            this._currentTimeVal = pb._currentTimeVal;
+            this.__snapInterval = pb.__snapInterval;
+        }
+
+
         private double _currentTimeVal = 0;
         public double CurrentTime
         {
@@ -21,17 +72,22 @@ namespace DSAnimStudio.TaeEditor
                 if (double.IsNaN(value))
                 {
                     _currentTimeVal = 0;
-                    throw new InvalidOperationException("Current time was set to NaN.");
+                    //throw new InvalidOperationException("Current time was set to NaN.");
                 }
                 else if (double.IsInfinity(value))
                 {
                     _currentTimeVal = 0;
-                    throw new InvalidOperationException("Current time was set to infinity.");
+                    //throw new InvalidOperationException("Current time was set to infinity.");
                 }
                 else
                 {
                     _currentTimeVal = value;
                 }
+
+                //if (value <= 0.1 && Main.IsDebugBuild)
+                //{
+                //    Console.WriteLine("test");
+                //}
                 
             }
         }
@@ -52,38 +108,26 @@ namespace DSAnimStudio.TaeEditor
 
         public string[] GetFrameCounterText(bool roundToNearestFrame)
         {
+            double guiCurFrameMod = GUICurrentFrameMod;
+            if (guiCurFrameMod < 0)
+                guiCurFrameMod = 0;
+            double curTimeMod = CurrentTimeMod;
+            if (curTimeMod < 0)
+                curTimeMod = 0;
             return new[] { "Frame: " + (roundToNearestFrame ?
-                    $"{((int)(GUICurrentFrameMod)),4:####}.000" :
-                    $"{(MaxFrame <= 0 ? 0 : (Math.Truncate((GUICurrentFrameMod) * 1000) / 1000)),8:###0.000}") +
+                    $"{((int)(guiCurFrameMod)),4:####}.000" :
+                    $"{(MaxFrame <= 0 ? 0 : (Math.Truncate((guiCurFrameMod) * 1000) / 1000)),8:###0.000}") +
                     $" / {((int)((Math.Max(Math.Floor(LastMaxFrameGreaterThanZero), 0))))}", 
-                    $"Time:  {(MaxFrame <= 0 ? 0 : (Math.Truncate((CurrentTimeMod) * 1000) / 1000)),8:###0.000} / {LastMaxTimeGreaterThanZero:0.000}" };
+                    $"Time:  {(MaxFrame <= 0 ? 0 : (Math.Truncate((curTimeMod) * 1000) / 1000)),8:###0.000} / {LastMaxTimeGreaterThanZero:0.000}" };
         }
 
-        public int CurrentLoopCount { get; private set; } = 0;
-        public int OldLoopCount { get; private set; } = 0;
-        public int CurrentLoopCountDelta { get; private set; } = 0;
+        public int CurrentLoopCount => MaxTime >= 0 ? (int)Math.Floor(CurrentTime / MaxTime) : 0;
+        public int OldLoopCount => MaxTime >= 0 ? (int)Math.Floor(OldCurrentTime / MaxTime) : 0;
+        public int CurrentLoopCountDelta => CurrentLoopCount - OldLoopCount;
 
         public static double LastMaxTimeGreaterThanZero = 0;
 
         public double CurrentTimeMod => Main.Config.LoopEnabled ? (MaxTime > 0 ? CurrentTime % MaxTime : 0) : CurrentTime;
-
-        public event EventHandler<TaeEditAnimEventBox> EventBoxEnter;
-        private void OnEventBoxEnter(TaeEditAnimEventBox evBox) { EventBoxEnter?.Invoke(this, evBox); }
-
-        public event EventHandler<TaeEditAnimEventBox> EventBoxMidst;
-        private void OnEventBoxMidst(TaeEditAnimEventBox evBox) { EventBoxMidst?.Invoke(this, evBox); }
-
-        public event EventHandler<TaeEditAnimEventBox> EventBoxExit;
-        private void OnEventBoxExit(TaeEditAnimEventBox evBox) { EventBoxExit?.Invoke(this, evBox); }
-
-        public event EventHandler PlaybackStarted;
-        private void OnPlaybackStarted() { PlaybackStarted?.Invoke(this, EventArgs.Empty); }
-
-        public event EventHandler PlaybackLooped;
-        private void OnPlaybackLooped() { PlaybackLooped?.Invoke(this, EventArgs.Empty); }
-
-        public event EventHandler PlaybackEnded;
-        private void OnPlaybackEnded() { PlaybackEnded?.Invoke(this, EventArgs.Empty); }
 
         public event EventHandler PlaybackFrameChange;
         private void OnPlaybackFrameChange() { PlaybackFrameChange?.Invoke(this, EventArgs.Empty); }
@@ -101,16 +145,16 @@ namespace DSAnimStudio.TaeEditor
             IsPlayingRemoFullPreview = true;
         }
 
-        public void ForceScrub(float hkxDeltaTime, float taeDeltaTime)
-        {
-            HKXDeltaTime = hkxDeltaTime;
-            ContinuousTimeDelta = taeDeltaTime;
-
-            if (!IsPlaying)
-                OnScrubFrameChange();
-            else
-                OnPlaybackFrameChange();
-        }
+        // public void ForceScrub(float hkxDeltaTime, float taeDeltaTime)
+        // {
+        //     HKXDeltaTime = hkxDeltaTime;
+        //     ContinuousTimeDelta = taeDeltaTime;
+        //
+        //     if (!IsPlaying)
+        //         OnScrubFrameChange();
+        //     else
+        //         OnPlaybackFrameChange();
+        // }
 
         public void UpdateScrubbing()
         {
@@ -130,18 +174,45 @@ namespace DSAnimStudio.TaeEditor
 
             if (!Main.Config.LoopEnabled && CurrentTime > MaxTime)
                 CurrentTime = MaxTime;
+            
+            if (!Main.Config.LoopEnabled && StartTime > MaxTime)
+                StartTime = MaxTime;
 
-            if (!IsPlaying)
-                OnScrubFrameChange();
-            else
-                OnPlaybackFrameChange();
+            bool synced = false;
+
+            var animContainer = Graph?.ViewportInteractor?.CurrentModel?.AnimContainer;
+            if (animContainer != null)
+            {
+                var syncTime = animContainer.PopSyncTime();
+                if (syncTime.HasValue && !NewAnimationContainer.GLOBAL_SYNC_FORCE_REFRESH)
+                {
+                    var prevTime = CurrentTime;
+
+                    if (!Main.Config.LoopEnabled && syncTime.Value > MaxTime)
+                        syncTime = (float)MaxTime;
+
+                    CurrentTime = syncTime.Value;
+                    var timeShift = CurrentTime - prevTime;
+                    OldCurrentTime += timeShift;
+                    Graph.ViewportInteractor.NewScrub(absolute: true, time: syncTime.Value, foreground: true, background: true);
+                    synced = true;
+                }
+            }
+
+            //if (!IsPlaying || !OldIsPlaying || CurrentLoopCount != OldLoopCount)
+            //{
+            //    Graph.ViewportInteractor.NewScrub(absolute: true, time: (float)(OldGUICurrentTime), foreground: true, background: true);
+            //}
+            
+            if (!synced)
+                Graph.ViewportInteractor.NewScrub(absolute: false, time: (float)(GUICurrentTime - OldGUICurrentTime), foreground: true, background: true);
 
             OldGUICurrentTime = GUICurrentTime;
             OldCurrentTime = CurrentTime;
             OldGUICurrentFrame = GUICurrentFrame;
         }
 
-        public double GUICurrentTime => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
+        public double GUICurrentTime => zzz_DocumentManager.CurrentDocument.EditorScreen.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Floor(CurrentTime / (SnapInterval ?? SnapInterval_Default)) 
             * (SnapInterval ?? SnapInterval_Default)) : CurrentTime;
 
@@ -153,7 +224,7 @@ namespace DSAnimStudio.TaeEditor
 
         public double GUICurrentTimeMod => Main.Config.LoopEnabled ? ModuloByMaxTime(GUICurrentTime) : GUICurrentTime;
 
-        public double GUIStartTime => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate 
+        public double GUIStartTime => zzz_DocumentManager.CurrentDocument.EditorScreen.Config.LockFramerateToOriginalAnimFramerate 
             ? (Math.Floor(StartTime / CurrentSnapInterval) 
             * CurrentSnapInterval) : StartTime;
 
@@ -226,7 +297,7 @@ namespace DSAnimStudio.TaeEditor
 
         public double CurrentSnapFPS => 1 / CurrentSnapInterval;
 
-        public double GUICurrentFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate
+        public double GUICurrentFrame => zzz_DocumentManager.CurrentDocument.EditorScreen.Config.LockFramerateToOriginalAnimFramerate
             ? (Math.Floor(CurrentTime / CurrentSnapInterval))
             : (CurrentTime / CurrentSnapInterval);
 
@@ -235,26 +306,62 @@ namespace DSAnimStudio.TaeEditor
 
         public double GUICurrentFrameMod => Main.Config.LoopEnabled ? ModuloByMaxFrame(GUICurrentFrame) : GUICurrentFrame;
 
-        public double MaxFrame => Main.TAE_EDITOR.Config.LockFramerateToOriginalAnimFramerate
+        public double MaxFrame => zzz_DocumentManager.CurrentDocument.EditorScreen.Config.LockFramerateToOriginalAnimFramerate
             ? (Math.Floor(MaxTime / CurrentSnapInterval))
             : (MaxTime / CurrentSnapInterval);
 
         public static double LastMaxFrameGreaterThanZero;
 
         public bool IsRepeat = true;
-        public bool IsPlaying = false;
+
+        private bool _isPlaying = false;
+
+        public bool IsPlaying
+        {
+            get => _isPlaying;
+            set
+            {
+                _isPlaying = value;
+                if (!_isPlaying)
+                    IsTempPausedUntilAnimChange = false;
+            }
+        }
+        
+        public bool IsTempPausedUntilAnimChange = false;
         public bool IsPlayingRemoFullPreview = false;
         public bool OldIsPlaying { get; private set; } = false;
 
-        public bool Scrubbing = false;
+
+
+        private bool _scrubbing = false;
+
+        public bool Scrubbing
+        {
+            get => _scrubbing;
+            set
+            {
+                _scrubbing = value;
+                if (_scrubbing)
+                    IsTempPausedUntilAnimChange = false;
+            }
+        }
         public bool prevScrubbing = false;
 
         public static float GlobalBasePlaybackSpeed = 1.0f;
         public float BasePlaybackSpeed => GlobalBasePlaybackSpeed;
+        public float ModPlaybackSpeed_GrabityRate = 1.0f;
         public float ModPlaybackSpeed_Event603 = 1.0f;
         public float ModPlaybackSpeed_Event608 = 1.0f;
+        public float ModPlaybackSpeed_NightfallEvent7032 = 1.0f;
+        public float ModPlaybackSpeed_AC6Event9700 = 1.0f;
 
-        public float EffectivePlaybackSpeed => BasePlaybackSpeed * ModPlaybackSpeed_Event603 * ModPlaybackSpeed_Event608;
+        public float EffectivePlaybackSpeed => BasePlaybackSpeed 
+            * ((zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.DS1 or SoulsAssetPipeline.SoulsGames.DS1R) ? ModPlaybackSpeed_GrabityRate : 1)
+            * (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.DS3 ? ModPlaybackSpeed_Event603 : 1)
+            * (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsAssetPipeline.SoulsGames.ERNR ? ModPlaybackSpeed_Event608 : 1)
+            * (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6 ? ModPlaybackSpeed_Event608 : 1)
+            * ((zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.DS1R && Main.IsNightfallBuild) ? ModPlaybackSpeed_NightfallEvent7032 : 1)
+            * ((zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6) ? ModPlaybackSpeed_AC6Event9700 : 1);
 
         public bool IsStepping = false;
 
@@ -269,10 +376,18 @@ namespace DSAnimStudio.TaeEditor
             CurrentTime = 0;
             StartTime = 0;
             OldIsPlaying = false;
+            // if (IsTempPausedUntilAnimChange && IsPlaying)
+            // {
+            //     IsPlaying = false;
+            // }
+            
+            //IsTempPausedUntilAnimChange = false;
             if (IsPlaying)
             {
                 JustStartedPlaying = true;
             }
+
+            
             //JustStartedPlaying = true;
             IgnoreCurrentRelativeScrub();
         }
@@ -282,14 +397,10 @@ namespace DSAnimStudio.TaeEditor
             OldGUICurrentTime = GUICurrentTime;
             OldGUICurrentFrame = GUICurrentFrame;
             OldCurrentTime = CurrentTime;
-            OldLoopCount = CurrentLoopCount;
-            CurrentLoopCountDelta = 0;
         }
 
         public void ResetAll()
         {
-            CurrentLoopCount = 0;
-            CurrentLoopCountDelta = 0;
             CurrentTime = 0;
             //IsPlaying = false;
             //IsRepeat = true;
@@ -299,7 +410,6 @@ namespace DSAnimStudio.TaeEditor
             MaxTime = 0;
             OldGUICurrentFrame = 0;
             OldGUICurrentTime = 0;
-            OldLoopCount = 0;
             //prevScrubbing = false;
             //Scrubbing = false;
             StartTime = 0;
@@ -312,13 +422,23 @@ namespace DSAnimStudio.TaeEditor
             IsStepping = false;
 
             // Reset to start if end is reached while loop is off.
-            if (isUserInput && !Main.Config.LoopEnabled && !IsPlaying && CurrentTime >= MaxTime)
+            if (isUserInput && !Main.Config.LoopEnabled && !(IsPlaying && !IsTempPausedUntilAnimChange) && CurrentTime >= MaxTime)
             {
-                CurrentTime = StartTime;
-                UpdateScrubbing();
+                Graph.MainScreen.HardReset(startPlayback: true);
+                IsTempPausedUntilAnimChange = false;
+                //IsPlaying = true;
+                return;
             }
 
-            IsPlaying = !IsPlaying;
+            if (IsPlaying)
+            {
+                IsPlaying = false;
+            }
+            else
+            {
+                IsPlaying = true;
+                JustStartedPlaying = true;
+            }
 
             if (IsPlayingRemoFullPreview)
             {
@@ -327,16 +447,9 @@ namespace DSAnimStudio.TaeEditor
                 else
                     RemoManager.PauseStreamBGM();
             }
-
-            //StartTime = CurrentTime;
-
-            if (!IsPlaying)
-            {
-                OnPlaybackEnded();
-            }
         }
 
-        public void Update(IEnumerable<TaeEditAnimEventBox> eventBoxes, bool ignoreDeltaTime = false)
+        public void Update(TaeEditorScreen mainScreen, IEnumerable<DSAProj.Action> eventBoxes, bool ignoreDeltaTime = false)
         {
             if (double.IsNaN(CurrentTime))
                 CurrentTime = 0;
@@ -355,29 +468,24 @@ namespace DSAnimStudio.TaeEditor
                 IsStepping = false;
             }
 
-            if (Scrubbing || JustStartedPlaying)
-            {
-                CurrentLoopCount = MaxTime >= 0 ? (int)(CurrentTime / (MaxTime)) : 0;
-            }
-
-            if (JustStartedPlaying || (CurrentLoopCount != OldLoopCount))
-                OnPlaybackStarted();
+            //if (JustStartedPlaying || (CurrentLoopCount != OldLoopCount))
+            //    OnPlaybackStarted();
 
             if (HkxAnimationLength.HasValue)
                 MaxTime = HkxAnimationLength.Value;
 
-            if (IsPlaying || Scrubbing || IsStepping)
+            if ((IsPlaying && !IsTempPausedUntilAnimChange) || Scrubbing || IsStepping)
             {
                
 
                 if (IsPlaying)
                 {
                     if (!ignoreDeltaTime)
-                        CurrentTime += (Main.DELTA_UPDATE * BasePlaybackSpeed * ModPlaybackSpeed_Event603 * ModPlaybackSpeed_Event608);
+                        CurrentTime += (Main.DELTA_UPDATE * EffectivePlaybackSpeed);
                     if (!Main.Config.LoopEnabled && CurrentTime > MaxTime && !IsPlayingCombo)
                     {
                         CurrentTime = MaxTime;
-                        IsPlaying = false;
+                        IsTempPausedUntilAnimChange = true;
                     }
                 }
 
@@ -387,55 +495,121 @@ namespace DSAnimStudio.TaeEditor
                 try
                 {
                     // Thread locked from outside this function
-                    foreach (var box in eventBoxes)
+                    foreach (var ev in eventBoxes)
                     {
-                        if (!HkxAnimationLength.HasValue)
+                        bool CheckHighlight(double playbackCursorPos, DSAProj.Action mouseHoverBox)
                         {
-                            if (box.MyEvent.EndTime > MaxTime)
-                                MaxTime = box.MyEvent.EndTime;
+                            //if (!IsActive)
+                            //    return false;
+
+                            playbackCursorPos = Math.Round(playbackCursorPos, 4);
+
+                            if (!mainScreen.Config.SoloHighlightActionOnHover ||
+                                mouseHoverBox == null || IsPlaying ||
+                                Scrubbing)
+                            {
+                                return playbackCursorPos >= Math.Round(ev.StartTime, 4) && playbackCursorPos <= Math.Round(ev.EndTime, 4);
+                            }
+                            else
+                            {
+                                return mouseHoverBox == ev;
+                            }
+
                         }
 
-                        //bool currentlyInEvent = false;
-                        //bool prevFrameInEvent = false;
+                        bool GetWasJustEnteredDuringPlayback()
+                        {
+                            var curHighlight = CheckHighlight(GUICurrentTimeMod, mainScreen.NewHoverAction);
+                            var prevHighlight = !JustStartedPlaying &&
+                                CheckHighlight(OldGUICurrentTimeMod, mainScreen.NewHoverActionPrevFrame);
 
-                        //if (Main.TAE_EDITOR.Config.EnableSnapTo30FPSIncrements)
+                            if (OldCurrentTime == 0)
+                            {
+                                // Prevent an occasional double register?
+                                prevHighlight = true;
+                            }
+
+                            if (Scrubbing || IsPlaying)
+                            {
+                                if (curHighlight && (!prevHighlight || JustStartedPlaying))
+                                    return true;
+
+                                if (IsPlaying)
+                                {
+                                    float timeDirection = (float)(EffectivePlaybackSpeed);
+
+                                    if (timeDirection > 0)
+                                    {
+                                        if (CurrentTimeMod >= ev.StartTime)
+                                        {
+                                            if (OldCurrentTimeModWrapped < ev.StartTime ||
+                                                JustLooped || JustStartedPlaying ||
+                                                OldCurrentTime == 0)
+                                            {
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                    else if (timeDirection < 0)
+                                    {
+                                        if (CurrentTimeMod <= ev.EndTime)
+                                        {
+                                            if (OldCurrentTimeModWrapped >= ev.EndTime ||
+                                                JustLooped || JustStartedPlaying ||
+                                                CurrentTime == MaxTime)
+                                            {
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+
+                                        Console.WriteLine(DateTime.Now.Millisecond + " - Fatcat");
+                                    }
+
+                                    //if ((timeDirection > 0 && (OldCurrentTimeModWrapped < MyEvent.StartTime && CurrentTimeMod >= MyEvent.StartTime)) ||
+                                    //    (timeDirection < 0 && (OldCurrentTimeModWrapped >= MyEvent.EndTime && CurrentTimeMod < MyEvent.EndTime)))
+                                    //{
+                                    //    return true;
+                                    //}
+                                }
+
+
+                            }
+
+                            if (curHighlight && !OldIsPlaying && IsPlaying)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+
+                        //if (ev.GroupIndex >= 0 && ev.GroupIndex < mainScreen.Graph.AnimRef.EventGroups.Count)
                         //{
-                        //    int currentFrame = (int)Math.Floor((GUICurrentTime % MaxTime) / SnapIntervalHz);
-                        //    int prevFrame = (int)Math.Floor((oldGUICurrentTime % MaxTime) / SnapIntervalHz);
-                        //    int eventStartFrame = (int)Math.Floor(box.MyEvent.StartTime / SnapIntervalHz);
-                        //    int eventEndFrame = (int)Math.Floor(box.MyEvent.EndTime / SnapIntervalHz);
-
-                        //    currentlyInEvent = currentFrame >= eventStartFrame && currentFrame < eventEndFrame;
-                        //    prevFrameInEvent = !justStartedPlaying && prevFrame >= eventStartFrame && prevFrame < eventEndFrame;
+                        //    ev.WasJustEnteredDuringPlayback = GetWasJustEnteredDuringPlayback();
+                        //    ev.PlaybackHighlightMidst = CheckHighlight(GUICurrentTimeMod, mainScreen.NewHoverEvent);
+                        //    ev.PlaybackHighlight = ev.PlaybackHighlightMidst || ev.WasJustEnteredDuringPlayback;
                         //}
                         //else
                         //{
-                        //    currentlyInEvent = GUICurrentTime >= box.MyEvent.StartTime && GUICurrentTime < box.MyEvent.EndTime;
-                        //    prevFrameInEvent = !justStartedPlaying && oldGUICurrentTime >= box.MyEvent.StartTime && oldGUICurrentTime < box.MyEvent.EndTime;
+                        //    ev.WasJustEnteredDuringPlayback = false;
+                        //    ev.PlaybackHighlightMidst = false;
+                        //    ev.PlaybackHighlight = false;
                         //}
+                        
 
-                        if (box.WasJustEnteredDuringPlayback)
+                        
+
+                        if (!HkxAnimationLength.HasValue)
                         {
-                            OnEventBoxEnter(box);
-
-
-                            ////Also check if we looped playback
-                            //if (!prevFrameInEvent || isFirstFrameAfterLooping)
-                            //{
-
-                            //}
-
-
-                        }
-                        else if (box.PlaybackHighlight)
-                        {
-                            OnEventBoxMidst(box);
-                        }
-                        else if (box.PrevCyclePlaybackHighlight)
-                        {
-                            OnEventBoxExit(box);
+                            if (ev.EndTime > MaxTime)
+                                MaxTime = ev.EndTime;
                         }
 
+                        //ev.PrevCyclePlaybackHighlight = ev.PlaybackHighlight;
 
 
                         //if (IsPlaying && justReachedAnimEnd)
@@ -460,7 +634,6 @@ namespace DSAnimStudio.TaeEditor
                     else if (MaxTime <= 0)
                     {
                         CurrentTime = MaxTime;
-                        CurrentLoopCount = 0;
                     }
                     else
                     {
@@ -504,15 +677,7 @@ namespace DSAnimStudio.TaeEditor
             
             prevScrubbing = Scrubbing;
 
-            if (CurrentTime < 0 && CurrentLoopCount == 0)
-                CurrentLoopCount--;
-
-            CurrentLoopCountDelta = CurrentLoopCount - OldLoopCount;
-
-            if (!ignoreDeltaTime)
-                UpdateScrubbing();
-
-            OldLoopCount = CurrentLoopCount;
+            UpdateScrubbing();
 
             JustStartedPlaying = false;
 

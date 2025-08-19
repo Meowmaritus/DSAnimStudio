@@ -11,7 +11,11 @@ namespace DSAnimStudio.ImguiOSD
     {
         public class MultiChoice : Dialog
         {
-            
+            public MultiChoice(string title)
+                : base(title)
+            {
+
+            }
 
             public string Question;
             public List<string> Answers;

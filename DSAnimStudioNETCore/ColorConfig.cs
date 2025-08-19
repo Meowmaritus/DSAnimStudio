@@ -1,7 +1,10 @@
-﻿using Microsoft.Xna.Framework;
+﻿using ImGuiNET;
+using Microsoft.Xna.Framework;
+using SharpDX.DirectWrite;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,142 +12,441 @@ namespace DSAnimStudio
 {
     public class ColorConfig
     {
-        public Color ColorGrid { get; set; } = new Color(32, 112, 39);
+        [Newtonsoft.Json.JsonIgnore]
+        public ColorEditNode.Group RootColorEditNode = new ColorEditNode.Group();
 
-        public Color ColorHelperHitboxRoot { get; set; } = new Color(26, 26, 230);
-        public Color ColorHelperHitboxMiddle { get; set; } = new Color(230, 26, 26);
-        public Color ColorHelperHitboxTip { get; set; } = new Color(231, 186, 50);
+        public ColorConfig()
+        {
+            InitColorEntries();
+            ResetToDefaults();
+        }
 
-        public Color ColorHelperFlverBone { get; set; } = Color.Yellow;
-        public Color ColorHelperFlverBoneBoundingBox { get; set; } = Color.Lime;
-        public Color ColorHelperDummyPoly { get; set; } = Color.MonoGameOrange;
-        public Color ColorHelperDummyPolyDbg { get; set; } = Color.Yellow;
-        public Color ColorHelperSoundEvent { get; set; } = Color.Red;
+        private void ResetNodeToDefault(ColorEditNode node)
+        {
+            if (node is ColorEditNode.ColorEdit asColorEdit)
+            {
+                var defVal = asColorEdit.DefaultVal;
+                asColorEdit.Field.SetValue(this, new Color(defVal.X, defVal.Y, defVal.Z, defVal.W));
+            }
+            else if (node is ColorEditNode.Group asGroup)
+            {
+                var children = asGroup.ChildNodes.OrderBy(x => x.Key).ToList();
+                foreach (var n in children)
+                    ResetNodeToDefault(n.Value);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
 
-        public Color ColorHelperDummyPolySpawnSFX { get; set; } = Color.Cyan;
-        public Color ColorHelperDummyPolySpawnBulletsMisc { get; set; } = Color.Yellow;
-        public Color ColorHelperDummyPolySpawnSFXBulletsMisc { get; set; } = Color.Lime;
+        public void ResetToDefaults()
+        {
+            ResetNodeToDefault(RootColorEditNode);
+        }
 
-        // Things that don't need to be read/written:
+        private ColorEditNode.Group EnsureGroup(string folderPath)
+        {
+            string[] folderPathParts = folderPath.Split("/");
 
-        public Color ColorHelperCameraPivot { get; set; } = Color.Cyan;
+            ColorEditNode.Group node = RootColorEditNode;
+            foreach (var pathPart in folderPathParts)
+            {
+                node = node.EnsureChildGroupNode(pathPart);
+            }
 
-        public Color MainColorBackground { get; set; } = new Color(35, 35, 35, 255);
-        public Color MainColorDivider { get; set; } = new Color(90, 90, 90, 255);
+            return node;
+        }
 
-        public Color MainColorViewportBackground { get; set; } = new Color(0.1f, 0.1f, 0.1f);
+        private ColorEditNode.ColorEdit EnsureColorEdit(string fullPath)
+        {
+            string[] pathParts = fullPath.Split("/");
+
+            ColorEditNode.Group node = RootColorEditNode;
+            if (pathParts.Length > 1)
+            {
+                for (int i = 0; i < pathParts.Length - 1; i++)
+                {
+                    node = node.EnsureChildGroupNode(pathParts[i]);
+                }
+            }
+
+            return node.EnsureChildColorEditNode(pathParts[pathParts.Length - 1]);
+        }
+
+        public abstract class ColorEditNode
+        {
+            public string GUID = Guid.NewGuid().ToString();
+
+            public class ColorEdit : ColorEditNode
+            {
+                public System.Numerics.Vector4 DefaultVal;
+                public System.Reflection.FieldInfo Field;
+            }
+
+            public class Group : ColorEditNode
+            {
+                public Dictionary<string, ColorEditNode> ChildNodes = new Dictionary<string, ColorEditNode>();
+
+                public ColorEditNode.Group EnsureChildGroupNode(string nodeName)
+                {
+                    if (ChildNodes.ContainsKey(nodeName) && ChildNodes[nodeName] is not ColorEditNode.Group)
+                        ChildNodes.Remove(nodeName);
+
+                    if (!ChildNodes.ContainsKey(nodeName))
+                        ChildNodes.Add(nodeName, new ColorEditNode.Group());
+
+                    return ChildNodes[nodeName] as ColorEditNode.Group;
+                }
+
+                public ColorEditNode.ColorEdit EnsureChildColorEditNode(string nodeName)
+                {
+                    if (ChildNodes.ContainsKey(nodeName) && ChildNodes[nodeName] is not ColorEditNode.ColorEdit)
+                        ChildNodes.Remove(nodeName);
+
+                    if (!ChildNodes.ContainsKey(nodeName))
+                        ChildNodes.Add(nodeName, new ColorEditNode.ColorEdit());
+
+                    return ChildNodes[nodeName] as ColorEditNode.ColorEdit;
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public object _lock_EditEntries = new object();
+        public void InitColorEntries()
+        {
+            lock (_lock_EditEntries)
+            {
+                var fields = typeof(ColorConfig).GetFields(BindingFlags.Public | BindingFlags.Instance).ToArray();
+                foreach (var f in fields)
+                {
+                    var editAttribute = f.GetCustomAttribute<ColorEditCfgAttribute>();
+                    if (editAttribute != null)
+                    {
+                        var entry = EnsureColorEdit(editAttribute.DispName);
+                        entry.DefaultVal = editAttribute.DefaultValue;
+                        entry.Field = f;
+                    }
+                }
+            }
+        }
+
+        private void DoImguiOfNode(string nodeKey, ColorEditNode node)
+        {
+            ImGui.PushID(node.GUID);
+            try
+            {
+                if (node is ColorEditNode.ColorEdit asColorEdit)
+                {
+                    System.Numerics.Vector4 curVal = ((Color)(asColorEdit.Field.GetValue(this))).ToNVector4();
+                    var prevVal = curVal;
+                    ImGui.ColorPicker4(nodeKey, ref curVal);
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Middle))
+                    {
+                        var defVal = asColorEdit.DefaultVal;
+                        asColorEdit.Field.SetValue(this, new Color(defVal.X, defVal.Y, defVal.Z, defVal.W));
+                    }
+                    else if (curVal.X != prevVal.X || curVal.Y != prevVal.Y || curVal.Z != prevVal.Z || curVal.W != prevVal.W)
+                    {
+                        asColorEdit.Field.SetValue(this, new Color(curVal.X, curVal.Y, curVal.Z, curVal.W));
+                    }
+                }
+                else if (node is ColorEditNode.Group asGroup)
+                {
+                    if (ImGui.TreeNode($"{nodeKey}##ColorEditNode_{asGroup.GUID}"))
+                    {
+                        try
+                        {
+                            var children = asGroup.ChildNodes.OrderBy(x => x.Key).ToList();
+                            foreach (var n in children)
+                                DoImguiOfNode(n.Key, n.Value);
+                        }
+                        finally
+                        {
+                            ImGui.TreePop();
+                        }
+                    }
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            finally
+            {
+                ImGui.PopID();
+            }
+        }
+
+        public void DoImgui()
+        {
+            DoImguiOfNode("[Colors]", RootColorEditNode);
+        }
+
+        [ColorEditCfg("Viewport/Grid/Base", 32, 112, 39)]
+        public Color ColorGrid1u;
+
+        [ColorEditCfg("Viewport/Grid/10-Unit", 0, 255, 0)]
+        public Color ColorGrid10u;
+
+        [ColorEditCfg("Viewport/Grid/100-Unit", 255, 255, 0)]
+        public Color ColorGrid100u;
+
+        //[ColorEditCfg("Viewport/Grid/Origin", 255, 0, 0)]
+        //public Color ColorGridOrigin;
+
+        [ColorEditCfg("Helpers/Melee Hitboxes/Root", 26, 26, 230)]
+        public Color ColorHelperHitboxRoot;
+
+        [ColorEditCfg("Helpers/Melee Hitboxes/Middle", 230, 26, 26)]
+        public Color ColorHelperHitboxMiddle;
+
+        [ColorEditCfg("Helpers/Melee Hitboxes/Tip", 231, 186, 50)]
+        public Color ColorHelperHitboxTip;
+
+        [ColorEditCfg("Helpers/Melee Hitboxes/Unknown", 255, 0, 0)]
+        public Color ColorHelperHitboxUnknown;
+
+        [ColorEditCfg("Helpers/FLVER Skeleton Transforms", 0xFFFF00FF)]
+        public Color ColorHelperFlverBoneTransforms;
+
+        [ColorEditCfg("Helpers/FLVER Skeleton Lines", 0xFFFF00FF)]
+        public Color ColorHelperFlverBoneLines;
+
+        [ColorEditCfg("Helpers/FLVER Skeleton Texts", 0xFFFF00FF)]
+        public Color ColorHelperFlverBoneTexts;
+
+        [ColorEditCfg("Helpers/FLVER Skeleton Boxes", 0x00FF00FF)]
+        public Color ColorHelperFlverBoneBoundingBox;
+
+        [ColorEditCfg("Helpers/HKX Skeleton", 0xFF0000FF)]
+        public Color ColorHelperHkxBone;
+
+        [ColorEditCfg("Helpers/Bone Glue Entries", 255, 165, 0)]
+        public Color ColorHelperBoneGlue;
+
+        [ColorEditCfg("Helpers/DummyPoly Texts", 231, 60, 0)]
+        public Color ColorHelperDummyPolyTexts;
+
+        [ColorEditCfg("Helpers/DummyPoly Transforms", 231, 60, 0)]
+        public Color ColorHelperDummyPolyTransforms;
+
+        [ColorEditCfg("Helpers/DummyPoly Texts (Debug Highlight)", 0xFFFF00FF)]
+        public Color ColorHelperDummyPolyDbgTexts;
+
+        [ColorEditCfg("Helpers/DummyPoly Transforms (Debug Highlight)", 0xFFFF00FF)]
+        public Color ColorHelperDummyPolyDbgTransforms;
+
+        [ColorEditCfg("Helpers/Sound Event Transforms", 0xFF0000FF)]
+        public Color ColorHelperSoundEventTransforms;
+
+        [ColorEditCfg("Helpers/Sound Event Texts", 0xFF0000FF)]
+        public Color ColorHelperSoundEventTexts;
+
+        [ColorEditCfg("Helpers/DummyPoly SFX Spawns", 0x00FFFFFF)]
+        public Color ColorHelperDummyPolySpawnSFX;
+
+        [ColorEditCfg("Helpers/DummyPoly Bullet/Misc Spawns", 0xFFFF00FF)]
+        public Color ColorHelperDummyPolySpawnBulletsMisc;
+
+        [ColorEditCfg("Helpers/DummyPoly SFX+Bullet/Misc Spawns", 0x00FF00FF)]
+        public Color ColorHelperDummyPolySpawnSFXBulletsMisc;
+
+        [ColorEditCfg("Helpers/Camera Pivot Cube", 0x00FFFFFF)]
+        public Color ColorHelperCameraPivot;
+
+        [ColorEditCfg("Helpers/Character Hit Capsule", 152, 99, 45)]
+        public Color ColorHelperChrHitCapsule;
+
+        [ColorEditCfg("Helpers/Attack Distance Line", 255, 0, 0)]
+        public Color ColorHelperAttackDistanceLine;
+
+        [ColorEditCfg("Helpers/Attack Distance Text", 255, 0, 0)]
+        public Color ColorHelperAttackDistanceText;
+
+        [ColorEditCfg("Main/UI Background Color", 35, 35, 35, 255)]
+        public Color MainColorBackground;
+
+        [ColorEditCfg("Main/Viewport Background Color", 0.1f, 0.1f, 0.1f)]
+        public Color MainColorViewportBackground;
+
+
+        [ColorEditCfg("Viewport/Memory Usage/Good", 255, 255, 0)]
+        public Color GuiColorMemoryUseTextGood;
+        [ColorEditCfg("Viewport/Memory Usage/Okay", 255, 165, 0)]
+        public Color GuiColorMemoryUseTextOkay;
+        [ColorEditCfg("Viewport/Memory Usage/Bad", 255, 0, 0)]
+        public Color GuiColorMemoryUseTextBad;
+
+        [ColorEditCfg("Viewport/Status/Status Text", 255, 255, 0)]
+        public Color GuiColorViewportStatus;
+        [ColorEditCfg("Viewport/Status/Bone Count Exceeded Text", 255, 165, 0)]
+        public Color GuiColorViewportStatusMaxBoneCountExceeded;
+        [ColorEditCfg("Viewport/Status/Animation Doesn't Exist Text", 255, 0, 0)]
+        public Color GuiColorViewportStatusAnimDoesntExist;
+        [ColorEditCfg("Viewport/Status/Combo Viewer Status Text", 0, 255, 255)]
+        public Color GuiColorViewportStatusCombo;
 
 
 
-        public Color GuiColorMemoryUseTextGood { get; set; } = Color.Yellow;
-        public Color GuiColorMemoryUseTextOkay { get; set; } = Color.Orange;
-        public Color GuiColorMemoryUseTextBad { get; set; } = Color.Red;
+        [ColorEditCfg("Graph/Action Box/Default Fill", 30, 144, 255, 255)]
+        public Color GuiColorActionBox_Normal_Fill;
 
-        public Color GuiColorViewportStatus { get; set; } = Color.Yellow;
-        public Color GuiColorViewportStatusMaxBoneCountExceeded { get; set; } = Color.Orange;
-        public Color GuiColorViewportStatusAnimDoesntExist { get; set; } = Color.Red;
-        public Color GuiColorViewportStatusCombo { get; set; } = Color.Cyan;
+        [ColorEditCfg("Graph/Action Box/Outline", 7, 36, 63, 255)]
+        public Color GuiColorActionBox_Normal_Outline;
 
-
-
-        public Color GuiColorEventBox_Normal_Fill { get; set; } = new Color(80, 80, 80, 255);
-        public Color GuiColorEventBox_Normal_Outline { get; set; } = Color.Black;
-        public Color GuiColorEventBox_Normal_Text { get; set; } = Color.White;
-        public Color GuiColorEventBox_Normal_TextShadow { get; set; } = Color.Black;
-
-        public Color GuiColorEventBox_Highlighted_Fill { get; set; } = new Color((30.0f / 255.0f) * 0.75f, (144.0f / 255.0f) * 0.75f, 1 * 0.75f, 1);
-        public Color GuiColorEventBox_Highlighted_Outline { get; set; } = Color.Yellow;
-        public Color GuiColorEventBox_Highlighted_Text { get; set; } = Color.Yellow;
-        public Color GuiColorEventBox_Highlighted_TextShadow { get; set; } = Color.Black;
-
-        public Color GuiColorEventBox_Hover_TextOutline { get; set; } = Color.Black;
-
-        public Color GuiColorEventBox_SelectionDimmingOverlay { get; set; } = Color.Black * 0.5f;
-
-        public Color GuiColorEventGraphBackground { get; set; } = new Color(120, 120, 120, 255);
-        public Color GuiColorEventGraphGhostOverlay { get; set; } = new Color(116, 116, 116, 188);
-        public Color GuiColorEventGraphAnimEndVerticalLine { get; set; } = Color.White;
-        public Color GuiColorEventGraphAnimEndDarkenRect { get; set; } = Color.Black * 0.25f;
-        public Color GuiColorEventGraphRowHorizontalLines { get; set; } = Color.Black * 0.25f;
-        public Color GuiColorEventGraphTimelineFill { get; set; } = new Color(75, 75, 75, 255);
-        public Color GuiColorEventGraphTimelineFrameVerticalLines { get; set; } = Color.Black * 0.125f;
-        public Color GuiColorEventGraphTimelineFrameNumberText { get; set; } = Color.White;
-        public Color GuiColorEventGraphVerticalFrameLines { get; set; } = Color.LightGray * 0.5f;
-        public Color GuiColorEventGraphVerticalSecondLines { get; set; } = Color.LightGray * 0.75f;
-        public Color GuiColorEventGraphSelectionRectangleFill { get; set; } = Color.DodgerBlue * 0.5f;
-        public Color GuiColorEventGraphSelectionRectangleOutline { get; set; } = Color.White;
-        public Color GuiColorEventGraphSliceToolLine { get; set; } = Color.Cyan;
-        public Color GuiColorEventGraphPlaybackCursor { get; set; } = Color.Black;
-        public Color GuiColorEventGraphPlaybackStartTime { get; set; } = Color.Blue;
-        public Color GuiColorEventGraphHoverInfoBoxFill { get; set; } = new Color(64, 64, 64, 1);
-        public Color GuiColorEventGraphHoverInfoBoxText { get; set; } = Color.White;
-        public Color GuiColorEventGraphHoverInfoBoxOutline { get; set; } = new Color(32, 32, 32, 1);
-
-        public Color GuiColorEventGraphScrollbarBackground { get; set; } = new Color(0.25f, 0.25f, 0.25f);
-        public Color GuiColorEventGraphScrollbarForegroundInactive { get; set; } = new Color(0.45f, 0.45f, 0.45f);
-        public Color GuiColorEventGraphScrollbarForegroundActive { get; set; } = new Color(0.55f, 0.55f, 0.55f);
-        public Color GuiColorEventGraphScrollbarArrowButtonForegroundInactive { get; set; } = new Color(0.35f, 0.35f, 0.35f);
-        public Color GuiColorEventGraphScrollbarArrowButtonForegroundActive { get; set; } = new Color(0.45f, 0.45f, 0.45f);
-
-        public Color GuiColorAnimListCollapsePlusMinusForeground { get; set; } = Color.Black;
-        public Color GuiColorAnimListCollapsePlusMinusBackground { get; set; } = Color.White;
-        public Color GuiColorAnimListAnimSectionHeaderRectOutline { get; set; } = Color.White;
-        public Color GuiColorAnimListAnimSectionHeaderRectFill { get; set; } = Color.Gray;
-        public Color GuiColorAnimListTextAnimSectionName { get; set; } = Color.White;
-        public Color GuiColorAnimListTextAnimName { get; set; } = Color.White;
-        public Color GuiColorAnimListTextAnimNameMinBlend { get; set; } = Color.Gray;
-        public Color GuiColorAnimListTextAnimNameMaxBlend { get; set; } = Color.Yellow;
-        public Color GuiColorAnimListTextAnimDevName { get; set; } = Color.PaleGoldenrod;
-        public Color GuiColorAnimListTextShadow { get; set; } = Color.Black;
         
-        public Color GuiColorAnimListHighlightRectFill { get; set; } = Color.DodgerBlue;
-        public Color GuiColorAnimListHighlightRectOutline { get; set; } = new Color(200, 200, 200);
 
-        public Color ColorHelperRootMotionStartLocation { get; set; } = Color.Red;
-        public Color ColorHelperRootMotionTrail { get; set; } = Color.Yellow;
-        public Color ColorHelperRootMotionCurrentLocation { get; set; } = Color.Lime;
+        [ColorEditCfg("Graph/Action Box/Text", 0xFFFFFFFF)]
+        public Color GuiColorActionBox_Normal_Text;
 
-        public Color ColorHelperRootMotionStartLocation_PrevLoop { get; set; } = new Color(Color.Red.ToVector4() * new Vector4(1, 1, 1, 0.5f));
-        public Color ColorHelperRootMotionTrail_PrevLoop { get; set; } = new Color(Color.Yellow.ToVector4() * new Vector4(1, 1, 1, 0.5f));
-        public Color ColorHelperRootMotionCurrentLocation_PrevLoop { get; set; } = new Color(Color.Lime.ToVector4() * new Vector4(1, 1, 1, 0.5f));
+        [ColorEditCfg("Graph/Action Box/Text Shadow", 0x000000FF)]
+        public Color GuiColorActionBox_Normal_TextShadow;
 
+        [ColorEditCfg("Graph/Action Box/Selected Pulse Start", 180, 180, 180, 255)]
+        public Color GuiColorActionBox_Selected_Outline_PulseStart;
+
+        [ColorEditCfg("Graph/Action Box/Selected Pulse End", 255, 255, 255, 255)]
+        public Color GuiColorActionBox_Selected_Outline_PulseEnd;
+
+        [ColorEditCfg("Graph/Action Box/Selection Dimming Overlay", 0x00000080)]
+        public Color GuiColorActionBox_SelectionDimmingOverlay;
+
+        [ColorEditCfg("Graph/Background", 120, 120, 120, 255)]
+        public Color GuiColorActionGraphBackground;
+
+        [ColorEditCfg("Graph/Ghost Overlay", 116, 116, 116, 120)]
+        public Color GuiColorActionGraphGhostOverlay;
+
+        [ColorEditCfg("Graph/Anim End Vertical Line", 0xFFFFFFFF)]
+        public Color GuiColorActionGraphAnimEndVerticalLine;
+
+        [ColorEditCfg("Graph/Anim End Darken Rect", 0x00000040)]
+        public Color GuiColorActionGraphAnimEndDarkenRect;
+
+        [ColorEditCfg("Graph/Row Horizontal Lines", 0x00000040)]
+        public Color GuiColorActionGraphRowHorizontalLines;
+
+        [ColorEditCfg("Graph/Timeline Fill", 75, 75, 75, 255)]
+        public Color GuiColorActionGraphTimelineFill;
+
+        [ColorEditCfg("Graph/Frame Vertical Lines (Timeline)", 0, 0, 0, 0.125f)]
+        public Color GuiColorActionGraphTimelineFrameVerticalLines;
+
+        [ColorEditCfg("Graph/Frame Number Text", 0xFFFFFFFF)]
+        public Color GuiColorActionGraphTimelineFrameNumberText;
+
+        [ColorEditCfg("Graph/Frame Vertical Lines", (211f / 255f), (211f / 255f), (211f / 255f), 0.5f)]
+        public Color GuiColorActionGraphVerticalFrameLines;
+
+        [ColorEditCfg("Graph/Seconds Vertical Lines", (211f / 255f), (211f / 255f), (211f / 255f), 0.75f)]
+        public Color GuiColorActionGraphVerticalSecondLines;
+
+        [ColorEditCfg("Graph/Selection Rectangle Fill", (32f / 255f), (144f / 255f), (255f / 255f), 0.5f)]
+        public Color GuiColorActionGraphSelectionRectangleFill;
+
+        [ColorEditCfg("Graph/Selection Rectangle Outline", 0xFFFFFFFF)]
+        public Color GuiColorActionGraphSelectionRectangleOutline;
+
+        [ColorEditCfg("Graph/Action Slice Tool", 0x00FFFFFF)]
+        public Color GuiColorActionGraphSliceToolLine;
+
+        [ColorEditCfg("Graph/Playback Current Time Vertical Line", 0xFF0000FF)]
+        public Color GuiColorActionGraphPlaybackCursor_V3;
+
+        [ColorEditCfg("Graph/Playback Start Time Vertical Line", 0x808080FF)]
+        public Color GuiColorActionGraphPlaybackStartTime_V2;
+
+        //[ColorEditCfg("Graph/Action Tooltip Fill", 64, 64, 64)]
+        //public Color GuiColorActionGraphHoverInfoBoxFill;
+
+        //[ColorEditCfg("Graph/Action Tooltip Text", 0xFFFFFFFF)]
+        //public Color GuiColorActionGraphHoverInfoBoxText;
+
+        //[ColorEditCfg("Graph/Action Tooltip Outline", 32, 32, 32)]
+        //public Color GuiColorActionGraphHoverInfoBoxOutline;
+
+        [ColorEditCfg("Graph/Scroll Bar/Background Fill", 0.25f, 0.25f, 0.25f)]
+        public Color GuiColorActionGraphScrollbarBackground;
+
+        [ColorEditCfg("Graph/Scroll Bar/Foreground Inactive Fill", 0.45f, 0.45f, 0.45f)]
+        public Color GuiColorActionGraphScrollbarForegroundInactive;
+
+        [ColorEditCfg("Graph/Scroll Bar/Foreground Active Fill", 0.55f, 0.55f, 0.55f)]
+        public Color GuiColorActionGraphScrollbarForegroundActive;
+
+        [ColorEditCfg("Graph/Scroll Bar/Arrow Button Inactive", 0.35f, 0.35f, 0.35f)]
+        public Color GuiColorActionGraphScrollbarArrowButtonForegroundInactive;
+
+        [ColorEditCfg("Graph/Scroll Bar/Arrow Button Active", 0.45f, 0.45f, 0.45f)]
+        public Color GuiColorActionGraphScrollbarArrowButtonForegroundActive;
+
+        //[ColorEditCfg("", 0x000000FF)]
+        //public Color GuiColorAnimListCollapsePlusMinusForeground;
+
+        //[ColorEditCfg("", 0xFFFFFFFF)]
+        //public Color GuiColorAnimListCollapsePlusMinusBackground;
+
+        [ColorEditCfg("Animation List/Anim Category Header Outline", 0xFFFFFFFF)]
+        public Color GuiColorAnimListAnimSectionHeaderRectOutline;
+
+        [ColorEditCfg("Animation List/Anim Category Header Fill", 0x808080FF)]
+        public Color GuiColorAnimListAnimSectionHeaderRectFill;
+
+        [ColorEditCfg("Animation List/Anim Category Header Text", 0xFFFFFFFF)]
+        public Color GuiColorAnimListTextAnimSectionName;
+
+        [ColorEditCfg("Animation List/Anim Name", 0xFFFFFFFF)]
+        public Color GuiColorAnimListTextAnimName;
+
+        //[ColorEditCfg("", 0x808080FF)]
+        //public Color GuiColorAnimListTextAnimNameMinBlend;
+
+        [ColorEditCfg("Animation List/Anim Name (Selected)", 0xFFFF00FF)]
+        public Color GuiColorAnimListTextAnimNameSelected;
+
+        [ColorEditCfg("Animation List/Anim File Name", 238, 232, 170)]
+        public Color GuiColorAnimListTextAnimFileName;
+
+        [ColorEditCfg("Animation List/Text Shadow", 0x000000FF)]
+        public Color GuiColorAnimListTextShadow;
+
+        [ColorEditCfg("Animation List/Highlight Rect Fill", 30, 144, 255)]
+        public Color GuiColorAnimListHighlightRectFill;
+
+        [ColorEditCfg("Animation List/Highlight Rect Outline", 200, 200, 200)]
+        public Color GuiColorAnimListHighlightRectOutline;
+
+        [ColorEditCfg("Helpers/Root Motion Start Location", 0xFF0000FF)]
+        public Color ColorHelperRootMotionStartLocation;
+
+        [ColorEditCfg("Helpers/Root Motion Trail", 0xFFFF00FF)]
+        public Color ColorHelperRootMotionTrail;
+
+        [ColorEditCfg("Helpers/Root Motion Current Location", 0x00FF00FF)]
+        public Color ColorHelperRootMotionCurrentLocation;
+
+        [ColorEditCfg("Helpers/Root Motion Start Location (Previous Loop)", 0xFF000080)]
+        public Color ColorHelperRootMotionStartLocation_PrevLoop;
+
+        [ColorEditCfg("Helpers/Root Motion Trail (Previous Loop)", 0xFFFF0080)]
+        public Color ColorHelperRootMotionTrail_PrevLoop;
+
+        //[ColorEditCfg("", 0x00FF0080)]
+        //public Color ColorHelperRootMotionCurrentLocation_PrevLoop;
+
+        [ColorEditCfg("Project/Default Tag Color", 0x7F7F7FFF)]
+        public Color ColorProjectTagDefault;
 
         public void ReadColorsFromConfig()
         {
-            DBG.DbgPrim_Grid_XZ.OverrideColor = ColorGrid;
-
-            ParamData.AtkParam.Hit.ColorRoot = ColorHelperHitboxRoot;
-            ParamData.AtkParam.Hit.ColorMiddle = ColorHelperHitboxMiddle;
-            ParamData.AtkParam.Hit.ColorTip = ColorHelperHitboxTip;
-
-            DBG.COLOR_FLVER_BONE = ColorHelperFlverBone;
-            DBG.COLOR_FLVER_BONE_BBOX = ColorHelperFlverBoneBoundingBox;
-            DBG.COLOR_DUMMY_POLY = ColorHelperDummyPoly;
-            DBG.COLOR_DUMMY_POLY_DBG = ColorHelperDummyPolyDbg;
-            DBG.COLOR_SOUND_EVENT = ColorHelperSoundEvent;
-
-            NewDummyPolyManager.DummyPolyInfo.ColorSpawnSFX = ColorHelperDummyPolySpawnSFX;
-            NewDummyPolyManager.DummyPolyInfo.ColorSpawnBulletsMisc = ColorHelperDummyPolySpawnBulletsMisc;
-            NewDummyPolyManager.DummyPolyInfo.ColorSpawnSFXBulletsMisc = ColorHelperDummyPolySpawnSFXBulletsMisc;
+            
         }
 
         public void WriteColorsToConfig()
         {
-            ColorGrid = DBG.DbgPrim_Grid_XZ?.OverrideColor ?? new Color(32, 112, 39);
-
-            ColorHelperHitboxRoot = ParamData.AtkParam.Hit.ColorRoot;
-            ColorHelperHitboxMiddle = ParamData.AtkParam.Hit.ColorMiddle;
-            ColorHelperHitboxTip = ParamData.AtkParam.Hit.ColorTip;
-
-            ColorHelperFlverBone = DBG.COLOR_FLVER_BONE;
-            ColorHelperFlverBoneBoundingBox = DBG.COLOR_FLVER_BONE_BBOX;
-            ColorHelperDummyPoly = DBG.COLOR_DUMMY_POLY;
-            ColorHelperDummyPolyDbg = DBG.COLOR_DUMMY_POLY_DBG;
-            ColorHelperSoundEvent = DBG.COLOR_SOUND_EVENT;
-
-            ColorHelperDummyPolySpawnSFX = NewDummyPolyManager.DummyPolyInfo.ColorSpawnSFX;
-            ColorHelperDummyPolySpawnBulletsMisc = NewDummyPolyManager.DummyPolyInfo.ColorSpawnBulletsMisc;
-            ColorHelperDummyPolySpawnSFXBulletsMisc = NewDummyPolyManager.DummyPolyInfo.ColorSpawnSFXBulletsMisc;
+            
         }
     }
 }

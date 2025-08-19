@@ -29,7 +29,6 @@ namespace DSAnimStudio.DebugPrimitives
             KeepBuffersAlive = true;
 
             Transform = location;
-            NameColor = color;
             OverrideColor = color;
 
             LocalMin = localMin;

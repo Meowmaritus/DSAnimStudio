@@ -9,25 +9,227 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using static DSAnimStudio.TaeEditor.TaeEditAnimEventGraph;
+//using static DSAnimStudio.TaeEditor.OLD_TaeEditAnimEventGraph;
 using System.Diagnostics;
 using SharpDX.DirectWrite;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using DSAnimStudio.ImguiOSD;
+using SoulsAssetPipeline;
+using static SoulsAssetPipeline.Audio.Wwise.WwiseEnums;
+using Keys = Microsoft.Xna.Framework.Input.Keys;
+using System.Reflection.Metadata;
+using static DSAnimStudio.ImguiOSD.Dialog;
+using System.Runtime;
+//using static DSAnimStudio.ImguiOSD.Window;
 
 namespace DSAnimStudio.TaeEditor
 {
-    public class TaeEditorScreen
+    public class TaeEditorScreen : IDisposable
     {
+        private bool _disposed = false;
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                Graph?.Dispose();
+                _disposed = true;
+            }
+        }
+
+        public static int GhettoInputCooldown = 0;
+
+        public zzz_DocumentIns ParentDocument;
+
+        //private static System.Diagnostics.Stopwatch debugTimerInputChatter = null;
+
+        private object _lock_highlights = new object();
+        private Dictionary<object, float> highlightTimers = new();
+        private Dictionary<object, float> highlightOpacity = new();
+
+        public Dictionary<object, float> HighlightOpacityDictCopy = new();
+
+        private float highlightFadeIn = 0.15f;
+        private float highlightSustain = 0.8f;
+        private float highlightFadeOut = 0.4f;
+
+        public void UpdateAllHighlightTimers(float deltaTime)
+        {
+            lock (_lock_highlights)
+            {
+                var keysCopy = highlightTimers.Keys.ToList();
+                HighlightOpacityDictCopy.Clear();
+                foreach (var key in keysCopy)
+                {
+                    highlightTimers[key] += deltaTime;
+                    var h = highlightTimers[key];
+                    if (h < highlightFadeIn)
+                    {
+                        highlightOpacity[key] = Utils.MapRange(h, 0, highlightFadeIn, 0, 1);
+                        HighlightOpacityDictCopy.Add(key,  highlightOpacity[key]);
+                    }
+                    else if (h < (highlightFadeIn + highlightSustain))
+                    {
+                        highlightOpacity[key] = 1;
+                        HighlightOpacityDictCopy.Add(key,  highlightOpacity[key]);
+                    }
+                    else if (h < (highlightFadeIn + highlightSustain + highlightFadeOut))
+                    {
+                        highlightOpacity[key] = Utils.MapRange(h, highlightFadeIn + highlightSustain, highlightFadeIn + highlightSustain + highlightFadeOut, 1, 0);
+                        HighlightOpacityDictCopy.Add(key,  highlightOpacity[key]);
+                    }
+                    else
+                    {
+                        if (highlightTimers.ContainsKey(key))
+                            highlightTimers.Remove(key);
+                        if (highlightOpacity.ContainsKey(key))
+                            highlightOpacity.Remove(key);
+                    }
+                }
+            }
+        }
+        
+        public void RequestHighlightAnimCategory(DSAProj.AnimCategory category)
+        {
+            lock (_lock_highlights)
+            {
+                highlightTimers[category] = 0;
+                highlightOpacity[category] = 0;
+            }
+        }
+
+        public void RequestHighlightAnimation(DSAProj.Animation anim)
+        {
+            lock (_lock_highlights)
+            {
+                highlightTimers[anim] = 0;
+                highlightOpacity[anim] = 0;
+            }
+        }
+        
+        public void RequestHighlightAction(DSAProj.Action act)
+        {
+            lock (_lock_highlights)
+            {
+                highlightTimers[act] = 0;
+                highlightOpacity[act] = 0;
+            }
+        }
+
+        public void RequestHighlightTrack(DSAProj.ActionTrack track)
+        {
+            lock (_lock_highlights)
+            {
+                highlightTimers[track] = 0;
+                highlightOpacity[track] = 0;
+            }
+        }
+        
+        
+        
+        private bool HardResetQueued = false;
+        private bool HardResetQueued_StartPlaying = false;
+
+        public class AnimViewHistoryEntry
+        {
+            public DSAProj.AnimCategory Tae;
+            public DSAProj.Animation Anim;
+            // Maybe something else :fatcat:
+        }
+
+        private Stack<AnimViewHistoryEntry> AnimViewBackwardStack = new Stack<AnimViewHistoryEntry>();
+        private Stack<AnimViewHistoryEntry> AnimViewForwardStack = new Stack<AnimViewHistoryEntry>();
+
+        public void ImguiDebugAddAnimViewBackwardStackItems()
+        {
+            foreach (var x in AnimViewBackwardStack)
+            {
+                ImGuiNET.ImGui.Text(x.Anim.SplitID.GetFormattedIDString(Proj));
+            }
+        }
+
+        private AnimViewHistoryEntry GetAnimHistoryEntryFromCurrent()
+        {
+            return new AnimViewHistoryEntry()
+            {
+                Anim = SelectedAnim,
+                Tae = SelectedAnimCategory,
+            };
+        }
+
+        private bool AnimHistoryCanGoBack()
+        {
+            return AnimViewBackwardStack.Count > 0;
+        }
+
+        private bool AnimHistoryCanGoForward()
+        {
+            return AnimViewForwardStack.Count > 0;
+        }
+
+        private void AnimHistoryGoBack()
+        {
+            if (AnimViewBackwardStack.Count > 0)
+            {
+                AnimViewForwardStack.Push(GetAnimHistoryEntryFromCurrent());
+                var next = AnimViewBackwardStack.Pop();
+                SelectNewAnimRef(next.Tae, next.Anim, scrollOnCenter: true, isPushCurrentToHistBackwardStack: false);
+            }
+        }
+
+        private void AnimHistoryGoForward()
+        {
+            if (AnimViewForwardStack.Count > 0)
+            {
+                AnimViewBackwardStack.Push(GetAnimHistoryEntryFromCurrent());
+                var next = AnimViewForwardStack.Pop();
+                SelectNewAnimRef(next.Tae, next.Anim, scrollOnCenter: true, isPushCurrentToHistBackwardStack: false);
+            }
+        }
+
+        public string GetActionBoxText(DSAProj.Action act)
+        {
+            //throw new NotImplementedException();
+            act.UpdateGraphDisplayText();
+            return act.GraphDisplayText;
+            //TODO: Read this shit from new project system.
+        }
+
+
+        public void FixActionSelectionAfterUndoRedo()
+        {
+            List<DSAProj.Action> invalidActions = new();
+            Graph.AnimRef.SafeAccessActions(actions =>
+            {
+                invalidActions = NewSelectedActions.Where(x => !actions.Contains(x)).ToList();
+            });
+            foreach (var act in invalidActions)
+                NewSelectedActions.Remove(act);
+        }
+
+        public void FixAnimSelectionAfterUndoRedo()
+        {
+            while (SelectedAnimCategory != null && !Proj.SAFE_CategoryExists(SelectedAnimCategory))
+            {
+                NextAnim(false, true);
+            }
+
+            while (SelectedAnim != null && Proj.SAFE_GetFirstAnimationFromFullID(SelectedAnim.SplitID) == null)
+            {
+                NextAnim(false, false);
+            }
+        }
+
+
         public bool RequestGoToEventSource = false;
         public bool REMO_HOTFIX_REQUEST_PLAY_RESUME_NEXT_FRAME = false;
         public bool REMO_HOTFIX_REQUEST_PLAY_RESUME_THIS_FRAME { get; private set; } = false;
 
         public bool REMO_HOTFIX_REQUEST_CUT_ADVANCE_NEXT_FRAME = false;
 
-        public TAE REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE = null;
-        public TAE.Animation REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE_ANIM = null;
+        public DSAProj.AnimCategory REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE = null;
+        public DSAProj.Animation REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_TAE_ANIM = null;
         public bool REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_PREV = false;
         public bool REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_SHIFT = false;
         public bool REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_CTRL = false;
@@ -37,20 +239,24 @@ namespace DSAnimStudio.TaeEditor
         public const string BackupExtension = ".dsasbak";
 
         private ContentManager DebugReloadContentManager = null;
-#if DEBUG
+
         public void Tools_ScanForUnusedAnimations()
         {
-            List<string> usedAnims = new List<string>();
-            List<string> unusedAnims = new List<string>();
-            foreach (var anim in SelectedTae.Animations)
+            List<SplitAnimID> usedAnims = new List<SplitAnimID>();
+            List<SplitAnimID> unusedAnims = new List<SplitAnimID>();
+            SelectedAnimCategory.SafeAccessAnimations(anims =>
             {
-                string hkx = Graph.ViewportInteractor.GetFinalAnimFileName(SelectedTae, anim);
-                if (!usedAnims.Contains(hkx))
-                    usedAnims.Add(hkx);
-            }
+                foreach (var anim in anims)
+                {
+                    SplitAnimID hkx = anim.GetHkxID(Proj);
+                    if (!usedAnims.Contains(hkx))
+                        usedAnims.Add(hkx);
+                }
+            });
+            
             foreach (var anim in Graph.ViewportInteractor.CurrentModel.AnimContainer.Animations.Keys)
             {
-                if (!usedAnims.Contains(anim) && !Graph.ViewportInteractor.CurrentModel.AnimContainer.AdditiveBlendOverlayNames.Contains(anim)
+                if (!usedAnims.Contains(anim)
                 && !unusedAnims.Contains(anim))
                     unusedAnims.Add(anim);
             }
@@ -58,50 +264,50 @@ namespace DSAnimStudio.TaeEditor
             foreach (var anim in unusedAnims)
             {
                 //sb.AppendLine(anim);
-                int id = int.Parse(anim.Replace(".hkx", "").Replace("_", "").Replace("a", ""));
-                var newAnim = new TAE.Animation(9_000_000000 + id, new TAE.Animation.AnimMiniHeader.Standard()
+                var newAnim = new DSAProj.Animation(Proj, SelectedAnimCategory, SplitAnimID.FromFullID(Proj, 9_000_000000 + anim.GetFullID(Proj)), new TAE.Animation.AnimFileHeader.Standard()
                 {
-                    ImportHKXSourceAnimID = id,
+                    ImportHKXSourceAnimID = (int)(anim.GetFullID(Proj)),
                     ImportsHKX = true,
-                }, $"UNUSED:{anim.Replace(".hkx", "")}");
-                SelectedTae.Animations.Add(newAnim);
+                    AnimFileName = $"UNUSED:{anim}",
+                });
+                SelectedAnimCategory.SAFE_AddAnimation(newAnim);
             }
             RecreateAnimList();
         }
-#endif
 
-        public void Tools_ExportCurrentTAE()
-        {
-            Main.WinForm.Invoke(new Action(() =>
-            {
-                var browseDlg = new System.Windows.Forms.SaveFileDialog()
-                {
-                    Filter = "TAE Files (*.tae)|*.tae",
-                    ValidateNames = true,
-                    CheckPathExists = true,
-                    //ShowReadOnly = true,
-                    Title = "Choose where to save loose TAE file.",
-
-                };
-
-                var decision = browseDlg.ShowDialog();
-
-                if (decision == System.Windows.Forms.DialogResult.OK)
-                {
-                    try
-                    {
-                        SelectedTae.Write(browseDlg.FileName);
-                        System.Windows.Forms.MessageBox.Show("TAE saved successfully.", "Saved");
-                    }
-                    catch (Exception exc)
-                    {
-                        System.Windows.Forms.MessageBox.Show($"Error saving TAE file:\n\n{exc}", "Failed to Save",
-                            System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                    }
-                }
-
-            }));
-        }
+        // public void Tools_ExportCurrentTAE()
+        // {
+        //     Main.WinForm.Invoke(new Action(() =>
+        //     {
+        //         var browseDlg = new System.Windows.Forms.SaveFileDialog()
+        //         {
+        //             Filter = "TAE Files (*.tae)|*.tae",
+        //             ValidateNames = true,
+        //             CheckPathExists = true,
+        //             //ShowReadOnly = true,
+        //             Title = "Choose where to save loose TAE file.",
+        //
+        //         };
+        //
+        //         var decision = browseDlg.ShowDialog();
+        //
+        //         if (decision == System.Windows.Forms.DialogResult.OK)
+        //         {
+        //             try
+        //             {
+        //                 var binaryData = SelectedAnimCategory.ToBinary();
+        //                 File.WriteAllBytes(browseDlg.FileName, binaryData);
+        //                 System.Windows.Forms.MessageBox.Show("TAE saved successfully.", "Saved");
+        //             }
+        //             catch (Exception exc)
+        //             {
+        //                 System.Windows.Forms.MessageBox.Show($"Error saving TAE file:\n\n{exc}", "Failed to Save",
+        //                     System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+        //             }
+        //         }
+        //
+        //     }));
+        // }
 
         public void BringUpImporter_FLVER2()
         {
@@ -164,72 +370,98 @@ namespace DSAnimStudio.TaeEditor
         {
             var sb = new StringBuilder();
 
-            foreach (var tae in AnimationListScreen.AnimTaeSections)
+            FileContainer.Proj.SafeAccessAnimCategoriesList(categoriesList =>
             {
-                foreach (var animSection in tae.Value.InfoMap)
+                foreach (var category in categoriesList)
                 {
-                    string animName = animSection.Value.GetName();
-                    if (!string.IsNullOrWhiteSpace(animSection.Key.AnimFileName))
-                        animName += " " + animSection.Key.AnimFileName;
-                    sb.AppendLine("--------------------------------------------------------------------------------");
-                    sb.AppendLine(animName);
-                    sb.AppendLine("--------------------------------------------------------------------------------");
-                    if (animSection.Key.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim && asImportOtherAnim.ImportFromAnimID >= 0)
+                    category.UnSafeAccessAnimations(animations =>
                     {
-                        sb.AppendLine($"  Imports all events from {GameRoot.SplitAnimID.FromFullID(asImportOtherAnim.ImportFromAnimID).GetFormattedIDString()}.");
-                    }
-                    else
-                    {
-                        var eventList = animSection.Key.Events.OrderBy(ev => ev.Type);
-                        List<string> frameRangeTexts = new List<string>();
-                        List<string> eventInfoTexts = new List<string>();
-                        foreach (var ev in eventList)
+                        foreach (var anim in animations)
                         {
-                            int startFrame = (int)Math.Floor(ev.StartTime / TaeEditAnimEventBox.TAE_FRAME_30);
-                            int endFrame = (int)Math.Floor(ev.EndTime / TaeEditAnimEventBox.TAE_FRAME_30);
-                            string eventText = TaeEditAnimEventBox.GetEventBoxText(ev);
-                            frameRangeTexts.Add($"  {startFrame}-{(ev.EndTime >= TAE.Event.EldenRingInfiniteLengthEventPlaceholder ? "M" : endFrame.ToString())}");
-                            eventInfoTexts.Add($"{eventText}");
-                        }
-                        if (frameRangeTexts.Count > 0)
-                        {
-                            int maxFrameRangeLength = frameRangeTexts.Max(x => x.Length);
-                            for (int i = 0; i < frameRangeTexts.Count; i++)
+                            anim.UnSafeAccessHeader(header =>
                             {
-                                sb.AppendLine($"{(frameRangeTexts[i] + new string(' ', (maxFrameRangeLength) - frameRangeTexts[i].Length))} {eventInfoTexts[i]}");
-                            }
+                                string animName = anim.SplitID.ToString();
+                                if (!string.IsNullOrWhiteSpace(header.AnimFileName))
+                                    animName += " " + header.AnimFileName;
+                                sb.AppendLine("--------------------------------------------------------------------------------");
+                                sb.AppendLine(animName);
+                                sb.AppendLine("--------------------------------------------------------------------------------");
+                                if (header is TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOtherAnim && asImportOtherAnim.ImportFromAnimID >= 0)
+                                {
+                                    sb.AppendLine($"  Imports all events from {SplitAnimID.FromFullID(Proj, asImportOtherAnim.ImportFromAnimID)}.");
+                                }
+                                else
+                                {
+                                    var actionList = anim.INNER_GetActions().OrderBy(ev => ev.Type);
+                                    List<string> frameRangeTexts = new List<string>();
+                                    List<string> eventInfoTexts = new List<string>();
+                                    foreach (var ev in actionList)
+                                    {
+                                        int startFrame = (int)Math.Floor(ev.StartTime / Main.TAE_FRAME_30);
+                                        int endFrame = (int)Math.Floor(ev.EndTime / Main.TAE_FRAME_30);
+                                        string eventText = GetActionBoxText(ev);
+                                        frameRangeTexts.Add($"  {startFrame}-{(ev.EndTime >= TAE.Action.EldenRingInfiniteLengthEventPlaceholder ? "M" : endFrame.ToString())}");
+                                        eventInfoTexts.Add($"{eventText}");
+                                    }
+                                    if (frameRangeTexts.Count > 0)
+                                    {
+                                        int maxFrameRangeLength = frameRangeTexts.Max(x => x.Length);
+                                        for (int i = 0; i < frameRangeTexts.Count; i++)
+                                        {
+                                            sb.AppendLine($"{(frameRangeTexts[i] + new string(' ', (maxFrameRangeLength) - frameRangeTexts[i].Length))} {eventInfoTexts[i]}");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        sb.AppendLine($"  Animation contains no events.");
+                                    }
+                                }
+                            });
+
+
+                            sb.AppendLine("");
                         }
-                        else
-                        {
-                            sb.AppendLine($"  Animation contains no events.");
-                        }
-                    }
+                    });
                     
-                    sb.AppendLine("");
                 }
-            }
+            });
+
+            
 
             File.WriteAllText(textFilePath, sb.ToString());
-            NotificationManager.PushNotification("Exported text file successfully.");
+            zzz_NotificationManagerIns.PushNotification("Exported text file successfully.");
         }
 
         public void ImmediateExportAllAnimNamesToTextFile(string textFilePath)
         {
             var sb = new StringBuilder();
 
-            foreach (var tae in AnimationListScreen.AnimTaeSections)
+            FileContainer.Proj.SafeAccessAnimCategoriesList(categoriesList =>
             {
-                foreach (var animSection in tae.Value.InfoMap)
+                foreach (var category in categoriesList)
                 {
-                    string animIDString = animSection.Value.GetName();
-                    string animNameString = !string.IsNullOrWhiteSpace(animSection.Key.AnimFileName) ? animSection.Key.AnimFileName : "";
-                    sb.AppendLine($"{animIDString}={animNameString}");
+                    category.UnSafeAccessAnimations(anims =>
+                    {
+                        foreach (var anim in anims)
+                        {
+                            anim.UnSafeAccessHeader(header =>
+                            {
+                                string animIDString = anim.SplitID.ToString();
+                                string animNameString = !string.IsNullOrWhiteSpace(header.AnimFileName) ? header.AnimFileName : "";
+                                sb.AppendLine($"{animIDString}={animNameString}");
+                            });
+                            
+                        }
+                    });
+                    
+                    sb.AppendLine("");
                 }
-                sb.AppendLine("");
-            }
+            });
+
+            
 
             File.WriteAllText(textFilePath, sb.ToString());
-            NotificationManager.PushNotification("Exported text file successfully.");
+            zzz_NotificationManagerIns.PushNotification("Exported text file successfully.");
         }
 
         public void ShowExportAllAnimNamesDialog()
@@ -242,10 +474,10 @@ namespace DSAnimStudio.TaeEditor
                 CheckPathExists = true,
             };
 
-            if (System.IO.File.Exists(FileContainerName))
+            if (System.IO.File.Exists(NewFileContainerName))
             {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(FileContainerName);
-                browseDlg.FileName = System.IO.Path.GetFileName(FileContainerName + ".AnimNames.txt");
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(NewFileContainerName);
+                browseDlg.FileName = System.IO.Path.GetFileName(NewFileContainerName + ".AnimNames.txt");
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -278,28 +510,43 @@ namespace DSAnimStudio.TaeEditor
 
             int numNamesEdited = 0;
 
-            foreach (var tae in AnimationListScreen.AnimTaeSections)
+            FileContainer.Proj.SafeAccessAnimCategoriesList(categoriesList =>
             {
-                foreach (var animSection in tae.Value.InfoMap)
+                foreach (var category in categoriesList)
                 {
-                    string animIDString = animSection.Value.GetName();
-                    if (animNameDict.ContainsKey(animIDString))
+                    category.UnSafeAccessAnimations(anims =>
                     {
-                        var check = animSection.Key.AnimFileName;
-                        if (string.IsNullOrWhiteSpace(check))
-                            check = "";
-                        if (check != animNameDict[animIDString])
+                        foreach (var anim in anims)
                         {
-                            animSection.Key.AnimFileName = animNameDict[animIDString];
-                            animSection.Key.SetIsModified(true);
-                            tae.Value.Tae.SetIsModified(true);
-                            numNamesEdited++;
-                        }
-                    }
-                }
-            }
+                            string animIDString = anim.SplitID.ToString();
+                            if (animNameDict.ContainsKey(animIDString))
+                            {
 
-            NotificationManager.PushNotification($"Successfully imported animation names from text file." +
+                                anim.UnSafeAccessHeader(header =>
+                                {
+                                    var check = header.AnimFileName;
+                                    if (string.IsNullOrWhiteSpace(check))
+                                        check = "";
+                                    if (check != animNameDict[animIDString])
+                                    {
+                                        header.AnimFileName = animNameDict[animIDString];
+                                        anim.INNER_SetIsModified(true);
+                                        category.INNER_SetIsModified(true);
+                                        numNamesEdited++;
+                                    }
+                                });
+
+                                
+                            }
+                        }
+                    });
+                    
+                }
+            });
+
+
+
+            zzz_NotificationManagerIns.PushNotification($"Successfully imported animation names from text file." +
                 $"\n{numNamesEdited} animation names were modified by the import process.");
         }
 
@@ -313,10 +560,12 @@ namespace DSAnimStudio.TaeEditor
                 CheckPathExists = true,
             };
 
-            if (System.IO.File.Exists(FileContainerName))
+            string fileContainerName = FileContainer.Info.GetMainBinderName();
+
+            if (System.IO.File.Exists(fileContainerName))
             {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(FileContainerName);
-                browseDlg.FileName = System.IO.Path.GetFileName(FileContainerName + ".AnimNames.txt");
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(fileContainerName);
+                browseDlg.FileName = System.IO.Path.GetFileName(fileContainerName + ".AnimNames.txt");
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -325,23 +574,7 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        public void ShowManageTaeSectionsDialog()
-        {
-            Task.Run(() =>
-            {
-                var dlg = new TaeManageSectionsForm();
-                dlg.SetInitialSectionList(FileContainer.AllTAEDict.Keys.Select(x => Utils.GetShortIngameFileName(x)).ToList());
-                dlg.ShowDialog();
-            });
-            
-        }
-
-        public void ShowManageAnimationsDialog()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ShowExportAllEventsToTextFileDialog()
+        public void ShowExportAllActionsToTextFileDialog()
         {
             var browseDlg = new System.Windows.Forms.SaveFileDialog()
             {
@@ -351,10 +584,10 @@ namespace DSAnimStudio.TaeEditor
                 CheckPathExists = true,
             };
 
-            if (System.IO.File.Exists(FileContainerName))
+            if (System.IO.File.Exists(NewFileContainerName))
             {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(FileContainerName);
-                browseDlg.FileName = System.IO.Path.GetFileName(FileContainerName + ".txt");
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(NewFileContainerName);
+                browseDlg.FileName = System.IO.Path.GetFileName(NewFileContainerName + ".txt");
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -362,40 +595,17 @@ namespace DSAnimStudio.TaeEditor
                 ImmediateExportAllEventsToTextFile(browseDlg.FileName);
             }
         }
-
-        public void ShowComboMenu()
-        {
-            GameWindowAsForm.Invoke(new Action(() =>
-            {
-                if (!IsFileOpen)
-                    return;
-
-                if (ComboMenu == null || ComboMenu.IsDisposed)
-                {
-                    ComboMenu = new TaeComboMenu();
-                    ComboMenu.Owner = GameWindowAsForm;
-                    ComboMenu.MainScreen = this;
-                    ComboMenu.SetupTaeComboBoxes();
-                }
-
-                ComboMenu.Show();
-                Main.CenterForm(ComboMenu);
-                ComboMenu.Activate();
-            }));
-            
-        }
-
-        public TaeComboMenu ComboMenu = null;
+        
         public TaeExportAllAnimsForm ExportAllAnimsMenu = null;
 
-        public float AnimSwitchRenderCooldown = 0;
-        public float AnimSwitchRenderCooldownMax = 0.3f;
+        public int AnimSwitchRenderCooldown = 0;
+        public int AnimSwitchRenderCooldownMax = 2;
         public float AnimSwitchRenderCooldownFadeLength = 0.1f;
         public Color AnimSwitchRenderCooldownColor = Color.Black * 0.35f;
 
         private bool HasntSelectedAnAnimYetAfterBuildingAnimList = true;
 
-        enum DividerDragMode
+        public enum DividerDragMode
         {
             None,
             LeftVertical,
@@ -421,6 +631,9 @@ namespace DSAnimStudio.TaeEditor
         public DbgMenus.DbgMenuPadRepeater NextAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.016666667f);
         public DbgMenus.DbgMenuPadRepeater PrevAnimRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadUp, 0.4f, 0.016666667f);
 
+        public DbgMenus.DbgMenuPadRepeater AnimHistoryForwardRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.016666667f);
+        public DbgMenus.DbgMenuPadRepeater AnimHistoryBackwardRepeaterButton = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadUp, 0.4f, 0.016666667f);
+
         public DbgMenus.DbgMenuPadRepeater NextAnimRepeaterButton_KeepSubID = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadDown, 0.4f, 0.016666667f);
         public DbgMenus.DbgMenuPadRepeater PrevAnimRepeaterButton_KeepSubID = new DbgMenus.DbgMenuPadRepeater(Buttons.DPadUp, 0.4f, 0.016666667f);
 
@@ -429,38 +642,20 @@ namespace DSAnimStudio.TaeEditor
 
         public static bool CurrentlyEditingSomethingInInspector;
         
-        public class FindInfoKeep
-        {
-            public enum TaeSearchType : int
-            {
-                ParameterValue = 0,
-                ParameterName = 1,
-                EventName = 2,
-                EventType = 3,
-            }
-
-            public string SearchQuery;
-            public bool MatchEntireString;
-            public List<TaeFindResult> Results;
-            public int HighlightedIndex;
-            public TaeSearchType SearchType;
-        }
+        
 
         public SapImportFlver2Form ImporterWindow_FLVER2 = null;
         public SapImportFbxAnimForm ImporterWindow_FBXAnim = null;
 
-        public FindInfoKeep LastFindInfo = null;
-        public TaeFindValueDialog FindValueDialog = null;
-
         public TaePlaybackCursor PlaybackCursor => Graph?.PlaybackCursor;
 
-        public Rectangle ModelViewerBounds;
-        public Rectangle ModelViewerBounds_InputArea;
+        // public Rectangle ModelViewerBounds;
+        // public Rectangle ModelViewerBounds_InputArea;
 
         private const int RECENT_FILES_MAX = 32;
 
         //TODO: CHECK THIS
-        private int TopMenuBarMargin => 24;
+        public static int TopMenuBarMargin => (int)Math.Ceiling(18 * Main.DPI);
 
         private int TopOfGraphAnimInfoMargin = 20;
 
@@ -470,68 +665,27 @@ namespace DSAnimStudio.TaeEditor
 
         public void GoToEventSource()
         {
-            if (Graph.AnimRef.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
+            if (Graph.AnimRef?.IS_DUMMY_ANIM == true || Graph.GhostAnimRef?.IS_DUMMY_ANIM == true)
+                return;
+
+            var headerClone = Graph.AnimRef.SAFE_GetHeaderClone();
+            if (headerClone is TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOtherAnim)
             {
 
-                var animRef = FileContainer.GetAnimRefFull(asImportOtherAnim.ImportFromAnimID);
+                var animRef = FileContainer.Proj.SAFE_GetFirstAnimationFromFullID(SplitAnimID.FromFullID(Proj, asImportOtherAnim.ImportFromAnimID));
 
-                if (animRef.Item1 == null || animRef.Item2 == null)
+                if (animRef == null || animRef.ParentCategory == null)
                 {
                     DialogManager.DialogOK("Invalid Animation Reference", $"Animation ID referenced ({asImportOtherAnim.ImportFromAnimID}) does not exist.");
                     return;
                 }
-                SelectNewAnimRef(animRef.Item1, animRef.Item2);
+                SelectNewAnimRef(animRef.ParentCategory, animRef);
             }
         }
 
         //public bool CtrlHeld;
         //public bool ShiftHeld;
         //public bool AltHeld;
-
-        public const string HELP_TEXT =
-            "Left Click + Drag on Timeline:\n" +
-            "    Scrub animation frame.\n" +
-            "Left Click + Hold Shift + Drag on Timeline:\n" +
-            "    Scrub animation frame while ignoring autoscroll.\n" +
-            "Left Click + Drag Middle of Event:\n" +
-            "    Move whole event.\n" +
-            "Left Click + Drag Left/Right Side of Event:\n" +
-            "    Move start/end of event.\n" +
-            "Left Click:\n" +
-            "    Highlight event under mouse cursor.\n" +
-            "Left Click and Drag:\n" +
-            "    Drag selection rectangle to highlight multiple events.\n" +
-            "Shift + Left Click:\n" +
-            "    Add to current selection (works for multiselect as well).\n" +
-            "Ctrl + Left Click:\n" +
-            "    Subtract from current selection (works for multiselect as well).\n" +
-            "Right Click:\n" +
-            "    Place copy of last highlighted event at mouse cursor.\n" +
-            "Delete Key:\n" +
-            "    Delete highlighted event.\n" +
-            "Ctrl+X/Ctrl+C/Ctrl+V:\n" +
-            "    CUT/COPY/PASTE.\n" +
-            "Ctrl+Z/Ctrl+Y:\n" +
-            "    UNDO/REDO.\n" +
-            "F1 Key:\n" +
-            "    Change type of highlighted event.\n" +
-            "Space Bar:\n" +
-            "    Play/Pause Anim.\n" +
-            "Shift+Space Bar:\n" +
-            "    Play Anim from beginning.\n" +
-            "Ctrk+R Key:\n" +
-            "    Reset animation/root motion.\n" +
-            "Ctrl+Mouse Wheel:\n" +
-            "    Zoom timeline in/out.\n" +
-            "Ctrl+(+/-/0):\n" +
-            "   Zoom in/out/reset\n" +
-            "Left/Right Arrow Keys:\n" +
-            "    Goes to previous/next frame.\n" +
-            "Home/End:\n" +
-            "    Without Shift: Go to playback start point / playback end point.\n" +
-            "    With Shift: Go to start of animation / end of animation.\n" +
-            "    With Ctrl: Stop playing animation after jumping.\n" +
-            "    (Ctrl and Shift can be combined.)\n";
 
         private static object _lock_PauseUpdate = new object();
         private bool _PauseUpdate;
@@ -563,54 +717,137 @@ namespace DSAnimStudio.TaeEditor
         //    }
         //}
 
-        public Rectangle Rect;
+        //public Rectangle Rect;
 
-        public Dictionary<TAE.Animation, TaeUndoMan> UndoManDictionary 
-            = new Dictionary<TAE.Animation, TaeUndoMan>();
+        public Rectangle ModelViewerBounds => OSD.SpWindowViewport.GetRect().ToRectRounded();
+        public Rectangle GraphRect => OSD.SpWindowGraph.GetRect().ToRectRounded();
 
-        public TaeUndoMan UndoMan
+        public Dictionary<DSAProj.Animation, TaeUndoMan> UndoManDictionary 
+            = new Dictionary<DSAProj.Animation, TaeUndoMan>();
+
+        private object _lock_UndoManDict = new object();
+        
+        public void DeleteCurrentAnimation()
         {
-            get
+            if (false && SelectedAnimCategory.SAFE_GetAnimCount() <= 1)
             {
-                if (SelectedTaeAnim == null)
-                    return null;
+                DialogManager.DialogOK("Can't Delete Last Animation",
+                    "Cannot delete the only animation remaining in the animation category.");
+            }
+            else
+            {
 
-                if (!UndoManDictionary.ContainsKey(SelectedTaeAnim))
+                var category = SelectedAnimCategory;
+                var anim = SelectedAnim;
+                Proj.ParentDocument.EditorScreen.GlobalUndoMan.NewAction_AnimCategory(() =>
                 {
-                    var newUndoMan = new TaeUndoMan(this);
-                    UndoManDictionary.Add(SelectedTaeAnim, newUndoMan);
-                }
-                return UndoManDictionary[SelectedTaeAnim];
+                    int indexOfCurrentAnim = 0;
+                    category.SafeAccessAnimations(anims =>
+                    {
+                        indexOfCurrentAnim = anims.IndexOf(anim);
+                        category.INNER_RemoveAnimation(anim);
+                    });
+                    
+
+                    RecreateAnimList();
+                    UpdateSelectedTaeAnimInfoText();
+
+
+
+                    category.SafeAccessAnimations(anims =>
+                    {
+                        if (indexOfCurrentAnim > anims.Count - 1)
+                            indexOfCurrentAnim = anims.Count - 1;
+
+                        if (indexOfCurrentAnim >= 0)
+                            SelectNewAnimRef(category, anims[indexOfCurrentAnim]);
+                        else
+                            SelectNewAnimRef(category, anims[0]);
+                    });
+
+
+                }, actionDescription: $"Delete animation {anim.SplitID.GetFormattedIDString(Proj)}");
+
+
+
+                SelectedAnimCategory.SAFE_SetIsModified(!IsReadOnlyFileMode);
+
+                //DialogManager.DialogOK("Animation Deleted", "Animation has been deleted.");
             }
         }
 
-        public bool IsModified
+        public TaeUndoMan GetUndoManForSpecificAnim(DSAProj.Animation anim)
+        {
+            TaeUndoMan result = null;
+            lock (_lock_UndoManDict)
+            {
+                if (!UndoManDictionary.ContainsKey(anim))
+                {
+                    var newUndoMan = new TaeUndoMan(this, TaeUndoMan.UndoTypes.Anim);
+                    UndoManDictionary.Add(anim, newUndoMan);
+                }
+
+                result = UndoManDictionary[anim];
+            }
+
+            return result;
+        }
+
+        public TaeUndoMan GlobalUndoMan;
+        
+        public TaeUndoMan CurrentAnimUndoMan
         {
             get
             {
-                try
+                TaeUndoMan result = null;
+                lock (_lock_UndoManDict)
                 {
-                    return (SelectedTae?.Animations.Any(a => a.GetIsModified()) ?? false) ||
-                    (FileContainer?.AllTAE.Any(t => t.GetIsModified()) ?? false) || (FileContainer?.IsModified ?? false);
+                    if (SelectedAnim != null)
+                    {
+                        if (!UndoManDictionary.ContainsKey(SelectedAnim))
+                        {
+                            var newUndoMan = new TaeUndoMan(this, TaeUndoMan.UndoTypes.Anim);
+                            UndoManDictionary.Add(SelectedAnim, newUndoMan);
+                        }
+
+                        result = UndoManDictionary[SelectedAnim];
+                    }
                 }
-                catch
-                {
-                    return true;
-                }
+
+                return result;
             }
         }
 
-        private void PushNewRecentFile(string fileName, string fileName_Model)
+        //public bool IsModified
+        //{
+        //    get
+        //    {
+        //        try
+        //        {
+        //            return (SelectedAnimCategory?.Animations.Any(a => a.GetIsModified()) ?? false) ||
+        //            (FileContainer?.AllTAE.Any(t => t.GetIsModified()) ?? false) || (FileContainer?.IsModified ?? false);
+        //        }
+        //        catch
+        //        {
+        //            return true;
+        //        }
+        //    }
+        //}
+
+        public bool IsModified => Proj?.SAFE_AnyModified() ?? false;
+
+        private void PushNewRecentFile(DSAProj.TaeContainerInfo containerInfo)
         {
             lock (Main.Config._lock_ThreadSensitiveStuff)
             {
-                while (Config.RecentFilesList.Any(f => f.TaeFile == fileName))
-                    Config.RecentFilesList.RemoveAll(f => f.TaeFile == fileName);
+                var existingMatches = Config.RecentFilesList.Where(f => ((DSAProj.TaeContainerInfo)f).IsSameFileAs(containerInfo)).ToList();
+                if (existingMatches.Count > 0)
+                {
+                    foreach (var match in existingMatches)
+                        Config.RecentFilesList.Remove(match);
+                }
 
-                while (Config.RecentFilesList.Count >= RECENT_FILES_MAX)
-                    Config.RecentFilesList.RemoveAt(Config.RecentFilesList.Count - 1);
-
-                Config.RecentFilesList.Insert(0, new TaeConfigFile.TaeRecentFileEntry(fileName, fileName_Model));
+                Config.RecentFilesList.Insert(0, containerInfo);
             }
 
             Main.SaveConfig();
@@ -620,170 +857,190 @@ namespace DSAnimStudio.TaeEditor
         private TaeButtonRepeater UndoButton = new TaeButtonRepeater(0.4f, 0.05f);
         private TaeButtonRepeater RedoButton = new TaeButtonRepeater(0.4f, 0.05f);
 
-        public int PaddingAroundDragableThings = 12;
-
-        public void DefaultLayout()
-        {
-            LeftSectionWidth = 286;
-            RightSectionWidth = 600;
-            TopRightPaneHeight = 600;
-
-        }
-
-        public float LeftSectionWidth = 286;
-        private const float LeftSectionWidthMin = 150;
-        private float DividerLeftVisibleStartX => Rect.Left + LeftSectionWidth;
-        private float DividerLeftVisibleEndX => Rect.Left + LeftSectionWidth + DividerVisiblePad;
-
-        public float RightSectionWidth = 600;
-        private const float RightSectionWidthMin = 320;
-        private float DividerRightVisibleStartX => Rect.Right - RightSectionWidth - DividerVisiblePad;
-        private float DividerRightVisibleEndX => Rect.Right - RightSectionWidth;
-
-
-        private float DividerRightCenterX => DividerRightVisibleStartX + ((DividerRightVisibleEndX - DividerRightVisibleStartX) / 2);
-        private float DividerLeftCenterX => DividerLeftVisibleStartX + ((DividerLeftVisibleEndX - DividerLeftVisibleStartX) / 2);
-
-        private float DividerRightGrabStartX => DividerRightCenterX - (DividerHitboxPad / 2);
-        private float DividerRightGrabEndX => DividerRightCenterX + (DividerHitboxPad / 2);
-
-        private float DividerLeftGrabStartX => DividerLeftCenterX - (DividerHitboxPad / 2);
-        private float DividerLeftGrabEndX => DividerLeftCenterX + (DividerHitboxPad / 2);
-
-        public float TopRightPaneHeight = 600;
-        private const float TopRightPaneHeightMinNew = 128;
-        private const float BottomRightPaneHeightMinNew = 64;
-
-        private float DividerRightPaneHorizontalVisibleStartY => Rect.Top + TopRightPaneHeight + TopMenuBarMargin + TransportHeight;
-        private float DividerRightPaneHorizontalVisibleEndY => Rect.Top + TopRightPaneHeight + DividerVisiblePad + TopMenuBarMargin + TransportHeight;
-        private float DividerRightPaneHorizontalCenterY => DividerRightPaneHorizontalVisibleStartY + ((DividerRightPaneHorizontalVisibleEndY - DividerRightPaneHorizontalVisibleStartY) / 2);
-
-        private float DividerRightPaneHorizontalGrabStartY => DividerRightPaneHorizontalCenterY - (DividerHitboxPad / 2);
-        private float DividerRightPaneHorizontalGrabEndY => DividerRightPaneHorizontalCenterY + (DividerHitboxPad / 2);
-
-        private float LeftSectionStartX => Rect.Left;
-        private float MiddleSectionStartX => DividerLeftVisibleEndX;
-        private float RightSectionStartX => Rect.Right - RightSectionWidth;
-
-        private float MiddleSectionWidth => DividerRightVisibleStartX - DividerLeftVisibleEndX;
-        private const float MiddleSectionWidthMin = 128;
-
-        private float DividerVisiblePad = 3;
-        private int DividerHitboxPad = 6;
-
-        private DividerDragMode CurrentDividerDragMode = DividerDragMode.None;
-
-        public ScreenMouseHoverKind MouseHoverKind = ScreenMouseHoverKind.None;
-        private ScreenMouseHoverKind oldMouseHoverKind = ScreenMouseHoverKind.None;
-        public ScreenMouseHoverKind WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-        public ScreenMouseHoverKind WhereLastMouseClickStarted = ScreenMouseHoverKind.None;
-
-        public void DrawDebug()
-        {
-#if DEBUG
-            //GFX.SpriteBatchBeginForText();
-            //DrawPanelDragDebug(new Vector2(64, 64));
-            //GFX.SpriteBatchEnd();
-#endif
-        }
-
-        public void DrawPanelDragDebug(Vector2 pos)
-        {
-            float borderThickness = 8;
-            var fnt = DBG.DEBUG_FONT_SMALL;
-            var sb = new StringBuilder();
-            sb.AppendLine($"{nameof(CurrentDividerDragMode)} = {CurrentDividerDragMode}");
-            sb.AppendLine($"{nameof(MouseHoverKind)} = {MouseHoverKind}");
-            sb.AppendLine($"{nameof(WhereCurrentMouseClickStarted)} = {WhereCurrentMouseClickStarted}");
-            sb.AppendLine($"{nameof(WhereLastMouseClickStarted)} = {WhereLastMouseClickStarted}");
-            var txt = sb.ToString();
-            var boxSize = fnt.MeasureString(txt) + (Vector2.One * (borderThickness * 2));
-            GFX.SpriteBatch.Draw(Main.TAE_EDITOR_BLANK_TEX, new Rectangle((int)Math.Round(pos.X), (int)Math.Round(pos.Y), (int)Math.Round(boxSize.X), (int)Math.Round(boxSize.Y)), Color.Black * 0.75f);
-            GFX.SpriteBatch.DrawString(fnt, txt, pos + (Vector2.One * borderThickness), Color.Yellow);
-        }
-
+        
         public TaeFileContainer FileContainer;
 
-        public bool IsFileOpen => FileContainer != null;
-
-        public TAE SelectedTae { get; private set; }
-
-        public TAE.Animation SelectedTaeAnim { get; private set; }
-        private TaeScrollingString SelectedTaeAnimInfoScrollingText = new TaeScrollingString();
-        private bool TaeAnimInfoIsClone = false;
-
-        public readonly System.Windows.Forms.Form GameWindowAsForm;
-
-        public bool QueuedChangeEventType = false;
-
-        public bool SingleEventBoxSelected => SelectedEventBox != null && MultiSelectedEventBoxes.Count == 0;
-
-        public TaeEditAnimEventBox PrevHoveringOverEventBox = null;
-
-        public TaeEditAnimEventBox HoveringOverEventBox = null;
-
-        private TaeEditAnimEventBox _selectedEventBox = null;
-        public TaeEditAnimEventBox SelectedEventBox
+        public string NewFileContainerName => FileContainer?.Info?.GetMainBinderName();
+        public string NewFileContainerName_2010 => FileContainer?.Info?.GetMainBinderName() + ".2010";
+        public string NewFileContainerName_Model
         {
-            get => _selectedEventBox;
-            set
+            get
             {
-                //inspectorWinFormsControl.DumpDataGridValuesToEvent();
-
-                //if (value != null && value != _selectedEventBox)
-                //{
-                //    if (Config.UseGamesMenuSounds)
-                //        FmodManager.PlaySE("f000000000");
-                //}
-
-                _selectedEventBox = value;
-
-                if (_selectedEventBox == null)
+                if (FileContainer != null && FileContainer.Info is DSAProj.TaeContainerInfo.ContainerAnibnd asAnibnd)
                 {
-                    //inspectorWinFormsControl.buttonChangeType.Enabled = false;
+                    return asAnibnd.ChrbndPath;
                 }
-                else
-                {
-                    //inspectorWinFormsControl.buttonChangeType.Enabled = true;
-
-                    // If one box was just selected, clear the multi-select
-                    MultiSelectedEventBoxes.Clear();
-                }
+                return null;
             }
         }
 
-        public List<TaeEditAnimEventBox> MultiSelectedEventBoxes = new List<TaeEditAnimEventBox>();
-        private int multiSelectedEventBoxesCountLastFrame = 0;
+        public bool IsFileOpen => FileContainer != null;
 
-        public TaeEditAnimList AnimationListScreen;
-        public TaeEditAnimEventGraph Graph { get; private set; }
+        public DSAProj Proj => FileContainer?.Proj;
+        
+        public DSAProj.AnimCategory SelectedAnimCategory { get; private set; }
+        
+        public DSAProj.Animation SelectedAnim { get; private set; }
+
+        public string SelectedTaeAnimInfoText;
+
+        public bool TaeAnimInfoIsClone { get; private set; } = false;
+
+        public readonly System.Windows.Forms.Form GameWindowAsForm;
+
+        public DSAProj.Action QueuedChangeActionType = null;
+
+        public DSAProj.Action InspectorAction => NewSelectedActions.Count == 1 ? NewSelectedActions[0] : null;
+
+        public List<DSAProj.Action> NewSelectedActions = new();
+
+        public void AddTagToSelectedActions(DSAProj proj, DSAProj.Tag tag)
+        {
+            Graph.MainScreen.CurrentAnimUndoMan.NewAction(() =>
+            {
+                var actions = NewSelectedActions.ToList();
+                lock (proj._lock_Tags)
+                {
+                    foreach (var act in actions)
+                    {
+                        if (!act.Info.TagInstances.Contains(tag))
+                            act.Info.TagInstances.Add(tag);
+                    }
+
+                    if (!proj.Tags.Contains(tag))
+                        proj.Tags.Add(tag);
+                }
+            }, () => { }, "Add tag to selection action(s)");
+            Graph.AnimRef.SAFE_SetIsModified(true);
+        }
+
+        public void ClearAllTagsFromSelectedActions(DSAProj proj)
+        {
+            Graph.MainScreen.CurrentAnimUndoMan.NewAction(() =>
+            {
+                var actions = NewSelectedActions.ToList();
+                lock (proj._lock_Tags)
+                {
+                    foreach (var act in actions)
+                    {
+                        act.Info.TagInstances.Clear();
+                    }
+                }
+            }, () => { }, "Clear tags from selected action(s)");
+            Graph.AnimRef.SAFE_SetIsModified(true);
+        }
+
+        public void SetColorOfSelectedActions(bool isClearing)
+        {
+            Graph.MainScreen.CurrentAnimUndoMan.NewAction(() =>
+            {
+                var actions = NewSelectedActions.ToList();
+                if (actions.Count < 1)
+                    return;
+                if (isClearing)
+                {
+                    foreach (var act in actions)
+                        act.Info.CustomColor = null;
+                }
+                else
+                {
+                    DialogManager.ShowDialogChangeActionColors(actions);
+                }
+            }, () => { }, isClearing ? "Clear custom colors of selected action(s)" : "Set custom color of selected action(s)");
+            Graph.AnimRef.SAFE_SetIsModified(true);
+        }
+
+
+        public void RefreshTemplateForAllActions(TAE.Template.ActionTemplate actTemplate, bool isSoftRefresh)
+        {
+            if (isSoftRefresh)
+            {
+                actTemplate.RefreshGUID();
+                return;
+            }
+
+            foreach (var tae in FileContainer.AllTAE)
+            {
+                tae.SafeAccessAnimations(anims =>
+                {
+                    foreach (var anim in anims)
+                    {
+                        anim.UnSafeAccessActions(actions =>
+                        {
+                            foreach (var act in actions)
+                            {
+                                if (act.Template == actTemplate)
+                                {
+                                    act.NewLoadParamsFromBytes(lenientOnAssert: true);
+                                    act.RequestUpdateText();
+                                }
+                                else if (act.Type == actTemplate.ID)
+                                {
+                                    act.Template = actTemplate;
+                                    act.NewLoadParamsFromBytes(lenientOnAssert: true);
+                                    act.RequestUpdateText();
+                                }
+                            }
+                        });
+                       
+                    }
+                });
+               
+            }
+        }
+
+        public void RefreshTextForAllActions()
+        {
+            foreach (var tae in FileContainer.AllTAE)
+            {
+                tae.SafeAccessAnimations(anims =>
+                {
+                    foreach (var anim in anims)
+                    {
+                        anim.UnSafeAccessActions(actions =>
+                        {
+                            foreach (var act in actions)
+                            {
+                                act.NewLoadParamsFromBytes(lenientOnAssert: true);
+                                act.RequestUpdateText();
+                            }
+                        });
+
+                    }
+                });
+               
+            }
+        }
+
+        public DSAProj.Action MultiEditHoverAction = null;
+
+        public DSAProj.Action NewHoverAction = null;
+        public DSAProj.Action NewHoverAction_NeedsNoSelection = null;
+        public DSAProj.Action NewHoverActionPrevFrame = null;
+
+        public bool SingleEventBoxSelected => InspectorAction != null;
+        
+        public NewGraph Graph { get; private set; }
         public bool IsCurrentlyLoadingGraph { get; private set; } = false;
-        //private Dictionary<TAE.Animation, TaeEditAnimEventGraph> GraphLookup = new Dictionary<TAE.Animation, TaeEditAnimEventGraph>();
-        //private TaeEditAnimEventGraphInspector editScreenGraphInspector;
 
         private Color ColorInspectorBG = Color.DarkGray;
-        public System.Numerics.Vector2 ImGuiEventInspectorPos = System.Numerics.Vector2.Zero;
-        public System.Numerics.Vector2 ImGuiEventInspectorSize = System.Numerics.Vector2.Zero;
-
         public FancyInputHandler Input => Main.Input;
 
-        public string FileContainerName = "";
-        public string FileContainerName_Model = "";
         public bool SuppressNextModelOverridePrompt = false;
-        public string FileContainerName_2010 => FileContainerName + ".2010";
 
         public bool IsReadOnlyFileMode = false;
 
         public TaeConfigFile Config => Main.Config;
 
-        public bool? LoadCurrentFile()
+        public bool? NewLoadFile_FromDocManager(DSAProj.TaeContainerInfo containerInfo)
         {
+            
             IsCurrentlyLoadingGraph = true;
-            Scene.DisableModelDrawing();
-            Scene.DisableModelDrawing2();
+            ParentDocument.Scene.DisableModelDrawing();
+            ParentDocument.Scene.DisableModelDrawing2();
 
             // Even if it fails to load, just always push it to the recent files list
-            PushNewRecentFile(FileContainerName, FileContainerName_Model);
+            PushNewRecentFile(containerInfo);
 
             //string templateName = BrowseForXMLTemplate();
 
@@ -792,13 +1049,19 @@ namespace DSAnimStudio.TaeEditor
             //    return false;
             //}
 
-            if (System.IO.File.Exists(FileContainerName))
+            //CurrentFileContainerInfo = containerInfo;
+            var mainContainerName = containerInfo.GetMainBinderName();
+
+            bool loadedSuccessfully = false;
+            //var prevContainerInfo = CurrentFileContainerInfo.GetClone();
+
+            if (System.IO.File.Exists(mainContainerName))
             {
                 FileContainer = new TaeFileContainer(this);
 
                 try
                 {
-                    string folder = new System.IO.FileInfo(FileContainerName).DirectoryName;
+                    string folder = new System.IO.FileInfo(mainContainerName).DirectoryName;
 
                     int lastSlashInFolder = folder.LastIndexOf("\\");
 
@@ -828,12 +1091,27 @@ namespace DSAnimStudio.TaeEditor
                     {
                         System.IO.File.Copy(oodleSource, oodleTarget, true);
 
-                        NotificationManager.PushNotification("Oodle compression library was automatically copied from game directory " +
+                        zzz_NotificationManagerIns.PushNotification("Oodle compression library was automatically copied from game directory " +
                                             "to editor's directory and Sekiro / Elden Ring files will load now.");
                     }
+                    var mainBinderName = containerInfo.GetMainBinderName();
+                    var mainBinder = Utils.ReadBinder(mainBinderName);
+                    TaeFileContainer.CheckGameVersionForTaeInterop(mainBinderName, mainBinder);
 
-                    
-                    FileContainer.LoadFromPath(FileContainerName, null);
+                    if (Main.REQUEST_REINIT_EDITOR)
+                        return false;
+
+                    CheckAutoLoadXMLTemplate(containerInfo.GetMainBinderName());
+                    var loadResult = FileContainer.NewLoadFromContainerInfo(containerInfo, out string loadErrMsg, FileContainer.TaeTemplate, ParentDocument);
+                    if (loadResult)
+                    {
+                        loadedSuccessfully = true;
+                    }
+                    else
+                    {
+                        System.Windows.Forms.MessageBox.Show($"Unable to load file. Error shown below.\n\n{loadErrMsg}", "Load Failed",
+                        System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                    }
                 }
                 catch (System.DllNotFoundException)
                 {
@@ -855,15 +1133,22 @@ namespace DSAnimStudio.TaeEditor
 
                 if (!FileContainer.AllTAE.Any())
                 {
-                    if (TryAnimLoadFallback())
-                    {
-                        return LoadCurrentFile();
-                    }
-                    else
-                    {
-                        Main.REQUEST_REINIT_EDITOR = true;
-                        return false;
-                    }
+                    //if (TryAnimLoadFallback())
+                    //{
+                    //    return NewLoadFile();
+                    //}
+                    //else
+                    //{
+                    //    Main.REQUEST_REINIT_EDITOR = true;
+                    //    return false;
+                    //}
+
+                    System.Windows.Forms.MessageBox.Show("No TAE files in selected binder. Cancelling load operation.", "Unsupported File",
+                        System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+
+                    Main.REQUEST_REINIT_EDITOR = true;
+
+                    return false;
                 }
 
                 LoadTaeFileContainer(FileContainer);
@@ -875,6 +1160,9 @@ namespace DSAnimStudio.TaeEditor
 
                 IsCurrentlyLoadingGraph = false;
 
+                OSD.SpWindowGraph.IsRequestFocus = true;
+                
+                
                 return true;
             }
             else
@@ -883,28 +1171,75 @@ namespace DSAnimStudio.TaeEditor
             }
         }
 
-        private void CheckAutoLoadXMLTemplate()
+        public void SaveCustomXMLTemplate()
         {
-            var objCheck = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower().StartsWith("o") &&
-                (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R);
-            var remoCheck = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower().StartsWith("scn") &&
-                (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R);
+            var check = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(NewFileContainerName)).ToLower();
+            var objCheck = check.StartsWith("o") &&
+               (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R);
+            var remoCheck = check.StartsWith("scn") &&
+                (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R);
 
             //var xmlPath = System.IO.Path.Combine(
             //    new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
             //    $@"Res\TAE.Template.{(FileContainer.IsBloodborne ? "BB" : SelectedTae.Format.ToString())}{(objCheck ? ".OBJ" : "")}.xml");
 
-            string taeFormatStr = $"{GameRoot.GameType}";
+            string taeFormatStr = $"{ParentDocument.GameRoot.GameType}";
 
-            if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+            if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
+                taeFormatStr = "DS1";
+
+            var customXmlFolder = System.IO.Path.Combine(
+                new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName, $@"CustomTemplates");
+
+            if (!Directory.Exists(customXmlFolder))
+                Directory.CreateDirectory(customXmlFolder);
+
+            var customXmlPath = System.IO.Path.Combine(
+                new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
+                $@"CustomTemplates\TAE.CustomTemplate.{taeFormatStr}{(remoCheck ? ".REMO" : objCheck ? ".OBJ" : "")}.xml");
+
+            SaveTAETemplate(customXmlPath);
+        }
+
+        public void CheckAutoLoadXMLTemplate(string fileContainerName)
+        {
+            if (ParentDocument.GameRoot.GameType == SoulsGames.None)
+                return;
+            
+            var check = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(fileContainerName)).ToLower();
+            var objCheck = check.StartsWith("o") &&
+                (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R);
+            var remoCheck = check.StartsWith("scn") &&
+                (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 || ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R);
+
+            //var xmlPath = System.IO.Path.Combine(
+            //    new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
+            //    $@"Res\TAE.Template.{(FileContainer.IsBloodborne ? "BB" : SelectedTae.Format.ToString())}{(objCheck ? ".OBJ" : "")}.xml");
+
+            string taeFormatStr = $"{ParentDocument.GameRoot.GameType}";
+
+            if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                 taeFormatStr = "DS1";
 
             var xmlPath = System.IO.Path.Combine(
                 new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
                 $@"Res\TAE.Template.{taeFormatStr}{(remoCheck ? ".REMO" : objCheck ? ".OBJ" : "")}.xml");
 
-            if (System.IO.File.Exists(xmlPath))
-                LoadTAETemplate(xmlPath);
+            var customXmlFolder = System.IO.Path.Combine(
+                new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName, $@"CustomTemplates");
+
+            if (!Directory.Exists(customXmlFolder))
+                Directory.CreateDirectory(customXmlFolder);
+
+            var customXmlPath = System.IO.Path.Combine(
+                new System.IO.FileInfo(typeof(TaeEditorScreen).Assembly.Location).DirectoryName,
+                $@"CustomTemplates\TAE.CustomTemplate.{taeFormatStr}{(remoCheck ? ".REMO" : objCheck ? ".OBJ" : "")}.xml");
+
+
+            if (System.IO.File.Exists(customXmlPath))
+                SetTAETemplate(customXmlPath);
+            else if (System.IO.File.Exists(xmlPath))
+                SetTAETemplate(xmlPath);
         }
 
         public void SaveCurrentFile(Action afterSaveAction = null, string saveMessage = "Saving ANIBND...")
@@ -914,7 +1249,7 @@ namespace DSAnimStudio.TaeEditor
 
             CommitActiveGraphToTaeStruct();
 
-            GameData.SaveProjectJson();
+            ParentDocument.GameData.SaveProjectJson();
 
             if (IsReadOnlyFileMode)
             {
@@ -927,27 +1262,45 @@ namespace DSAnimStudio.TaeEditor
                 return;
             }
 
-            if (System.IO.File.Exists(FileContainerName) && 
-                !System.IO.File.Exists(FileContainerName + BackupExtension))
+            if (System.IO.File.Exists(NewFileContainerName) && 
+                !System.IO.File.Exists(NewFileContainerName + BackupExtension))
             {
-                System.IO.File.Copy(FileContainerName, FileContainerName + BackupExtension);
-                NotificationManager.PushNotification(
-                    "A backup was not found and was created:\n" + FileContainerName + BackupExtension);
+                System.IO.File.Copy(NewFileContainerName, NewFileContainerName + BackupExtension);
+                zzz_NotificationManagerIns.PushNotification(
+                    "A backup was not found and was created:\n" + NewFileContainerName + BackupExtension);
             }
 
-            LoadingTaskMan.DoLoadingTask("SaveFile", saveMessage, progress =>
+            ParentDocument.LoadingTaskMan.DoLoadingTask("SaveFile", saveMessage, progress =>
             {
-                FileContainer.SaveToPath(FileContainerName, progress);
+                //FileContainer.SaveToPath(FileContainerName, progress);
+                FileContainer.NewSaveContainer(out bool savedDsaproj, out bool savedContainer, progress, 0, 1);
 
-                NotificationManager.PushNotification($"Saved file to '{FileContainerName}'.");
+                if (savedContainer || savedDsaproj)
+                {
 
+                    var sb = new StringBuilder();
+
+                    if (savedContainer)
+                        sb.AppendLine($"Outputted to game file '{NewFileContainerName}'.");
+
+                    if (savedDsaproj)
+                    {
+                        if (savedContainer)
+                            sb.AppendLine();
+                        sb.AppendLine($"Saved to project file '{FileContainer.Proj.ContainerInfo.GetDSAProjFileName()}'.");
+                    }
+
+                    zzz_NotificationManagerIns.PushNotification(sb.ToString());
+                }
+
+                
                 if (Config.ExtensiveBackupsEnabled)
                 {
-                    var filesInDir = Directory.GetFiles(Path.GetDirectoryName(FileContainerName));
+                    var filesInDir = Directory.GetFiles(Path.GetDirectoryName(NewFileContainerName));
                     int maxBackupIndex = 0;
                     int maxBackupIndex_2010 = 0;
-                    string baseBakPath = FileContainerName + ".dsasautobak";
-                    string baseBakPath_2010 = FileContainerName_2010 + ".dsasautobak";
+                    string baseBakPath = NewFileContainerName + ".dsasautobak";
+                    string baseBakPath_2010 = NewFileContainerName_2010 + ".dsasautobak";
                     foreach (var f in filesInDir)
                     {
                         if (f.StartsWith(baseBakPath) && f.Length > baseBakPath.Length)
@@ -973,18 +1326,18 @@ namespace DSAnimStudio.TaeEditor
                     if (!File.Exists($"{baseBakPath}{maxBackupIndex:D4}"))
                     {
                         string bakName = $"{baseBakPath}{(maxBackupIndex + 1):D4}";
-                        File.Copy(FileContainerName, bakName);
-                        NotificationManager.PushNotification($"Saved file to '{bakName}'.");
+                        File.Copy(NewFileContainerName, bakName);
+                        zzz_NotificationManagerIns.PushNotification($"Saved file to '{bakName}'.");
                     }
                     else
                     {
                         var hash_bak = md5.ComputeHash(File.ReadAllBytes($"{baseBakPath}{maxBackupIndex:D4}"));
-                        var hash = md5.ComputeHash(File.ReadAllBytes(FileContainerName));
+                        var hash = md5.ComputeHash(File.ReadAllBytes(NewFileContainerName));
                         string bakName = $"{baseBakPath}{(maxBackupIndex + 1):D4}";
                         if (!hash_bak.SequenceEqual(hash))
                         {
-                            File.Copy(FileContainerName, bakName);
-                            NotificationManager.PushNotification($"Saved file to '{bakName}'.");
+                            File.Copy(NewFileContainerName, bakName);
+                            zzz_NotificationManagerIns.PushNotification($"Saved file to '{bakName}'.");
                         }
                     }
 
@@ -1001,12 +1354,12 @@ namespace DSAnimStudio.TaeEditor
                 progress.Report(1.0);
 
                 afterSaveAction?.Invoke();
-            });
+            }, flags: zzz_LoadingTaskManIns.TaskFlags.Critical);
 
             
         }
 
-        private void LoadAnimIntoGraph(TAE.Animation anim)
+        private void LoadAnimIntoGraph(DSAProj.AnimCategory tae, DSAProj.Animation anim)
         {
             //if (!GraphLookup.ContainsKey(anim))
             //{
@@ -1017,175 +1370,495 @@ namespace DSAnimStudio.TaeEditor
 
             //Graph = GraphLookup[anim];
 
+            var selAnim = Proj.SAFE_SolveAnimRefChain(anim.SplitID);
+            if (selAnim == anim)
+                selAnim = null;
+
             if (Graph == null)
-                Graph = new TaeEditAnimEventGraph(this, false, anim);
+                Graph = new NewGraph(this, anim, selAnim);
             else
-                Graph.ChangeToNewAnimRef(anim);
+            {
+                var graph = Graph;
+                Graph = null;
+                graph.ReadFromAnimRef(anim, selAnim);
+                Graph = graph;
+            }
+
+            
+
         }
 
         private void LoadTaeFileContainer(TaeFileContainer fileContainer)
         {
             TaeExtensionMethods.ClearMemes();
             FileContainer = fileContainer;
-            SelectedTae = FileContainer.AllTAE.First();
+            SelectedAnimCategory = FileContainer.AllTAE.First();
             GameWindowAsForm.Invoke(new Action(() =>
             {
-                // Since form close event is hooked this should
-                // take care of nulling it out for us.
-                FindValueDialog?.Close();
-                ComboMenu?.Close();
-                ComboMenu = null;
+                OSD.WindowComboViewer.IsOpen = false;
                 ExportAllAnimsMenu?.Close();
                 ExportAllAnimsMenu = null;
             }));
-            SelectedTaeAnim = SelectedTae.Animations[0];
-            AnimationListScreen = new TaeEditAnimList(this);
+            if (SelectedAnimCategory.SAFE_GetAnimCount() == 0)
+            {
+                SelectedAnimCategory.SAFE_CreateDummyAnimation(Proj, 0);
+            }
+            SelectedAnim = SelectedAnimCategory.SAFE_GetAnimByIndex(0);
 
             
             Graph = null;
-            LoadAnimIntoGraph(SelectedTaeAnim);
+            LoadAnimIntoGraph(SelectedAnimCategory, SelectedAnim);
             if (Main.REQUEST_REINIT_EDITOR)
                 return;
+
+            FileContainer.Proj.SafeAccessAnimCategoriesList(categoriesList =>
+            {
+                foreach (var category in categoriesList)
+                {
+                    category.IsTreeNodeOpen = !Main.Config.AutoCollapseAllTaeSections;
+                }
+            });
+
+            
+
             IsCurrentlyLoadingGraph = false;
 
             //if (FileContainer.ContainerType != TaeFileContainer.TaeFileContainerType.TAE)
             //{
             //    TaeInterop.OnLoadANIBND(MenuBar, progress);
             //}
-            CheckAutoLoadXMLTemplate();
-            SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
-            LastFindInfo = null;
+            ApplyAlreadySetTAETemplate();
+            SelectNewAnimRef(SelectedAnimCategory, SelectedAnimCategory.SAFE_GetAnimByIndex(0));
+            
+            RecreateAnimList();
         }
 
         public void RecreateAnimList()
         {
-            Vector2 oldScroll = AnimationListScreen.ScrollViewer.Scroll;
-            var sectionsCollapsed = AnimationListScreen
-                .AnimTaeSections
-                .ToDictionary(x => x.Key, x => x.Value.Collapsed);
 
-            AnimationListScreen = new TaeEditAnimList(this);
 
-            foreach (var section in AnimationListScreen.AnimTaeSections)
+            //Vector2 oldScroll = AnimationListScreen.ScrollViewer.Scroll;
+            //var sectionsCollapsed = AnimationListScreen
+            //    .AnimTaeSections
+            //    .ToDictionary(x => x.Key, x => x.Value.Collapsed);
+
+            //AnimationListScreen = new TaeEditAnimList(this);
+
+
+            //foreach (var section in AnimationListScreen.AnimTaeSections)
+            //{
+            //    if (sectionsCollapsed.ContainsKey(section.Key))
+            //        section.Value.Collapsed = sectionsCollapsed[section.Key];
+            //}
+
+            //AnimationListScreen.ScrollViewer.Scroll = oldScroll;
+
+            //FileContainer?.Proj?.ScanForErrors_Background();
+            var proj = FileContainer?.Proj;
+            if (proj != null)
             {
-                if (sectionsCollapsed.ContainsKey(section.Key))
-                    section.Value.Collapsed = sectionsCollapsed[section.Key];
+                proj.SAFE_ResortAnimCategoryIDs();
+                proj.ScanForErrors_Background();
+                proj.TimeSinceLastErrorCheck = 0;
             }
-            
-            AnimationListScreen.ScrollViewer.Scroll = oldScroll;
+
 
             HasntSelectedAnAnimYetAfterBuildingAnimList = true;
+
+            ParentDocument.SpWindowAnimations.ClearTaeBlockCache();
         }
 
-        public void DuplicateCurrentAnimation()
+        public void ResortTracks_Anim()
         {
-            TAE.Animation.AnimMiniHeader header = null;
-
-
-
-            var newAnimRef = new TAE.Animation(
-                SelectedTaeAnim.ID, new TAE.Animation.AnimMiniHeader.Standard(), 
-                SelectedTaeAnim.AnimFileName);
-
-            if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard stand)
+            CurrentAnimUndoMan.NewAction(doAction: () =>
             {
-                var standardHeader = new TAE.Animation.AnimMiniHeader.Standard();
+                SelectedAnim.SAFE_ResortTracks(DSAProj.Animation.TrackSortTypes.FirstActionType);
+            }, undoAction: () =>
+            {
 
-                standardHeader.AllowDelayLoad = false;
+            }, "Sort action tracks");
+        }
 
-                if (stand.ImportHKXSourceAnimID >= 0)
+        public void RegenTrackNames_Anim()
+        {
+            CurrentAnimUndoMan.NewAction(doAction: () =>
+            {
+                SelectedAnim.SAFE_GenerateTrackNames(Proj.Template, true);
+            }, undoAction: () =>
+            {
+
+            }, "Regenerate action track names");
+        }
+
+        public void ResortTracks_Proj()
+        {
+            GlobalUndoMan.NewAction(doAction: () =>
+            {
+                ParentDocument.LoadingTaskMan.DoLoadingTask(null, null, prog =>
                 {
-                    if (stand.ImportsHKX)
+                    foreach (var t in FileContainer.AllTAE)
                     {
-                        standardHeader.ImportsHKX = true;
-                        
+                        t.SafeAccessAnimations(anims =>
+                        {
+                            foreach (var a in anims)
+                            {
+                                a.INNER_ResortTracks(DSAProj.Animation.TrackSortTypes.FirstActionType);
+                            }
+                        });
+
                     }
-
-                    if (stand.AllowDelayLoad)
-                    {
-
-                    }
-                }
-
-
-                header = standardHeader;
-            }
-            else if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim imp)
+                });
+               
+            }, undoAction: () =>
             {
-                header = imp;
-            }
 
-
-
-                var index = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
-            SelectedTae.Animations.Insert(index + 1, newAnimRef);
-
-            RecreateAnimList();
-
-            SelectNewAnimRef(SelectedTae, newAnimRef);
+            }, "Sort action tracks");
         }
 
-        public void LoadTAETemplate(string xmlFile)
+        public void RegenTrackNames_Proj()
         {
+            GlobalUndoMan.NewAction(doAction: () =>
+            {
+                foreach (var t in FileContainer.AllTAE)
+                {
+                    t.SafeAccessAnimations(anims =>
+                    {
+                        foreach (var a in anims)
+                        {
+                            a.INNER_GenerateTrackNames(Proj.Template, true);
+                        }
+                    });
+                    
+                }
+            }, undoAction: () =>
+            {
+
+            }, "Regenerate action track names");
+        }
+
+        private void ResortAndRegenRows_Inner_Deprecated(DSAProj.Animation anim)
+        {
+            //var actions = anim.SAFE_GetActions();
+            //var sortDict = new Dictionary<string, List<DSAProj.Action>>();
+            //foreach (var act in actions)
+            //{
+            //    var sortString = $"{act.Type} {string.Join(", ", act.ParameterBytes.Select(x => x.ToString("X2")))}";
+            //    if (!sortDict.ContainsKey(sortString))
+            //        sortDict[sortString] = new List<DSAProj.Action>();
+
+            //    if (!sortDict[sortString].Contains(act))
+            //        sortDict[sortString].Add(act);
+            //}
+
+            //var sortDictKeys = sortDict.Keys.ToList();
+            //foreach (var k in sortDictKeys)
+            //{
+            //    var internalSimName = sortDict[k][0].GetInternalSimTypeName();
+            //    var isFFXGroup = internalSimName.StartsWith("FFX_");
+            //    var isSoundGroup = internalSimName.Contains("Play") && internalSimName.Contains("Sound");
+            //    if (sortDict[k].Count == 1 && !(isFFXGroup || isSoundGroup))
+            //    {
+            //        sortDict.Remove(k);
+            //    }
+            //}
+            
+            //anim.ActionTracks.Clear();
+
+            //    var remainingActions = actions.ToList();
+            //    sortDictKeys = sortDict.Keys.OrderBy(x => x).ToList();
+            //    foreach (var k in sortDictKeys)
+            //    {
+            //        foreach (var act in sortDict[k])
+            //        {
+            //            remainingActions.Remove(act);
+            //            // Set index to the track we are about to add.
+            //            act.TrackIndex = anim.ActionTracks.Count;
+            //        }
+
+            //        var trackName = sortDict[k][0].GraphDisplayText;
+            //        var track = new DSAProj.ActionTrack()
+            //        {
+            //            Info = new DSAProj.EditorInfo(trackName),
+            //            TrackData = new TAE.ActionTrack.ActionTrackDataStruct()
+            //            {
+            //                DataType = TAE.ActionTrack.ActionTrackDataType.TrackData0,
+            //            },
+            //            TrackType = sortDict[k][0].Type,
+            //            NewActionDefaultType = sortDict[k][0].Type,
+            //            NewActionDefaultParameters = sortDict[k][0].ParameterBytes,
+            //            NewActionDefaultLength = sortDict[k][0].EndTime - sortDict[k][0].StartTime,
+            //        };
+
+            //        anim.ActionTracks.Add(track);
+            //    }
+
+            //    var actionsByType = new Dictionary<int, List<DSAProj.Action>>();
+                
+
+            //    foreach (var act in remainingActions)
+            //    {
+            //        var memeType = (act.Type * 100000);
+
+            //        if (act.Type == 0 || act.Type == 300)
+            //        {
+            //            var jumpTableID = Convert.ToInt32(act.ReadInternalSimField("JumpTableID"));
+            //            memeType = jumpTableID;
+            //        }
+
+            //        if (!actionsByType.ContainsKey(memeType))
+            //            actionsByType[memeType] = new List<DSAProj.Action>();
+
+            //        if (!actionsByType[memeType].Contains(act))
+            //            actionsByType[memeType].Add(act);
+            //    }
+
+            //    var actionTypeKeys = actionsByType.Keys.OrderBy(x => x).ToList();
+
+            //    foreach (var k in actionTypeKeys)
+            //    {
+            //        void doActionList(List<DSAProj.Action> actList)
+            //        {
+            //            foreach (var ev in actList)
+            //            {
+            //                // Set track index to the track we are about to add
+            //                ev.TrackIndex = anim.ActionTracks.Count;
+            //            }
+
+            //            string trackName = (actList[0].TypeName ?? $"Type{(actList[0].Type)}");
+
+            //            if (k < 100000)
+            //            {
+            //                int jumpTableID = k;
+            //                var firstEvent = actList[0];
+            //                bool foundEnumName = false;
+            //                //0: JumpTableID
+            //                foreach (var en in firstEvent.Template[0].EnumEntries)
+            //                {
+            //                    if (Convert.ToInt32(en.Value) == jumpTableID)
+            //                    {
+            //                        trackName = en.Key;
+            //                        foundEnumName = true;
+            //                        break;
+            //                    }
+            //                }
+
+            //                if (!foundEnumName)
+            //                {
+            //                    trackName = $"ChrActionFlag {jumpTableID}";
+            //                }
+            //            }
+
+            //            var track = new DSAProj.ActionTrack()
+            //            {
+            //                Info = new DSAProj.EditorInfo(trackName),
+            //                TrackData = new TAE.ActionTrack.ActionTrackDataStruct()
+            //                {
+            //                    DataType = TAE.ActionTrack.ActionTrackDataType.TrackData0,
+            //                },
+            //                TrackType = actList[0].Type,
+            //                NewActionDefaultType = actList[0].Type,
+            //            };
+
+            //            anim.ActionTracks.Add(track);
+            //        }
+
+            //        List<List<DSAProj.Action>> splitRows = new List<List<DSAProj.Action>>();
+            //        List<DSAProj.Action> currentRow = new List<DSAProj.Action>();
+
+            //        void commitCurrentRow()
+            //        {
+            //            if (currentRow.Count > 0)
+            //            {
+            //                splitRows.Add(currentRow.ToList());
+            //                currentRow = new List<DSAProj.Action>();
+            //            }
+            //        }
+
+            //        foreach (var act in actionsByType[k])
+            //        {
+            //            if (currentRow.Any(e => e.EndTime > act.StartTime || e.StartTime > act.StartTime))
+            //            {
+            //                commitCurrentRow();
+            //            }
+            //            currentRow.Add(act);
+            //        }
+
+            //        commitCurrentRow();
+
+            //        foreach (var row in splitRows)
+            //        {
+            //            doActionList(row);
+            //        }
+            //    }
+
+            //    anim.SetIsModified(true);
+            
+            
+        }
+
+        public void ShowDialogDuplicateCurrentAnimation()
+        {
+            if (FileContainer == null || SelectedAnimCategory == null)
+                return;
+
+            if (SelectedAnim?.IS_DUMMY_ANIM != false)
+                return;
+
+                var currentAnim = SelectedAnim;
+            var currentAnimID = SelectedAnim.SplitID;
+
+            DialogManager.AskForInputString("Duplicate To New Animation ID", "Enter the animation ID to duplicate the current animation to.\n" +
+                "Accepts the full string with prefix or just the ID as a number.",
+                ParentDocument.GameRoot.CurrentAnimIDFormatType.ToString(), result =>
+                {
+                    Main.WinForm.Invoke(new Action(() =>
+                    {
+                        bool parseSuccess =
+                            SplitAnimID.TryParse(Proj, result, out SplitAnimID splitID, out string detailedError);
+
+                        if (!parseSuccess)
+                        {
+                            DialogManager.DialogOK("Duplication Failed", detailedError);
+                            return;
+                        }
+
+                        
+                        // if (splitID == currentAnimID)
+                        //{
+                        //    DialogManager.DialogOK("Duplication Failed", $"Animation {splitID.GetFormattedIDString(Proj)} is the current animation.");
+                        //    return;
+                        //}
+
+                        var existingAnim = Proj.SAFE_GetFirstAnimationFromFullID(splitID);
+                        if (existingAnim == null)
+                        {
+                            var category = Proj.SAFE_RegistCategory(splitID.CategoryID);
+                            var newAnimRef = new DSAProj.Animation(Proj, category);
+                            ImmediateImportAnim(newAnimRef, currentAnimID);
+                            newAnimRef.SplitID = splitID;
+                            category.SAFE_AddAnimation(newAnimRef);
+                            RecreateAnimList();
+                            SelectNewAnimRef(category, newAnimRef);
+                        }
+                        else
+                        {
+                            DialogManager.AskYesNo("Anim ID Already Exists",
+                                $"An animation already exists with ID {splitID.GetFormattedIDString(Proj)}. Duplicating to this ID will cause an ID conflict. Continue anyways?",
+                                choice =>
+                            {
+                                if (choice)
+                                {
+                                    var newCategory = existingAnim.ParentCategory;
+
+                                    var newAnimRef = new DSAProj.Animation(Proj, newCategory);
+                                    ImmediateImportAnim(newAnimRef, currentAnimID);
+                                    newAnimRef.SplitID = splitID;
+
+                                    //newCategory.NEW_RemoveAnimation(existingAnim);
+                                    newCategory.SAFE_AddAnimation(newAnimRef);
+                                    newCategory.SAFE_ResortAnimIDs();
+
+                                    //var existingIndex = SelectedAnimCategory.Animations.IndexOf(existingAnim);
+                                    //if (existingIndex >= 0 && existingIndex < SelectedAnimCategory.Animations.Count)
+                                    //{
+                                    //    SelectedAnimCategory.Animations[existingIndex] = newAnimRef;
+                                    //}
+                                    //else
+                                    //{
+                                    //    SelectedAnimCategory.Animations.Add(newAnimRef);
+                                    //    SelectedAnimCategory.Animations = SelectedAnimCategory.Animations
+                                    //        .OrderBy(ani => (long)ani.NewID.GetFullID(Proj)).ToList();
+                                    //}
+                                    RecreateAnimList();
+                                    SelectNewAnimRef(newCategory, newAnimRef);
+                                }
+                            });
+                        }
+                        
+                    }));
+                },checkError: input =>
+                {
+                    bool parseSuccess = SplitAnimID.TryParse(Proj, input, out SplitAnimID parsed, out string detailedError);
+
+                    if (!parseSuccess)
+                        return detailedError;
+
+                    //if (parsed == currentAnimID)
+                    //{
+                    //    return $"Cannot duplicate to the same ID as the current animation, please enter any other ID.";
+                    //}
+
+                    return null;
+                }, canBeCancelled: true);
+
+            
+        }
+
+        public void SaveTAETemplate(string xmlFile)
+        {
+            
+
             try
             {
-                foreach (var tae in FileContainer.AllTAE)
+                var template = FileContainer.TaeTemplate;
+                if (template != null)
                 {
-                    tae.ApplyTemplate(TAE.Template.ReadXMLFile(xmlFile));
+                    Dictionary<long, TAE.Template.ActionTemplate> orderedTemplate = new();
+                    var keys = template.Keys.OrderBy(x => x).ToList();
+                    foreach (var k in keys)
+                    {
+                        orderedTemplate[k] = template[k];
+                    }
+                    template.Clear();
+                    foreach (var kvp in orderedTemplate)
+                    {
+                        template[kvp.Key] = kvp.Value;
+                    }
+                    template.WriteToXMLFile(xmlFile);
                 }
-
-                foreach (var box in Graph.EventBoxes)
-                {
-                    box.UpdateEventText();
-                }
-
-                var wasSelecting = SelectedEventBox;
-                SelectedEventBox = null;
-                SelectedEventBox = wasSelecting;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Main.EnableErrorHandler.ApplyTaeTemplate)
             {
-                System.Windows.Forms.MessageBox.Show($"Failed to apply TAE template:\n\n{ex}",
+                System.Windows.Forms.MessageBox.Show($"Failed to write TAE template:\n\n{ex}",
                     "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
         }
 
-        public void CleanupForReinit()
+        public void SetTAETemplate(string xmlFile)
         {
-            GameWindowAsForm.FormClosing -= GameWindowAsForm_FormClosing;
+            FileContainer.TaeTemplate = TAE.Template.ReadXMLFile(xmlFile, disableErrorHandling: !Main.EnableErrorHandler.LoadTaeTemplate);
         }
 
-        public TaeEditorScreen(System.Windows.Forms.Form gameWindowAsForm, Rectangle rect)
+        public void ApplyAlreadySetTAETemplate()
         {
-            Rect = rect;
-            Main.LoadConfig();
+            FileContainer?.Proj?.SAFE_ApplyTemplate(FileContainer.TaeTemplate);
+        }
+     
+        //public void CleanupForReinit()
+        //{
+        //    GameWindowAsForm.FormClosing -= GameWindowAsForm_FormClosing;
+        //}
 
-            if (Main.Config.LayoutAnimListWidth > 0)
-                LeftSectionWidth = Main.Config.LayoutAnimListWidth;
-
-            if (Main.Config.LayoutViewportWidth > 0)
-                RightSectionWidth = Main.Config.LayoutViewportWidth;
-
-            if (Main.Config.LayoutViewportHeight > 0)
-                TopRightPaneHeight = Main.Config.LayoutViewportHeight;
-
-            gameWindowAsForm.FormClosing += GameWindowAsForm_FormClosing;
+        public TaeEditorScreen(zzz_DocumentIns parentDocument, System.Windows.Forms.Form gameWindowAsForm)
+        {
+            ParentDocument = parentDocument;
+            GlobalUndoMan = new TaeUndoMan(this, TaeUndoMan.UndoTypes.Proj);
+            
+            //Main.LoadConfig();
 
             GameWindowAsForm = gameWindowAsForm;
 
             GameWindowAsForm.MinimumSize = new System.Drawing.Size(1280  - 64, 720 - 64);
 
             Transport = new TaeTransport(this);
-
-            UpdateLayout();
         }
 
         public void SetAllTAESectionsCollapsed(bool collapsed)
         {
-            foreach (var kvp in AnimationListScreen.AnimTaeSections.Values)
-            {
-                kvp.Collapsed = collapsed;
-            }
+            if (collapsed)
+                ParentDocument.SpWindowAnimations.CollapseAll();
+            else
+                ParentDocument.SpWindowAnimations.ExpandAll();
         }
 
         public void LoadContent(ContentManager c)
@@ -1195,21 +1868,28 @@ namespace DSAnimStudio.TaeEditor
 
         public void LiveRefresh()
         {
-            var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(FileContainerName)).ToLower();
+            
 
-            if (chrNameBase.StartsWith("c"))
-            {
-                if (DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload(
-                    DSAnimStudio.LiveRefresh.RequestFileReload.ReloadType.Chr, chrNameBase))
-                    NotificationManager.PushNotification($"Requested game to reload character '{chrNameBase}'.");
+            var chrNameBase = Utils.GetFileNameWithoutAnyExtensions(Utils.GetFileNameWithoutDirectoryOrExtension(NewFileContainerName)).ToLower();
 
-            }
-            else if (chrNameBase.StartsWith("o"))
+            if (DSAnimStudio.LiveRefresh.RequestFileReload.CanReloadEntity(chrNameBase))
             {
-                if (DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload(
-                    DSAnimStudio.LiveRefresh.RequestFileReload.ReloadType.Object, chrNameBase))
-                    NotificationManager.PushNotification($"Requested game to reload object '{chrNameBase}'.");
+                if (chrNameBase.StartsWith("c"))
+                {
+                    if (DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload(
+                        DSAnimStudio.LiveRefresh.RequestFileReload.ReloadType.Chr, chrNameBase))
+                        zzz_NotificationManagerIns.PushNotification($"Requested game to reload character '{chrNameBase}'.");
+
+                }
+                else if (chrNameBase.StartsWith("o"))
+                {
+                    if (DSAnimStudio.LiveRefresh.RequestFileReload.RequestReload(
+                        DSAnimStudio.LiveRefresh.RequestFileReload.ReloadType.Object, chrNameBase))
+                        zzz_NotificationManagerIns.PushNotification($"Requested game to reload object '{chrNameBase}'.");
+                }
             }
+
+                
 
             
             //if (FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_PTDE || FileContainer.ReloadType == TaeFileContainer.TaeFileContainerReloadType.CHR_DS1R)
@@ -1233,151 +1913,98 @@ namespace DSAnimStudio.TaeEditor
             //}
         }
 
-        public void ShowDialogEditTaeHeader()
+        //public void ShowDialogEditTaeHeader()
+        //{
+
+        //    PauseUpdate = true;
+        //    var editForm = new TaeEditTaeHeaderForm(SelectedAnimCategory);
+        //    editForm.Owner = GameWindowAsForm;
+        //    editForm.ShowDialog();
+
+        //    if (editForm.WereThingsChanged)
+        //    {
+        //        SelectedAnimCategory.SetIsModified(true);
+
+        //        UpdateSelectedTaeAnimInfoText();
+        //    }
+
+        //    PauseUpdate = false;
+        //}
+
+        public void ShowDialogEditAnimCategoryProperties(DSAProj.AnimCategory category)
         {
-            PauseUpdate = true;
-            var editForm = new TaeEditTaeHeaderForm(SelectedTae);
-            editForm.Owner = GameWindowAsForm;
-            editForm.ShowDialog();
-
-            if (editForm.WereThingsChanged)
-            {
-                SelectedTae.SetIsModified(true);
-
-                UpdateSelectedTaeAnimInfoText();
-            }
-
-            PauseUpdate = false;
+            DialogManager.ShowTaeAnimCategoryPropertiesEditor(Proj, category);
         }
 
-        public bool DoesAnimIDExist(int id)
-        {
-            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
-            {
-                var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
-                if (matchedAnims.Any())
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+        //public bool DoesAnimIDExist(int id)
+        //{
+        //    foreach (var s in AnimationListScreen.AnimTaeSections.Values)
+        //    {
+        //        var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
+        //        if (matchedAnims.Any())
+        //        {
+        //            return true;
+        //        }
+        //    }
+        //    return false;
+        //}
 
         public bool GotoAnimSectionID(int id, bool scrollOnCenter)
         {
-            if (FileContainer.AllTAEDict.Count > 1)
+            if (FileContainer.Proj.SAFE_CategoryExists(id))
             {
-                if (AnimationListScreen.AnimTaeSections.ContainsKey(id))
+                var firstCategory = FileContainer.Proj.SAFE_GetFirstAnimCategoryFromCategoryID(id);
+
+
+
+                var firstAnimInCategory = firstCategory.SAFE_GetFirstAnimInList();
+                if (firstAnimInCategory != null)
                 {
-                    var firstAnimInSection = AnimationListScreen.AnimTaeSections[id].Tae.Animations.FirstOrDefault();
-                    if (firstAnimInSection != null)
-                    {
-                        SelectNewAnimRef(AnimationListScreen.AnimTaeSections[id].Tae, firstAnimInSection, scrollOnCenter);
-                        return true;
-                    }
-                }
-            }
-            else
-            {
-                foreach (var anim in SelectedTae.Animations)
-                {
-                    long sectionOfAnim = GameRoot.GameTypeHasLongAnimIDs ? (anim.ID / 1_000000) : (anim.ID / 1_0000);
-                    if (sectionOfAnim == id)
-                    {
-                        SelectNewAnimRef(SelectedTae, anim, scrollOnCenter);
-                        return true;
-                    }
+                    SelectNewAnimRef(firstCategory, firstAnimInCategory, scrollOnCenter, isPushCurrentToHistBackwardStack: true);
+                    return true;
                 }
             }
 
             return false;
         }
 
-        public TAE.Animation SelectAnimByFullID(long fullID)
+
+        public DSAProj.Animation CreateNewAnimWithFullID(SplitAnimID id, string animName, bool nukeExisting)
         {
-            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
+            if (!Proj.SAFE_AnimExists(id) || nukeExisting)
             {
-                var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == fullID);
-                if (matchedAnims.Any())
+                var category = Proj.SAFE_RegistCategory(id.CategoryID);
+                var anim = new DSAProj.Animation(Proj, category)
                 {
-                    var anim = matchedAnims.First().Value.Ref;
-                    return anim;
-                }
-            }
-            return null;
-        }
+                    SplitID = id,
+                };
 
-        public TaeEditAnimList.TaeEditAnimInfo GetAnimListInfoOfAnim(TAE.Animation anim)
-        {
-            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
-            {
-                if (s.InfoMap.ContainsKey(anim))
-                    return s.InfoMap[anim];
-            }
-            return null;
-        }
-
-        public TAE.Animation CreateNewAnimWithFullID(long fullID, string animName, bool nukeExisting)
-        {
-            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.PC)
-            {
-                var split = GameRoot.SplitAnimID.FromFullID((int)fullID);
-                var tae = FileContainer.GetTAE(split.TaeID);
-
-                if (nukeExisting)
+                anim.SAFE_SetHeader(new TAE.Animation.AnimFileHeader.Standard()
                 {
-                    var existing = new List<TAE.Animation>();
-                    foreach (var a in tae.Animations)
-                    {
-                        if (a.ID == split.SubID)
-                            existing.Add(a);
-                    }
-                    foreach (var a in existing)
-                    {
-                        tae.Animations.Remove(a);
-                    }
-                }
-
-                var anim = new TAE.Animation(split.SubID, new TAE.Animation.AnimMiniHeader.Standard(), animName);
-                tae.Animations.Add(anim);
-                tae.Animations = tae.Animations.OrderBy(x => x.ID).ToList();
+                    AnimFileName = animName,
+                });
+                //var category = Proj.RegistCategory(id.CategoryID);
+                //var existing = category.Animations.Where(a => a.SplitID == id);
+                category.SAFE_AddAnimation(anim);
+                category.SAFE_ResortAnimIDs();
                 return anim;
             }
-            else
-            {
-                var anim = new TAE.Animation(fullID, new TAE.Animation.AnimMiniHeader.Standard(), animName);
-                SelectedTae.Animations.Add(anim);
-                SelectedTae.Animations = SelectedTae.Animations.OrderBy(x => x.ID).ToList();
-                return anim;
-            }
-        }
 
-        public TAE.Animation GetAnimRefFromID(long id)
-        {
-            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
-            {
-                var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
-                if (matchedAnims.Any())
-                {
-                    return matchedAnims.First().Value.Ref;
-                }
-            }
             return null;
         }
 
-        public bool GotoAnimID(long id, bool scrollOnCenter, bool ignoreIfAlreadySelected, out TAE.Animation foundAnimRef, float startFrameOverride = -1)
+        public bool GotoAnimID(SplitAnimID id, bool scrollOnCenter, bool ignoreIfAlreadySelected, out DSAProj.Animation foundAnimRef, float startFrameOverride = -1, bool disableHkxSelect = false)
         {
-            foreach (var s in AnimationListScreen.AnimTaeSections.Values)
+            foundAnimRef = Proj.SAFE_GetFirstAnimationFromFullID(id);
+
+            if (foundAnimRef != null)
             {
-                var matchedAnims = s.InfoMap.Where(x => x.Value.FullID == id);
-                if (matchedAnims.Any())
+                if (!ignoreIfAlreadySelected || foundAnimRef != SelectedAnim)
                 {
-                    var anim = matchedAnims.First().Value.Ref;
-                    foundAnimRef = anim;
-                    if (!ignoreIfAlreadySelected || anim != SelectedTaeAnim)
-                        SelectNewAnimRef(s.Tae, anim, scrollOnCenter, doNotCommitToGraph: false ,startFrameOverride);
-                    return true;
+                    SelectNewAnimRef(foundAnimRef.ParentCategory, foundAnimRef, scrollOnCenter, doNotCommitToGraph: false, startFrameOverride, isPushCurrentToHistBackwardStack: true);
+                    
                 }
+                return true;
             }
 
 
@@ -1386,139 +2013,24 @@ namespace DSAnimStudio.TaeEditor
             return false;
         }
 
+
         public void ShowDialogEditCurrentAnimInfo()
         {
-            DialogManager.ShowTaeAnimPropertiesEditor(SelectedTaeAnim);
-
-            //Task.Run(new Action(() =>
-            //{
-            //    PauseUpdate = true;
-            //    var editForm = new TaeEditAnimPropertiesForm(SelectedTaeAnim, FileContainer.AllTAE.Count() == 1);
-            //    editForm.Owner = GameWindowAsForm;
-            //    editForm.ShowDialog();
-
-            //    if (editForm.WasAnimDeleted)
-            //    {
-            //        if (SelectedTae.Animations.Count <= 1)
-            //        {
-            //            System.Windows.Forms.MessageBox.Show(
-            //                "Cannot delete the only animation remaining in the TAE.",
-            //                "Can't Delete Last Animation",
-            //                System.Windows.Forms.MessageBoxButtons.OK,
-            //                System.Windows.Forms.MessageBoxIcon.Stop);
-            //        }
-            //        else
-            //        {
-            //            var indexOfCurrentAnim = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
-            //            SelectedTae.Animations.Remove(SelectedTaeAnim);
-            //            RecreateAnimList();
-
-            //            if (indexOfCurrentAnim > SelectedTae.Animations.Count - 1)
-            //                indexOfCurrentAnim = SelectedTae.Animations.Count - 1;
-
-            //            if (indexOfCurrentAnim >= 0)
-            //                SelectNewAnimRef(SelectedTae, SelectedTae.Animations[indexOfCurrentAnim]);
-            //            else
-            //                SelectNewAnimRef(SelectedTae, SelectedTae.Animations[0]);
-
-            //            SelectedTae.SetIsModified(!IsReadOnlyFileMode);
-            //        }
-            //    }
-            //    else
-            //    {
-            //        bool needsAnimReload = false;
-            //        if (editForm.WasAnimIDChanged)
-            //        {
-            //            SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-            //            SelectedTae.SetIsModified(!IsReadOnlyFileMode);
-            //            RecreateAnimList();
-            //            UpdateSelectedTaeAnimInfoText();
-            //            Graph.InitGhostEventBoxes();
-            //            needsAnimReload = true;
-            //        }
-
-            //        if (editForm.WereThingsChanged)
-            //        {
-            //            SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-            //            SelectedTae.SetIsModified(!IsReadOnlyFileMode);
-            //            UpdateSelectedTaeAnimInfoText();
-            //            Graph.InitGhostEventBoxes();
-            //            needsAnimReload = true;
-            //        }
-
-            //        if (needsAnimReload)
-            //            Graph.ViewportInteractor.OnNewAnimSelected();
-
-            //    }
-
-            //    PauseUpdate = false;
-            //}));
-
-            
+            if (SelectedAnim?.IS_DUMMY_ANIM == false)
+                DialogManager.ShowTaeAnimPropertiesEditor(Proj, SelectedAnim);
         }
+        
+        // public void ShowDialogEditActionTrackProperties(int trackIndex, DSAProj.ActionTrack track)
+        // {
+        //     DialogManager.ShowTaeActionTrackPropertiesEditor(SelectedTaeAnim, trackIndex, track);
+        // }
 
-        private void GameWindowAsForm_FormClosing(object sender, System.Windows.Forms.FormClosingEventArgs e)
+        public void ShowDialogEditRootTaeProperties()
         {
-            Main.SaveConfig();
-
-            var unsavedChanges = IsModified && !IsReadOnlyFileMode;
-
-            if (!unsavedChanges && FileContainer != null)
-            {
-                if (FileContainer.IsModified)
-                {
-                    unsavedChanges = true;
-                }
-                else
-                {
-                    foreach (var tae in FileContainer.AllTAE)
-                    {
-                        foreach (var anim in tae.Animations)
-                        {
-                            if (anim.GetIsModified() && !IsReadOnlyFileMode)
-                            {
-                                unsavedChanges = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (unsavedChanges)
-            {
-                e.Cancel = true;
-
-                var confirmDlg = System.Windows.Forms.MessageBox.Show(
-                    $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
-                    $"unsaved changes. Would you like to save these changes before " +
-                    $"closing?", "Save Unsaved Changes?",
-                    System.Windows.Forms.MessageBoxButtons.YesNoCancel,
-                    System.Windows.Forms.MessageBoxIcon.None);
-
-                if (confirmDlg == System.Windows.Forms.DialogResult.Yes)
-                {
-                    SaveCurrentFile(afterSaveAction: () =>
-                    {
-                        Main.REQUEST_EXIT = true;
-                    },
-                    saveMessage: "Saving ANIBND and then exiting...");
-                }
-                else if (confirmDlg == System.Windows.Forms.DialogResult.No)
-                {
-                    e.Cancel = false;
-                }
-            }
-            else
-            {
-                e.Cancel = false;
-            }
-
-            if (!e.Cancel)
-            {
-                Main.OnClosing();
-            }
+            DialogManager.ShowRootTaePropertiesEditor(Proj);
         }
+
+       
 
         private void WinFormsMenuStrip_MenuDeactivate(object sender, EventArgs e)
         {
@@ -1531,165 +2043,15 @@ namespace DSAnimStudio.TaeEditor
             Input.CursorType = MouseCursorType.Arrow;
         }
 
-        public void DirectOpenFile(string anibndFileName, string chrbndFileName)
+
+        private string TryAnimLoadFallback(string fileContainerName)
         {
-            
-            void DoActualFileOpen()
-            {
-                LoadingTaskMan.DoLoadingTask("DirectOpenFile", "Loading game assets...", progress =>
-                {
-                    string oldFileContainerName = FileContainerName.ToString();
-                    var oldFileContainer = FileContainer;
-                    string oldFileContainerName_Model = FileContainerName_Model;
+            string possibleFallbackPath = fileContainerName.ToLower().EndsWith(".dcx") ? (fileContainerName.Substring(0, fileContainerName.Length - "0.anibnd.dcx".Length) + "0.anibnd.dcx")
+                        : (fileContainerName.Substring(0, fileContainerName.Length - "0.anibnd".Length) + "0.anibnd");
 
-                    FileContainerName = anibndFileName;
-                    FileContainerName_Model = chrbndFileName;
-                    bool? loadFileResult = null;
-
-                    try
-                    {
-                        loadFileResult = LoadCurrentFile();
-                    }
-                    catch (System.Threading.ThreadInterruptedException)
-                    {
-                        Main.REQUEST_REINIT_EDITOR = true;
-                        return;
-                    }
-                    if (loadFileResult == false)
-                    {
-                        FileContainerName = oldFileContainerName;
-                        FileContainer = oldFileContainer;
-                        FileContainerName_Model = oldFileContainerName_Model;
-                        return;
-                    }
-                    else if (loadFileResult == null)
-                    {
-                        lock (Main.Config._lock_ThreadSensitiveStuff)
-                        {
-                            if (Config.RecentFilesList.Any(f => f.TaeFile == anibndFileName))
-                            {
-                                var ask = System.Windows.Forms.MessageBox.Show(
-                                    $"File '{anibndFileName}' no longer exists. Would you like to " +
-                                    $"remove it from the recent files list?",
-                                    "File Does Not Exist",
-                                    System.Windows.Forms.MessageBoxButtons.YesNo,
-                                    System.Windows.Forms.MessageBoxIcon.Warning)
-                                        == System.Windows.Forms.DialogResult.Yes;
-
-                                if (ask)
-                                {
-                                    if (Config.RecentFilesList.Any(f => f.TaeFile == anibndFileName))
-                                        Config.RecentFilesList.RemoveAll(f => f.TaeFile == anibndFileName);
-                                }
-                            }
-                        }
-
-                        FileContainerName = oldFileContainerName;
-                        FileContainer = oldFileContainer;
-                        FileContainerName_Model = oldFileContainerName_Model;
-                        return;
-                    }
-
-                    if (!FileContainer.AllTAE.Any())
-                    {
-                        FileContainerName = oldFileContainerName;
-                        FileContainer = oldFileContainer;
-                        FileContainerName_Model = oldFileContainerName_Model;
-                        System.Windows.Forms.MessageBox.Show(
-                            "Selected binder had no TAE files in it. If this is an enemy with multiple variants, you must select the shared base ANIBND file with the TAE in it." +
-                            "Cancelling load operation.", "Invalid File",
-                            System.Windows.Forms.MessageBoxButtons.OK,
-                            System.Windows.Forms.MessageBoxIcon.Stop);
-                    }
-                    else if (loadFileResult == null)
-                    {
-                        FileContainerName = oldFileContainerName;
-                        FileContainer = oldFileContainer;
-                        FileContainerName_Model = oldFileContainerName_Model;
-                        System.Windows.Forms.MessageBox.Show(
-                            "File did not exist.", "File Does Not Exist",
-                            System.Windows.Forms.MessageBoxButtons.OK,
-                            System.Windows.Forms.MessageBoxIcon.Stop);
-                    }
-                }, disableProgressBarByDefault: true);
-            }
-
-            if (FileContainer != null && !IsReadOnlyFileMode && (IsModified || FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified()))))
-            {
-                var yesNoCancel = System.Windows.Forms.MessageBox.Show(
-                    $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
-                    $"unsaved changes. Would you like to save these changes before " +
-                    $"loading a new file?", "Save Unsaved Changes?",
-                    System.Windows.Forms.MessageBoxButtons.YesNoCancel,
-                    System.Windows.Forms.MessageBoxIcon.None);
-
-                if (yesNoCancel == System.Windows.Forms.DialogResult.Yes)
-                {
-                    SaveCurrentFile(afterSaveAction: () =>
-                    {
-                        try
-                        {
-                            DoActualFileOpen();
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Windows.Forms.MessageBox.Show(ex.ToString(),
-                                "Error While Loading File",
-                                System.Windows.Forms.MessageBoxButtons.OK,
-                                System.Windows.Forms.MessageBoxIcon.Error);
-                        }
-                    },
-                    saveMessage: "Saving ANIBND then loading new one...");
-                    return;
-                }
-                else if (yesNoCancel == System.Windows.Forms.DialogResult.Cancel)
-                {
-                    return;
-                }
-                //If they chose no, continue as normal.
-            }
-
-            try
-            {
-                DoActualFileOpen();
-            }
-            catch (Exception ex)
-            {
-                System.Windows.Forms.MessageBox.Show(ex.ToString(), 
-                    "Error While Loading File", 
-                    System.Windows.Forms.MessageBoxButtons.OK, 
-                    System.Windows.Forms.MessageBoxIcon.Error);
-            }
-                
-            
-        }
-
-        public void OpenFromPackedGameArchives()
-        {
-            Task.Run(() => { }).ContinueWith((task) =>
-            {
-                var thing = new TaeLoadFromArchivesWizard();
-                thing.StartInCenterOf(Main.WinForm);
-                thing.ShowDialog();
-            }, TaskScheduler.FromCurrentSynchronizationContext());
-
-
-            //Task.Run(() => new Task(() =>
-            //{
-            //    var thing = new TaeLoadFromArchivesWizard();
-            //    thing.ShowDialog();
-            //}), TaskScheduler.FromCurrentSynchronizationContext());
-            
-        }
-
-        private bool TryAnimLoadFallback()
-        {
-            string possibleFallbackPath = FileContainerName.ToLower().EndsWith(".dcx") ? (FileContainerName.Substring(0, FileContainerName.Length - "0.anibnd.dcx".Length) + "0.anibnd.dcx")
-                        : (FileContainerName.Substring(0, FileContainerName.Length - "0.anibnd".Length) + "0.anibnd");
-
-            var anibndDirectory = Path.GetDirectoryName(FileContainerName);
-            var anibndShort = Utils.GetShortIngameFileName(FileContainerName);
-            var anibndPathJustFile = Path.GetFileName(FileContainerName);
+            var anibndDirectory = Path.GetDirectoryName(fileContainerName);
+            var anibndShort = Utils.GetShortIngameFileName(fileContainerName);
+            var anibndPathJustFile = Path.GetFileName(fileContainerName);
             var baseShort = Utils.GetShortIngameFileName(possibleFallbackPath);
             var basePathJustFile = Path.GetFileName(possibleFallbackPath);
 
@@ -1704,15 +2066,15 @@ namespace DSAnimStudio.TaeEditor
                     $"Would you like to load that base anibnd for editing instead?", "Load Base ANIBND?", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
                 if (askResult == System.Windows.Forms.DialogResult.Yes)
                 {
-                    FileContainerName = $"{anibndDirectory}\\c0000.anibnd.dcx";
-                    return true;
+                    fileContainerName = $"{anibndDirectory}\\c0000.anibnd.dcx";
+                    return fileContainerName;
                 }
                 else if (askResult == System.Windows.Forms.DialogResult.Cancel)
                 {
-                    return false;
+                    return null;
                 }
             }
-            else if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER &&
+            else if (ParentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.AC6 &&
                 System.Text.RegularExpressions.Regex.IsMatch(anibndPathJustFile, @"c\d\d\d\d_div\d\d.anibnd.dcx$")
                 && File.Exists($"{anibndDirectory}\\{anibndShort.Substring(0, 5)}.anibnd.dcx")
                 && TaeFileContainer.AnibndContainsTae($"{anibndDirectory}\\{anibndShort.Substring(0, 5)}.anibnd.dcx"))
@@ -1723,12 +2085,12 @@ namespace DSAnimStudio.TaeEditor
                     $"Would you like to load that base anibnd for editing instead?", "Load Base ANIBND?", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
                 if (askResult == System.Windows.Forms.DialogResult.Yes)
                 {
-                    FileContainerName = $"{anibndDirectory}\\{anibndShort.Substring(0, 5)}.anibnd.dcx";
-                    return true;
+                    fileContainerName = $"{anibndDirectory}\\{anibndShort.Substring(0, 5)}.anibnd.dcx";
+                    return fileContainerName;
                 }
                 else if (askResult == System.Windows.Forms.DialogResult.Cancel)
                 {
-                    return false;
+                    return null;
                 }
             }
 
@@ -1739,22 +2101,23 @@ namespace DSAnimStudio.TaeEditor
                     $"which has TimeAct data. Would you like to load the base anibnd instead?", "Load Base ANIBND?", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
                 if (askResult == System.Windows.Forms.DialogResult.Yes)
                 {
-                    FileContainerName = possibleFallbackPath;
+                    fileContainerName = possibleFallbackPath;
+                    return fileContainerName;
                 }
                 else if (askResult == System.Windows.Forms.DialogResult.Cancel)
                 {
-                    return false;
+                    return null;
                 }
             }
             else
             {
-                var gameDataAnibndPath = GameData.FindFileInGameData(FileContainerName);
+                var gameDataAnibndPath = ParentDocument.GameData.FindFileInGameData(fileContainerName);
                 string possibleGameDataFallbackPath = (gameDataAnibndPath.Substring(0, gameDataAnibndPath.Length - "0.anibnd.dcx".Length) + "0.anibnd.dcx");
                 string possibleGameDataFallbackPathJustFile = Path.GetFileName(possibleGameDataFallbackPath);
                 if (gameDataAnibndPath != null)
                 {
-                    if (anibndShort.StartsWith("c0000_") && GameData.FileExists("chr/c0000.anibnd.dcx")
-                        && TaeFileContainer.AnibndContainsTae(GameData.ReadFile("chr/c0000.anibnd.dcx")))
+                    if (anibndShort.StartsWith("c0000_") && ParentDocument.GameData.FileExists("chr/c0000.anibnd.dcx")
+                        && TaeFileContainer.AnibndContainsTae(ParentDocument.GameData.ReadFile("chr/c0000.anibnd.dcx")))
                     {
                         var askResult = System.Windows.Forms.MessageBox.Show($"The selected anibnd, '{anibndPathJustFile}', does not " +
                         $"have any TimeAct (.TAE) data inside of it, just animations.\n" +
@@ -1762,19 +2125,19 @@ namespace DSAnimStudio.TaeEditor
                         $"Would you like to unpack that base anibnd into the project folder and open it for editing instead?", "Load Base ANIBND?", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
                         if (askResult == System.Windows.Forms.DialogResult.Yes)
                         {
-                            FileContainerName = $"{anibndDirectory}\\c0000.anibnd.dcx";
-                            File.WriteAllBytes(FileContainerName, GameData.ReadFile("chr/c0000.anibnd.dcx"));
-                            return true;
+                            fileContainerName = $"{anibndDirectory}\\c0000.anibnd.dcx";
+                            File.WriteAllBytes(fileContainerName, ParentDocument.GameData.ReadFile("chr/c0000.anibnd.dcx"));
+                            return fileContainerName;
                         }
                         else if (askResult == System.Windows.Forms.DialogResult.Cancel)
                         {
-                            return false;
+                            return null;
                         }
                     }
-                    else if (GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER &&
+                    else if (ParentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.AC6 &&
                         System.Text.RegularExpressions.Regex.IsMatch(anibndPathJustFile, @"c\d\d\d\d_div\d\d.anibnd.dcx$")
-                        && GameData.FileExists($"chr/{anibndShort.Substring(0, 5)}.anibnd.dcx")
-                        && TaeFileContainer.AnibndContainsTae(GameData.ReadFile($"chr/{anibndShort.Substring(0, 5)}.anibnd.dcx")))
+                        && ParentDocument.GameData.FileExists($"chr/{anibndShort.Substring(0, 5)}.anibnd.dcx")
+                        && TaeFileContainer.AnibndContainsTae(ParentDocument.GameData.ReadFile($"chr/{anibndShort.Substring(0, 5)}.anibnd.dcx")))
                     {
                         var askResult = System.Windows.Forms.MessageBox.Show($"The selected anibnd, '{anibndPathJustFile}', does not " +
                             $"have any TimeAct (.TAE) data inside of it, just animations.\n" +
@@ -1782,29 +2145,29 @@ namespace DSAnimStudio.TaeEditor
                             $"Would you like to unpack that base anibnd into the project folder and open it for editing instead?", "Load Base ANIBND?", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
                         if (askResult == System.Windows.Forms.DialogResult.Yes)
                         {
-                            FileContainerName = $"{anibndDirectory}\\{anibndShort.Substring(0, 5)}.anibnd.dcx";
-                            File.WriteAllBytes(FileContainerName, GameData.ReadFile($"chr/{anibndShort.Substring(0, 5)}.anibnd.dcx"));
-                            return true;
+                            fileContainerName = $"{anibndDirectory}\\{anibndShort.Substring(0, 5)}.anibnd.dcx";
+                            File.WriteAllBytes(fileContainerName, ParentDocument.GameData.ReadFile($"chr/{anibndShort.Substring(0, 5)}.anibnd.dcx"));
+                            return fileContainerName;
                         }
                         else if (askResult == System.Windows.Forms.DialogResult.Cancel)
                         {
-                            return false;
+                            return null;
                         }
                     }
-                    else if (GameData.FileExists(possibleGameDataFallbackPath) && TaeFileContainer.AnibndContainsTae(GameData.ReadFile(possibleGameDataFallbackPath)))
+                    else if (ParentDocument.GameData.FileExists(possibleGameDataFallbackPath) && TaeFileContainer.AnibndContainsTae(ParentDocument.GameData.ReadFile(possibleGameDataFallbackPath)))
                     {
                         var askResult = System.Windows.Forms.MessageBox.Show($"The selected anibnd, '{anibndPathJustFile}', does not " +
                             $"have any TimeAct (.TAE) data inside of it. It appears to read from the base anibnd, '{possibleGameDataFallbackPathJustFile}', " +
                             $"which has TimeAct data. Would you like to unpack that base anibnd into the project folder and open it for editing instead?", "Load Base ANIBND?", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
                         if (askResult == System.Windows.Forms.DialogResult.Yes)
                         {
-                            FileContainerName = possibleFallbackPath;
-                            File.WriteAllBytes(FileContainerName, GameData.ReadFile(possibleGameDataFallbackPath));
-                            return true;
+                            fileContainerName = possibleFallbackPath;
+                            File.WriteAllBytes(fileContainerName, ParentDocument.GameData.ReadFile(possibleGameDataFallbackPath));
+                            return fileContainerName;
                         }
                         else if (askResult == System.Windows.Forms.DialogResult.Cancel)
                         {
-                            return false;
+                            return null;
                         }
                     }
 
@@ -1815,35 +2178,59 @@ namespace DSAnimStudio.TaeEditor
                 System.Windows.Forms.MessageBox.Show($"The selected anibnd, '{anibndPathJustFile}', does not " +
                     $"have any TimeAct (.TAE) data inside of it. Unable to find any base ANIBND that the game reads TimeAct " +
                     $"data from in combination with this file. Aborting load operation.", "Invalid ANIBND", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
-                return false;
+                return null;
             }
 
-            return true;
+            return fileContainerName;
+        }
+
+        public static int ShowBinderFilePicker(string binderFilePath, Func<BinderFile, bool> predicate)
+        {
+            var binder = Utils.ReadBinder(binderFilePath);
+            var matchedFiles = binder.Files.Where(x => predicate(x)).ToList();
+            if (matchedFiles.Count == 0)
+                return -1;
+            var matchedFilesStrings = matchedFiles.Select(x => $"[{x.ID}] {(x.Name ?? "<No Name>")}").ToList();
+            var picker = new TaeLoadFromArchivesFilePicker();
+            picker.Text = "Select File In Binder";
+            picker.InitEblFileList(matchedFilesStrings, null, null);
+            picker.SelectedEblFileIndex = 0;
+            var result = picker.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                if (picker.SelectedEblFileIndex < 0 || picker.SelectedEblFileIndex >= matchedFilesStrings.Count)
+                    return -1;
+                else
+                    return matchedFiles[picker.SelectedEblFileIndex].ID;
+
+            }
+
+            return -1;
         }
 
         public void File_Open()
         {
-            SoundManager.StopAllSounds();
-            RumbleCamManager.ClearActive();
-            if (FileContainer != null && !IsReadOnlyFileMode && FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified())))
-            {
-                var yesNoCancel = System.Windows.Forms.MessageBox.Show(
-                    $"File \"{System.IO.Path.GetFileName(FileContainerName)}\" has " +
-                    $"unsaved changes. Would you like to save these changes before " +
-                    $"loading a new file?", "Save Unsaved Changes?",
-                    System.Windows.Forms.MessageBoxButtons.YesNoCancel,
-                    System.Windows.Forms.MessageBoxIcon.None);
+            ParentDocument.SoundManager.StopAllSounds();
+            ParentDocument.RumbleCamManager.ClearActive();
+            //if (FileContainer != null && !IsReadOnlyFileMode && FileContainer.AllTAE.Any(x => x.Animations.Any(a => a.GetIsModified())))
+            //{
+            //    var yesNoCancel = System.Windows.Forms.MessageBox.Show(
+            //        $"File \"{System.IO.Path.GetFileName(NewFileContainerName)}\" has " +
+            //        $"unsaved changes. Would you like to save these changes before " +
+            //        $"loading a new file?", "Save Unsaved Changes?",
+            //        System.Windows.Forms.MessageBoxButtons.YesNoCancel,
+            //        System.Windows.Forms.MessageBoxIcon.None);
 
-                if (yesNoCancel == System.Windows.Forms.DialogResult.Yes)
-                {
-                    SaveCurrentFile();
-                }
-                else if (yesNoCancel == System.Windows.Forms.DialogResult.Cancel)
-                {
-                    return;
-                }
-                //If they chose no, continue as normal.
-            }
+            //    if (yesNoCancel == System.Windows.Forms.DialogResult.Yes)
+            //    {
+            //        SaveCurrentFile();
+            //    }
+            //    else if (yesNoCancel == System.Windows.Forms.DialogResult.Cancel)
+            //    {
+            //        return;
+            //    }
+            //    //If they chose no, continue as normal.
+            //}
 
             var browseDlg = new System.Windows.Forms.OpenFileDialog()
             {
@@ -1854,10 +2241,10 @@ namespace DSAnimStudio.TaeEditor
                 //ShowReadOnly = true,
             };
 
-            if (System.IO.File.Exists(FileContainerName))
+            if (System.IO.File.Exists(NewFileContainerName))
             {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(FileContainerName);
-                browseDlg.FileName = System.IO.Path.GetFileName(FileContainerName);
+                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(NewFileContainerName);
+                browseDlg.FileName = System.IO.Path.GetFileName(NewFileContainerName);
             }
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -1865,55 +2252,115 @@ namespace DSAnimStudio.TaeEditor
                 
 
                 IsReadOnlyFileMode = browseDlg.ReadOnlyChecked;
-                FileContainerName = browseDlg.FileName;
-                FileContainerName_Model = null;
+                string fileContainerName = browseDlg.FileName;
 
-                if (!TaeFileContainer.AnibndContainsTae(FileContainerName))
+                DSAProj.TaeContainerInfo container = null;
+
+                var check = fileContainerName.ToLower();
+
+                bool failedFileInBinderPicker = false;
+                
+                if (check.EndsWith(".anibnd.dcx") || check.EndsWith(".anibnd"))
                 {
-                    if (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.None)
+                    
+                    var chrbndName = ParentDocument.GameData.ShowPickInsideBndPath("/chr/", @".*\/c\d\d\d\d.chrbnd.dcx$", $"/chr/{Utils.GetShortIngameFileName(check)}", 
+                        $"Choose Character Model for '{Utils.GetShortIngameFileName(check)}.anibnd.dcx'", $"/chr/{Utils.GetShortIngameFileName(check)}.chrbnd.dcx");
+                    container = new DSAProj.TaeContainerInfo.ContainerAnibnd(fileContainerName, chrbndName);
+                    
+                    bool containsNoTae = !TaeFileContainer.AnibndContainsTae(fileContainerName);
+                
+                    if (containsNoTae)
                     {
-                        GameRoot.InitializeFromBND(FileContainerName);
+                        if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.None)
+                        {
+                            if (!ParentDocument.GameRoot.InitializeFromBND(fileContainerName))
+                            {
+                                Main.REQUEST_REINIT_EDITOR = true;
+                                return;
+                            }
+                        }
+                        var fallback = TryAnimLoadFallback(fileContainerName);
+                        if (fallback == null)
+                        {
+                            Main.REQUEST_REINIT_EDITOR = true;
+                            return;
+                        }
+                        else
+                        {
+                            fileContainerName = fallback;
+                        }
                     }
-                    if (!TryAnimLoadFallback())
-                    {
-                        Main.REQUEST_REINIT_EDITOR = true;
-                        return;
-                    }
+                }
+                else if (check.EndsWith(".partsbnd.dcx") || check.EndsWith(".partsbnd"))
+                {
+                    var bindFileID = ShowBinderFilePicker(fileContainerName, f => f.ID >= 400 && f.ID < 500 && TaeFileContainer.AnibndContainsTae(f.Bytes));
+                    if (bindFileID >= 0)
+                        container = new DSAProj.TaeContainerInfo.ContainerAnibndInBinder(fileContainerName, bindFileID);
+                    else
+                        failedFileInBinderPicker = true;
+                }
+                else if (check.EndsWith(".objbnd.dcx") || check.EndsWith(".objbnd"))
+                {
+                    var bindFileID = ShowBinderFilePicker(fileContainerName, f => f.ID >= 400 && f.ID < 500 && TaeFileContainer.AnibndContainsTae(f.Bytes));
+                    if (bindFileID >= 0)
+                        container = new DSAProj.TaeContainerInfo.ContainerAnibndInBinder(fileContainerName, bindFileID);
+                    else
+                        failedFileInBinderPicker = true;
+                }
+
+                //FileContainerName_Model = null;
+
+                if (failedFileInBinderPicker)
+                {
+                    System.Windows.Forms.MessageBox.Show(
+                        "Selected binder file had no ANIBND files containing TAE within it. " +
+                        "Cancelling load operation.", "Invalid File",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Stop);
+                    Main.REQUEST_REINIT_EDITOR = true;
+                    return;
                 }
 
                 bool isCancel = false;
 
-                
+                zzz_DocumentManager.RequestFileOpenRecent = true;
+                zzz_DocumentManager.RequestFileOpenRecent_SelectedFile = container;
 
-                if (!isCancel)
-                {
-                    LoadingTaskMan.DoLoadingTask("File_Open", "Loading game assets...", progress =>
-                    {
-                        var loadFileResult = LoadCurrentFile();
-                        if (loadFileResult == false || !FileContainer.AllTAE.Any())
-                        {
-                            FileContainerName = "";
-                            System.Windows.Forms.MessageBox.Show(
-                                "Selected file had no TAE files within. " +
-                                "Cancelling load operation.", "Invalid File",
-                                System.Windows.Forms.MessageBoxButtons.OK,
-                                System.Windows.Forms.MessageBoxIcon.Stop);
-                        }
-                        else if (loadFileResult == null)
-                        {
-                            FileContainerName = "";
-                            System.Windows.Forms.MessageBox.Show(
-                                "Selected file did not exist (how did you " +
-                                "get this message to appear, anyways?).", "File Does Not Exist",
-                                System.Windows.Forms.MessageBoxButtons.OK,
-                                System.Windows.Forms.MessageBoxIcon.Stop);
-                        }
-                    }, disableProgressBarByDefault: true);
-                }
+                //if (!isCancel)
+                //{
+                //    ParentDocument.LoadingTaskMan.DoLoadingTask("File_Open", "Loading game assets...", progress =>
+                //    {
+                //        var loadFileResult = NewLoadFile(container);
+                //        if (loadFileResult == false || !FileContainer.AllTAE.Any())
+                //        {
+                //            fileContainerName = "";
+                //            System.Windows.Forms.MessageBox.Show(
+                //                "Selected file had no TAE files within it. " +
+                //                "Cancelling load operation.", "Invalid File",
+                //                System.Windows.Forms.MessageBoxButtons.OK,
+                //                System.Windows.Forms.MessageBoxIcon.Stop);
+                //        }
+                //        else if (loadFileResult == null)
+                //        {
+                //            fileContainerName = "";
+                //            System.Windows.Forms.MessageBox.Show(
+                //                "Selected file did not exist (how did you " +
+                //                "get this message to appear, anyways?).", "File Does Not Exist",
+                //                System.Windows.Forms.MessageBoxButtons.OK,
+                //                System.Windows.Forms.MessageBoxIcon.Stop);
+                //        }
+                //    }, disableProgressBarByDefault: true);
+                //}
 
                
 
                
+            }
+            else
+            {
+                // When you decide to cancel opening something
+                ParentDocument.RequestClose_ForceDelete = true;
+                Main.REQUEST_REINIT_EDITOR = true;
             }
         }
 
@@ -1962,9 +2409,9 @@ namespace DSAnimStudio.TaeEditor
         public void BrowseForMoreTextures()
         {
             List<string> texturesToLoad = new List<string>();
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (ParentDocument.Scene._lock_ModelLoad_Draw)
             {
-                foreach (var m in Scene.Models)
+                foreach (var m in ParentDocument.Scene.Models)
                 {
                     texturesToLoad.AddRange(m.MainMesh.GetAllTexNamesToLoad());
                 }
@@ -1981,7 +2428,7 @@ namespace DSAnimStudio.TaeEditor
             {
                 var texFileNames = browseDlg.FileNames;
                 List<string> bxfDupeCheck = new List<string>();
-                LoadingTaskMan.DoLoadingTask("BrowseForEntityTextures", "Scanning files for relevant textures...", progress =>
+                ParentDocument.LoadingTaskMan.DoLoadingTask("BrowseForEntityTextures", "Scanning files for relevant textures...", progress =>
                 {
                     double i = 0;
                     foreach (var tfn in texFileNames)
@@ -1991,18 +2438,18 @@ namespace DSAnimStudio.TaeEditor
                         {
                             if (TPF.Is(tfn))
                             {
-                                TexturePool.AddTpfFromPath(tfn);
+                                ParentDocument.TexturePool.AddTpfFromPath(tfn);
                             }
                             else
                             {
-                                TexturePool.AddSpecificTexturesFromBinder(tfn, texturesToLoad);
+                                ParentDocument.TexturePool.AddSpecificTexturesFromBinder(tfn, texturesToLoad);
                             }
 
                             bxfDupeCheck.Add(shortName);
                         }
                         progress.Report(++i / texFileNames.Length);
                     }
-                    Scene.RequestTextureLoad();
+                    ParentDocument.Scene.RequestTextureLoad();
                     progress.Report(1);
                 });
 
@@ -2013,43 +2460,46 @@ namespace DSAnimStudio.TaeEditor
         }
 
 
-        public void File_SaveAs()
+        //public void File_SaveAs()
+        //{
+        //    var browseDlg = new System.Windows.Forms.SaveFileDialog()
+        //    {
+        //        Filter = FileContainer?.GetResaveFilter()
+        //                   ?? TaeFileContainer.DefaultSaveFilter,
+        //        ValidateNames = true,
+        //        CheckFileExists = false,
+        //        CheckPathExists = true,
+        //    };
+
+        //    if (System.IO.File.Exists(NewFileContainerName))
+        //    {
+        //        browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(NewFileContainerName);
+        //        browseDlg.FileName = System.IO.Path.GetFileName(NewFileContainerName);
+        //    }
+
+        //    if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        //    {
+        //        FileContainer.Info.Set
+        //        FileContainerName = browseDlg.FileName;
+        //        SaveCurrentFile();
+        //    }
+        //}
+
+        public void ChangeTypeOfEvent(DSAProj.Action ev)
         {
-            var browseDlg = new System.Windows.Forms.SaveFileDialog()
-            {
-                Filter = FileContainer?.GetResaveFilter()
-                           ?? TaeFileContainer.DefaultSaveFilter,
-                ValidateNames = true,
-                CheckFileExists = false,
-                CheckPathExists = true,
-            };
-
-            if (System.IO.File.Exists(FileContainerName))
-            {
-                browseDlg.InitialDirectory = System.IO.Path.GetDirectoryName(FileContainerName);
-                browseDlg.FileName = System.IO.Path.GetFileName(FileContainerName);
-            }
-
-            if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                FileContainerName = browseDlg.FileName;
-                SaveCurrentFile();
-            }
-        }
-
-        public void ChangeTypeOfSelectedEvent()
-        {
-            if (SelectedEventBox == null)
+            if (ev == null)
                 return;
 
+            var x = new TaeInspectorFormChangeEventType();
             Task.Run(() =>
             {
                 PauseUpdate = true;
 
                 var changeTypeDlg = new TaeInspectorFormChangeEventType();
-                changeTypeDlg.TAEReference = SelectedTae;
-                changeTypeDlg.CurrentTemplate = SelectedEventBox.MyEvent.Template;
-                changeTypeDlg.NewEventType = SelectedEventBox.MyEvent.Type;
+                changeTypeDlg.ProjRef = Proj;
+                changeTypeDlg.AnimCategoryRef = SelectedAnimCategory;
+                changeTypeDlg.CurrentTemplate = ev.Template;
+                changeTypeDlg.NewEventType = ev.Type;
                 var dialogResult = System.Windows.Forms.DialogResult.Cancel;
                 GameWindowAsForm.Invoke(new Action(() =>
                 {
@@ -2057,55 +2507,36 @@ namespace DSAnimStudio.TaeEditor
                 }));
                 if (dialogResult == System.Windows.Forms.DialogResult.OK)
                 {
-                    if (changeTypeDlg.NewEventType != SelectedEventBox.MyEvent.Type)
+                    if (changeTypeDlg.NewEventType != ev.Type)
                     {
-                        var referenceToEventBox = SelectedEventBox;
-                        var referenceToPreviousEvent = referenceToEventBox.MyEvent;
-                        int index = SelectedTaeAnim.Events.IndexOf(referenceToEventBox.MyEvent);
-                        int row = referenceToEventBox.Row;
+                        var ref_event = ev;
 
-                        UndoMan.NewAction(
+                        var ref_eventType = ev.Type;
+                        var ref_eventTemplate = ev.Template;
+                        if (ref_event.Parameters != null)
+                            ref_event.NewSaveParamsToBytes();
+                        var ref_eventParams = ev.ParameterBytes.ToArray();
+
+
+                        CurrentAnimUndoMan.NewAction(
                             doAction: () =>
                             {
-                                SelectedTaeAnim.Events.Remove(referenceToPreviousEvent);
+                                ref_event.LazySwitchEventTemplate(Proj.Template[changeTypeDlg.NewEventType]);
 
-                                referenceToEventBox.ChangeEvent(
-                                    new TAE.Event(referenceToPreviousEvent.StartTime, referenceToPreviousEvent.EndTime,
-                                    changeTypeDlg.NewEventType, referenceToPreviousEvent.Unk04, SelectedTae.BigEndian,
-                                    SelectedTae.BankTemplate[changeTypeDlg.NewEventType]), SelectedTaeAnim);
 
-                                SelectedTaeAnim.Events.Insert(index, referenceToEventBox.MyEvent);
-
-                                SelectedEventBox = null;
-                                SelectedEventBox = referenceToEventBox;
-
-                                SelectedEventBox.Row = row;
-
-                                Graph.RegisterEventBoxExistance(SelectedEventBox);
-
-                                SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                                SelectedTae.SetIsModified(!IsReadOnlyFileMode);
+                                SelectedAnim.SAFE_SetIsModified(!IsReadOnlyFileMode);
+                                SelectedAnimCategory.SAFE_SetIsModified(!IsReadOnlyFileMode);
                             },
                             undoAction: () =>
                             {
-                                SelectedTaeAnim.Events.RemoveAt(index);
-                                referenceToEventBox.ChangeEvent(referenceToPreviousEvent, SelectedTaeAnim);
-                                SelectedTaeAnim.Events.Insert(index, referenceToPreviousEvent);
+                                ref_event.Type = ref_eventType;
+                                ref_event.Template = ref_eventTemplate;
+                                ref_event.ParameterBytes = ref_eventParams.ToArray();
+                                ref_event.RequestUpdateText();
 
-                                SelectedEventBox = null;
-                                SelectedEventBox = referenceToEventBox;
-
-                                SelectedEventBox.Row = row;
-
-                                Graph.RegisterEventBoxExistance(SelectedEventBox);
-
-                                SelectedTaeAnim.SetIsModified(!IsReadOnlyFileMode);
-                                SelectedTae.SetIsModified(!IsReadOnlyFileMode);
-                            },
-                            new List<ITaeClonable>
-                            {
-
-                            });
+                                SelectedAnim.SAFE_SetIsModified(!IsReadOnlyFileMode);
+                                SelectedAnimCategory.SAFE_SetIsModified(!IsReadOnlyFileMode);
+                            }, "Change type of event");
                     }
                 }
 
@@ -2113,14 +2544,13 @@ namespace DSAnimStudio.TaeEditor
                 PauseUpdate = false;
             });
 
-            
         }
 
         private (long Upper, long Lower) GetSplitAnimID(long id)
         {
-            return ((GameRoot.GameTypeHasLongAnimIDs) 
+            return ((ParentDocument.GameRoot.GameTypeHasLongAnimIDs) 
                 ? (id / 1000000) : (id / 10000),
-                (GameRoot.GameTypeHasLongAnimIDs) 
+                (ParentDocument.GameRoot.GameTypeHasLongAnimIDs) 
                 ? (id % 1000000) : (id % 10000));
         }
 
@@ -2131,11 +2561,11 @@ namespace DSAnimStudio.TaeEditor
 
             var splitID = GetSplitAnimID(compositeID);
 
-            if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXXX_YYYYYY)
+            if (ParentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXXX_YYYYYY)
             {
                 return $"a{splitID.Upper:D3}_{splitID.Lower:D6}";
             }
-            else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YY_ZZZZ)
+            else if (ParentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YY_ZZZZ)
             {
                 string s = $"a{splitID.Upper:D3}_{splitID.Lower:D6}";
                 return s.Insert(s.Length - 4, "_");
@@ -2154,11 +2584,11 @@ namespace DSAnimStudio.TaeEditor
             }
             else
             {
-                if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YY_ZZZZ)
+                if (ParentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YY_ZZZZ)
                 {
                     return $"aXXX_{subID:D6}";
                 }
-                else if (GameRoot.CurrentAnimIDFormatType == GameRoot.AnimIDFormattingType.aXX_YY_ZZZZ)
+                else if (ParentDocument.GameRoot.CurrentAnimIDFormatType == zzz_GameRootIns.AnimIDFormattingType.aXX_YY_ZZZZ)
                 {
                     string s = $"aXX_{subID:D6}";
                     return s.Insert(s.Length - 4, "_");
@@ -2175,41 +2605,39 @@ namespace DSAnimStudio.TaeEditor
         {
             var stringBuilder = new StringBuilder();
 
-            if (SelectedTaeAnim == null)
+            if (SelectedAnim == null || SelectedAnim.IS_DUMMY_ANIM)
             {
                 stringBuilder.Append("(No Animation Selected)");
                 TaeAnimInfoIsClone = false;
             }
             else
             {
-                stringBuilder.Append($"{HKXSubIDDispNameFromInt(SelectedTaeAnim.ID)}");
-
-                if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+                stringBuilder.Append($"{SelectedAnim.SplitID.GetFormattedIDString(Proj)}");
+                SelectedAnim.SafeAccessHeader(header =>
                 {
-                    stringBuilder.Append($" [Original Anim Entry]");
+                    if (header is TAE.Animation.AnimFileHeader.Standard asStandard)
+                    {
+                        stringBuilder.Append($" [Original Anim Entry]");
 
-                    if (asStandard.ImportsHKX && asStandard.ImportHKXSourceAnimID >= 0)
-                        stringBuilder.Append($", Override HKX: {HKXNameFromCompositeID(asStandard.ImportHKXSourceAnimID)}.hkx");
+                        if (asStandard.ImportsHKX && asStandard.ImportHKXSourceAnimID >= 0)
+                            stringBuilder.Append($", Override HKX: {HKXNameFromCompositeID(asStandard.ImportHKXSourceAnimID)}.hkx");
 
-                    if (asStandard.AllowDelayLoad)
-                        stringBuilder.Append(", DelayLoad Allowed");
+                        if (asStandard.AllowDelayLoad)
+                            stringBuilder.Append(", DelayLoad Allowed");
 
-                    if (asStandard.IsLoopByDefault)
-                        stringBuilder.Append($", Loops By Default");
+                        if (asStandard.IsLoopByDefault)
+                            stringBuilder.Append($", Loops By Default");
 
-                    TaeAnimInfoIsClone = false;
-                }
-                else if (SelectedTaeAnim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOtherAnim)
-                {
-                    stringBuilder.Append($" [Clone Anim Entry]");
+                        TaeAnimInfoIsClone = false;
+                    }
+                    else if (header is TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOtherAnim)
+                    {
+                        stringBuilder.Append($" [CLONE OF {HKXNameFromCompositeID(asImportOtherAnim.ImportFromAnimID)}]");
 
-                    if (asImportOtherAnim.ImportFromAnimID >= 0)
-                        stringBuilder.Append($", Clone ID: {HKXNameFromCompositeID(asImportOtherAnim.ImportFromAnimID)}");
-                    
-                    stringBuilder.Append($", Unk. Value: {asImportOtherAnim.Unknown}");
-
-                    TaeAnimInfoIsClone = true;
-                }
+                        TaeAnimInfoIsClone = true;
+                    }
+                });
+                
 
                 //SFTODO
 
@@ -2236,104 +2664,167 @@ namespace DSAnimStudio.TaeEditor
                 //}
             }
 
-            SelectedTaeAnimInfoScrollingText.SetText(stringBuilder.ToString());
+            SelectedTaeAnimInfoText = stringBuilder.ToString();
         }
 
-        public void SelectEvent(TAE.Event ev)
+        public void SelectAction(DSAProj.Action act)
         {
-            var box = Graph.EventBoxes.First(x => x.MyEvent == ev);
-            SelectedEventBox = box;
-
-            float left = Graph.ScrollViewer.Scroll.X;
-            float top = Graph.ScrollViewer.Scroll.Y;
-            float right = Graph.ScrollViewer.Scroll.X + Graph.ScrollViewer.Viewport.Width;
-            float bottom = Graph.ScrollViewer.Scroll.Y + Graph.ScrollViewer.Viewport.Height;
-
-            Graph.ScrollViewer.Scroll.X = box.Left - (Graph.ScrollViewer.Viewport.Width / 2f);
-            Graph.ScrollViewer.Scroll.Y = (box.Row * Graph.RowHeight) - (Graph.ScrollViewer.Viewport.Height / 2f);
-            Graph.ScrollViewer.ClampScroll();
-        }
-
-        public void StripExtraEventGroupsInAllLoadedFilesIfNeeded()
-        {
-            bool wasStripped = false;
-            if (GameRoot.GameTypeUsesLegacyEmptyEventGroups && !Main.Config.SaveAdditionalEventRowInfoToLegacyGames)
-            {
-
-                foreach (var tae in FileContainer.AllTAEDict)
-                {
-                    foreach (var anim in tae.Value.Animations)
-                    {
-                        foreach (var ev in anim.Events)
-                        {
-                            if (ev.Group != null)
-                            {
-                                ev.Group = null;
-                                anim.SetIsModified(true);
-                                tae.Value.SetIsModified(true);
-                                wasStripped = true;
-                            }
-                        }
-                        anim.EventGroups.Clear();
-                    }
-                }
-
-            }
-           
-            if (wasStripped)
-            {
-                DialogManager.DialogOK("Notice", "The Save Row Data To Legacy Games option is disabled " +
-                    "\nbut the file had row data in it from when the option was enabled previously. All row " +
-                    "\ndata has been stripped from the file as if the option has never been used before " +
-                    "\nand it will permanently save without this data present. If this is not desired, " +
-                    "\nthen re-enable the Save Row Data To Legacy Games option and RELOAD the current " +
-                    "\nanibnd WITHOUT SAVING, because saving will permently save the changes into the file.");
-            }
+            NewSelectedActions.Clear();
+            NewSelectedActions.Add(act);
+            Graph.LayoutManager.ScrollToAction(act);
         }
 
         public void CommitActiveGraphToTaeStruct()
         {
-            Graph.EventBoxes = Graph.EventBoxes.OrderBy(evBox => evBox.MyEvent.StartTime + (evBox.Row * 1000)).ToList();
+            //Graph.EventBoxes = Graph.EventBoxes.OrderBy(evBox => evBox.MyEvent.StartTime + (evBox.Row * 1000)).ToList();
 
-            SelectedTaeAnim.Events = Graph.EventBoxes
-                .Select(evBox => evBox.MyEvent)
-                .ToList();
+            //SelectedTaeAnim.Events = Graph.EventBoxes
+            //    .Select(evBox => evBox.MyEvent)
+            //    .ToList();
 
-            Graph?.GenerateFakeDS3EventGroups(threadLock: true);
+            //Graph?.GenerateFakeDS3EventGroups(threadLock: true);
+            Graph?.WriteToAnimRef(SelectedAnim);
         }
 
-        public void SelectNewAnimRef(TAE tae, TAE.Animation animRef, bool scrollOnCenter = false, bool doNotCommitToGraph = false, float startFrameOverride = -1)
+        public enum InsertAnimType
         {
+            None,
+            Before,
+            After,
+        }
+        public void InsertNewAnimAtIndex(DSAProj.AnimCategory fromTae, DSAProj.Animation fromAnim, InsertAnimType type)
+        {
+            //var currentAnim = SelectedTaeAnim;
+            //var currentAnimID = SelectedTae.GetFullAnimationID(SelectedTaeAnim);
 
-            StripExtraEventGroupsInAllLoadedFilesIfNeeded();
+            
+
+            var id = fromAnim.SplitID;
+            var origID = id;
+            var newSubID = id.SubID;
+
+            if (type == InsertAnimType.Before)
+            {
+                newSubID--;
+            }
+            else if (type == InsertAnimType.After)
+            {
+                newSubID++;
+            }
+
+            if (newSubID < 0)
+            {
+                newSubID = 0;
+            }
+
+            int subIDMax = (ParentDocument.GameRoot.GameTypeHasLongAnimIDs ? 999999 : 9999);
+            if (newSubID > subIDMax)
+            {
+                newSubID = subIDMax;
+            }
+
+            if (fromTae.SAFE_AnimExists_ByFullID(SplitAnimID.FromFullID(Proj,
+                    (new SplitAnimID() { CategoryID = id.CategoryID, SubID = newSubID }).GetFullID(Proj))))
+                newSubID = id.SubID;
+
+            GlobalUndoMan.NewAction_AnimCategory(() =>
+            {
+                var newAnimRef = new DSAProj.Animation(Proj, fromTae);
+                //newAnimRef.ParentAnimCategory = fromTae;
+                newAnimRef.SAFE_SetHeader(new TAE.Animation.AnimFileHeader.Standard()
+                {
+                    AnimFileName = "New Anim Entry",
+                    ImportsHKX = false,
+                    ImportHKXSourceAnimID = -1,
+                    IsNullHeader = false,
+                });
+
+                newAnimRef.SplitID = new SplitAnimID() { CategoryID = id.CategoryID, SubID = newSubID };
+
+                int index = fromTae.SAFE_GetAnimIndexInList(fromAnim);
+                if (type == InsertAnimType.After)
+                    index++;
+
+                //if (index < fromTae.Animations.Count)
+                //    fromTae.Animations.Insert(index, newAnimRef);
+                //else // at very end.
+                //    fromTae.Animations.Add(newAnimRef);
+
+                fromTae.SAFE_AddAnimation(newAnimRef, index);
+
+                //ImmediateImportAnim(newAnimRef, currentAnimID);
+
+                RecreateAnimList();
+                SelectNewAnimRef(fromTae, newAnimRef);
+            }, actionDescription: "Quick Add animation");
+
+           
+        }
+
+        public void SelectNewAnimRef(DSAProj.AnimCategory category, DSAProj.Animation animRef, bool scrollOnCenter = false, 
+            bool doNotCommitToGraph = false, float startFrameOverride = -1, bool isPushCurrentToHistBackwardStack = false,
+            bool disableHkxSelect = false)
+        {
+            AnimSwitchRenderCooldown = 1;
+
+            if (isPushCurrentToHistBackwardStack && animRef != null)
+            {
+                bool isDuplicate = false;
+                AnimViewHistoryEntry mostRecentCheck = null;
+                if (AnimViewBackwardStack.Count > 0)
+                {
+                    var peek = AnimViewBackwardStack.Peek();
+                    if (peek.Anim == SelectedAnim)
+                    {
+                        isDuplicate = true;
+                        isPushCurrentToHistBackwardStack = false;
+                    }
+                }
+                if (!isDuplicate)
+                {
+                    AnimViewForwardStack.Clear();
+                    AnimViewBackwardStack.Push(GetAnimHistoryEntryFromCurrent());
+                }
+            }
 
             if (!doNotCommitToGraph)
                 CommitActiveGraphToTaeStruct();
 
-            Graph?.ViewportInteractor?.CurrentModel?.AnimContainer?.MarkAllAnimsReferenceBlendWeights();
-
-            bool isBlend = (PlaybackCursor.IsPlaying || Graph.ViewportInteractor.IsComboRecording) && 
+            bool isBlend = (Graph != null && PlaybackCursor != null) && ((PlaybackCursor?.IsPlaying == true || Graph.ViewportInteractor.NewIsComboActive) && 
                 Graph.ViewportInteractor.IsBlendingActive &&
-                Graph.ViewportInteractor.EntityType != TaeViewportInteractor.TaeEntityType.REMO;
+                Graph.ViewportInteractor.EntityType != TaeViewportInteractor.TaeEntityType.REMO);
 
-            if (Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
+            if (Graph != null && Graph.ViewportInteractor.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
             {
-                PlaybackCursor.CurrentTime = 0;
+                if (PlaybackCursor != null)
+                    PlaybackCursor.CurrentTime = 0;
             }
 
-            AnimSwitchRenderCooldown = AnimSwitchRenderCooldownMax;
+            
+            
+            if (PlaybackCursor != null)
+                PlaybackCursor.IsStepping = false;
 
-            PlaybackCursor.IsStepping = false;
+            SelectedAnimCategory = category;
 
-            SelectedTae = tae;
+            var isNewAnimRef = SelectedAnim != animRef;
+            
+            
 
-            SelectedTaeAnim = animRef;
+            var prevAnim = SelectedAnim;
+            SelectedAnim = animRef;
+
+            prevAnim?.SAFE_UnloadStringsToSaveMemory();
 
             UpdateSelectedTaeAnimInfoText();
 
-            if (SelectedTaeAnim != null)
+            if (SelectedAnim != null)
             {
-                SelectedEventBox = null;
+                if (isNewAnimRef)
+                {
+                    animRef?.SAFE_CheckActionInitialize(Proj.Template);
+                    NewSelectedActions.Clear();
+                }
 
                 //bool wasFirstAnimSelected = false;
 
@@ -2345,106 +2836,262 @@ namespace DSAnimStudio.TaeEditor
 
 
 
-                LoadAnimIntoGraph(SelectedTaeAnim);
+                LoadAnimIntoGraph(SelectedAnimCategory, SelectedAnim);
 
-                if (HasntSelectedAnAnimYetAfterBuildingAnimList)
+                if (isNewAnimRef && Main.Config.ResetScrollWhenChangingAnimations)
                 {
-                    UpdateLayout(); // Fixes scroll when you first open anibnd and when you rebuild anim list.
-                    HasntSelectedAnAnimYetAfterBuildingAnimList = false;
-                }
-
-                AnimationListScreen.ScrollToAnimRef(SelectedTaeAnim, scrollOnCenter);
-
-                Graph.PlaybackCursor.ResetAll();
-
-                if (startFrameOverride >= 0)
-                {
-                     float overrideStartTime = (float)(startFrameOverride * PlaybackCursor.CurrentSnapInterval);
-
-                    Graph.ViewportInteractor.OnNewAnimSelected(overrideStartTime);
-
-                    PlaybackCursor.CurrentTime = PlaybackCursor.StartTime = overrideStartTime;
-                    PlaybackCursor.IgnoreCurrentRelativeScrub();
-                    //Graph.ViewportInteractor.OnScrubFrameChange(overrideStartTime, doNotScrubBackgroundLayers: true);
-                    Graph.ViewportInteractor.OnScrubFrameChange(0);
-                }
-                else
-                {
-                    Graph.ViewportInteractor.OnNewAnimSelected(0);
-                    Graph.PlaybackCursor.RestartFromBeginning();
-                    Graph.ViewportInteractor.OnScrubFrameChange(0);
-
-                    if (!isBlend)
+                    if (Graph != null)
                     {
-                        Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
-                        Graph.ViewportInteractor.RootMotionSendHome();
-                        Graph.ViewportInteractor.ResetRootMotion();
-                        Graph.ViewportInteractor.RemoveTransition();
-                        Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
+                        Graph.ScrollViewer.Scroll = Vector2.Zero;
                     }
                 }
 
-                Scene.UpdateAnimation();
+                if (HasntSelectedAnAnimYetAfterBuildingAnimList)
+                {
+                    // Unused
+                    HasntSelectedAnAnimYetAfterBuildingAnimList = false;
+                }
+
+                ParentDocument.SpWindowAnimations.ScrollToAnimRef(SelectedAnimCategory, SelectedAnim, scrollOnCenter);
+
+                ParentDocument.LoadingTaskMan.DoLoadingTask("TaeEditorScreen_WaitForModelLoad", "Loading animation...", prog =>
+                {
+                    while (Graph?.ViewportInteractor?.IS_STILL_LOADING != false)
+                    {
+                        System.Threading.Thread.Sleep(20);
+                        if (Main.REQUEST_REINIT_EDITOR)
+                            break;
+                    }
+
+                    if (Main.REQUEST_REINIT_EDITOR)
+                        return;
+
+                    Graph.PlaybackCursor.ResetAll();
+
+                    if (startFrameOverride >= 0)
+                    {
+                        float overrideStartTime = (float)(startFrameOverride * PlaybackCursor.CurrentSnapInterval);
+                        var selAnim = SelectedAnim != null ? Proj?.SAFE_SolveAnimRefChain(SelectedAnim.SplitID) : null;
+                        Graph.ViewportInteractor.OnNewAnimSelected(overrideStartTime, disableHkxSelect, selAnim ?? SelectedAnim);
+
+                        PlaybackCursor.CurrentTime = PlaybackCursor.StartTime = overrideStartTime;
+                        PlaybackCursor.IgnoreCurrentRelativeScrub();
+                        //Graph.ViewportInteractor.OnScrubFrameChange(overrideStartTime, doNotScrubBackgroundLayers: true);
+                        Graph.ViewportInteractor.NewScrub();
+                    }
+                    else
+                    {
+                        var selAnim = SelectedAnim != null ? Proj?.SAFE_SolveAnimRefChain(SelectedAnim.SplitID) : null;
+
+                        Graph.ViewportInteractor.OnNewAnimSelected(0, disableHkxSelect, selAnim ?? SelectedAnim);
+                        Graph.PlaybackCursor.RestartFromBeginning();
+                        Graph.ViewportInteractor.NewScrub();
+
+                        if (!isBlend || (PlaybackCursor.IsPlaying && PlaybackCursor.IsTempPausedUntilAnimChange))
+                        {
+                            if (Graph?.ViewportInteractor?.NewIsComboActive != true)
+                                ActualHardReset();
+                        }
+
+                        PlaybackCursor.IsTempPausedUntilAnimChange = false;
+                    }
+
+                    Graph.PlaybackCursor.IsTempPausedUntilAnimChange = false;
+                    SelectNewAnimRef(SelectedAnimCategory, SelectedAnim, scrollOnCenter, doNotCommitToGraph, startFrameOverride, isPushCurrentToHistBackwardStack: false, disableHkxSelect);
+                    //Scene.UpdateAnimation();
+                }, disableProgressBarByDefault: true);
             }
             else
             {
-                SelectedEventBox = null;
+                NewSelectedActions.Clear();
 
                 Graph = null;
             }
         }
 
-        public void ShowDialogChangeAnimName()
+        public void ShowDialogChangeAnimName(DSAProj proj, DSAProj.AnimCategory tae, DSAProj.Animation anim)
         {
-            if (SelectedTaeAnim != null)
+            if (anim != null && !anim.IS_DUMMY_ANIM)
             {
-                DialogManager.AskForInputString("Set Animation Name", "Set the name of the current animation.", "", result =>
+
+                string animID = anim.SplitID.GetFormattedIDString(proj);
+                DialogManager.AskForInputString("Set Animation Name", $"Set the display name of animation {animID}.", "", result =>
                 {
-                    if (SelectedTaeAnim.AnimFileName != result)
+                    if (string.IsNullOrWhiteSpace(result))
+                        result = null;
+
+                    if (anim.Info.DisplayName != result)
                     {
-                        SelectedTaeAnim.AnimFileName = result;
-                        SelectedTaeAnim.SetIsModified(true);
+                        anim.Info.DisplayName = result;
+                        anim.SAFE_SetIsModified(true);
                     }
-                }, canBeCancelled: true, startingText: SelectedTaeAnim.AnimFileName);
+                }, checkError: null, canBeCancelled: true, startingText: anim.Info.DisplayName ?? "");
             }
         }
 
-#if NIGHTFALL
-        public void NIGHTFALL_ToggleImport()
+        public void ShowDialogDuplicateToNewTaeSection(DSAProj proj, DSAProj.AnimCategory category)
         {
-            var s = SelectedTaeAnim.AnimFileName;
-            if (s.StartsWith("+"))
+            if (proj == null || category == null)
+                return;
+            
+            if (Graph.ViewportInteractor.EntityType != TaeViewportInteractor.TaeEntityType.PC)
             {
-                while (s.StartsWith("+"))
-                    s = s.TrimStart('+');
+                // NPC
             }
             else
             {
-                s = "+" + s;
+                
             }
-            SelectedTaeAnim.AnimFileName = s;
-            SelectedTaeAnim.SetIsModified(true);
+            
+            if (proj != null && category != null)
+            {
+                DialogManager.ShowDialogAnimCategoryDuplicate(proj, category, result =>
+                {
+                    int fromCategoryID = category.CategoryID;
+                    int toCategoryID = result.SelectedAnimCategoryID;
+
+                    if (proj.SAFE_CategoryExists(toCategoryID) && !result.UserConfirmedTheyAreOkWithIDConflict)
+                        return;
+                    
+                    
+                    NextAnim(false, true);
+                    
+                    GlobalUndoMan.NewAction(() =>
+                    {
+                        var clonedCategory = category.SAFE_GetClone();
+                        clonedCategory.CategoryID = result.SelectedAnimCategoryID;
+                        if (!string.IsNullOrWhiteSpace(clonedCategory.Info.DisplayName))
+                            clonedCategory.Info.DisplayName += " (copy)";
+
+                        var anims = clonedCategory.SAFE_GetAnimations();
+
+
+
+                        foreach (var anim in anims)
+                        {
+                            anim.SafeAccessHeader(header =>
+                            {
+                                if (header is SoulsAssetPipeline.Animation.TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOtherAnim)
+                                {
+                                    if (asImportOtherAnim.ImportFromAnimID >= 0)
+                                    {
+                                        var impSection = asImportOtherAnim.ImportFromAnimID / ParentDocument.GameRoot.GameTypeUpperAnimIDModBy;
+                                        if (impSection == category.CategoryID)
+                                        {
+                                            var upperID = clonedCategory.CategoryID * ParentDocument.GameRoot.GameTypeUpperAnimIDModBy;
+                                            var lowerID = asImportOtherAnim.ImportFromAnimID % ParentDocument.GameRoot.GameTypeUpperAnimIDModBy;
+                                            asImportOtherAnim.ImportFromAnimID = upperID + lowerID;
+                                        }
+                                    }
+                                }
+                                else if (header is TAE.Animation.AnimFileHeader.Standard asStandard)
+                                {
+                                    if (asStandard.ImportsHKX && asStandard.ImportHKXSourceAnimID >= 0)
+                                    {
+
+                                        // Reroute HKX references of original section to new section, if user has reference HKX of original turned off
+                                        if (!result.ReferenceHkxOfOriginalCategory)
+                                        {
+                                            var impSection = asStandard.ImportHKXSourceAnimID / ParentDocument.GameRoot.GameTypeUpperAnimIDModBy;
+                                            if (impSection == category.CategoryID)
+                                            {
+                                                var upperID = clonedCategory.CategoryID * ParentDocument.GameRoot.GameTypeUpperAnimIDModBy;
+                                                var lowerID = asStandard.ImportHKXSourceAnimID % ParentDocument.GameRoot.GameTypeUpperAnimIDModBy;
+                                                asStandard.ImportHKXSourceAnimID = upperID + lowerID;
+                                            }
+                                        }
+
+
+                                    }
+                                    else
+                                    {
+
+                                        // Turn regular HKX entries into references of original HKX
+                                        if (result.ReferenceHkxOfOriginalCategory)
+                                        {
+                                            var upperID = (int)(category.CategoryID * ParentDocument.GameRoot.GameTypeUpperAnimIDModBy);
+                                            var lowerID = anim.SplitID.SubID;// (int)(anim.NewID.GetFullID(Proj) % ParentDocument.GameRoot.GameTypeUpperAnimIDModBy);
+                                            asStandard.ImportHKXSourceAnimID = upperID + lowerID;
+                                            asStandard.ImportsHKX = true;
+                                        }
+
+                                    }
+
+                                }
+                            });
+
+                            
+
+                            anim.SplitID = new SplitAnimID() { CategoryID = clonedCategory.CategoryID, SubID = anim.SplitID.SubID };
+                        }
+
+
+
+                        //proj.AddOrOverwriteCategory(result.SelectedAnimCategoryID, clonedCategory, result.UserConfirmedTheyAreOkWithOverwriting);
+                        proj.SAFE_AddAnimCategory(clonedCategory);
+                        RecreateAnimList();
+
+                        var firstAnim = clonedCategory.SAFE_GetFirstAnimInList();
+                        if (firstAnim != null)
+                        {
+                            SelectNewAnimRef(clonedCategory, firstAnim, isPushCurrentToHistBackwardStack: true);
+                        }
+                    }, actionDescription: $"[Global] Cloned Anim Category {fromCategoryID} --> {toCategoryID}");
+                    
+                    
+                });
+            }
         }
-#endif
+
+        public void ShowDialogChangeAnimCategoryName(DSAProj.AnimCategory cat)
+        {
+            if (cat != null)
+            {
+                DialogManager.AskForInputString("Set Animation Category Name", 
+                    $"Set the name of animation category {cat.CategoryID}. " +
+                    $"Setting a name does not affect game data in any way, it is purely for your convenience.", 
+                    "", result =>
+                {
+                    if (cat.Info.DisplayName != result)
+                    {
+                        cat.Info.DisplayName = result;
+                        cat.SAFE_SetIsModified(true);
+                        RecreateAnimList();
+                    }
+                }, checkError: null, canBeCancelled: true, startingText: cat.Info.DisplayName);
+            }
+        }
+
+        public void NIGHTFALL_ToggleImport()
+        {
+            SelectedAnim.SafeAccessHeader(header =>
+            {
+                var s = header.AnimFileName;
+                if (s.StartsWith("+"))
+                {
+                    while (s.StartsWith("+"))
+                        s = s.TrimStart('+');
+                }
+                else
+                {
+                    s = "+" + s;
+                }
+                header.AnimFileName = s;
+                SelectedAnim.INNER_SetIsModified(true);
+            });
+            
+        }
+
 
         public void ShowDialogFind()
         {
-            if (FileContainerName == null || SelectedTae == null)
+            if (NewFileContainerName == null || SelectedAnimCategory == null)
                 return;
+
+            OSD.WindowFind.IsOpen = true;
+            OSD.WindowFind.IsRequestFocus = true;
             //PauseUpdate = true;
 
-            if (FindValueDialog == null)
-            {
-                FindValueDialog = new TaeFindValueDialog();
-                FindValueDialog.LastFindInfo = LastFindInfo;
-                FindValueDialog.EditorRef = this;
-                FindValueDialog.Owner = GameWindowAsForm;
-                FindValueDialog.Show();
-                Main.CenterForm(FindValueDialog);
-                FindValueDialog.FormClosed += FindValueDialog_FormClosed;
-            }
-
-            
 
             //var find = KeyboardInput.Show("Quick Find Event", "Finds the very first animation containing the event with the specified ID number or name (according to template).", "");
             //if (int.TryParse(find.Result, out int typeID))
@@ -2465,23 +3112,17 @@ namespace DSAnimStudio.TaeEditor
             //}
 
 
-            
-            //PauseUpdate = false;
-        }
 
-        private void FindValueDialog_FormClosed(object sender, System.Windows.Forms.FormClosedEventArgs e)
-        {
-            FindValueDialog.FormClosed -= FindValueDialog_FormClosed;
-            FindValueDialog = null;
+            //PauseUpdate = false;
         }
 
         public void ShowDialogGotoAnimSectionID()
         {
-            if (FileContainer == null || SelectedTae == null)
+            if (FileContainer == null || SelectedAnimCategory == null)
                 return;
 
-            DialogManager.AskForInputString("Go To Animation Section ID", $"Enter the animation section number (The X part of {GameRoot.CurrentAnimIDFormatType})\n" +
-                "to jump to the first animation in that section.",
+            DialogManager.AskForInputString("Go To Anim Category ID", $"Enter the Anim Category ID (The X part of {ParentDocument.GameRoot.CurrentAnimIDFormatType})\n" +
+                "to jump to the first animation in that category.",
                 $"", result =>
                 {
                     Main.WinForm.Invoke(new Action(() =>
@@ -2490,7 +3131,7 @@ namespace DSAnimStudio.TaeEditor
                         {
                             if (!GotoAnimSectionID(id, scrollOnCenter: true))
                             {
-                                DialogManager.DialogOK("Goto Failed", $"Unable to find anim section {id}.");
+                                DialogManager.DialogOK("Goto Failed", $"Unable to find Anim Category {id}.");
                             }
                         }
                         else
@@ -2500,189 +3141,227 @@ namespace DSAnimStudio.TaeEditor
                     }));
                     
                     
+                }, checkError: input =>
+                {
+                    if (int.TryParse(input.Replace("a", "").Replace("_", ""), out int id))
+                    {
+                        if (!FileContainer.Proj.SAFE_CategoryExists(id))
+                        {
+                            return $"Animation category {id} does not exist.";
+                        }
+                    }
+                    else
+                    {
+                        return $"\"{input}\" is not a valid integer.";
+                    }
+
+                    return null;
                 }, canBeCancelled: true);
         }
 
         public void ShowDialogGotoAnimID()
         {
-            if (FileContainer == null || SelectedTae == null)
+            if (FileContainer == null || SelectedAnimCategory == null)
                 return;
 
             DialogManager.AskForInputString("Go To Animation ID", "Enter the animation ID to jump to.\n" +
                 "Accepts the full string with prefix or just the ID as a number.",
-                GameRoot.CurrentAnimIDFormatType.ToString(), result =>
+                ParentDocument.GameRoot.CurrentAnimIDFormatType.ToString(), result =>
                 {
                     Main.WinForm.Invoke(new Action(() =>
                     {
-                        if (int.TryParse(result.Replace("a", "").Replace("_", ""), out int id))
+                        if (SplitAnimID.TryParse(Proj, result, out SplitAnimID id, out string detailedError))
                         {
                             if (!GotoAnimID(id, scrollOnCenter: true, ignoreIfAlreadySelected: false, out _))
                             {
-                                NotificationManager.PushNotification($"Unable to find animation with ID {id}.");
+                                zzz_NotificationManagerIns.PushNotification($"Go to animation failed: Unable to find animation with ID {id.GetFormattedIDString(Proj)}.");
                             }
                         }
                         else
                         {
-                            NotificationManager.PushNotification($"\"{result}\" is not a valid animation ID.");
+                            zzz_NotificationManagerIns.PushNotification($"Go to animation failed: '{detailedError}'.");
                         }
                     }));
+                }, checkError: input =>
+                {
+                    bool parseSuccess = SplitAnimID.TryParse(Proj, input, out SplitAnimID parsed, out string detailedError);
+                    if (!parseSuccess)
+                        return detailedError;
+
+                    return null;
                 }, canBeCancelled: true);
         }
 
-        public bool ImmediateImportAnim(TAE.Animation importToAnim, int importFromID)
+        public bool ImmediateImportAnim(DSAProj.Animation importToAnim, SplitAnimID importFromID)
         {
             bool isInvalidHKX = false;
-            var animRefToImportFrom = SelectAnimByFullID(importFromID);
+            var animRefToImportFrom = Proj.SAFE_GetFirstAnimationFromFullID(importFromID);
 
-            void DoAnimRefThing(TAE.Animation anim, int animID)
+            void DoAnimRefThing(DSAProj.Animation anim, long animID)
             {
-
-                if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.Standard asStandard)
+                anim.SafeAccessHeader(animHeader =>
                 {
-                    var header = new TAE.Animation.AnimMiniHeader.Standard();
-                    header.ImportsHKX = true;
-
-                    if (asStandard.ImportsHKX)
+                    if (animHeader is TAE.Animation.AnimFileHeader.Standard asStandard)
                     {
-                        header.ImportHKXSourceAnimID = asStandard.ImportHKXSourceAnimID;
-                        if (header.ImportHKXSourceAnimID == animID) // somehow lol
+                        var header = new TAE.Animation.AnimFileHeader.Standard();
+                        header.ImportsHKX = true;
+
+                        if (asStandard.ImportsHKX)
                         {
-                            header.ImportHKXSourceAnimID = -1;
-                            header.ImportsHKX = false;
-                        }
-                    }
-                    else
-                    {
-                        header.ImportHKXSourceAnimID = animID;
-                    }
-
-                    importToAnim.Events.Clear();
-                    importToAnim.EventGroups.Clear();
-                    // { origEventGroup, newEventGroup }
-                    var eventGroupMigrationMapping = new Dictionary<TAE.EventGroup, TAE.EventGroup>();
-
-                    foreach (var ev in anim.Events)
-                        if (ev.Group != null && !eventGroupMigrationMapping.ContainsKey(ev.Group))
-                            eventGroupMigrationMapping.Add(ev.Group, ev.Group.GetClone());
-
-                    foreach (var evg in anim.EventGroups)
-                        if (!eventGroupMigrationMapping.ContainsKey(evg))
-                            eventGroupMigrationMapping.Add(evg, evg.GetClone());
-
-                    foreach (var ev in anim.Events)
-                    {
-                        var newEv = ev.GetClone(GameRoot.IsBigEndianGame);
-                        newEv.Group = ev.Group;
-                        if (ev.Group != null && eventGroupMigrationMapping.ContainsKey(ev.Group))
-                        {
-                            newEv.Group = eventGroupMigrationMapping[ev.Group];
-                            if (!importToAnim.EventGroups.Contains(newEv.Group))
-                                importToAnim.EventGroups.Add(newEv.Group);
-                        }
-                        
-                        importToAnim.Events.Add(newEv);
-                    }
-                    
-                    importToAnim.MiniHeader = header;
-                    importToAnim.SetIsModified(true);
-                    
-                }
-                else if (anim.MiniHeader is TAE.Animation.AnimMiniHeader.ImportOtherAnim asImportOther)
-                {
-                    if (asImportOther.ImportFromAnimID >= 0)
-                    {
-                        var referencedAnim = SelectAnimByFullID(asImportOther.ImportFromAnimID);
-
-                        if (referencedAnim != null)
-                        {
-                            DoAnimRefThing(referencedAnim, asImportOther.ImportFromAnimID);
+                            header.ImportHKXSourceAnimID = asStandard.ImportHKXSourceAnimID;
+                            if (header.ImportHKXSourceAnimID == animID) // somehow lol
+                            {
+                                header.ImportHKXSourceAnimID = -1;
+                                header.ImportsHKX = false;
+                            }
                         }
                         else
                         {
+                            header.ImportHKXSourceAnimID = (int)animID;
+                        }
 
-                            // BROKEN REFERENCE, GARBEGE
+                        importToAnim.INNER_ClearActions();
+                        importToAnim.INNER_ClearActionTracks();
 
-                            var header = new TAE.Animation.AnimMiniHeader.Standard();
-                            header.ImportsHKX = false;
-                            header.ImportHKXSourceAnimID = -1;
+                        anim.UnSafeAccessActions(actions =>
+                        {
+                            foreach (var act in actions)
+                                importToAnim.INNER_AddAction(act.GetClone(readFromTemplate: true));
+                        });
+
+                        anim.UnSafeAccessActionTracks(actionTracks =>
+                        {
+                            foreach (var track in actionTracks)
+                                importToAnim.INNER_AddActionTrack(track.GetClone());
+                        });
+
+                        //foreach (var ev in anim._actions)
+                        //    importToAnim.Actions.Add(ev.GetClone(readFromTemplate: true));
+                        //foreach (var evg in anim._actionTracks)
+                        //    importToAnim.ActionTracks.Add(evg.GetClone());
 
 
+                        // { origEventGroup, newEventGroup }
+                        //var eventGroupMigrationMapping = new Dictionary<TAE.EventGroup, TAE.EventGroup>();
 
-                            importToAnim.Events.Clear();
-                            importToAnim.EventGroups.Clear();
+                        //foreach (var ev in anim.Events)
+                        //    if (ev.Group != null && !eventGroupMigrationMapping.ContainsKey(ev.Group))
+                        //        eventGroupMigrationMapping.Add(ev.Group, ev.Group.GetClone());
 
-                            // { origEventGroup, newEventGroup }
-                            var eventGroupMigrationMapping = new Dictionary<TAE.EventGroup, TAE.EventGroup>();
+                        //foreach (var evg in anim.EventGroups)
+                        //    if (!eventGroupMigrationMapping.ContainsKey(evg))
+                        //        eventGroupMigrationMapping.Add(evg, evg.GetClone());
 
-                            foreach (var ev in anim.Events)
-                                if (ev.Group != null && !eventGroupMigrationMapping.ContainsKey(ev.Group))
-                                    eventGroupMigrationMapping.Add(ev.Group, ev.Group.GetClone());
+                        //foreach (var ev in anim.Events)
+                        //{
+                        //    var newEv = ev.GetClone();
+                        //    newEv.Group = ev.Group;
+                        //    if (ev.Group != null && eventGroupMigrationMapping.ContainsKey(ev.Group))
+                        //    {
+                        //        newEv.Group = eventGroupMigrationMapping[ev.Group];
+                        //        if (!importToAnim.EventGroups.Contains(newEv.Group))
+                        //            importToAnim.EventGroups.Add(newEv.Group);
+                        //    }
 
-                            foreach (var evg in anim.EventGroups)
-                                if (!eventGroupMigrationMapping.ContainsKey(evg))
-                                    eventGroupMigrationMapping.Add(evg, evg.GetClone());
+                        //    importToAnim.Events.Add(newEv);
+                        //}
 
-                            foreach (var ev in anim.Events)
+                        importToAnim.INNER_SetHeader(header);
+                        importToAnim.INNER_SetIsModified(true);
+
+                    }
+                    else if (animHeader is TAE.Animation.AnimFileHeader.ImportOtherAnim asImportOther)
+                    {
+                        if (asImportOther.ImportFromAnimID >= 0)
+                        {
+                            var referencedAnim = Proj.INNER_GetFirstAnimationFromFullID(SplitAnimID.FromFullID(Proj, asImportOther.ImportFromAnimID));
+
+                            if (referencedAnim != null)
                             {
-                                var newEv = ev.GetClone(GameRoot.IsBigEndianGame);
-
-                                newEv.Group = ev.Group;
-                                if (ev.Group != null && eventGroupMigrationMapping.ContainsKey(ev.Group))
-                                {
-                                    newEv.Group = eventGroupMigrationMapping[ev.Group];
-                                    if (!importToAnim.EventGroups.Contains(newEv.Group))
-                                        importToAnim.EventGroups.Add(newEv.Group);
-                                }
-
-                                importToAnim.Events.Add(newEv);
+                                DoAnimRefThing(referencedAnim, asImportOther.ImportFromAnimID);
                             }
-                            foreach (var evg in anim.EventGroups)
-                                importToAnim.EventGroups.Add(evg.GetClone());
-                            importToAnim.MiniHeader = header;
-                            importToAnim.SetIsModified(true);
+                            else
+                            {
 
-                            isInvalidHKX = true;
+                                // BROKEN REFERENCE, GARBEGE
+
+                                var header = new TAE.Animation.AnimFileHeader.Standard();
+                                header.ImportsHKX = false;
+                                header.ImportHKXSourceAnimID = -1;
+
+
+
+                                importToAnim.INNER_ClearActionTracks();
+                                importToAnim.INNER_ClearActionTracks();
+
+                                anim.UnSafeAccessActions(actions =>
+                                {
+                                    foreach (var act in actions)
+                                        importToAnim.INNER_AddAction(act.GetClone(readFromTemplate: true));
+                                });
+
+                                anim.UnSafeAccessActionTracks(actionTracks =>
+                                {
+                                    foreach (var track in actionTracks)
+                                        importToAnim.INNER_AddActionTrack(track.GetClone());
+                                });
+
+                                //foreach (var ev in anim._actions)
+                                //    importToAnim.Actions.Add(ev.GetClone(readFromTemplate: true));
+                                //foreach (var evg in anim._actionTracks)
+                                //    importToAnim.ActionTracks.Add(evg.GetClone());
+                                importToAnim.INNER_SetHeader(header);
+                                importToAnim.INNER_SetIsModified(true);
+
+                                isInvalidHKX = true;
+                            }
                         }
                     }
-                }
+                });
+                
             }
 
-            DoAnimRefThing(animRefToImportFrom, (int)importFromID);
+            DoAnimRefThing(animRefToImportFrom, importFromID.GetFullID(Proj));
             return !isInvalidHKX;
         }
 
         public void ShowDialogImportFromAnimID()
         {
-            if (FileContainer == null || SelectedTae == null)
+            if (FileContainer == null || SelectedAnimCategory == null)
                 return;
 
+            if (SelectedAnim?.IS_DUMMY_ANIM != false)
+                return;
+
+            var currentAnimID = SelectedAnim.SplitID;
+            
             DialogManager.AskForInputString("Import From Animation ID", "Enter the animation ID to import from. This will replace animation and all events with those of the specified animation.\n" +
                 "Accepts the full string with prefix or just the ID as a number.",
-                GameRoot.CurrentAnimIDFormatType.ToString(), result =>
+                ParentDocument.GameRoot.CurrentAnimIDFormatType.ToString(), result =>
                 {
-                    Main.WinForm.Invoke(new Action(() =>
+                    Main.MainThreadLazyDispatch(new Action(() =>
                     {
-                        if (int.TryParse(result.Replace("a", "").Replace("_", ""), out int id))
+                        if (SplitAnimID.TryParse(Proj, result, out SplitAnimID id, out string detailedError))
                         {
-                            var animRefToImportFrom = SelectAnimByFullID(id);
+                            var animRefToImportFrom = Proj.SAFE_GetFirstAnimationFromFullID(id);
 
                             if (animRefToImportFrom == null)
                             {
                                 DialogManager.DialogOK("Import Failed", $"Unable to find anim {id}.");
                             }
-                            else if (animRefToImportFrom == SelectedTaeAnim)
+                            else if (id == currentAnimID)
                             {
-                                DialogManager.DialogOK("Import Failed", $"Anim with ID {id} is the current animation.");
+                                DialogManager.DialogOK("Import Failed", $"Animation {id} is the current animation.");
                             }
 
                             
-                            if (!ImmediateImportAnim(SelectedTaeAnim, id))
+                            if (!ImmediateImportAnim(SelectedAnim, id))
                             {
                                 DialogManager.DialogOK("Import Warning", $"Anim with ID {id} didn't resolve to a valid HKX so only event data was imported.");
                             }
 
-                            SelectNewAnimRef(SelectedTae, SelectedTaeAnim, doNotCommitToGraph: true);
-                            HardReset();
+                            SelectNewAnimRef(SelectedAnimCategory, SelectedAnim, doNotCommitToGraph: true, isPushCurrentToHistBackwardStack: true);
+                            //HardReset();
 
                         }
                         else
@@ -2690,6 +3369,24 @@ namespace DSAnimStudio.TaeEditor
                             DialogManager.DialogOK("Import Failed", $"\"{result}\" is not a valid animation ID.");
                         }
                     }));
+                }, checkError: input =>
+                {
+                    bool parseSuccess = SplitAnimID.TryParse(Proj, input, out SplitAnimID parsed, out string detailedError);
+                    if (!parseSuccess)
+                        return detailedError;
+
+                    var animRefToImportFrom = Proj.SAFE_GetFirstAnimationFromFullID(parsed);
+
+                    if (animRefToImportFrom == null)
+                    {
+                        return $"Animation '{parsed}' does not exist.";
+                    }
+                    else if (parsed == currentAnimID)
+                    {
+                        return "Can not import from the same animation ID. Please choose another animation ID.";
+                    }
+
+                    return null;
                 }, canBeCancelled: true);
         }
 
@@ -2697,89 +3394,31 @@ namespace DSAnimStudio.TaeEditor
         {
             try
             {
-                if (SelectedTae != null)
+                if (SelectedAnimCategory != null)
                 {
-                    if (SelectedTaeAnim != null)
+                    if (SelectedAnim != null)
                     {
-                        var taeList = FileContainer.AllTAE.ToList();
-
-                        int currentAnimIndex = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
-                        int currentTaeIndex = taeList.IndexOf(SelectedTae);
-
-                        int startingTaeIndex = currentTaeIndex;
-
+                        var category = SelectedAnimCategory;
+                        var anim = SelectedAnim;
                         void DoSmallStep()
                         {
-                            if (currentAnimIndex >= taeList[currentTaeIndex].Animations.Count - 1)
+                            anim = Proj.SAFE_GuiHelperSelectNextAnimation(anim);
+                            if (anim == null)
                             {
-                                currentAnimIndex = 0;
-
-                                if (taeList.Count > 1)
-                                {
-                                    if (currentTaeIndex >= taeList.Count - 1)
-                                    {
-                                        currentTaeIndex = 0;
-                                    }
-                                    else
-                                    {
-                                        currentTaeIndex++;
-                                        if (taeList[currentTaeIndex].Animations.Count == 0)
-                                            DoSmallStep();
-                                    }
-                                }
+                                DoBigStep();
                             }
                             else
                             {
-                                currentAnimIndex++;
+                                //category = anim.ParentCategory;
+                                category = Proj.SAFE_RegistCategory(anim.SplitID.CategoryID);
                             }
+                            
                         }
 
                         void DoBigStep()
                         {
-                            if (taeList.Count > 1)
-                            {
-                                while (currentTaeIndex == startingTaeIndex)
-                                {
-                                    DoSmallStep();
-                                }
-
-                                currentAnimIndex = 0;
-                            }
-                            else
-                            {
-                                var startSection = GameRoot.GameTypeHasLongAnimIDs ? (SelectedTaeAnim.ID / 1_000000) : (SelectedTaeAnim.ID / 1_0000);
-
-                                //long stopAtSection = -1;
-                                for (int i = currentAnimIndex; i < SelectedTae.Animations.Count; i++)
-                                {
-                                    var thisSection = GameRoot.GameTypeHasLongAnimIDs ? (SelectedTae.Animations[i].ID / 1_000000) : (SelectedTae.Animations[i].ID / 1_0000);
-                                    if (startSection != thisSection)
-                                    {
-                                        currentAnimIndex = i;
-                                        return;
-                                        //if (stopAtSection == -1)
-                                        //{
-                                        //    stopAtSection = thisSection;
-                                        //    currentAnimIndex = i;
-                                        //}
-                                        //else
-                                        //{
-                                        //    if (thisSection == stopAtSection)
-                                        //    {
-                                        //        currentAnimIndex = i;
-                                        //    }
-                                        //    else
-                                        //    {
-                                        //        return;
-                                        //    }
-                                        //}
-                                    }
-                                }
-
-                                currentAnimIndex = 0;
-                            }
-
-                            
+                            category = Proj.SAFE_GuiHelperSelectNextCategory(category);
+                            anim = category.SAFE_GetFirstAnimInList();
                         }
 
                         void DoStep()
@@ -2804,7 +3443,7 @@ namespace DSAnimStudio.TaeEditor
 
                         try
                         {
-                            SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: Input.ShiftHeld || Input.CtrlHeld);
+                            SelectNewAnimRef(category, anim, scrollOnCenter: Input.ShiftHeld || Input.CtrlHeld, isPushCurrentToHistBackwardStack: true);
                         }
                         catch// (Exception innerEx)
                         {
@@ -2824,89 +3463,26 @@ namespace DSAnimStudio.TaeEditor
         {
             try
             {
-                if (SelectedTae != null)
+                if (SelectedAnimCategory != null)
                 {
-                    if (SelectedTaeAnim != null)
+                    if (SelectedAnim != null)
                     {
-                        var taeList = FileContainer.AllTAE.ToList();
-
-                        int currentAnimIndex = SelectedTae.Animations.IndexOf(SelectedTaeAnim);
-
-                        int currentTaeIndex = taeList.IndexOf(SelectedTae);
-
-                        int startingTaeIndex = currentTaeIndex;
-
+                        var category = SelectedAnimCategory;
+                        var anim = SelectedAnim;
                         void DoSmallStep()
                         {
-                            if (currentAnimIndex <= 0)
-                            {
-                                if (taeList.Count > 1)
-                                {
-                                    if (currentTaeIndex <= 0)
-                                    {
-                                        currentTaeIndex = taeList.Count - 1;
-                                    }
-                                    else
-                                    {
-                                        currentTaeIndex--;
-                                        if (taeList[currentTaeIndex].Animations.Count == 0)
-                                            DoSmallStep();
-                                    }
-                                }
-
-                                currentAnimIndex = taeList[currentTaeIndex].Animations.Count - 1;
-                            }
-                            else
-                            {
-                                currentAnimIndex--;
-                            }
+                            anim = Proj.SAFE_GuiHelperSelectPrevAnimation(anim);
+                            //category = anim.ParentCategory;
+                            category = Proj.SAFE_RegistCategory(anim.SplitID.CategoryID);
                         }
 
                         void DoBigStep()
                         {
-                            if (taeList.Count > 1)
-                            {
-                                while (currentTaeIndex == startingTaeIndex)
-                                {
-                                    DoSmallStep();
-                                }
-
-                                currentAnimIndex = 0;
-                            }
+                            category = Proj.SAFE_GuiHelperSelectPrevCategory(category);
+                            if (Main.Config.GoToFirstAnimInCategoryWhenChangingCategory)
+                                anim = category.SAFE_GetFirstAnimInList(throwIfEmpty: true);
                             else
-                            {
-                                var startSection = GameRoot.GameTypeHasLongAnimIDs ? (SelectedTaeAnim.ID / 1_000000) : (SelectedTaeAnim.ID / 1_0000);
-                                if (currentAnimIndex == 0)
-                                    currentAnimIndex = SelectedTae.Animations.Count - 1;
-                                long stopAtSection = -1;
-                                for (int i = currentAnimIndex; i >= 0; i--)
-                                {
-                                    var thisSection = GameRoot.GameTypeHasLongAnimIDs ? (SelectedTae.Animations[i].ID / 1_000000) : (SelectedTae.Animations[i].ID / 1_0000);
-                                    if (startSection != thisSection)
-                                    {
-                                        if (stopAtSection == -1)
-                                        {
-                                            stopAtSection = thisSection;
-                                            currentAnimIndex = i;
-                                        }
-                                        else
-                                        {
-                                            if (thisSection == stopAtSection)
-                                            {
-                                                currentAnimIndex = i;
-                                            }
-                                            else
-                                            {
-                                                return;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                //currentAnimIndex = 0;
-                            }
-
-                            
+                                anim = category.SAFE_GetLastAnimInList(throwIfEmpty: true);
                         }
 
                         void DoStep()
@@ -2929,7 +3505,14 @@ namespace DSAnimStudio.TaeEditor
                             DoStep();
                         }
 
-                        SelectNewAnimRef(taeList[currentTaeIndex], taeList[currentTaeIndex].Animations[currentAnimIndex], scrollOnCenter: Input.ShiftHeld || Input.CtrlHeld);
+                        try
+                        {
+                            SelectNewAnimRef(category, anim, scrollOnCenter: Input.ShiftHeld || Input.CtrlHeld, isPushCurrentToHistBackwardStack: true);
+                        }
+                        catch// (Exception innerEx)
+                        {
+                            //Console.WriteLine("FATCAT");
+                        }
                     }
                 }
             }
@@ -2947,67 +3530,135 @@ namespace DSAnimStudio.TaeEditor
             PlaybackCursor.IsPlaying = false;
             PlaybackCursor.IsStepping = true;
 
-            PlaybackCursor.CurrentTime += PlaybackCursor.CurrentSnapInterval;
-            PlaybackCursor.CurrentTime = Math.Floor(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
 
-            if (PlaybackCursor.CurrentTime > PlaybackCursor.MaxTime && PlaybackCursor.MaxTime > 0)
-                PlaybackCursor.CurrentTime %= PlaybackCursor.MaxTime;
+            int nearestFrame = (int)Math.Round(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval);
+            double nearestFrameTime = nearestFrame * PlaybackCursor.CurrentSnapInterval;
+            double deltaToSnapToNearestFrame = nearestFrameTime - PlaybackCursor.CurrentTime;
+            PlaybackCursor.NewApplyRelativeScrub(deltaToSnapToNearestFrame);
+            PlaybackCursor.NewApplyRelativeScrub(PlaybackCursor.CurrentSnapInterval);
 
-            //PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
-            Graph.ScrollToPlaybackCursor(1);
-
+            Graph.LayoutManager.ScrollToPlaybackCursor(-1, modTime: true, clampTime: true);
         }
 
         public void TransportPreviousFrame()
         {
             PlaybackCursor.IsPlaying = false;
             PlaybackCursor.IsStepping = true;
+            int nearestFrame = (int)Math.Round(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval);
+            double nearestFrameTime = nearestFrame * PlaybackCursor.CurrentSnapInterval;
+            double deltaToSnapToNearestFrame = nearestFrameTime - PlaybackCursor.CurrentTime;
+            PlaybackCursor.NewApplyRelativeScrub(deltaToSnapToNearestFrame);
+            PlaybackCursor.NewApplyRelativeScrub(-PlaybackCursor.CurrentSnapInterval);
 
-            PlaybackCursor.CurrentTime -= PlaybackCursor.CurrentSnapInterval;
-            PlaybackCursor.CurrentTime = Math.Floor(PlaybackCursor.CurrentTime / PlaybackCursor.CurrentSnapInterval) * PlaybackCursor.CurrentSnapInterval;
-
-            if (PlaybackCursor.CurrentTime < 0)
-                PlaybackCursor.CurrentTime += PlaybackCursor.MaxTime;
-
-            //PlaybackCursor.StartTime = PlaybackCursor.CurrentTime;
-
-            Graph.ScrollToPlaybackCursor(1);
+            Graph.LayoutManager.ScrollToPlaybackCursor(-1, modTime: false, clampTime: true);
         }
 
         public void ReselectCurrentAnimation()
         {
-            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+            SelectNewAnimRef(SelectedAnimCategory, SelectedAnim);
         }
 
-        public void HardReset()
+
+
+        private bool ActualHardReset()
         {
             if (Graph == null)
-                return;
-            SoundManager.StopAllSounds();
-            Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.ForeachWeaponModel(wpnMdl => wpnMdl?.AnimContainer?.ResetAll());
-            Graph.ViewportInteractor.RootMotionSendHome();
-            Graph.ViewportInteractor.ResetRootMotion();
-            Graph.ViewportInteractor.RemoveTransition();
-            Graph.PlaybackCursor.RestartFromBeginning();
-            Graph.ViewportInteractor.CurrentModel.AnimContainer?.ResetAll();
-            Graph.ViewportInteractor.CurrentModel.ChrAsm?.ForeachWeaponModel(wpnMdl => wpnMdl?.AnimContainer?.ResetAll());
-            if (Graph.ViewportInteractor.CurrentModel.AnimContainer != null)
+                return false;
+            bool success = false;
+            NewAnimationContainer.GLOBAL_SYNC_FORCE_REFRESH = true;
+            try
             {
-                Graph.ViewportInteractor.CurrentModel.AnimContainer.ResetRootMotion();
-                Graph.ViewportInteractor.HardResetRootMotionToStartHere();
+                SelectNewAnimRef(SelectedAnimCategory, SelectedAnim);
+                ParentDocument.SoundManager.StopAllSounds();
+                Graph.ViewportInteractor.CurrentModel?.AnimContainer?.ResetAll();
+                Graph.ViewportInteractor.RootMotionSendHome();
+                Graph.ViewportInteractor.ResetRootMotion();
+                
+                Graph.PlaybackCursor.RestartFromBeginning();
+                Graph.PlaybackCursor.IsTempPausedUntilAnimChange = false;
+                Graph.ViewportInteractor.CurrentModel?.AnimContainer?.ResetAll();
+                Graph.ViewportInteractor.CurrentModel?.ChrAsm?.ForAllWeaponModels(wpnMdl =>
+                    wpnMdl?.AnimContainer?.ResetAll());
+                if (Graph.ViewportInteractor.CurrentModel?.AnimContainer != null)
+                {
+                    Graph.ViewportInteractor.CurrentModel?.AnimContainer.ResetRootMotion();
+                    Graph.ViewportInteractor.HardResetRootMotionToStartHere();
+                }
+                Graph.ViewportInteractor.CurrentModel?.NewForceSyncUpdate();
+                Graph.ViewportInteractor.CurrentModel?.ChrAsm?.ForAllWeaponModels(wpnMdl =>
+                {
+                    wpnMdl?.AnimContainer?.ResetAll();
+                    wpnMdl?.NewForceSyncUpdate();
+                });
+                Graph.ViewportInteractor.CurrentModel?.AC6NpcParts?.AccessModelsOfAllParts((partIndex, part, model) =>
+                {
+                    model?.AnimContainer?.ResetAll();
+                    model?.NewForceSyncUpdate();
+                });
+
+
+                ParentDocument.RumbleCamManager.ClearActive();
+                GFX.CurrentWorldView.RootMotionFollow_Translation = Vector3.Zero;
+                GFX.CurrentWorldView.RootMotionFollow_Rotation = 0;
+                GFX.CurrentWorldView.Update(0);
+                Graph?.ViewportInteractor?.ActionSim?.RequestAnimRestart();
+                ParentDocument.SoundManager.SoftWipeAllSlots();
+                lock (Graph._lock_ActionBoxManagement)
+                {
+                    Graph.AnimRef.SafeAccessActions(actions =>
+                    {
+                        foreach (var act in actions)
+                        {
+                            act.NewSimulationEnter = false;
+                            act.NewSimulationExit = false;
+                            act.NewSimulationActive = false;
+                        }
+                    });
+                   
+                }
+
+                ParentDocument.SoundManager.Update(0, GFX.CurrentWorldView.CameraLocationInWorld.WorldMatrix, this);
+                OSD.SpWindowGraph.IsRequestFocus = true;
+
+
+                Graph.ViewportInteractor.RemoveTransition();
+                Graph.PlaybackCursor.RestartFromBeginning();
+                Graph.PlaybackCursor.IsTempPausedUntilAnimChange = false;
+                Graph.ViewportInteractor.CurrentModel?.AnimContainer?.ResetAll();
+                Graph.ViewportInteractor.CurrentModel?.ResetAttackDistMeasureAccumulation();
+
+                Main.MainThreadLazyDispatch(() =>
+                {
+                    Graph.ViewportInteractor.NewScrub(forceRefreshTimeact: true);
+                    Graph.ViewportInteractor.CurrentModel.NewForceSyncUpdate();
+                });
+
+                success = true;
             }
-            GFX.CurrentWorldView.RootMotionFollow_Translation = Vector3.Zero;
-            GFX.CurrentWorldView.RootMotionFollow_Rotation = 0;
-            GFX.CurrentWorldView.Update(0);
+            catch (Exception handled_ex) when (Main.EnableErrorHandler.HardReset)
+            {
+                success = false;
+                Main.HandleError(nameof(Main.EnableErrorHandler.HardReset), handled_ex);
+            }
+            finally
+            {
+                NewAnimationContainer.GLOBAL_SYNC_FORCE_REFRESH = false;
+            }
+
+            return success;
+        }
+
+        public void HardReset(bool startPlayback = false)
+        {
+            HardResetQueued = true;
+            HardResetQueued_StartPlaying = startPlayback;
         }
 
         public void CopyCurrentAnimIDToClipboard(bool isUnformatted)
         {
-            int currentID = (int)GetAnimListInfoOfAnim(SelectedTaeAnim).FullID;
-            string text = !isUnformatted ? GameRoot.SplitAnimID.FromFullID(currentID).GetFormattedIDString() : $"{currentID}";
+            string text = isUnformatted ? ((long)SelectedAnim.SplitID.GetFullID(Proj)).ToString() : SelectedAnim.SplitID.GetFormattedIDString(Proj);
             System.Windows.Forms.Clipboard.SetText(text);
-            NotificationManager.PushNotification($"Copied '{text}' to clipboard.");
+            zzz_NotificationManagerIns.PushNotification($"Copied '{text}' to clipboard.");
         }
 
         public void GotoAnimIDInClipboard()
@@ -3015,32 +3666,46 @@ namespace DSAnimStudio.TaeEditor
             var clip = new string(System.Windows.Forms.Clipboard.GetText().Where(c => (c >= '1' && c <= '9') || c == '0').ToArray());
             if (int.TryParse(clip, out int id))
             {
-                if (GotoAnimID(id, true, false, out _))
+                if (GotoAnimID(SplitAnimID.FromFullID(Proj, id), true, false, out _))
                 {
-                    NotificationManager.PushNotification($"Went to animation with ID in clipboard ({id}).");
+                    zzz_NotificationManagerIns.PushNotification($"Went to animation with ID in clipboard ({id}).");
                 }
                 else
                 {
-                    NotificationManager.PushNotification($"Unable to find animation with ID in clipboard ({id}).");
+                    zzz_NotificationManagerIns.PushNotification($"Unable to find animation with ID in clipboard ({id}).");
                 }
             }
             else
             {
-                NotificationManager.PushNotification("Text in clipboard was not a valid animation ID.");
+                zzz_NotificationManagerIns.PushNotification("Text in clipboard was not a valid animation ID.");
             }
             
         }
 
-        public void Update()
+        public void Update(float elapsedTime)
         {
+            //Main.Input.Update()
             //Console.WriteLine($"Main.HasUncommittedWindowResize = {Main.HasUncommittedWindowResize}");
             if (Main.HasUncommittedWindowResize)
             {
-                MouseHoverKind = ScreenMouseHoverKind.None;
-                WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
+                //MouseHoverKind = ScreenMouseHoverKind.None;
+                //WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
                 //WhereLastMouseClickStarted = ScreenMouseHoverKind.None;
-                CurrentDividerDragMode = DividerDragMode.None;
+                //CurrentDividerDragMode = DividerDragMode.None;
                 return;
+            }
+
+            if (!ParentDocument.LoadingTaskMan.AnyInteractionBlockingTasks() && HardResetQueued)
+            {
+                if (ActualHardReset())
+                {
+                    if (HardResetQueued_StartPlaying)
+                    {
+                        PlaybackCursor.IsPlaying = true;
+                    }
+                    HardResetQueued_StartPlaying = false;
+                    HardResetQueued = false;
+                }
             }
 
             if (Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
@@ -3063,11 +3728,10 @@ namespace DSAnimStudio.TaeEditor
                 }
             }
 
-            if (QueuedChangeEventType)
+            if (QueuedChangeActionType != null)
             {
-                if (SingleEventBoxSelected)
-                    ChangeTypeOfSelectedEvent();
-                QueuedChangeEventType = false;
+                ChangeTypeOfEvent(QueuedChangeActionType);
+                QueuedChangeActionType = null;
             }
 
             if (ImporterWindow_FLVER2 == null || ImporterWindow_FLVER2.IsDisposed || !ImporterWindow_FLVER2.Visible)
@@ -3077,59 +3741,20 @@ namespace DSAnimStudio.TaeEditor
             }
             ImporterWindow_FLVER2?.UpdateGuiLockout();
 
-            if (!Input.LeftClickHeld)
-            {
-                Graph?.ReleaseCurrentDrag();
-            }
+            //if (!Input.LeftClickHeld)
+            //{
+            //    Graph?.ReleaseCurrentDrag();
+            //}
 
 #if !DEBUG
             if (!Main.Active)
             {
-                SoundManager.StopAllSounds();
+                ParentDocument.SoundManager.StopAllSounds();
             }
 #endif
             //TODO: CHECK THIS
-            PauseUpdate = OSD.Hovered;
-
-            if (!PauseUpdate)
-            {
-                //bad hotfix warning
-                if (Graph != null &&
-                    !Graph.ScrollViewer.DisableVerticalScroll &&
-                    Input.MousePosition.X >=
-                        Graph.Rect.Right -
-                        Graph.ScrollViewer.ScrollBarThickness &&
-                    Input.MousePosition.X < DividerRightGrabStartX &&
-                    Input.MousePosition.Y >= Graph.Rect.Top &&
-                    Input.MousePosition.Y < Graph.Rect.Bottom)
-                {
-                    Input.CursorType = MouseCursorType.Arrow;
-                }
-
-                // Another bad hotfix
-                Rectangle killCursorRect = new Rectangle(
-                        (int)(DividerLeftGrabEndX),
-                        0,
-                        (int)(DividerRightGrabStartX - DividerLeftGrabEndX),
-                        TopOfGraphAnimInfoMargin + Rect.Top + TopMenuBarMargin);
-
-                if (killCursorRect.Contains(Input.MousePositionPoint))
-                {
-                    Input.CursorType = MouseCursorType.Arrow;
-                }
-
-                if (!Input.LeftClickHeld)
-                    Graph?.MouseReleaseStuff();
-            }
-
-            //if (MultiSelectedEventBoxes.Count > 0 && multiSelectedEventBoxesCountLastFrame < MultiSelectedEventBoxes.Count)
-            //{
-            //    if (Config.UseGamesMenuSounds)
-            //        FmodManager.PlaySE("f000000000");
-            //}
-
-            multiSelectedEventBoxesCountLastFrame = MultiSelectedEventBoxes.Count;
-
+            PauseUpdate = OSD.AnyFieldFocused;
+            
             // Always update playback regardless of GUI memes.
             // Still only allow hitting spacebar to play/pause
             // if the window is in focus.
@@ -3137,8 +3762,10 @@ namespace DSAnimStudio.TaeEditor
             if (Graph != null)
             {
                 Graph.UpdatePlaybackCursor(allowPlayPauseInput: Main.Active);
-                Graph.ViewportInteractor?.GeneralUpdate();
+                Graph.ViewportInteractor?.GeneralUpdate(elapsedTime);
             }
+
+            
 
             //if (MenuBar.IsAnyMenuOpenChanged)
             //{
@@ -3148,13 +3775,14 @@ namespace DSAnimStudio.TaeEditor
             //    inspectorWinFormsControl.Visible = !MenuBar.IsAnyMenuOpen;
             //}
 
-            if (OSD.Hovered)
+            if (OSD.AnyFieldFocused)
             {
                 PauseUpdate = true;
             }
 
-            if (!DialogManager.AnyDialogsShowing)
+            if (!DialogManager.AnyDialogsShowing && !OSD.AnyFieldFocused)
             {
+                Transport.PlaybackCursor = PlaybackCursor;
                 Transport.Update(Main.DELTA_UPDATE);
             }
 
@@ -3167,99 +3795,208 @@ namespace DSAnimStudio.TaeEditor
             //if (!(OSD.Focused || DialogManager.AnyDialogsShowing))
             //    Transport.Update(Main.DELTA_UPDATE);
 
+            
+
             bool isOtherPaneFocused = ModelViewerBounds.Contains((int)Input.LeftClickDownAnchor.X, (int)Input.LeftClickDownAnchor.Y);
 
             Input.CursorType = MouseCursorType.Arrow;
 
-            if (WhereCurrentMouseClickStarted != ScreenMouseHoverKind.None)
+            if (Main.Active && !OSD.AnyFieldFocused)
             {
-                WhereLastMouseClickStarted = WhereCurrentMouseClickStarted;
-            }
-
-            if (Main.Active)
-            {
-                if (Input.KeyDown(Keys.Escape))
+                if (GhettoInputCooldown > 0)
                 {
-                    SoundManager.StopAllSounds();
-                    RumbleCamManager.ClearActive();
+                    GhettoInputCooldown--;
+                    return;
+                }
+                if (Input.KeyDownNoMods(Keys.Insert) && Proj != null && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    ShowDialogDuplicateCurrentAnimation();
+                }
+                else if (Input.ShiftOnlyHeld && Input.KeyDown(Keys.Insert) && FileContainer?.Proj != null && Proj != null)
+                {
+                    ShowDialogDuplicateToNewTaeSection(FileContainer.Proj, SelectedAnimCategory);
                 }
 
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F1))
-                    ChangeTypeOfSelectedEvent();
+                if (Input.KeyDownNoMods(Keys.Escape) && Proj != null)
+                {
+                    ParentDocument.SoundManager.StopAllSounds();
+                    ParentDocument.RumbleCamManager.ClearActive();
+                }
 
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F2))
-                    ShowDialogChangeAnimName();
+                if (Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.F1) && Proj != null
+                    && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                    ChangeTypeOfEvent(InspectorAction);
 
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F3))
+                if (Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.F2) && Proj != null
+                     && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    ShowDialogChangeAnimName(Proj, SelectedAnimCategory, SelectedAnim);
+                }
+                else if (Input.KeyDown(Keys.F2) && Input.ShiftOnlyHeld && Proj != null)
+                {
+                    ShowDialogChangeAnimCategoryName(SelectedAnimCategory);
+                }
+
+                if (Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.F3) && Proj != null 
+                     && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
                     ShowDialogEditCurrentAnimInfo();
+                }
+                else if (Input.KeyDown(Keys.F3) && (Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld) && Proj != null)
+                {
+                    ShowDialogEditRootTaeProperties();
+                }
+                else if (Input.KeyDown(Keys.F3) && Input.ShiftOnlyHeld && Proj != null)
+                {
+                    ShowDialogEditAnimCategoryProperties(SelectedAnimCategory);
+                }
 
-#if NIGHTFALL
-                // MEOW TESTING?
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.OemSemicolon))
-                    NIGHTFALL_ToggleImport();
-#endif
-
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F4) || RequestGoToEventSource)
+                if ((Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.F4) || RequestGoToEventSource) && Proj != null
+                    && SelectedAnim?.IS_DUMMY_ANIM == false)
                 {
                     GoToEventSource();
                     RequestGoToEventSource = false;
                 }
 
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F5))
+                if (Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.F5) && Proj != null)
                     LiveRefresh();
 
-                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F8))
-                    ShowComboMenu();
 
+
+
+                if (Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.F6) && Proj != null)
+                {
+                    ResortTracks_Anim();
+                }
+                else if (Input.ShiftOnlyHeld && Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F6) && Proj != null)
+                {
+                    ResortTracks_Proj();
+                }
+
+                if (Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.F7) && Proj != null)
+                {
+                    RegenTrackNames_Anim();
+                }
+                else if (Input.ShiftOnlyHeld && Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F7) && Proj != null)
+                {
+                    RegenTrackNames_Proj();
+                }
+
+
+
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.C) && Proj != null
+                    && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    if (Input.ShiftOnlyHeld)
+                    {
+                        DialogManager.AskYesNo("Remove Custom Colors From Selected Actions", "Are you sure you want to remove the custom colors from all selected actions?", choice =>
+                        {
+                            if (choice)
+                                Graph.MainScreen.SetColorOfSelectedActions(isClearing: true);
+                        });
+                        
+                    }
+                    else if (!Input.AnyModifiersHeld)
+                    {
+                        Graph.MainScreen.SetColorOfSelectedActions(isClearing: false);
+                    }
+                }
+
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.T) && Proj != null
+                    && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    if (Input.ShiftOnlyHeld)
+                    {
+                        DialogManager.AskYesNo("Remove Tags From Selected Actions", "Are you sure you want to remove all tags from all selected actions?", choice =>
+                        {
+                            if (choice)
+                                Graph.MainScreen.ClearAllTagsFromSelectedActions(Proj);
+                        });
+
+                    }
+                    else if (!Input.AnyModifiersHeld)
+                    {
+                        DialogManager.ShowTagPickDialog("Add Tag To Selected Actions", Proj, tag =>
+                        {
+                            Graph.MainScreen.AddTagToSelectedActions(Proj, tag);
+                        });
+                    }
+                }
+
+
+
+
+                if (Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.F8))
+                {
+                    OSD.WindowComboViewer.IsOpen = !OSD.WindowComboViewer.IsOpen;
+                }
+
+
+                if (Main.IsNightfallBuild && Proj != null)
+                {
+                    // MEOW TESTING?
+                    if (Input.KeyDownNoMods(Microsoft.Xna.Framework.Input.Keys.OemSemicolon))
+                        NIGHTFALL_ToggleImport();
+                }
+
+              
                 var zHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Z);
                 var yHeld = Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Y);
 
-                if (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld && !DialogManager.AnyDialogsShowing)
+                if (Input.AltOnlyHeld && Proj != null)
+                {
+                    if (Input.KeyDown(Keys.Left))
+                        AnimHistoryGoBack();
+                    else if (Input.KeyDown(Keys.Right))
+                        AnimHistoryGoForward();
+                }
+
+                if (Input.CtrlOnlyHeld && !DialogManager.AnyDialogsShowing && Proj != null)
                 {
                     if ((Input.KeyDown(Keys.OemPlus) || Input.KeyDown(Keys.Add)) && !isOtherPaneFocused)
                     {
-                        Graph?.ZoomInOneNotch(
+                        Graph?.InputMan.ZoomInOneNotch(
                             (float)(
-                            (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
+                            (Graph.PlaybackCursor.GUICurrentTime * Graph.LayoutManager.SecondsPixelSize)
                             - Graph.ScrollViewer.Scroll.X));
                     }
                     else if ((Input.KeyDown(Keys.OemMinus) || Input.KeyDown(Keys.Subtract)) && !isOtherPaneFocused)
                     {
-                        Graph?.ZoomOutOneNotch(
+                        Graph?.InputMan.ZoomOutOneNotch(
                             (float)(
-                            (Graph.PlaybackCursor.GUICurrentTime * Graph.SecondsPixelSize)
+                            (Graph.PlaybackCursor.GUICurrentTime * Graph.LayoutManager.SecondsPixelSize)
                             - Graph.ScrollViewer.Scroll.X));
                     }
                     else if ((Input.KeyDown(Keys.D0) || Input.KeyDown(Keys.NumPad0)) && !isOtherPaneFocused)
                     {
-                        Graph?.ResetZoom(0);
+                        Graph?.InputMan.ResetZoom(0);
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) &&
-                        WhereLastMouseClickStarted == ScreenMouseHoverKind.EventGraph && !isOtherPaneFocused)
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.C) && !isOtherPaneFocused
+                        && SelectedAnim?.IS_DUMMY_ANIM == false)
                     {
-                        Graph?.DoCopy();
+                        Graph?.InputMan.DoCopy();
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) &&
-                       WhereLastMouseClickStarted == ScreenMouseHoverKind.EventGraph && !isOtherPaneFocused)
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.X) && !isOtherPaneFocused
+                        && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
                     {
-                        Graph?.DoCut();
+                        Graph?.InputMan.DoCut();
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) &&
-                        WhereLastMouseClickStarted == ScreenMouseHoverKind.EventGraph && !isOtherPaneFocused)
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.V) && !isOtherPaneFocused
+                        && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
                     {
-                        Graph?.DoPaste(isAbsoluteLocation: false);
+                        //if (debugTimerInputChatter != null && debugTimerInputChatter.ElapsedMilliseconds < 100)
+                        //{
+                        //    Console.WriteLine("break");
+                        //}
+
+                        Graph?.InputMan.DoPaste(isAbsoluteLocation: false);
+
+                        //debugTimerInputChatter = Stopwatch.StartNew();
                     }
-                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A) && !isOtherPaneFocused)
+                    else if (!CurrentlyEditingSomethingInInspector && Input.KeyDown(Keys.A) && !isOtherPaneFocused
+                        && SelectedAnim?.IS_DUMMY_ANIM == false)
                     {
-                        if (Graph != null && Graph.currentDrag.DragType == BoxDragType.None)
-                        {
-                            SelectedEventBox = null;
-                            MultiSelectedEventBoxes.Clear();
-                            foreach (var box in Graph.EventBoxes)
-                            {
-                                MultiSelectedEventBoxes.Add(box);
-                            }
-                        }
+                        Graph?.InputMan.DoSelectAll();
                     }
                     else if (Input.KeyDown(Keys.F))
                     {
@@ -3277,7 +4014,7 @@ namespace DSAnimStudio.TaeEditor
                     {
                         ShowDialogImportFromAnimID();
                     }
-                    else if (Input.KeyDown(Keys.J))
+                    else if (Input.KeyDown(Keys.J) && SelectedAnim?.IS_DUMMY_ANIM == false)
                     {
                         if (IsFileOpen)
                         {
@@ -3299,19 +4036,44 @@ namespace DSAnimStudio.TaeEditor
                     {
                         HardReset();
                     }
+                    else if (!CurrentlyEditingSomethingInInspector && Input.RightClickDown
+                        && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                    {
+                        Graph?.InputMan?.DoAddNewEventAtMouse();
+                    }
                 }
 
-                if (Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
+                if (Input.ShiftOnlyHeld && Input.KeyDown(Keys.Delete) && !DialogManager.AnyDialogsShowing)
                 {
-                    if (Input.KeyDown(Keys.V) && !isOtherPaneFocused)
+                    GhettoInputCooldown = 5;
+                    DialogManager.AskYesNo("Permanently Delete Animation Entry?", $"Are you sure you want to delete the current animation?",
+                        choice =>
+                        {
+                            if (choice)
+                            {
+                                //Main.WinForm.Invoke(() =>
+                                //{
+                                //    DeleteCurrentAnimation();
+                                //});
+                                GhettoInputCooldown = 5;
+                                DeleteCurrentAnimation();
+                            }
+
+                        });
+                    
+                }
+
+                if (Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld && Proj != null)
+                {
+                    if (Input.KeyDown(Keys.V) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
                     {
-                        Graph.DoPaste(isAbsoluteLocation: true);
+                        Graph?.InputMan?.DoPaste(isAbsoluteLocation: true);
                     }
-                    else if (Input.KeyDown(Keys.S))
-                    {
-                        File_SaveAs();
-                    }
-                    else if (Input.KeyDown(Keys.J))
+                    //else if (Input.KeyDown(Keys.S))
+                    //{
+                    //    File_SaveAs();
+                    //}
+                    else if (Input.KeyDown(Keys.J) && SelectedAnim?.IS_DUMMY_ANIM == false)
                     {
                         if (IsFileOpen)
                         {
@@ -3320,20 +4082,46 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                if (!Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld)
+                if (!Input.CtrlHeld && Input.ShiftHeld && !Input.AltHeld && Proj != null)
                 {
                     if (Input.KeyDown(Keys.D))
                     {
-                        if (SelectedEventBox != null)
-                            SelectedEventBox = null;
-                        if (MultiSelectedEventBoxes.Count > 0)
-                            MultiSelectedEventBoxes.Clear();
+                        NewSelectedActions.Clear();
                     }
                 }
 
-                if (Input.KeyDown(Keys.Delete) && !isOtherPaneFocused)
+                if (Input.KeyDownNoMods(Keys.Delete) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
                 {
-                    Graph.DeleteSelectedEvent();
+                    Graph?.InputMan?.DeleteSelectedActions();
+                }
+                
+                if (Input.KeyDownNoMods(Keys.D1) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    Graph?.InputMan?.ToggleMuteOnSelectedActions(uniform: false);
+                }
+                if (Input.ShiftOnlyHeld && Input.KeyDown(Keys.D1) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    Graph?.InputMan?.ToggleMuteOnSelectedActions(uniform: true);
+                }
+                if (Input.KeyDownNoMods(Keys.D2) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    Graph?.InputMan?.ToggleSoloOnSelectedActions(uniform: false);
+                }
+                if (Input.ShiftOnlyHeld && Input.KeyDown(Keys.D2) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    Graph?.InputMan?.ToggleSoloOnSelectedActions(uniform: true);
+                }
+                if (Input.ShiftOnlyHeld && Input.KeyDown(Keys.D3) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    Graph?.InputMan?.ClearAllSoloAndMute();
+                }
+                if (Input.KeyDownNoMods(Keys.D4) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    Graph?.InputMan?.ToggleStateInfoOnSelectedActions(uniform: false);
+                }
+                if (Input.ShiftOnlyHeld && Input.KeyDown(Keys.D4) && !isOtherPaneFocused && !Graph.IsGhostGraph && SelectedAnim?.IS_DUMMY_ANIM == false)
+                {
+                    Graph?.InputMan?.ToggleStateInfoOnSelectedActions(uniform: true);
                 }
 
                 //if (Graph != null && Input.KeyDown(Keys.Home) && !Graph.PlaybackCursor.Scrubbing)
@@ -3363,7 +4151,7 @@ namespace DSAnimStudio.TaeEditor
                 NextAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Down) && !Input.KeyHeld(Keys.Up));
                 NextAnimRepeaterButton_KeepSubID.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.PageDown) && !Input.KeyHeld(Keys.PageUp));
 
-                if (NextAnimRepeaterButton.State)
+                if (NextAnimRepeaterButton.State && Proj != null)
                 {
                     if (Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
                     {
@@ -3388,7 +4176,7 @@ namespace DSAnimStudio.TaeEditor
                     
                 }
 
-                if (NextAnimRepeaterButton_KeepSubID.State)
+                if (NextAnimRepeaterButton_KeepSubID.State && Proj != null)
                 {
                     if (Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
                     {
@@ -3396,47 +4184,24 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else
                     {
-                        var taeSectionRange = FileContainer.GetTaeSectionMinMax();
+                        var anim = SelectedAnim;
+                        var category = SelectedAnimCategory;
 
-                        long currentID = GetAnimListInfoOfAnim(SelectedTaeAnim).FullID;
-                        long startingID = currentID;
-                        bool foundValidAnim = false;
-                        bool wrappedAround = false;
                         do
                         {
-                            currentID += (GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000);
+                            category = Proj.SAFE_GuiHelperSelectNextCategory(category);
+                        } while (!category.SAFE_GetAnimations().Any(a => a.SplitID.SubID == anim.SplitID.SubID));
 
-                            if (wrappedAround)
-                            {
-                                if (currentID >= startingID)
-                                {
-                                    GotoAnimID(startingID, false, false, out _);
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                if (currentID > (GameRoot.GameTypeHasLongAnimIDs ? 999_999999 : 999_9999) ||
-                                currentID > ((GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000) * taeSectionRange.Max) + (GameRoot.GameTypeHasLongAnimIDs ? 999999 : 9999))
-                                {
-                                    wrappedAround = true;
-                                    currentID = ((GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000) * taeSectionRange.Min) + (currentID % (GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000));
-                                }
-                            }
-
-                            
-
-                            if (GotoAnimID(currentID, false, false, out _))
-                                foundValidAnim = true;
-                        }
-                        while (!foundValidAnim);
+                        var newAnim = category.SAFE_GetAnimations().First(a => a.SplitID.SubID == anim.SplitID.SubID);
+                       
+                        SelectNewAnimRef(category, newAnim, isPushCurrentToHistBackwardStack: true);
                     }
                 }
 
                 PrevAnimRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.Up) && !Input.KeyHeld(Keys.Down));
                 PrevAnimRepeaterButton_KeepSubID.Update(GamePadState.Default, Main.DELTA_UPDATE, Input.KeyHeld(Keys.PageUp) && !Input.KeyHeld(Keys.PageDown));
 
-                if (PrevAnimRepeaterButton.State)
+                if (PrevAnimRepeaterButton.State && Proj != null)
                 {
                     if (Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
                     {
@@ -3462,7 +4227,7 @@ namespace DSAnimStudio.TaeEditor
                     
                 }
 
-                if (PrevAnimRepeaterButton_KeepSubID.State)
+                if (PrevAnimRepeaterButton_KeepSubID.State && Proj != null)
                 {
                     if (Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
                     {
@@ -3470,42 +4235,36 @@ namespace DSAnimStudio.TaeEditor
                     }
                     else
                     {
-                        var taeSectionRange = FileContainer.GetTaeSectionMinMax();
+                        var anim = SelectedAnim;
+                        var category = SelectedAnimCategory;
 
-                        long currentID = GetAnimListInfoOfAnim(SelectedTaeAnim).FullID;
-                        long startingID = currentID;
-                        bool foundValidAnim = false;
-                        bool wrappedAround = false;
                         do
                         {
-                            currentID -= (GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000);
+                            category = Proj.SAFE_GuiHelperSelectPrevCategory(category);
+                        } while (!category.SAFE_GetAnimations().Any(a => a.SplitID.SubID == anim.SplitID.SubID));
 
-                            if (wrappedAround)
-                            {
-                                if (currentID <= startingID)
-                                {
-                                    GotoAnimID(startingID, false, false, out _);
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                if (currentID < 0 || currentID < ((GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000) * taeSectionRange.Min))
-                                {
-                                    wrappedAround = true;
-                                    currentID = ((GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000) * taeSectionRange.Max) + (currentID % (GameRoot.GameTypeHasLongAnimIDs ? 1_000000 : 1_0000));
-                                }
-                            }
-
-
-                            
-
-                            if (GotoAnimID(currentID, false, false, out _))
-                                foundValidAnim = true;
-                        }
-                        while (!foundValidAnim);
+                        var newAnim = category.SAFE_GetAnimations().First(a => a.SplitID.SubID == anim.SplitID.SubID);
+                       
+                        SelectNewAnimRef(category, newAnim, isPushCurrentToHistBackwardStack: true);
                     }
                 }
+
+                bool animHistoryGoBackwardHeld = Input.XButton1Held || (Input.AltOnlyHeld && Input.KeyHeld(Keys.Left));
+                bool animHistoryGoForwardHeld = Input.XButton2Held || (Input.AltOnlyHeld && Input.KeyHeld(Keys.Right));
+
+                AnimHistoryBackwardRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, animHistoryGoBackwardHeld && !animHistoryGoForwardHeld);
+                AnimHistoryForwardRepeaterButton.Update(GamePadState.Default, Main.DELTA_UPDATE, animHistoryGoForwardHeld && !animHistoryGoBackwardHeld);
+
+                if (AnimHistoryBackwardRepeaterButton.State && Proj != null)
+                {
+                    AnimHistoryGoBack();
+                }
+
+                if (AnimHistoryForwardRepeaterButton.State && Proj != null)
+                {
+                    AnimHistoryGoForward();
+                }
+
 
                 if (REMO_HOTFIX_REQUEST_CUT_ADVANCE_THIS_FRAME)
                 {
@@ -3520,9 +4279,9 @@ namespace DSAnimStudio.TaeEditor
                         else
                             NextAnim(REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_SHIFT, REMO_HOTFIX_REQUEST_CUT_ADVANCE_CUT_IS_CTRL);
                     }
-
-                    if (SelectedTaeAnim.ID <= 9999)
-                        Graph.PlaybackCursor.IsPlaying = true;
+                    //??????????????????????????????????????????????
+                    // if (SelectedAnim.ID <= 9999)
+                    //     Graph.PlaybackCursor.IsPlaying = true;
                 }
 
                 REMO_HOTFIX_REQUEST_CUT_ADVANCE_THIS_FRAME = false;
@@ -3544,13 +4303,13 @@ namespace DSAnimStudio.TaeEditor
                     }
                 }
 
-                if (Input.KeyDown(Keys.Space) && Input.CtrlHeld && !Input.AltHeld)
+                if (Input.KeyDown(Keys.Space) && Input.CtrlHeld && !Input.AltHeld && Proj != null)
                 {
-                    if (SelectedTae != null)
+                    if (SelectedAnimCategory != null)
                     {
-                        if (SelectedTaeAnim != null)
+                        if (SelectedAnim != null)
                         {
-                            SelectNewAnimRef(SelectedTae, SelectedTaeAnim);
+                            SelectNewAnimRef(SelectedAnimCategory, SelectedAnim);
                             if (Input.ShiftHeld)
                             {
                                 Graph?.ViewportInteractor?.RemoveTransition();
@@ -3564,545 +4323,83 @@ namespace DSAnimStudio.TaeEditor
                     Graph?.ViewportInteractor?.RemoveTransition();
                 }
 
-                if (UndoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (zHeld && !yHeld)) && !isOtherPaneFocused)
+                if (UndoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.AltHeld) && (zHeld && !yHeld)) && !isOtherPaneFocused && Proj != null)
                 {
-                    UndoMan.Undo();
-                }
-
-                if (RedoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.ShiftHeld && !Input.AltHeld) && (!zHeld && yHeld)) && !isOtherPaneFocused)
-                {
-                    UndoMan.Redo();
-                }
-            }
-
-            if (!Input.LeftClickHeld)
-            {
-                if (CurrentDividerDragMode != DividerDragMode.None)
-                {
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-
-                }
-                WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-            }
-
-
-            if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.None)
-            {
-                if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
-                    && Input.MousePosition.X >= DividerLeftGrabStartX && Input.MousePosition.X <= DividerLeftGrabEndX)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
-                    //Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
+                    
+                    if (Input.ShiftHeld)
                     {
-                        CurrentDividerDragMode = DividerDragMode.LeftVertical;
-                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
-                    }
-                }
-                else if (Input.MousePosition.Y >= DividerRightPaneHorizontalGrabStartY - (DividerHitboxPad) && Input.MousePosition.Y <= DividerRightPaneHorizontalGrabEndY + (DividerHitboxPad)
-                    && Input.MousePosition.X >= DividerRightGrabStartX && Input.MousePosition.X <= DividerRightGrabEndX)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.BottomLeftCornerOfModelViewer;
-                    //Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
-                    {
-                        CurrentDividerDragMode = DividerDragMode.BottomLeftCornerResize;
-                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.BottomLeftCornerOfModelViewer;
-                    }
-                }
-                else if (Input.MousePosition.Y >= TopMenuBarMargin && Input.MousePosition.Y <= Rect.Bottom
-                    && Input.MousePosition.X >= DividerRightGrabStartX && Input.MousePosition.X <= DividerRightGrabEndX)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    //Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
-                    {
-                        CurrentDividerDragMode = DividerDragMode.RightVertical;
-                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    }
-                }
-                else if (Input.MousePosition.X >= RightSectionStartX && Input.MousePosition.X <= Rect.Right
-                    && Input.MousePosition.Y >= DividerRightPaneHorizontalGrabStartY && Input.MousePosition.Y <= DividerRightPaneHorizontalGrabEndY)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.DividerRightPaneHorizontal;
-                    //Input.CursorType = MouseCursorType.DragX;
-                    if (Input.LeftClickDown)
-                    {
-                        CurrentDividerDragMode = DividerDragMode.RightPaneHorizontal;
-                        WhereCurrentMouseClickStarted = ScreenMouseHoverKind.DividerRightPaneHorizontal;
-                    }
-                }
-                else if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                    || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
-                    || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal)
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-                }
-            }
-
-            if (MouseHoverKind == ScreenMouseHoverKind.BottomLeftCornerOfModelViewer
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.BottomLeftCornerOfModelViewer)
-            {
-                Input.CursorType = MouseCursorType.DragBottomLeftResize;
-            }
-            else if (MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
-            {
-                Input.CursorType = MouseCursorType.DragX;
-            }
-            else if (MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
-            {
-                Input.CursorType = MouseCursorType.DragY;
-            }
-
-            if (CurrentDividerDragMode == DividerDragMode.LeftVertical || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    //Input.CursorType = MouseCursorType.DragX;
-                    LeftSectionWidth = MathHelper.Max((Input.MousePosition.X - Rect.X) - (DividerVisiblePad / 2), LeftSectionWidthMin);
-                    LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidth - (DividerVisiblePad * 2));
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-                else
-                {
-                    //Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-                }
-            }
-            else if (CurrentDividerDragMode == DividerDragMode.RightVertical || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    //Input.CursorType = MouseCursorType.DragX;
-                    RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerVisiblePad / 2), RightSectionWidthMin);
-                    RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidth - (DividerVisiblePad * 2));
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-                else
-                {
-                    //Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-                }
-            }
-            else if (CurrentDividerDragMode == DividerDragMode.RightPaneHorizontal || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    //Input.CursorType = MouseCursorType.DragY;
-                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin - TransportHeight) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
-                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
-                    MouseHoverKind = ScreenMouseHoverKind.DividerBetweenCenterAndRightPane;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-                else
-                {
-                    //Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-                }
-            }
-            else if (CurrentDividerDragMode == DividerDragMode.BottomLeftCornerResize || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.BottomLeftCornerOfModelViewer)
-            {
-                if (Input.LeftClickHeld)
-                {
-                    //Input.CursorType = MouseCursorType.DragY;
-                    TopRightPaneHeight = MathHelper.Max((Input.MousePosition.Y - Rect.Top - TopMenuBarMargin - TransportHeight) + (DividerVisiblePad / 2), TopRightPaneHeightMinNew);
-                    TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
-                    RightSectionWidth = MathHelper.Max((Rect.Right - Input.MousePosition.X) + (DividerVisiblePad / 2), RightSectionWidthMin);
-                    RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidth - (DividerVisiblePad * 2));
-                    MouseHoverKind = ScreenMouseHoverKind.BottomLeftCornerOfModelViewer;
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-                else
-                {
-                    //Input.CursorType = MouseCursorType.Arrow;
-                    CurrentDividerDragMode = DividerDragMode.None;
-                    WhereCurrentMouseClickStarted = ScreenMouseHoverKind.None;
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-                }
-            }
-
-            LeftSectionWidth = MathHelper.Max(LeftSectionWidth, LeftSectionWidthMin);
-            LeftSectionWidth = MathHelper.Min(LeftSectionWidth, Rect.Width - MiddleSectionWidthMin - RightSectionWidthMin - (DividerVisiblePad * 2));
-
-            RightSectionWidth = MathHelper.Max(RightSectionWidth, RightSectionWidthMin);
-            RightSectionWidth = MathHelper.Min(RightSectionWidth, Rect.Width - MiddleSectionWidthMin - LeftSectionWidthMin - (DividerVisiblePad * 2));
-
-            TopRightPaneHeight = MathHelper.Max(TopRightPaneHeight, TopRightPaneHeightMinNew);
-            TopRightPaneHeight = MathHelper.Min(TopRightPaneHeight, Rect.Height - BottomRightPaneHeightMinNew - DividerVisiblePad - TopMenuBarMargin - TransportHeight);
-
-            if (!Rect.Contains(Input.MousePositionPoint))
-            {
-                MouseHoverKind = ScreenMouseHoverKind.None;
-            }
-
-            // Very specific edge case to handle before you load an anibnd so that
-            // it won't have the resize cursor randomly. This box spans all the way
-            // from left of screen to the hitbox of the right vertical divider and
-            // just immediately clears the resize cursor in that entire huge region.
-            if (AnimationListScreen == null && Graph == null
-                    && new Rectangle(Rect.Left, Rect.Top, (int)(DividerRightGrabStartX - Rect.Left), Rect.Height).Contains(Input.MousePositionPoint))
-            {
-                MouseHoverKind = ScreenMouseHoverKind.None;
-                Input.CursorType = MouseCursorType.Arrow;
-            }
-
-            // Check if currently dragging to resize panes.
-            if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                || WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane)
-            {
-                Input.CursorType = MouseCursorType.DragX;
-                GFX.CurrentWorldView.DisableAllInput = true;
-                return;
-            }
-            else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.DividerRightPaneHorizontal)
-            {
-                Input.CursorType = MouseCursorType.DragY;
-                GFX.CurrentWorldView.DisableAllInput = true;
-                return;
-            }
-            else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.BottomLeftCornerOfModelViewer)
-            {
-                Input.CursorType = MouseCursorType.DragBottomLeftResize;
-                GFX.CurrentWorldView.DisableAllInput = true;
-                return;
-            }
-            else if (WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ShaderAdjuster)
-            {
-                GFX.CurrentWorldView.DisableAllInput = true;
-                return;
-            }
-            else if (!(MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndRightPane
-                || MouseHoverKind == ScreenMouseHoverKind.DividerBetweenCenterAndLeftPane
-                || MouseHoverKind == ScreenMouseHoverKind.DividerRightPaneHorizontal
-                || MouseHoverKind == ScreenMouseHoverKind.BottomLeftCornerOfModelViewer))
-            {
-                if (AnimationListScreen != null && AnimationListScreen.Rect.Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.AnimList;
-                else if (Graph != null && Graph.Rect.Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.EventGraph;
-                else if (
-                    new Rectangle(
-                        (int)(ImGuiEventInspectorPos.X),
-                        (int)(ImGuiEventInspectorPos.Y),
-                        (int)(ImGuiEventInspectorSize.X),
-                        (int)(ImGuiEventInspectorSize.Y)
-                        ).InverseDpiScaled()
-                        .Contains(Input.MousePositionPoint))
-                    MouseHoverKind = ScreenMouseHoverKind.Inspector;
-                //else if (ShaderAdjuster.Bounds.Contains(new System.Drawing.Point(Input.MousePositionPoint.X, Input.MousePositionPoint.Y)))
-                //    MouseHoverKind = ScreenMouseHoverKind.ShaderAdjuster;
-                else if (
-                    ModelViewerBounds_InputArea.Contains(Input.MousePositionPoint))
-                {
-                    MouseHoverKind = ScreenMouseHoverKind.ModelViewer;
-                }
-                else
-                    MouseHoverKind = ScreenMouseHoverKind.None;
-
-                if (Input.LeftClickDown)
-                {
-                    WhereCurrentMouseClickStarted = MouseHoverKind;
-                }
-
-                if (AnimationListScreen != null)
-                {
-
-                    if (MouseHoverKind == ScreenMouseHoverKind.AnimList ||
-                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.AnimList)
-                    {
-                        Input.CursorType = MouseCursorType.Arrow;
-                        AnimationListScreen.Update(Main.DELTA_UPDATE,
-                            allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        if (GlobalUndoMan?.CanUndo == true)
+                        {
+                            DialogManager.AskYesNo("WARNING",
+                                "All changes on all animations since the [Global] operation was " +
+                                "\nperformed will be lost if you undo the global operation. " +
+                                "\nAre you sure you wish to do this?",
+                                choice =>
+                                {
+                                    if (choice)
+                                    {
+                                        GlobalUndoMan?.Undo();
+                                    }
+                                }, allowCancel: true, inputFlags: InputFlag.EscapeKeyToCancel | InputFlag.TitleBarXToCancel | InputFlag.EnterKeyToAccept);
+                        }
                     }
                     else
-                    {
-                        AnimationListScreen.UpdateMouseOutsideRect(Main.DELTA_UPDATE,
-                            allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-                    }
+                        CurrentAnimUndoMan?.Undo();
                 }
 
-                if (Graph != null)
+                if (RedoButton.Update(Main.DELTA_UPDATE, (Input.CtrlHeld && !Input.AltHeld) && (!zHeld && yHeld)) && !isOtherPaneFocused && Proj != null)
                 {
-                    Graph.UpdateMiddleClickPan();
-
-                    if (!Graph.Rect.Contains(Input.MousePositionPoint))
+                    if (Input.ShiftHeld)
                     {
-                        HoveringOverEventBox = null;
-                    }
-
-                    if (MouseHoverKind == ScreenMouseHoverKind.EventGraph ||
-                        WhereCurrentMouseClickStarted == ScreenMouseHoverKind.EventGraph)
-                    {
-                        Graph.Update(allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
+                        if (GlobalUndoMan?.CanRedo == true)
+                        {
+                            DialogManager.AskYesNo("WARNING",
+                                "All changes on all animations since the [Global] operation was " +
+                                "\nundone will be lost if you redo the global operation. " +
+                                "\nAre you sure you wish to do this?",
+                                choice =>
+                                {
+                                    if (choice)
+                                    {
+                                        GlobalUndoMan?.Redo();
+                                    }
+                                }, allowCancel: true, inputFlags: InputFlag.EscapeKeyToCancel | InputFlag.TitleBarXToCancel | InputFlag.EnterKeyToAccept);
+                        }
                     }
                     else
-                    {
-                        Graph.UpdateMouseOutsideRect(Main.DELTA_UPDATE, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-                    }
+                        CurrentAnimUndoMan?.Redo();
                 }
+            }
 
-                if (MouseHoverKind == ScreenMouseHoverKind.ModelViewer ||
-                    WhereCurrentMouseClickStarted == ScreenMouseHoverKind.ModelViewer)
+            if (Graph != null)
+            {
+                Graph?.InputMan?.UpdateMiddleClickPan();
+
+                //if (!Graph.Rect.Contains(Input.MousePositionPoint))
+                //{
+                //    HoveringOverEventBox = null;
+                //}
+                if (Graph?.Rect.Contains(Input.MousePosition) ?? false)
                 {
-                    Input.CursorType = MouseCursorType.Arrow;
-                    GFX.CurrentWorldView.DisableAllInput = false;
+                    Graph?.Update(elapsedTime);
                 }
                 else
                 {
-                    //GFX.World.DisableAllInput = true;
+                    Graph?.UpdateMouseOutsideRect(elapsedTime);
+                    
                 }
-
-                if (MouseHoverKind == ScreenMouseHoverKind.Inspector ||
-                    WhereCurrentMouseClickStarted == ScreenMouseHoverKind.Inspector)
-                {
-                    Input.CursorType = MouseCursorType.Arrow;
-                }
-            }
-
-            //else
-            //{
-            //    Input.CursorType = MouseCursorType.Arrow;
-            //}
-
-            //if (MouseHoverKind == ScreenMouseHoverKind.Inspector)
-            //    Input.CursorType = MouseCursorType.StopUpdating;
-
-            //if (editScreenGraphInspector.Rect.Contains(Input.MousePositionPoint))
-            //    editScreenGraphInspector.Update(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-            //else
-            //    editScreenGraphInspector.UpdateMouseOutsideRect(elapsedSeconds, allowMouseUpdate: CurrentDividerDragMode == DividerDragMode.None);
-
-            oldMouseHoverKind = MouseHoverKind;
-            
-        }
-
-        public void HandleWindowResize(Rectangle oldBounds, Rectangle newBounds)
-        {
-            if (!Main.WindowShown || !IsRectValid)
-                return;
-
-            if (oldBounds.Width > 1000 && oldBounds.Height > 500 && newBounds.Width > 1000 && newBounds.Height > 500)
-            {
-                float ratioW = 1.0f * newBounds.Width / oldBounds.Width;
-                float ratioH = 1.0f * newBounds.Height / oldBounds.Height;
-
-                LeftSectionWidth = LeftSectionWidth * ratioW;
-                RightSectionWidth = RightSectionWidth * ratioW;
-                TopRightPaneHeight = TopRightPaneHeight * ratioH;
-
-                UpdateLayout();
             }
             
         }
-
-        public bool IsRectValid => Rect.Width >= 1000 && Rect.Height >= 500;
-        public void UpdateLayout()
-        {
-            if (!Main.WindowShown || !IsRectValid)
-                return;
-
-            if (Rect.IsEmpty)
-            {
-                return;
-            }
-                if (TopRightPaneHeight < TopRightPaneHeightMinNew)
-                    TopRightPaneHeight = TopRightPaneHeightMinNew;
-
-
-
-
-                if (RightSectionWidth < RightSectionWidthMin)
-                    RightSectionWidth = RightSectionWidthMin;
-
-                if (TopRightPaneHeight > (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin - TransportHeight))
-                {
-                    TopRightPaneHeight = (Rect.Height - BottomRightPaneHeightMinNew - TopMenuBarMargin - TransportHeight);
-                    Main.RequestViewportRenderTargetResolutionChange = true;
-                    Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                }
-
-                if (AnimationListScreen != null && Graph != null)
-                {
-                    if (LeftSectionWidth < LeftSectionWidthMin)
-                    {
-                        LeftSectionWidth = LeftSectionWidthMin;
-                        Main.RequestViewportRenderTargetResolutionChange = true;
-                        Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                    }
-
-
-                    if (MiddleSectionWidth < MiddleSectionWidthMin)
-                    {
-                        var adjustment = MiddleSectionWidthMin - MiddleSectionWidth;
-                        RightSectionWidth -= adjustment;
-                        Main.RequestViewportRenderTargetResolutionChange = true;
-                        Main.RequestHideOSD = Main.RequestHideOSD_MAX;
-                    }
-
-                    AnimationListScreen.Rect = new Rectangle(
-                        (int)LeftSectionStartX,
-                        Rect.Top + TopMenuBarMargin,
-                        (int)LeftSectionWidth,
-                        Rect.Height - TopMenuBarMargin).ApplyPadding(t: 0, b: PaddingAroundDragableThings, l: PaddingAroundDragableThings, r: PaddingAroundDragableThings);
-
-                Graph.Rect = new Rectangle(
-                        (int)MiddleSectionStartX,
-                        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
-                        (int)MiddleSectionWidth,
-                        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin).ApplyPadding(t: 0, b: PaddingAroundDragableThings, l: PaddingAroundDragableThings, r: PaddingAroundDragableThings);
-
-                //var plannedGraphRect = new Rectangle(
-                //        (int)MiddleSectionStartX,
-                //        Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
-                //        (int)MiddleSectionWidth,
-                //        Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin).ApplyPadding(PaddingAroundDragableThings);
-            }
-            //    else
-            //    {
-            //        var plannedGraphRect = new Rectangle(
-            //            (int)MiddleSectionStartX,
-            //            Rect.Top + TopMenuBarMargin + TopOfGraphAnimInfoMargin,
-            //            (int)MiddleSectionWidth,
-            //            Rect.Height - TopMenuBarMargin - TopOfGraphAnimInfoMargin).ApplyPadding(PaddingAroundDragableThings);
-            //}
-
-                Transport.Rect = new Rectangle(
-                        (int)RightSectionStartX,
-                        Rect.Top + TopMenuBarMargin,
-                        (int)RightSectionWidth,
-                        (int)(TransportHeight)).ApplyPadding(t: 0, b: 0, l: PaddingAroundDragableThings, r: PaddingAroundDragableThings);
-
-            //editScreenGraphInspector.Rect = new Rectangle(Rect.Width - LayoutInspectorWidth, 0, LayoutInspectorWidth, Rect.Height);
-
-
-            //inspectorWinFormsControl.Bounds = new System.Drawing.Rectangle((int)RightSectionStartX, Rect.Top + TopMenuBarMargin, (int)RightSectionWidth, (int)(Rect.Height - TopMenuBarMargin - BottomRightPaneHeight - DividerVisiblePad));
-            //ModelViewerBounds = new Rectangle((int)RightSectionStartX, (int)(Rect.Bottom - BottomRightPaneHeight), (int)RightSectionWidth, (int)(BottomRightPaneHeight));
-
-            //ShaderAdjuster.Size = new System.Drawing.Size((int)RightSectionWidth, ShaderAdjuster.Size.Height);
-
-            
-
-            ModelViewerBounds = new Rectangle(
-                    (int)RightSectionStartX, 
-                    Rect.Top + TopMenuBarMargin + TransportHeight, 
-                    (int)RightSectionWidth, 
-                    (int)(TopRightPaneHeight)).ApplyPadding(t: 0, b: PaddingAroundDragableThings, l: PaddingAroundDragableThings, r: PaddingAroundDragableThings);
-
-            if (GFX.CurrentWorldView.LockAspectRatioDuringRemo && Graph?.ViewportInteractor?.EntityType == TaeViewportInteractor.TaeEntityType.REMO)
-            {
-                var sizeFromWidth = new Vector2(ModelViewerBounds.Width, ModelViewerBounds.Width * (9f / 16f));
-                var sizeFromHeight = new Vector2(ModelViewerBounds.Height * (16f / 9f), ModelViewerBounds.Height);
-
-                if (sizeFromHeight.LengthSquared() < sizeFromWidth.LengthSquared())
-                {
-                    Vector2 topLeft = ModelViewerBounds.Center.ToVector2() - (sizeFromHeight / 2);
-                    ModelViewerBounds.X = (int)topLeft.X;
-                    ModelViewerBounds.Y = (int)topLeft.Y;
-                    ModelViewerBounds.Width = (int)sizeFromHeight.X;
-                    ModelViewerBounds.Height = (int)sizeFromHeight.Y;
-                }
-                else
-                {
-                    Vector2 topLeft = ModelViewerBounds.Center.ToVector2() - (sizeFromWidth / 2);
-                    ModelViewerBounds.X = (int)topLeft.X;
-                    ModelViewerBounds.Y = (int)topLeft.Y;
-                    ModelViewerBounds.Width = (int)sizeFromWidth.X;
-                    ModelViewerBounds.Height = (int)sizeFromWidth.Y;
-                }
-            }
-
-            ModelViewerBounds_InputArea = new Rectangle(
-                    ModelViewerBounds.X + (DividerHitboxPad / 2),
-                    ModelViewerBounds.Y + (DividerHitboxPad / 2),
-                    ModelViewerBounds.Width - DividerHitboxPad,
-                    ModelViewerBounds.Height - DividerHitboxPad).ApplyPadding(PaddingAroundDragableThings);
-
-                ImGuiEventInspectorPos = new System.Numerics.Vector2(RightSectionStartX, 
-                    Rect.Top + TopMenuBarMargin + TopRightPaneHeight + DividerVisiblePad + TransportHeight) + (System.Numerics.Vector2.One * PaddingAroundDragableThings);
-                ImGuiEventInspectorSize = new System.Numerics.Vector2(RightSectionWidth, 
-                    Rect.Height - TopRightPaneHeight - DividerVisiblePad - TopMenuBarMargin - TransportHeight) - ((System.Numerics.Vector2.One * PaddingAroundDragableThings) * 2);
-
-                //ShaderAdjuster.Location = new System.Drawing.Point(Rect.Right - ShaderAdjuster.Size.Width, Rect.Top + TopMenuBarMargin);
-        }
-
-        public void DrawDimmingRect(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex)
-        {
-            sb.Begin(transformMatrix: Main.DPIMatrix);
-            try
-            {
-                sb.Draw(boxTex, new Rectangle(Rect.Left, Rect.Top, (int)RightSectionStartX - Rect.X, Rect.Height), Color.Black * 0.25f);
-            }
-            finally { sb.End(); }
-        }
-
+        
         public void Draw(GraphicsDevice gd, SpriteBatch sb, Texture2D boxTex,
             SpriteFont font, float elapsedSeconds, SpriteFont smallFont, Texture2D scrollbarArrowTex)
         {
-            if (!IsRectValid)
-                return;
 
-            sb.Begin();
-            try
+            UpdateAllHighlightTimers(elapsedSeconds);
+
+            if (true)//(AnimationListScreen != null)
             {
-                sb.Draw(boxTex, new Rectangle(Rect.X, Rect.Y, (int)RightSectionStartX - Rect.X, Rect.Height).DpiScaled(), Main.Colors.MainColorBackground);
-
-                // Draw model viewer background lel
-                //sb.Draw(boxTex, ModelViewerBounds, Color.Gray);
-
-
-
-                sb.Draw(boxTex, new Rectangle(
-                    (int)(DividerLeftGrabStartX),
-                    (int)(Rect.Y),
-                    (int)(DividerHitboxPad),
-                    (int)(Rect.Height)
-                    ).DpiScaled(), Main.Colors.MainColorDivider);
-
-                sb.Draw(boxTex, new Rectangle(
-                    (int)(DividerRightGrabStartX),
-                    (int)(Rect.Y),
-                    (int)(DividerHitboxPad),
-                    (int)(Rect.Height)
-                    ).DpiScaled(), Main.Colors.MainColorDivider);
-
-                sb.Draw(boxTex, new Rectangle(
-                    (int)(RightSectionStartX),
-                    (int)(DividerRightPaneHorizontalGrabStartY),
-                    (int)(RightSectionWidth),
-                    (int)(DividerHitboxPad)
-                    ).DpiScaled(), Main.Colors.MainColorDivider);
-
-            }
-            finally { sb.End(); }
-
-
-
-            //throw new Exception("TaeUndoMan");
-
-            //throw new Exception("Make left/right edges of events line up to same vertical lines so the rounding doesnt make them 1 pixel off");
-            //throw new Exception("Make dragging edges of scrollbar box do zoom");
-            //throw new Exception("make ctrl+scroll zoom centered on mouse cursor pos");
-
-            UpdateLayout();
-
-            if (AnimationListScreen != null)
-            {
-                AnimationListScreen.Draw(gd, sb, boxTex, font, scrollbarArrowTex);
-
                 var graphRect = Graph?.Rect ?? Rectangle.Empty;
 
                 Rectangle curAnimInfoTextRect = new Rectangle(
@@ -4139,30 +4436,30 @@ namespace DSAnimStudio.TaeEditor
 
                             //ImGuiDebugDrawer.DrawRect(new Rectangle(curAnimInfoTextRect.X, curAnimInfoTextRect.Y, 120, curAnimInfoTextRect.Height), )
 
-                            if (ImGuiDebugDrawer.FakeButton(curAnimInfoTextRect.TopLeftCorner() + new Vector2(2,3), 
-                                new Vector2((int)(170), curAnimInfoTextRect.Height) - new Vector2(2,2), "Go To Original (F4 Key)", 0))
-                            {
-                                RequestGoToEventSource = true;
-                            }
-
-                            curAnimInfoTextRect.X += (int)(170) + 8;
-                            curAnimInfoTextRect.Width -= (int)(170);
+                            // if (ImGuiDebugDrawer.FakeButton(curAnimInfoTextRect.TopLeftCorner() + new Vector2(2,3), 
+                            //     new Vector2((int)(170), curAnimInfoTextRect.Height) - new Vector2(2,2), "Go To Original (F4 Key)", 0, out bool isHovering))
+                            // {
+                            //     RequestGoToEventSource = true;
+                            // }
+                            //
+                            // curAnimInfoTextRect.X += (int)(170) + 8;
+                            // curAnimInfoTextRect.Width -= (int)(170);
                             
                         }
 
-                        if (Config.EnableFancyScrollingStrings)
-                        {
-                            SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect.DpiScaled(), 20f, elapsedSeconds, new Vector2(0, 4), restrictToParentViewport: false);
-                        }
-                        else
-                        {
-                            var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
-
-                            //sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset, Color.Black);
-                            //sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2) + Main.GlobalTaeEditorFontOffset, Color.Black);
-                            //sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Main.GlobalTaeEditorFontOffset, Color.White);
-                            ImGuiDebugDrawer.DrawText(SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + new Vector2(0, 4), Color.White, Color.Black, 20);
-                        }
+                        // if (Config.EnableFancyScrollingStrings)
+                        // {
+                        //     SelectedTaeAnimInfoScrollingText.Draw(gd, sb, Matrix.Identity, curAnimInfoTextRect.DpiScaled(), 20f, elapsedSeconds, new Vector2(0, 4), restrictToParentViewport: false);
+                        // }
+                        // else
+                        // {
+                        //     var curAnimInfoTextPos = curAnimInfoTextRect.Location.ToVector2();
+                        //
+                        //     //sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Vector2.One + Main.GlobalTaeEditorFontOffset, Color.Black);
+                        //     //sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + (Vector2.One * 2) + Main.GlobalTaeEditorFontOffset, Color.Black);
+                        //     //sb.DrawString(font, SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + Main.GlobalTaeEditorFontOffset, Color.White);
+                        //     ImGuiDebugDrawer.DrawText(SelectedTaeAnimInfoScrollingText.Text, curAnimInfoTextPos + new Vector2(0, 4), Color.White, Color.Black, 20);
+                        // }
 
                         //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + Vector2.One, Color.Black);
                         //sb.DrawString(font, SelectedTaeAnimInfoScrollingText, curAnimInfoTextPos + (Vector2.One * 2), Color.Black);
@@ -4225,23 +4522,17 @@ namespace DSAnimStudio.TaeEditor
                 //sb.End();
             }
 
-            Transport.Draw(gd, sb, boxTex, smallFont);
+            //Transport.Draw(gd, sb, boxTex, smallFont);
 
-            if (AnimSwitchRenderCooldown > 0)
+            if (AnimSwitchRenderCooldown > 0 && !zzz_DocumentManager.AnyDocumentWithAnyInteractionBlockingLoadingTasks())
             {
-                AnimSwitchRenderCooldown -= Main.DELTA_UPDATE;
+                AnimSwitchRenderCooldown--;
 
                 //float ratio = Math.Max(0, Math.Min(1, MathHelper.Lerp(0, 1, AnimSwitchRenderCooldown / AnimSwitchRenderCooldownFadeLength)));
                 //sb.Begin();
                 //sb.Draw(boxTex, graphRect, AnimSwitchRenderCooldownColor * ratio);
                 //sb.End();
             }
-
-
-
-
-            DrawDebug();
-
 
 
 
@@ -4268,7 +4559,7 @@ namespace DSAnimStudio.TaeEditor
                 printer.AppendLine("LOADING CUTSCENE ENTITIES...");
 
                 printer.BaseScale = scale;
-                printer.Draw();
+                printer.Draw(out _);
 
                 REMO_HOTFIX_REQUEST_CUT_ADVANCE_NEXT_FRAME = false;
                 REMO_HOTFIX_REQUEST_CUT_ADVANCE_THIS_FRAME = true;

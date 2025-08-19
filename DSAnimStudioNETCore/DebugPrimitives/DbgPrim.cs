@@ -9,66 +9,52 @@ using System.Threading.Tasks;
 
 namespace DSAnimStudio.DebugPrimitives
 {
-    public enum DbgPrimCategory
-    {
-        AlwaysDraw,
-        HkxBone,
-        FlverBone,
-        FlverBoneBoundingBox,
-        DummyPoly,
-        SoundEvent,
-        WeaponDummyPoly,
-        DummyPolyHelper,
-        Skybox,
-        DummyPolySpawnArrow,
-        Other,
-        RootMotionPath,
-    }
-
-    public class DbgLabel
-    {
-        public Matrix World = Matrix.Identity;
-        public float Height = 1;
-        public string Text = "?LabelText?";
-        public Color Color;
-
-        public DbgLabel(Matrix world, float height, string text, Color color)
-        {
-            World = world;
-            Height = height;
-            Text = text;
-            Color = color;
-        }
-    }
+    // public class DbgLabel
+    // {
+    //     public Matrix World = Matrix.Identity;
+    //     public float Height = 1;
+    //     public string Text = "?LabelText?";
+    //     public Color Color;
+    //
+    //     public DbgLabel(Matrix world, float height, string text, Color color)
+    //     {
+    //         World = world;
+    //         Height = height;
+    //         Text = text;
+    //         Color = color;
+    //     }
+    // }
 
     public abstract class DbgPrim<T> : IDbgPrim
         where T : Effect
     {
+        public float ElapsedTime { get; set; }
+
         public Transform Transform { get; set; } = Transform.Default;
-        public string Name { get; set; }
-        public Color NameColor { get; set; } = Color.Yellow;
+        // public string Name { get; set; }
+        // public Color NameColor { get; set; } = Color.Yellow;
 
         public Color? OverrideColor { get; set; } = null;
 
-        public DbgPrimCategory Category { get; set; } = DbgPrimCategory.Other;
-
-        private List<DbgLabel> DbgLabels = new List<DbgLabel>();
+        // private List<DbgLabel> DbgLabels = new List<DbgLabel>();
 
         public object ExtraData { get; set; } = null;
 
         public bool EnableDraw { get; set; } = true;
-        public bool EnableDbgLabelDraw { get; set; } = true;
-        public bool EnableNameDraw { get; set; } = true;
+        // public bool EnableDbgLabelDraw { get; set; } = true;
+        // public bool EnableNameDraw { get; set; } = true;
 
         public List<IDbgPrim> Children { get; set; } = new List<IDbgPrim>();
         public List<IDbgPrim> UnparentedChildren { get; set; } = new List<IDbgPrim>();
 
         protected int[] Indices = new int[0];
-        protected VertexPositionColorNormal[] Vertices = new VertexPositionColorNormal[0];
+        protected VertexPositionColorNormalTexture[] Vertices = new VertexPositionColorNormalTexture[0];
         protected VertexBuffer VertBuffer;
         protected IndexBuffer IndexBuffer;
         protected bool NeedToRecreateVertBuffer = true;
         protected bool NeedToRecreateIndexBuffer = true;
+
+        protected Func<DbgPrimGeometryData> GetGeomDataBuffer = null;
 
         protected abstract PrimitiveType PrimType { get; }
 
@@ -79,7 +65,9 @@ namespace DSAnimStudio.DebugPrimitives
         public int VertexCount => Vertices.Length;
         public int IndexCount => Indices.Length;
 
-        public ParamData.AtkParam.DummyPolySource DmyPolySource { get; set; } = ParamData.AtkParam.DummyPolySource.Body;
+        public ParamData.AtkParam.DummyPolySource DmyPolySource { get; set; } = ParamData.AtkParam.DummyPolySource.BaseModel;
+
+
 
         protected void SetBuffers(VertexBuffer vertBuffer, IndexBuffer indexBuffer)
         {
@@ -91,6 +79,15 @@ namespace DSAnimStudio.DebugPrimitives
 
         protected void FinalizeBuffers(bool force = false)
         {
+            if (GetGeomDataBuffer != null)
+            {
+                var geom = GetGeomDataBuffer?.Invoke();
+                VertBuffer = geom.VertBuffer;
+                IndexBuffer = geom.IndexBuffer;
+                NeedToRecreateIndexBuffer = false;
+                NeedToRecreateVertBuffer = false;
+            }
+
             if (force || NeedToRecreateVertBuffer)
             {
                 VertBuffer?.Dispose();
@@ -98,7 +95,7 @@ namespace DSAnimStudio.DebugPrimitives
                 if (Vertices.Length > 0)
                 {
                     VertBuffer = new VertexBuffer(GFX.Device,
-                    typeof(VertexPositionColorNormal), Vertices.Length, BufferUsage.WriteOnly);
+                    typeof(VertexPositionColorNormalTexture), Vertices.Length, BufferUsage.WriteOnly);
                     VertBuffer.SetData(Vertices);
                 }
                 NeedToRecreateVertBuffer = false;
@@ -117,22 +114,31 @@ namespace DSAnimStudio.DebugPrimitives
             }
         }
 
-        protected void AddVertex(Vector3 pos, Color color, Vector3? normal = null)
+        protected int AddVertex(Vector3 pos, Color color, Vector3? normal = null)
         {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1].Position = pos;
-            Vertices[Vertices.Length - 1].Color = color;
-            Vertices[Vertices.Length - 1].Normal = normal ?? Vector3.Forward;
-
-            NeedToRecreateVertBuffer = true;
+            var vert = new VertexPositionColorNormalTexture();
+            vert.Position = pos;
+            vert.Color = color;
+            vert.Normal = normal ?? Vector3.Forward;
+            return AddVertex(vert);
         }
 
-        protected void AddVertex(VertexPositionColorNormal vert)
+        protected int AddVertex(VertexPositionColorNormalTexture vert)
         {
-            Array.Resize(ref Vertices, Vertices.Length + 1);
-            Vertices[Vertices.Length - 1] = vert;
+            int existingIndex = Vertices.ToList().IndexOf(vert);
+            if (existingIndex >= 0)
+            {
+                return existingIndex;
+            }
+            else
+            {
+                Array.Resize(ref Vertices, Vertices.Length + 1);
+                Vertices[Vertices.Length - 1] = vert;
 
-            NeedToRecreateVertBuffer = true;
+                NeedToRecreateVertBuffer = true;
+
+                return Vertices.Length - 1;
+            }
         }
 
         protected void AddIndex(int index)
@@ -142,19 +148,28 @@ namespace DSAnimStudio.DebugPrimitives
             NeedToRecreateIndexBuffer = true;
         }
 
-        public void AddDbgLabel(Vector3 position, float height, string text, Color color)
+        protected void AddIndex3(int a, int b, int c)
         {
-            DbgLabels.Add(new DbgLabel(Matrix.CreateTranslation(position), height, text, color));
+            Array.Resize(ref Indices, Indices.Length + 3);
+            Indices[Indices.Length - 3] = a;
+            Indices[Indices.Length - 2] = b;
+            Indices[Indices.Length - 1] = c;
+            NeedToRecreateIndexBuffer = true;
         }
 
-        public void AddDbgLabel(Matrix world, float height, string text, Color color)
-        {
-            DbgLabels.Add(new DbgLabel(world, height, text, color));
-        }
+        // public void AddDbgLabel(Vector3 position, float height, string text, Color color)
+        // {
+        //     DbgLabels.Add(new DbgLabel(Matrix.CreateTranslation(position), height, text, color));
+        // }
+        //
+        // public void AddDbgLabel(Matrix world, float height, string text, Color color)
+        // {
+        //     DbgLabels.Add(new DbgLabel(world, height, text, color));
+        // }
 
         public abstract IGFXShader<T> Shader { get; }
 
-        public abstract DbgPrim<T> Instantiate(string newName, Transform newLocation, Color? newNameColor = null);
+        public abstract DbgPrim<T> Instantiate(Transform newLocation);
 
         /// <summary>
         /// Set this to choose specific technique(s).
@@ -164,6 +179,7 @@ namespace DSAnimStudio.DebugPrimitives
 
         private void DrawPrimitive()
         {
+
             FinalizeBuffers();
 
             if (VertBuffer == null || IndexBuffer == null || VertBuffer.VertexCount == 0 || IndexBuffer.IndexCount == 0)
@@ -188,23 +204,20 @@ namespace DSAnimStudio.DebugPrimitives
             GFX.Device.DrawIndexedPrimitives(PrimType, 0, 0, IndexBuffer.IndexCount);
         }
 
-        protected virtual void PreDraw()
+        protected virtual void PreDraw(bool forceDraw, IDbgPrim parentPrim, Matrix world)
         {
 
         }
 
-        public void Draw(IDbgPrim parentPrim, Matrix world)
+        public void Draw(bool forceDraw, IDbgPrim parentPrim, Matrix world)
         {
-            PreDraw();
+            PreDraw(forceDraw, parentPrim, world);
 
             // Always draw unparented children :fatcat:
             foreach (var c in UnparentedChildren)
-                c.Draw(this, world);
+                c.Draw(forceDraw, this, world);
 
-            if (!EnableDraw)
-                return;
-
-            if (Category != DbgPrimCategory.AlwaysDraw && !DBG.GetCategoryEnableDraw(Category))
+            if (!forceDraw && !EnableDraw)
                 return;
 
             if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
@@ -246,7 +259,7 @@ namespace DSAnimStudio.DebugPrimitives
 
             foreach (var pass in effect.CurrentTechnique.Passes)
             {
-                if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader)
+                if (Shader == GFX.DbgPrimSolidShader || Shader == GFX.DbgPrimWireShader || Shader == GFX.NewGrid3DShader)
                     GFX.CurrentWorldView.ApplyViewToShader(Shader, Transform.WorldMatrix * world);
                 pass.Apply();
                 DrawPrimitive();
@@ -267,51 +280,48 @@ namespace DSAnimStudio.DebugPrimitives
             }
 
             foreach (var c in Children)
-                c.Draw(this, Transform.WorldMatrix * world);
+                c.Draw(forceDraw, this, Transform.WorldMatrix * world);
         }
 
-        public void LabelDraw(Matrix world)
-        {
-            // Always draw unparented children :fatcat:
-            foreach (var c in UnparentedChildren)
-                c.LabelDraw(world);
+        // public void LabelDraw(Matrix world)
+        // {
+        //     // Always draw unparented children :fatcat:
+        //     foreach (var c in UnparentedChildren)
+        //         c.LabelDraw(world);
+        //
+        //     if (DbgLabels.Count > 0)
+        //     {
+        //         foreach (var label in DbgLabels)
+        //         {
+        //             DBG.DrawTextOn3DLocation_FixedPixelSize(label.World * Transform.WorldMatrix * world, Vector3.Zero,
+        //                 label.Text, label.Color, label.Height * 1.5f, startAndEndSpriteBatchForMe: false);
+        //         }
+        //     }
+        //
+        //     foreach (var c in Children)
+        //         c.LabelDraw(Transform.WorldMatrix * world);
+        // }
 
-            if (!(EnableDbgLabelDraw && DBG.GetCategoryEnableDbgLabelDraw(Category)))
-                return;
-
-            if (DbgLabels.Count > 0)
-            {
-                foreach (var label in DbgLabels)
-                {
-                    DBG.DrawTextOn3DLocation_FixedPixelSize(label.World * Transform.WorldMatrix * world, Vector3.Zero,
-                        label.Text, label.Color, label.Height * 1.5f, startAndEndSpriteBatchForMe: false);
-                }
-            }
-
-            foreach (var c in Children)
-                c.LabelDraw(Transform.WorldMatrix * world);
-        }
-
-        public void LabelDraw_Billboard(Matrix world)
-        {
-            // Always draw unparented children :fatcat:
-            foreach (var c in UnparentedChildren)
-                c.LabelDraw_Billboard(world);
-
-            if (!(EnableDbgLabelDraw && DBG.GetCategoryEnableDbgLabelDraw(Category)))
-                return;
-
-            if (DbgLabels.Count > 0)
-            {
-                foreach (var label in DbgLabels.OrderByDescending(lbl => (GFX.CurrentWorldView.CameraLocationInWorld.Position - Vector3.Transform(Vector3.Zero, lbl.World)).LengthSquared()))
-                {
-                    DBG.Draw3DBillboard(label.Text, label.World * Transform.WorldMatrix * world, label.Color);
-                }
-            }
-
-            foreach (var c in Children)
-                c.LabelDraw_Billboard(Transform.WorldMatrix * world);
-        }
+        // public void LabelDraw_Billboard(Matrix world)
+        // {
+        //     // Always draw unparented children :fatcat:
+        //     foreach (var c in UnparentedChildren)
+        //         c.LabelDraw_Billboard(world);
+        //
+        //     if (!(EnableDbgLabelDraw && DBG.GetCategoryEnableDbgLabelDraw(Category)))
+        //         return;
+        //
+        //     if (DbgLabels.Count > 0)
+        //     {
+        //         foreach (var label in DbgLabels.OrderByDescending(lbl => (GFX.CurrentWorldView.CameraLocationInWorld.Position - Vector3.Transform(Vector3.Zero, lbl.World)).LengthSquared()))
+        //         {
+        //             DBG.Draw3DBillboard(label.Text, label.World * Transform.WorldMatrix * world, label.Color);
+        //         }
+        //     }
+        //
+        //     foreach (var c in Children)
+        //         c.LabelDraw_Billboard(Transform.WorldMatrix * world);
+        // }
 
         protected abstract void DisposeBuffers();
 

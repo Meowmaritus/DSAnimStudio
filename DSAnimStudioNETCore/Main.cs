@@ -6,7 +6,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using SharpDX.DirectWrite;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -17,47 +16,317 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using System.Reflection;
+using System.Xml;
+using DSAnimStudio.TaeEditor;
+using System.Runtime;
 
 namespace DSAnimStudio
 {
-    /// <summary>
-    /// This is the main type for your game.
-    /// </summary>
     public class Main : Game
     {
-        public const string VERSION = "4.9.3 [PUBLIC]";
+        // STOP MOVING THESE FIELDS DOWN LMAO
+        public const string DSAS_VERSION_STRING = "5.0-RC4.1";
+        public static bool IsPatreonBuild => false;
+
+
+        private static bool NeedsShowWelcome = true;
+
+        public static void InitTaeEditor()
+        {
+            //zzz_DocumentManager.CurrentDocument.EditorScreen = new TaeEditor.TaeEditorScreen((Form)Form.FromHandle(Program.MainInstance.Window.Handle));
+        }
+
+        public static TaeEditorScreen TAE_EDITOR => zzz_DocumentManager.CurrentDocument?.EditorScreen;
+
+#if DEBUG
+        public static bool IsDebugBuild => true;
+        public static bool IsNightfallBuild => false;
+#else
+        public static bool IsDebugBuild => false;
+        public static bool IsNightfallBuild => false;
+#endif
+        public static TimeSpan TIME = TimeSpan.FromMilliseconds(0);
+
+        public static HelperDrawConfig HelperDraw = HelperDrawConfig.Default;
+
+        private static void UpdateTime(TimeSpan elapsedTime)
+        {
+            TIME += elapsedTime;
+        }
+
+        public static float GetPulseLerpS(float cycleLength)
+        {
+            return (float)Math.Sin(Math.PI * ((TIME.TotalSeconds / cycleLength) % 1));
+        }
+
+        public static Color PulseLerpColor(Color a, Color b, float cycleLength)
+        {
+            return Color.Lerp(a, b, GetPulseLerpS(cycleLength));
+        }
+
+        //private static bool DEFAULT_ERROR_HANDLER_TOGGLE_FOR_DEBUG = true;
+
+        public static void HandleError(string errorName, Exception ex)
+        {
+            string msg = $"ERROR HANDLED: {errorName}\n\n{ex}";
+            ErrorLog.LogError(msg);
+            zzz_NotificationManagerIns.PushNotification(msg, color: Color.Red);
+        }
+        
+        public static DPC_EnableErrorHandler EnableErrorHandler = new DPC_EnableErrorHandler();
+        public static DPC_Debug Debug = new DPC_Debug();
+        
+        public class DPC_EnableErrorHandler : DebugPropertiesContainer<DPC_EnableErrorHandler>
+        {
+            public bool MainInit;
+            public bool MainUpdateLoop = true;
+            public bool HardReset = true;
+            public bool LoadTaeTemplate = true;
+            public bool ApplyTaeTemplate = true;
+            public bool ParamManager = true;
+            public bool LoadHKX = true;
+            public bool ModelSkeletonRemapper = true;
+            public bool DoDrawStep = true;
+            public bool NewChrAsmUpdate = true;
+            public bool AC6NpcPartsUpdate = true;
+            public bool TaeFileContainerLoad = true;
+            public bool TextureFetchRequest = true;
+            public bool ActionParametersWrite = true;
+            public bool ActionSimUpdate = true;
+            public bool ActionSimUpdate_Inner = true;
+            public bool ViewportStatusDisplay = true;
+            public bool SoundUpdate = true;
+            public bool ReadInternalSimField = true;
+            public bool AnimListBuild = true;
+            public bool DrawTransport = true;
+            public bool SceneWindowModelNode = true;
+            public bool WriteConfigFile = true;
+            public bool ReadConfigFile = true;
+            public bool ModalFormFocus = true;
+            public bool AnimContainer_LoadBaseANIBND = true;
+            public bool NewChrAsm_Draw_AfterAnimUpdateCall = true;
+            public bool ModelDraw = true;
+            public bool NewMeshDraw = true;
+            public bool HavokBoneGluer = true;
+            public bool LoadingTask = true;
+            public bool ParameterWindow = true;
+        }
+
+        public class DPC_Debug : DebugPropertiesContainer<DPC_Debug>
+        {
+            public bool EnableImGuiDebugMenu_QuickDebug;
+            public bool EnableImguiDebugDockEdit;
+            public bool EnableImguiDebugForceAllStaticWindowsOpen;
+            public bool EnableImguiDebugListAllStaticWindows;
+            public bool EnableGraphDebug;
+            public bool EnableViewportAnimLayerDebug;
+            public bool AnimSlotDisableBlend;
+            public NewAnimSlot.SlotTypes DebugSoloSlotType;
+            public bool EnableAnimListDebug;
+            public bool DisableAnimListCulling;
+            public bool InputPrintTrueKeys;
+            public bool InputPrintTrueKeys_DownOnly;
+            public bool InputPrintTrueKeys_UpOnly;
+            public bool HavokBoneGluerPrintEachGlue;
+            public bool BreakOnBadBoneFKMatrixWrite;
+            public bool GenTrackNamesIncludeExtraInfo;
+            public bool EnableTaeTemplateAssert;
+            public bool EnableImGuiFocusDebug;
+        }
+
+        public static string DebugXmlPath => $"{Directory}\\DEBUG.xml"; 
+        
+        public static void DebugToggleXmlRead()
+        {
+            if (IsDebugBuild)
+            {
+                if (File.Exists(DebugXmlPath))
+                {
+                    try
+                    {
+                        var xml = new XmlDocument();
+                        xml.Load(DebugXmlPath);
+                        XmlNode rootNode = xml.SelectSingleNode("DEBUG");
+                        EnableErrorHandler.ReadXmlElement(rootNode);
+                        Debug.ReadXmlElement(rootNode);
+                    }
+                    catch (Exception ex)
+                    {
+                        Main.HandleError("Debug XML Read", ex);
+                    }
+                }
+            }
+        }
+
+        public static void DebugToggleXmlWrite()
+        {
+            if (IsDebugBuild)
+            {
+                using (var testStream = new MemoryStream())
+                {
+                    using (var writer = XmlWriter.Create(testStream, new XmlWriterSettings()
+                           {
+                               Indent = true,
+                               Encoding = System.Text.Encoding.ASCII,
+                           }))
+                    {
+                        writer.WriteStartDocument();
+                        {
+                            writer.WriteStartElement("DEBUG");
+                            {
+                                EnableErrorHandler.WriteXmlElement(writer);
+                                Debug.WriteXmlElement(writer);
+                            }
+                            writer.WriteEndElement();
+                        }
+                        writer.WriteEndDocument();
+                    }
+
+                    File.WriteAllBytes(DebugXmlPath, testStream.ToArray());
+                }
+            }
+        }
+
+        public static void BuildDebugToggleImgui()
+        {
+            if (IsDebugBuild)
+            {
+                EnableErrorHandler.BuildImguiWidget("[ERROR HANDLERS]");
+                Debug.BuildImguiWidget("[DEBUG FLAGS]");
+            }
+        }
+        
+        public static void DebugToggleUpdate()
+        {
+            if (!IsDebugBuild)
+            {
+                EnableErrorHandler.SetAllToggles(true);
+                Debug.SetAllToggles(false);
+            }
+        }
+
+        // public static void DebugToggleInit()
+        // {
+        //     if (IsDebugBuild)
+        //     {
+        //         EnableErrorHandler.SetAllToggles(DEFAULT_ERROR_HANDLER_TOGGLE_FOR_DEBUG);
+        //     }
+        //     else
+        //     {
+        //         
+        //     }
+        //
+        //     DebugToggleXmlRead();
+        // }
+
+        
+        
+    
+        public static byte[] BasicEffectBytecode;
+        public static byte[] SpriteEffectBytecode;
+
+        
+        public static byte[] GetEmbeddedResourceBytes(string resourcePath)
+        {
+            resourcePath = resourcePath.Trim().Trim('/');
+            resourcePath = $"{nameof(DSAnimStudio)}.{resourcePath.Replace("/", ".")}";
+
+            byte[] result = null;
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourcePath))
+            {
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    result = reader.ReadBytes((int)stream.Length);
+                }
+            }
+            return result;
+        }
+
+        public static string GetEmbeddedResourceText(string resourcePath)
+        {
+            resourcePath = resourcePath.Trim().Trim('/');
+            resourcePath = $"{nameof(DSAnimStudio)}.{resourcePath.Replace("/", ".")}";
+            string result = null;
+
+            var ass = Assembly.GetExecutingAssembly();
+            //var debug_ResNames = ass.GetManifestResourceNames();
+
+            using (Stream stream = ass.GetManifestResourceStream(resourcePath))
+            {
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    result = reader.ReadToEnd();
+                }
+            }
+            return result;
+        }
+
+        
+
+        public const double TAE_FRAME_30 = 1.0 / 30.0;
+        public const double TAE_FRAME_60 = 1.0 / 60.0;
 
         public static void GCCollect()
         {
             Task.Run(() =>
             {
-                GC.Collect();
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, false);
             });
         }
 
-        public enum SplashScreenStates
-        {
-            FadeIn,
-            Showing,
-            FadeOut,
-            Complete,
-        }
+        
 
         public class LazyDispatchAction
         {
             public Action Act;
             public int GhettoTimer = 3;
+            public bool WaitForAllLoadingTasks = false;
+        }
+        
+        public class LazyDispatchTask
+        {
+            public Task Act;
+            public int GhettoTimer = 3;
+            public bool WaitForAllLoadingTasks = false;
         }
 
         private static object _lock_LazyDispatch = new object();
         private static Queue<LazyDispatchAction> LazyDispatchActionQueue = new Queue<LazyDispatchAction>();
+        private static Queue<LazyDispatchTask> LazyDispatchTaskQueue = new Queue<LazyDispatchTask>();
         private static List<Action> LazyDispatchASAPActionList = new List<Action>();
-        public static void MainThreadLazyDispatch(Action act, int frameDelay = 8)
+        public static void MainThreadLazyDispatch(Action act, int frameDelay = 0, bool waitForAllLoadingTasks = false)
         {
             lock (_lock_LazyDispatch)
             {
-                LazyDispatchActionQueue.Enqueue(new LazyDispatchAction() { Act = act, GhettoTimer = frameDelay });
+                LazyDispatchActionQueue.Enqueue(new LazyDispatchAction() 
+                { 
+                    Act = act, 
+                    GhettoTimer = frameDelay,
+                    WaitForAllLoadingTasks = waitForAllLoadingTasks,
+                });
             }
+        }
+        
+        public static LazyDispatchTask MainThreadLazyDispatchTask(Task task, int frameDelay = 0, bool waitForAllLoadingTasks = false)
+        {
+            LazyDispatchTask t = null;
+            lock (_lock_LazyDispatch)
+            {
+                t = new LazyDispatchTask()
+                {
+                    Act = task,
+                    GhettoTimer = frameDelay,
+                    WaitForAllLoadingTasks = waitForAllLoadingTasks,
+                };
+                LazyDispatchTaskQueue.Enqueue(t);
+            }
+            
+            // UpdateLazyDispatch(MenuBar.IsAnyMenuOpen);
+            // UpdateLazyDispatch(MenuBar.IsAnyMenuOpen);
+            // UpdateLazyDispatch(MenuBar.IsAnyMenuOpen);
+                
+            return t;
         }
 
         public static void MainThreadNextFrameDispatch(Action act)
@@ -68,25 +337,51 @@ namespace DSAnimStudio
             }
         }
 
-        private static void UpdateLazyDispatch()
+        private static void UpdateLazyDispatch(bool menusOpen)
         {
             List<Action> asapActionListCopy = null;
             Action nextLazyAction = null;
             lock (_lock_LazyDispatch)
             {
+                
                 asapActionListCopy = LazyDispatchASAPActionList.ToList();
                 // Clear while locked to prevent desync
                 LazyDispatchASAPActionList.Clear();
 
-                if (LazyDispatchActionQueue.Count > 0)
+                if (!menusOpen)
                 {
-                    var nextLazy = LazyDispatchActionQueue.Peek();
-
-                    nextLazy.GhettoTimer--;
-
-                    if (nextLazy.GhettoTimer <= 0)
+                    if (LazyDispatchActionQueue.Count > 0)
                     {
-                        nextLazyAction = LazyDispatchActionQueue.Dequeue().Act;
+                        var nextLazy = LazyDispatchActionQueue.Peek();
+
+                        if (!nextLazy.WaitForAllLoadingTasks || !zzz_DocumentManager.AnyDocumentWithANYLoadingTasks())
+                        {
+                            nextLazy.GhettoTimer--;
+
+                            if (nextLazy.GhettoTimer <= 0)
+                            {
+                                nextLazyAction = LazyDispatchActionQueue.Dequeue().Act;
+                            }
+                        }
+                    }
+                }
+
+                if (nextLazyAction == null && LazyDispatchTaskQueue.Count > 0)
+                {
+                    var nextLazy = LazyDispatchTaskQueue.Peek();
+
+                    if (!nextLazy.WaitForAllLoadingTasks || !zzz_DocumentManager.AnyDocumentWithANYLoadingTasks())
+                    {
+                        nextLazy.GhettoTimer--;
+
+                        if (nextLazy.GhettoTimer <= 0)
+                        {
+                            var nextTask = LazyDispatchTaskQueue.Dequeue();
+                            nextLazyAction = () =>
+                            {
+                                nextTask.Act.RunSynchronously();
+                            };
+                        }
                     }
                 }
                 
@@ -104,163 +399,7 @@ namespace DSAnimStudio
         }
 
 
-        public static SplashScreenStates SplashState = SplashScreenStates.FadeIn;
-        public static float SplashAlpha = 0;
-        public static float SplashTimer = 0;
-        public static float SplashFadeDuration = 0.5f;
-        public static float SplashMinShowBeforeDismiss = 1;
-        public static bool SplashDismissed = false;
-        public static Texture2D SplashTex;
-        public static string SplashText;
-        public static SpriteFont SplashFont;
-
-        public static void LoadSplash(ContentManager c)
-        {
-            SplashTex = c.Load<Texture2D>($@"{Main.Directory}\Content\Utility\Credits");
-            SplashFont = c.Load<SpriteFont>($@"{Main.Directory}\Content\Fonts\CreditsFont");
-
-            for (int i = 0; i < SplashFont.Glyphs.Length; i++)
-            {
-                //if (SplashFont.Glyphs[i].Character == 'l')
-                //{
-                //    SplashFont.Glyphs[i].BoundsInTexture.X -= 2;
-                //    SplashFont.Glyphs[i].BoundsInTexture.Width += 2;
-                //}
-                //else if (SplashFont.Glyphs[i].Character == 'i')
-                //{
-                //    SplashFont.Glyphs[i].BoundsInTexture.X -= 2;
-                //    SplashFont.Glyphs[i].BoundsInTexture.Width += 2;
-                //}
-                //else if (SplashFont.Glyphs[i].Character == 'w')
-                //{
-                //    SplashFont.Glyphs[i].BoundsInTexture.X += 1;
-
-                //}
-                //else if (SplashFont.Glyphs[i].Character == 'e')
-                //{
-                //    SplashFont.Glyphs[i].BoundsInTexture.X += 1;
-
-                //}
-                //else if (SplashFont.Glyphs[i].Character == 'g')
-                //{
-                //    SplashFont.Glyphs[i].BoundsInTexture.X -= 2;
-                //    SplashFont.Glyphs[i].BoundsInTexture.Width += 2;
-
-                //}
-
-
-
-                //else if (SplashFont.Glyphs[i].Character == 'A')
-                //{
-                //    SplashFont.Glyphs[i].Cropping.X -= 2;
-                //}
-                //else if (SplashFont.Glyphs[i].Character == ' ')
-                //{
-                //    SplashFont.Glyphs[i].Width = 8;
-                //}
-                //SplashFont.Glyphs[i].Cropping.X -= 2;
-                //SplashFont.Glyphs[i].Cropping.Width += 4;
-                //SplashFont.Glyphs[i].BoundsInTexture.Width += 2;
-
-
-                if (SplashFont.Glyphs[i].Character == ' ')
-                {
-                    SplashFont.Glyphs[i].Width = 8;
-                }
-            }
-
-
-            SplashText = File.ReadAllText($@"{Main.Directory}\Credits.txt");
-        }
-
-        public static void DrawSplash(bool clear)
-        {
-            GFX.SpriteBatchBegin();
-            if (clear)
-                GFX.Device.Clear(Color.Black);
-
-            var measureText = ImGuiDebugDrawer.MeasureString(SplashText, 20);
-
-            float aspectRatio = (float)GFX.Device.Viewport.Bounds.Width / (float)GFX.Device.Viewport.Bounds.Height;
-
-            Rectangle rect = GFX.Device.Viewport.Bounds;
-
-            if (aspectRatio >= 16f / 9f)
-            {
-                float height = GFX.Device.Viewport.Bounds.Height; 
-                float width = height * (16f / 9f);
-
-                rect = new Rectangle((int)((GFX.Device.Viewport.Bounds.Width / 2f) - (width / 2f)), 0,
-                (int)width, (int)height);
-            }
-            else
-            {
-                float width = GFX.Device.Viewport.Bounds.Width;
-                float height = width * (9f / 16f);
-                rect = new Rectangle(0, (int)((GFX.Device.Viewport.Bounds.Height / 2f) - (height / 2f)),
-                (int)width, (int)height);
-            }
-
-            
-
-            GFX.SpriteBatch.Draw(TAE_EDITOR_BLANK_TEX, GFX.Device.Viewport.Bounds, Color.Black * SplashAlpha);
-            GFX.SpriteBatch.Draw(SplashTex, rect, Color.White * SplashAlpha);
-            GFX.SpriteBatchEnd();
-
-            //GFX.SpriteBatchBeginForText();// Matrix.CreateScale(2));
-            //GFX.SpriteBatch.DrawString(SplashFont, SplashText, new Vector2(rect.X + 64, rect.Y + 64), Color.White * SplashAlpha);
-            //GFX.SpriteBatchEnd();
-
-            DBG.DrawOutlinedText(SplashText, new Vector2(64, rect.Center.Y - measureText.Y / 2f), Color.White * SplashAlpha);
-        }
-
-        public static void UpdateSplash(float deltaTime)
-        {
-            if (SplashState == SplashScreenStates.FadeIn)
-            {
-                SplashTimer += deltaTime;
-
-                float timerRatio = (SplashTimer / SplashFadeDuration);
-                SplashAlpha = timerRatio;
-
-                if (SplashTimer >= SplashFadeDuration)
-                {
-                    SplashState = SplashScreenStates.Showing;
-                    SplashTimer = 0;
-                    SplashAlpha = 1;
-                }
-            }
-            else if (SplashState == SplashScreenStates.Showing)
-            {
-                if (Active && Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Enter) || Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Space) ||
-                    Input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.Escape)
-                    || Input.LeftClickHeld)
-                    SplashDismissed = true;
-
-                SplashTimer += deltaTime;
-
-                if (SplashDismissed && SplashTimer >= SplashMinShowBeforeDismiss)
-                {
-                    SplashState = SplashScreenStates.FadeOut;
-                    SplashTimer = 0;
-                    SplashAlpha = 1;
-                }
-            }
-            else if (SplashState == SplashScreenStates.FadeOut)
-            {
-                SplashTimer += deltaTime;
-
-                float timerRatio = (SplashTimer / SplashFadeDuration);
-                SplashAlpha = 1 - timerRatio;
-
-                if (SplashTimer >= SplashFadeDuration)
-                {
-                    SplashState = SplashScreenStates.Complete;
-                    SplashTimer = 0;
-                    SplashAlpha = 0;
-                }
-            }
-        }
+        
 
         public static void Invoke(Action doStuff)
         {
@@ -279,7 +418,8 @@ namespace DSAnimStudio
         public static int ImGuiFontOversampleH = 1;
         public static int ImGuiFontOversampleV = 1;
         public static bool ImGuiFontPixelSnapH = true;
-        public static float ImGuiFontPixelSize = 19.0f;
+        public const float ImGuiFontPixelSize = 19.0f;
+        public const float ImGuiScrollBarPixelSize = 20f;
 
 
         
@@ -292,16 +432,13 @@ namespace DSAnimStudio
         public static int WindowResizeCommitTimer = 0;
         public static int WindowResizeCommitTimerMax = 20;
         public static bool HasUncommittedWindowResize => WindowResizeCommitTimer < WindowResizeCommitTimerMax;
-        Rectangle boundsLastUpdatedFor;
+        public Rectangle BoundsLastUpdatedFor;
         Rectangle prevWinBounds;
 
         public static void OnClosing()
         {
-            SoundManager.DisposeAll();
-            GameData.ClearAll();
+            zzz_DocumentManager.DestroyAllDocs();
         }
-
-        public static DX11FlverRenderer TEST_DX11FLVER;
 
         void UpdateWindowResizeStable()
         {
@@ -318,13 +455,11 @@ namespace DSAnimStudio
 
                 RequestHideOSD = RequestHideOSD_MAX;
                 UpdateActiveState();
-
-                TAE_EDITOR?.HandleWindowResize(lastActualBounds, bounds);
-
+                
                 LastBounds = bounds;
                 lastActualBounds = bounds;
 
-                boundsLastUpdatedFor = bounds;
+                BoundsLastUpdatedFor = bounds;
             }
 
             if (!WindowShown)
@@ -333,8 +468,8 @@ namespace DSAnimStudio
                 if (!windowMinimized)
                 {
                     WindowShown = true;
-                    TAE_EDITOR.Rect = new Rectangle(0, 0, bounds.Width, bounds.Height - 2);
-                    TAE_EDITOR.DefaultLayout();
+                    // TAE_EDITOR.Rect = new Rectangle(0, 0, bounds.Width, bounds.Height - 2);
+                    // TAE_EDITOR.DefaultLayout();
 
                     doActualUpdate();
 
@@ -359,7 +494,7 @@ namespace DSAnimStudio
 
                 if (WindowResizeCommitTimer >= WindowResizeCommitTimerMax)
                 {
-                    if (bounds != boundsLastUpdatedFor)
+                    if (bounds != BoundsLastUpdatedFor)
                     {
                         doActualUpdate();
                     }
@@ -395,11 +530,13 @@ namespace DSAnimStudio
 
         protected override void Dispose(bool disposing)
         {
+            DestroyImguiFont();
+            
             WindowsMouseHook.Unhook();
 
             RemoManager.DisposeAllModels();
 
-            GameData.ClearAll();
+            zzz_DocumentManager.DestroyAllDocs();
 
             base.Dispose(disposing);
         }
@@ -412,15 +549,22 @@ namespace DSAnimStudio
         public static ColorConfig Colors = new ColorConfig();
 
         public static Form WinForm;
+        
+        public static bool WinFormDisposed()
+        {
+            return WinForm?.IsDisposed != false;
+        }
+        
+        public static float DPICustomMult = 1;
 
-        public static float DPICustomMultX = 1;
-        public static float DPICustomMultY = 1;
+        private static float BaseDPI = 1;
 
-        private static float BaseDPIX = 1;
-        private static float BaseDPIY = 1;
+        public static float DPI => BaseDPI * DPICustomMult;
 
-        public static float DPIX => BaseDPIX * DPICustomMultX;
-        public static float DPIY => BaseDPIY * DPICustomMultY;
+        public static Vector2 DPIVector => new Vector2(DPI, DPI);
+        public static System.Numerics.Vector2 DPIVectorN => new System.Numerics.Vector2(DPI, DPI);
+
+        public static Matrix DPIMatrix => Matrix.CreateScale(DPI, DPI, 1);
 
         public static FancyInputHandler Input;
 
@@ -466,14 +610,34 @@ namespace DSAnimStudio
             }
         }
 
+        public static void ResetConfigToDefault(bool preserveRecentFilesList)
+        {
+            var recentFilesList = Config.RecentFilesList.ToList();
+            var newConfig = new TaeConfigFile();
+            if (preserveRecentFilesList)
+            {
+                newConfig.RecentFilesList = recentFilesList;
+            }
+
+            Config = newConfig;
+            Config.AfterLoading(TAE_EDITOR);
+            Config.AfterLoadingFirstTime(TAE_EDITOR);
+            SaveConfig();
+            LoadConfig();
+        }
+
         public static void LoadConfig(bool isManual = false)
         {
+            DebugToggleXmlRead();
+            
             if (!isManual && DisableConfigFileAutoSave)
                 return;
             CheckConfigFilePath();
             if (!System.IO.File.Exists(ConfigFilePath))
             {
                 Config = new TaeEditor.TaeConfigFile();
+                Config.AfterLoading(TAE_EDITOR);
+                Config.AfterLoadingFirstTime(TAE_EDITOR);
                 SaveConfig();
             }
             string jsonText = null;
@@ -508,8 +672,9 @@ namespace DSAnimStudio
                         }
                     }
                 }
-                catch
+                catch (Exception handled_ex) when (Main.EnableErrorHandler.ReadConfigFile)
                 {
+                    Main.HandleError(nameof(Main.EnableErrorHandler.ReadConfigFile), handled_ex);
                     tryCounter++;
                 }
 
@@ -567,6 +732,8 @@ namespace DSAnimStudio
         public static void SaveConfig(bool isManual = false)
         {
 
+            DebugToggleXmlWrite();
+            
             if (!isManual && DisableConfigFileAutoSave)
                 return;
             lock (Main.Config._lock_ThreadSensitiveStuff)
@@ -618,8 +785,9 @@ namespace DSAnimStudio
                             }
                         }
                     }
-                    catch
+                    catch (Exception handled_ex) when (Main.EnableErrorHandler.WriteConfigFile)
                     {
+                        Main.HandleError(nameof(Main.EnableErrorHandler.WriteConfigFile), handled_ex);
                         tryCounter++;
                     }
 
@@ -633,10 +801,7 @@ namespace DSAnimStudio
             }
         }
 
-        public static Vector2 DPIVector => new Vector2(DPIX, DPIY);
-        public static System.Numerics.Vector2 DPIVectorN => new System.Numerics.Vector2(DPIX, DPIY);
-
-        public static Matrix DPIMatrix => Matrix.CreateScale(DPIX, DPIY, 1);
+        
 
         public static Random Rand = new Random();
         public static float RandFloat()
@@ -659,6 +824,8 @@ namespace DSAnimStudio
         public static bool FIXED_TIME_STEP = false;
 
         public static bool REQUEST_EXIT = false;
+        public static bool REQUEST_EXIT_NEXT_IS_AUTOMATIC = false;
+        public static bool REQUEST_EXIT_GUARANTEED_FINAL = false;
 
         public static bool REQUEST_REINIT_EDITOR = false;
 
@@ -672,6 +839,54 @@ namespace DSAnimStudio
 
         public static ImGuiRenderer ImGuiDraw;
 
+        public static void ClearAllDynamicBind()
+        {
+            lock (_lock_dynamicBindDict)
+            {
+                dynamicBindDict.Clear();
+            }
+        }
+
+        private static object _lock_dynamicBindDict = new object();
+        private static Dictionary<IntPtr, IntPtr> dynamicBindDict = new();
+        public static IntPtr SetDynamicBindTexture(Texture2D tex)
+        {
+            if (tex == null || tex.IsDisposed)
+            {
+                return IntPtr.Zero;
+            }
+            IntPtr result = IntPtr.Zero;
+            var nativePtr = tex.GetNativePointer();
+            lock (_lock_dynamicBindDict)
+            {
+                if (dynamicBindDict.ContainsKey(nativePtr))
+                {
+                    result = dynamicBindDict[nativePtr];
+                }
+                else
+                {
+                    result = ImGuiDraw.BindTexture(tex);
+                }
+            }
+            return result;
+        }
+
+        public static void UnsetDynamicBindTexture(Texture2D tex)
+        {
+            if (tex == null || tex.IsDisposed)
+                return;
+
+            var nativePtr = tex.GetNativePointer();
+            lock (_lock_dynamicBindDict)
+            {
+                if (dynamicBindDict.ContainsKey(nativePtr))
+                {
+                    ImGuiDraw.UnbindTexture(dynamicBindDict[nativePtr]);
+                    dynamicBindDict.Remove(nativePtr);
+                }
+            }
+        }
+
         public static Vector2 GlobalTaeEditorFontOffset = new Vector2(0, -3);
 
         public static IServiceProvider MainContentServiceProvider = null;
@@ -679,6 +894,18 @@ namespace DSAnimStudio
         private bool prevFrameWasLoadingTaskRunning = false;
         public static bool Active { get; private set; }
         public static HysteresisBool ActiveHyst = new HysteresisBool(0, 5);
+
+        private static object _lock_ForceDrawTimer = new object();
+        private static float ForceDrawTimer = 0;
+        public static void AddForceDrawTime(float time)
+        {
+            lock (_lock_ForceDrawTimer)
+            {
+                ForceDrawTimer += time;
+            }
+            
+        }
+
         public static bool prevActive { get; private set; }
 
         public static bool IsFirstUpdateLoop { get; private set; } = true;
@@ -686,7 +913,6 @@ namespace DSAnimStudio
 
         public static bool Minimized { get; private set; }
 
-        public static bool DISABLE_DRAW_ERROR_HANDLE = true;
 
         private static float MemoryUsageCheckTimer = 0;
         private static long MemoryUsage_Unmanaged = 0;
@@ -695,6 +921,12 @@ namespace DSAnimStudio
 
         public static readonly Color SELECTED_MESH_COLOR = Color.Yellow * 0.05f;
         //public static readonly Color SELECTED_MESH_WIREFRAME_COLOR = Color.Yellow;
+
+        public static Texture2D GRID_CELL_TEXTURE;
+        public static Texture2D GRID_CELL_TEXTURE_THICK_X;
+        public static Texture2D GRID_CELL_TEXTURE_THICK_Y;
+        public static Texture2D GRID_ORIGIN_CROSS_TEXTURE;
+        public static Texture2D GRID_CELL_TEXTURE_2;
 
         public static Texture2D WHITE_TEXTURE;
         public static Texture2D BLACK_TEXTURE;
@@ -710,7 +942,7 @@ namespace DSAnimStudio
         public static Texture2D DEFAULT_TEXTURE_METALLIC;
         public string DEFAULT_TEXTURE_MISSING_NAME => $@"{Main.Directory}\Content\Utility\MissingTexture";
 
-        public static TaeEditor.TaeEditorScreen TAE_EDITOR;
+        //public static TaeEditor.TaeEditorScreen TAE_EDITOR;
         private static SpriteBatch TaeEditorSpriteBatch;
         public static Texture2D TAE_EDITOR_BLANK_TEX;
         public static SpriteFont TAE_EDITOR_FONT;
@@ -729,9 +961,36 @@ namespace DSAnimStudio
 
         public static ContentManager MainContentManager = null;
 
-        public static RenderTarget2D SceneRenderTarget = null;
+        public enum RenderTargetViewTypes
+        {
+            None = 0,
+            Color = 1,
+            //BlurMask = 2,
+        }
+
+        public static RenderTargetViewTypes ViewRenderTarget = RenderTargetViewTypes.None;
+
+        public static RenderTarget2D RenderTarget0_Color = null;
+        //public static RenderTarget2D RenderTarget0_BlurMask = null;
+        //public static RenderTarget2D RenderTarget1_Color = null;
         //public static RenderTarget2D UnusedRendertarget0 = null;
         public static int UnusedRenderTarget0Padding = 0;
+
+        //public static float RenderTargetBlurAnisoPower = 32f;
+        //public static float RenderTargetBlurAnisoMin = 0.5f;
+        //public static float RenderTargetBlurAnisoMax = 1;
+
+        //// BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+        //public static float RenderTargetBlurDirections = 16.0f;
+
+        //// BLUR QUALITY (Default 4.0 - More is better but slower)
+        //public static float RenderTargetBlurQuality = 3.0f;
+
+        //// BLUR SIZE (Radius)
+        //public static float RenderTargetBlurSize = 8.0f;
+        //public static bool RenderTargetDebugBlurDisp = false;
+        //public static bool RenderTargetDebugBlurMaskDisp = false;
+        //public static bool RenderTargetDebugDisableBlur = true;
 
         public static int RequestHideOSD = 0;
         public static int RequestHideOSD_MAX = 10;
@@ -754,7 +1013,7 @@ namespace DSAnimStudio
             }
         }
 
-        public Rectangle ClientBounds => TAE_EDITOR.ModelViewerBounds;
+        public Rectangle ClientBounds => Window.ClientBounds;
 
         private static GraphicsDeviceManager graphics;
         //public ContentManager Content;
@@ -773,27 +1032,32 @@ namespace DSAnimStudio
         public static void ApplyPresentationParameters(int width, int height, SurfaceFormat format,
             bool vsync, bool fullscreen)
         {
-            graphics.PreferredBackBufferWidth = width;
-            graphics.PreferredBackBufferHeight = height;
-            graphics.PreferredBackBufferFormat = GFX.BackBufferFormat;
-            graphics.IsFullScreen = fullscreen;
-            graphics.SynchronizeWithVerticalRetrace = vsync;
-
-            if (GFX.MSAA > 0)
+            WinForm.Invoke(() =>
             {
-                graphics.PreferMultiSampling = true;
-                graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = GFX.MSAA;
-            }
-            else
-            {
-                graphics.PreferMultiSampling = false;
-                graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
-            }
+                graphics.PreferredBackBufferWidth = width;
+                graphics.PreferredBackBufferHeight = height;
+                graphics.PreferredBackBufferFormat = GFX.BackBufferFormat;
+                graphics.IsFullScreen = fullscreen;
+                graphics.SynchronizeWithVerticalRetrace = vsync;
 
-            //graphics.PreferMultiSampling = false;
-            //graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
+                if (GFX.MSAA > 0)
+                {
+                    graphics.PreferMultiSampling = true;
+                    graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = GFX.MSAA;
+                }
+                else
+                {
+                    graphics.PreferMultiSampling = false;
+                    graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
+                    graphics.GraphicsDevice.PresentationParameters.DepthStencilFormat = DepthFormat.Depth24Stencil8;
+                }
 
-            graphics.ApplyChanges();
+                //graphics.PreferMultiSampling = false;
+                //graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = 1;
+
+                graphics.ApplyChanges();
+            });
+            
         }
 
 
@@ -807,7 +1071,7 @@ namespace DSAnimStudio
             
 
             WinForm = (Form)Form.FromHandle(Window.Handle);
-
+            WinForm.FormClosing += WinForm_FormClosing;
             WinForm.KeyPreview = true;
             
 
@@ -816,7 +1080,7 @@ namespace DSAnimStudio
 
             WinForm.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25f, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0);
 
-            BaseDPIX = BaseDPIY = WinForm.DeviceDpi / 96f;
+            BaseDPI = BaseDPI = WinForm.DeviceDpi / 96f;
             WinForm.DpiChanged += WinForm_DpiChanged;
 
             Directory = new FileInfo(typeof(Main).Assembly.Location).DirectoryName;
@@ -834,8 +1098,8 @@ namespace DSAnimStudio
             graphics.SynchronizeWithVerticalRetrace = GFX.Display.Vsync;
             graphics.IsFullScreen = GFX.Display.Fullscreen;
             //graphics.PreferMultiSampling = GFX.Display.SimpleMSAA;
-            graphics.PreferredBackBufferWidth = (int)Math.Round(GFX.Display.Width * DPIX);
-            graphics.PreferredBackBufferHeight = (int)Math.Round(GFX.Display.Height * DPIY);
+            graphics.PreferredBackBufferWidth = (int)Math.Round(GFX.Display.Width * DPI);
+            graphics.PreferredBackBufferHeight = (int)Math.Round(GFX.Display.Height * DPI);
             if (!GraphicsAdapter.DefaultAdapter.IsProfileSupported(GraphicsProfile.HiDef))
             {
                 System.Windows.Forms.MessageBox.Show("MonoGame is detecting your GPU as too " +
@@ -862,17 +1126,45 @@ namespace DSAnimStudio
             WinForm.Shown += (o, e) =>
             {
                 LoadConfig();
-                FmodManager.InitTest();
+                
             };
 
             this.Activated += Main_Activated;
             this.Deactivated += Main_Deactivated;
 
             GFX.Display.SetFromDisplayMode(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode);
-
+            
 
             Input = new FancyInputHandler();
             //GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+        }
+
+        private void WinForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (zzz_DocumentManager.AnyDocumentWithCriticalLoadingTasks())
+                e.Cancel = true;
+
+            if (zzz_DocumentManager.AnyDocumentWithUnsavedChanges())
+                e.Cancel = true;
+
+            if (zzz_DocumentManager.AnyDocumentsRequestingToClose())
+                e.Cancel = true;
+
+            if (!REQUEST_EXIT_NEXT_IS_AUTOMATIC)
+                zzz_DocumentManager.RequestCloseAllDocuments();
+
+            REQUEST_EXIT_NEXT_IS_AUTOMATIC = false;
+
+            if (e.Cancel)
+            {
+                Main.REQUEST_EXIT_NEXT_IS_AUTOMATIC = true;
+                REQUEST_EXIT = true; // Keep retrying to exit lol
+            }
+            else
+            {
+                REQUEST_EXIT_GUARANTEED_FINAL = true;
+                SaveConfig();
+            }
         }
 
         private void WinForm_DpiChanged(object sender, DpiChangedEventArgs e)
@@ -883,7 +1175,7 @@ namespace DSAnimStudio
         public void UpdateDpiStuff()
         {
             float newDpi = WinForm.DeviceDpi / 96f;
-            BaseDPIX = BaseDPIY = newDpi;
+            BaseDPI = BaseDPI = newDpi;
 
             RequestViewportRenderTargetResolutionChange = true;
         }
@@ -900,7 +1192,7 @@ namespace DSAnimStudio
         {
             UpdateActiveState();
 #if !DEBUG
-            SoundManager.StopAllSounds();
+            zzz_DocumentManager.CurrentDocument?.SoundManager?.StopAllSounds();
 #endif
         }
 
@@ -931,26 +1223,40 @@ namespace DSAnimStudio
                 //SceneRenderTarget?.Dispose();
                 //GC.Collect();
 
-                var newSceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width * ssaa,
-                       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, ssaa > 1, SurfaceFormat.Vector4, DepthFormat.Depth24,
-                       ssaa > 1 ? 1 : msaa, RenderTargetUsage.DiscardContents);
+                var newRenderTarget0_Color = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width * ssaa,
+                       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8,
+                        msaa, RenderTargetUsage.DiscardContents);
 
-                RenderTarget2D oldSceneRenderTarget = null;
+                //var newRenderTarget0_BlurMask = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width * ssaa,
+                //       TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8,
+                //       1, RenderTargetUsage.DiscardContents);
+
+                // var newSceneRenderTarget = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.DpiScaled().Width * ssaa,
+                //     TAE_EDITOR.ModelViewerBounds.DpiScaled().Height * ssaa, false, SurfaceFormat.Vector4, DepthFormat.Depth24,
+                //     msaa, RenderTargetUsage.DiscardContents);
+
+                RenderTarget2D oldRenderTarget0_Color = null;
+                //RenderTarget2D oldRenderTarget0_BlurMask = null;
                 if (useLock)
                 {
                     lock (_lock_ChangeRenderTarget)
                     {
-                        oldSceneRenderTarget = SceneRenderTarget;
-                        SceneRenderTarget = newSceneRenderTarget;
+                        oldRenderTarget0_Color = RenderTarget0_Color;
+                        RenderTarget0_Color = newRenderTarget0_Color;
+                        //oldRenderTarget0_BlurMask = RenderTarget0_BlurMask;
+                        //RenderTarget0_BlurMask = newRenderTarget0_BlurMask;
                     }
                 }
                 else
                 {
-                    oldSceneRenderTarget = SceneRenderTarget;
-                    SceneRenderTarget = newSceneRenderTarget;
+                    oldRenderTarget0_Color = RenderTarget0_Color;
+                    RenderTarget0_Color = newRenderTarget0_Color;
+                    //oldRenderTarget0_BlurMask = RenderTarget0_BlurMask;
+                    //RenderTarget0_BlurMask = newRenderTarget0_BlurMask;
                 }
 
-                oldSceneRenderTarget?.Dispose();
+                oldRenderTarget0_Color?.Dispose();
+                //oldRenderTarget0_BlurMask?.Dispose();
 
 
                 TimeBeforeNextRenderTargetUpdate = TimeBeforeNextRenderTargetUpdate_Max;
@@ -1008,7 +1314,6 @@ namespace DSAnimStudio
                 winForm.DragEnter += GameWindowForm_DragEnter;
                 winForm.DragDrop += GameWindowForm_DragDrop;
 
-
                 IsMouseVisible = true;
 
                 DEFAULT_TEXTURE_DIFFUSE = new Texture2D(GraphicsDevice, 1, 1);
@@ -1056,11 +1361,11 @@ namespace DSAnimStudio
                 ImGuiDraw = new ImGuiRenderer(this);
                 //ImGuiDraw.RebuildFontAtlas();
 
-                
+                zzz_DocumentManager.Init();
 
                 base.Initialize();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Main.EnableErrorHandler.MainInit)
             {
                 System.Windows.Forms.MessageBox.Show(
                     $"Error occurred while initializing DS Anim Studio (please report):\n\n{ex.ToString()}", 
@@ -1085,40 +1390,46 @@ namespace DSAnimStudio
                     if (FLVER2.Is(file))
                     {
                         //currModelAddOffset.X += 3;
-                        var m = new Model(FLVER2.Read(file), false);
+                        var m = new Model(zzz_DocumentManager.CurrentDocument, FLVER2.Read(file), false);
                         m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                        Scene.ClearSceneAndAddModel(m);
+                        zzz_DocumentManager.CurrentDocument.Scene.ClearSceneAndAddModel(m);
                     }
                     else if (FLVER0.Is(file))
                     {
                         //currModelAddOffset.X += 3;
-                        var m = new Model(FLVER0.Read(file), false);
+                        var m = new Model(zzz_DocumentManager.CurrentDocument, FLVER0.Read(file), false);
                         m.StartTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                        Scene.ClearSceneAndAddModel(m);
+                        zzz_DocumentManager.CurrentDocument.Scene.ClearSceneAndAddModel(m);
                     }
                 }
                 else if (file.ToUpper().EndsWith(".CHRBND") || file.ToUpper().EndsWith(".CHRBND.DCX"))
                 {
-                    Scene.ClearScene();
+                    zzz_DocumentManager.CurrentDocument.Scene.ClearScene();
                     //currModelAddOffset.X += 3;
-                    GameRoot.InitializeFromBND(file);
-                    var m = GameRoot.LoadCharacter(Utils.GetShortIngameFileName(file), null);
-                    m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                    m.AnimContainer?.ChangeToNewAnimation(m.AnimContainer.Animations.Keys.FirstOrDefault(), animWeight: 1, startTime: 0, clearOldLayers: true);
-                    m.AnimContainer.ForcePlayAnim = true;
-                    m.UpdateAnimation();
+                    zzz_DocumentManager.CurrentDocument.GameRoot.InitializeFromBND(file);
+                    var mArr = zzz_DocumentManager.CurrentDocument.GameRoot.LoadCharacter(Utils.GetShortIngameFileName(file), null);
+                    foreach (var m in mArr)
+                    {
+                        m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
+                        m.AnimContainer?.RequestDefaultAnim();
+                        
+                        m.AnimContainer.ForcePlayAnim = true;
+                        //m.UpdateAnimation();
+                    }
+                    
                     //Scene.ClearSceneAndAddModel(m);
                 }
                 else if (file.ToUpper().EndsWith(".OBJBND") || file.ToUpper().EndsWith(".OBJBND.DCX"))
                 {
-                    Scene.ClearScene();
+                    zzz_DocumentManager.CurrentDocument.Scene.ClearScene();
                     //currModelAddOffset.X += 3;
-                    GameRoot.InitializeFromBND(file);
-                    var m = GameRoot.LoadObject(Utils.GetShortIngameFileName(file));
+                    zzz_DocumentManager.CurrentDocument.GameRoot.InitializeFromBND(file);
+                    var m = zzz_DocumentManager.CurrentDocument.GameRoot.LoadObject(Utils.GetShortIngameFileName(file));
                     m.StartTransform = m.CurrentTransform = new Transform(currModelAddOffset, Microsoft.Xna.Framework.Quaternion.Identity);
-                    m.AnimContainer?.ChangeToNewAnimation(m.AnimContainer.Animations.Keys.FirstOrDefault(), animWeight: 1, startTime: 0, clearOldLayers: true);
+                    m.AnimContainer?.RequestDefaultAnim();
+                    
                     m.AnimContainer.ForcePlayAnim = true;
-                    m.UpdateAnimation();
+                    //m.UpdateAnimation();
                     //Scene.ClearSceneAndAddModel(m);
                 }
                 //else if (file.ToUpper().EndsWith(".HKX"))
@@ -1153,7 +1464,7 @@ namespace DSAnimStudio
             else
             {
 
-                LoadingTaskMan.DoLoadingTask("LoadingDroppedModel", "Loading dropped model(s)...", prog =>
+                zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTask("LoadingDroppedModel", "Loading dropped model(s)...", prog =>
                 {
                     foreach (var file in modelFiles)
                     {
@@ -1177,7 +1488,7 @@ namespace DSAnimStudio
 
             bool isValid = false;
 
-            if (e.Data.GetDataPresent(DataFormats.FileDrop) && !LoadingTaskMan.AnyTasksRunning())
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) && !zzz_DocumentManager.CurrentDocument.LoadingTaskMan.AnyInteractionBlockingTasks())
             {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop, false);
                 
@@ -1188,7 +1499,7 @@ namespace DSAnimStudio
 
                     if (f.EndsWith(".fbx"))
                     {
-                        isValid = Scene.IsModelLoaded;
+                        isValid = zzz_DocumentManager.CurrentDocument.Scene.IsModelLoaded;
                     }
                     else if (f.EndsWith(".flver.dcx") || f.EndsWith(".flver") || f.EndsWith(".chrbnd") || f.EndsWith(".chrbnd.dcx") || f.EndsWith(".objbnd") || f.EndsWith(".objbnd.dcx"))
                     {
@@ -1210,24 +1521,59 @@ namespace DSAnimStudio
             e.Effect = isValid ? DragDropEffects.Link : DragDropEffects.None;
         }
 
-        public static Rectangle GetTaeEditorRect()
-        {
-            return new Rectangle(0, 0, Program.MainInstance.boundsLastUpdatedFor.Width, Program.MainInstance.boundsLastUpdatedFor.Height - 2).InverseDpiScaled();
-        }
+        //public static void RESET_ALL()
+        //{
+        //    zzz_DocumentManager.CurrentDocument.EditorScreen.CleanupForReinit();
+        //    zzz_DocumentManager.CurrentDocument.EditorScreen = new TaeEditor.TaeEditorScreen((Form)Form.FromHandle(Program.MainInstance.Window.Handle));
+        //    zzz_DocumentManager.CurrentDocument.Scene.ClearScene();
+        //    DialogManager.ClearAll();
+        //    zzz_DocumentManager.CurrentDocument.GameRoot.ClearInterroot();
+        //    zzz_DocumentManager.CurrentDocument.GameData.ClearAll();
+        //}
 
-        public static void RESET_ALL()
+        private byte[] ReadXnbCompressedMGFX(string assetName)
         {
-            TAE_EDITOR.CleanupForReinit();
-            TAE_EDITOR = new TaeEditor.TaeEditorScreen((Form)Form.FromHandle(Program.MainInstance.Window.Handle), GetTaeEditorRect());
-            Scene.ClearScene();
+            byte[] result = null;
+            using (var basicEffectStream = File.OpenRead($@"{assetName}.xnb"))
+            {
+                using (var xnbReader = new BinaryReader(basicEffectStream))
+                {
+                    using (var reader = Content.GetContentReaderFromXnb(assetName, basicEffectStream, xnbReader, null))
+                    {
+                        int numberOfReaders = reader.Read7BitEncodedInt();
+                        string[] readerNames = new string[numberOfReaders];
+                        for (int r = 0; r < numberOfReaders; r++)
+                        {
+                            readerNames[r] = reader.ReadString();
+                        }
+                        reader.ReadInt32();
+                        int sharedResourceCount = reader.Read7BitEncodedInt();
+                        int readerIndexPlusOne = reader.Read7BitEncodedInt();
+                        string readerType = readerNames[readerIndexPlusOne - 1];
+                        if (readerType.StartsWith("Microsoft.Xna.Framework.Content.EffectReader"))
+                        {
+                            int dataSize = reader.ReadInt32();
+                            result = reader.ReadBytes(dataSize);
+                        }
+                        
+                        //File.WriteAllBytes($"{Main.Directory}\\Debug_BasicEffectDecompressed.bin", BasicEffectBytecode);
+                    }
+                }
+            }
+            return result;
         }
-
+        
         protected override void LoadContent()
         {
-            
-
             MainContentServiceProvider = Content.ServiceProvider;
             MainContentManager = Content;
+
+            BasicEffectBytecode = ReadXnbCompressedMGFX($@"{Main.Directory}\Content\Shaders\BasicEffectEx\BasicEffect");
+            SpriteEffectBytecode = ReadXnbCompressedMGFX($@"{Main.Directory}\Content\Shaders\BasicEffectEx\SpriteEffect");
+
+            //File.WriteAllBytes(@$"{Main.Directory}\Dump_BasicEffectBytecode.bin", BasicEffectBytecode);
+            //File.WriteAllBytes(@$"{Main.Directory}\Dump_SpriteEffectBytecode.bin", SpriteEffectBytecode);
+
 
             GFX.Init(Content);
             DBG.LoadContent(Content);
@@ -1238,11 +1584,26 @@ namespace DSAnimStudio
             //DBG.EnableMenu = true;
             //DBG.EnableMouseInput = true;
             //DBG.EnableKeyboardInput = true;
-            //DbgMenuItem.Init();
+            if (DBG.EnableMenu)
+                DbgMenuItem.Init();
 
             UpdateMemoryUsage();
 
             CFG.AttemptLoadOrDefault();
+
+            Main.LoadConfig();
+
+            if ((Config.HasAcceptedSplashBefore || IsPatreonBuild) && !SplashManager.Debug_IgnoreAlreadySeenFlag)
+            {
+                if (!SplashManager.Debug_IgnoreAlreadySeenFlag)
+                {
+                    SplashManager.SplashFadeInDuration = 0.25f;
+                    SplashManager.SplashFadeOutDuration = 0.25f;
+                    SplashManager.SplashMinShowBeforeDismiss = 0;
+                    SplashManager.SplashBarEnabled = false;
+                    //SplashState = SplashScreenStates.Complete;
+                }
+            }
 
             TAE_EDITOR_FONT = Content.Load<SpriteFont>($@"{Main.Directory}\Content\Fonts\DbgMenuFontSmall");
             TAE_EDITOR_FONT_SMALL = Content.Load<SpriteFont>($@"{Main.Directory}\Content\Fonts\DbgMenuFontSmaller");
@@ -1250,9 +1611,19 @@ namespace DSAnimStudio
             TAE_EDITOR_BLANK_TEX.SetData(new Color[] { Color.White }, 0, 1);
             TAE_EDITOR_SCROLLVIEWER_ARROW = Content.Load<Texture2D>($@"{Main.Directory}\Content\Utility\TaeEditorScrollbarArrow");
 
-            TAE_EDITOR = new TaeEditor.TaeEditorScreen((Form)Form.FromHandle(Window.Handle), GetTaeEditorRect());
+            GRID_CELL_TEXTURE = Content.Load<Texture2D>($@"{Main.Directory}\Content\GridCell");
+            GRID_CELL_TEXTURE_THICK_X = Content.Load<Texture2D>($@"{Main.Directory}\Content\GridCellThickX");
+            GRID_CELL_TEXTURE_THICK_Y = Content.Load<Texture2D>($@"{Main.Directory}\Content\GridCellThickY");
+            GRID_ORIGIN_CROSS_TEXTURE = Content.Load<Texture2D>($@"{Main.Directory}\Content\GridOriginCross");
+            GRID_CELL_TEXTURE_2 = Content.Load<Texture2D>($@"{Main.Directory}\Content\GridCell2");
 
-            TaeEditorSpriteBatch = new SpriteBatch(GFX.Device);
+            //var gridCellMeme = $"__ds_anim_studio__grid_cell{Guid.NewGuid().ToString()}";
+            //TexturePool.AddFetchDDS(File.ReadAllBytes($@"{Main.Directory}\Content\GridCell.dds"), gridCellMeme);
+            //GRID_CELL_TEXTURE = TexturePool.Fetches[gridCellMeme].Fetch2D();
+
+            InitTaeEditor();
+
+            TaeEditorSpriteBatch = new SpriteBatch(GFX.Device, Main.SpriteEffectBytecode);
 
             if (Program.ARGS.Length > 0)
             {
@@ -1270,15 +1641,8 @@ namespace DSAnimStudio
                 }
 
                 if (!HasHandledArgs) {
-                    TAE_EDITOR.FileContainerName = Program.ARGS[0];
+                    //TODO
 
-                    if (Program.ARGS.Length > 1)
-                        TAE_EDITOR.FileContainerName_Model = Program.ARGS[1];
-
-                    LoadingTaskMan.DoLoadingTask("ProgramArgsLoad", "Loading ANIBND and associated model(s)...", progress =>
-                    {
-                        TAE_EDITOR.LoadCurrentFile();
-                    }, disableProgressBarByDefault: true);
                 }
 
                 //LoadDragDroppedFiles(Program.ARGS.ToDictionary(f => f, f => File.ReadAllBytes(f)));
@@ -1286,44 +1650,67 @@ namespace DSAnimStudio
 
             MainFlverTonemapShader = new FlverTonemapShader(Content.Load<Effect>(FlverTonemapShader__Name));
 
-            BuildImguiFonts();
+            DoActualImguiFontBuild();
 
             TAE_EDITOR.LoadContent(Content);
 
             UpdateDpiStuff();
 
-            LoadSplash(Content);
+            SplashManager.LoadSplash(Content);
         }
 
-        private static void BuildImguiFonts()
+        private static IntPtr PTR_ImguiFont;
+        
+        private unsafe static void DestroyImguiFont()
+        {
+            if (PTR_ImguiFont != IntPtr.Zero)
+                ImGui.MemFree(PTR_ImguiFont);
+        }
+        
+        private unsafe static void DoActualImguiFontBuild()
         {
             var fonts = ImGuiNET.ImGui.GetIO().Fonts;
             //var fontFile = File.ReadAllBytes($@"{Directory}\Content\Fonts\NotoSansCJKjp-Medium.otf");
             var fontFile = File.ReadAllBytes(ImGuiFontName);
             fonts.Clear();
-            unsafe
-            {
-                fixed (byte* p = fontFile)
-                {
-                    ImVector ranges;
-                    ImFontGlyphRangesBuilder* rawPtr = ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
-                    var builder = new ImFontGlyphRangesBuilderPtr(rawPtr);
-                    var ccm = CCM.Read($@"{Directory}\Content\Fonts\dbgfont14h_ds3.ccm");
-                    foreach (var g in ccm.Glyphs)
-                        builder.AddChar((ushort)g.Key);
+            PTR_ImguiFont = ImGui.MemAlloc((uint)fontFile.Length);
+            Marshal.Copy(fontFile, 0, PTR_ImguiFont, fontFile.Length);
+            ImVector ranges;
+            ImFontGlyphRangesBuilder* rawPtr = ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
+            var builder = new ImFontGlyphRangesBuilderPtr(rawPtr);
+            var ccm = CCM.Read($@"{Directory}\Content\Fonts\dbgfont14h_ds3.ccm");
 
-                    builder.BuildRanges(out ranges);
-                    var ptr = ImGuiNET.ImGuiNative.ImFontConfig_ImFontConfig();
-                    var cfg = new ImGuiNET.ImFontConfigPtr(ptr);
-                    cfg.GlyphMinAdvanceX = ImGuiFontGlyphMinAdvanceX;
-                    cfg.OversampleH = ImGuiFontOversampleH;
-                    cfg.OversampleV = ImGuiFontOversampleV;
-                    cfg.PixelSnapH = ImGuiFontPixelSnapH;
-                    ImGuiFontPointer = fonts.AddFontFromMemoryTTF((IntPtr)p, fontFile.Length, ImGuiFontPixelSize, cfg, ranges.Data);
-                }
+            // test
+                //var bw = new BinaryWriterEx(false);
+            foreach (var g in ccm.Glyphs)
+            {
+                builder.AddChar((ushort)g.Key);
+                //bw.WriteUInt16((ushort)g.Key);
             }
+            //var glyphsBytes = bw.FinishBytes();
+            //File.WriteAllBytes($@"{Directory}\ImguiFontGlyphs.bin", glyphsBytes);
+                    
+            builder.BuildRanges(out ranges);
+            var ptr = ImGuiNET.ImGuiNative.ImFontConfig_ImFontConfig();
+            var cfg = new ImGuiNET.ImFontConfigPtr(ptr);
+            cfg.GlyphMinAdvanceX = ImGuiFontGlyphMinAdvanceX;
+            cfg.OversampleH = ImGuiFontOversampleH;
+            cfg.OversampleV = ImGuiFontOversampleV;
+            cfg.PixelSnapH = ImGuiFontPixelSnapH;
+                    
+            ImGuiFontPointer = fonts.AddFontFromMemoryTTF(PTR_ImguiFont, fontFile.Length, ImGuiFontPixelSize * Main.DPI, cfg, ranges.Data);
+            builder.Destroy();
             fonts.Build();
             ImGuiDraw.RebuildFontAtlas();
+
+            var test = ImGui.GetStyle();
+            test.ScrollbarSize = ImGuiScrollBarPixelSize * Main.DPI;
+        }
+
+        public static bool ImguiFontRebuildRequested = false;
+        public static void BuildImguiFonts()
+        {
+            ImguiFontRebuildRequested = true;
         }
 
         private void InterrootLoader_OnLoadError(string contentName, string error)
@@ -1378,20 +1765,47 @@ namespace DSAnimStudio
 
             GFX.SpriteBatchBeginForText();
 
-            if (GameRoot.GameTypeUsesWwise)
+            var soundMan = zzz_DocumentManager.CurrentDocument?.SoundManager;
+            if (soundMan != null)
             {
-                var wwinfo = Wwise.GetMemoryInfo();
-                var str_wwise = $"{(wwinfo.AnySoundsLoading ? "[LOADING SOUNDS...]\n" : "")}Sounds Loaded: {wwinfo.SoundFileCount}\n" + GetMemoryUseString("Sound Memory:  ", wwinfo.ByteCount);
-                //var strSize_wwise = DBG.DEBUG_FONT_SMALL.MeasureString(str_wwise);
-                var strSize_wwise = ImGuiDebugDrawer.MeasureString(str_wwise, 16 * scale);
-                //DBG.DrawOutlinedText(str_wwise, new Vector2(GFX.Device.Viewport.Width - 6,
-                //GFX.Device.Viewport.Height - 40) / DPIVector,
-                //GetMemoryUseColor(wwinfo.ByteCount, audio: true), DBG.DEBUG_FONT_SMALL, scale: 1, scaleOrigin: strSize_wwise);
+                var engineType = soundMan?.EngineType;
 
-                ImGuiDebugDrawer.DrawText(str_wwise, (new Vector2(GFX.Device.Viewport.Width - 6,
-                GFX.Device.Viewport.Height - 32 * scale) / DPIVector) - strSize_wwise, GetMemoryUseColor(wwinfo.ByteCount, audio: true), 
-                Color.Black, 16 * scale);
+                if (engineType is zzz_SoundManagerIns.EngineTypes.Wwise)
+                {
+                    var wwinfo = soundMan.WwiseManager.GetMemoryInfo();
+                    if (wwinfo != null)
+                    {
+                        var str_wwise = $"{(wwinfo.AnySoundsLoading ? "[LOADING SOUNDS...]\n" : "")}Sounds Loaded: {wwinfo.SoundFileCount}\n" + GetMemoryUseString("Sound Memory:  ", wwinfo.ByteCount);
+                        //var strSize_wwise = DBG.DEBUG_FONT_SMALL.MeasureString(str_wwise);
+                        var strSize_wwise = ImGuiDebugDrawer.MeasureString(str_wwise, 16 * scale);
+                        //DBG.DrawOutlinedText(str_wwise, new Vector2(GFX.Device.Viewport.Width - 6,
+                        //GFX.Device.Viewport.Height - 40) / DPIVector,
+                        //GetMemoryUseColor(wwinfo.ByteCount, audio: true), DBG.DEBUG_FONT_SMALL, scale: 1, scaleOrigin: strSize_wwise);
+
+                        ImGuiDebugDrawer.DrawText(str_wwise, (new Vector2(GFX.Device.Viewport.Width - 6,
+                        GFX.Device.Viewport.Height - 32 * scale) / DPIVector) - strSize_wwise, GetMemoryUseColor(wwinfo.ByteCount, audio: true),
+                        Color.Black, 16 * scale);
+                    }
+                }
+                else if (engineType is zzz_SoundManagerIns.EngineTypes.MagicOrchestra)
+                {
+                    var moinfo = soundMan.MagicOrchestraManager.GetMemoryInfo();
+                    if (moinfo != null)
+                    {
+                        var str_wwise = $"{(moinfo.AnySoundsLoading ? "[LOADING SOUNDS...]\n" : "")}Sounds Loaded: {moinfo.SoundFileCount}\n" + GetMemoryUseString("Sound Memory:  ", moinfo.ByteCount);
+                        //var strSize_wwise = DBG.DEBUG_FONT_SMALL.MeasureString(str_wwise);
+                        var strSize_wwise = ImGuiDebugDrawer.MeasureString(str_wwise, 16 * scale);
+                        //DBG.DrawOutlinedText(str_wwise, new Vector2(GFX.Device.Viewport.Width - 6,
+                        //GFX.Device.Viewport.Height - 40) / DPIVector,
+                        //GetMemoryUseColor(wwinfo.ByteCount, audio: true), DBG.DEBUG_FONT_SMALL, scale: 1, scaleOrigin: strSize_wwise);
+
+                        ImGuiDebugDrawer.DrawText(str_wwise, (new Vector2(GFX.Device.Viewport.Width - 6,
+                        GFX.Device.Viewport.Height - 32 * scale) / DPIVector) - strSize_wwise, GetMemoryUseColor(moinfo.ByteCount, audio: true),
+                        Color.Black, 16 * scale);
+                    }
+                }
             }
+            
 
             //DBG.DrawOutlinedText(str_unmanaged, new Vector2(GFX.Device.Viewport.Width - 6,
             //    GFX.Device.Viewport.Height - 16) / DPIVector,
@@ -1428,8 +1842,6 @@ namespace DSAnimStudio
 
             ActiveHyst.Update(Active);
 
-            TargetElapsedTime = (ActiveHyst || LoadingTaskMan.AnyTasksRunning()) ? TimeSpan.FromTicks(166667) : TimeSpan.FromSeconds(0.25);
-
             if (!prevActive && Active)
             {
                 IsFirstFrameActive = true;
@@ -1461,243 +1873,477 @@ namespace DSAnimStudio
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
 
+        public static bool IsFirstFrameAfterDrawing = false;
 
+        private static void PreUpdate()
+        {
+            Input.PreUpdate();
+            DialogManager.Input.PreUpdate();
+
+            //Input.Update(new Rectangle(0, 0, Program.MainInstance.BoundsLastUpdatedFor.Width, Program.MainInstance.BoundsLastUpdatedFor.Height).InverseDpiScaled(),
+            //                            forceUpdate: false, disableIfFieldsFocused: true);
+
+            //DialogManager.Input.Update(new Rectangle(0, 0, Program.MainInstance.BoundsLastUpdatedFor.Width, Program.MainInstance.BoundsLastUpdatedFor.Height).InverseDpiScaled(),
+            //                            forceUpdate: true, disableIfFieldsFocused: true);
+
+            OSD.PreUpdate();
+        }
+
+        private static bool prevFrameKeyM = false;
         protected override void Update(GameTime gameTime)
         {
-            UpdateWindowResizeStable();
+            if (REQUEST_EXIT && !REQUEST_EXIT_GUARANTEED_FINAL)
+                WinForm.Close();
 
-            if (SplashState != SplashScreenStates.Complete)
+            if (REQUEST_EXIT_GUARANTEED_FINAL)
             {
-                UpdateActiveState(true);
-                GlobalInputState.Update();
-                Input.Update(GFX.Device.Viewport.Bounds);
-                DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;
-                
-                UpdateSplash(DELTA_UPDATE);
-            }
-
-            if (SplashState is SplashScreenStates.FadeIn or SplashScreenStates.Showing)
                 return;
-
-            if (REQUEST_REINIT_EDITOR)
-            {
-                REQUEST_REINIT_EDITOR = false;
-                RESET_ALL();
             }
 
-            if (REQUEST_DISABLE_SOUND)
+            //if (WinForm?.IsDisposed != false)
+            //{
+            //    Exit();
+            //    return;
+            //}
+
+            if (true || IsFirstFrameAfterDrawing)
             {
-                Main.Config.SetEventSimulationEnabled("EventSimSE", false);
-                SoundManager.DisposeAll();
-                REQUEST_DISABLE_SOUND = false;
+                PreUpdate();
+                IsFirstFrameAfterDrawing = false;
             }
 
-            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-            NotificationManager.UpdateAll(elapsed);
-
-            
-
-            IsLoadingTaskRunning = LoadingTaskMan.AnyTasksRunning();
-            IsLoadingTaskRunningHyst.Update(IsLoadingTaskRunning);
-
-#if !DEBUG
-            try
-            {
-#endif
-            bool isMainFormFocused = false;
-            if (WinForm.ContainsFocus)
-            {
-                isMainFormFocused = true;
-            }
-
-            foreach (System.Windows.Forms.Form form in Application.OpenForms)
-            {
-                if (form.Modal)
-                {
-                    UpdateActiveState();
-                    GlobalInputState.Update();
-                    try
-                    {
-                        form.Invoke(new Action(() =>
-                        {
-                            try
-                            {
-                                if (isMainFormFocused && Active && GlobalInputState.Mouse.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Released)
-                                {
-                                    //UpdateActiveState(false);
-                                    form.Activate();
-                                }
-                            }
-                            catch
-                            {
-
-                            }
-                        }));
-                    }
-                    catch
-                    {
-
-                    }
-
-                    return;
-                }
-            }
 
             UpdateActiveState();
 
-                if (ActiveHyst || LoadingTaskMan.AnyTasksRunning())
+            if (ActiveHyst)
+            {
+
+                UpdateLazyDispatch(MenuBar.IsAnyMenuOpen);
+
+                GlobalInputState.Update();
+
+                bool ctrlHeld = GlobalInputState.Keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl) ||
+                    GlobalInputState.Keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightControl);
+
+                bool shiftHeld = GlobalInputState.Keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift) ||
+                    GlobalInputState.Keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightShift);
+
+                bool mHeld = GlobalInputState.Keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.M);
+
+                if (ctrlHeld && shiftHeld && (mHeld && !prevFrameKeyM))
                 {
-                    GlobalInputState.Update();
-
-                    UpdateLazyDispatch();
-
-                FlverMaterialDefInfo.UpdateMem();
-
-                    DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;//(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
-
-                    //GFX.FlverDitherTime += DELTA_UPDATE;
-                    //GFX.FlverDitherTime = GFX.FlverDitherTime % GFX.FlverDitherTimeMod;
-
-                    if (!FIXED_TIME_STEP && GFX.AverageFPS >= 200)
+                    MainThreadLazyDispatch(() =>
                     {
-                        DELTA_UPDATE_ROUNDED = (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
-                    }
-                    else
-                    {
-                        DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
-                    }
-
-                    if (!LoadingTaskMan.AnyTasksRunning())
-                        Scene.UpdateAnimation();
-
-                
-
-                    
-
-                    
-                    LoadingTaskMan.Update(elapsed);
-
-                    IsFixedTimeStep = FIXED_TIME_STEP;
-
-                    if (DBG.EnableMenu)
-                    {
-                        DbgMenuItem.UpdateInput(elapsed);
-                        DbgMenuItem.UICursorBlinkUpdate(elapsed);
-                    }
-
-                    //if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
-                    //{
-                    //    // Only update input if debug menu isnt fully open.
-                    //    GFX.World.UpdateInput(this, gameTime);
-                    //}
-
-                    
-
-                    if (REQUEST_EXIT)
-                        Exit();
-
-                    MemoryUsageCheckTimer += elapsed;
-                    if (MemoryUsageCheckTimer >= MemoryUsageCheckInterval)
-                    {
-                        MemoryUsageCheckTimer = 0;
-                        UpdateMemoryUsage();
-                    }
-
-
-                    // BELOW IS TAE EDITOR STUFF
-
-                    if (IsLoadingTaskRunning != prevFrameWasLoadingTaskRunning)
-                    {
-                        TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
-                        {
-                            if (IsLoadingTaskRunning)
-                            {
-                                Mouse.SetCursor(MouseCursor.Wait);
-                            }
-
-                            foreach (Control c in TAE_EDITOR.GameWindowAsForm.Controls)
-                            {
-                                c.Enabled = !IsLoadingTaskRunning;
-                            }
-
-
-                        }));
-
-                        // Undo an infinite loading cursor on an aborted file load.
-                        if (!IsLoadingTaskRunning)
-                        {
-                            Mouse.SetCursor(MouseCursor.Arrow);
-                        }
-                    }
-
-                    if (!IsLoadingTaskRunning)
-                    {
-                        //MeasuredElapsedTime = UpdateStopwatch.Elapsed;
-                        //MeasuredTotalTime = MeasuredTotalTime.Add(MeasuredElapsedTime);
-
-                        //UpdateStopwatch.Restart();
-
-                        if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
-                            TAE_EDITOR.Input.CursorType = MouseCursorType.Arrow;
-
-                        
-                        
-                        if (Active)
-                        {
-                            if (Scene.CheckIfDrawing())
-                                TAE_EDITOR.Update();
-                        }
-                        else
-                        {
-                            TAE_EDITOR.Input.CursorType = MouseCursorType.Arrow;
-                        }
-                        
-
-                       
-
-
+                        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                        GC.Collect();
+                        //zzz_DocumentManager.CurrentDocument?.NotificationManager?.PushNotification("Memory cleaned.");
+                    }, waitForAllLoadingTasks: true);
                 }
 
-                if (!string.IsNullOrWhiteSpace(TAE_EDITOR.FileContainerName))
-                    Window.Title = $"{System.IO.Path.GetFileName(TAE_EDITOR.FileContainerName)}" +
+                prevFrameKeyM = mHeld;
+            }
+
+            //lock (zzz_DocumentManager._lock_CurrentDocument)
+            //{
+            //    if (zzz_DocumentManager.CurrentDocument)
+            //}
+
+
+            lock (zzz_DocumentManager._lock_CurrentDocument)
+            {
+                Input?.UpdateEmergencyMouseUnlock();
+
+                UpdateTime(gameTime.ElapsedGameTime);
+
+                var newTitle = $"DS ANIM STUDIO {DSAS_VERSION_STRING}";
+
+                if (!string.IsNullOrWhiteSpace(TAE_EDITOR?.NewFileContainerName))
+                    newTitle = $"{System.IO.Path.GetFileName(TAE_EDITOR.NewFileContainerName)}" +
                         $"{(TAE_EDITOR.IsModified ? "*" : "")}" +
                         $"{(TAE_EDITOR.IsReadOnlyFileMode ? " !READ ONLY!" : "")}" +
-                        $" - DS ANIM STUDIO {VERSION}";
-                else
-                    Window.Title = $"DS ANIM STUDIO {VERSION}";
-#if NIGHTFALL
-                Window.Title += " [NIGHTFALL MOD DEV VER]";
-#endif
+                        $" - DS ANIM STUDIO {DSAS_VERSION_STRING}";
+
+                if (IsPatreonBuild)
+                    newTitle += " [PATREON EXLUSIVE VER, DO NOT REDISTRIBUTE]";
+
+                if (IsNightfallBuild)
+                    newTitle += " [NIGHTFALL MOD DEV VER]";
+
 
                 if (IsLoadingTaskRunning)
                 {
-                    Window.Title = "[Loading...] " + Window.Title;
+                    newTitle = "[Loading...] " + newTitle;
                 }
 
-                prevFrameWasLoadingTaskRunning = IsLoadingTaskRunning;
-
-                    IsFirstFrameActive = false;
-
-                    GFX.CurrentWorldView.Update(DELTA_UPDATE);
-
-                    SoundManager.Update(DELTA_UPDATE, GFX.CurrentWorldView.CameraLocationInWorld.WorldMatrix, TAE_EDITOR);
-
-                    TAE_EDITOR?.Graph?.AllBoxesEveryFrameUpdate();
-
-                    base.Update(gameTime);
-                }
-#if !DEBUG
-            }
-            catch (Exception ex)
-            {
-                if (!ErrorLog.HandleException(ex, "Fatal error encountered during update loop"))
+                if (Main.IsDebugBuild)
                 {
-                    WinForm.Close();
+
+                    newTitle += $" [ActiveHyst={ActiveHyst.State},IsFixedTimeStep={IsFixedTimeStep},TargetElapsedTime(ms)={TargetElapsedTime.TotalMilliseconds},,MaxElapsedTime(ms)={MaxElapsedTime.TotalMilliseconds}]";
                 }
+
+                Window.Title = newTitle;
+
+                if (ImguiFontRebuildRequested)
+                {
+                    DoActualImguiFontBuild();
+                    ImguiFontRebuildRequested = false;
+                }
+
+                DebugToggleUpdate();
+
+                UpdateWindowResizeStable();
+
+                if (SplashManager.SplashState != SplashManager.SplashScreenStates.Complete)
+                {
+                    UpdateActiveState(true);
+                    GlobalInputState.Update();
+                    Input.Update(GFX.Device.Viewport.Bounds, forceUpdate: true, disableIfFieldsFocused: true);
+                    DELTA_UPDATE = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+
+                    SplashManager.UpdateSplash(DELTA_UPDATE);
+                }
+                else
+                {
+                    UpdateActiveState();
+                }
+
+                if (SplashManager.SplashState is SplashManager.SplashScreenStates.FadeIn or SplashManager.SplashScreenStates.Showing)
+                    return;
+
+                if (NeedsShowWelcome)
+                {
+                    if (!Config.WelcomeMessageDisabled)
+                    {
+                        OSD.RequestShowWelcome = true;
+                        
+                    }
+
+                    NeedsShowWelcome = false;
+                }
+
+                if (REQUEST_REINIT_EDITOR)
+                {
+                    //RESET_ALL();
+                    zzz_DocumentManager.KillCurrentDocForLoadFail();
+                    REQUEST_REINIT_EDITOR = false;
+                }
+
+                if (REQUEST_DISABLE_SOUND)
+                {
+                    Main.Config.SimEnabled_Sounds = false;
+                    zzz_DocumentManager.CurrentDocument.SoundManager.DisposeAll();
+                    REQUEST_DISABLE_SOUND = false;
+                }
+
+                float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                lock (_lock_ForceDrawTimer)
+                {
+                    if (ForceDrawTimer > 0)
+                    {
+                        ForceDrawTimer -= elapsed;
+                        if (ForceDrawTimer < 0)
+                            ForceDrawTimer = 0;
+                    }
+                }
+
+
+
+                zzz_NotificationManagerIns.UpdateAll(elapsed);
+
+                zzz_DocumentManager.CurrentDocument?.ParamManager?.UpdateAutoParamReload(elapsed);
+
+                IsLoadingTaskRunning = zzz_DocumentManager.CurrentDocument?.LoadingTaskMan?.AnyInteractionBlockingTasks() ?? false;
+                IsLoadingTaskRunningHyst.Update(IsLoadingTaskRunning);
+                try
+                {
+                    bool isMainFormFocused = false;
+                    if (WinForm.ContainsFocus)
+                    {
+                        isMainFormFocused = true;
+                    }
+                    else
+                    {
+                        Input.UnlockMouseCursor();
+                    }
+
+                    try
+                    {
+
+                        foreach (System.Windows.Forms.Form form in Application.OpenForms)
+                        {
+                            if (form.Modal)
+                            {
+                                UpdateActiveState();
+                                GlobalInputState.Update();
+                                try
+                                {
+                                    form.Invoke(new Action(() =>
+                                    {
+                                        try
+                                        {
+                                            if (isMainFormFocused && Active && GlobalInputState.Mouse.LeftButton ==
+                                                Microsoft.Xna.Framework.Input.ButtonState.Released)
+                                            {
+                                                //UpdateActiveState(false);
+                                                form.Activate();
+                                            }
+                                        }
+                                        catch (Exception handled_ex) when (Main.EnableErrorHandler.ModalFormFocus)
+                                        {
+                                            //Main.HandleError(nameof(Main.EnableErrorHandler.ModalFormFocus), handled_ex);
+                                        }
+                                    }));
+                                }
+                                catch (Exception handled_ex) when (Main.EnableErrorHandler.ModalFormFocus)
+                                {
+                                    Main.HandleError(nameof(Main.EnableErrorHandler.ModalFormFocus), handled_ex);
+                                }
+
+                                //return;
+                            }
+                        }
+                    }
+                    catch (Exception handled_ex) when (Main.EnableErrorHandler.ModalFormFocus)
+                    {
+                        //Main.HandleError(nameof(Main.EnableErrorHandler.ModalFormFocus), handled_ex);
+                    }
+
+
+
+                    //GFX.Display.TargetFPS = 60;
+
+                    zzz_DocumentManager.CurrentDocument?.LoadingTaskMan?.Update(elapsed);
+
+                    MaxElapsedTime = TimeSpan.FromSeconds(1.0);
+
+                    // Hotfix for mouse cursor getting locked when window loses focus while dragging editor timeline.
+                    if (!ActiveHyst)
+                    {
+                        var tae = zzz_DocumentManager.CurrentDocument?.EditorScreen;
+                        if (tae != null)
+                        {
+                            tae.Graph?.InputMan?.UpdateCurrentDrag(tae.Input, 0, isReadOnly: true,
+                                forceReleaseDrag: true);
+                        }
+                    }
+
+
+                    if (ActiveHyst || !GFX.Display.LimitFPSWhenWindowUnfocused)
+                    {
+                        IsFixedTimeStep = FIXED_TIME_STEP;
+
+                        if (GFX.Display.DisableFPSLimit)
+                            // Target = 0.1ms, so 10000 FPS
+                            TargetElapsedTime = TimeSpan.FromTicks(1000);
+                        else
+                            // Target = TargetFPS
+                            TargetElapsedTime = TimeSpan.FromSeconds(1.0 / GFX.Display.TargetFPS);
+                    }
+                    else
+                    {
+                        if (zzz_DocumentManager.CurrentDocument.LoadingTaskMan.AnyInteractionBlockingTasks())
+                        {
+                            // Target = 60 FPS
+                            TargetElapsedTime = TimeSpan.FromSeconds(1.0 / 60.0);
+                        }
+                        else
+                        {
+                            // Target = 10 FPS
+                            TargetElapsedTime = TimeSpan.FromSeconds(1.0 / 10.0);
+                        }
+
+                        IsFixedTimeStep = true;
+                    }
+
+
+
+                    bool forceDrawTimerActive = false;
+
+                    lock (_lock_ForceDrawTimer)
+                    {
+                        if (ForceDrawTimer > 0)
+                            forceDrawTimerActive = true;
+                    }
+
+                    if (!GFX.Display.StopUpdatingWhenWindowUnfocused)
+                        forceDrawTimerActive = true;
+
+                    if (ActiveHyst ||
+                        zzz_DocumentManager.CurrentDocument.LoadingTaskMan.AnyInteractionBlockingTasks() ||
+                        forceDrawTimerActive || !GFX.Display.StopUpdatingWhenWindowUnfocused)
+                    {
+                        GlobalInputState.Update();
+
+
+
+                        FlverMaterialDefInfo.UpdateMem();
+
+                        DELTA_UPDATE =
+                            (float)gameTime.ElapsedGameTime
+                                .TotalSeconds; //(float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+
+                        if (IsFirstFrameActive)
+                            DELTA_UPDATE = 0;
+
+                        //GFX.FlverDitherTime += DELTA_UPDATE;
+                        //GFX.FlverDitherTime = GFX.FlverDitherTime % GFX.FlverDitherTimeMod;
+
+                        if (!FIXED_TIME_STEP && GFX.AverageFPS >= 200)
+                        {
+                            DELTA_UPDATE_ROUNDED =
+                                (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
+                        }
+                        else
+                        {
+                            DELTA_UPDATE_ROUNDED = DELTA_UPDATE;
+                        }
+
+                        //if (!LoadingTaskMan.AnyTasksRunning())
+                        //    Scene.UpdateAnimation();
+
+
+
+
+
+
+
+
+                        if (DBG.EnableMenu)
+                        {
+                            DbgMenuItem.UpdateInput(elapsed);
+                            DbgMenuItem.UICursorBlinkUpdate(elapsed);
+                        }
+
+                        //if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+                        //{
+                        //    // Only update input if debug menu isnt fully open.
+                        //    GFX.World.UpdateInput(this, gameTime);
+                        //}
+
+
+
+
+
+                        MemoryUsageCheckTimer += elapsed;
+                        if (MemoryUsageCheckTimer >= MemoryUsageCheckInterval)
+                        {
+                            MemoryUsageCheckTimer = 0;
+                            UpdateMemoryUsage();
+                        }
+
+
+                        // BELOW IS TAE EDITOR STUFF
+
+                        if (IsLoadingTaskRunning)
+                        {
+                            Input.CursorType = MouseCursorType.Loading;
+                        }
+
+                        //if (IsLoadingTaskRunning != prevFrameWasLoadingTaskRunning)
+                        //{
+                        //    TAE_EDITOR.GameWindowAsForm.Invoke(new Action(() =>
+                        //    {
+                        //        if (IsLoadingTaskRunning)
+                        //        {
+                        //            Mouse.SetCursor(MouseCursor.Wait);
+                        //        }
+
+                        //        foreach (Control c in TAE_EDITOR.GameWindowAsForm.Controls)
+                        //        {
+                        //            c.Enabled = !IsLoadingTaskRunning;
+                        //        }
+
+
+                        //    }));
+
+                        //    // Undo an infinite loading cursor on an aborted file load.
+                        //    if (!IsLoadingTaskRunning)
+                        //    {
+                        //        Mouse.SetCursor(MouseCursor.Arrow);
+                        //    }
+                        //}
+
+                        if (!IsLoadingTaskRunning)
+                        {
+                            //MeasuredElapsedTime = UpdateStopwatch.Elapsed;
+                            //MeasuredTotalTime = MeasuredTotalTime.Add(MeasuredElapsedTime);
+
+                            //UpdateStopwatch.Restart();
+
+                            // if (!TAE_EDITOR.Rect.Contains(TAE_EDITOR.Input.MousePositionPoint))
+                            //     TAE_EDITOR.Input.CursorType = MouseCursorType.Arrow;
+
+                            if (prevFrameWasLoadingTaskRunning)
+                            {
+                                TAE_EDITOR.Input.CursorType = MouseCursorType.Arrow;
+                            }
+
+
+                            if (Active || forceDrawTimerActive)
+                            {
+                                if (ActiveHyst)
+                                {
+                                    Input.Update(
+                                        new Rectangle(0, 0, BoundsLastUpdatedFor.Width, BoundsLastUpdatedFor.Height)
+                                            .InverseDpiScaled(),
+                                        forceUpdate: false, disableIfFieldsFocused: true);
+
+                                    GFX.CurrentWorldView?.UpdateInput();
+                                }
+
+                                if (zzz_DocumentManager.CurrentDocument.Scene.CheckIfDrawing())
+                                    TAE_EDITOR.Update(DELTA_UPDATE);
+                            }
+                            else
+                            {
+                                TAE_EDITOR.Input.CursorType = MouseCursorType.Arrow;
+                            }
+
+
+
+
+
+                        }
+
+
+
+                        prevFrameWasLoadingTaskRunning = IsLoadingTaskRunning;
+
+                        IsFirstFrameActive = false;
+
+                        GFX.CurrentWorldView.Update(DELTA_UPDATE);
+
+                        try
+                        {
+                            zzz_DocumentManager.CurrentDocument.SoundManager.Update(DELTA_UPDATE,
+                                GFX.CurrentWorldView.CameraLocationInWorld.WorldMatrix,
+                                TAE_EDITOR);
+                        }
+                        catch (Exception handled_ex) when (Main.EnableErrorHandler.SoundUpdate)
+                        {
+                            Main.HandleError(nameof(Main.EnableErrorHandler.SoundUpdate), handled_ex);
+                        }
+
+                        TAE_EDITOR?.Graph?.AllBoxesEveryFrameUpdate();
+
+                        base.Update(gameTime);
+                    }
+                }
+                catch (Exception handled_ex) when (Main.EnableErrorHandler.MainUpdateLoop)
+                {
+                    Main.HandleError(nameof(Main.EnableErrorHandler.MainUpdateLoop), handled_ex);
+                }
+                finally
+                {
+                    UpdateLazyDispatch(MenuBar.IsAnyMenuOpen);
+                }
+                IsFirstUpdateLoop = false;
             }
-#endif
-            IsFirstUpdateLoop = false;
+
+            zzz_DocumentManager.UpdateDocuments();
+            
         }
 
         private void InitTonemapShader()
@@ -1707,10 +2353,21 @@ namespace DSAnimStudio
 
         protected override void Draw(GameTime gameTime)
         {
-            
-
-            lock (_lock_ChangeRenderTarget)
+            if (REQUEST_EXIT_GUARANTEED_FINAL)
             {
+                return;
+            }
+
+            //if (WinForm?.IsDisposed != false)
+            //{
+            //    Exit();
+            //    return;
+            //}
+            IsFirstFrameAfterDrawing = true;
+            lock (zzz_DocumentManager._lock_CurrentDocument)
+            {
+                lock (_lock_ChangeRenderTarget)
+                {
 
 
 
@@ -1718,308 +2375,394 @@ namespace DSAnimStudio
             try
             {
 #endif
-                if (SplashState is SplashScreenStates.FadeIn or SplashScreenStates.Showing)
-                {
-                    GFX.Device.Clear(Color.Black);
-                    
-                    ImGuiDraw.BeforeLayout(gameTime, 0, 0, boundsLastUpdatedFor.Width, boundsLastUpdatedFor.Height, 0);
-                    ImGuiDebugDrawer.Begin();
-                    ImGuiDebugDrawer.ViewportOffset = Vector2.Zero;
-                    
-                    DrawSplash(clear: false);
-                    GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
-                    ImGuiDebugDrawer.DrawTtest();
-                    NotificationManager.DrawAll();
-                    ImGuiDebugDrawer.End();
-                    ImGuiDraw.AfterLayout(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
-                    return;
-                }
-
-                if ((ActiveHyst || IsLoadingTaskRunningHyst) || LoadingTaskMan.AnyTasksRunning())
-                {
-                    Input.Update(new Rectangle(0, 0, boundsLastUpdatedFor.Width, boundsLastUpdatedFor.Height).InverseDpiScaled());
-
-                    Colors.ReadColorsFromConfig();
-
-                    DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
-
-                    GFX.Device.Clear(Colors.MainColorBackground);
-
-                    ImGuiDraw.BeforeLayout(gameTime, 0, 0, boundsLastUpdatedFor.Width, boundsLastUpdatedFor.Height, 0);
-
-                    OSD.Build(Main.DELTA_DRAW, 0, 0);
-                    ImGuiDebugDrawer.Begin();
-
-
-                    if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
+                    if (SplashManager.SplashState is SplashManager.SplashScreenStates.FadeIn or SplashManager.SplashScreenStates.Showing)
                     {
-                        // Only update input if debug menu isnt fully open.
-                        GFX.CurrentWorldView.UpdateInput();
-                    }
+                        GFX.Device.Clear(Color.Black);
 
-                    if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
-                    {
-                        //TEST_DX11FLVER?.Draw(GFX.World.Matrix_World, GFX.World.Matrix_View, GFX.World.Matrix_Projection);
-                        //ImGuiDebugDrawer.DrawTtest();
-                        //ImGuiDebugDrawer.End();
-                        //ImGuiDraw.AfterLayout(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
-                        //return;
-
-                        if (SceneRenderTarget == null)
-                        {
-                            RebuildRenderTarget(true);
-                            if (TimeBeforeNextRenderTargetUpdate > 0)
-                                TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                        }
-                        else if (RequestViewportRenderTargetResolutionChange)
-                        {
-                            RebuildRenderTarget(false);
-
-                            if (TimeBeforeNextRenderTargetUpdate > 0)
-                                TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                        }
-
-
-                        //GFX.Device.SetRenderTarget(UnusedRendertarget0);
-
-                        //GFX.Device.Clear(Colors.MainColorViewportBackground);
-
-                        //GFX.Device.Viewport = new Viewport(0, 0, UnusedRendertarget0.Width, UnusedRendertarget0.Height);
-
-                        //GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
-
-                        //GFX.BeginDraw();
-                        ////GFX.InitDepthStencil(writeDepth: false);
-                        //DBG.DrawSkybox();
-
-                        //GFX.Device.SetRenderTarget(null);
-
-
-                        //GFX.Bokeh.Draw(SkyboxRenderTarget, GFX.BokehShapeHexagon, GFX.BokehRenderTarget,
-                        //    GFX.BokehBrightness, GFX.BokehSize, GFX.BokehDownsize, GFX.BokehIsFullPrecision, GFX.BokehIsDynamicDownsize);
-
-                        GFX.Device.SetRenderTarget(null);
-
-                        //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
-
-
-
-
-
-
-                        //GFX.Device.SetRenderTarget(SceneRenderTarget);
-                        GFX.Device.SetRenderTargets(SceneRenderTarget);
-
-                        GFX.Device.Clear(Colors.MainColorViewportBackground);
-
-                        GFX.Device.Viewport = new Viewport(0, 0, SceneRenderTarget.Width, SceneRenderTarget.Height);
-
-                        GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
-
-                        //GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-                        //GFX.SpriteBatch.Draw(SkyboxRenderTarget,
-                        //new Rectangle(-SkyboxRenderTargetPadding, -SkyboxRenderTargetPadding,
-                        //(TAE_EDITOR.ModelViewerBounds.Width + (SkyboxRenderTargetPadding * 2)) * GFX.EffectiveSSAA,
-                        //(TAE_EDITOR.ModelViewerBounds.Height + (SkyboxRenderTargetPadding * 2)) * GFX.EffectiveSSAA), Color.White);
-                        //GFX.SpriteBatchEnd();
-
-                        GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
-                        //GFX.Device.Clear(ClearOptions.Stencil, Color.Transparent, 1, 0);
-                        GFX.BeginDraw();
-                        DBG.DrawSkybox();
-                        //TaeInterop.TaeViewportDrawPre(gameTime);
-                        GFX.DrawScene3D();
-
-                        
-
-
-
-                        //if (!DBG.DbgPrimXRay)
-                        //    GFX.DrawSceneOver3D();
-
-                        GFX.DrawPrimRespectDepth();
-
-                        if (DBG.DbgPrimXRay)
-                            GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
-
-                        ImGuiDebugDrawer.ViewportOffset = TAE_EDITOR.ModelViewerBounds.DpiScaled().TopLeftCorner();
-
-                        TAE_EDITOR?.Graph?.ViewportInteractor?.GeneralUpdate_BeforePrimsDraw();
-
-                        GFX.DrawSceneOver3D();
+                        ImGuiDraw.BeforeLayout(gameTime, 0, 0, BoundsLastUpdatedFor.Width, BoundsLastUpdatedFor.Height, 0);
+                        ImGuiDebugDrawer.Begin();
                         ImGuiDebugDrawer.ViewportOffset = Vector2.Zero;
 
-                        GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+                        SplashManager.DrawSplash(clear: false);
+                        GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
+                        ImGuiDebugDrawer.DrawTtest();
+                        zzz_NotificationManagerIns.DrawAll(new Rectangle(32, 32, Window.ClientBounds.Width - 64, Window.ClientBounds.Height - 64));
+                        ImGuiDebugDrawer.End();
+                        ImGuiDraw.AfterLayout(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
+                        return;
+                    }
 
-                        GFX.DrawPrimDisrespectDepth();
+                    bool forceDrawTimerActive = false;
 
-                        //GFX.Device.SetRenderTarget(null);
-                        GFX.Device.SetRenderTargets();
+                    lock (_lock_ForceDrawTimer)
+                    {
+                        if (ForceDrawTimer > 0)
+                            forceDrawTimerActive = true;
+                    }
+                    if (!GFX.Display.StopUpdatingWhenWindowUnfocused)
+                        forceDrawTimerActive = true;
+
+                    bool updateInput = (ActiveHyst);
+
+
+                    if (true || updateInput)
+                    {
+                        if (updateInput)
+                        {
+                            Input.Update(new Rectangle(0, 0, BoundsLastUpdatedFor.Width, BoundsLastUpdatedFor.Height).InverseDpiScaled(),
+                                forceUpdate: false, disableIfFieldsFocused: true);
+                        }
+
+                        Colors.ReadColorsFromConfig();
+
+                        DELTA_DRAW = (float)gameTime.ElapsedGameTime.TotalSeconds;// (float)(Math.Max(gameTime.ElapsedGameTime.TotalMilliseconds, 10) / 1000.0);
 
                         GFX.Device.Clear(Colors.MainColorBackground);
 
-                        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+                        ImGuiDraw.BeforeLayout(gameTime, 0, 0, BoundsLastUpdatedFor.Width, BoundsLastUpdatedFor.Height, 0);
 
-                        InitTonemapShader();
-                        GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
 
-                        if (GFX.UseTonemap)
+                        ImGuiDebugDrawer.Begin();
+
+                        OSD.Build(Main.DELTA_DRAW, 0, 0);
+
+
+
+                        if (DbgMenuItem.MenuOpenState != DbgMenuOpenState.Open)
                         {
-                            MainFlverTonemapShader.ScreenSize = new Vector2(
-                                TAE_EDITOR.ModelViewerBounds.Width * Main.DPIX,
-                                TAE_EDITOR.ModelViewerBounds.Height * Main.DPIY);
-                            MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                            // Only update input if debug menu isnt fully open.
+                            if (updateInput)
+                                GFX.CurrentWorldView.UpdateInput();
                         }
 
-
-
-                        GFX.SpriteBatch.Draw(SceneRenderTarget,
-                                new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
-
-                        if (RemoEventSim.CurrentFadeColor.HasValue)
+                        if (TAE_EDITOR.ModelViewerBounds.Width > 0 && TAE_EDITOR.ModelViewerBounds.Height > 0)
                         {
-                            GFX.SpriteBatchEnd();
+
+                            //TEST_DX11FLVER?.Draw(GFX.World.Matrix_World, GFX.World.Matrix_View, GFX.World.Matrix_Projection);
+                            //ImGuiDebugDrawer.DrawTtest();
+                            //ImGuiDebugDrawer.End();
+                            //ImGuiDraw.AfterLayout(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
+                            //return;
+
+                            if (RenderTarget0_Color == null)
+                            {
+                                RebuildRenderTarget(true);
+                                if (TimeBeforeNextRenderTargetUpdate > 0)
+                                    TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                            }
+                            else if (RequestViewportRenderTargetResolutionChange)
+                            {
+                                RebuildRenderTarget(false);
+
+                                if (TimeBeforeNextRenderTargetUpdate > 0)
+                                    TimeBeforeNextRenderTargetUpdate -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                            }
+
+
+                            //GFX.Device.SetRenderTarget(UnusedRendertarget0);
+
+                            //GFX.Device.Clear(Colors.MainColorViewportBackground);
+
+                            //GFX.Device.Viewport = new Viewport(0, 0, UnusedRendertarget0.Width, UnusedRendertarget0.Height);
+
+                            //GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+
+                            //GFX.BeginDraw();
+                            ////GFX.InitDepthStencil(writeDepth: false);
+                            //DBG.DrawSkybox();
+
+                            //GFX.Device.SetRenderTarget(null);
+
+
+                            //GFX.Bokeh.Draw(SkyboxRenderTarget, GFX.BokehShapeHexagon, GFX.BokehRenderTarget,
+                            //    GFX.BokehBrightness, GFX.BokehSize, GFX.BokehDownsize, GFX.BokehIsFullPrecision, GFX.BokehIsDynamicDownsize);
+
+                            GFX.Device.SetRenderTarget(null);
+
+                            //test
+
+
+                            //GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+
+                            //GFX.Device.SetRenderTarget(SceneRenderTarget);
+
+                            GFX.Device.SetRenderTargets(RenderTarget0_Color);
+
+                            GFX.Device.Clear(Colors.MainColorViewportBackground);
+
+                            GFX.Device.Viewport = new Viewport(0, 0, RenderTarget0_Color.Width, RenderTarget0_Color.Height);
+
+                            GFX.LastViewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+
+                            //GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                            //GFX.SpriteBatch.Draw(SkyboxRenderTarget,
+                            //new Rectangle(-SkyboxRenderTargetPadding, -SkyboxRenderTargetPadding,
+                            //(TAE_EDITOR.ModelViewerBounds.Width + (SkyboxRenderTargetPadding * 2)) * GFX.EffectiveSSAA,
+                            //(TAE_EDITOR.ModelViewerBounds.Height + (SkyboxRenderTargetPadding * 2)) * GFX.EffectiveSSAA), Color.White);
+                            //GFX.SpriteBatchEnd();
+
+                            GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+                            //GFX.Device.Clear(ClearOptions.Stencil, Color.Transparent, 1, 0);
+                            GFX.BeginDraw();
+                            DBG.DrawSkybox();
+                            //TaeInterop.TaeViewportDrawPre(gameTime);
+                            GFX.DrawScene3D();
+
+
+
+
+
+                            //if (!DBG.DbgPrimXRay)
+                            //    GFX.DrawSceneOver3D();
+                            DBG.DrawGrid();
+
+                            if (Main.HelperDraw.MASTER == true)
+                                GFX.DrawPrimRespectDepth();
+
+                            if (Main.HelperDraw.EnableXRayMode)
+                                GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+
+                            ImGuiDebugDrawer.ViewportOffset = TAE_EDITOR.ModelViewerBounds.DpiScaled().TopLeftCorner();
+
+                            TAE_EDITOR?.Graph?.ViewportInteractor?.GeneralUpdate_BeforePrimsDraw();
+
+                            if (Main.HelperDraw.MASTER == true)
+                                GFX.DrawSceneOver3D();
+
+                            ImGuiDebugDrawer.ViewportOffset = Vector2.Zero;
+
+                            GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+
+                            if (Main.HelperDraw.MASTER == true)
+                                GFX.DrawPrimDisrespectDepth();
+
+                            //GFX.Device.SetRenderTarget(null);
+                            GFX.Device.SetRenderTargets();
+
+                            GFX.Device.Clear(Colors.MainColorBackground);
 
                             GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
-                            GFX.SpriteBatchBegin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
 
-                            GFX.SpriteBatch.Draw(TAE_EDITOR_BLANK_TEX,
-                                    new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width,
-                                    TAE_EDITOR.ModelViewerBounds.Height), RemoEventSim.CurrentFadeColor.Value);
+
+
+
+
+
+                            if (ViewRenderTarget == RenderTargetViewTypes.None)
+                            {
+                                InitTonemapShader();
+                                GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+
+                                if (GFX.UseTonemap)
+                                {
+                                    //MainFlverTonemapShader.Effect.Parameters["SpriteTexture"]?.SetValue(RenderTarget0_Color);
+
+                                    MainFlverTonemapShader.Effect.SpriteTexture = RenderTarget0_Color;
+
+                                    //MainFlverTonemapShader.Effect.Parameters["BlurMaskTexture"]?.SetValue(RenderTarget0_BlurMask);
+
+                                    //MainFlverTonemapShader.Effect.Parameters["BlurAnisoPower"].SetValue(RenderTargetBlurAnisoPower);
+                                    //MainFlverTonemapShader.Effect.Parameters["BlurAnisoMin"].SetValue(RenderTargetBlurAnisoMin);
+                                    //MainFlverTonemapShader.Effect.Parameters["BlurAnisoMax"].SetValue(RenderTargetBlurAnisoMax);
+
+                                    //MainFlverTonemapShader.Effect.Parameters["BlurDirections"].SetValue(RenderTargetBlurDirections);
+                                    //MainFlverTonemapShader.Effect.Parameters["BlurQuality"].SetValue(RenderTargetBlurQuality);
+                                    //MainFlverTonemapShader.Effect.Parameters["BlurSize"].SetValue(RenderTargetBlurSize);
+
+                                    //MainFlverTonemapShader.Effect.Parameters["DebugBlurDisp"]?.SetValue(RenderTargetDebugBlurDisp);
+                                    //MainFlverTonemapShader.Effect.Parameters["DebugBlurMaskDisp"]?.SetValue(RenderTargetDebugBlurMaskDisp);
+                                    //MainFlverTonemapShader.Effect.Parameters["DebugDisableBlur"]?.SetValue(RenderTargetDebugDisableBlur);
+
+                                    //MainFlverTonemapShader.Effect.Parameters["DebugDisableBlur"]?.SetValue(true);
+
+                                    MainFlverTonemapShader.SSAA = GFX.EffectiveSSAA;
+
+                                    MainFlverTonemapShader.ScreenSize = new Vector2(
+                                        TAE_EDITOR.ModelViewerBounds.Width * Main.DPI,
+                                        TAE_EDITOR.ModelViewerBounds.Height * Main.DPI);
+                                    MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                                }
+
+                                GFX.SpriteBatch.Draw(RenderTarget0_Color,
+                                    new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                            }
+                            else if (ViewRenderTarget == RenderTargetViewTypes.Color)
+                            {
+                                GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+
+                                GFX.SpriteBatch.Draw(RenderTarget0_Color,
+                                    new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                            }
+                            //else if (ViewRenderTarget == RenderTargetViewTypes.BlurMask)
+                            //{
+                            //    GFX.SpriteBatchBegin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+
+                            //    GFX.SpriteBatch.Draw(RenderTarget0_BlurMask,
+                            //        new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                            //}
+                            else
+                            {
+                                throw new NotImplementedException();
+                            }
+
+
+
+                            if (RemoEventSim.CurrentFadeColor.HasValue)
+                            {
+                                GFX.SpriteBatchEnd();
+
+                                GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+                                GFX.SpriteBatchBegin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
+
+                                GFX.SpriteBatch.Draw(TAE_EDITOR_BLANK_TEX,
+                                        new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width,
+                                        TAE_EDITOR.ModelViewerBounds.Height), RemoEventSim.CurrentFadeColor.Value);
+                            }
+
+                            GFX.SpriteBatchEnd();
+
+                            //if (GFX.CurrentWorldView.ShowGridType == WorldView.ShowGridTypes.NewGrid)
+                            //{
+                            //    //GFX.Device.Viewport = new Viewport(0, 0, RenderTarget0_Color.Width, RenderTarget0_Color.Height);
+                            //    //GFX.Device.Clear(ClearOptions.DepthBuffer, Color.Transparent, 1, 0);
+                            //    DBG.DrawGrid();
+                            //}
+
+                            //try
+                            //{
+                            //    using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
+                            //   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Rgba1010102, DepthFormat.Depth24))
+                            //    {
+                            //        GFX.Device.SetRenderTarget(renderTarget3DScene);
+
+                            //        GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                            //        GFX.Device.Viewport = new Viewport(0, 0, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA, TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA);
+                            //        TaeInterop.TaeViewportDrawPre(gameTime);
+                            //        GFX.DrawScene3D(gameTime);
+
+                            //        GFX.Device.SetRenderTarget(null);
+
+                            //        GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                            //        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+
+                            //        InitTonemapShader();
+                            //        GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                            //        //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                            //        GFX.SpriteBatch.Draw(renderTarget3DScene,
+                            //            new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
+                            //        GFX.SpriteBatch.End();
+                            //    }
+                            //}
+                            //catch (SharpDX.SharpDXException ex)
+                            //{
+                            //    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
+                            //    GFX.Device.Clear(new Color(80, 80, 80, 255));
+
+                            //    GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                            //    //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
+                            //    var errorStr = $"FAILED TO RENDER VIEWPORT AT {(zzz_DocumentManager.CurrentDocument.EditorScreen.ModelViewerBounds.Width * GFX.SSAA)}x{(zzz_DocumentManager.CurrentDocument.EditorScreen.ModelViewerBounds.Height * GFX.SSAA)} Resolution";
+                            //    var errorStrPos = (Vector2.One * new Vector2(TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height) / 2.0f);
+
+                            //    errorStrPos -= DBG.DEBUG_FONT.MeasureString(errorStr) / 2.0f;
+
+                            //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos - Vector2.One, Color.Black);
+                            //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos, Color.Red);
+                            //    GFX.SpriteBatch.End();
+                            //}
+
                         }
 
-                        GFX.SpriteBatchEnd();
 
-                        
 
-                        //try
-                        //{
-                        //    using (var renderTarget3DScene = new RenderTarget2D(GFX.Device, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA,
-                        //   TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA, true, SurfaceFormat.Rgba1010102, DepthFormat.Depth24))
-                        //    {
-                        //        GFX.Device.SetRenderTarget(renderTarget3DScene);
-
-                        //        GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                        //        GFX.Device.Viewport = new Viewport(0, 0, TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA, TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA);
-                        //        TaeInterop.TaeViewportDrawPre(gameTime);
-                        //        GFX.DrawScene3D(gameTime);
-
-                        //        GFX.Device.SetRenderTarget(null);
-
-                        //        GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                        //        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-
-                        //        InitTonemapShader();
-                        //        GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-                        //        //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
-                        //        GFX.SpriteBatch.Draw(renderTarget3DScene,
-                        //            new Rectangle(0, 0, TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height), Color.White);
-                        //        GFX.SpriteBatch.End();
-                        //    }
-                        //}
-                        //catch (SharpDX.SharpDXException ex)
-                        //{
-                        //    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds);
-                        //    GFX.Device.Clear(new Color(80, 80, 80, 255));
-
-                        //    GFX.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-                        //    //MainFlverTonemapShader.Effect.CurrentTechnique.Passes[0].Apply();
-                        //    var errorStr = $"FAILED TO RENDER VIEWPORT AT {(Main.TAE_EDITOR.ModelViewerBounds.Width * GFX.SSAA)}x{(Main.TAE_EDITOR.ModelViewerBounds.Height * GFX.SSAA)} Resolution";
-                        //    var errorStrPos = (Vector2.One * new Vector2(TAE_EDITOR.ModelViewerBounds.Width, TAE_EDITOR.ModelViewerBounds.Height) / 2.0f);
-
-                        //    errorStrPos -= DBG.DEBUG_FONT.MeasureString(errorStr) / 2.0f;
-
-                        //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos - Vector2.One, Color.Black);
-                        //    GFX.SpriteBatch.DrawString(DBG.DEBUG_FONT, errorStr, errorStrPos, Color.Red);
-                        //    GFX.SpriteBatch.End();
-                        //}
-
-                    }
+                        GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
+                        //DBG.DrawPrimitiveNames(gameTime);
 
 
 
-                    GFX.Device.Viewport = new Viewport(TAE_EDITOR.ModelViewerBounds.DpiScaled());
-                    //DBG.DrawPrimitiveNames(gameTime);
+                        //if (DBG.DbgPrimXRay)
+                        //    GFX.DrawSceneOver3D();
+
+                        GFX.DrawSceneGUI();
+
+
+                        try
+                        {
+                            if (Config.ShowStatusInViewport is TaeEditor.TaeConfigFile.ViewportStatusTypes.Full
+                                or TaeEditor.TaeConfigFile.ViewportStatusTypes.Condensed)
+                                TAE_EDITOR?.Graph?.ViewportInteractor?.DrawStatusInViewport(Config.ShowStatusInViewport);
+                        }
+                        catch (Exception handled_ex) when (Main.EnableErrorHandler.ViewportStatusDisplay)
+                        {
+                            Main.HandleError(nameof(Main.EnableErrorHandler.ViewportStatusDisplay), handled_ex);
+                        }
+
+                        DrawMemoryUsage();
+
+                        zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DrawAllTasks();
 
 
 
-                    //if (DBG.DbgPrimXRay)
-                    //    GFX.DrawSceneOver3D();
+                        GFX.Device.Viewport = new Viewport(0, 0, (int)Math.Ceiling(Window.ClientBounds.Width * 1f), (int)Math.Ceiling(Window.ClientBounds.Height * 1f));
 
-                    GFX.DrawSceneGUI();
+                        try
+                        {
+                            TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
+                                TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT,
+                                (float)gameTime.ElapsedGameTime.TotalSeconds, TAE_EDITOR_FONT_SMALL,
+                                TAE_EDITOR_SCROLLVIEWER_ARROW);
+                        }
+                        catch
+                        {
 
+                        }
 
-                    if (Config.ShowStatusInViewport is TaeEditor.TaeConfigFile.ViewportStatusTypes.Full 
-                        or TaeEditor.TaeConfigFile.ViewportStatusTypes.Condensed)
-                        TAE_EDITOR?.Graph?.ViewportInteractor?.DrawStatusInViewport(Config.ShowStatusInViewport);
-
-                    DrawMemoryUsage();
-
-                    LoadingTaskMan.DrawAllTasks();
-                    
-
-
-                    GFX.Device.Viewport = new Viewport(0, 0, (int)Math.Ceiling(Window.ClientBounds.Width * 1f), (int)Math.Ceiling(Window.ClientBounds.Height * 1f));
-
-                    TAE_EDITOR.Rect = GetTaeEditorRect();
-
-                    try
-                    {
-                        TAE_EDITOR.Draw(GraphicsDevice, TaeEditorSpriteBatch,
-                            TAE_EDITOR_BLANK_TEX, TAE_EDITOR_FONT,
-                            (float)gameTime.ElapsedGameTime.TotalSeconds, TAE_EDITOR_FONT_SMALL,
-                            TAE_EDITOR_SCROLLVIEWER_ARROW);
-                    }
-                    catch
-                    {
-
-                    }
-                    if (IsLoadingTaskRunning)
-                    {
                         GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
-                        TAE_EDITOR.DrawDimmingRect(GraphicsDevice, TaeEditorSpriteBatch, TAE_EDITOR_BLANK_TEX);
+
+
+
+                        ImGuiDebugDrawer.DrawTtest();
+
+
+                        if (SplashManager.SplashState is SplashManager.SplashScreenStates.FadeOut)
+                        {
+                            SplashManager.DrawSplash(clear: false);
+                        }
+
+                        zzz_NotificationManagerIns.DrawAll(new Rectangle(32, 32, Window.ClientBounds.Width - 64, Window.ClientBounds.Height - 64));
+
+                        if (zzz_DocumentManager.CurrentDocument.SoundManager.DebugShowDiagnostics)
+                        {
+                            GFX.SpriteBatchBeginForText();
+                            var diag = zzz_DocumentManager.CurrentDocument.SoundManager.GetDebugDiagnosticString();
+                            var diagSize = ImGuiDebugDrawer.MeasureString(diag, 16);
+                            var bgRect = new Rectangle((int)(64 - 16), (int)(64 - 16), Window.ClientBounds.Width - 96, Window.ClientBounds.Height - 96);
+                            ImGuiDebugDrawer.DrawRect(bgRect, Color.Black * 0.6f, 4);
+                            //GFX.SpriteBatch.Draw(TAE_EDITOR_BLANK_TEX, bgRect, null, Color.Black * 0.5f, 0, Vector2.Zero, SpriteEffects.None, 0.1f);
+                            //DBG.DrawOutlinedText(diag, Vector2.One * 64, Color.Cyan, Main.TAE_EDITOR_FONT_SMALL, scale);
+                            ImGuiDebugDrawer.DrawText(diag, Vector2.One * 64, Color.Cyan, Color.Black, 16);
+                            GFX.SpriteBatchEnd();
+                        }
+
+                        OSD.PostBuild(Main.DELTA_DRAW, 0, 0);
+
+
+
+                        ImGuiDebugDrawer.End();
+
+                        ImGuiDraw.AfterLayout(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
+
+
+
+
+                        //DrawImGui(gameTime, 0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
                     }
-
-                    GFX.Device.Viewport = new Viewport(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
-
-                    
-
-                    ImGuiDebugDrawer.DrawTtest();
-
-                    if (SplashState is SplashScreenStates.FadeOut)
-                    {
-                        DrawSplash(clear: false);
-                    }
-
-                    NotificationManager.DrawAll();
-
-                    if (SoundManager.DebugShowDiagnostics)
-                    {
-                        GFX.SpriteBatchBeginForText();
-                        var diag = SoundManager.GetDebugDiagnosticString();
-                        var diagSize = ImGuiDebugDrawer.MeasureString(diag, 16);
-                        var bgRect = new Rectangle((int)(64 - 16), (int)(64 - 16), Window.ClientBounds.Width - 96, TAE_EDITOR.Rect.Height - 96);
-                        ImGuiDebugDrawer.DrawRect(bgRect, Color.Black * 0.6f, 4);
-                        //GFX.SpriteBatch.Draw(TAE_EDITOR_BLANK_TEX, bgRect, null, Color.Black * 0.5f, 0, Vector2.Zero, SpriteEffects.None, 0.1f);
-                        //DBG.DrawOutlinedText(diag, Vector2.One * 64, Color.Cyan, Main.TAE_EDITOR_FONT_SMALL, scale);
-                        ImGuiDebugDrawer.DrawText(diag, Vector2.One * 64, Color.Cyan, Color.Black, 16);
-                        GFX.SpriteBatchEnd();
-                    }
-
-                    ImGuiDebugDrawer.End();
-                    ImGuiDraw.AfterLayout(0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height, 0);
-
-                    
-
-                    //DrawImGui(gameTime, 0, 0, Window.ClientBounds.Width, Window.ClientBounds.Height);
-                }
-                //else
-                //{
-                //    // TESTING
-                //    GFX.Device.Clear(Color.Fuchsia);
-                //}
+                    //else
+                    //{
+                    //    // TESTING
+                    //    GFX.Device.Clear(Color.Fuchsia);
+                    //}
 #if !DEBUG
             }
             catch (Exception ex)
@@ -2033,8 +2776,9 @@ namespace DSAnimStudio
 #endif
 
 
-                
 
+
+                }
             }
             
         }

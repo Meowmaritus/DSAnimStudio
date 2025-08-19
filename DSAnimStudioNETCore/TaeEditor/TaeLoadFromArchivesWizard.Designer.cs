@@ -28,410 +28,473 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.label1 = new System.Windows.Forms.Label();
-            this.textBoxPathInterroot = new System.Windows.Forms.TextBox();
-            this.buttonPathInterroot = new System.Windows.Forms.Button();
-            this.buttonPathAnibnd = new System.Windows.Forms.Button();
-            this.textBoxPathAnibnd = new System.Windows.Forms.TextBox();
-            this.buttonPathChrbnd = new System.Windows.Forms.Button();
-            this.textBoxPathChrbnd = new System.Windows.Forms.TextBox();
-            this.buttonPathSaveLoose = new System.Windows.Forms.Button();
-            this.textBoxPathSaveLoose = new System.Windows.Forms.TextBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.label3 = new System.Windows.Forms.Label();
-            this.buttonHelpSaveLoose = new System.Windows.Forms.Button();
-            this.buttonHelpChrbnd = new System.Windows.Forms.Button();
-            this.buttonHelpAnibnd = new System.Windows.Forms.Button();
-            this.buttonHelpGameEXE = new System.Windows.Forms.Button();
-            this.label4 = new System.Windows.Forms.Label();
-            this.buttonCreateProject = new System.Windows.Forms.Button();
-            this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
-            this.labelLoadingText = new System.Windows.Forms.Label();
-            this.progressBarLoading = new System.Windows.Forms.ProgressBar();
-            this.checkBoxLoadLooseParams = new System.Windows.Forms.CheckBox();
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.buttonClearModEngineDir = new System.Windows.Forms.Button();
-            this.buttonHelpCfgLoadUnpackedGameFiles = new System.Windows.Forms.Button();
-            this.checkBoxCfgLoadUnpackedGameFiles = new System.Windows.Forms.CheckBox();
-            this.buttonHelpCfgLoadLooseGameParam = new System.Windows.Forms.Button();
-            this.buttonHelpCfgModEngineDir = new System.Windows.Forms.Button();
-            this.buttonBrowseModEngineDir = new System.Windows.Forms.Button();
-            this.textBoxPathModEngineDir = new System.Windows.Forms.TextBox();
-            this.label5 = new System.Windows.Forms.Label();
-            this.buttonCancel = new System.Windows.Forms.Button();
-            ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).BeginInit();
-            this.groupBox1.SuspendLayout();
-            this.SuspendLayout();
+            components = new System.ComponentModel.Container();
+            label1 = new System.Windows.Forms.Label();
+            textBoxPathInterroot = new System.Windows.Forms.TextBox();
+            buttonPathInterroot = new System.Windows.Forms.Button();
+            buttonPathAnibnd = new System.Windows.Forms.Button();
+            textBoxPathMainBinder = new System.Windows.Forms.TextBox();
+            buttonPathChrbnd = new System.Windows.Forms.Button();
+            textBox_Chr_PathChrbnd = new System.Windows.Forms.TextBox();
+            buttonPathSaveLoose = new System.Windows.Forms.Button();
+            textBoxPathSaveLoose = new System.Windows.Forms.TextBox();
+            labelStep3A = new System.Windows.Forms.Label();
+            labelStep3B = new System.Windows.Forms.Label();
+            buttonHelpSaveLoose = new System.Windows.Forms.Button();
+            buttonHelpSecondaryBinder = new System.Windows.Forms.Button();
+            buttonHelpPrimaryBinder = new System.Windows.Forms.Button();
+            buttonHelpGameEXE = new System.Windows.Forms.Button();
+            label4 = new System.Windows.Forms.Label();
+            buttonCreateProject = new System.Windows.Forms.Button();
+            errorProvider1 = new System.Windows.Forms.ErrorProvider(components);
+            labelLoadingText = new System.Windows.Forms.Label();
+            progressBarLoading = new System.Windows.Forms.ProgressBar();
+            checkBoxLoadLooseParams = new System.Windows.Forms.CheckBox();
+            groupBox1 = new System.Windows.Forms.GroupBox();
+            buttonHelpDisableInterrootDCX = new System.Windows.Forms.Button();
+            checkBoxDisableInterrootDCX = new System.Windows.Forms.CheckBox();
+            buttonClearModEngineDir = new System.Windows.Forms.Button();
+            buttonHelpCfgLoadUnpackedGameFiles = new System.Windows.Forms.Button();
+            checkBoxCfgLoadUnpackedGameFiles = new System.Windows.Forms.CheckBox();
+            buttonHelpCfgLoadLooseGameParam = new System.Windows.Forms.Button();
+            buttonHelpCfgModEngineDir = new System.Windows.Forms.Button();
+            buttonBrowseModEngineDir = new System.Windows.Forms.Button();
+            textBoxPathModEngineDir = new System.Windows.Forms.TextBox();
+            label5 = new System.Windows.Forms.Label();
+            buttonCancel = new System.Windows.Forms.Button();
+            comboBoxFileType = new System.Windows.Forms.ComboBox();
+            label6 = new System.Windows.Forms.Label();
+            buttonHelpFileType = new System.Windows.Forms.Button();
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd = new System.Windows.Forms.ComboBox();
+            ((System.ComponentModel.ISupportInitialize)errorProvider1).BeginInit();
+            groupBox1.SuspendLayout();
+            SuspendLayout();
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 10);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(115, 15);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "1. Choose Game EXE";
+            label1.AutoSize = true;
+            label1.Location = new System.Drawing.Point(12, 10);
+            label1.Name = "label1";
+            label1.Size = new System.Drawing.Size(115, 15);
+            label1.TabIndex = 0;
+            label1.Text = "1. Choose Game EXE";
             // 
             // textBoxPathInterroot
             // 
-            this.textBoxPathInterroot.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxPathInterroot.Location = new System.Drawing.Point(207, 5);
-            this.textBoxPathInterroot.Name = "textBoxPathInterroot";
-            this.textBoxPathInterroot.Size = new System.Drawing.Size(312, 23);
-            this.textBoxPathInterroot.TabIndex = 1;
-            this.textBoxPathInterroot.Leave += new System.EventHandler(this.textBoxPathInterroot_Leave);
-            this.textBoxPathInterroot.Validating += new System.ComponentModel.CancelEventHandler(this.textBoxPathInterroot_Validating);
-            this.textBoxPathInterroot.Validated += new System.EventHandler(this.textBoxPathInterroot_Validated);
+            textBoxPathInterroot.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            textBoxPathInterroot.Location = new System.Drawing.Point(236, 5);
+            textBoxPathInterroot.Name = "textBoxPathInterroot";
+            textBoxPathInterroot.Size = new System.Drawing.Size(283, 23);
+            textBoxPathInterroot.TabIndex = 1;
+            textBoxPathInterroot.Validating += textBoxPathInterroot_Validating;
             // 
             // buttonPathInterroot
             // 
-            this.buttonPathInterroot.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonPathInterroot.Location = new System.Drawing.Point(539, 5);
-            this.buttonPathInterroot.Name = "buttonPathInterroot";
-            this.buttonPathInterroot.Size = new System.Drawing.Size(33, 23);
-            this.buttonPathInterroot.TabIndex = 2;
-            this.buttonPathInterroot.Text = "...";
-            this.buttonPathInterroot.UseVisualStyleBackColor = true;
-            this.buttonPathInterroot.Click += new System.EventHandler(this.buttonPathInterroot_Click);
+            buttonPathInterroot.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            buttonPathInterroot.Location = new System.Drawing.Point(539, 5);
+            buttonPathInterroot.Name = "buttonPathInterroot";
+            buttonPathInterroot.Size = new System.Drawing.Size(33, 23);
+            buttonPathInterroot.TabIndex = 2;
+            buttonPathInterroot.Text = "...";
+            buttonPathInterroot.UseVisualStyleBackColor = true;
+            buttonPathInterroot.Click += buttonPathInterroot_Click;
             // 
             // buttonPathAnibnd
             // 
-            this.buttonPathAnibnd.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonPathAnibnd.Enabled = false;
-            this.buttonPathAnibnd.Location = new System.Drawing.Point(539, 34);
-            this.buttonPathAnibnd.Name = "buttonPathAnibnd";
-            this.buttonPathAnibnd.Size = new System.Drawing.Size(33, 23);
-            this.buttonPathAnibnd.TabIndex = 4;
-            this.buttonPathAnibnd.Text = "...";
-            this.buttonPathAnibnd.UseVisualStyleBackColor = true;
-            this.buttonPathAnibnd.Click += new System.EventHandler(this.buttonPathAnibnd_Click);
+            buttonPathAnibnd.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            buttonPathAnibnd.Enabled = false;
+            buttonPathAnibnd.Location = new System.Drawing.Point(539, 63);
+            buttonPathAnibnd.Name = "buttonPathAnibnd";
+            buttonPathAnibnd.Size = new System.Drawing.Size(33, 23);
+            buttonPathAnibnd.TabIndex = 4;
+            buttonPathAnibnd.Text = "...";
+            buttonPathAnibnd.UseVisualStyleBackColor = true;
+            buttonPathAnibnd.Click += buttonPathAnibnd_Click;
             // 
-            // textBoxPathAnibnd
+            // textBoxPathMainBinder
             // 
-            this.textBoxPathAnibnd.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxPathAnibnd.Location = new System.Drawing.Point(207, 34);
-            this.textBoxPathAnibnd.Name = "textBoxPathAnibnd";
-            this.textBoxPathAnibnd.ReadOnly = true;
-            this.textBoxPathAnibnd.Size = new System.Drawing.Size(312, 23);
-            this.textBoxPathAnibnd.TabIndex = 3;
-            this.textBoxPathAnibnd.Leave += new System.EventHandler(this.textBoxPathAnibnd_Leave);
+            textBoxPathMainBinder.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            textBoxPathMainBinder.Location = new System.Drawing.Point(236, 63);
+            textBoxPathMainBinder.Name = "textBoxPathMainBinder";
+            textBoxPathMainBinder.Size = new System.Drawing.Size(283, 23);
+            textBoxPathMainBinder.TabIndex = 3;
+            textBoxPathMainBinder.Validating += textBoxPathMainBinder_Validating;
             // 
             // buttonPathChrbnd
             // 
-            this.buttonPathChrbnd.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonPathChrbnd.Enabled = false;
-            this.buttonPathChrbnd.Location = new System.Drawing.Point(539, 63);
-            this.buttonPathChrbnd.Name = "buttonPathChrbnd";
-            this.buttonPathChrbnd.Size = new System.Drawing.Size(33, 23);
-            this.buttonPathChrbnd.TabIndex = 6;
-            this.buttonPathChrbnd.Text = "...";
-            this.buttonPathChrbnd.UseVisualStyleBackColor = true;
-            this.buttonPathChrbnd.Click += new System.EventHandler(this.buttonPathChrbnd_Click);
+            buttonPathChrbnd.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            buttonPathChrbnd.Enabled = false;
+            buttonPathChrbnd.Location = new System.Drawing.Point(539, 92);
+            buttonPathChrbnd.Name = "buttonPathChrbnd";
+            buttonPathChrbnd.Size = new System.Drawing.Size(33, 23);
+            buttonPathChrbnd.TabIndex = 6;
+            buttonPathChrbnd.Text = "...";
+            buttonPathChrbnd.UseVisualStyleBackColor = true;
+            buttonPathChrbnd.Click += buttonPathChrbnd_Click;
             // 
-            // textBoxPathChrbnd
+            // textBox_Chr_PathChrbnd
             // 
-            this.textBoxPathChrbnd.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxPathChrbnd.Location = new System.Drawing.Point(207, 63);
-            this.textBoxPathChrbnd.Name = "textBoxPathChrbnd";
-            this.textBoxPathChrbnd.ReadOnly = true;
-            this.textBoxPathChrbnd.Size = new System.Drawing.Size(312, 23);
-            this.textBoxPathChrbnd.TabIndex = 5;
-            this.textBoxPathChrbnd.Leave += new System.EventHandler(this.textBoxPathChrbnd_Leave);
+            textBox_Chr_PathChrbnd.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            textBox_Chr_PathChrbnd.Location = new System.Drawing.Point(236, 92);
+            textBox_Chr_PathChrbnd.Name = "textBox_Chr_PathChrbnd";
+            textBox_Chr_PathChrbnd.Size = new System.Drawing.Size(283, 23);
+            textBox_Chr_PathChrbnd.TabIndex = 5;
+            textBox_Chr_PathChrbnd.Validating += textBox_Chr_PathChrbnd_Validating;
             // 
             // buttonPathSaveLoose
             // 
-            this.buttonPathSaveLoose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonPathSaveLoose.Enabled = false;
-            this.buttonPathSaveLoose.Location = new System.Drawing.Point(539, 92);
-            this.buttonPathSaveLoose.Name = "buttonPathSaveLoose";
-            this.buttonPathSaveLoose.Size = new System.Drawing.Size(33, 23);
-            this.buttonPathSaveLoose.TabIndex = 8;
-            this.buttonPathSaveLoose.Text = "...";
-            this.buttonPathSaveLoose.UseVisualStyleBackColor = true;
-            this.buttonPathSaveLoose.Click += new System.EventHandler(this.buttonPathSaveLoose_Click);
+            buttonPathSaveLoose.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            buttonPathSaveLoose.Enabled = false;
+            buttonPathSaveLoose.Location = new System.Drawing.Point(539, 121);
+            buttonPathSaveLoose.Name = "buttonPathSaveLoose";
+            buttonPathSaveLoose.Size = new System.Drawing.Size(33, 23);
+            buttonPathSaveLoose.TabIndex = 8;
+            buttonPathSaveLoose.Text = "...";
+            buttonPathSaveLoose.UseVisualStyleBackColor = true;
+            buttonPathSaveLoose.Click += buttonPathSaveLoose_Click;
             // 
             // textBoxPathSaveLoose
             // 
-            this.textBoxPathSaveLoose.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxPathSaveLoose.Location = new System.Drawing.Point(207, 92);
-            this.textBoxPathSaveLoose.Name = "textBoxPathSaveLoose";
-            this.textBoxPathSaveLoose.ReadOnly = true;
-            this.textBoxPathSaveLoose.Size = new System.Drawing.Size(312, 23);
-            this.textBoxPathSaveLoose.TabIndex = 7;
-            this.textBoxPathSaveLoose.Leave += new System.EventHandler(this.textBoxPathSaveLoose_Leave);
+            textBoxPathSaveLoose.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            textBoxPathSaveLoose.Location = new System.Drawing.Point(236, 121);
+            textBoxPathSaveLoose.Name = "textBoxPathSaveLoose";
+            textBoxPathSaveLoose.Size = new System.Drawing.Size(283, 23);
+            textBoxPathSaveLoose.TabIndex = 7;
+            textBoxPathSaveLoose.Validating += textBoxPathSaveLoose_Validating;
             // 
-            // label2
+            // labelStep3A
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 39);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(106, 15);
-            this.label2.TabIndex = 9;
-            this.label2.Text = "2. Choose ANIBND";
+            labelStep3A.AutoSize = true;
+            labelStep3A.Location = new System.Drawing.Point(11, 68);
+            labelStep3A.Name = "labelStep3A";
+            labelStep3A.Size = new System.Drawing.Size(112, 15);
+            labelStep3A.TabIndex = 9;
+            labelStep3A.Text = "3a. Choose ANIBND";
             // 
-            // label3
+            // labelStep3B
             // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(12, 68);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(110, 15);
-            this.label3.TabIndex = 10;
-            this.label3.Text = "3. Choose CHRBND";
+            labelStep3B.AutoSize = true;
+            labelStep3B.Location = new System.Drawing.Point(11, 97);
+            labelStep3B.Name = "labelStep3B";
+            labelStep3B.Size = new System.Drawing.Size(117, 15);
+            labelStep3B.TabIndex = 10;
+            labelStep3B.Text = "3b. Choose CHRBND";
             // 
             // buttonHelpSaveLoose
             // 
-            this.buttonHelpSaveLoose.Location = new System.Drawing.Point(178, 92);
-            this.buttonHelpSaveLoose.Name = "buttonHelpSaveLoose";
-            this.buttonHelpSaveLoose.Size = new System.Drawing.Size(23, 23);
-            this.buttonHelpSaveLoose.TabIndex = 14;
-            this.buttonHelpSaveLoose.Text = "?";
-            this.buttonHelpSaveLoose.UseVisualStyleBackColor = true;
-            this.buttonHelpSaveLoose.Click += new System.EventHandler(this.buttonHelpSaveLoose_Click);
+            buttonHelpSaveLoose.Location = new System.Drawing.Point(207, 121);
+            buttonHelpSaveLoose.Name = "buttonHelpSaveLoose";
+            buttonHelpSaveLoose.Size = new System.Drawing.Size(23, 23);
+            buttonHelpSaveLoose.TabIndex = 14;
+            buttonHelpSaveLoose.Text = "?";
+            buttonHelpSaveLoose.UseVisualStyleBackColor = true;
+            buttonHelpSaveLoose.Click += buttonHelpSaveLoose_Click;
             // 
-            // buttonHelpChrbnd
+            // buttonHelpSecondaryBinder
             // 
-            this.buttonHelpChrbnd.Location = new System.Drawing.Point(178, 63);
-            this.buttonHelpChrbnd.Name = "buttonHelpChrbnd";
-            this.buttonHelpChrbnd.Size = new System.Drawing.Size(23, 23);
-            this.buttonHelpChrbnd.TabIndex = 13;
-            this.buttonHelpChrbnd.Text = "?";
-            this.buttonHelpChrbnd.UseVisualStyleBackColor = true;
-            this.buttonHelpChrbnd.Click += new System.EventHandler(this.buttonHelpChrbnd_Click);
+            buttonHelpSecondaryBinder.Location = new System.Drawing.Point(207, 92);
+            buttonHelpSecondaryBinder.Name = "buttonHelpSecondaryBinder";
+            buttonHelpSecondaryBinder.Size = new System.Drawing.Size(23, 23);
+            buttonHelpSecondaryBinder.TabIndex = 13;
+            buttonHelpSecondaryBinder.Text = "?";
+            buttonHelpSecondaryBinder.UseVisualStyleBackColor = true;
+            buttonHelpSecondaryBinder.Click += buttonHelpSecondaryBinder_Click;
             // 
-            // buttonHelpAnibnd
+            // buttonHelpPrimaryBinder
             // 
-            this.buttonHelpAnibnd.Location = new System.Drawing.Point(178, 34);
-            this.buttonHelpAnibnd.Name = "buttonHelpAnibnd";
-            this.buttonHelpAnibnd.Size = new System.Drawing.Size(23, 23);
-            this.buttonHelpAnibnd.TabIndex = 12;
-            this.buttonHelpAnibnd.Text = "?";
-            this.buttonHelpAnibnd.UseVisualStyleBackColor = true;
-            this.buttonHelpAnibnd.Click += new System.EventHandler(this.buttonHelpAnibnd_Click);
+            buttonHelpPrimaryBinder.Location = new System.Drawing.Point(207, 63);
+            buttonHelpPrimaryBinder.Name = "buttonHelpPrimaryBinder";
+            buttonHelpPrimaryBinder.Size = new System.Drawing.Size(23, 23);
+            buttonHelpPrimaryBinder.TabIndex = 12;
+            buttonHelpPrimaryBinder.Text = "?";
+            buttonHelpPrimaryBinder.UseVisualStyleBackColor = true;
+            buttonHelpPrimaryBinder.Click += buttonHelpPrimaryBinder_Click;
             // 
             // buttonHelpGameEXE
             // 
-            this.buttonHelpGameEXE.Location = new System.Drawing.Point(178, 5);
-            this.buttonHelpGameEXE.Name = "buttonHelpGameEXE";
-            this.buttonHelpGameEXE.Size = new System.Drawing.Size(23, 23);
-            this.buttonHelpGameEXE.TabIndex = 11;
-            this.buttonHelpGameEXE.Text = "?";
-            this.buttonHelpGameEXE.UseVisualStyleBackColor = true;
-            this.buttonHelpGameEXE.Click += new System.EventHandler(this.buttonHelpGameEXE_Click);
+            buttonHelpGameEXE.Location = new System.Drawing.Point(207, 5);
+            buttonHelpGameEXE.Name = "buttonHelpGameEXE";
+            buttonHelpGameEXE.Size = new System.Drawing.Size(23, 23);
+            buttonHelpGameEXE.TabIndex = 11;
+            buttonHelpGameEXE.Text = "?";
+            buttonHelpGameEXE.UseVisualStyleBackColor = true;
+            buttonHelpGameEXE.Click += buttonHelpGameEXE_Click;
             // 
             // label4
             // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(12, 96);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(162, 15);
-            this.label4.TabIndex = 15;
-            this.label4.Text = "4. Choose Project Save Folder";
+            label4.AutoSize = true;
+            label4.Location = new System.Drawing.Point(12, 125);
+            label4.Name = "label4";
+            label4.Size = new System.Drawing.Size(156, 15);
+            label4.TabIndex = 15;
+            label4.Text = "4. Choose Workspace Folder";
             // 
             // buttonCreateProject
             // 
-            this.buttonCreateProject.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonCreateProject.Enabled = false;
-            this.buttonCreateProject.Location = new System.Drawing.Point(453, 226);
-            this.buttonCreateProject.Name = "buttonCreateProject";
-            this.buttonCreateProject.Size = new System.Drawing.Size(119, 23);
-            this.buttonCreateProject.TabIndex = 16;
-            this.buttonCreateProject.Text = "Create Project";
-            this.buttonCreateProject.UseVisualStyleBackColor = true;
-            this.buttonCreateProject.Click += new System.EventHandler(this.buttonCreateProject_Click);
+            buttonCreateProject.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
+            buttonCreateProject.Enabled = false;
+            buttonCreateProject.Location = new System.Drawing.Point(453, 300);
+            buttonCreateProject.Name = "buttonCreateProject";
+            buttonCreateProject.Size = new System.Drawing.Size(119, 23);
+            buttonCreateProject.TabIndex = 16;
+            buttonCreateProject.Text = "Create Project";
+            buttonCreateProject.UseVisualStyleBackColor = true;
+            buttonCreateProject.Click += buttonCreateProject_Click;
             // 
             // errorProvider1
             // 
-            this.errorProvider1.ContainerControl = this;
+            errorProvider1.ContainerControl = this;
             // 
             // labelLoadingText
             // 
-            this.labelLoadingText.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.labelLoadingText.Location = new System.Drawing.Point(12, 226);
-            this.labelLoadingText.Name = "labelLoadingText";
-            this.labelLoadingText.Size = new System.Drawing.Size(223, 23);
-            this.labelLoadingText.TabIndex = 17;
-            this.labelLoadingText.Text = "Decrypting archive headers, please wait...";
-            this.labelLoadingText.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            labelLoadingText.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            labelLoadingText.Location = new System.Drawing.Point(12, 300);
+            labelLoadingText.Name = "labelLoadingText";
+            labelLoadingText.Size = new System.Drawing.Size(223, 23);
+            labelLoadingText.TabIndex = 17;
+            labelLoadingText.Text = "Decrypting archive headers, please wait...";
+            labelLoadingText.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // progressBarLoading
             // 
-            this.progressBarLoading.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.progressBarLoading.Location = new System.Drawing.Point(241, 226);
-            this.progressBarLoading.MarqueeAnimationSpeed = 10;
-            this.progressBarLoading.Maximum = 1;
-            this.progressBarLoading.Name = "progressBarLoading";
-            this.progressBarLoading.Size = new System.Drawing.Size(116, 23);
-            this.progressBarLoading.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
-            this.progressBarLoading.TabIndex = 18;
-            this.progressBarLoading.Value = 1;
+            progressBarLoading.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            progressBarLoading.Location = new System.Drawing.Point(241, 300);
+            progressBarLoading.MarqueeAnimationSpeed = 10;
+            progressBarLoading.Maximum = 1;
+            progressBarLoading.Name = "progressBarLoading";
+            progressBarLoading.Size = new System.Drawing.Size(116, 23);
+            progressBarLoading.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            progressBarLoading.TabIndex = 18;
+            progressBarLoading.Value = 1;
             // 
             // checkBoxLoadLooseParams
             // 
-            this.checkBoxLoadLooseParams.AutoSize = true;
-            this.checkBoxLoadLooseParams.Location = new System.Drawing.Point(10, 44);
-            this.checkBoxLoadLooseParams.Name = "checkBoxLoadLooseParams";
-            this.checkBoxLoadLooseParams.Size = new System.Drawing.Size(151, 19);
-            this.checkBoxLoadLooseParams.TabIndex = 19;
-            this.checkBoxLoadLooseParams.Text = "Load loose GameParam";
-            this.checkBoxLoadLooseParams.UseVisualStyleBackColor = true;
+            checkBoxLoadLooseParams.AutoSize = true;
+            checkBoxLoadLooseParams.Location = new System.Drawing.Point(10, 44);
+            checkBoxLoadLooseParams.Name = "checkBoxLoadLooseParams";
+            checkBoxLoadLooseParams.Size = new System.Drawing.Size(151, 19);
+            checkBoxLoadLooseParams.TabIndex = 19;
+            checkBoxLoadLooseParams.Text = "Load loose GameParam";
+            checkBoxLoadLooseParams.UseVisualStyleBackColor = true;
             // 
             // groupBox1
             // 
-            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBox1.Controls.Add(this.buttonClearModEngineDir);
-            this.groupBox1.Controls.Add(this.buttonHelpCfgLoadUnpackedGameFiles);
-            this.groupBox1.Controls.Add(this.checkBoxCfgLoadUnpackedGameFiles);
-            this.groupBox1.Controls.Add(this.buttonHelpCfgLoadLooseGameParam);
-            this.groupBox1.Controls.Add(this.buttonHelpCfgModEngineDir);
-            this.groupBox1.Controls.Add(this.buttonBrowseModEngineDir);
-            this.groupBox1.Controls.Add(this.textBoxPathModEngineDir);
-            this.groupBox1.Controls.Add(this.label5);
-            this.groupBox1.Controls.Add(this.checkBoxLoadLooseParams);
-            this.groupBox1.Location = new System.Drawing.Point(7, 121);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(565, 99);
-            this.groupBox1.TabIndex = 20;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Options";
+            groupBox1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            groupBox1.Controls.Add(buttonHelpDisableInterrootDCX);
+            groupBox1.Controls.Add(checkBoxDisableInterrootDCX);
+            groupBox1.Controls.Add(buttonClearModEngineDir);
+            groupBox1.Controls.Add(buttonHelpCfgLoadUnpackedGameFiles);
+            groupBox1.Controls.Add(checkBoxCfgLoadUnpackedGameFiles);
+            groupBox1.Controls.Add(buttonHelpCfgLoadLooseGameParam);
+            groupBox1.Controls.Add(buttonHelpCfgModEngineDir);
+            groupBox1.Controls.Add(buttonBrowseModEngineDir);
+            groupBox1.Controls.Add(textBoxPathModEngineDir);
+            groupBox1.Controls.Add(label5);
+            groupBox1.Controls.Add(checkBoxLoadLooseParams);
+            groupBox1.Location = new System.Drawing.Point(7, 150);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Size = new System.Drawing.Size(565, 144);
+            groupBox1.TabIndex = 20;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "Options";
+            // 
+            // buttonHelpDisableInterrootDCX
+            // 
+            buttonHelpDisableInterrootDCX.Location = new System.Drawing.Point(229, 93);
+            buttonHelpDisableInterrootDCX.Name = "buttonHelpDisableInterrootDCX";
+            buttonHelpDisableInterrootDCX.Size = new System.Drawing.Size(23, 23);
+            buttonHelpDisableInterrootDCX.TabIndex = 29;
+            buttonHelpDisableInterrootDCX.Text = "?";
+            buttonHelpDisableInterrootDCX.UseVisualStyleBackColor = true;
+            buttonHelpDisableInterrootDCX.Click += buttonHelpDisableInterrootDCX_Click;
+            // 
+            // checkBoxDisableInterrootDCX
+            // 
+            checkBoxDisableInterrootDCX.AutoSize = true;
+            checkBoxDisableInterrootDCX.Location = new System.Drawing.Point(10, 96);
+            checkBoxDisableInterrootDCX.Name = "checkBoxDisableInterrootDCX";
+            checkBoxDisableInterrootDCX.Size = new System.Drawing.Size(139, 19);
+            checkBoxDisableInterrootDCX.TabIndex = 28;
+            checkBoxDisableInterrootDCX.Text = "Disable Interroot DCX";
+            checkBoxDisableInterrootDCX.UseVisualStyleBackColor = true;
             // 
             // buttonClearModEngineDir
             // 
-            this.buttonClearModEngineDir.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonClearModEngineDir.Location = new System.Drawing.Point(501, 15);
-            this.buttonClearModEngineDir.Name = "buttonClearModEngineDir";
-            this.buttonClearModEngineDir.Size = new System.Drawing.Size(23, 23);
-            this.buttonClearModEngineDir.TabIndex = 27;
-            this.buttonClearModEngineDir.Text = "X";
-            this.buttonClearModEngineDir.UseVisualStyleBackColor = true;
-            this.buttonClearModEngineDir.Click += new System.EventHandler(this.buttonClearModEngineDir_Click);
+            buttonClearModEngineDir.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            buttonClearModEngineDir.Location = new System.Drawing.Point(501, 15);
+            buttonClearModEngineDir.Name = "buttonClearModEngineDir";
+            buttonClearModEngineDir.Size = new System.Drawing.Size(23, 23);
+            buttonClearModEngineDir.TabIndex = 27;
+            buttonClearModEngineDir.Text = "X";
+            buttonClearModEngineDir.UseVisualStyleBackColor = true;
+            buttonClearModEngineDir.Click += buttonClearModEngineDir_Click;
             // 
             // buttonHelpCfgLoadUnpackedGameFiles
             // 
-            this.buttonHelpCfgLoadUnpackedGameFiles.Location = new System.Drawing.Point(229, 68);
-            this.buttonHelpCfgLoadUnpackedGameFiles.Name = "buttonHelpCfgLoadUnpackedGameFiles";
-            this.buttonHelpCfgLoadUnpackedGameFiles.Size = new System.Drawing.Size(23, 23);
-            this.buttonHelpCfgLoadUnpackedGameFiles.TabIndex = 26;
-            this.buttonHelpCfgLoadUnpackedGameFiles.Text = "?";
-            this.buttonHelpCfgLoadUnpackedGameFiles.UseVisualStyleBackColor = true;
-            this.buttonHelpCfgLoadUnpackedGameFiles.Click += new System.EventHandler(this.buttonHelpCfgLoadUnpackedGameFiles_Click);
+            buttonHelpCfgLoadUnpackedGameFiles.Location = new System.Drawing.Point(229, 68);
+            buttonHelpCfgLoadUnpackedGameFiles.Name = "buttonHelpCfgLoadUnpackedGameFiles";
+            buttonHelpCfgLoadUnpackedGameFiles.Size = new System.Drawing.Size(23, 23);
+            buttonHelpCfgLoadUnpackedGameFiles.TabIndex = 26;
+            buttonHelpCfgLoadUnpackedGameFiles.Text = "?";
+            buttonHelpCfgLoadUnpackedGameFiles.UseVisualStyleBackColor = true;
+            buttonHelpCfgLoadUnpackedGameFiles.Click += buttonHelpCfgLoadUnpackedGameFiles_Click;
             // 
             // checkBoxCfgLoadUnpackedGameFiles
             // 
-            this.checkBoxCfgLoadUnpackedGameFiles.AutoSize = true;
-            this.checkBoxCfgLoadUnpackedGameFiles.Location = new System.Drawing.Point(10, 71);
-            this.checkBoxCfgLoadUnpackedGameFiles.Name = "checkBoxCfgLoadUnpackedGameFiles";
-            this.checkBoxCfgLoadUnpackedGameFiles.Size = new System.Drawing.Size(168, 19);
-            this.checkBoxCfgLoadUnpackedGameFiles.TabIndex = 25;
-            this.checkBoxCfgLoadUnpackedGameFiles.Text = "Load Unpacked Game Files";
-            this.checkBoxCfgLoadUnpackedGameFiles.UseVisualStyleBackColor = true;
+            checkBoxCfgLoadUnpackedGameFiles.AutoSize = true;
+            checkBoxCfgLoadUnpackedGameFiles.Location = new System.Drawing.Point(10, 71);
+            checkBoxCfgLoadUnpackedGameFiles.Name = "checkBoxCfgLoadUnpackedGameFiles";
+            checkBoxCfgLoadUnpackedGameFiles.Size = new System.Drawing.Size(168, 19);
+            checkBoxCfgLoadUnpackedGameFiles.TabIndex = 25;
+            checkBoxCfgLoadUnpackedGameFiles.Text = "Load Unpacked Game Files";
+            checkBoxCfgLoadUnpackedGameFiles.UseVisualStyleBackColor = true;
             // 
             // buttonHelpCfgLoadLooseGameParam
             // 
-            this.buttonHelpCfgLoadLooseGameParam.Location = new System.Drawing.Point(229, 42);
-            this.buttonHelpCfgLoadLooseGameParam.Name = "buttonHelpCfgLoadLooseGameParam";
-            this.buttonHelpCfgLoadLooseGameParam.Size = new System.Drawing.Size(23, 23);
-            this.buttonHelpCfgLoadLooseGameParam.TabIndex = 24;
-            this.buttonHelpCfgLoadLooseGameParam.Text = "?";
-            this.buttonHelpCfgLoadLooseGameParam.UseVisualStyleBackColor = true;
-            this.buttonHelpCfgLoadLooseGameParam.Click += new System.EventHandler(this.buttonHelpCfgLoadLooseGameParam_Click);
+            buttonHelpCfgLoadLooseGameParam.Location = new System.Drawing.Point(229, 42);
+            buttonHelpCfgLoadLooseGameParam.Name = "buttonHelpCfgLoadLooseGameParam";
+            buttonHelpCfgLoadLooseGameParam.Size = new System.Drawing.Size(23, 23);
+            buttonHelpCfgLoadLooseGameParam.TabIndex = 24;
+            buttonHelpCfgLoadLooseGameParam.Text = "?";
+            buttonHelpCfgLoadLooseGameParam.UseVisualStyleBackColor = true;
+            buttonHelpCfgLoadLooseGameParam.Click += buttonHelpCfgLoadLooseGameParam_Click;
             // 
             // buttonHelpCfgModEngineDir
             // 
-            this.buttonHelpCfgModEngineDir.Location = new System.Drawing.Point(229, 15);
-            this.buttonHelpCfgModEngineDir.Name = "buttonHelpCfgModEngineDir";
-            this.buttonHelpCfgModEngineDir.Size = new System.Drawing.Size(23, 23);
-            this.buttonHelpCfgModEngineDir.TabIndex = 23;
-            this.buttonHelpCfgModEngineDir.Text = "?";
-            this.buttonHelpCfgModEngineDir.UseVisualStyleBackColor = true;
-            this.buttonHelpCfgModEngineDir.Click += new System.EventHandler(this.buttonHelpCfgModEngineDir_Click);
+            buttonHelpCfgModEngineDir.Location = new System.Drawing.Point(229, 15);
+            buttonHelpCfgModEngineDir.Name = "buttonHelpCfgModEngineDir";
+            buttonHelpCfgModEngineDir.Size = new System.Drawing.Size(23, 23);
+            buttonHelpCfgModEngineDir.TabIndex = 23;
+            buttonHelpCfgModEngineDir.Text = "?";
+            buttonHelpCfgModEngineDir.UseVisualStyleBackColor = true;
+            buttonHelpCfgModEngineDir.Click += buttonHelpCfgModEngineDir_Click;
             // 
             // buttonBrowseModEngineDir
             // 
-            this.buttonBrowseModEngineDir.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonBrowseModEngineDir.Location = new System.Drawing.Point(526, 15);
-            this.buttonBrowseModEngineDir.Name = "buttonBrowseModEngineDir";
-            this.buttonBrowseModEngineDir.Size = new System.Drawing.Size(33, 23);
-            this.buttonBrowseModEngineDir.TabIndex = 22;
-            this.buttonBrowseModEngineDir.Text = "...";
-            this.buttonBrowseModEngineDir.UseVisualStyleBackColor = true;
-            this.buttonBrowseModEngineDir.Click += new System.EventHandler(this.buttonBrowseModEngineDir_Click);
+            buttonBrowseModEngineDir.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            buttonBrowseModEngineDir.Location = new System.Drawing.Point(526, 15);
+            buttonBrowseModEngineDir.Name = "buttonBrowseModEngineDir";
+            buttonBrowseModEngineDir.Size = new System.Drawing.Size(33, 23);
+            buttonBrowseModEngineDir.TabIndex = 22;
+            buttonBrowseModEngineDir.Text = "...";
+            buttonBrowseModEngineDir.UseVisualStyleBackColor = true;
+            buttonBrowseModEngineDir.Click += buttonBrowseModEngineDir_Click;
             // 
             // textBoxPathModEngineDir
             // 
-            this.textBoxPathModEngineDir.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxPathModEngineDir.Location = new System.Drawing.Point(257, 15);
-            this.textBoxPathModEngineDir.Name = "textBoxPathModEngineDir";
-            this.textBoxPathModEngineDir.Size = new System.Drawing.Size(240, 23);
-            this.textBoxPathModEngineDir.TabIndex = 21;
+            textBoxPathModEngineDir.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            textBoxPathModEngineDir.Location = new System.Drawing.Point(257, 15);
+            textBoxPathModEngineDir.Name = "textBoxPathModEngineDir";
+            textBoxPathModEngineDir.Size = new System.Drawing.Size(240, 23);
+            textBoxPathModEngineDir.TabIndex = 21;
+            textBoxPathModEngineDir.Validating += textBoxPathModEngineDir_Validating;
             // 
             // label5
             // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(6, 19);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(220, 15);
-            this.label5.TabIndex = 20;
-            this.label5.Text = "ModEngine \'/mod/\' directory (optional):";
+            label5.AutoSize = true;
+            label5.Location = new System.Drawing.Point(6, 19);
+            label5.Name = "label5";
+            label5.Size = new System.Drawing.Size(220, 15);
+            label5.TabIndex = 20;
+            label5.Text = "ModEngine '/mod/' directory (optional):";
             // 
             // buttonCancel
             // 
-            this.buttonCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonCancel.Enabled = false;
-            this.buttonCancel.Location = new System.Drawing.Point(363, 226);
-            this.buttonCancel.Name = "buttonCancel";
-            this.buttonCancel.Size = new System.Drawing.Size(84, 23);
-            this.buttonCancel.TabIndex = 21;
-            this.buttonCancel.Text = "Cancel";
-            this.buttonCancel.UseVisualStyleBackColor = true;
-            this.buttonCancel.Click += new System.EventHandler(this.buttonCancel_Click);
+            buttonCancel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
+            buttonCancel.Enabled = false;
+            buttonCancel.Location = new System.Drawing.Point(363, 300);
+            buttonCancel.Name = "buttonCancel";
+            buttonCancel.Size = new System.Drawing.Size(84, 23);
+            buttonCancel.TabIndex = 21;
+            buttonCancel.Text = "Cancel";
+            buttonCancel.UseVisualStyleBackColor = true;
+            buttonCancel.Click += buttonCancel_Click;
+            // 
+            // comboBoxFileType
+            // 
+            comboBoxFileType.Enabled = false;
+            comboBoxFileType.FormattingEnabled = true;
+            comboBoxFileType.Items.AddRange(new object[] { "Character (\"/chr/\")", "Equipment (\"/parts/\")" });
+            comboBoxFileType.Location = new System.Drawing.Point(236, 34);
+            comboBoxFileType.Name = "comboBoxFileType";
+            comboBoxFileType.Size = new System.Drawing.Size(283, 23);
+            comboBoxFileType.TabIndex = 22;
+            comboBoxFileType.Text = "Character (\"/chr/\")";
+            comboBoxFileType.SelectedIndexChanged += comboBoxFileType_SelectedIndexChanged;
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Location = new System.Drawing.Point(12, 39);
+            label6.Name = "label6";
+            label6.Size = new System.Drawing.Size(107, 15);
+            label6.TabIndex = 23;
+            label6.Text = "2. Choose File Type";
+            // 
+            // buttonHelpFileType
+            // 
+            buttonHelpFileType.Location = new System.Drawing.Point(207, 34);
+            buttonHelpFileType.Name = "buttonHelpFileType";
+            buttonHelpFileType.Size = new System.Drawing.Size(23, 23);
+            buttonHelpFileType.TabIndex = 24;
+            buttonHelpFileType.Text = "?";
+            buttonHelpFileType.UseVisualStyleBackColor = true;
+            buttonHelpFileType.Click += buttonHelpFileType_Click;
+            // 
+            // comboBox_PartsObjAeg_SelectAnibndInPartsbnd
+            // 
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.FormattingEnabled = true;
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Location = new System.Drawing.Point(236, 92);
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Name = "comboBox_PartsObjAeg_SelectAnibndInPartsbnd";
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Size = new System.Drawing.Size(283, 23);
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.TabIndex = 25;
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Text = "comboBoxSelectAnibndInPartsbnd";
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.SelectedIndexChanged += comboBox_PartsObjAeg_SelectAnibndInPartsbnd_SelectedIndexChanged;
             // 
             // TaeLoadFromArchivesWizard
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 261);
-            this.Controls.Add(this.buttonCancel);
-            this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.progressBarLoading);
-            this.Controls.Add(this.labelLoadingText);
-            this.Controls.Add(this.buttonCreateProject);
-            this.Controls.Add(this.label4);
-            this.Controls.Add(this.buttonHelpSaveLoose);
-            this.Controls.Add(this.buttonHelpChrbnd);
-            this.Controls.Add(this.buttonHelpAnibnd);
-            this.Controls.Add(this.buttonHelpGameEXE);
-            this.Controls.Add(this.label3);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.buttonPathSaveLoose);
-            this.Controls.Add(this.textBoxPathSaveLoose);
-            this.Controls.Add(this.buttonPathChrbnd);
-            this.Controls.Add(this.textBoxPathChrbnd);
-            this.Controls.Add(this.buttonPathAnibnd);
-            this.Controls.Add(this.textBoxPathAnibnd);
-            this.Controls.Add(this.buttonPathInterroot);
-            this.Controls.Add(this.textBoxPathInterroot);
-            this.Controls.Add(this.label1);
-            this.MinimumSize = new System.Drawing.Size(600, 300);
-            this.Name = "TaeLoadFromArchivesWizard";
-            this.ShowIcon = false;
-            this.ShowInTaskbar = false;
-            this.Text = "Create Project From Packed Game Data";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.TaeLoadFromArchivesWizard_FormClosing);
-            this.Load += new System.EventHandler(this.TaeLoadFromArchivesWizard_Load);
-            ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).EndInit();
-            this.groupBox1.ResumeLayout(false);
-            this.groupBox1.PerformLayout();
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            ClientSize = new System.Drawing.Size(584, 335);
+            Controls.Add(buttonHelpFileType);
+            Controls.Add(label6);
+            Controls.Add(comboBoxFileType);
+            Controls.Add(buttonCancel);
+            Controls.Add(groupBox1);
+            Controls.Add(progressBarLoading);
+            Controls.Add(labelLoadingText);
+            Controls.Add(buttonCreateProject);
+            Controls.Add(label4);
+            Controls.Add(buttonHelpSaveLoose);
+            Controls.Add(buttonHelpPrimaryBinder);
+            Controls.Add(buttonHelpGameEXE);
+            Controls.Add(labelStep3B);
+            Controls.Add(labelStep3A);
+            Controls.Add(buttonPathSaveLoose);
+            Controls.Add(textBoxPathSaveLoose);
+            Controls.Add(buttonPathChrbnd);
+            Controls.Add(buttonPathAnibnd);
+            Controls.Add(textBoxPathMainBinder);
+            Controls.Add(buttonPathInterroot);
+            Controls.Add(textBoxPathInterroot);
+            Controls.Add(label1);
+            Controls.Add(textBox_Chr_PathChrbnd);
+            Controls.Add(comboBox_PartsObjAeg_SelectAnibndInPartsbnd);
+            Controls.Add(buttonHelpSecondaryBinder);
+            MinimumSize = new System.Drawing.Size(600, 300);
+            Name = "TaeLoadFromArchivesWizard";
+            ShowIcon = false;
+            ShowInTaskbar = false;
+            Text = "Open From Packed Game Data Archives";
+            FormClosing += TaeLoadFromArchivesWizard_FormClosing;
+            FormClosed += TaeLoadFromArchivesWizard_FormClosed;
+            Load += TaeLoadFromArchivesWizard_Load;
+            ((System.ComponentModel.ISupportInitialize)errorProvider1).EndInit();
+            groupBox1.ResumeLayout(false);
+            groupBox1.PerformLayout();
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
@@ -440,16 +503,16 @@
         private System.Windows.Forms.TextBox textBoxPathInterroot;
         private System.Windows.Forms.Button buttonPathInterroot;
         private System.Windows.Forms.Button buttonPathAnibnd;
-        private System.Windows.Forms.TextBox textBoxPathAnibnd;
+        private System.Windows.Forms.TextBox textBoxPathMainBinder;
         private System.Windows.Forms.Button buttonPathChrbnd;
-        private System.Windows.Forms.TextBox textBoxPathChrbnd;
+        private System.Windows.Forms.TextBox textBox_Chr_PathChrbnd;
         private System.Windows.Forms.Button buttonPathSaveLoose;
         private System.Windows.Forms.TextBox textBoxPathSaveLoose;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label labelStep3A;
+        private System.Windows.Forms.Label labelStep3B;
         private System.Windows.Forms.Button buttonHelpSaveLoose;
-        private System.Windows.Forms.Button buttonHelpChrbnd;
-        private System.Windows.Forms.Button buttonHelpAnibnd;
+        private System.Windows.Forms.Button buttonHelpSecondaryBinder;
+        private System.Windows.Forms.Button buttonHelpPrimaryBinder;
         private System.Windows.Forms.Button buttonHelpGameEXE;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button buttonCreateProject;
@@ -467,5 +530,11 @@
         private System.Windows.Forms.CheckBox checkBoxCfgLoadUnpackedGameFiles;
         private System.Windows.Forms.Button buttonClearModEngineDir;
         private System.Windows.Forms.Button buttonCancel;
+        private System.Windows.Forms.ComboBox comboBoxFileType;
+        private System.Windows.Forms.Button buttonHelpFileType;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.ComboBox comboBox_PartsObjAeg_SelectAnibndInPartsbnd;
+        private System.Windows.Forms.Button buttonHelpDisableInterrootDCX;
+        private System.Windows.Forms.CheckBox checkBoxDisableInterrootDCX;
     }
 }

@@ -141,26 +141,89 @@ namespace DSAnimStudio.DebugPrimitives
         public readonly DbgPrimWireCapsule_Middle Midst;
         public readonly DbgPrimWireCapsule_End HemisphereB;
 
-        public void UpdateCapsuleEndPoints(Vector3 a, Vector3 b, ParamData.AtkParam.Hit hit, NewDummyPolyManager bodyDmy, NewDummyPolyManager dmy1, NewDummyPolyManager dmy2)
-        {
-            if (hit.DummyPolySourceSpawnedOn != ParamData.AtkParam.DummyPolySource.Body)
-            {
-                if (dmy1 == bodyDmy)
-                    
-                    a = Vector3.Transform(a, bodyDmy.MODEL.CurrentTransform.WorldMatrix * Matrix.Invert(bodyDmy.MODEL.ChrAsm.GetDummyManager(hit.DummyPolySourceSpawnedOn).MODEL.CurrentTransform.WorldMatrix));
+        private float elapsedTimeWhenABSet = -1;
+        public Vector3 A;
+        public Vector3 B;
+        private Vector3 AC6Extend_LastValidForward = Vector3.Zero;
 
-                if (dmy2 == bodyDmy)
-                    b = Vector3.Transform(b, bodyDmy.MODEL.CurrentTransform.WorldMatrix * Matrix.Invert(bodyDmy.MODEL.ChrAsm.GetDummyManager(hit.DummyPolySourceSpawnedOn).MODEL.CurrentTransform.WorldMatrix));
+        public bool IsAC6ExtendFromMotionDir = true;
+
+        public void UpdateCapsuleEndPoints_AC6Extend(Matrix location, ParamData.AtkParam.Hit hit, NewDummyPolyManager bodyDmy, NewDummyPolyManager dmy1)
+        {
+            float extendLength = hit.AC6_Extend_LengthStart;
+            float extendRadius = hit.Radius;
+            if (ElapsedTime > hit.AC6_Extend_SpreadDelay)
+            {
+                if (hit.AC6_Extend_RadiusEnd >= 0)
+                {
+                    if (hit.AC6_Extend_RadiusSpreadTime > 0)
+                    {
+                        float radiusSpreadRatio = (ElapsedTime - hit.AC6_Extend_SpreadDelay) / hit.AC6_Extend_RadiusSpreadTime;
+                        if (radiusSpreadRatio > 1)
+                            radiusSpreadRatio = 1;
+                        extendRadius = hit.Radius + ((hit.AC6_Extend_RadiusEnd - hit.Radius) * radiusSpreadRatio);
+                    }
+                    else
+                    {
+                        extendRadius = hit.AC6_Extend_RadiusEnd;
+                    }
+                }
+
+                if (hit.AC6_Extend_LengthEnd >= 0)
+                {
+                    if (hit.AC6_Extend_LengthSpreadTime > 0)
+                    {
+                        float lengthSpreadRatio = (ElapsedTime - hit.AC6_Extend_SpreadDelay) / hit.AC6_Extend_LengthSpreadTime;
+                        if (lengthSpreadRatio > 1)
+                            lengthSpreadRatio = 1;
+                        extendLength = hit.AC6_Extend_LengthStart + ((hit.AC6_Extend_LengthEnd - hit.AC6_Extend_LengthStart) * lengthSpreadRatio);
+                    }
+                    else
+                    {
+                        extendLength = hit.AC6_Extend_LengthEnd;
+                    }
+
+                    
+                }
             }
 
-            DmyPolySource = hit.DummyPolySourceSpawnedOn;
+
+
+            var newA = Vector3.Transform(Vector3.Zero, location);
+            Vector3 newB;
+
+            if (IsAC6ExtendFromMotionDir && false)
+            {
+                var dirVector = newA - A;
+                if (dirVector.X != 0 && dirVector.Y != 0 && dirVector.Z != 0)
+                {
+                    dirVector = Vector3.Normalize(dirVector);
+                    AC6Extend_LastValidForward = dirVector;
+                }
+                else
+                {
+                    dirVector = AC6Extend_LastValidForward;
+                }
+                newB = newA + (dirVector * extendLength);
+            }
+            else
+            {
+                newB = Vector3.Transform(Vector3.Forward * extendLength, location);
+            }
+
+            UpdateCapsuleEndPoints(newA, newB, hit, bodyDmy, dmy1, dmy1, extendRadius);
+        }
+
+        public void UpdateCapsuleEndPoints_Simple(Vector3 a, Vector3 b, float radius)
+        {
             float dist = (b - a).Length();
 
             var mtHemisphereA = Matrix.Identity;
             var mtMidst = Matrix.Identity;
             var mtHemisphereB = Matrix.Identity;
 
-            var radius = hit.Radius;
+            //var radius = hit.Radius;
+
 
             mtHemisphereA *= Matrix.CreateScale(Vector3.One * radius);
             mtHemisphereA *= Matrix.CreateRotationX(-MathHelper.PiOver2);
@@ -176,7 +239,10 @@ namespace DSAnimStudio.DebugPrimitives
             Midst.Transform = new Transform(mtMidst);
             HemisphereB.Transform = new Transform(mtHemisphereB);
 
-            var forward = -Vector3.Normalize(b - a);
+            Vector3 forward = Vector3.Forward;
+
+            if (a != b)
+                forward = -Vector3.Normalize(b - a);
 
             Matrix hitboxMatrix = Matrix.CreateWorld(a, forward, Vector3.Up);
 
@@ -197,6 +263,58 @@ namespace DSAnimStudio.DebugPrimitives
             Midst.OverrideColor = OverrideColor;
         }
 
+        public void UpdateCapsuleEndPoints(Vector3 a, Vector3 b, ParamData.AtkParam.Hit hit, NewDummyPolyManager bodyDmy, NewDummyPolyManager dmy1, NewDummyPolyManager dmy2, float radius)
+        {
+            if (elapsedTimeWhenABSet != ElapsedTime)
+            {
+                A = a;
+                B = b;
+                elapsedTimeWhenABSet = ElapsedTime;
+            }
+            if (hit.DummyPolySourceSpawnedOn != ParamData.AtkParam.DummyPolySource.BaseModel)
+            {
+                if (hit.DummyPolySourceSpawnedOn >= ParamData.AtkParam.DummyPolySource.AC6Parts0 && 
+                    hit.DummyPolySourceSpawnedOn <= ParamData.AtkParam.DummyPolySource.AC6Parts31)
+                {
+                    if (dmy1 == bodyDmy && bodyDmy.MODEL?.AC6NpcParts != null)
+
+                        bodyDmy.MODEL.AC6NpcParts.AccessModelOfPart((int)(hit.DummyPolySourceSpawnedOn - ParamData.AtkParam.DummyPolySource.AC6Parts0),
+                            (p, m) =>
+                            {
+                                a = Vector3.Transform(a, bodyDmy.MODEL.CurrentTransform.WorldMatrix
+                                    * Matrix.Invert(m.CurrentTransform.WorldMatrix));
+                            });
+
+                        
+
+                    if (dmy2 == bodyDmy && bodyDmy.MODEL?.AC6NpcParts != null)
+                            bodyDmy.MODEL.AC6NpcParts.AccessModelOfPart((int)(hit.DummyPolySourceSpawnedOn - ParamData.AtkParam.DummyPolySource.AC6Parts0),
+                            (p, m) =>
+                            {
+                                b = Vector3.Transform(a, bodyDmy.MODEL.CurrentTransform.WorldMatrix
+                                    * Matrix.Invert(m.CurrentTransform.WorldMatrix));
+                            });
+                }
+                else
+                {
+                    if (dmy1 == bodyDmy)
+
+                        a = Vector3.Transform(a, bodyDmy.MODEL.CurrentTransform.WorldMatrix 
+                            * Matrix.Invert(bodyDmy.MODEL.ChrAsm.GetDummyManager(hit.DummyPolySourceSpawnedOn).MODEL.CurrentTransform.WorldMatrix));
+
+                    if (dmy2 == bodyDmy)
+                        b = Vector3.Transform(b, bodyDmy.MODEL.CurrentTransform.WorldMatrix 
+                            * Matrix.Invert(bodyDmy.MODEL.ChrAsm.GetDummyManager(hit.DummyPolySourceSpawnedOn).MODEL.CurrentTransform.WorldMatrix));
+                }
+
+                
+            }
+
+            DmyPolySource = hit.DummyPolySourceSpawnedOn;
+
+            UpdateCapsuleEndPoints_Simple(a, b, radius);
+        }
+
         
 
         public DbgPrimWireCapsule(Color color)
@@ -205,17 +323,14 @@ namespace DSAnimStudio.DebugPrimitives
 
             HemisphereA = new DbgPrimWireCapsule_End()
             {
-                Category = DbgPrimCategory.DummyPolyHelper,
                 OverrideColor = color
             };
             Midst = new DbgPrimWireCapsule_Middle()
             {
-                Category = DbgPrimCategory.DummyPolyHelper,
                 OverrideColor = color
             };
             HemisphereB = new DbgPrimWireCapsule_End()
             {
-                Category = DbgPrimCategory.DummyPolyHelper,
                 OverrideColor = color
             };
 

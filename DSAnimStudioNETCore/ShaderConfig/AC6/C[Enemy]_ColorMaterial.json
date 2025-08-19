@@ -1,0 +1,183 @@
+{
+  "ChrCustomizeType": 0,
+  "EnableSSS": false,
+  "SSSColor": "1, 0.48, 0.35",
+  "SSSIntensity": 1.0,
+  "IsMetallic": true,
+  "MetallicSpecularIncreasePower": 1.0,
+  "MetallicSpecularIncreaseMult": 1.0,
+  "MetallicDiffuseDecreaseMult": 0.9,
+  "InvertMetallic": true,
+  "NonMetallicSpecColor": "0, 0, 0",
+  "UndefinedMetallicValue": 1.0,
+  "UndefinedBlendMaskValue": 0.0,
+  "UseShininessMap": false,
+  "SwapNormalXY": false,
+  "IsDS2EmissiveFlow": false,
+  "IsShaderDoubleFaceCloth": false,
+  "IsDS3Veil": false,
+  "InvertBlendMaskMap": false,
+  "EnableBlendMask": true,
+  "BlendMaskFromNormalMap1Alpha": false,
+  "BlendMaskFromNormalMap1Alpha_IsReverse": false,
+  "BlendMaskMultByAlbedoMap2Alpha": false,
+  "BlendMaskMultByAlbedoMap2Alpha_IsReverse": false,
+  "SamplerConfigs": [
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_16_GSBlendMap_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 11
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_17_GSBlendMap_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 11
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_18_GSBlendMap_Mask1Map",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 11
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_22_GSBlendMap_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 16
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_23_GSBlendMap_Mask1Map",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 1,
+      "UVGroup": 16
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2DArray_0_GSBlendMap_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 7
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2DArray_1_GSBlendMap_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 2,
+      "UVGroup": 7
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_14_GSBlendMap_Mask3Map",
+      "TexType": 0,
+      "DefaultTexPath": "",
+      "UVIndex": 0,
+      "UVGroup": 2
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_7_GSBlendMap_AlbedoMap",
+      "TexType": 1,
+      "DefaultTexPath": "SYSTEX_Dummy_a",
+      "UVIndex": 0,
+      "UVGroup": 5
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_0_GSBlendMap_NormalMap",
+      "TexType": 3,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 5
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_1_GSBlendMap_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_a",
+      "UVIndex": 0,
+      "UVGroup": 6
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_6_GSBlendMap_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 6
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_2_GSBlendMap_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_a",
+      "UVIndex": 0,
+      "UVGroup": 9
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_8_GSBlendMap_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 9
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_19_GSBlendMap_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_a",
+      "UVIndex": 0,
+      "UVGroup": 14
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_4_GSBlendMap_AlbedoMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_a",
+      "UVIndex": 0,
+      "UVGroup": 10
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_20_GSBlendMap_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 14
+    },
+    {
+      "Name": "C_Enemy__ColorMaterial_snp_Texture2D_9_GSBlendMap_NormalMap",
+      "TexType": 0,
+      "DefaultTexPath": "SYSTEX_Dummy_n",
+      "UVIndex": 0,
+      "UVGroup": 10
+    }
+  ],
+  "NewBlendOperation_Diffuse": 2,
+  "NewBlendOperation_Specular": 2,
+  "NewBlendOperation_Normal": 7,
+  "NewBlendOperation_Shininess": 2,
+  "NewBlendOperation_Emissive": 3,
+  "NewBlendReverseDir_Diffuse": false,
+  "NewBlendReverseDir_Specular": false,
+  "NewBlendReverseDir_Normal": false,
+  "NewBlendReverseDir_Shininess": false,
+  "NewBlendReverseDir_Emissive": false,
+  "NewBlendInverseVal_Diffuse": false,
+  "NewBlendInverseVal_Specular": false,
+  "NewBlendInverseVal_Normal": false,
+  "NewBlendInverseVal_Shininess": false,
+  "NewBlendInverseVal_Emissive": false,
+  "IsReflectMultInNormalAlpha": false,
+  "IsMetallicInNormalAlpha": true,
+  "EmissiveMult": 1.0,
+  "EmissiveColorFromAlbedo": false,
+  "DirectLightingMult": 1.0,
+  "IndirectLightingMult": 1.0,
+  "DirectDiffuseMult": 1.0,
+  "DirectSpecularMult": 1.0,
+  "IndirectDiffuseMult": 1.0,
+  "IndirectSpecularMult": 1.0,
+  "SpecularPowerMult": 1.0,
+  "LdotNPowerMult": 1.0,
+  "UseFancyAlphas": false,
+  "EnableAlphas": false,
+  "FancyAlphaCutoff": 1.0
+}

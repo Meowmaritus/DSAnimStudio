@@ -14,8 +14,7 @@ namespace DSAnimStudio.DebugPrimitives
         public DbgPrimWireSphere(Transform location, Color color)
         {
             KeepBuffersAlive = true;
-
-            NameColor = color;
+            
             Transform = location;
 
             if (GeometryData != null)

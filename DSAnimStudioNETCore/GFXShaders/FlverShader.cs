@@ -10,9 +10,143 @@ namespace DSAnimStudio.GFXShaders
 {
     public class FlverShader : Effect, IGFXShader<FlverShader>
     {
-        public const int MaxBonePerMatrixArray = 255;
+        public const int BoneMatrixSize = 512;
+        public static Matrix[] IdentityBoneMatrix;
+
+        static FlverShader()
+        {
+            IdentityBoneMatrix = new Matrix[BoneMatrixSize];
+            for (int i = 0; i < BoneMatrixSize; i++)
+            {
+                IdentityBoneMatrix[i] = Matrix.Identity;
+            }
+        }
 
         public FlverShader Effect => this;
+
+
+        public bool ForcedSSS_Enable
+        {
+            get => Parameters[nameof(ForcedSSS_Enable)].GetValueBoolean();
+            set => Parameters[nameof(ForcedSSS_Enable)]?.SetValue(value);
+        }
+
+        public float ForcedSSS_Intensity
+        {
+            get => Parameters[nameof(ForcedSSS_Intensity)].GetValueSingle();
+            set => Parameters[nameof(ForcedSSS_Intensity)]?.SetValue(value);
+        }
+
+        public bool SSS_UseWidth
+        {
+            get => Parameters[nameof(SSS_UseWidth)].GetValueBoolean();
+            set => Parameters[nameof(SSS_UseWidth)]?.SetValue(value);
+        }
+
+        public float SSS_Width
+        {
+            get => Parameters[nameof(SSS_Width)].GetValueSingle();
+            set => Parameters[nameof(SSS_Width)]?.SetValue(value);
+        }
+
+        public bool SSS_UseDefaultMask
+        {
+            get => Parameters[nameof(SSS_UseDefaultMask)].GetValueBoolean();
+            set => Parameters[nameof(SSS_UseDefaultMask)]?.SetValue(value);
+        }
+
+        public float SSS_DefaultMask
+        {
+            get => Parameters[nameof(SSS_DefaultMask)].GetValueSingle();
+            set => Parameters[nameof(SSS_DefaultMask)]?.SetValue(value);
+        }
+
+
+
+        public bool WireframeColorOverride_Enabled
+        {
+            get => Parameters[nameof(WireframeColorOverride_Enabled)].GetValueBoolean();
+            set => Parameters[nameof(WireframeColorOverride_Enabled)]?.SetValue(value);
+        }
+
+        public Vector4 WireframeColorOverride_Color
+        {
+            get => Parameters[nameof(WireframeColorOverride_Color)].GetValueVector4();
+            set => Parameters[nameof(WireframeColorOverride_Color)]?.SetValue(value);
+        }
+
+        public int DebugViewWeightOfBone_Index
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_Index)].GetValueInt32();
+            set => Parameters[nameof(DebugViewWeightOfBone_Index)]?.SetValue(value);
+        }
+
+        public bool DebugViewWeightOfBone_EnableLighting
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_EnableLighting)].GetValueBoolean();
+            set => Parameters[nameof(DebugViewWeightOfBone_EnableLighting)]?.SetValue(value);
+        }
+
+        public bool DebugViewWeightOfBone_ClipUnweightedGeometry
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_ClipUnweightedGeometry)].GetValueBoolean();
+            set => Parameters[nameof(DebugViewWeightOfBone_ClipUnweightedGeometry)]?.SetValue(value);
+        }
+
+        public float DebugViewWeightOfBone_LightingPower
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_LightingPower)].GetValueSingle();
+            set => Parameters[nameof(DebugViewWeightOfBone_LightingPower)]?.SetValue(value);
+        }
+
+        public float DebugViewWeightOfBone_LightingMult
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_LightingMult)].GetValueSingle();
+            set => Parameters[nameof(DebugViewWeightOfBone_LightingMult)]?.SetValue(value);
+        }
+
+        public float DebugViewWeightOfBone_LightingGain
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_LightingGain)].GetValueSingle();
+            set => Parameters[nameof(DebugViewWeightOfBone_LightingGain)]?.SetValue(value);
+        }
+
+        public Vector3 DebugViewWeightOfBone_BaseColor
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_BaseColor)].GetValueVector3();
+            set => Parameters[nameof(DebugViewWeightOfBone_BaseColor)]?.SetValue(value);
+        }
+
+        public Vector3 DebugViewWeightOfBone_WeightColor
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_WeightColor)].GetValueVector3();
+            set => Parameters[nameof(DebugViewWeightOfBone_WeightColor)]?.SetValue(value);
+        }
+
+        public Vector4 DebugViewWeightOfBone_WireframeWeightColor
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_WireframeWeightColor)].GetValueVector4();
+            set => Parameters[nameof(DebugViewWeightOfBone_WireframeWeightColor)]?.SetValue(value);
+        }
+
+        public float DebugViewWeightOfBone_Lighting_AlbedoMult
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_Lighting_AlbedoMult)].GetValueSingle();
+            set => Parameters[nameof(DebugViewWeightOfBone_Lighting_AlbedoMult)]?.SetValue(value);
+        }
+
+        public float DebugViewWeightOfBone_Lighting_ReflectanceMult
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_Lighting_ReflectanceMult)].GetValueSingle();
+            set => Parameters[nameof(DebugViewWeightOfBone_Lighting_ReflectanceMult)]?.SetValue(value);
+        }
+
+        public float DebugViewWeightOfBone_Lighting_Gloss
+        {
+            get => Parameters[nameof(DebugViewWeightOfBone_Lighting_Gloss)].GetValueSingle();
+            set => Parameters[nameof(DebugViewWeightOfBone_Lighting_Gloss)]?.SetValue(value);
+        }
+
 
         public bool UseShininessMap
         {
@@ -24,6 +158,12 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(UseChrCustomize)].GetValueBoolean();
             set => Parameters[nameof(UseChrCustomize)]?.SetValue(value);
+        }
+
+        public bool ChrCustomizeUseNormalMapAlpha
+        {
+            get => Parameters[nameof(ChrCustomizeUseNormalMapAlpha)].GetValueBoolean();
+            set => Parameters[nameof(ChrCustomizeUseNormalMapAlpha)]?.SetValue(value);
         }
 
         public Vector4 ChrCustomizeColor
@@ -68,10 +208,28 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(Mask3UVIndex)]?.SetValue(value);
         }
 
+        public bool IsMetallicDiffuseDarkenMultInNormalAlpha
+        {
+            get => Parameters[nameof(IsMetallicDiffuseDarkenMultInNormalAlpha)].GetValueBoolean();
+            set => Parameters[nameof(IsMetallicDiffuseDarkenMultInNormalAlpha)].SetValue(value);
+        }
+
+        public bool IsAlbedoAlphaMultInNormalAlpha
+        {
+            get => Parameters[nameof(IsAlbedoAlphaMultInNormalAlpha)].GetValueBoolean();
+            set => Parameters[nameof(IsAlbedoAlphaMultInNormalAlpha)].SetValue(value);
+        }
+
         public bool IsReflectMultInNormalAlpha
         {
             get => Parameters[nameof(IsReflectMultInNormalAlpha)].GetValueBoolean();
             set => Parameters[nameof(IsReflectMultInNormalAlpha)].SetValue(value);
+        }
+
+        public bool IsMetallicMultInNormalAlpha
+        {
+            get => Parameters[nameof(IsMetallicMultInNormalAlpha)].GetValueBoolean();
+            set => Parameters[nameof(IsMetallicMultInNormalAlpha)].SetValue(value);
         }
 
         public bool SwapNormalXY
@@ -230,6 +388,12 @@ namespace DSAnimStudio.GFXShaders
             set => Parameters[nameof(UndefinedMetallicValue)].SetValue(value);
         }
 
+        public bool InvertMetallic
+        {
+            get => Parameters[nameof(InvertMetallic)].GetValueBoolean();
+            set => Parameters[nameof(InvertMetallic)].SetValue(value);
+        }
+
         public bool IsUndefinedMetallic
         {
             get => Parameters[nameof(IsUndefinedMetallic)].GetValueBoolean();
@@ -373,6 +537,30 @@ namespace DSAnimStudio.GFXShaders
         {
             get => Parameters[nameof(IsMetallic)].GetValueBoolean();
             set => Parameters[nameof(IsMetallic)].SetValue(value);
+        }
+
+        public float MetallicSpecularIncreasePower
+        {
+            get => Parameters[nameof(MetallicSpecularIncreasePower)].GetValueSingle();
+            set => Parameters[nameof(MetallicSpecularIncreasePower)].SetValue(value);
+        }
+
+        public float MetallicSpecularIncreaseMult
+        {
+            get => Parameters[nameof(MetallicSpecularIncreaseMult)].GetValueSingle();
+            set => Parameters[nameof(MetallicSpecularIncreaseMult)].SetValue(value);
+        }
+
+        public float MetallicDiffuseDecreaseMult
+        {
+            get => Parameters[nameof(MetallicDiffuseDecreaseMult)].GetValueSingle();
+            set => Parameters[nameof(MetallicDiffuseDecreaseMult)].SetValue(value);
+        }
+
+        public float MetallicDiffuseDecreasePower
+        {
+            get => Parameters[nameof(MetallicDiffuseDecreasePower)].GetValueSingle();
+            set => Parameters[nameof(MetallicDiffuseDecreasePower)].SetValue(value);
         }
 
         public bool IsDS1R
@@ -660,6 +848,11 @@ namespace DSAnimStudio.GFXShaders
         #endregion
 
         #region TEXTURE MAPS
+        public Vector2 GlobalUVOffset
+        {
+            get => Parameters[nameof(GlobalUVOffset)].GetValueVector2();
+            set => Parameters[nameof(GlobalUVOffset)]?.SetValue(value);
+        }
         public Texture2D ColorMap
         {
             get => Parameters[nameof(ColorMap)].GetValueTexture2D();
@@ -806,54 +999,25 @@ namespace DSAnimStudio.GFXShaders
 
         #endregion
 
-        #region SKINNING
-        public Matrix[] Bones0
+        public Matrix[] BonesNew
         {
-            get => Parameters[nameof(Bones0)].GetValueMatrixArray(MaxBonePerMatrixArray);
-            set => Parameters[nameof(Bones0)]?.SetValue(value);
+            get => Parameters[nameof(BonesNew)].GetValueMatrixArray(BoneMatrixSize);
+            set => Parameters[nameof(BonesNew)]?.SetValue(value);
         }
-
-        public Matrix[] Bones1
-        {
-            get => Parameters[nameof(Bones1)].GetValueMatrixArray(MaxBonePerMatrixArray);
-            set => Parameters[nameof(Bones1)]?.SetValue(value);
-        }
-
-        public Matrix[] Bones2
-        {
-            get => Parameters[nameof(Bones2)].GetValueMatrixArray(MaxBonePerMatrixArray);
-            set => Parameters[nameof(Bones2)]?.SetValue(value);
-        }
-
-        public Matrix[] Bones3
-        {
-            get => Parameters[nameof(Bones3)].GetValueMatrixArray(MaxBonePerMatrixArray);
-            set => Parameters[nameof(Bones3)]?.SetValue(value);
-        }
-
-        public Matrix[] Bones4
-        {
-            get => Parameters[nameof(Bones4)].GetValueMatrixArray(MaxBonePerMatrixArray);
-            set => Parameters[nameof(Bones4)]?.SetValue(value);
-        }
-
-        public Matrix[] Bones5
-        {
-            get => Parameters[nameof(Bones5)].GetValueMatrixArray(MaxBonePerMatrixArray);
-            set => Parameters[nameof(Bones5)]?.SetValue(value);
-        }
-        #endregion
 
         public FlverShader(GraphicsDevice graphicsDevice, byte[] effectCode) : base(graphicsDevice, effectCode)
         {
+            
         }
 
         public FlverShader(GraphicsDevice graphicsDevice, byte[] effectCode, int index, int count) : base(graphicsDevice, effectCode, index, count)
         {
+            
         }
 
         public FlverShader(Effect cloneSource) : base(cloneSource)
         {
+            
         }
 
         public void ApplyWorldView(Matrix world, Matrix view, Matrix projection)

@@ -23,9 +23,9 @@ namespace DSAnimStudio.TaeEditor
 
         public static double RoundTimeToCurrentSnapInterval(double time)
         {
-            if (Main.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+            if (Main.Config.ActionSnapType == TaeConfigFile.ActionSnapTypes.FPS30)
                 return RoundTimeToFrame(time, TAE_FRAME_30);
-            else if (Main.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS60)
+            else if (Main.Config.ActionSnapType == TaeConfigFile.ActionSnapTypes.FPS60)
                 return RoundTimeToFrame(time, TAE_FRAME_60);
             else
                 return time;
@@ -38,9 +38,9 @@ namespace DSAnimStudio.TaeEditor
 
         public static double RoundPixelsToCurrentSnapInterval(double pixels, double oneSecondPixelScale)
         {
-            if (Main.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS30)
+            if (Main.Config.ActionSnapType == TaeConfigFile.ActionSnapTypes.FPS30)
                 return RoundTimeToFrame(pixels, oneSecondPixelScale / 30.0);
-            else if (Main.Config.EventSnapType == TaeConfigFile.EventSnapTypes.FPS60)
+            else if (Main.Config.ActionSnapType == TaeConfigFile.ActionSnapTypes.FPS60)
                 return RoundTimeToFrame(pixels, oneSecondPixelScale / 60.0);
             else
                 return pixels;

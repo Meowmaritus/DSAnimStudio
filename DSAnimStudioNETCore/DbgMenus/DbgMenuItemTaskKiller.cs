@@ -37,7 +37,7 @@ namespace DSAnimStudio.DbgMenus
 
         private void BuildSceneItems()
         {
-            lock (LoadingTaskMan._lock_TaskDictEdit)
+            lock (zzz_DocumentManager.CurrentDocument.LoadingTaskMan._lock_TaskDictEdit)
             {
                 MapMenuEntriesToTaskKeys.Clear();
                 Items.Clear();
@@ -47,7 +47,7 @@ namespace DSAnimStudio.DbgMenus
                     Items.Add(it);
                 }
 
-                foreach (var kvp in LoadingTaskMan.TaskDict)
+                foreach (var kvp in zzz_DocumentManager.CurrentDocument.LoadingTaskMan.TaskDict)
                 {
                     //var menuItem = new DbgMenuItem()
                     //{
@@ -69,7 +69,7 @@ namespace DSAnimStudio.DbgMenus
             if (CurrentMenu == this)
             {
                 // If the amount of models changes, just rebuild the whole thing. 
-                if (Items.Count != (LoadingTaskMan.TaskDict.Count + baseMenuItems.Count))
+                if (Items.Count != (zzz_DocumentManager.CurrentDocument.LoadingTaskMan.TaskDict.Count + baseMenuItems.Count))
                 {
                     BuildSceneItems();
                 }

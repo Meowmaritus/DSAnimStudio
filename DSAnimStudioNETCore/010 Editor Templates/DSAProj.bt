@@ -1,0 +1,240 @@
+//------------------------------------------------
+//--- 010 Editor v13.0.2 Binary Template
+//
+//      File: DSAProj.bt
+//   Authors: Meowmaritus
+//   Version: 2
+// File Mask: *.dsaproj
+//  ID Bytes: 44 50 52 4A
+//------------------------------------------------
+
+local int MAX_SUPPORTED_FILE_VERSION = 3;
+
+// 010 doesnt support binary literals lmao
+enum <int> SoulsGames 
+{ 
+    SoulsGames_DES = 1,
+    SoulsGames_DS1 = 2,
+    SoulsGames_DS1R = 4,
+    SoulsGames_DS2 = 8,
+    SoulsGames_DS2SOTFS = 16,
+    SoulsGames_DS3 = 32,
+    SoulsGames_BB = 64,
+    SoulsGames_SDT = 128,
+    SoulsGames_ER = 256,
+    SoulsGames_AC6 = 512,
+};
+
+enum <int> TAEFormat 
+{ 
+    TAEFormat_DS1 = 0,
+    TAEFormat_SOTFS = 1,
+    TAEFormat_DS3 = 2,
+    TAEFormat_SDT = 3,
+    TAEFormat_DES = 4,
+    TAEFormat_DESR = 5,
+};
+
+enum <int> DCXType
+{
+    DCXType_Unknown,
+    DCXType_None,
+    DCXType_Zlib,
+    DCXType_DCP_EDGE,
+    DCXType_DCP_DFLT,
+    DCXType_DCX_EDGE,
+    DCXType_DCX_DFLT_10000_24_9,
+    DCXType_DCX_DFLT_10000_44_9,
+    DCXType_DCX_DFLT_11000_44_8,
+    DCXType_DCX_DFLT_11000_44_9,
+    DCXType_DCX_KRAK,
+};
+
+enum <int> AnimFileHeaderType
+{
+    AnimFileHeaderType_Standard = 0,
+    AnimFileHeaderType_ImportOtherAnim = 1,
+};
+
+enum <quad> EventGroupDataType
+{
+    EventGroupDataType_GroupData0 = 0,
+    EventGroupDataType_GroupData16 = 16,
+    EventGroupDataType_ApplyToSpecificCutsceneEntity = 128,
+    EventGroupDataType_GroupData192 = 192,
+};
+
+enum <int> ContainerTypes
+{
+    ContainerTypes_Anibnd = 0,
+    ContainerTypes_AnibndInBinder = 1,
+};
+
+
+typedef struct
+{
+    ubyte HasValue;
+    if (HasValue != 0)
+    {
+        wstring Value;
+    }
+} NullPrefixUTF16;
+
+
+
+
+typedef struct 
+{
+    ContainerTypes containerType;
+    if (containerType == ContainerTypes_Anibnd)
+    {
+        wstring AnibndPath;
+        NullPrefixUTF16 ChrbndPath;
+    }
+    else if (containerType == ContainerTypes_AnibndInBinder)
+    {
+        wstring BinderPath;
+        int BindID;
+    }
+} TaeContainerInfo;
+
+
+typedef struct
+{
+    ubyte Flags;
+    int ID;
+    NullPrefixUTF16 Name;
+    DCXType CompressionType;
+} BinderAttributes;
+
+typedef struct
+{
+    EventGroupDataType DataType;
+    ushort CutsceneEntityType;
+    short CutsceneEntityIDPart1;
+    short CutsceneEntityIDPart2;
+    byte Area;
+    byte Block;
+} EventGroupDataStruct;
+
+typedef struct 
+{
+    quad GroupType;
+    NullPrefixUTF16 DisplayText;
+    EventGroupDataStruct GroupData;
+    int NewEventDefaultType;
+    ubyte hasNewEventDefaultParameters;
+    if (hasNewEventDefaultParameters == 1)
+    {
+        int byteCount;
+        ubyte NewEventDefaultParameters[byteCount];
+    }
+    float NewEventDefaultLength;
+} EventGroup;
+
+typedef struct 
+{
+    int Type;
+    float StartTime;
+    float EndTime;
+    int GroupIndex;
+    int Unk04;
+    int paramByteCount;
+    ubyte ParameterBytes[paramByteCount];
+    NullPrefixUTF16 EditorText;
+} Event;
+
+typedef struct
+{
+    NullPrefixUTF16 AnimFileName;
+    ubyte IsLoopByDefault;
+    ubyte ImportsHKX;
+    ubyte AllowDelayLoad;
+    int ImportHKXSourceAnimID;
+} AnimFileHeader_Standard;
+
+typedef struct 
+{
+    NullPrefixUTF16 AnimFileName;
+    int ImportFromAnimID;
+    int Unknown;
+} AnimFileHeader_ImportOtherAnim;
+typedef struct 
+{
+    quad ID;
+    ubyte SaveWithEventGroupsStripped;
+    AnimFileHeaderType animFileHeaderType;
+    if (animFileHeaderType == AnimFileHeaderType_Standard)
+    {
+        AnimFileHeader_Standard AnimFileHeader;
+    }
+    else if (animFileHeaderType == AnimFileHeaderType_ImportOtherAnim)
+    {
+        AnimFileHeader_ImportOtherAnim AnimFileHeader;
+    }
+    int eventGroupCount;
+    EventGroup EventGroups[eventGroupCount] <optimize=false>;
+    int eventCount;
+    Event Events[eventCount] <optimize=false>;
+} Animation;
+
+typedef struct
+{
+    NullPrefixUTF16 DisplayName;
+    NullPrefixUTF16 TaeFileName;
+    int TaeBindIndex;
+    TAEFormat Format;
+    ubyte IsOldDemonsSoulsFormat_0x10000;
+    ubyte IsOldDemonsSoulsFormat_0x1000A;
+    quad AnimCount2Value;
+    ubyte BigEndian; // Refers to the associated TAE file, not this file.
+    int ID;
+    ubyte Flags1;
+    ubyte Flags2;
+    ubyte Flags3;
+    ubyte Flags4;
+    ubyte Flags5;
+    ubyte Flags6;
+    ubyte Flags7;
+    ubyte Flags8;
+    NullPrefixUTF16 SkeletonName;
+    NullPrefixUTF16 SibName;
+    quad EventBank;
+} TaeProperties;
+
+typedef struct 
+{
+    ubyte MD5Hash[16];
+    BinderAttributes BinderInfo;
+    TaeProperties Properties;
+    int animCount;
+    Animation Animations[animCount] <optimize=false>;
+} TAE;
+
+
+
+char magic[4]; Assert(magic == "DPRJ");
+int FILE_VERSION;
+Assert(FILE_VERSION <= MAX_SUPPORTED_FILE_VERSION);
+wstring DisplayName;
+if (FILE_VERSION < 2)
+{
+    wstring ContainerFileName;
+}
+else
+{
+    TaeContainerInfo ContainerInfo;
+}
+
+SoulsGames GameType;
+int taeFileCount;
+TAE TaeFiles[taeFileCount] <optimize=false>;
+
+if (FILE_VERSION >= 3)
+{
+    int taeFileStubCount;
+    BinderAttributes TaeFileStubs[taeFileStubCount] <optimize=false>;
+}
+
+
+

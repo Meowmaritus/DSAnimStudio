@@ -37,6 +37,11 @@ namespace DSAnimStudio
             OverrideMatrixWorld = overrideMatrixWorld;
         }
 
+        public void ApplyShift(Matrix shift)
+        {
+            OverrideMatrixWorld = WorldMatrix * shift;
+        }
+
         public Transform(float x, float y, float z, float rx, float ry, float rz, float rw)
             : this(new Vector3(x, y, z), new Quaternion(rx, ry, rz, rw))
         {

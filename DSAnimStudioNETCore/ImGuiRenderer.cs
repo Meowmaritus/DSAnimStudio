@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace DSAnimStudio
 {
@@ -65,12 +66,35 @@ namespace DSAnimStudio
 
         //private List<int> _keys = new List<int>();
 
-        public ImGuiRenderer(Game game)
+        ~ImGuiRenderer()
+        {
+            if (PTR_IniFileName != IntPtr.Zero)
+                ImGui.MemFree(PTR_IniFileName);
+        }
+
+        private IntPtr PTR_IniFileName;
+        
+        public unsafe ImGuiRenderer(Game game)
         {
             var context = ImGui.CreateContext();
-
+            
             ImGui.SetCurrentContext(context);
 
+            var io = ImGui.GetIO();
+
+            string iniFileName = $"{Main.Directory}\\imgui.ini";
+            byte[] iniFileNameBytes = Encoding.UTF8.GetBytes(iniFileName);
+            //Add null terminator
+            Array.Resize(ref iniFileNameBytes, iniFileNameBytes.Length + 1);
+            PTR_IniFileName = ImGui.MemAlloc((uint)iniFileNameBytes.Length);
+            Marshal.Copy(iniFileNameBytes, 0, PTR_IniFileName, iniFileNameBytes.Length);
+            byte* p_iniFileName = (byte*)PTR_IniFileName; 
+            io.NativePtr->IniFilename = p_iniFileName;
+            
+            
+            
+            io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+            
             _game = game ?? throw new ArgumentNullException(nameof(game));
             _graphicsDevice = game.GraphicsDevice;
 
@@ -138,6 +162,8 @@ namespace DSAnimStudio
         {
             _loadedTextures.Remove(textureId);
         }
+
+        
 
         /// <summary>
         /// Sets up ImGui for a new frame, should be called at frame start
@@ -218,7 +244,7 @@ namespace DSAnimStudio
         /// </summary>
         protected virtual Effect UpdateEffect(Texture2D texture, Matrix shiftMatrix)
         {
-            _effect = _effect ?? new BasicEffect(_graphicsDevice);
+            _effect = _effect ?? new BasicEffect(_graphicsDevice, Main.BasicEffectBytecode);
 
             var io = ImGui.GetIO();
 

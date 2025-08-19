@@ -16,12 +16,12 @@ namespace DSAnimStudio
         {
             if (boneIndex < 0)
                 return NewBlendableTransform.Identity;
-            var bone = TargetSkeleton.HkxSkeleton[boneIndex];
+            var bone = TargetSkeleton.Bones[boneIndex];
             var m = target_blendableTransformsForWholeAnim[frame][boneIndex].GetMatrix().ToXna();
             while (bone.ParentIndex >= 0)
             {
                 int index = bone.ParentIndex;
-                bone = TargetSkeleton.HkxSkeleton[index];
+                bone = TargetSkeleton.Bones[index];
                 m *= target_blendableTransformsForWholeAnim[frame][index].GetMatrix().ToXna();
             }
             return MatToTransform(m);
@@ -47,10 +47,10 @@ namespace DSAnimStudio
                 }
                 currentMatrix = target_blendableTransformsForWholeAnim[f][i].GetMatrix().ToXna() * currentMatrix;
                 currentScale *= target_blendableTransformsForWholeAnim[f][i].Scale.ToXna();
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_Target(c, currentMatrix, currentScale);
             }
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_Target(root, Matrix.Identity, Vector3.One);
         }
 
@@ -66,12 +66,12 @@ namespace DSAnimStudio
 
             target_blendableTransformsForWholeAnim = new List<NewBlendableTransform[]>();
             target_absoluteMatricesForWholeAnim = new List<NewBlendableTransform[]>();
-            target_blendableTransforms = new NewBlendableTransform[targetSkeleton.HkxSkeleton.Count];
+            target_blendableTransforms = new NewBlendableTransform[targetSkeleton.Bones.Count];
 
-            for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+            for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
             {
                 target_blendableTransforms[i] = NewBlendableTransform.Identity;
-                targetBoneIndicesByName.Add(TargetSkeleton.HkxSkeleton[i].Name, i);
+                targetBoneIndicesByName.Add(TargetSkeleton.Bones[i].Name, i);
             }
         }
 
@@ -79,25 +79,25 @@ namespace DSAnimStudio
         {
             for (int i = 0; i < target_blendableTransforms.Length; i++)
             {
-                target_blendableTransforms[i] = TargetSkeleton.HkxSkeleton[i].RelativeReferenceTransform;
+                target_blendableTransforms[i] = TargetSkeleton.Bones[i].ReferenceLocalTransform;
             }
 
             while (target_blendableTransformsForWholeAnim.Count <= frame)
             {
-                var newArr = new NewBlendableTransform[TargetSkeleton.HkxSkeleton.Count];
-                for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+                var newArr = new NewBlendableTransform[TargetSkeleton.Bones.Count];
+                for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
                 {
-                    newArr[i] = TargetSkeleton.HkxSkeleton[i].RelativeReferenceTransform;
+                    newArr[i] = TargetSkeleton.Bones[i].ReferenceLocalTransform;
                 }
                 target_blendableTransformsForWholeAnim.Add(newArr);
             }
 
             while (target_absoluteMatricesForWholeAnim.Count <= frame)
             {
-                var newArr = new NewBlendableTransform[TargetSkeleton.HkxSkeleton.Count];
-                for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+                var newArr = new NewBlendableTransform[TargetSkeleton.Bones.Count];
+                for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
                 {
-                    newArr[i] = TargetSkeleton.HkxSkeleton[i].RelativeReferenceTransform;
+                    newArr[i] = TargetSkeleton.Bones[i].ReferenceLocalTransform;
                 }
                 target_absoluteMatricesForWholeAnim.Add(newArr);
             }
@@ -112,10 +112,10 @@ namespace DSAnimStudio
 
                 target_absoluteMatricesForWholeAnim[frame][i] = MatToTransform(currentMatrix);
 
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_Input(c, currentMatrix, currentScale);
             }
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_Input(root, Matrix.Identity, Vector3.One);
         }
 
@@ -123,7 +123,7 @@ namespace DSAnimStudio
         {
             for (int i = 0; i < target_blendableTransforms.Length; i++)
             {
-                target_blendableTransforms[i] = TargetSkeleton.HkxSkeleton[i].RelativeReferenceTransform;
+                target_blendableTransforms[i] = TargetSkeleton.Bones[i].ReferenceLocalTransform;
             }
 
             void WalkTree_Output(int i, Matrix currentMatrix, Vector3 currentScale)
@@ -141,10 +141,10 @@ namespace DSAnimStudio
                 currentMatrix = finalTransform.GetMatrix().ToXna() * currentMatrix;
                 currentScale *= finalTransform.Scale.ToXna();
 
-                foreach (var c in TargetSkeleton.HkxSkeleton[i].ChildIndices)
+                foreach (var c in TargetSkeleton.Bones[i].ChildIndices)
                     WalkTree_Output(c, currentMatrix, currentScale);
             }
-            foreach (var root in TargetSkeleton.TopLevelHkxBoneIndices)
+            foreach (var root in TargetSkeleton.TopLevelBoneIndices)
                 WalkTree_Output(root, Matrix.Identity, Vector3.One);
         }
 
@@ -241,15 +241,15 @@ namespace DSAnimStudio
 
 
 
-            thing.HkxBoneIndexToTransformTrackMap = new int[TargetSkeleton.HkxSkeleton.Count];
-            thing.TransformTrackIndexToHkxBoneMap = new int[TargetSkeleton.HkxSkeleton.Count];
+            thing.HkxBoneIndexToTransformTrackMap = new int[TargetSkeleton.Bones.Count];
+            thing.TransformTrackIndexToHkxBoneMap = new int[TargetSkeleton.Bones.Count];
 
-            for (int i = 0; i < TargetSkeleton.HkxSkeleton.Count; i++)
+            for (int i = 0; i < TargetSkeleton.Bones.Count; i++)
             {
                 thing.HkxBoneIndexToTransformTrackMap[i] = i;
                 thing.TransformTrackIndexToHkxBoneMap[i] = i;
-                thing.TransformTrackNames.Add(TargetSkeleton.HkxSkeleton[i].Name);
-                thing.TransformTrackToBoneIndices.Add(TargetSkeleton.HkxSkeleton[i].Name, i);
+                thing.TransformTrackNames.Add(TargetSkeleton.Bones[i].Name);
+                thing.TransformTrackToBoneIndices.Add(TargetSkeleton.Bones[i].Name, i);
             }
 
             for (int f = 0; f <= anim.FrameCount; f++)

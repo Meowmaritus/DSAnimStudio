@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace DSAnimStudio.TaeEditor
         public string ModEngineDirectory { get; set; }
         public bool LoadLooseParams { get; set; } = false;
         public bool LoadUnpackedGameFiles { get; set; } = false;
+        public bool DisableInterrootDCX { get; set; } = false;
 
         public List<WorldView> WorldViews { get; set; } = new List<WorldView>();
 
@@ -20,30 +22,30 @@ namespace DSAnimStudio.TaeEditor
 
         private Dictionary<string, string> WwiseSwitchControlValues { get; set; } = new Dictionary<string, string>();
 
-        public void InitDefaults()
+        public void InitDefaults(zzz_DocumentIns doc)
         {
-            StateInfoSelectConfig_Enabled = ImguiOSD.OSD.WindowEntitySettings.GetStateInfoSelectConfig_Enabled();
-            StateInfoSelectConfig_Names = ImguiOSD.OSD.WindowEntitySettings.GetStateInfoSelectConfig_Names();
+            StateInfoSelectConfig_Enabled = ImguiOSD.OSD.WindowEntity.GetStateInfoSelectConfig_Enabled();
+            StateInfoSelectConfig_Names = ImguiOSD.OSD.WindowEntity.GetStateInfoSelectConfig_Names();
 
-            Wwise.InitDefaultSwitchGroups();
-            WwiseSwitchControlValues = Wwise.GetSwitchGroupValues();
+            doc.SoundManager.WwiseManager.InitDefaultSwitchGroups();
+            WwiseSwitchControlValues = doc.SoundManager.WwiseManager.GetSwitchGroupValues();
 
             if (WorldViews == null)
                 WorldViews = new List<WorldView>();
             if (WorldViews.Count == 0)
-                WorldViews.Add(new WorldView());
+                WorldViews.Add(new WorldView("Default"));
 
-            WorldViewManager.SetWorldViewList(WorldViews);
+            doc.WorldViewManager.SetWorldViewList(WorldViews);
         }
 
-        public void Save(string file)
+        public void Save(string file, zzz_DocumentIns doc)
         {
-            WorldViews = WorldViewManager.GetWorldViewList();
+            WorldViews = doc.WorldViewManager.GetWorldViewList();
 
-            StateInfoSelectConfig_Enabled = ImguiOSD.OSD.WindowEntitySettings.GetStateInfoSelectConfig_Enabled();
-            StateInfoSelectConfig_Names = ImguiOSD.OSD.WindowEntitySettings.GetStateInfoSelectConfig_Names();
+            StateInfoSelectConfig_Enabled = ImguiOSD.OSD.WindowEntity.GetStateInfoSelectConfig_Enabled();
+            StateInfoSelectConfig_Names = ImguiOSD.OSD.WindowEntity.GetStateInfoSelectConfig_Names();
 
-            WwiseSwitchControlValues = Wwise.GetSwitchGroupValues();
+            WwiseSwitchControlValues = doc.SoundManager.WwiseManager.GetSwitchGroupValues();
 
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
             var dir = System.IO.Path.GetDirectoryName(file);
@@ -52,19 +54,19 @@ namespace DSAnimStudio.TaeEditor
             System.IO.File.WriteAllText(file, json);
         }
 
-        public static TaeProjectJson Load(string file)
+        public static TaeProjectJson Load(string file, zzz_DocumentIns doc)
         {
             var proj = Newtonsoft.Json.JsonConvert.DeserializeObject<TaeProjectJson>(System.IO.File.ReadAllText(file));
 
             var worldViews = proj.WorldViews;
             if (worldViews.Count == 0)
                 worldViews.Add(new WorldView("Default"));
-            WorldViewManager.SetWorldViewList(worldViews);
+            doc.WorldViewManager.SetWorldViewList(worldViews);
 
-            ImguiOSD.OSD.WindowEntitySettings.SetStateInfoSelectConfig_Names(proj.StateInfoSelectConfig_Names);
-            ImguiOSD.OSD.WindowEntitySettings.SetStateInfoSelectConfig_Enabled(proj.StateInfoSelectConfig_Enabled);
+            ImguiOSD.OSD.WindowEntity.SetStateInfoSelectConfig_Names(proj.StateInfoSelectConfig_Names);
+            ImguiOSD.OSD.WindowEntity.SetStateInfoSelectConfig_Enabled(proj.StateInfoSelectConfig_Enabled);
 
-            Wwise.SetSwitchGroupValues(proj.WwiseSwitchControlValues);
+            doc.SoundManager.WwiseManager.SetSwitchGroupValues(proj.WwiseSwitchControlValues);
 
             return proj;
         }

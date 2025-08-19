@@ -17,7 +17,7 @@ namespace DSAnimStudio
 {
     public enum GFXDrawStep : byte
     {
-        DbgPrimPrepass = 1,
+        DbgPrimPrepass_Grid = 1,
         Opaque = 2,
         AlphaEdge = 3,
         DbgPrimOverlay,
@@ -48,14 +48,30 @@ namespace DSAnimStudio
                 Height = mode.Height;
                 Format = mode.Format;
             }
+
+            public static int GetCurrentWindowsDisplayFrequency()
+            {
+                User32Meme.DEVMODE devMode = new();
+                User32Meme.EnumDisplaySettings(null, -1, ref devMode);
+                return devMode.dmDisplayFrequency;
+            }
+
             public static int Width = 1600;
             public static int Height = 900;
             public static SurfaceFormat Format = SurfaceFormat.Color;
             public static bool Vsync = true;
+            public static bool DisableFPSLimit => false;
+            public static int TargetFPSTarget = 60;
+            public static int TargetFPS = 60;
+            public static int AverageFPSSampleSize = 20;
+            public static int AverageFPSSampleSizeTarget = 20;
+            public static bool LimitFPSWhenWindowUnfocused = true;
+            public static bool StopUpdatingWhenWindowUnfocused = true;
             public static bool Fullscreen = false;
             public static void Apply()
             {
-                Main.ApplyPresentationParameters((int)Math.Round(Width * Main.DPIX), (int)Math.Round(Height * Main.DPIY), Format, Vsync, Fullscreen);
+                Main.FIXED_TIME_STEP = !DisableFPSLimit;
+                Main.ApplyPresentationParameters(Width, Height, Format, Vsync, Fullscreen);
             }
         }
 
@@ -78,10 +94,14 @@ namespace DSAnimStudio
 
         public static int EffectiveSSAA = 1;
 
-        public static int MSAA = 2;
+        public static int MSAA = 8;
 
-        public static int EffectiveMSAA = 2;
+        public static int EffectiveMSAA = 8;
 
+
+        public static bool FlverDebugSwapAllNormalXY = false;
+        
+        
         public static void InitShaders()
         {
             FlverShader.Effect.Legacy_AmbientColor = new Vector4(1, 1, 1, 1);
@@ -98,8 +118,8 @@ namespace DSAnimStudio
 
             FlverShader.Effect.EmissiveMapMult = 1;
 
-            FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
-            SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
+            FlverShader.Effect.EnvironmentMap = ViewportEnvironment.CurrentCubemap;
+            SkyboxShader.Effect.EnvironmentMap = ViewportEnvironment.CurrentCubemap;
 
             //SkyboxShader.Effect.NumMotionBlurSamples = 0;
 
@@ -177,7 +197,7 @@ namespace DSAnimStudio
 
         //public static float FlverOpacity = 1.0f;
 
-        public static float LdotNPower = 0.1f;
+        public static float LdotNPower = 1;
         public static float SpecularPowerMult = 1;
 
         public static GFXDrawStep CurrentStep = GFXDrawStep.Opaque;
@@ -196,6 +216,9 @@ namespace DSAnimStudio
         public static Vector3 SkyboxShader_PrevFrameLookDir;
         public static IGFXShader<CollisionShader> CollisionShader;
         public static IGFXShader<DbgPrimWireShader> DbgPrimWireShader;
+        public static IGFXShader<NewGrid3DShader> NewGrid3DShader;
+        public static IGFXShader<NewSimpleGridShader> NewSimpleGridShader;
+        //public static IGFXShader<NewGrid3DShader_Blur> NewGrid3DShader_Blur;
         public static IGFXShader<DbgPrimSolidShader> DbgPrimSolidShader;
         public static Stopwatch FpsStopwatch = new Stopwatch();
         private static FrameCounter FpsCounter = new FrameCounter();
@@ -213,6 +236,29 @@ namespace DSAnimStudio
         public static float HighlightOpacityMin = 0.3f;
         public static float HighlightOpacityMax = 0.6f;
         public static float HighlightOpacityInterval = 2f;
+
+        public static bool FlverShader_DebugViewWeightOfBone_EnableLighting = true;
+        
+        public static bool FlverShader_DebugViewWeightOfBone_ClipUnweightedGeometry = false;
+        public static float FlverShader_DebugViewWeightOfBone_LightingPower = 4;
+        public static float FlverShader_DebugViewWeightOfBone_LightingMult = 1;
+        public static float FlverShader_DebugViewWeightOfBone_LightingGain = 0;
+        public static System.Numerics.Vector3 FlverShader_DebugViewWeightOfBone_BaseColor = new System.Numerics.Vector3(0, 0.25f, 0.5f);
+        public static System.Numerics.Vector3 FlverShader_DebugViewWeightOfBone_WeightColor = new System.Numerics.Vector3(1, 0, 0);
+        public static System.Numerics.Vector4 FlverShader_DebugViewWeightOfBone_WireframeWeightColor = new System.Numerics.Vector4(2, 0, 0, 1);
+        public static float FlverShader_DebugViewWeightOfBone_Lighting_AlbedoMult = 0.5f;
+        public static float FlverShader_DebugViewWeightOfBone_Lighting_ReflectanceMult = 2f;
+        public static float FlverShader_DebugViewWeightOfBone_Lighting_Gloss = 0.15f;
+
+        public static bool FlverShader_DebugViewWeightOfBone_EnableTextureAlphas = false;
+
+        public static bool FlverShader_DebugViewWeightOfBone_WireframeOverlay_Enabled = true;
+        public static bool FlverShader_DebugViewWeightOfBone_WireframeOverlay_ObeysTextureAlphas = true;
+        public static System.Numerics.Vector4 FlverShader_DebugViewWeightOfBone_WireframeOverlay_Color = new System.Numerics.Vector4(0, 0, 0.25f, 1);
+
+        public static bool FlverWireframeOverlay_Enabled = false;
+        public static bool FlverWireframeOverlay_ObeysTextureAlphas = false;
+        public static System.Numerics.Vector4 FlverWireframeOverlay_Color = new System.Numerics.Vector4(0, 0, 0, 1);
 
         public static void UpdateHighlightColor(float deltaTime)
         {
@@ -250,7 +296,7 @@ namespace DSAnimStudio
 
         public static WorldView CurrentWorldView
         {
-            get => WorldViewManager.CurrentView;
+            get => zzz_DocumentManager.CurrentDocument?.WorldViewManager?.CurrentView;
         }
 
         public static GraphicsDevice Device;
@@ -263,6 +309,10 @@ namespace DSAnimStudio
         public static string FlverShader__Name => $@"{Main.Directory}\Content\Shaders\FlverShader";
         public static string CollisionShader__Name => $@"{Main.Directory}\Content\Shaders\CollisionShader";
         public static string SkyboxShader__Name => $@"{Main.Directory}\Content\Shaders\CubemapSkyboxShader";
+
+        public static string NewGrid3DShader__Name => $@"{Main.Directory}\Content\Shaders\NewGrid3D";
+        public static string NewSimpleGridShader__Name => $@"{Main.Directory}\Content\Shaders\NewSimpleGridShader";
+        public static string NewGrid3DShader_Blur__Name => $@"{Main.Directory}\Content\Shaders\Test_NewGrid3D_Blur";
 
         private static bool _wireframe = false;
         public static bool Wireframe
@@ -326,7 +376,7 @@ namespace DSAnimStudio
         //private static ContentManager DebugReloadContentManager = null;
         public static void ReloadFlverShader()
         {
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
                 if (File.Exists($@"{Main.Directory}\..\..\..\..\Content\Shaders\FlverShader.xnb"))
                 {
@@ -343,9 +393,66 @@ namespace DSAnimStudio
             }
         }
 
+        public static void ReloadNewGrid3DShader()
+        {
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
+            {
+                if (File.Exists($@"{Main.Directory}\..\..\..\..\Content\Shaders\NewGrid3D.xnb"))
+                {
+                    GFX.NewGrid3DShader?.Effect?.Dispose();
+                    GFX.NewGrid3DShader = null;
+                    GFX.NewGrid3DShader = new NewGrid3DShader(Main.ReloadMonoGameContent<Effect>($@"{Main.Directory}\..\..\..\..\Content\Shaders\NewGrid3D", GFX.NewGrid3DShader__Name));
+                    InitShaders();
+                }
+                else
+                {
+                    var fullPath = Path.GetFullPath($@"{Main.Directory}\..\..\..\..\Content\Shaders\NewGrid3D.xnb");
+                    ImguiOSD.DialogManager.DialogOK("File Not Found", $@"Could not find shader file '{fullPath}'.");
+                }
+            }
+        }
+
+        public static void ReloadNewSimpleGridShader()
+        {
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
+            {
+                if (File.Exists($@"{Main.Directory}\..\..\..\..\Content\Shaders\NewSimpleGridShader.xnb"))
+                {
+                    GFX.NewSimpleGridShader?.Effect?.Dispose();
+                    GFX.NewSimpleGridShader = null;
+                    GFX.NewSimpleGridShader = new NewSimpleGridShader(Main.ReloadMonoGameContent<Effect>($@"{Main.Directory}\..\..\..\..\Content\Shaders\NewSimpleGridShader", GFX.NewSimpleGridShader__Name));
+                    InitShaders();
+                }
+                else
+                {
+                    var fullPath = Path.GetFullPath($@"{Main.Directory}\..\..\..\..\Content\Shaders\NewSimpleGridShader.xnb");
+                    ImguiOSD.DialogManager.DialogOK("File Not Found", $@"Could not find shader file '{fullPath}'.");
+                }
+            }
+        }
+
+        //public static void ReloadNewGrid3D_BlurShader()
+        //{
+        //    lock (Scene._lock_ModelLoad_Draw)
+        //    {
+        //        if (File.Exists($@"{Main.Directory}\..\..\..\..\Content\Shaders\Test_NewGrid3D_Blur.xnb"))
+        //        {
+        //            GFX.NewGrid3DShader_Blur?.Effect?.Dispose();
+        //            GFX.NewGrid3DShader_Blur = null;
+        //            GFX.NewGrid3DShader_Blur = new NewGrid3DShader_Blur(Main.ReloadMonoGameContent<Effect>($@"{Main.Directory}\..\..\..\..\Content\Shaders\Test_NewGrid3D_Blur", GFX.NewGrid3DShader_Blur__Name));
+        //            InitShaders();
+        //        }
+        //        else
+        //        {
+        //            var fullPath = Path.GetFullPath($@"{Main.Directory}\..\..\..\..\Content\Shaders\Test_NewGrid3D_Blur.xnb");
+        //            ImguiOSD.DialogManager.DialogOK("File Not Found", $@"Could not find shader file '{fullPath}'.");
+        //        }
+        //    }
+        //}
+
         public static void ReloadTonemapShader()
         {
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
                 if (File.Exists($@"{Main.Directory}\..\..\..\..\Content\Shaders\CubemapSkyboxShader.xnb"))
                 {
@@ -364,7 +471,7 @@ namespace DSAnimStudio
 
         public static void ReloadCubemapSkyboxShader()
         {
-            lock (Scene._lock_ModelLoad_Draw)
+            lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
             {
                 if (File.Exists($@"{Main.Directory}\..\..\..\..\Content\Shaders\CubemapSkyboxShader.xnb"))
                 {
@@ -425,15 +532,18 @@ namespace DSAnimStudio
                 //TwoSidedStencilMode = Device.DepthStencilState.TwoSidedStencilMode,
             };
 
-            Environment.LoadContent(c);
+            ViewportEnvironment.LoadContent(c);
 
             FlverShader = new FlverShader(c.Load<Effect>(FlverShader__Name));
             SkyboxShader = new SkyboxShader(c.Load<Effect>(SkyboxShader__Name));
+            NewGrid3DShader = new NewGrid3DShader(c.Load<Effect>(NewGrid3DShader__Name));
+            NewSimpleGridShader = new NewSimpleGridShader(c.Load<Effect>(NewSimpleGridShader__Name));
+            //NewGrid3DShader_Blur = new NewGrid3DShader_Blur(c.Load<Effect>(NewGrid3DShader_Blur__Name));
 
             InitShaders();
 
-            DbgPrimWireShader = new DbgPrimWireShader(Device);
-            DbgPrimSolidShader = new DbgPrimSolidShader(Device);
+            DbgPrimWireShader = new DbgPrimWireShader(Device, Main.BasicEffectBytecode);
+            DbgPrimSolidShader = new DbgPrimSolidShader(Device, Main.BasicEffectBytecode);
 
             DbgPrimSolidShader.Effect.AmbientLightColor = new Vector3(FlverShader.Effect.Legacy_AmbientColor.X, FlverShader.Effect.Legacy_AmbientColor.Y, FlverShader.Effect.Legacy_AmbientColor.Z) * FlverShader.Effect.Legacy_AmbientIntensity;
             DbgPrimSolidShader.Effect.DiffuseColor = new Vector3(FlverShader.Effect.Legacy_DiffuseColor.X, FlverShader.Effect.Legacy_DiffuseColor.Y, FlverShader.Effect.Legacy_DiffuseColor.Z) * FlverShader.Effect.Legacy_DiffuseIntensity;
@@ -444,7 +554,7 @@ namespace DSAnimStudio
             CollisionShader.Effect.AmbientColor = new Vector4(0.2f, 0.5f, 0.9f, 1.0f);
             CollisionShader.Effect.DiffuseColor = new Vector4(0.2f, 0.5f, 0.9f, 1.0f);
 
-            SpriteBatch = new SpriteBatch(Device);
+            SpriteBatch = new SpriteBatch(Device, Main.SpriteEffectBytecode);
 
             HotSwapRasterizerState_BackfaceCullingOff_WireframeOff = Device.RasterizerState.GetCopyOfState();
             HotSwapRasterizerState_BackfaceCullingOff_WireframeOff.MultiSampleAntiAlias = true;
@@ -504,9 +614,38 @@ namespace DSAnimStudio
             SpriteBatchHasBegun = false;
         }
 
+        private static SamplerState _CustomAnisoSamplerState = null;
+        public static SamplerState CustomAnisoSamplerState
+        {
+            get
+            {
+                if (_CustomAnisoSamplerState == null)
+                {
+                    //_CustomAnisoSamplerState = new SamplerState()
+                    //{
+                    //    Filter = TextureFilter.Anisotropic,
+                    //    AddressU = TextureAddressMode.Wrap,
+                    //    AddressV = TextureAddressMode.Wrap,
+                    //    AddressW = TextureAddressMode.Wrap,
+                    //    //MaxAnisotropy = 4,
+                    //    //MipMapLevelOfDetailBias = 16.0f,
+                    //};
+                    _CustomAnisoSamplerState = new SamplerState()
+                    {
+                        AddressU = TextureAddressMode.Wrap,
+                        AddressV = TextureAddressMode.Wrap,
+                        Filter = TextureFilter.LinearMipPoint,
+                        MaxAnisotropy = 32,
+                        MipMapLevelOfDetailBias = 8,
+                    };
+                }
+                return _CustomAnisoSamplerState;
+            }
+        }
+
         public static void BeginDraw()
         {
-            InitDepthStencil(CurrentStep == GFXDrawStep.Opaque);
+            InitDepthStencil(CurrentStep == GFXDrawStep.Opaque || CurrentStep == GFXDrawStep.DbgPrimOverlay);
             //InitBlendState();
 
             Device.BlendState = BlendState.NonPremultiplied;
@@ -522,7 +661,15 @@ namespace DSAnimStudio
             //    m.ReinitInstanceData();
             //}
 
-            Device.SamplerStates[0] = SamplerState.LinearWrap;
+            //16 is platform MaxTextureSlots, not exposed publicly for some reason.
+            for (int i = 0; i < 16; i++)
+            {
+                Device.SamplerStates[i] = SamplerState.AnisotropicWrap;
+            }
+
+            
+
+            //Device.SamplerStates[0] = CustomAnisoSamplerState;
 
             //FlverShader.Effect.EyePosition = World.NewCameraTransform.Position;
 
@@ -556,7 +703,7 @@ namespace DSAnimStudio
             SkyboxShader.Effect.EyePosition = Vector3.Zero;
 
 
-            Matrix matLightDir = Matrix.CreateRotationY(Environment.LightRotationH) * Matrix.CreateRotationX(Environment.LightRotationV);
+            Matrix matLightDir = Matrix.CreateRotationY(ViewportEnvironment.LightRotationH) * Matrix.CreateRotationX(ViewportEnvironment.LightRotationV);
 
             if (FlverAutoRotateLight)
             {
@@ -582,35 +729,35 @@ namespace DSAnimStudio
 
             //FlverShader.Effect.LightDirection = World.CameraTransform.RotationMatrix;
             FlverShader.Effect.ColorMap = Main.DEFAULT_TEXTURE_DIFFUSE;
-            FlverShader.Effect.NormalMap = (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
+            FlverShader.Effect.NormalMap = (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS ?
                 Main.DEFAULT_TEXTURE_NORMAL_DS2 : Main.DEFAULT_TEXTURE_NORMAL);
             FlverShader.Effect.SpecularMap = Main.DEFAULT_TEXTURE_SPECULAR;
             FlverShader.Effect.EmissiveMap = Main.DEFAULT_TEXTURE_EMISSIVE;
             FlverShader.Effect.BlendmaskMap = Main.DEFAULT_TEXTURE_EMISSIVE;
 
-            FlverShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
-            SkyboxShader.Effect.EnvironmentMap = Environment.CurrentCubemap;
+            FlverShader.Effect.EnvironmentMap = ViewportEnvironment.CurrentCubemap;
+            SkyboxShader.Effect.EnvironmentMap = ViewportEnvironment.CurrentCubemap;
 
-            FlverShader.Effect.AmbientLightMult = Environment.AmbientLightMult;
-            FlverShader.Effect.DirectLightMult = Environment.FlverDirectLightMult * 1 * (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ? 0.6f : 1);
-            FlverShader.Effect.IndirectLightMult = Environment.FlverIndirectLightMult * (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ? 0.6f : 1);
+            FlverShader.Effect.AmbientLightMult = ViewportEnvironment.AmbientLightMult * 2;
+            FlverShader.Effect.DirectLightMult = ViewportEnvironment.FlverDirectLightMult * 1 * (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ? 0.6f : 1);
+            FlverShader.Effect.IndirectLightMult = ViewportEnvironment.FlverIndirectLightMult * (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ? 0.6f : 1);
 
-            FlverShader.Effect.DirectDiffuseMult = Environment.DirectDiffuseMult;
-            FlverShader.Effect.DirectSpecularMult = Environment.DirectSpecularMult;
-            FlverShader.Effect.IndirectDiffuseMult = Environment.IndirectDiffuseMult;
-            FlverShader.Effect.IndirectSpecularMult = Environment.IndirectSpecularMult;
+            FlverShader.Effect.DirectDiffuseMult = ViewportEnvironment.DirectDiffuseMult;
+            FlverShader.Effect.DirectSpecularMult = ViewportEnvironment.DirectSpecularMult;
+            FlverShader.Effect.IndirectDiffuseMult = ViewportEnvironment.IndirectDiffuseMult;
+            FlverShader.Effect.IndirectSpecularMult = ViewportEnvironment.IndirectSpecularMult;
 
-            FlverShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f * 2;
-            FlverShader.Effect.EmissiveMapMult = Environment.FlverEmissiveMult;
-            FlverShader.Effect.Legacy_SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
+            FlverShader.Effect.SceneBrightness = ViewportEnvironment.FlverSceneBrightness * 1.45f * 2;
+            FlverShader.Effect.EmissiveMapMult = ViewportEnvironment.FlverEmissiveMult;
+            FlverShader.Effect.Legacy_SceneBrightness = ViewportEnvironment.FlverSceneBrightness * 1.45f;
             FlverShader.Effect.Opacity = 1;
-            FlverShader.Effect.Parameters["SpecularPowerMult"].SetValue(SpecularPowerMult * (GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ? 0.3f : 1));
+            FlverShader.Effect.Parameters["SpecularPowerMult"].SetValue(SpecularPowerMult * (zzz_DocumentManager.CurrentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R ? 0.3f : 1));
             FlverShader.Effect.Parameters["LdotNPower"].SetValue(LdotNPower);
 
-            SkyboxShader.Effect.AmbientLightMult = Environment.FlverIndirectLightMult * Environment.SkyboxBrightnessMult;
-            SkyboxShader.Effect.SceneBrightness = Environment.FlverSceneBrightness * 1.45f;
+            SkyboxShader.Effect.AmbientLightMult = ViewportEnvironment.FlverIndirectLightMult * ViewportEnvironment.SkyboxBrightnessMult;
+            SkyboxShader.Effect.SceneBrightness = ViewportEnvironment.FlverSceneBrightness * 1.45f;
 
-            Main.MainFlverTonemapShader.Effect.Parameters["SceneContrast"].SetValue(Environment.FlverSceneContrast);
+            Main.MainFlverTonemapShader.Effect.Parameters["SceneContrast"].SetValue(ViewportEnvironment.FlverSceneContrast);
 
             DbgPrimSolidShader.Effect.DirectionalLight0.DiffuseColor = Vector3.One * 0.45f;
             DbgPrimSolidShader.Effect.DirectionalLight0.SpecularColor = Vector3.One * 0.35f;
@@ -628,13 +775,14 @@ namespace DSAnimStudio
             {
                 case GFXDrawStep.Opaque:
                 case GFXDrawStep.AlphaEdge:
-                    Scene.Draw();
+                    zzz_DocumentManager.CurrentDocument.Scene.Draw();
                     break;
                 case GFXDrawStep.DbgPrimOverlay:
                     DBG.DrawPrimitives();
+                    DBG.DrawPrimitiveTexts();
                     break;
-                case GFXDrawStep.DbgPrimPrepass:
-                    DBG.DrawBehindPrims();
+                case GFXDrawStep.DbgPrimPrepass_Grid:
+                    //DBG.DrawGrid();
                     break;
                 case GFXDrawStep.DbgPrimAlwaysRespectDepth:
                     DBG.DrawDepthRespectPrims();
@@ -643,7 +791,7 @@ namespace DSAnimStudio
                     DBG.DrawDepthDisrespectPrims();
                     break;
                 case GFXDrawStep.GUI:
-                    DBG.DrawPrimitiveTexts();
+                    //DBG.DrawPrimitiveTexts();
                     if (DBG.EnableMenu)
                         DbgMenuItem.CurrentMenu.Draw();
                     break;
@@ -652,39 +800,32 @@ namespace DSAnimStudio
 
         private static void DoDraw()
         {
-            if (Main.DISABLE_DRAW_ERROR_HANDLE)
+            try
             {
                 DoDrawStep();
             }
-            else
+            catch (Exception ex) when (Main.EnableErrorHandler.DoDrawStep)
             {
-                try
-                {
-                    DoDrawStep();
-                }
-                catch (Exception ex)
-                {
-                    var errText = $"Draw Call Failed ({CurrentStep.ToString()}):\n\n{ex.ToString()}";
-                    var errTextSize = DBG.DEBUG_FONT_SIMPLE.MeasureString(errText);
-                    float hScale = ((GFX.LastViewport.Width) / (errTextSize.X)) * GFX.EffectiveSSAA;
+                var errText = $"Draw Call Failed ({CurrentStep.ToString()}):\n\n{ex.ToString()}";
+                var errTextSize = DBG.DEBUG_FONT_SIMPLE.MeasureString(errText);
+                float hScale = ((GFX.LastViewport.Width) / (errTextSize.X)) * GFX.EffectiveSSAA;
 
-                    if (SpriteBatchHasBegun)
-                        SpriteBatchEnd();
+                if (SpriteBatchHasBegun)
+                    SpriteBatchEnd();
 
-                    //SpriteBatchBeginForText();
+                //SpriteBatchBeginForText();
 
-                    //DBG.DrawOutlinedText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), 
-                    //    Color.Yellow, DBG.DEBUG_FONT_SIMPLE, 0, new Vector2(hScale, GFX.EffectiveSSAA), Vector2.Zero);
+                //DBG.DrawOutlinedText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), 
+                //    Color.Yellow, DBG.DEBUG_FONT_SIMPLE, 0, new Vector2(hScale, GFX.EffectiveSSAA), Vector2.Zero);
 
-                    //SpriteBatchEnd();
-                    ImGuiDebugDrawer.DrawText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), Color.Red, fontSize: 8);
-                }
+                //SpriteBatchEnd();
+                ImGuiDebugDrawer.DrawText(errText, new Vector2(0, GFX.LastViewport.Height / 2 - (errTextSize.Y / 2)), Color.Red, fontSize: 8);
             }
         }
 
         public static void DrawScene3D()
         {
-            CurrentStep = GFXDrawStep.DbgPrimPrepass;
+            CurrentStep = GFXDrawStep.DbgPrimPrepass_Grid;
             BeginDraw();
             DoDraw();
 
@@ -726,17 +867,17 @@ namespace DSAnimStudio
             DoDraw();
 
             GFX.UpdateFPS((float)FpsStopwatch.Elapsed.TotalSeconds);
-            if (Main.SceneRenderTarget != null)
+            if (Main.RenderTarget0_Color != null)
             {
                 float scale = Main.Config.ViewportFramerateTextSize / 100f;
                 if (scale > 0)
                 {
                     GFX.SpriteBatchBeginForText();
                     //DBG.DrawOutlinedText($"Rendering {(Main.SceneRenderTarget.Width)}x{(Main.SceneRenderTarget.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS",
-                    //    new Vector2(4, (GFX.Device.Viewport.Height / Main.DPIY) - 24), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
+                    //    new Vector2(4, (GFX.Device.Viewport.Height / Main.DPI) - 24), Color.Cyan, font: DBG.DEBUG_FONT_SMALL);
 
-                    ImGuiDebugDrawer.DrawText($"Rendering {(Main.SceneRenderTarget.Width)}x{(Main.SceneRenderTarget.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS",
-                        new Vector2(4, (GFX.Device.Viewport.Height / Main.DPIY) - (16 * scale)), Color.Cyan, Color.Black, 16 * scale);
+                    ImGuiDebugDrawer.DrawText($"Rendering {(Main.RenderTarget0_Color.Width)}x{(Main.RenderTarget0_Color.Height)} @ {(Math.Round(GFX.AverageFPS))} FPS",
+                        new Vector2(4, (GFX.Device.Viewport.Height / Main.DPI) - (16 * scale)), Color.Cyan, Color.Black, 16 * scale);
 
                     GFX.SpriteBatchEnd();
                 }

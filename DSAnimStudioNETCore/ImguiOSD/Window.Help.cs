@@ -12,13 +12,51 @@ namespace DSAnimStudio.ImguiOSD
     {
         public class Help : Window
         {
-            public override string Title => "Help";
-            public override string ImguiTag => $"{nameof(Window)}.{nameof(Help)}";
-            protected override void BuildContents()
+            public override SaveOpenStateTypes GetSaveOpenStateType() => SaveOpenStateTypes.SaveAlways;
+
+            public override string NewImguiWindowTitle => "Help";
+            
+            protected override void Init()
             {
-                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 400);
-                ImGui.TextWrapped(TaeEditorScreen.HELP_TEXT);
-                ImGui.PopTextWrapPos();
+                
+            }
+
+            private string[] helpText = null;
+            private object _lock_helpText = new object();
+
+            protected override void BuildContents(ref bool anyFieldFocused)
+            {
+
+                //ImGui.PushTextWrapPos(ImGui.GetFontSize() * 400);
+
+                lock (_lock_helpText)
+                {
+                    if (helpText == null)
+                    {
+                        helpText = Main.GetEmbeddedResourceText("/EmbRes/Help.txt").Split('\n');
+                    }
+
+                    for (int i = 0; i < helpText.Length; i++)
+                    {
+                        bool isHeader = helpText[i].StartsWith("[");
+                        bool isIndent = helpText[i].StartsWith("    ");
+                        
+                        if (isHeader)
+                            ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FFFF);
+                        else if (!isIndent)
+                            ImGui.PushStyleColor(ImGuiCol.Text, 0xFFFFFF00);
+                        
+                        ImGui.TextWrapped(helpText[i]);
+                        
+                        if (isHeader)
+                            ImGui.PopStyleColor();
+                        else if (!isIndent)
+                            ImGui.PopStyleColor();
+                    }
+                    //ImGui.PopTextWrapPos();
+                }
+                
+                
             }
         }
     }

@@ -7,68 +7,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SoulsAssetPipeline;
 
 namespace DSAnimStudio
 {
-    public class NewAnimSkeleton_HKX
+    public class NewAnimSkeleton_HKX : NewAnimSkeleton
     {
-        public Transform CurrentTransform = Transform.Default;
-
-        public void RevertToReferencePose()
-        {
-            foreach (var h in HkxSkeleton)
-            {
-                //TODO: See if I need to reset the NewBlendableTransform thing here as well.
-                h.CurrentMatrix = Matrix.Identity;
-            }
-        }
-
-        static NewAnimSkeleton_HKX()
-        {
-            DebugDrawTransformOfFlverBonePrim =
-            new DbgPrimWireArrow("", Transform.Default, Color.White)
-            {
-                Category = DbgPrimCategory.AlwaysDraw,
-            };
-            DebugDrawTransformOfFlverBoneTextDrawer = new StatusPrinter(null, Color.White);
-        }
-
-        public List<HkxBoneInfo> HkxSkeleton = new List<HkxBoneInfo>();
-
-
-
-        public List<int> TopLevelHkxBoneIndices = new List<int>();
-
+        protected override bool GetGlobalEnableDrawTransforms() => Main.HelperDraw.EnableHkxBoneTransforms;
+        protected override bool GetGlobalEnableDrawLines() => false;
+        protected override bool GetGlobalEnableDrawBoxes() => false;
+        protected override bool GetGlobalEnableDrawText() => Main.HelperDraw.EnableHkxBoneNames;
+        protected override Color GetDrawColorBoneBoxes() => Color.Fuchsia;
+        protected override Color GetDrawColorBoneLines() => Color.Fuchsia;
+        protected override Color GetDrawColorBoneTransforms() => Main.Colors.ColorHelperHkxBone;
+        protected override Color GetDrawColorBoneText() => Main.Colors.ColorHelperHkxBone;
+        
         public HKX.HKASkeleton OriginalHavokSkeleton = null;
-
-        public static int DebugDrawTransformOfFlverBoneIndex = -1;
-        private static DbgPrimWireArrow DebugDrawTransformOfFlverBonePrim;
-        private static StatusPrinter DebugDrawTransformOfFlverBoneTextDrawer;
-
-        public List<int> UpperBodyIndices = new List<int>();
-
-        public List<short> GetParentIndices() => HkxSkeleton.Select(b => b.ParentIndex).ToList();
-
-        public List<string> GetAncestorsBoneDescendsFrom(HkxBoneInfo bone, params string[] ancestorFilter)
-        {
-            var result = new List<string>();
-            var parent = bone.ParentIndex;
-            while (parent >= 0)
-            {
-                var ancestorCheck = HkxSkeleton[parent];
-                if (ancestorFilter.Contains(ancestorCheck.Name) && !result.Contains(ancestorCheck.Name))
-                    result.Add(ancestorCheck.Name);
-                parent = ancestorCheck.ParentIndex;
-
-                // If result is same length as filter, all ancestors were found
-                if (result.Count == ancestorFilter.Length)
-                    return result;
-            }
-            return result;
-        }
-
         public HKX SkeletonPackfile = null;
-
+        
         public void LoadHKXSkeleton(HKX skeletonPackfile)
         {
             SkeletonPackfile = skeletonPackfile;
@@ -80,16 +36,22 @@ namespace DSAnimStudio
             }
             
             OriginalHavokSkeleton = skeleton;
-            HkxSkeleton.Clear();
-            TopLevelHkxBoneIndices.Clear();
+            Bones.Clear();
+            BoneIndices_ByName.Clear();
+            TopLevelBoneIndices.Clear();
             UpperBodyIndices.Clear();
             for (int i = 0; i < skeleton.Bones.Size; i++)
             {
-                var newHkxBone = new HkxBoneInfo();
+                var newHkxBone = new NewBone();
+                newHkxBone.Index = i;
                 newHkxBone.Name = skeleton.Bones[i].Name.GetString();
+
+                if (newHkxBone.Name != null)
+                    BoneIndices_ByName[newHkxBone.Name] = i;
+
                 newHkxBone.ParentIndex = skeleton.ParentIndices[i].data;
 
-                newHkxBone.RelativeReferenceTransform = new NewBlendableTransform()
+                newHkxBone.ReferenceLocalTransform = new NewBlendableTransform()
                 {
                     Translation = new System.Numerics.Vector3(
                         skeleton.Transforms[i].Position.Vector.X,
@@ -106,7 +68,7 @@ namespace DSAnimStudio
                         skeleton.Transforms[i].Scale.Vector.Z),
                 };
 
-                newHkxBone.RelativeReferenceMatrix =
+                newHkxBone.ReferenceLocalMatrix =
                     Matrix.CreateScale(new Vector3(
                         skeleton.Transforms[i].Scale.Vector.X,
                         skeleton.Transforms[i].Scale.Vector.Y,
@@ -123,85 +85,15 @@ namespace DSAnimStudio
 
 
 
-                HkxSkeleton.Add(newHkxBone);
+                Bones.Add(newHkxBone);
             }
-
-            void GetAbsoluteReferenceMatrix(int i)
-            {
-                Matrix result = Matrix.Identity;
-                int j = i;
-
-                do
-                {
-                    result = HkxSkeleton[j].RelativeReferenceMatrix * result;
-                    j = HkxSkeleton[j].ParentIndex;
-                }
-                while (j >= 0);
-
-                HkxSkeleton[i].ReferenceMatrix = result;
-                HkxSkeleton[i].ReferenceMatrixRootBoneIndex = j;
-            }
-
-            for (int i = 0; i < HkxSkeleton.Count; i++)
-            {
-                if (HkxSkeleton[i].ParentIndex < 0)
-                    TopLevelHkxBoneIndices.Add(i);
-
-                HkxSkeleton[i].IsUpperBody = false;
-
-                var ancestors = GetAncestorsBoneDescendsFrom(HkxSkeleton[i], "Upper_Root");
-
-                if (ancestors.Contains("Upper_Root"))
-                {
-                    UpperBodyIndices.Add(i);
-                    HkxSkeleton[i].IsUpperBody = true;
-                }
-
-                for (int j = 0; j < HkxSkeleton.Count; j++)
-                {
-                    if (HkxSkeleton[j].ParentIndex == i)
-                    {
-                        HkxSkeleton[i].ChildIndices.Add(j);
-                    }
-                }
-
-                GetAbsoluteReferenceMatrix(i);
-            }
-
+            
+            InitBoneTree();
         }
-
-        public void DrawPrimitives()
-        {
-            for (int i = 0; i < HkxSkeleton.Count; i++)
-            {
-                DebugDrawTransformOfFlverBonePrim.Transform = new Transform(
-                    Matrix.CreateRotationY(MathHelper.Pi) *
-                    Matrix.CreateScale(0.1f, 0.1f, 0.1f) * HkxSkeleton[i].CurrentMatrix);
-
-                DebugDrawTransformOfFlverBonePrim.OverrideColor = Color.Red;
-
-                DebugDrawTransformOfFlverBonePrim.Draw(null, CurrentTransform.WorldMatrix);
-            }
-        }
-
-        public class HkxBoneInfo
-        {
-            public string Name;
-            public short ParentIndex = -1;
-            public Matrix RelativeReferenceMatrix = Matrix.Identity;
-            public NewBlendableTransform RelativeReferenceTransform = NewBlendableTransform.Identity;
-
-            public int ReferenceMatrixRootBoneIndex = -1;
-            public Matrix ReferenceMatrix = Matrix.Identity;
-
-            public List<int> ChildIndices = new List<int>();
-            public NewBlendableTransform CurrentHavokTransform = NewBlendableTransform.Identity;
-            public Matrix CurrentMatrix = Matrix.Identity;
-
-            public float Weight = 1;
-
-            public bool IsUpperBody = false;
-        }
-
+        
+        
+        
+        
+        
     }
 }

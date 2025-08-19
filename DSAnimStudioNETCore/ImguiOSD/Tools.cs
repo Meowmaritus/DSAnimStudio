@@ -1,8 +1,10 @@
 ﻿using ImGuiNET;
 using Microsoft.Xna.Framework;
+using SharpDX.Direct2D1;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,11 +17,56 @@ namespace DSAnimStudio.ImguiOSD
         private static ColorConfig DefaultColorConfig = new ColorConfig();
 
         
-        public static int ColorButtonWidth => (int)Math.Round(300 * Main.DPIX * OSD.RenderScale * OSD.WidthScale);
-        public static int ColorButtonHeight => (int)Math.Round(26 * Main.DPIY * OSD.RenderScale);
+        // public static float FloatSlider(string name, float currentValue, float min, float max, string format = "%f", float? clampMin = null, float? clampMax = null)
+        // {
+        //     float v = currentValue;
+        //     ImGui.SliderFloat(name, ref v, min, max, format, ImGuiSliderFlags.None);
+        //     if (clampMin.HasValue && v < clampMin.Value)
+        //         v = clampMin.Value;
+        //     if (clampMax.HasValue && v > clampMax.Value)
+        //         v = clampMax.Value;
+        //     return v;
+        // }
+        
+        
+        public static int ColorButtonWidth => (int)Math.Round(300 * Main.DPI * OSD.RenderScale * OSD.WidthScale);
+        public static int ColorButtonHeight => (int)Math.Round(26 * Main.DPI * OSD.RenderScale);
         private static Dictionary<string, Action> DefaultColorValueActions = new Dictionary<string, Action>();
 
-        public static void HandleColor(string name, Func<ColorConfig, Color> getColor, Action<ColorConfig, Color> setColor)
+        public static bool SimpleClickButton(string name)
+        {
+            ImGui.Button(name);
+            return ImGui.IsItemClicked();
+        }
+
+        public static void CustomColorPicker(string text, string imguiID, ref Color? c, Color defaultColor)
+        {
+            bool hasValue = c.HasValue;
+            ImGui.Checkbox($"##{imguiID}__Checkbox", ref hasValue);
+            ImGui.SameLine();
+            if (hasValue && !c.HasValue)
+                c = defaultColor;
+            else if (!hasValue && c.HasValue)
+                c = null;
+
+            if (c.HasValue)
+            {
+                var colVec4 = c.Value.ToNVector4();
+                ImGui.ColorEdit4($"{text}##{imguiID}__ColorPicker", ref colVec4, ImGuiColorEditFlags.Uint8 | ImGuiColorEditFlags.DisplayHex | ImGuiColorEditFlags.PickerHueBar);
+                c = new Color(colVec4);
+            }
+            else
+            {
+                ImGui.BeginDisabled();
+                var colVec4 = System.Numerics.Vector4.Zero;
+                ImGui.ColorEdit4($"{text}##{imguiID}__ColorPicker", ref colVec4, ImGuiColorEditFlags.Uint8 | ImGuiColorEditFlags.DisplayHex | ImGuiColorEditFlags.PickerHueBar);
+                ImGui.EndDisabled();
+            }
+
+
+        }
+
+        public static void HandleColor(ref bool anyFieldFocused, string name, Func<ColorConfig, Color> getColor, Action<ColorConfig, Color> setColor)
         {
             if (OSD.IsInit)
             {
@@ -70,7 +117,8 @@ namespace DSAnimStudio.ImguiOSD
             if (CurrentColorEditorOpen == name)
             {
                 ImGui.ColorPicker4(name, ref c);
-                TooltipManager.DoTooltip($"Color: {name}", "Allows you to adjust the color in detail." +
+                anyFieldFocused |= ImGui.IsItemActive();
+                OSD.TooltipManager_ColorPicker.DoTooltip($"Color: {name}", "Allows you to adjust the color in detail." +
                     "\n" +
                     "\nThe number boxes are as follows:" +
                     "\n    [R] [G] [B] [A] (Red/Green/Blue/Alpha)" +
@@ -141,6 +189,154 @@ namespace DSAnimStudio.ImguiOSD
             }
             curIndex = idx;
             return res;
+        }
+
+
+        private class EnumPickerCache
+        {
+            public List<object> Values = new List<object>();
+            public string[] Names;
+        }
+        private static object _lock_enumPickerCacheDict = new object();
+        private static Dictionary<string, EnumPickerCache> enumPickerCacheDict = new Dictionary<string, EnumPickerCache>();
+
+        public static void EnumPicker<T>(string format, ref T value, Func<T, string> getNameFunc = null, bool disableCache = false, List<T> validEntries = null)
+            where T : Enum
+        {
+            EnumPickerCache cache = null;
+            lock (_lock_enumPickerCacheDict)
+            {
+                string enumName = typeof(T).Name;
+                if (!disableCache && enumPickerCacheDict.ContainsKey($"{enumName}|{format}"))
+                {
+                    cache = enumPickerCacheDict[$"{enumName}|{format}"];
+                }
+                else
+                {
+                    cache = new EnumPickerCache();
+                    var enumValues = (T[])Enum.GetValues(typeof(T));
+                    foreach (var v in enumValues)
+                    {
+                        if (validEntries != null && !validEntries.Contains(v))
+                            continue;
+                        cache.Values.Add(v);
+                    }
+
+                    if (getNameFunc != null)
+                        cache.Names = cache.Values.Select(x => getNameFunc((T)x)).ToArray();
+                    else
+                        cache.Names = cache.Values.Select(x => x.ToString()).ToArray();
+                    if (!disableCache)
+                        enumPickerCacheDict[$"{enumName}|{format}"] = cache;
+                }
+
+                int selectedTaeFormatIndex = cache.Values.IndexOf(value);
+                ImGui.Combo(format, ref selectedTaeFormatIndex, cache.Names, cache.Names.Length);
+                if (selectedTaeFormatIndex >= 0 && selectedTaeFormatIndex < cache.Values.Count)
+                    value = (T)cache.Values[selectedTaeFormatIndex];
+            }
+        }
+        
+        public static void EnumPicker(string format, ref object value, Type enumType, Func<object, string> getNameFunc = null, bool disableCache = false, List<object> validEntries = null)
+        {
+            EnumPickerCache cache = null;
+            lock (_lock_enumPickerCacheDict)
+            {
+                string enumName = enumType.Name;
+                if (!disableCache && enumPickerCacheDict.ContainsKey(enumName))
+                {
+                    cache = enumPickerCacheDict[enumName];
+                }
+                else
+                {
+                    cache = new EnumPickerCache();
+                    var enumValues = Enum.GetValues(enumType);
+                    var enumNames = new List<string>();
+                    foreach (var v in enumValues)
+                    {
+                        if (validEntries != null && !validEntries.Contains(v))
+                            continue;
+                        cache.Values.Add(v);
+                        enumNames.Add(getNameFunc != null ? getNameFunc(v) : v.ToString());
+                    }
+
+                    cache.Names = enumNames.ToArray();
+                    if (!disableCache)
+                        enumPickerCacheDict[enumName] = cache;
+                }
+
+                int selectedTaeFormatIndex = cache.Values.IndexOf(value);
+                ImGui.Combo(format, ref selectedTaeFormatIndex, cache.Names, cache.Names.Length);
+                if (selectedTaeFormatIndex >= 0 && selectedTaeFormatIndex < cache.Values.Count)
+                    value = cache.Values[selectedTaeFormatIndex];
+            }
+        }
+
+        public static void InputTextNullable(string label, ref string input, uint maxLength, string nullToken = "%null%",
+            ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, 
+            ImGuiInputTextCallback callback = null, IntPtr user_data = new IntPtr())
+        {
+            string curVal = input ?? nullToken;
+            ImGui.InputText(label, ref curVal, maxLength, flags, callback, user_data);
+            if (curVal == nullToken)
+                input = null;
+            else
+                input = curVal;
+        }
+
+        public static void GhettoInputByte(string label, ref byte v, byte step = 1, byte step_fast = 100, 
+            ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, byte minVal = byte.MinValue, byte maxVal = byte.MaxValue)
+        {
+            int curVal = v;
+            ImGui.InputInt(label, ref curVal, step, step_fast, flags);
+            byte newV = (byte)curVal;
+            if (newV < minVal)
+                newV = minVal;
+            else if (newV > maxVal)
+                newV = maxVal;
+            v = newV;
+        }
+        
+        public static void GhettoInputSbyte(string label, ref sbyte v, byte step = 1, byte step_fast = 100, 
+            ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, sbyte minVal = sbyte.MinValue, sbyte maxVal = sbyte.MaxValue)
+        {
+            int curVal = v;
+            ImGui.InputInt(label, ref curVal, step, step_fast, flags);
+            sbyte newV = (sbyte)curVal;
+            if (newV < minVal)
+                newV = minVal;
+            else if (newV > maxVal)
+                newV = maxVal;
+            v = newV;
+        }
+        
+        public static void GhettoInputShort(string label, ref short v, byte step = 1, byte step_fast = 100, 
+            ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, short minVal = short.MinValue, short maxVal = short.MaxValue)
+        {
+            int curVal = v;
+            ImGui.InputInt(label, ref curVal, step, step_fast, flags);
+            short newV = (short)curVal;
+            if (newV < minVal)
+                newV = minVal;
+            else if (newV > maxVal)
+                newV = maxVal;
+            v = newV;
+        }
+        
+        
+
+        public static void GhettoInputLong(string label, ref long v, int step = 1, int step_fast = 100, 
+            ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, long minVal = long.MinValue, long maxVal = long.MaxValue)
+        {
+            int curVal = (int)v;
+            ImGui.InputInt(label, ref curVal, step, step_fast, flags);
+            
+            long newV = curVal;
+            if (newV < minVal)
+                newV = minVal;
+            else if (newV > maxVal)
+                newV = maxVal;
+            v = newV;
         }
 
         // Would be very hard to implement lol

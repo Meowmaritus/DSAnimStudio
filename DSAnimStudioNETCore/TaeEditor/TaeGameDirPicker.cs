@@ -53,43 +53,51 @@ namespace DSAnimStudio.TaeEditor
             set => checkBoxLoadUnpackedGameFiles.Checked = value;
         }
 
+        public bool DisableInterrootDCX
+        {
+            get => checkBoxDisableInterrootDCX.Checked;
+            set => checkBoxDisableInterrootDCX.Checked = value;
+        }
+
         public bool InitAndCheckIfNeedsToBeShownLol()
         {
             bool shouldBeShown = true;
-            SaveFile = GameRoot.ProjectPath;
-            GameData.LoadProjectJson();
+            SaveFile = zzz_DocumentManager.CurrentDocument.GameRoot.ProjectPath;
+            zzz_DocumentManager.CurrentDocument.GameData.LoadProjectJson();
 
-            GameData.ProjectJsonLockAct(proj =>
+            zzz_DocumentManager.CurrentDocument.GameData.ProjectJsonLockAct(proj =>
             {
                 SelectedGameDir = proj.GameDirectory;
                 SelectedModengineDir = proj.ModEngineDirectory;
                 LoadLooseParams = proj.LoadLooseParams;
                 LoadUnpackedGameFiles = proj.LoadUnpackedGameFiles;
+                DisableInterrootDCX = proj.DisableInterrootDCX;
             });
-            
+
 
             return shouldBeShown;
         }
 
         private void TaeGameDirPicker_Load(object sender, EventArgs e)
         {
-            
+
         }
 
         private void buttonSave_Click(object sender, EventArgs e)
         {
-            GameRoot.ProjectPath = SaveFile;
-            GameData.ProjectJsonLockAct(proj =>
+            zzz_DocumentManager.CurrentDocument.GameRoot.ProjectPath = SaveFile;
+            zzz_DocumentManager.CurrentDocument.GameData.ProjectJsonLockAct(proj =>
             {
                 proj.GameDirectory = SelectedGameDir;
                 proj.ModEngineDirectory = SelectedModengineDir;
                 proj.LoadLooseParams = LoadLooseParams;
                 proj.LoadUnpackedGameFiles = LoadUnpackedGameFiles;
-                proj.Save(SaveFile);
+                proj.DisableInterrootDCX = DisableInterrootDCX;
+                proj.Save(SaveFile, zzz_DocumentManager.CurrentDocument);
             });
-            GameData.SaveProjectJson();
-            
-            
+            zzz_DocumentManager.CurrentDocument.GameData.SaveProjectJson();
+
+
             ClickedApply = true;
             Close();
         }
@@ -170,8 +178,15 @@ namespace DSAnimStudio.TaeEditor
 
         private void TaeGameDirPicker_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (!ClickedApply)
-                System.Threading.Thread.CurrentThread.Interrupt();
+            //if (!ClickedApply)
+            //    System.Threading.Thread.CurrentThread.Interrupt();
+        }
+
+        private void buttonHelpDisableInterrootDCX_Click(object sender, EventArgs e)
+        {
+            System.Windows.Forms.MessageBox.Show("Removes .dcx extension from all paths in the game data directory. For use with DS1 PTDE unpacked via UDSFM." +
+                "\n\nYou definitely want to enable Load Unpacked Game Files with this option.",
+                "Explanation", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

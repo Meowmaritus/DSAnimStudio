@@ -9,11 +9,12 @@ namespace DSAnimStudio.TaeEditor
 {
     public partial class TaeInspectorFormChangeEventType : Form
     {
-        public TAE.Template.EventTemplate CurrentTemplate;
+        public TAE.Template.ActionTemplate CurrentTemplate;
         public int NewEventType;
-        public TAE TAEReference;
+        public DSAProj ProjRef;
+        public DSAProj.AnimCategory AnimCategoryRef;
 
-        private List<TAE.Template.EventTemplate> TemplatesList;
+        private List<TAE.Template.ActionTemplate> TemplatesList;
 
         public TaeInspectorFormChangeEventType()
         {
@@ -22,12 +23,12 @@ namespace DSAnimStudio.TaeEditor
 
         private void InspectorFormChangeEventType_Load(object sender, EventArgs e)
         {
-            TemplatesList = new List<TAE.Template.EventTemplate>();
+            TemplatesList = new List<TAE.Template.ActionTemplate>();
             listViewEventType.Items.Clear();
 
             //ListViewItem currentEventType = null;
 
-            foreach (var v in TAEReference.BankTemplate.Values)
+            foreach (var v in ProjRef.Template.Values)
             {
                 TemplatesList.Add(v);
                 listViewEventType.Items.Add(new ListViewItem(new string[] { v.ID.ToString(), v.Name } ));

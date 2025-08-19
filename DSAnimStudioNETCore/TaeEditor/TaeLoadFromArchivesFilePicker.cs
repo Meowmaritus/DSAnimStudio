@@ -22,6 +22,12 @@ namespace DSAnimStudio.TaeEditor
             get => listBoxFiles.SelectedItem as string;
         }
 
+        public int SelectedEblFileIndex
+        {
+            get => listBoxFiles.SelectedIndex;
+            set => listBoxFiles.SelectedIndex = value;
+        }
+
         public void InitEblFileList(List<string> eblFiles, string defaultOptionStartMatch, string exactMatchDefault)
         {
             listBoxFiles.Items.Clear();

@@ -10,37 +10,116 @@ namespace DSAnimStudio.ImguiOSD
     public abstract partial class Dialog
     {
         [Flags]
-        public enum CancelTypes : int
+        public enum ResultTypes : byte
         {
             None = 0,
-            ClickTitleBarX = 1 << 0,
-            PressEscape = 1 << 1,
-            PressEnter = 1 << 2,
-            ClickedAcceptButton = 1 << 3,
-
-            Combo_ClickTitleBarX_PressEscape = ClickTitleBarX | PressEscape,
-            Combo_All = ClickTitleBarX | PressEscape | PressEnter | ClickedAcceptButton,
+            Accept = 1 << 0,
+            Cancel = 1 << 1,
+            Refuse = 1 << 2,
+        }
+        
+        [Flags]
+        public enum InputFlag : byte
+        {
+            None = 0,
+            EnterKeyToAccept = 1 << 0,
+            EscapeKeyToCancel = 1 << 1,
+            TitleBarXToCancel = 1 << 2,
         }
 
-        public readonly Guid UniqueInstanceGUID = Guid.NewGuid();
+        private bool prevFrameBuiltWindow = false;
+        public bool IsFirstFrameBuildingWindow = true;
+        
+        public readonly string GUID = Guid.NewGuid().ToString();
 
         public string Title;
 
-        public CancelTypes AllowedCancelTypes = CancelTypes.None;
+        public System.Numerics.Vector2 LastPosition = new System.Numerics.Vector2(-2, -2);
+        public System.Numerics.Vector2 LastSize = new System.Numerics.Vector2(2, 2);
 
-        public bool WasCancelled => CancelType != CancelTypes.None;
-        public CancelTypes CancelType { get; private set; } = CancelTypes.None;
-
-        public bool AllowsCancelType(CancelTypes type)
+        public RectF GetRect(bool subtractScrollBar = false)
         {
-            return (AllowedCancelTypes & type) != 0;
+            float titleBarHeight = 18 * Main.DPI;
+            float x = (LastPosition.X / Main.DPI);
+            float y = ((LastPosition.Y + titleBarHeight) / Main.DPI);
+            float w = ((LastSize.X - (subtractScrollBar ? (Main.ImGuiScrollBarPixelSize * Main.DPI) : 0)) / Main.DPI);
+            float h = ((LastSize.Y - (subtractScrollBar ? (Main.ImGuiScrollBarPixelSize * Main.DPI) : 0) - titleBarHeight) / Main.DPI);
+
+            return new RectF(x, y, w, h);
+        }
+
+        protected Dialog(string title)
+        {
+            Title = title;
+        }
+
+        public bool AllowsResultAccept
+        {
+            get => AllowsResultType(ResultTypes.Accept);
+            set => AllowedResultTypes |= ResultTypes.Accept;
+        }
+        public bool AllowsResultCancel
+        {
+            get => AllowsResultType(ResultTypes.Cancel);
+            set => AllowedResultTypes |= ResultTypes.Cancel;
+        }
+        
+        public bool AllowsResultRefuse
+        {
+            get => AllowsResultType(ResultTypes.Refuse);
+            set => AllowedResultTypes |= ResultTypes.Refuse;
+        }
+
+        public bool CancelHandledByInheritor = false;
+        public bool AcceptHandledByInheritor = false;
+
+        public bool EnterKeyToAccept
+        {
+            get => HasInputFlag(InputFlag.EnterKeyToAccept);
+            set => InputFlags |= InputFlag.EnterKeyToAccept;
+        }
+        public bool EscapeKeyToCancel
+        {
+            get => HasInputFlag(InputFlag.EscapeKeyToCancel);
+            set => InputFlags |= InputFlag.EscapeKeyToCancel;
+        }
+        public bool TitleBarXToCancel
+        {
+            get => HasInputFlag(InputFlag.TitleBarXToCancel);
+            set => InputFlags |= InputFlag.TitleBarXToCancel;
+        }
+
+        public ResultTypes AllowedResultTypes = ResultTypes.None;
+
+        public InputFlag InputFlags = InputFlag.EscapeKeyToCancel | InputFlag.TitleBarXToCancel;
+
+        public bool IsTitleBarXRequested = false;
+
+        public bool IsEscapeKeyRequested = false;
+        public bool IsEnterKeyRequested = false;
+
+        public bool AutoResize = true;
+        public bool NoMove = false;
+        public bool NoResize = false;
+
+        public bool HasInputFlag(InputFlag type)
+        {
+            return (InputFlags & type) != 0;
+        }
+
+        public bool HasResult => ResultType != ResultTypes.None;
+        public ResultTypes ResultType { get; private set; } = ResultTypes.None;
+
+        public bool AllowsResultType(ResultTypes type)
+        {
+            return (AllowedResultTypes & type) != 0;
         }
 
         public bool IsDismissed { get; private set; }
         protected void Dismiss()
         {
             IsDismissed = true;
-            Task.Run(OnDismiss);
+            Main.WinForm.Invoke(OnDismiss ?? (() => { }));
             //OnDismiss?.Invoke();
 
         }
@@ -49,60 +128,126 @@ namespace DSAnimStudio.ImguiOSD
 
         protected abstract void BuildInsideOfWindow();
 
+        protected virtual void PreUpdate()
+        {
+            IsEscapeKeyRequested = false;
+            IsEnterKeyRequested = false;
+        }
+
+        protected virtual void BeforeBuildWindow()
+        {
+
+        }
+
         public void Update(bool isTopMost)
         {
+            PreUpdate();
+            
             if (Title == null)
                 throw new InvalidOperationException("Dialog title cannot be null.");
-
-            // Check for topmost
-            if (isTopMost)
-                ImGui.OpenPopup($"{Title}##{UniqueInstanceGUID}");
-            bool isOpen = true;
-
             
+            
+            if (isTopMost)
+                ImGui.OpenPopup($"{Title}##{GUID}");
+
+            bool isOpen = true;
+            
+            bool isUsingTitleBarX = TitleBarXToCancel && AllowsResultCancel;
+
+            if (!isTopMost)
+                ImGuiDebugDrawer.PushDisabled();
+
+            var flags = ImGuiWindowFlags.NoSavedSettings |
+                    ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.Popup;
+
+            if (NoMove)
+                flags |= ImGuiWindowFlags.NoMove;
+
+            if (NoResize)
+                flags |= ImGuiWindowFlags.NoResize;
+
+            if (AutoResize)
+                flags |= ImGuiWindowFlags.AlwaysAutoResize;
 
             bool didPopupWindow;
-            if (AllowsCancelType(CancelTypes.ClickTitleBarX))
-            {
-                didPopupWindow = ImGui.BeginPopupModal($"{Title}##{UniqueInstanceGUID}", ref isOpen,
-                    ImGuiWindowFlags.AlwaysAutoResize |
-                    ImGuiWindowFlags.NoSavedSettings |
-                    ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.Popup);
-            }
+            if (isUsingTitleBarX)
+                didPopupWindow = ImGui.BeginPopupModal($"{Title}##{GUID}", ref isOpen, flags);
             else
-            {
-                didPopupWindow = ImGuiEx.BeginPopupModal($"{Title}##{UniqueInstanceGUID}",
-                    ImGuiWindowFlags.AlwaysAutoResize |
-                    ImGuiWindowFlags.NoSavedSettings |
-                    ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.Popup);
-            }
+                didPopupWindow = ImGuiEx.BeginPopupModal($"{Title}##{GUID}", flags);
+            
+
+            bool buildWindowThisFrame = didPopupWindow;
+
+            IsFirstFrameBuildingWindow = buildWindowThisFrame && !prevFrameBuiltWindow;
+
+            IsEscapeKeyRequested = DialogManager.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Escape);
+            IsEnterKeyRequested = DialogManager.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Enter);
 
             if (didPopupWindow)
             {
-                if (isTopMost)
+                if (buildWindowThisFrame)
+                {
+                    
+
                     BuildInsideOfWindow();
 
+                    if (IsTitleBarXRequested)
+                    {
+                        IsTitleBarXRequested = false;
+                    }
+                    
+                    
+                }
 
+                LastPosition = ImGui.GetWindowPos();
+                LastSize = ImGui.GetWindowSize();
 
                 ImGui.EndPopup();
             }
+            
+            if (!isTopMost)
+                ImGuiDebugDrawer.PopDisabled();
+            // else
+            // {
+            //     Console.WriteLine("what the fuck");
+            // }
 
-            if (!isOpen && AllowsCancelType(CancelTypes.ClickTitleBarX))
+            //isOpen = ImGui.IsPopupOpen($"{Title}##{GUID}");
+            
+            if (!isOpen && isUsingTitleBarX && isTopMost)
             {
-                CancelType = CancelTypes.ClickTitleBarX;
-                Dismiss();
+                IsTitleBarXRequested = true;
+                if (!CancelHandledByInheritor)
+                {
+                    ResultType = ResultTypes.Cancel;
+                    Dismiss();
+                }
+                
             }
 
-            if (AllowsCancelType(CancelTypes.PressEscape) && Main.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
+            
+
+            if (IsEscapeKeyRequested)
             {
-                CancelType = CancelTypes.PressEscape;
-                Dismiss();
+                if (EscapeKeyToCancel && AllowsResultCancel && !CancelHandledByInheritor && isTopMost)
+                {
+                    ResultType = ResultTypes.Cancel;
+                    Dismiss();
+                }
             }
-            else if (AllowsCancelType(CancelTypes.PressEnter) && Main.Input.KeyDown(Microsoft.Xna.Framework.Input.Keys.Enter))
+
+            if (IsEnterKeyRequested)
             {
-                CancelType = CancelTypes.PressEnter;
-                Dismiss();
+                if (EnterKeyToAccept && AllowsResultAccept && !AcceptHandledByInheritor && isTopMost)
+                {
+                    ResultType = ResultTypes.Accept;
+                    Dismiss();
+                }
             }
+
+            
+            
+            prevFrameBuiltWindow = buildWindowThisFrame;
         }
     }
 }

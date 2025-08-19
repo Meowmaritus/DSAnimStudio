@@ -65,12 +65,12 @@ namespace DSAnimStudio
 
         public void UpdateGuiLockout()
         {
-            SetGuiLock(LoadingTaskMan.AnyTasksRunning());
+            SetGuiLock(zzz_DocumentManager.CurrentDocument.LoadingTaskMan.AnyInteractionBlockingTasks());
         }
 
         private void buttonImport_Click(object sender, EventArgs e)
         {
-            LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_FLVER2Import", "Importing Model...", prog =>
+            zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTask("SoulsAssetPipeline_FLVER2Import", "Importing Model...", prog =>
             {
                 SaveValuesToConfig();
 
@@ -78,8 +78,8 @@ namespace DSAnimStudio
 
                 var cfg = new FLVER2Importer.FLVER2ImportSettings();
 
-                cfg.Game = GameRoot.GameType;
-                cfg.FlverHeader = Scene.MainModel.MainMesh.Flver2Header;
+                cfg.Game = zzz_DocumentManager.CurrentDocument.GameRoot.GameType;
+                cfg.FlverHeader = zzz_DocumentManager.CurrentDocument.Scene.MainModel.MainMesh.Flver2Header;
 
                 cfg.AssetPath = ImportConfig.AssetPath;
                 cfg.ConvertFromZUp = ImportConfig.ConvertFromZUp;
@@ -108,32 +108,32 @@ namespace DSAnimStudio
 
 #if DEBUG
                 byte[] flver = importedFlver.Flver.Write();
-                File.WriteAllBytes($"{Scene.MainModel.Name}.flver", flver);
+                File.WriteAllBytes($"{zzz_DocumentManager.CurrentDocument.Scene.MainModel.Name}.flver", flver);
 #endif
 
-                var importedAnimStudioModel = GameRoot.LoadCharacter(Scene.MainModel.Name, Scene.MainModel.Name, importedFlver, doImport, ImportConfig);
+                var importedAnimStudioModel = zzz_DocumentManager.CurrentDocument.GameRoot.LoadCharacter(zzz_DocumentManager.CurrentDocument.Scene.MainModel.Name, zzz_DocumentManager.CurrentDocument.Scene.MainModel.Name, importedFlver, doImport, ImportConfig)[0];
 
                 DoSaveImport = doImport;
 
                 
-                var oldMainModel = Scene.MainModel;
+                var oldMainModel = zzz_DocumentManager.CurrentDocument.Scene.MainModel;
 
-                lock (Scene._lock_ModelLoad_Draw)
+                lock (zzz_DocumentManager.CurrentDocument.Scene._lock_ModelLoad_Draw)
                 {
                     importedAnimStudioModel.NpcParam = oldMainModel.NpcParam;
                     importedAnimStudioModel.DefaultDrawMask = oldMainModel.DefaultDrawMask;
                     importedAnimStudioModel.DrawMask = oldMainModel.DrawMask;
-                    importedAnimStudioModel.NpcParam?.ApplyToNpcModel(importedAnimStudioModel);
+                    importedAnimStudioModel.NpcParam?.ApplyToNpcModel(zzz_DocumentManager.CurrentDocument, importedAnimStudioModel);
 
 
-                    Scene.Models.Remove(oldMainModel);
+                    zzz_DocumentManager.CurrentDocument.Scene.Models.Remove(oldMainModel);
                     oldMainModel?.Dispose();
                     importedAnimStudioModel.AnimContainer?.ClearAnimation();
                 }
 
-                Main.TAE_EDITOR.Graph.ViewportInteractor.InitializeForCurrentModel();
-                Main.TAE_EDITOR.ReselectCurrentAnimation();
-                Main.TAE_EDITOR.HardReset();
+                zzz_DocumentManager.CurrentDocument.EditorScreen.Graph.ViewportInteractor.InitializeForCurrentModel();
+                zzz_DocumentManager.CurrentDocument.EditorScreen.ReselectCurrentAnimation();
+                zzz_DocumentManager.CurrentDocument.EditorScreen.HardReset();
 
                 Invoke(new Action(() =>
                 {
@@ -163,9 +163,9 @@ namespace DSAnimStudio
 
                 //oldMainMesh?.Dispose();
 
-                Scene.ForceTextureReloadImmediate();
+                zzz_DocumentManager.CurrentDocument.Scene.ForceTextureReloadImmediate();
 
-            }, disableProgressBarByDefault: true, isUnimportant: true);
+            }, disableProgressBarByDefault: true, flags: zzz_LoadingTaskManIns.TaskFlags.AllowsInteraction);
 
             Main.WinForm.Focus();
         }
@@ -227,9 +227,9 @@ namespace DSAnimStudio
             else
             {
 
-                GameRoot.CreateCharacterModelBackup(Scene.MainModel.Name);
+                zzz_DocumentManager.CurrentDocument.GameRoot.CreateCharacterModelBackup(zzz_DocumentManager.CurrentDocument.Scene.MainModel.Name);
 
-                LoadingTaskMan.DoLoadingTask("SapFlver2SaveImportedData", "Saving imported model and textures...", prog =>
+                zzz_DocumentManager.CurrentDocument.LoadingTaskMan.DoLoadingTask("SapFlver2SaveImportedData", "Saving imported model and textures...", prog =>
                 {
                     for (int i = 0; i < DoSaveImport.Count; i++)
                     {
@@ -238,7 +238,7 @@ namespace DSAnimStudio
                     }
 
                     System.Windows.Forms.MessageBox.Show("Saved file.");
-                }, isUnimportant: true);
+                }, flags: zzz_LoadingTaskManIns.TaskFlags.AllowsInteraction);
 
                 
             }
@@ -251,7 +251,7 @@ namespace DSAnimStudio
 
         private void buttonRestoreBackups_Click(object sender, EventArgs e)
         {
-            GameRoot.RestoreCharacterModelBackup(Scene.MainModel.Name, isAsync: true);
+            zzz_DocumentManager.CurrentDocument.GameRoot.RestoreCharacterModelBackup(zzz_DocumentManager.CurrentDocument.Scene.MainModel.Name, isAsync: true);
         }
     }
 }
