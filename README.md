@@ -104,7 +104,8 @@
 * StaydMcButtermuffin - Many hours of helping me write and debug the shaders + reversing some basic Dark Souls 3 shaders to aid in the process. He also helped me understand Sekiro and Elden Ring shaders for the new versions of the application.
 
 ## Libraries Utilized
-* A slightly modified version of [TKGP's SoulsFormats library](https://github.com/JKAnderson/SoulsFormats), currently just included in this repo instead of its own thing.
+* [SoulsAssetPipeline](https://github.com/Meowmaritus/SoulsAssetPipeline)
+* [SoulsFormatsNEXT](https://github.com/soulsmods/SoulsFormatsNEXT)
 * [Newtonsoft Json.NET](https://www.newtonsoft.com/json)
 * An edited version of MonoGame Framework where I added support for newer texture types.
 * A small portion of [HavokLib](https://github.com/PredatorCZ/HavokLib), specifically the spline-compressed animation decompressor, adapted for C#
