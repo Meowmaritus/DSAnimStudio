@@ -765,7 +765,9 @@ namespace DSAnimStudio.ImguiOSD
                     Tools.EnumPicker($"{nameof(gluer.Method)}", ref gluer.Method);
                     ImGui.Checkbox($"{nameof(gluer.Enabled)}", ref gluer.Enabled);
                     ImGui.Checkbox($"{nameof(gluer.EnableDebugDraw)}", ref gluer.EnableDebugDraw);
-                    
+
+                    ImGui.SliderFloat($"{nameof(gluer.DebugWeight)}", ref gluer.DebugWeight, 0, 1);
+
                     if (gluer.LeaderModel != null)
                         ImGui.Text($"{nameof(gluer.LeaderModel)} = '{gluer.LeaderModel.Name}'");
                     else

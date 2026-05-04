@@ -263,7 +263,7 @@ namespace DSAnimStudio
                     NubReferenceFKMatrix = nubMat;
                 }
 
-                
+
             }
 
             //ac6 test fix?

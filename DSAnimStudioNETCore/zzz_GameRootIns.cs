@@ -411,7 +411,7 @@ namespace DSAnimStudio
             }
             else
             {
-                Main.REQUEST_REINIT_EDITOR = true;
+                ParentDocument.RequestClose_ForceDelete = true;
                 return false;
             }
         }
@@ -552,7 +552,7 @@ namespace DSAnimStudio
                     {
                         if (directoryDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
                         {
-                            Main.REQUEST_REINIT_EDITOR = true;
+                            ParentDocument.RequestClose_ForceDelete = true;
                             zzz_DocumentManager.ClearAllRequests();
                             return;
                         }
@@ -1051,7 +1051,7 @@ namespace DSAnimStudio
                             var newChrbndName = ParentDocument.GameData.ShowPickInsideBndPath(" /chr/", @".*\/c\d\d\d\d.chrbnd.dcx$", modelBrowseSearchDefaultStart, $"Choose Character Model for '{anibndID}.anibnd.dcx'", defaultModelGameDataPath);
                             if (newChrbndName == null)
                             {
-                                Main.REQUEST_REINIT_EDITOR = true;
+                                ParentDocument.RequestClose_ForceDelete = true;
                                 System.Windows.Forms.MessageBox.Show($"No character models found. Make sure your game directory is set correctly.",
                             "Error", System.Windows.Forms.MessageBoxButtons.OK);
                                 return false;
@@ -1070,7 +1070,7 @@ namespace DSAnimStudio
 
                 if (!checkCharacterExistsOrGiveUp(defaultModelGameDataPath))
                 {
-                    Main.REQUEST_REINIT_EDITOR = true;
+                    ParentDocument.RequestClose_ForceDelete = true;
                     return;
                 }
 

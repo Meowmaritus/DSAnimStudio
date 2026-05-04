@@ -64,7 +64,8 @@ namespace DSAnimStudio
             bool result = false;
             lock (_lock_DocumentSwitcher)
             {
-                result = Documents.Any(doc => !doc.IsDisposed && !doc.Hidden && doc.Proj.SAFE_AnyModified());
+                result = Documents.Any(doc => !doc.IsDisposed && !doc.IsUnimportantPlaceholderDoc 
+                && doc.FinishedLoading && doc.Proj.SAFE_AnyModified());
             }
             return result;
         }
@@ -85,7 +86,9 @@ namespace DSAnimStudio
             {
                 foreach (var doc in Documents)
                 {
-                    if (doc.Hidden)
+                    if (!doc.FinishedLoading)
+                        continue;
+                    if (doc.IsUnimportantPlaceholderDoc)
                         continue;
                     if (doc.EditorScreen.IsReadOnlyFileMode)
                         continue;
@@ -114,8 +117,8 @@ namespace DSAnimStudio
                 lock (_lock_DocumentSwitcher)
                 {
                     _hiddenDefaultDocument = new zzz_DocumentIns();
-                    _hiddenDefaultDocument.ImguiTabDisplayName = "Empty";
-                    _hiddenDefaultDocument.Hidden = true;
+                    _hiddenDefaultDocument.ImguiTabDisplayName = "No Project Loaded";
+                    _hiddenDefaultDocument.IsUnimportantPlaceholderDoc = true;
 
                     CurrentDocument = null;
                 }
@@ -228,13 +231,14 @@ namespace DSAnimStudio
             }
         }
 
-        public static void AddDocument(string docName, bool hidden = false, bool immediateSwitch = false)
+        public static void AddDocument(string docName, bool immediateSwitch = false)
         {
             lock (_lock_DocumentSwitcher)
             {
                 var doc = new zzz_DocumentIns();
                 doc.ImguiTabDisplayName = docName;
-                doc.Hidden = hidden;
+                //doc.CurrentlyLoading = true;
+                doc.FinishedLoading = false;
                 Documents.Add(doc);
                 RequestedDocumentToSwitchTo = doc;
 
@@ -244,8 +248,8 @@ namespace DSAnimStudio
                     {
                         PreviousDocument = CurrentDocument;
                         CurrentDocument = doc;
-                        if (!hidden)
-                            doc.RequestImguiTabSelect = true;
+                        //if (!hidden)
+                        //    doc.RequestImguiTabSelect = true;
                         RequestedDocumentToSwitchTo = null;
                     }
                 }
@@ -330,11 +334,20 @@ namespace DSAnimStudio
                 RequestOpenFromPackedGameDataArchives = false;
 
                 // Commented out because it actually calls RequestFileOpenRecent from within this.
-                zzz_DocumentManager.AddDocument("New Document", hidden: true, immediateSwitch: true);
+                zzz_DocumentManager.AddDocument("New Document", immediateSwitch: true);
 
                 var thing = new TaeLoadFromArchivesWizard();
                 thing.StartInCenterOf(Main.WinForm);
                 thing.ShowDialog();
+
+                if (!thing.WizardCompleted)
+                {
+                    lock (_lock_CurrentDocument)
+                    {
+                        CurrentDocument.RequestClose_ForceDelete = true;
+                    }
+                }
+
                 thing?.Dispose();
 
                 //Task.Run(() => { }).ContinueWith((task) =>
@@ -345,6 +358,7 @@ namespace DSAnimStudio
                 //    thing?.Dispose();
                 //}, TaskScheduler.FromCurrentSynchronizationContext());
 
+                return;
             }
 
             if (RequestFileOpenBrowse && userCanInteractWithTabs)
@@ -354,9 +368,11 @@ namespace DSAnimStudio
                 // Commented out because it actually calls RequestFileOpenRecent from within this.
                 //zzz_DocumentManager.AddDocument("New Document", hidden: true, immediateSwitch: true);
 
-                zzz_DocumentManager.AddDocument("New Document", hidden: true, immediateSwitch: true);
+                zzz_DocumentManager.AddDocument("New Document", immediateSwitch: true);
 
                 CurrentDocument.EditorScreen.File_Open();
+
+                // Document deleting on cancel handled by the messy load file funcs.
 
                 return;
             }
@@ -370,7 +386,7 @@ namespace DSAnimStudio
                 RequestFileOpenRecent_SelectedFile = null;
                 RequestFileOpenRecent_AfterOpenAction = (doc) => { };
 
-                zzz_DocumentManager.AddDocument("New Document", hidden: true, immediateSwitch: true);
+                zzz_DocumentManager.AddDocument("New Document", immediateSwitch: true);
 
                 if (CurrentDocument.EditorScreen.NewLoadFile_FromDocManager(selectedFile) == true)
                 {
@@ -430,7 +446,7 @@ namespace DSAnimStudio
                             proj.CheckScanForErrorsQueue();
                         }
 
-                        bool docSelectedThisFrame = (doc == CurrentDocument && !doc.Hidden && !doc.LoadingTaskMan?.AnyInteractionBlockingTasks() == true);
+                        bool docSelectedThisFrame = (doc == CurrentDocument && !doc.IsUnimportantPlaceholderDoc && !doc.LoadingTaskMan?.AnyInteractionBlockingTasks() == true);
 
                         if (doc.RequestInitAfterBeingSwitchedTo && !doc.LoadingTaskMan?.AnyInteractionBlockingTasks() == true)
                         {
@@ -473,11 +489,12 @@ namespace DSAnimStudio
                         if (doc.EditorScreen?.IsFileOpen == true && !string.IsNullOrWhiteSpace(docName))
                         {
                             doc.ImguiTabDisplayName = $"[{doc.GameRoot.GameType}]{Utils.GetShortIngameFileName(docName)}{(doc.Proj?.SAFE_AnyModified() == true ? "*" : "")}";
-                            if (doc.WasHiddenPrevFrame)
-                            {
-                                doc.RequestImguiTabSelect = true;
-                            }
-                            doc.Hidden = false;
+                            //if (doc.WasHiddenPrevFrame)
+                            //{
+                            //    doc.RequestImguiTabSelect = true;
+                            //}
+                            //doc.Hidden = false;
+                            doc.FinishedLoading = true;
                         }
 
                         if (doc == CurrentDocument && _imguiSelectedDocument != doc)
@@ -486,7 +503,7 @@ namespace DSAnimStudio
                         }
 
                         doc.WasSelectedPrevFrame = docSelectedThisFrame;
-                        doc.WasHiddenPrevFrame = doc.Hidden;
+                        //doc.WasHiddenPrevFrame = doc.Hidden;
                     }
 
                 }
@@ -510,8 +527,8 @@ namespace DSAnimStudio
                         int i = 0;
                         foreach (var doc in Documents)
                         {
-                            if (doc.Hidden)
-                                continue;
+                            //if (doc.IsUnimportantPlaceholderDoc)
+                            //    continue;
 
                             var flags = ImGuiTabItemFlags.None;
 

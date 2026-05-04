@@ -24,7 +24,7 @@ namespace DSAnimStudio.ImguiOSD
             
             protected override void PreUpdate()
             {
-                IsOpen = MainProj != null;
+                IsOpen = true;// MainProj != null;
                 Flags = ImGuiWindowFlags.None
                     | ImGuiWindowFlags.NoDecoration
                     | ImGuiWindowFlags.NoMove

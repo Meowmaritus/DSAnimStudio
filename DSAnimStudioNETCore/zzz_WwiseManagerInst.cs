@@ -573,6 +573,12 @@ namespace DSAnimStudio
             bool tryFindStopEvent(WwiseBNK bank)
             {
                 bool result = false;
+
+                if (bank.HIRC == null)
+                {
+                    return result;
+                }
+
                 //lock (bank.ThreadLockObject)
                 //{
 
@@ -664,6 +670,12 @@ namespace DSAnimStudio
 
                 //    return false;
                 //}
+
+                if (bnk.HIRC == null)
+                {
+                    zzz_NotificationManagerIns.PushNotification($"Wwise bank {bnkName}'s HIRC is null.");
+                    return false;
+                }
 
                 if (objectID > 0)
                 {
@@ -956,57 +968,64 @@ namespace DSAnimStudio
                     else if (obj is WwiseObject.CAkDialogueEvent asDialogueEvent)
                     {
                         var wwiseSwitchProps = new Dictionary<uint, uint>();
-                        wwiseSwitchProps[soundMan.Hash("PlayerEquipmentTops")] = soundMan.Hash(GetArmorMaterialName_Top());
-                        wwiseSwitchProps[soundMan.Hash("PlayerEquipmentBottoms")] = soundMan.Hash(GetArmorMaterialName_Bottom());
-                        wwiseSwitchProps[soundMan.Hash("DeffensiveMaterial")] = soundMan.Hash(GetDefensiveMaterialName());
-
-                        bool StepIntoCheck(int currentNestLevel, WwiseObject.CAkDialogueEvent.Node node)
+                        if (soundMan.ParentDocument.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR)
                         {
-                            if (node.Target is WwiseObject.CAkDialogueEvent.NodeTargetEnd asEndNode)
+                            wwiseSwitchProps[soundMan.Hash("PlayerEquipmentTops")] = soundMan.Hash(GetArmorMaterialName_Top());
+                            wwiseSwitchProps[soundMan.Hash("PlayerEquipmentBottoms")] = soundMan.Hash(GetArmorMaterialName_Bottom());
+                            wwiseSwitchProps[soundMan.Hash("DeffensiveMaterial")] = soundMan.Hash(GetDefensiveMaterialName());
+                        }
+                        else if (soundMan.ParentDocument.GameRoot.GameType is SoulsGames.AC6)
+                        {
+                            //wwiseSwitchProps[soundMan.Hash("PlayerEquipmentTops")] = soundMan.Hash(GetArmorMaterialName_Top());
+                            //wwiseSwitchProps[soundMan.Hash("PlayerEquipmentBottoms")] = soundMan.Hash(GetArmorMaterialName_Bottom());
+                            //wwiseSwitchProps[soundMan.Hash("DeffensiveMaterial")] = soundMan.Hash(GetDefensiveMaterialName());
+                            //wwiseSwitchProps[soundMan.Hash("AttackPowerType")] = soundMan.Hash("pow_s");
+                            //wwiseSwitchProps[soundMan.Hash("BGMStatus")] = soundMan.Hash("normal");
+                            //wwiseSwitchProps[soundMan.Hash("BulletGenerateType")] = soundMan.Hash("hit");
+                            //wwiseSwitchProps[soundMan.Hash("DestroyedSeType")] = soundMan.Hash("No");
+                            //wwiseSwitchProps[soundMan.Hash("GeneratorType")] = soundMan.Hash("normal");
+                            //wwiseSwitchProps[soundMan.Hash("Material")] = soundMan.Hash("stone_pavement");
+                            //wwiseSwitchProps[soundMan.Hash("ShootSeCategory")] = soundMan.Hash("Handgun");
+                            //wwiseSwitchProps[soundMan.Hash("Weapon_Type")] = soundMan.Hash("hand_gun");
+                            //wwiseSwitchProps[soundMan.Hash("WeaponAtkAttribute")] = soundMan.Hash("slash");
+                            //wwiseSwitchProps[soundMan.Hash("WeaponMaterial")] = soundMan.Hash("iron");
+
+
+                            //wwiseSwitchProps[soundMan.Hash("leg_id")] = 0;
+                            uint leg_id = 0;
+                            soundMan.ParentDocument.Scene.AccessMainModel(m =>
                             {
-                                return (DoObjectInBank(bnk, asEndNode.AudioNodeID, bnkName, new List<string>()));
-                            }
-                            else if (node.Target is WwiseObject.CAkDialogueEvent.NodeTargetChildren asParent)
-                            {
-                                // Best Match
-                                if (asDialogueEvent.Mode == 0)
+                                m.ChrAsm.AccessArmorSlot(NewChrAsm.EquipSlotTypes.Legs, lg =>
                                 {
-                                    foreach (var child in asParent.Children)
-                                    {
-                                        if (asParent.DefaultChild == child)
-                                            continue;
-                                        if (child.IsPassCheck(wwiseSwitchProps) && child.PassesProbabilityCheck(RAND))
-                                        {
-                                            return (StepIntoCheck(currentNestLevel + 1, child));
-                                        }
-                                    }
-                                    // If no children pass check, do default
-                                    if (asParent.DefaultChild != null)
-                                    {
-                                        return (StepIntoCheck(currentNestLevel + 1, asParent.DefaultChild));
-                                    }
-                                    else if (asParent.Children.Count > 0)
-                                    {
-                                        return (StepIntoCheck(currentNestLevel + 1, asParent.Children.First()));
-                                    }
+                                    leg_id = soundMan.Hash($"lg{(lg.EquipID.ToString("000000000"))}");
+                                });
+                            });
+                            wwiseSwitchProps[soundMan.Hash("leg_id")] = leg_id;
+
+                            wwiseSwitchProps[soundMan.Hash("leg_type")] = soundMan.Hash("two_legs");
+                            wwiseSwitchProps[soundMan.Hash("charactor_type")] = soundMan.Hash("enemy");
+                        }
+
+                            bool StepIntoCheck(int currentNestLevel, WwiseObject.CAkDialogueEvent.Node node)
+                            {
+                                if (node.Target is WwiseObject.CAkDialogueEvent.NodeTargetEnd asEndNode)
+                                {
+                                    return (DoObjectInBank(bnk, asEndNode.AudioNodeID, bnkName, new List<string>()));
                                 }
-                                // Weighted
-                                else if (asDialogueEvent.Mode == 1)
+                                else if (node.Target is WwiseObject.CAkDialogueEvent.NodeTargetChildren asParent)
                                 {
-                                    var childrenToChooseFrom = new List<WwiseObject.CAkDialogueEvent.Node>();
-                                    foreach (var child in asParent.Children)
+                                    // Best Match
+                                    if (asDialogueEvent.Mode == 0)
                                     {
-                                        if (asParent.DefaultChild == child)
-                                            continue;
-                                        if (child.IsPassCheck(wwiseSwitchProps) && child.PassesProbabilityCheck(RAND))
+                                        foreach (var child in asParent.Children)
                                         {
-                                            //if (StepIntoCheck(currentNestLevel + 1, child))
-                                            //    return true;
-                                            childrenToChooseFrom.Add(child);
+                                            if (asParent.DefaultChild == child)
+                                                continue;
+                                            if (child.IsPassCheck(wwiseSwitchProps) && child.PassesProbabilityCheck(RAND))
+                                            {
+                                                return (StepIntoCheck(currentNestLevel + 1, child));
+                                            }
                                         }
-                                    }
-                                    if (childrenToChooseFrom.Count == 0)
-                                    {
                                         // If no children pass check, do default
                                         if (asParent.DefaultChild != null)
                                         {
@@ -1017,30 +1036,57 @@ namespace DSAnimStudio
                                             return (StepIntoCheck(currentNestLevel + 1, asParent.Children.First()));
                                         }
                                     }
-
-                                    int totalWeight = 0;
-                                    foreach (var child in childrenToChooseFrom)
+                                    // Weighted
+                                    else if (asDialogueEvent.Mode == 1)
                                     {
-                                        totalWeight += child.Weight;
-                                    }
-                                    int fate = RAND.Next(0, totalWeight);
-                                    int currentWeight = 0;
-                                    foreach (var child in childrenToChooseFrom)
-                                    {
-                                        currentWeight += child.Weight;
-
-                                        if (fate <= currentWeight)
+                                        var childrenToChooseFrom = new List<WwiseObject.CAkDialogueEvent.Node>();
+                                        foreach (var child in asParent.Children)
                                         {
-                                            if (child.PassesProbabilityCheck(RAND))
-                                                return (StepIntoCheck(currentNestLevel + 1, child));
+                                            if (asParent.DefaultChild == child)
+                                                continue;
+                                            if (child.IsPassCheck(wwiseSwitchProps) && child.PassesProbabilityCheck(RAND))
+                                            {
+                                                //if (StepIntoCheck(currentNestLevel + 1, child))
+                                                //    return true;
+                                                childrenToChooseFrom.Add(child);
+                                            }
+                                        }
+                                        if (childrenToChooseFrom.Count == 0)
+                                        {
+                                            // If no children pass check, do default
+                                            if (asParent.DefaultChild != null)
+                                            {
+                                                return (StepIntoCheck(currentNestLevel + 1, asParent.DefaultChild));
+                                            }
+                                            else if (asParent.Children.Count > 0)
+                                            {
+                                                return (StepIntoCheck(currentNestLevel + 1, asParent.Children.First()));
+                                            }
+                                        }
+
+                                        int totalWeight = 0;
+                                        foreach (var child in childrenToChooseFrom)
+                                        {
+                                            totalWeight += child.Weight;
+                                        }
+                                        int fate = RAND.Next(0, totalWeight);
+                                        int currentWeight = 0;
+                                        foreach (var child in childrenToChooseFrom)
+                                        {
+                                            currentWeight += child.Weight;
+
+                                            if (fate <= currentWeight)
+                                            {
+                                                if (child.PassesProbabilityCheck(RAND))
+                                                    return (StepIntoCheck(currentNestLevel + 1, child));
+                                            }
                                         }
                                     }
                                 }
+
+
+                                return false;
                             }
-
-
-                            return false;
-                        }
 
                         var check = StepIntoCheck(0, asDialogueEvent.RootNode);
                         if (check)

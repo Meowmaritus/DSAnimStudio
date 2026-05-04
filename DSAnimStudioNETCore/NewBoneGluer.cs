@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using SoulsAssetPipeline.Animation;
 using Quaternion = System.Numerics.Quaternion;
 
 namespace DSAnimStudio
@@ -18,6 +19,8 @@ namespace DSAnimStudio
         public Model FollowerModel;
         // If exposed publicly, ensure _lock_boneGlueEntries is used.
         public List<BoneGlueEntry> BoneGlueEntries;
+
+        public float DebugWeight = 1;
         
         public object _lock_boneGlueEntries = new object();
 
@@ -151,8 +154,11 @@ namespace DSAnimStudio
                             {
                                 throw new NotImplementedException();
                             }
-                            
-                            
+
+                            fkShift = NewBlendableTransform.Lerp(NewBlendableTransform.Identity, fkShift.ToNewBlendableTransform(), DebugWeight).GetMatrixFull();
+
+
+
 
                             if (Mode == GlueModes.ShiftEntireSkeleton)
                             {

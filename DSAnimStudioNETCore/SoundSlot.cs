@@ -78,6 +78,7 @@ namespace DSAnimStudio
                     if (Instances == null || Instances.Count == 0)
                     {
                         KillImmediately();
+                        State = States.Stopping;
                         return;
                     }
 

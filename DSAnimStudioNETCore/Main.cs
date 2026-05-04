@@ -827,7 +827,7 @@ namespace DSAnimStudio
         public static bool REQUEST_EXIT_NEXT_IS_AUTOMATIC = false;
         public static bool REQUEST_EXIT_GUARANTEED_FINAL = false;
 
-        public static bool REQUEST_REINIT_EDITOR = false;
+        //public static bool REQUEST_REINIT_EDITOR = false;
 
         public static bool REQUEST_DISABLE_SOUND = false;
 
@@ -2022,12 +2022,12 @@ namespace DSAnimStudio
                     NeedsShowWelcome = false;
                 }
 
-                if (REQUEST_REINIT_EDITOR)
-                {
-                    //RESET_ALL();
-                    zzz_DocumentManager.KillCurrentDocForLoadFail();
-                    REQUEST_REINIT_EDITOR = false;
-                }
+                //if (REQUEST_REINIT_EDITOR)
+                //{
+                //    //RESET_ALL();
+                //    zzz_DocumentManager.KillCurrentDocForLoadFail();
+                //    REQUEST_REINIT_EDITOR = false;
+                //}
 
                 if (REQUEST_DISABLE_SOUND)
                 {

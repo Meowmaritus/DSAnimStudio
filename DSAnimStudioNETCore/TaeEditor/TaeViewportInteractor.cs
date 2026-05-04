@@ -808,7 +808,8 @@ namespace DSAnimStudio.TaeEditor
                                     "Make sure your directories are setup properly on the 'Setup Project Directories' menu.", "Error", System.Windows.Forms.MessageBoxButtons.OK,
                                     System.Windows.Forms.MessageBoxIcon.Error);
 
-                                Main.REQUEST_REINIT_EDITOR = true;
+                                //Main.REQUEST_REINIT_EDITOR = true;
+                                ParentDocument.RequestClose_ForceDelete = true;
                                 return;
                             }
 

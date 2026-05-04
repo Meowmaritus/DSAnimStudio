@@ -127,7 +127,9 @@ namespace DSAnimStudio
 
         //public bool ImguiTabOpen;
 
-        public bool Hidden = false;
+        public bool IsUnimportantPlaceholderDoc = false;
+
+        public bool FinishedLoading = false;
 
         public bool RequestClose = false;
         public bool RequestClose_ForceDelete = false;
@@ -136,7 +138,7 @@ namespace DSAnimStudio
 
         public bool RequestImguiTabSelect = false;
 
-        public bool WasHiddenPrevFrame = false;
+        //public bool WasHiddenPrevFrame = false;
 
 
         //public bool IsJustSwitchingTo = false;
@@ -281,7 +283,7 @@ namespace DSAnimStudio
                 }
 
                 // Hidden is used for placeholder doc, no point in forcing a whole GC collect for that.
-                if (!Hidden)
+                if (!IsUnimportantPlaceholderDoc)
                 {
                     //GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
                     Main.MainThreadLazyDispatch(() =>

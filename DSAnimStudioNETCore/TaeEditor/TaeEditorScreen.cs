@@ -1098,7 +1098,7 @@ namespace DSAnimStudio.TaeEditor
                     var mainBinder = Utils.ReadBinder(mainBinderName);
                     TaeFileContainer.CheckGameVersionForTaeInterop(mainBinderName, mainBinder);
 
-                    if (Main.REQUEST_REINIT_EDITOR)
+                    if (ParentDocument.RequestClose_ForceDelete)
                         return false;
 
                     CheckAutoLoadXMLTemplate(containerInfo.GetMainBinderName());
@@ -1125,7 +1125,7 @@ namespace DSAnimStudio.TaeEditor
                         "program folder next to DS Anim Studio.exe in order to load Sekiro / Elden Ring files.", "Unable to find compression DLL",
                         System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
 
-                    Main.REQUEST_REINIT_EDITOR = true;
+                    ParentDocument.RequestClose_ForceDelete = true;
 
                     return false;
                 }
@@ -1146,7 +1146,7 @@ namespace DSAnimStudio.TaeEditor
                     System.Windows.Forms.MessageBox.Show("No TAE files in selected binder. Cancelling load operation.", "Unsupported File",
                         System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
 
-                    Main.REQUEST_REINIT_EDITOR = true;
+                    ParentDocument.RequestClose_ForceDelete = true;
 
                     return false;
                 }
@@ -1408,7 +1408,7 @@ namespace DSAnimStudio.TaeEditor
             
             Graph = null;
             LoadAnimIntoGraph(SelectedAnimCategory, SelectedAnim);
-            if (Main.REQUEST_REINIT_EDITOR)
+            if (ParentDocument.RequestClose_ForceDelete)
                 return;
 
             FileContainer.Proj.SafeAccessAnimCategoriesList(categoriesList =>
@@ -2275,14 +2275,14 @@ namespace DSAnimStudio.TaeEditor
                         {
                             if (!ParentDocument.GameRoot.InitializeFromBND(fileContainerName))
                             {
-                                Main.REQUEST_REINIT_EDITOR = true;
+                                ParentDocument.RequestClose_ForceDelete = true;
                                 return;
                             }
                         }
                         var fallback = TryAnimLoadFallback(fileContainerName);
                         if (fallback == null)
                         {
-                            Main.REQUEST_REINIT_EDITOR = true;
+                            ParentDocument.RequestClose_ForceDelete = true;
                             return;
                         }
                         else
@@ -2317,14 +2317,18 @@ namespace DSAnimStudio.TaeEditor
                         "Cancelling load operation.", "Invalid File",
                         System.Windows.Forms.MessageBoxButtons.OK,
                         System.Windows.Forms.MessageBoxIcon.Stop);
-                    Main.REQUEST_REINIT_EDITOR = true;
+                    ParentDocument.RequestClose_ForceDelete = true;
                     return;
                 }
 
                 bool isCancel = false;
 
+
+                // kill this placeholder document since a new one is being requested
+                ParentDocument.RequestClose_ForceDelete = true;
                 zzz_DocumentManager.RequestFileOpenRecent = true;
                 zzz_DocumentManager.RequestFileOpenRecent_SelectedFile = container;
+                zzz_DocumentManager.RequestFileOpenRecent_AfterOpenAction = (doc) => { };
 
                 //if (!isCancel)
                 //{
@@ -2352,15 +2356,14 @@ namespace DSAnimStudio.TaeEditor
                 //    }, disableProgressBarByDefault: true);
                 //}
 
-               
 
-               
+
+
             }
             else
             {
                 // When you decide to cancel opening something
                 ParentDocument.RequestClose_ForceDelete = true;
-                Main.REQUEST_REINIT_EDITOR = true;
             }
         }
 
@@ -2859,11 +2862,11 @@ namespace DSAnimStudio.TaeEditor
                     while (Graph?.ViewportInteractor?.IS_STILL_LOADING != false)
                     {
                         System.Threading.Thread.Sleep(20);
-                        if (Main.REQUEST_REINIT_EDITOR)
+                        if (ParentDocument.RequestClose_ForceDelete)
                             break;
                     }
 
-                    if (Main.REQUEST_REINIT_EDITOR)
+                    if (ParentDocument.RequestClose_ForceDelete)
                         return;
 
                     Graph.PlaybackCursor.ResetAll();
