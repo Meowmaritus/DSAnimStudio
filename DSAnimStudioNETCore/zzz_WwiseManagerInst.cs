@@ -198,8 +198,11 @@ namespace DSAnimStudio
                     if (kvp.Value.IsCompleted)
                     {
                         var wem = kvp.Value.Result;
-                        info.ByteCount += wem.WavBytes.Length;
-                        info.SoundFileCount++;
+                        if (wem != null && wem.WavBytes != null)
+                        {
+                            info.ByteCount += wem.WavBytes.Length;
+                            info.SoundFileCount++;
+                        }
                     }
                     else
                     {
@@ -251,29 +254,35 @@ namespace DSAnimStudio
                     var loadTask = Task.Run(() =>
                     {
                         LoadedWEM loadedWem = null;
-                        if (loadedWem != null)
+                        try
                         {
-                            return loadedWem;
+                            if (loadedWem != null)
+                            {
+                                return loadedWem;
+                            }
+
+                            loadedWem = new LoadedWEM();
+                            loadedWem.WEMID = wemID;
+
+                            //byte[] oggBytes = null;
+                            byte[] wemBytes = getWemBytesIfNotLoaded.Invoke();
+                            using (var wemStream = new MemoryStream(wemBytes))
+                            {
+                                WEMSharp.WEMFile wemConvert = new WEMSharp.WEMFile(wemStream, WEMSharp.WEMForcePacketFormat.NoForcePacketFormat);
+                                //oggBytes = wemConvert.GenerateOGG($"{Main.Directory}\\Res\\codebooks.bin", false, false);
+                                loadedWem.LoopEnabled = wemConvert.LoopEnabled != 0;
+                                loadedWem.LoopStart = wemConvert.LoopStart;
+                                loadedWem.LoopEnd = wemConvert.LoopEnd;
+                                loadedWem.TotalSampleCount = wemConvert.SampleCount;
+                            }
+
+                            //loadedOgg.FixedOggBytes = Wwise.FixOggWithRevorb(oggBytes);
+                            loadedWem.WavBytes = ConvertWEMtoWAV(wemBytes);
                         }
-
-                        loadedWem = new LoadedWEM();
-                        loadedWem.WEMID = wemID;
-
-                        //byte[] oggBytes = null;
-                        byte[] wemBytes = getWemBytesIfNotLoaded.Invoke();
-                        using (var wemStream = new MemoryStream(wemBytes))
+                        catch (Exception ex)
                         {
-                            WEMSharp.WEMFile wemConvert = new WEMSharp.WEMFile(wemStream, WEMSharp.WEMForcePacketFormat.NoForcePacketFormat);
-                            //oggBytes = wemConvert.GenerateOGG($"{Main.Directory}\\Res\\codebooks.bin", false, false);
-                            loadedWem.LoopEnabled = wemConvert.LoopEnabled != 0;
-                            loadedWem.LoopStart = wemConvert.LoopStart;
-                            loadedWem.LoopEnd = wemConvert.LoopEnd;
-                            loadedWem.TotalSampleCount = wemConvert.SampleCount;
+                            zzz_NotificationManagerIns.PushNotificationWarn($"Failed to convert {wemID}.wem\n\n{ex}");
                         }
-
-                        //loadedOgg.FixedOggBytes = Wwise.FixOggWithRevorb(oggBytes);
-                        loadedWem.WavBytes = ConvertWEMtoWAV(wemBytes);
-
                         return loadedWem;
                     });
 
