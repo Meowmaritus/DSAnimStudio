@@ -84,14 +84,14 @@
             textBoxPathInterroot.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             textBoxPathInterroot.Location = new System.Drawing.Point(236, 5);
             textBoxPathInterroot.Name = "textBoxPathInterroot";
-            textBoxPathInterroot.Size = new System.Drawing.Size(283, 23);
+            textBoxPathInterroot.Size = new System.Drawing.Size(638, 23);
             textBoxPathInterroot.TabIndex = 1;
             textBoxPathInterroot.Validating += textBoxPathInterroot_Validating;
             // 
             // buttonPathInterroot
             // 
             buttonPathInterroot.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            buttonPathInterroot.Location = new System.Drawing.Point(539, 5);
+            buttonPathInterroot.Location = new System.Drawing.Point(894, 5);
             buttonPathInterroot.Name = "buttonPathInterroot";
             buttonPathInterroot.Size = new System.Drawing.Size(33, 23);
             buttonPathInterroot.TabIndex = 2;
@@ -103,7 +103,7 @@
             // 
             buttonPathAnibnd.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             buttonPathAnibnd.Enabled = false;
-            buttonPathAnibnd.Location = new System.Drawing.Point(539, 63);
+            buttonPathAnibnd.Location = new System.Drawing.Point(894, 63);
             buttonPathAnibnd.Name = "buttonPathAnibnd";
             buttonPathAnibnd.Size = new System.Drawing.Size(33, 23);
             buttonPathAnibnd.TabIndex = 4;
@@ -116,7 +116,7 @@
             textBoxPathMainBinder.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             textBoxPathMainBinder.Location = new System.Drawing.Point(236, 63);
             textBoxPathMainBinder.Name = "textBoxPathMainBinder";
-            textBoxPathMainBinder.Size = new System.Drawing.Size(283, 23);
+            textBoxPathMainBinder.Size = new System.Drawing.Size(638, 23);
             textBoxPathMainBinder.TabIndex = 3;
             textBoxPathMainBinder.Validating += textBoxPathMainBinder_Validating;
             // 
@@ -124,7 +124,7 @@
             // 
             buttonPathChrbnd.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             buttonPathChrbnd.Enabled = false;
-            buttonPathChrbnd.Location = new System.Drawing.Point(539, 92);
+            buttonPathChrbnd.Location = new System.Drawing.Point(894, 92);
             buttonPathChrbnd.Name = "buttonPathChrbnd";
             buttonPathChrbnd.Size = new System.Drawing.Size(33, 23);
             buttonPathChrbnd.TabIndex = 6;
@@ -137,7 +137,7 @@
             textBox_Chr_PathChrbnd.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             textBox_Chr_PathChrbnd.Location = new System.Drawing.Point(236, 92);
             textBox_Chr_PathChrbnd.Name = "textBox_Chr_PathChrbnd";
-            textBox_Chr_PathChrbnd.Size = new System.Drawing.Size(283, 23);
+            textBox_Chr_PathChrbnd.Size = new System.Drawing.Size(638, 23);
             textBox_Chr_PathChrbnd.TabIndex = 5;
             textBox_Chr_PathChrbnd.Validating += textBox_Chr_PathChrbnd_Validating;
             // 
@@ -145,7 +145,7 @@
             // 
             buttonPathSaveLoose.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             buttonPathSaveLoose.Enabled = false;
-            buttonPathSaveLoose.Location = new System.Drawing.Point(539, 121);
+            buttonPathSaveLoose.Location = new System.Drawing.Point(894, 121);
             buttonPathSaveLoose.Name = "buttonPathSaveLoose";
             buttonPathSaveLoose.Size = new System.Drawing.Size(33, 23);
             buttonPathSaveLoose.TabIndex = 8;
@@ -158,7 +158,7 @@
             textBoxPathSaveLoose.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             textBoxPathSaveLoose.Location = new System.Drawing.Point(236, 121);
             textBoxPathSaveLoose.Name = "textBoxPathSaveLoose";
-            textBoxPathSaveLoose.Size = new System.Drawing.Size(283, 23);
+            textBoxPathSaveLoose.Size = new System.Drawing.Size(638, 23);
             textBoxPathSaveLoose.TabIndex = 7;
             textBoxPathSaveLoose.Validating += textBoxPathSaveLoose_Validating;
             // 
@@ -233,7 +233,7 @@
             // 
             buttonCreateProject.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             buttonCreateProject.Enabled = false;
-            buttonCreateProject.Location = new System.Drawing.Point(453, 300);
+            buttonCreateProject.Location = new System.Drawing.Point(808, 300);
             buttonCreateProject.Name = "buttonCreateProject";
             buttonCreateProject.Size = new System.Drawing.Size(119, 23);
             buttonCreateProject.TabIndex = 16;
@@ -293,7 +293,7 @@
             groupBox1.Controls.Add(checkBoxLoadLooseParams);
             groupBox1.Location = new System.Drawing.Point(7, 150);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(565, 144);
+            groupBox1.Size = new System.Drawing.Size(920, 144);
             groupBox1.TabIndex = 20;
             groupBox1.TabStop = false;
             groupBox1.Text = "Options";
@@ -321,7 +321,7 @@
             // buttonClearModEngineDir
             // 
             buttonClearModEngineDir.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            buttonClearModEngineDir.Location = new System.Drawing.Point(501, 15);
+            buttonClearModEngineDir.Location = new System.Drawing.Point(856, 15);
             buttonClearModEngineDir.Name = "buttonClearModEngineDir";
             buttonClearModEngineDir.Size = new System.Drawing.Size(23, 23);
             buttonClearModEngineDir.TabIndex = 27;
@@ -372,7 +372,7 @@
             // buttonBrowseModEngineDir
             // 
             buttonBrowseModEngineDir.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            buttonBrowseModEngineDir.Location = new System.Drawing.Point(526, 15);
+            buttonBrowseModEngineDir.Location = new System.Drawing.Point(881, 15);
             buttonBrowseModEngineDir.Name = "buttonBrowseModEngineDir";
             buttonBrowseModEngineDir.Size = new System.Drawing.Size(33, 23);
             buttonBrowseModEngineDir.TabIndex = 22;
@@ -385,7 +385,7 @@
             textBoxPathModEngineDir.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             textBoxPathModEngineDir.Location = new System.Drawing.Point(257, 15);
             textBoxPathModEngineDir.Name = "textBoxPathModEngineDir";
-            textBoxPathModEngineDir.Size = new System.Drawing.Size(240, 23);
+            textBoxPathModEngineDir.Size = new System.Drawing.Size(595, 23);
             textBoxPathModEngineDir.TabIndex = 21;
             textBoxPathModEngineDir.Validating += textBoxPathModEngineDir_Validating;
             // 
@@ -402,7 +402,7 @@
             // 
             buttonCancel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             buttonCancel.Enabled = false;
-            buttonCancel.Location = new System.Drawing.Point(363, 300);
+            buttonCancel.Location = new System.Drawing.Point(718, 300);
             buttonCancel.Name = "buttonCancel";
             buttonCancel.Size = new System.Drawing.Size(84, 23);
             buttonCancel.TabIndex = 21;
@@ -412,12 +412,13 @@
             // 
             // comboBoxFileType
             // 
+            comboBoxFileType.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             comboBoxFileType.Enabled = false;
             comboBoxFileType.FormattingEnabled = true;
             comboBoxFileType.Items.AddRange(new object[] { "Character (\"/chr/\")", "Equipment (\"/parts/\")" });
             comboBoxFileType.Location = new System.Drawing.Point(236, 34);
             comboBoxFileType.Name = "comboBoxFileType";
-            comboBoxFileType.Size = new System.Drawing.Size(283, 23);
+            comboBoxFileType.Size = new System.Drawing.Size(638, 23);
             comboBoxFileType.TabIndex = 22;
             comboBoxFileType.Text = "Character (\"/chr/\")";
             comboBoxFileType.SelectedIndexChanged += comboBoxFileType_SelectedIndexChanged;
@@ -427,7 +428,7 @@
             label6.AutoSize = true;
             label6.Location = new System.Drawing.Point(12, 39);
             label6.Name = "label6";
-            label6.Size = new System.Drawing.Size(107, 15);
+            label6.Size = new System.Drawing.Size(108, 15);
             label6.TabIndex = 23;
             label6.Text = "2. Choose File Type";
             // 
@@ -447,7 +448,7 @@
             comboBox_PartsObjAeg_SelectAnibndInPartsbnd.FormattingEnabled = true;
             comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Location = new System.Drawing.Point(236, 92);
             comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Name = "comboBox_PartsObjAeg_SelectAnibndInPartsbnd";
-            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Size = new System.Drawing.Size(283, 23);
+            comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Size = new System.Drawing.Size(638, 23);
             comboBox_PartsObjAeg_SelectAnibndInPartsbnd.TabIndex = 25;
             comboBox_PartsObjAeg_SelectAnibndInPartsbnd.Text = "comboBoxSelectAnibndInPartsbnd";
             comboBox_PartsObjAeg_SelectAnibndInPartsbnd.SelectedIndexChanged += comboBox_PartsObjAeg_SelectAnibndInPartsbnd_SelectedIndexChanged;
@@ -456,7 +457,7 @@
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(584, 335);
+            ClientSize = new System.Drawing.Size(939, 335);
             Controls.Add(buttonHelpFileType);
             Controls.Add(label6);
             Controls.Add(comboBoxFileType);

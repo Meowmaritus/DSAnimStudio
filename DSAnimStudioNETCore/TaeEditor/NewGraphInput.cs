@@ -46,6 +46,7 @@ namespace DSAnimStudio.TaeEditor
         public List<DSAProj.Action> CurrentDragActions = new List<DSAProj.Action>();
         private bool IsFirstUpdateCycleOfDrag = true;
         private bool WasPlayingBeforeTimelineDrag = false;
+        private bool IsFirstFrameWithMouseDragReleased = false;
 
         public void ResetAllDrag()
         {
@@ -398,8 +399,10 @@ namespace DSAnimStudio.TaeEditor
 
             if (!forceReleaseDrag && input.LeftClickHeld)
             {
+                IsFirstFrameWithMouseDragReleased = true;
                 if (input.RightClickDown)
                 {
+                    Graph.PlaybackCursor.Scrubbing = false;
                     CurrentDragType = DragTypes.CancelledDragStillHoldingMouse;
                     input.UnlockMouseCursor();
                 }
@@ -415,6 +418,8 @@ namespace DSAnimStudio.TaeEditor
 
                 if (CurrentDragType == DragTypes.SelectionRect)
                 {
+                    Graph.PlaybackCursor.Scrubbing = false;
+
                     ClearDragActions();
                     var actions = Graph.GetActionListCopy_UsesLock(useGhostIfAvailable: true);
                     foreach (var act in actions)
@@ -438,6 +443,8 @@ namespace DSAnimStudio.TaeEditor
 
                 else if (!isReadOnly && CurrentDragType is DragTypes.ResizeLeft or DragTypes.ResizeRight or DragTypes.Move)
                 {
+                    Graph.PlaybackCursor.Scrubbing = false;
+
                     SetDragSustainPosToMousePoint(input.MousePosition - Graph.WholeScrollViewerRect.TopLeftCorner());
                     MoveResizeDragFrameDelta = GetHorizontalDragDistanceInFrameSnaps();
 
@@ -587,8 +594,9 @@ namespace DSAnimStudio.TaeEditor
                 CurrentDragMouseAccumulatedPixels = Vector2.Zero;
                 
                 // Upon letting go of left click
-                if (input.LeftClickUp)
+                if (input.LeftClickUp || IsFirstFrameWithMouseDragReleased)
                 {
+                    IsFirstFrameWithMouseDragReleased = false;
                     if (CurrentDragType == DragTypes.SelectionRect)
                     {
                         var dragActions = GetCurrentDragActions();
@@ -1581,6 +1589,7 @@ namespace DSAnimStudio.TaeEditor
             if (MainScreen.Input.MiddleClickHeld && (Graph.ScrollViewerContentsRect.Contains(MainScreen.Input.MiddleClickDownAnchor)
                 || Graph.ActionTrackHeaderTextRect.Contains(MainScreen.Input.MiddleClickDownAnchor)))
             {
+                Graph.PlaybackCursor.Scrubbing = false;
                 //MainScreen.Input.CursorType = MouseCursorType.GrabPan;
                 Layout.ScrollToRect = null;
                 Graph.ScrollViewer.Scroll -= MainScreen.Input.MousePositionDelta;

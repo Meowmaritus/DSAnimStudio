@@ -93,6 +93,11 @@ namespace DSAnimStudio.TaeEditor
             UpdateScrollToRect(elapsedTime);
 
             Graph.ScrollViewer.UpdateInput(Graph.MainScreen.Input, Main.DELTA_UPDATE, allowScrollWheel: false);
+
+            if (Graph.ScrollViewer.JustManuallyScrolledHorizontally || Graph.ScrollViewer.JustManuallyScrolledVertically)
+            {
+                Graph.PlaybackCursor.Scrubbing = false;
+            }
         }
 
         private void UpdateScrollToRect(float elapsedTime)
@@ -179,6 +184,11 @@ namespace DSAnimStudio.TaeEditor
             }
 
             Graph.ScrollViewer.UpdateInput(Graph.MainScreen.Input, Main.DELTA_UPDATE, allowScrollWheel: !Graph.MainScreen.Input.CtrlHeld);
+
+            if (Graph.ScrollViewer.JustManuallyScrolledHorizontally || Graph.ScrollViewer.JustManuallyScrolledVertically)
+            {
+                Graph.PlaybackCursor.Scrubbing = false;
+            }
 
             if (Graph.MainScreen.Input.CtrlHeld)
             {

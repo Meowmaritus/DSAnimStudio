@@ -14,13 +14,13 @@ namespace DSAnimStudio
     public class NewAnimSkeleton_HKX : NewAnimSkeleton
     {
         protected override bool GetGlobalEnableDrawTransforms() => Main.HelperDraw.EnableHkxBoneTransforms;
-        protected override bool GetGlobalEnableDrawLines() => false;
+        protected override bool GetGlobalEnableDrawLines() => Main.HelperDraw.EnableHkxBoneLines;
         protected override bool GetGlobalEnableDrawBoxes() => false;
         protected override bool GetGlobalEnableDrawText() => Main.HelperDraw.EnableHkxBoneNames;
         protected override Color GetDrawColorBoneBoxes() => Color.Fuchsia;
-        protected override Color GetDrawColorBoneLines() => Color.Fuchsia;
-        protected override Color GetDrawColorBoneTransforms() => Main.Colors.ColorHelperHkxBone;
-        protected override Color GetDrawColorBoneText() => Main.Colors.ColorHelperHkxBone;
+        protected override Color GetDrawColorBoneLines() => Main.Colors.ColorHelperHkxBoneLines;
+        protected override Color GetDrawColorBoneTransforms() => Main.Colors.ColorHelperHkxBoneTransforms;
+        protected override Color GetDrawColorBoneText() => Main.Colors.ColorHelperHkxBoneTexts;
         
         public HKX.HKASkeleton OriginalHavokSkeleton = null;
         public HKX SkeletonPackfile = null;

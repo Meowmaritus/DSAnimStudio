@@ -2362,7 +2362,7 @@ namespace DSAnimStudio.TaeEditor
             catch (Exception ex) when (Main.EnableErrorHandler.ActionSimUpdate)
             {
                 //Console.WriteLine("bruh");
-                zzz_NotificationManagerIns.PushNotification($"ERROR SIMULATING ACTIONS:\n{ex}");
+                zzz_NotificationManagerIns.PushNotificationError($"ERROR SIMULATING ACTIONS:\n{ex}");
             }
 
             //NewSimulationScrub(time, (float)Graph.PlaybackCursor.CurrentTime, evBoxes);

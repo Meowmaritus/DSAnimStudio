@@ -247,7 +247,7 @@ namespace DSAnimStudio
 
             //SpawnPrinter.AppendLine(Name, DBG.COLOR_FLVER_BONE);
 
-            if ((bone.Flags & FLVER.Node.NodeFlags.DummyOwner) == 0)
+            if ((bone.Flags & FLVER.Node.NodeFlags.Disabled) == 0)
             {
                 var nubBone = boneList.Where(bn => bn.Name == bone.Name + "Nub").FirstOrDefault();
 
@@ -267,74 +267,77 @@ namespace DSAnimStudio
             }
 
             //ac6 test fix?
-            StartedAsNub = IsNub = ((bone.Flags & FLVER.Node.NodeFlags.DummyOwner) != 0);
+            StartedAsNub = IsNub = ((bone.Flags & FLVER.Node.NodeFlags.Disabled) != 0);
 
             BoundingBoxPrim = new DbgPrimWireBox(Transform.Default,
                 new Vector3(bone.BoundingBoxMin.X, bone.BoundingBoxMin.Y, bone.BoundingBoxMin.Z),
                 new Vector3(bone.BoundingBoxMax.X, bone.BoundingBoxMax.Y, bone.BoundingBoxMax.Z),
                 Color.White);
 
-            }
+        }
 
-            public void DrawPrim(Matrix world, bool enableDrawLines, bool enableDrawBox, Color bbColor, Color lineColor)
+        public void DrawPrim(NewAnimSkeleton skel, Matrix world, bool enableDrawLines, bool enableDrawBox, Color bbColor, Color lineColor)
+        {
+            if (BoundingBoxPrim != null && (enableDrawBox))
             {
-                if (BoundingBoxPrim != null && (enableDrawBox))
-                {
-                    //BonePrim.Transform = new Transform(Matrix.CreateScale(Length) * CurrentMatrix);
-                    //BonePrim.Draw(null, world);
-                    BoundingBoxPrim.OverrideColor = bbColor;
-                    BoundingBoxPrim.UpdateTransform(new Transform(FKMatrix));
-                    BoundingBoxPrim.Draw(enableDrawBox, null, world);
-                }
-
-                Vector3 boneStart = Vector3.Transform(Vector3.Zero, FKMatrix);
-
-                void DrawToEndPoint(Vector3 endPoint)
-                {
-                    var forward = -Vector3.Normalize(endPoint - boneStart);
-
-                    Matrix hitboxMatrix = Matrix.CreateWorld(boneStart, forward, Vector3.Up);
-
-                    if (forward.X == 0 && forward.Z == 0)
-                    {
-                        if (forward.Y >= 0)
-                            hitboxMatrix = Matrix.CreateRotationX(MathHelper.PiOver2) * Matrix.CreateTranslation(boneStart);
-                        else
-                            hitboxMatrix = Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateTranslation(boneStart);
-                    }
-
-                    float boneLength = (endPoint - boneStart).Length();
-
-                    GlobalBonePrim.Transform = new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateScale(boneLength) * hitboxMatrix);
-                    GlobalBonePrim.OverrideColor = lineColor;
-                    GlobalBonePrim.Draw(true, null, world);
-
-                    //using (var tempBone = new DbgPrimWireBone(Name, new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * hitboxMatrix), DBG.COLOR_FLVER_BONE, boneLength, boneLength * 0.2f))
-                    //{
-                    //    tempBone.Draw(null, world);
-                    //}
-                }
-
-                if (enableDrawLines)
-                {
-                    if (NubReferenceFKMatrix != null)
-                    {
-                        DrawToEndPoint(Vector3.Transform(Vector3.Zero, NubReferenceFKMatrix.Value * LocalTransform.GetXnaMatrixFull()));
-                    }
-
-                    foreach (var cb in ChildBones)
-                    {
-                        DrawToEndPoint(Vector3.Transform(Vector3.Zero, cb.FKMatrix));
-                    }
-                }
-
-                //if (DBG.CategoryEnableNameDraw[DbgPrimCategory.FlverBone])
-                //{
-                //    SpawnPrinter.Position3D = Vector3.Transform(Vector3.Zero, CurrentMatrix * world);
-                //    SpawnPrinter.Draw();
-                //}
-
-               
+                //BonePrim.Transform = new Transform(Matrix.CreateScale(Length) * CurrentMatrix);
+                //BonePrim.Draw(null, world);
+                BoundingBoxPrim.OverrideColor = bbColor;
+                BoundingBoxPrim.UpdateTransform(new Transform(FKMatrix));
+                BoundingBoxPrim.Draw(enableDrawBox, null, world);
             }
+
+            Vector3 boneStart = Vector3.Transform(Vector3.Zero, FKMatrix);
+
+            void DrawToEndPoint(Vector3 endPoint)
+            {
+                var forward = -Vector3.Normalize(endPoint - boneStart);
+
+                Matrix hitboxMatrix = Matrix.CreateWorld(boneStart, forward, Vector3.Up);
+
+                if (forward.X == 0 && forward.Z == 0)
+                {
+                    if (forward.Y >= 0)
+                        hitboxMatrix = Matrix.CreateRotationX(MathHelper.PiOver2) * Matrix.CreateTranslation(boneStart);
+                    else
+                        hitboxMatrix = Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateTranslation(boneStart);
+                }
+
+                float boneLength = (endPoint - boneStart).Length();
+
+                GlobalBonePrim.Transform = new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateScale(boneLength) * hitboxMatrix);
+                GlobalBonePrim.OverrideColor = lineColor;
+                GlobalBonePrim.Draw(true, null, world);
+
+                //using (var tempBone = new DbgPrimWireBone(Name, new Transform(Matrix.CreateRotationY(-MathHelper.PiOver2) * hitboxMatrix), DBG.COLOR_FLVER_BONE, boneLength, boneLength * 0.2f))
+                //{
+                //    tempBone.Draw(null, world);
+                //}
+            }
+
+            if (enableDrawLines)
+            {
+                if (NubReferenceFKMatrix != null)
+                {
+                    DrawToEndPoint(Vector3.Transform(Vector3.Zero, NubReferenceFKMatrix.Value * LocalTransform.GetXnaMatrixFull()));
+                }
+
+                
+            }
+
+            foreach (var cb in ChildBones)
+            {
+                if ((enableDrawLines && cb.EnablePrimDraw) || skel.DebugDrawTransformOfFlverBoneIndex == cb.Index)
+                    DrawToEndPoint(Vector3.Transform(Vector3.Zero, cb.FKMatrix));
+            }
+
+            //if (DBG.CategoryEnableNameDraw[DbgPrimCategory.FlverBone])
+            //{
+            //    SpawnPrinter.Position3D = Vector3.Transform(Vector3.Zero, CurrentMatrix * world);
+            //    SpawnPrinter.Draw();
+            //}
+
+
+        }
     }
 }

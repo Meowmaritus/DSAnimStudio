@@ -25,6 +25,21 @@ namespace DSAnimStudio
 
             public int DefMaterialType;
 
+            public AC6LegTypeModelIDs AC6LegTypeModelID;
+
+            public int AC6LegTypeSEID = -1;
+
+            public enum AC6LegTypeModelIDs : ushort
+            {
+                None = 0,
+                Bipedal = 1,
+                Tetrapod = 100,
+                ReverseJoint = 200,
+                Tank1 = 300,
+                Tank2 = 301,
+                Tank3 = 302,
+            }
+
             public bool CanEquipOnGender(bool isFemale)
             {
                 if (EquipModelGender == EquipModelGenders.UnisexUseA || EquipModelGender == EquipModelGenders.BothGendersUseMF || EquipModelGender == EquipModelGenders.UnisexUseMForBoth)
@@ -124,6 +139,7 @@ namespace DSAnimStudio
 
             public override void Read(BinaryReaderEx br)
             {
+                long trueStart = br.Position;
                 // Empty bytes added at start
                 if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsAssetPipeline.SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.AC6)
                     br.Position += 4;
@@ -228,6 +244,16 @@ namespace DSAnimStudio
                 {
                     br.Position = start + 0x100;
                     DefMaterialType = br.ReadUInt16();
+                }
+
+
+                if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.AC6)
+                {
+                    br.Position = trueStart + 0xDA;
+                    AC6LegTypeModelID = (AC6LegTypeModelIDs)br.ReadUInt16();
+
+                    br.Position = trueStart + 0x350;
+                    AC6LegTypeSEID = br.ReadInt32();
                 }
 
             }

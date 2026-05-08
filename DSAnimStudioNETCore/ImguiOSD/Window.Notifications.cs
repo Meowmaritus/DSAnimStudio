@@ -16,10 +16,32 @@ namespace DSAnimStudio.ImguiOSD
         {
             public override SaveOpenStateTypes GetSaveOpenStateType() => SaveOpenStateTypes.SaveAlways;
 
-            public override string NewImguiWindowTitle => "Notifications";
+            private object _lock_NotificationCount = new object();
+
+            public override string NewImguiWindowTitle => "Log";
+
+           
 
             public bool RequestScrollDown = false;
+
+            private int _unreadNotificationCount = 0;
             
+            public void Add1ToNotificationCount()
+            {
+                lock (_lock_NotificationCount)
+                {
+                    _unreadNotificationCount++;
+                }
+            }
+
+            public void ClearNotificationCount()
+            {
+                lock (_lock_NotificationCount)
+                {
+                    _unreadNotificationCount = 0;
+                }
+            }
+
             protected override void Init()
             {
                 
@@ -27,6 +49,7 @@ namespace DSAnimStudio.ImguiOSD
 
             protected override void BuildContents(ref bool anyFieldFocused)
             {
+                ImGui.Checkbox("Hide Popup Notifications", ref zzz_NotificationManagerIns.HideNotificationPopups);
                 lock (zzz_NotificationManagerIns._lock_notifications)
                 {
                     if (Tools.SimpleClickButton("Clear Notification History"))
@@ -65,7 +88,9 @@ namespace DSAnimStudio.ImguiOSD
 
                     ImGui.EndChild();
                 }
-                
+
+                ClearNotificationCount();
+
             }
         }
     }

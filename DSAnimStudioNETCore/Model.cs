@@ -1899,7 +1899,7 @@ namespace DSAnimStudio
                             if (!DialogManager.AnyDialogsShowing)
                             {
                                 //DialogManager.DialogOK("DRAW ERROR", $"{Name} failed to draw:\n\n{ex}");
-                                zzz_NotificationManagerIns.PushNotification($"{Name} failed to draw:\n\n{ex}");
+                                zzz_NotificationManagerIns.PushNotificationWarn($"{Name} failed to draw:\n\n{ex}");
                             }
                         }, basePlayerModel);
 

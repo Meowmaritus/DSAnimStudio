@@ -2,131 +2,147 @@
 <action_template game="SDT">
   <action id="0" name="ChrActionFlag">
     <s32 name="FlagType">
-      <entry name="0: Do Nothing" value="0"/>
-      <entry name="1: Input - RH Attack" value="1"/>
-      <entry name="3: Set Guard Type|ArgB:Guard BehaviorJudgeID" value="3"/>
-      <entry name="4: Cancel - RH Attack" value="4"/>
-      <entry name="5: Get-Parried Window|ArgC:Unknown" value="5"/>
-      <entry name="6: InvokeAnimCancelEndWithKeyboardKey" value="6"/>
-      <entry name="7: Disable Turning" value="7"/>
-      <entry name="8: Flag As Dodging" value="8"/>
-      <entry name="9: Input - LH Attack" value="9"/>
-      <entry name="10: Input - Magic" value="10"/>
-      <entry name="11: Cancel - LS Movement" value="11"/>
-      <entry name="12: Kill Character" value="12"/>
-      <entry name="14: Input - RH Attack Release" value="14"/>
-      <entry name="15: Input - LH Attack Release" value="15"/>
-      <entry name="16: Cancel - LH Attack" value="16"/>
-      <entry name="17: Cancel - Damage Dealt" value="17"/>
-      <entry name="18: Cancel - Throw" value="18"/>
-      <entry name="19: Disable Map Collision" value="19"/>
-      <entry name="20: Send Ghost Info" value="20"/>
-      <entry name="21: Input - Guard" value="21"/>
-      <entry name="22: Cancel - Guard" value="22"/>
-      <entry name="23: Cancel - AI ComboAttack" value="23"/>
-      <entry name="24: Super Armor" value="24"/>
-      <entry name="25: Input - Dodge" value="25"/>
-      <entry name="26: Cancel - Dodge" value="26"/>
-      <entry name="27: Disable Gravity" value="27"/>
-      <entry name="28: Disable Foot IK" value="28"/>
-      <entry name="29: Cancel - Magic" value="29"/>
-      <entry name="30: Input - Goods" value="30"/>
-      <entry name="31: Cancel - Goods" value="31"/>
-      <entry name="32: Cancel - Jump/Crouch/Weapon Switch" value="32"/>
-      <entry name="34: Cancel - Generic" value="34"/>
-      <entry name="35: Input - First Step RH Attack" value="35"/>
-      <entry name="36: Input - First Step LH Attack" value="36"/>
-      <entry name="37: Left/Right Movement Possible" value="37"/>
-      <entry name="38: Flying Character Fall" value="38"/>
-      <entry name="39: Disable Character Collision" value="39"/>
-      <entry name="40: Temporary Death State" value="40"/>
-      <entry name="41: Gap (Take 40% More Damage) (env(325))" value="41"/>
-      <entry name="42: Sweetspot (Deal 12.5% More Damage)" value="42"/>
-      <entry name="44: Disable Object Collision" value="44"/>
-      <entry name="46: Disappear Character" value="46"/>
-      <entry name="47: Kill Character (No Item Drop)" value="47"/>
-      <entry name="48: Item Drop From 47" value="48"/>
-      <entry name="49: Disable Lock-On" value="49"/>
-      <entry name="50: Disable Character Capsule Collision" value="50"/>
-      <entry name="51: Disable Fall Motion" value="51"/>
-      <entry name="52: Disable Vertical Movement Sync" value="52"/>
-      <entry name="53: Disable Floating Gauge Display" value="53"/>
-      <entry name="54: Disable Start/Inputs" value="54"/>
-      <entry name="55: Disable Ability to Lock-On" value="55"/>
-      <entry name="56: Disable Wall Attack Bound" value="56"/>
-      <entry name="57: Disable NPC Wall Attack Bound" value="57"/>
-      <entry name="58: SetStartbit6" value="58"/>
-      <entry name="59: Weakspot (Deal 20% Less Damage)" value="59"/>
-      <entry name="60: Cancel - Throw Angle" value="60"/>
-      <entry name="61: Disable Y-Axis Of Movement Target" value="61"/>
-      <entry name="62: Display Fixed Y-Axis Direction" value="62"/>
-      <entry name="63: AI Parry Signal" value="63"/>
-      <entry name="64: Mimicry Effect Allowed" value="64"/>
-      <entry name="65: Extend SpEffect Lifetime" value="65"/>
-      <entry name="66: Special Transition (env(271))" value="66"/>
-      <entry name="67: Invincible Excluding Throw Attacks (Defender)" value="67"/>
-      <entry name="68: Invincible During Throw (Attacker)" value="68"/>
-      <entry name="69: Throw Death Transition (Defender)" value="69"/>
-      <entry name="70: Throw Escape Transition (Attacker)" value="70"/>
-      <entry name="71: Poise Break Unrecoverable" value="71"/>
-      <entry name="72: InvokeKnockbackValue" value="72"/>
-      <entry name="73: Parry Possible State" value="73"/>
-      <entry name="74: Ladder Collision" value="74"/>
-      <entry name="75: Cancel - Item Pickup" value="75"/>
-      <entry name="76: Force Item Drop" value="76"/>
-      <entry name="78: Cancel - AI Move" value="78"/>
-      <entry name="79: Cancel - AI Step" value="79"/>
-      <entry name="80: Input - Item Pickup" value="80"/>
-      <entry name="81: Disable Input - Item Pickup (ActionButton4400)" value="81"/>
-      <entry name="82: Perfectly Match Ragdoll Pose" value="82"/>
-      <entry name="83: Force Cancel Mimicry" value="83"/>
-      <entry name="84: Special Transition 2 (env(298))" value="84"/>
-      <entry name="85: Light Lantern Weapon (Stateinfo 147)" value="85"/>
-      <entry name="86: Cancel - AI Attack Queued" value="86"/>
-      <entry name="87: Input - Common" value="87"/>
-      <entry name="88: Disable Precision Shooting" value="88"/>
-      <entry name="89: Disable All Movement" value="89"/>
-      <entry name="90: Limit Move Speed To Walk" value="90"/>
-      <entry name="91: Limit Move Speed To Dash" value="91"/>
-      <entry name="92: Sky Death Warp (act(144))" value="92"/>
-      <entry name="94: Perfect Invincibility" value="94"/>
-      <entry name="95: Disable Shadow" value="95"/>
-      <entry name="96: Set Immortality" value="96"/>
-      <entry name="97: Disable Input - Magic/Goods" value="97"/>
-      <entry name="98: SetBool32_0x7C_21_hks313" value="98"/>
-      <entry name="99: InvokeIsCultRitualProgressing" value="99"/>
-      <entry name="100: During Cult/Ceremony" value="100"/>
-      <entry name="101: Corpse Carrying Keyframe" value="101"/>
-      <entry name="102: Poise Forced Break" value="102"/>
-      <entry name="103: Cancel - Quick WA" value="103"/>
-      <entry name="104: Cancel - WA" value="104"/>
-      <entry name="105: Input - Quick WA" value="105"/>
-      <entry name="106: Input - WA" value="106"/>
-      <entry name="107: Cancel - Quick Goods" value="107"/>
-      <entry name="108: Input - Quick Goods" value="108"/>
-      <entry name="109: Can Double Cast (env(331))" value="109"/>
-      <entry name="110: Disable Direction Change" value="110"/>
-      <entry name="111: Input - Emergency Step" value="111"/>
-      <entry name="112: Cancel - Emergency Step" value="112"/>
-      <entry name="113: InvokeHeightCorrection" value="113"/>
-      <entry name="114: Enhanced Camera Tracking" value="114"/>
-      <entry name="115: Cancel - R1 Attack" value="115"/>
-      <entry name="116: Cancel - R2 Attack" value="116"/>
-      <entry name="117: Cancel - L1 Attack" value="117"/>
-      <entry name="118: Cancel - L2 Attack" value="118"/>
-      <entry name="119: TryToInvokeForceParryMode" value="119"/>
-      <entry name="120: Input - L1_L2_ByWeaponParam" value="120"/>
-      <entry name="121: Cancel - L1_l2_ByWeaponParam" value="121"/>
-      <entry name="122: SetBool32_0x1E0" value="122"/>
-      <entry name="123: SetBool32_0x1E0" value="123"/>
-      <entry name="124: InvokeLockOnAutoSearch" value="124"/>
-      <entry name="128: Unknown" value="128"/>
-      <entry name="131: Unknown" value="131"/>
-      <entry name="132: Jump Frames (Lower Body IFrames)" value="132"/>
-      <entry name="134: Falling Jump Frames (Use w/ 51)" value="134"/>
-      <entry name="135: Unknown" value="135"/>
-      <entry name="139: Unknown" value="139"/>
-      <entry name="143: PvE Only IFrames" value="143"/>
+      <entry name="0: Do Nothing" value="0" />
+      <entry name="1: Input - RH Attack" value="1" />
+      <entry name="3: Set Guard Type|ArgB:Guard BehaviorJudgeID" value="3" />
+      <entry name="4: Cancel - RH Attack" value="4" />
+      <entry name="5: Get-Parried Window|ArgC:Unknown" value="5" />
+      <entry name="6: InvokeAnimCancelEndWithKeyboardKey" value="6" />
+      <entry name="7: Disable Turning" value="7" />
+      <entry name="8: Flag As Dodging" value="8" />
+      <entry name="9: Input - LH Attack" value="9" />
+      <entry name="10: Input - Magic" value="10" />
+      <entry name="11: Cancel - LS Movement" value="11" />
+      <entry name="12: Kill Character" value="12" />
+      <entry name="14: Input - RH Attack Release" value="14" />
+      <entry name="15: Input - LH Attack Release" value="15" />
+      <entry name="16: Cancel - LH Attack" value="16" />
+      <entry name="17: Cancel - Damage Dealt" value="17" />
+      <entry name="18: Disable Parried Attack/Cancel - Throw" value="18" />
+      <entry name="19: Disable Map Collision" value="19" />
+      <entry name="20: Send Ghost Info" value="20" />
+      <entry name="21: Input - Guard" value="21" />
+      <entry name="22: Cancel - Guard" value="22" />
+      <entry name="23: Cancel - AI ComboAttack" value="23" />
+      <entry name="24: Super Armor" value="24" />
+      <entry name="25: Input - Dodge" value="25" />
+      <entry name="26: Cancel - Dodge" value="26" />
+      <entry name="27: Disable Gravity" value="27" />
+      <entry name="28: Disable Foot IK" value="28" />
+      <entry name="29: Cancel - Magic" value="29" />
+      <entry name="30: Input - Goods" value="30" />
+      <entry name="31: Cancel - Goods" value="31" />
+      <entry name="32: Cancel - Jump/Weapon Switch/Two Hand" value="32" />
+      <entry name="34: Cancel - Generic" value="34" />
+      <entry name="35: Input - First Step RH Attack" value="35" />
+      <entry name="36: Input - First Step LH Attack" value="36" />
+      <entry name="37: Left/Right Movement Possible" value="37" />
+      <entry name="38: Flying Character Fall" value="38" />
+      <entry name="39: Disable Character Collision" value="39" />
+      <entry name="40: Temporary Death State" value="40" />
+      <entry name="41: Gap (Take 40% More Damage) (env(325))" value="41" />
+      <entry name="42: Sweetspot (Deal 12.5% More Damage)" value="42" />
+      <entry name="44: Disable Object Collision" value="44" />
+      <entry name="46: Disappear Character" value="46" />
+      <entry name="47: Kill Character (No Item Drop)" value="47" />
+      <entry name="48: Item Drop From 47" value="48" />
+      <entry name="49: Disable Lock-On" value="49" />
+      <entry name="50: Disable Character Capsule Collision" value="50" />
+      <entry name="51: Disable Fall Motion" value="51" />
+      <entry name="52: Disable Vertical Movement Sync" value="52" />
+      <entry name="53: Disable Floating Gauge Display" value="53" />
+      <entry name="54: Disable Start/Inputs" value="54" />
+      <entry name="55: Disable Ability to Lock-On" value="55" />
+      <entry name="56: Disable Wall Attack Bound" value="56" />
+      <entry name="57: Disable NPC Wall Attack Bound" value="57" />
+      <entry name="58: SetStartbit6" value="58" />
+      <entry name="59: Weakspot (Deal 20% Less Damage)" value="59" />
+      <entry name="60: Cancel - Throw Angle" value="60" />
+      <entry name="61: Disable Y-Axis Of Movement Target" value="61" />
+      <entry name="62: Display Fixed Y-Axis Direction" value="62" />
+      <entry name="63: AI Parry Signal" value="63" />
+      <entry name="64: Mimicry Effect Allowed" value="64" />
+      <entry name="65: Extend SpEffect Lifetime" value="65" />
+      <entry name="66: Special Transition (env(271))" value="66" />
+      <entry name="67: Invincible Excluding Throw Attacks (Defender)" value="67" />
+      <entry name="68: Invincible During Throw (Attacker)" value="68" />
+      <entry name="69: Throw Death Transition (Defender)" value="69" />
+      <entry name="70: Throw Escape Transition (Attacker)" value="70" />
+      <entry name="71: Poise Break Unrecoverable" value="71" />
+      <entry name="72: InvokeKnockbackValue" value="72" />
+      <entry name="73: Parry Possible State" value="73" />
+      <entry name="74: Ladder Collision" value="74" />
+      <entry name="75: Cancel - Item Pickup" value="75" />
+      <entry name="76: Force Item Drop" value="76" />
+      <entry name="78: Cancel - AI Move" value="78" />
+      <entry name="79: Cancel - AI Step" value="79" />
+      <entry name="80: Input - Item Pickup" value="80" />
+      <entry name="81: Disable Input - Item Pickup (ActionButton4400)" value="81" />
+      <entry name="82: Perfectly Match Ragdoll Pose" value="82" />
+      <entry name="83: Force Cancel Mimicry" value="83" />
+      <entry name="84: Special Transition 2 (env(298))" value="84" />
+      <entry name="85: Light Lantern Weapon (Stateinfo 147)" value="85" />
+      <entry name="86: Cancel - AI Attack Queued" value="86" />
+      <entry name="87: Input - Common" value="87" />
+      <entry name="88: Disable Precision Shooting" value="88" />
+      <entry name="89: Disable All Movement" value="89" />
+      <entry name="90: Limit Move Speed To Walk" value="90" />
+      <entry name="91: Limit Move Speed To Dash" value="91" />
+      <entry name="92: Sky Death Warp (act(144))" value="92" />
+      <entry name="94: Perfect Invincibility" value="94" />
+      <entry name="95: Disable Shadow" value="95" />
+      <entry name="96: Set Immortality" value="96" />
+      <entry name="97: Disable Input - Magic/Goods" value="97" />
+      <entry name="98: SetBool32_0x7C_21_hks313" value="98" />
+      <entry name="99: InvokeIsCultRitualProgressing" value="99" />
+      <entry name="100: During Cult/Ceremony" value="100" />
+      <entry name="101: Corpse Carrying Keyframe" value="101" />
+      <entry name="102: Poise Forced Break" value="102" />
+      <entry name="103: Cancel - Quick Skill" value="103" />
+      <entry name="104: Cancel - Skill/Ult" value="104" />
+      <entry name="105: Input - Quick Skill" value="105" />
+      <entry name="106: Input - Skill/Ult" value="106" />
+      <entry name="107: Cancel - Quick Goods" value="107" />
+      <entry name="108: Input - Quick Goods" value="108" />
+      <entry name="109: Can Double Cast (env(331))" value="109" />
+      <entry name="110: Disable Direction Change" value="110" />
+      <entry name="111: Input - Emergency Step" value="111" />
+      <entry name="112: Cancel - Emergency Step" value="112" />
+      <entry name="113: InvokeHeightCorrection" value="113" />
+      <entry name="114: Enhanced Camera Tracking" value="114" />
+      <entry name="115: Cancel - R1 Attack" value="115" />
+      <entry name="116: Cancel - R2 Attack" value="116" />
+      <entry name="117: Cancel - L1 Attack" value="117" />
+      <entry name="118: Cancel - L2 Attack" value="118" />
+      <entry name="119: TryToInvokeForceParryMode" value="119" />
+      <entry name="120: Input - LH Dual Blade" value="120" />
+      <entry name="121: Cancel - LH Dual Blade" value="121" />
+      <entry name="122: SetBool32_0x1E0" value="122" />
+      <entry name="123: SetBool32_0x1E0" value="123" />
+      <entry name="124: InvokeLockOnAutoSearch" value="124" />
+      <entry name="128: Unknown" value="128" />
+      <entry name="129: Possibly Jump Frames Related" value="129" />
+      <entry name="131: Unknown" value="131" />
+      <entry name="132: Jump Frames" value="132" />
+      <entry name="134: Falling Jump Frames (Use w/ 51)" value="134" />
+      <entry name="135: Throw Related" value="135" />
+      <entry name="138: Unknown" value="138" />
+      <entry name="139: Unknown" value="139" />
+      <entry name="140: Unknown" value="140" />
+      <entry name="141: Unknown (Dying?)" value="141" />
+      <entry name="142: Unknown (Iframes?)" value="142" />
+      <entry name="143: Flag as Throwing" value="143" />
+      <entry name="144: Near Death" value="144" />
+      <entry name="145: Revived from Near Death" value="145" />
+      <entry name="146: Ultimate IFrames" value="146" />
+      <entry name="150: Grapple Grabbing" value="150" />
+      <entry name="151: Grapple Pulling" value="151" />
+      <entry name="152: Grapple Aiming" value="152" />
+      <entry name="153: Wall Climb Related" value="153" />
+      <entry name="160: Throw Counter" value="160" />
+      <entry name="161: Wall Climbing" value="161" />
+      <entry name="162: Spectral Hawk Unk" value="162" />
+      <entry name="163: Unknown" value="163" />
     </s32>
     <f32 name="ArgA" />
     <s32 name="ArgB" />
@@ -136,19 +152,28 @@
   </action>
   <action id="1" name="AttackBehavior">
     <s32 name="AttackType">
-      <entry name="Standard" value="0" />
-      <entry name="Unknown_InfestedGhoulJumpSlashDS1" value="1" />
-      <entry name="ForwardR1" value="2" />
-      <entry name="PlungingAttack" value="62" />
-      <entry name="Parry" value="64" />
+      <entry name="0: Standard" value="0" />
+      <entry name="1: Strike" value="1" />
+      <entry name="2: Push" value="2" />
+      <entry name="3: Thrust" value="3" />
+      <entry name="62: DamageThrow" value="62" />
+      <entry name="63: 'Backstab'" value="63" />
+      <entry name="64: Parry" value="64" />
+      <entry name="65: 'NormalThrow'" value="65" />
+      <entry name="66: 'Flow'" value="66" />
+      <entry name="70: ThrowCounter" value="70" />
     </s32>
     <s32 name="AttackIndex" />
     <s32 name="BehaviorJudgeID" />
-    <u8 name="DirectionType" />
+    <s8 name="DirectionType" />
     <u8 name="Source">
       <entry name="0: Default" value="0" />
-      <entry name="1: Force Right Hand" value="1" />
-      <entry name="2: Force Left Hand" value="2" />
+      <entry name="1: Right Weapon" value="1" />
+      <entry name="2: Left Weapon" value="2" />
+      <entry name="3: Skill Weapon" value="3" />
+      <entry name="4: Ultimate Weapon" value="4" />
+      <entry name="5: Extra Weapon" value="5" />
+      <entry name="6: Spectral Hawk" value="6" />
     </u8>
     <s16 name="StateInfo" />
   </action>
@@ -157,14 +182,18 @@
     <s32 name="AttackIndex" />
     <s32 name="BehaviorJudgeID" />
     <u8 name="AttachmentType" />
-    <b name="Enable" />
+    <b name="FireContinuously" />
     <s16 name="StateInfo" />
     <s16 name="Offset" />
     <u8 />
     <u8 name="Source">
       <entry name="0: Default" value="0" />
-      <entry name="1: Force Right Hand" value="1" />
-      <entry name="2: Force Left Hand" value="2" />
+      <entry name="1: Right Weapon" value="1" />
+      <entry name="2: Left Weapon" value="2" />
+      <entry name="3: Skill Weapon" value="3" />
+      <entry name="4: Ultimate Weapon" value="4" />
+      <entry name="5: Extra Weapon" value="5" />
+      <entry name="6: Spectral Hawk" value="6" />
     </u8>
     <s32 assert="0" />
   </action>
@@ -211,9 +240,14 @@
       <entry name="6: Unknown" value="6" />
     </s32>
     <s32 assert="0" />
+    <s32 assert="0" />
+    <s32 assert="0" />
   </action>
   <action id="33" name="SwitchWeapon">
-    <s32 name="WeaponSlotID" />
+    <s32 name="WeaponSlotID">
+      <entry name="0: Left Hand" value="0" />
+      <entry name="1: Right Hand" value="1" />
+    </s32>
     <s32 assert="0" />
   </action>
   <action id="34" name="UnequipCrossbowBolt">
@@ -238,7 +272,7 @@
   </action>
   <action id="64" name="CastHighlightedMagic">
     <s32 name="DummyPolyID" />
-    <b />
+    <b name="FireContinuously" />
     <u8 />
     <s16 name="ChrBulletSharedHitSlot" />
     <u8 name="RefType">
@@ -256,7 +290,15 @@
     <u8 />
     <s16 />
     <s8 />
-    <s8 />
+    <s8 name="Source">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Right Weapon" value="1" />
+      <entry name="2: Left Weapon" value="2" />
+      <entry name="3: Skill Weapon" value="3" />
+      <entry name="4: Ultimate Weapon" value="4" />
+      <entry name="5: Extra Weapon" value="5" />
+      <entry name="6: Spectral Hawk" value="6" />
+    </s8>
     <u16 assert="0" />
   </action>
   <action id="65" name="ConsumeCurrentGoods">
@@ -267,7 +309,7 @@
     </u8>
     <u8 name="DirectionChanger" />
     <u16 name="ChrBulletSharedHitSlot" />
-    <b name="UnkFlag" />
+    <b name="FireContinuously" />
     <u8 />
     <u8 assert="0" />
     <u8 assert="0" />
@@ -422,14 +464,11 @@
     <s16 name="SlotID" />
     <s32 assert="0" />
   </action>
-  <action id="119" name="SpawnFFX_Body_ForEventDuration">
+  <action id="119" name="SpawnFFX_Arrow">
     <s32 name="FFXID" />
     <s16 name="DummyPolyID" />
     <s16 />
-    <s32 name="RepeatType">
-      <entry name="0: PlayOnce" value="0" />
-      <entry name="1: PlayTwice" value="1" />
-    </s32>
+    <s32 name="SlotID" />
     <b name="IsRepeat" />
     <u8 assert="0" />
     <u8 assert="0" />
@@ -545,9 +584,13 @@
     <s32 />
     <s8 name="SoundIDOffsetType">
       <entry name="-1: No Offset" value="-1" />
-      <entry name="0: Unknown0" value="0" />
-      <entry name="1: Unknown1" value="1" />
-      <entry name="2: EquipParamWeapon.seIdOffset" value="2" />
+      <entry name="0: Default" value="0" />
+      <entry name="1: Right Weapon" value="1" />
+      <entry name="2: Left Weapon" value="2" />
+      <entry name="3: Skill Weapon" value="3" />
+      <entry name="4: Ultimate Weapon" value="4" />
+      <entry name="5: Extra Weapon" value="5" />
+      <entry name="6: Spectral Hawk" value="6" />
     </s8>
     <u8 assert="0" />
     <u8 assert="0" />
@@ -667,7 +710,10 @@
   </action>
   <action id="150" name="SetLockCamParam_Self">
     <s32 name="LockCamParamID" />
-    <s32 assert="0" />
+    <b name="AffectedByCinematicSetting" />
+    <s8 assert="0" />
+    <s8 assert="0" />
+    <s8 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
@@ -678,7 +724,7 @@
     <s32 assert="0" />
   </action>
   <action id="152" name="CameraZoomOut">
-    <f32 />
+    <f32 name="CameraDistance" />
     <f32 />
     <f32 />
     <f32 />
@@ -686,30 +732,40 @@
       <entry name="0: Type0" value="0" />
       <entry name="1: Type1" value="1" />
     </u8>
-    <b />
-    <s16 assert="0" />
+    <b name="UnkBool" />
+    <b name="AffectedByCinematicSetting" />
+    <s8 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
   <action id="153" name="ForceCameraDirection">
-    <s32 name="VerticalAngle"/>
-    <s32 name="HorizontalAngle"/>
+    <s32 name="VerticalAngle" />
+    <s32 name="HorizontalAngle" />
     <s32 name="MethodType">
-      <entry name="0: Rotate Closest" value="0"/>
-      <entry name="1: Rotate Counterclockwise" value="1"/>
-      <entry name="2: Rotate Clockwise" value="2"/>
+      <entry name="0: Rotate Closest" value="0" />
+      <entry name="1: Rotate Counterclockwise" value="1" />
+      <entry name="2: Rotate Clockwise" value="2" />
     </s32>
-    <u8 name="VerticalEnabled"/>
-    <u8 name="HorizontalEnabled"/>
-    <u8 assert="0"/>
-    <u8 assert="0"/>
+    <b name="VerticalEnabled" />
+    <b name="HorizontalEnabled" />
+    <b name="AffectedByCinematicSetting" />
+    <b />
+  </action>
+  <action id="154" name="Type154_CameraUnk">
+    <f32 />
+    <f32 />
+    <f32 />
+    <b name="AffectedByCinematicSetting" />
+    <s8 />
+    <s8 />
+    <s8 />
   </action>
   <action id="155" name="SetLockCamParam_Target">
     <u16 name="LockCamParamID" />
-    <u8 assert="0"/>
-    <u8 assert="0"/>
-    <s32 assert="0"/>
+    <u8 assert="0" />
+    <u8 assert="0" />
+    <s32 assert="0" />
   </action>
   <action id="160" name="[DS3]SekiroCode4">
     <s32 assert="0" />
@@ -801,9 +857,10 @@
   </action>
   <action id="225" name="SetSPRegenRatePercent">
     <u8 name="RegenRatePercent" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
+    <u8 />
+    <s16 name="StateInfo" />
+    <s32 assert="0" />
+    <s32 assert="0" />
     <s32 assert="0" />
   </action>
   <action id="226" name="SetKnockbackPercent">
@@ -820,8 +877,8 @@
     <s32 assert="0" />
   </action>
   <action id="228" name="RagdollReviveTime">
-    <f32 name="ReviveTimerExtra" />
-    <f32 name="ReviveTimer" />
+    <f32 name="WeightStart" />
+    <f32 name="WeightEnd" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
@@ -864,38 +921,166 @@
     <s32 assert="0" />
   </action>
   <action id="233" name="ChangeChrDrawMask">
-    <u8 name="Mask0" />
-    <u8 name="Mask1" />
-    <u8 name="Mask2" />
-    <u8 name="Mask3" />
-    <u8 name="Mask4" />
-    <u8 name="Mask5" />
-    <u8 name="Mask6" />
-    <u8 name="Mask7" />
-    <u8 name="Mask8" />
-    <u8 name="Mask9" />
-    <u8 name="Mask10" />
-    <u8 name="Mask11" />
-    <u8 name="Mask12" />
-    <u8 name="Mask13" />
-    <u8 name="Mask14" />
-    <u8 name="Mask15" />
-    <u8 name="Mask16" />
-    <u8 name="Mask17" />
-    <u8 name="Mask18" />
-    <u8 name="Mask19" />
-    <u8 name="Mask20" />
-    <u8 name="Mask21" />
-    <u8 name="Mask22" />
-    <u8 name="Mask23" />
-    <u8 name="Mask24" />
-    <u8 name="Mask25" />
-    <u8 name="Mask26" />
-    <u8 name="Mask27" />
-    <u8 name="Mask28" />
-    <u8 name="Mask29" />
-    <u8 name="Mask30" />
-    <u8 name="Mask31" />
+    <s8 name="Mask0">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask1">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask2">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask3">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask4">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask5">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask6">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask7">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask8">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask9">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask10">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask11">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask12">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask13">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask14">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask15">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask16">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask17">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask18">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask19">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask20">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask21">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask22">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask23">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask24">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask25">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask26">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask27">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask28">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask29">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask30">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
+    <s8 name="Mask31">
+      <entry name="0: Off" value="0" />
+      <entry name="1: On" value="1" />
+      <entry name="-1: No Change" value="-1" />
+    </s8>
   </action>
   <action id="234" name="[PastGames]AddOffsetToNextAnimID">
     <s32 name="Offset" />
@@ -996,7 +1181,15 @@
   </action>
   <action id="304" name="ThrowAttackBehavior">
     <u16 />
-    <s16 name="Index" />
+    <s16 name="Source">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Right Weapon" value="1" />
+      <entry name="2: Left Weapon" value="2" />
+      <entry name="3: Skill Weapon" value="3" />
+      <entry name="4: Ultimate Weapon" value="4" />
+      <entry name="5: Extra Weapon" value="5" />
+      <entry name="6: Spectral Hawk" value="6" />
+    </s16>
     <s32 name="BehaviorJudgeID" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1102,7 +1295,7 @@
     <s32 assert="0" />
   </action>
   <action id="341" name="ChrSlotSys_341">
-    <s32 assert="0" />
+    <s32 name="Offset" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1130,19 +1323,19 @@
     <s32 name="SpEffectID" />
     <s32 assert="0" />
   </action>
-  <action id="500" name="Event500">
-    <u8 name="FlagIndex" />
-    <u8 name="Index">
-      <entry name="1: 0" value="1" />
-      <entry name="2: 0x02000045 or 0x02000049" value="2" />
-      <entry name="3: 0x02000042" value="3" />
-      <entry name="4: 0x02000012" value="4" />
+  <action id="500" name="SetPartsFlag">
+    <u8 name="PartsGroupID" />
+    <u8 name="Flag">
+      <entry name="1: Disable Collision" value="1" />
+      <entry name="2: Disable Hit" value="2" />
+      <entry name="3: Disable Collision and Hit" value="3" />
+      <entry name="4: Enable?" value="4" />
     </u8>
     <u16 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="511" name="ActionFlag_511">
-    <u8 />
+  <action id="511" name="InvokeWetness">
+    <u8 name="WetnessDepth" />
     <u8 assert="0" />
     <u8 assert="0" />
     <u8 assert="0" />
@@ -1152,6 +1345,12 @@
   </action>
   <action id="522" name="SetSpecialLockOnParameter">
     <f32 name="TargetChrParameter" />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="530" name="InvokeChrPhysicsVelocity">
+    <s32 name="RowID" />
     <s32 />
     <s32 />
     <s32 />
@@ -1233,15 +1432,15 @@
     <s32 name="ModifierID" />
     <u8 name="TargetType">
       <entry name="0: Default" value="0" />
-      <entry name="1" value="1" />
+      <entry name="1: Unk" value="1" />
       <entry name="2: BonfireSacrificeIdle" value="2" />
-      <entry name="3" value="3" />
-      <entry name="4" value="4" />
-      <entry name="5" value="5" />
-      <entry name="6: HeadTurn?" value="6" />
-      <entry name="7: Throw?" value="7" />
+      <entry name="3: Locked On" value="3" />
+      <entry name="4: NPC" value="4" />
+      <entry name="5: Locked On 2" value="5" />
+      <entry name="6: Sloped Ground" value="6" />
+      <entry name="7: Throw" value="7" />
     </u8>
-    <u8 assert="0" />
+    <s8 name="TwistPriority" />
     <u8 assert="0" />
     <u8 assert="0" />
     <f32 name="UpMinimumAngle" />
@@ -1333,98 +1532,130 @@
     <b name="Mask31" />
   </action>
   <action id="712" name="OverrideWeaponModelLocations">
-    <u8 name="RHModel0AbsorpPosParamCondition" />
+    <u8 name="RHModel0AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="RHModel0ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H R WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="RHModel1AbsorpPosParamCondition" />
+    <u8 name="RHModel1AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="RHModel1ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H R WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="RHModel2AbsorpPosParamCondition" />
+    <u8 name="RHModel2AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="RHModel2ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H R WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="RHModel3AbsorpPosParamCondition" />
+    <u8 name="RHModel3AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="RHModel3ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H R WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="LHModel0AbsorpPosParamCondition" default="0" />
+    <u8 name="LHModel0AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="LHModel0ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H L WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="LHModel1AbsorpPosParamCondition" default="0" />
+    <u8 name="LHModel1AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="LHModel1ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H L WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="LHModel2AbsorpPosParamCondition" default="0" />
+    <u8 name="LHModel2AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="LHModel2ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H L WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="LHModel3AbsorpPosParamCondition" default="0" />
+    <u8 name="LHModel3AbsorpPosParamCondition">
+      <entry name="0: Default" value="0" />
+      <entry name="1: Sheath" value="1" />
+      <entry name="2: Dual Offhand" value="2" />
+    </u8>
     <s8 name="LHModel3ChangeType" default="-1: Move to Default Location">
       <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
+      <entry name="0: Move to 1H L WPN Location" value="0" />
+      <entry name="1: Move to 1H R WPN Location" value="1" />
       <entry name="2: Move to 2H L WPN Location" value="2" />
       <entry name="3: Move to Sheathed Location" value="3" />
       <entry name="4: Maintain Previous Change" value="4" />
       <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
       <entry name="6: Unknown" value="6" />
     </s8>
-    <u8 name="IsEnabledWhile1Handing" />
-    <u8 name="IsEnabledWhile2HandingRightWeapon" />
-    <u8 name="IsEnabledWhile2HandingLeftWeapon" />
-    <u8 assert="0" />
+    <b name="IsEnabledWhile1Handing" />
+    <b name="IsEnabledWhile2HandingRightWeapon" />
+    <b name="IsEnabledWhile2HandingLeftWeapon" />
+    <b name="IsEnabledWhileNoHanding" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1506,6 +1737,23 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
+  <action id="719" name="ShowHeroWeapon">
+    <s32 name="SlotID">
+      <entry name="0: Right Hand" value="0" />
+      <entry name="1: Left Hand" value="1" />
+      <entry name="2: Hero Skill" value="2" />
+      <entry name="3: Hero Ultimate" value="3" />
+      <entry name="4: Hero Extra" value="4" />
+      <entry name="5: Spectral Hawk" value="5" />
+    </s32>
+    <s32 name="Mdl 0 DummyPolyID" />
+    <s32 name="Mdl 1 DummyPolyID" />
+    <s32 name="Mdl 2 DummyPolyID" />
+    <s32 name="Mdl 3 DummyPolyID" />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
   <action id="730" name="ActionFlagUnk_730">
     <f32 />
     <f32 />
@@ -1573,6 +1821,12 @@
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
+  </action>
+  <action id="784" name="Type784">
+    <f32 />
+    <f32 />
+    <f32 />
+    <f32 />
   </action>
   <action id="785" name="[DS3]SpawnChrFinderBullet">
     <f32 name="DetectionRange" />
@@ -1701,10 +1955,10 @@
     <f32 name="Unk3" />
     <s32 assert="0" />
   </action>
-  <action id="910" name="Unk910">
-    <s32 name="Unk1" />
-    <s32 name="Unk2" />
-    <s32 name="Unk3" />
+  <action id="910" name="ChangeLockonLookat">
+    <s32 name="LockonDummyPolyID" />
+    <s32 name="LookatDummyPolyIDStart" />
+    <s32 name="LookatDummyPolyIDEnd" />
     <s32 assert="0" />
   </action>
   <action id="911" name="Unk910">
@@ -1712,6 +1966,158 @@
     <f32 />
     <s32 assert="0" />
     <s32 assert="0" />
+  </action>
+  <action id="950" name="InvokeNRPrecisionAiming">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="951" name="WallClimbRelated">
+    <u32 />
+    <u32 />
+    <u32 />
+    <u32 />
+  </action>
+  <action id="952" name="InvokePhotoShootCamera">
+    <u32 />
+    <u32 />
+    <u32 />
+    <u32 />
+  </action>
+  <action id="1000" name="InvokeHeroUlt">
+    <f32 name="UltCostPercent" />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1001" name="InvokeHeroSkill">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1002" name="InvokeHeroUltUnk">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1003" name="InvokeHeroSkillUnk">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1004" name="CharacterScaleDisableWeight">
+    <f32grad name="DisableWeight" />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1005" name="InvokeHeroSummon">
+    <s32 name="SummonID" />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1006" name="InvokeHeroDesummon">
+    <s32 name="SummonID" />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1007" name="ThrowFreedomWindow">
+    <s32 name="FreedomType" />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1008" name="InvokeHeroMixcraft">
+    <s32 name="SpEffectID_Magic" />
+    <s32 name="SpEffectID_Fire" />
+    <s32 name="SpEffectID_Lightning" />
+    <s32 name="SpEffectID_Holy" />
+  </action>
+  <action id="1009" name="InvokeHeroMixcraftReset">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1010" name="InvokeHeroDemonBeastStart">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1011" name="InvokeHeroDemonBeastRevert">
+    <s32 name="RevertType" />
+    <s32 />
+  </action>
+  <action id="1012" name="InvokeHeroDemonBeastControl">
+    <s32 name="DemonBeastCamera" />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1013" name="InvokeHeroDemonBeastCameraChange">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1016" name="Type1016">
+    <s16 />
+    <s16 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1020" name="Type1020">
+    <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="1023" name="InvokePhotoShoot">
+    <u32 />
+    <u32 />
+    <u32 />
+    <u32 />
+  </action>
+  <action id="1024" name="InvokePhotoShootEffect">
+    <b name="IsSelfBuff" />
+    <u8 />
+    <u16 />
+    <u32 />
+    <u32 />
+    <u32 />
+  </action>
+  <action id="1025" name="InvokeHeroTrance">
+    <b name="IsEnhanced" />
+    <u8 />
+    <u16 />
+    <u32 />
+    <u32 />
+    <u32 />
+  </action>
+  <action id="1026" name="InvokeBlinkStakeZAxisMotion">
+    <u32 />
+    <u32 />
+    <u32 />
+    <u32 />
+  </action>
+  <action id="1027" name="InvokeBlinkStakeFlight">
+    <u32 />
+    <u32 />
+    <u32 />
+    <u32 />
+  </action>
+  <action id="1029" name="InvokePhotoShootUnk">
+    <u32 />
+    <u32 />
+    <u32 />
+    <u32 />
   </action>
   <action id="10096" name="Sfx?">
     <s32 />
@@ -1736,5 +2142,18 @@
     <s32 />
     <s32 />
     <s32 />
+  </action>
+  <action id="10150" name="UniqueIdleBlend">
+    <s32 name="Tag" />
+    <f32grad name="Gradient" />
+    <b name="PostureControl" />
+    <s8 name="IdleBlendArea">
+      <entry name="0: None" value="0" />
+      <entry name="1: Upper Body" value="1" />
+      <entry name="2: Left Leg" value="2" />
+      <entry name="3: Right Leg" value="3" />
+    </s8>
+    <s8 />
+    <s8 />
   </action>
 </action_template>

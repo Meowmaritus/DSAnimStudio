@@ -16,6 +16,9 @@ namespace DSAnimStudio.TaeEditor
         public bool DisableHorizontalScroll = false;
         public bool DisableVerticalScroll = false;
 
+        public bool JustManuallyScrolledHorizontally = false;
+        public bool JustManuallyScrolledVertically = false;
+
         //private string ScrollArrowStr = "▲";
 
         private Point VirtualAreaSize;
@@ -255,6 +258,9 @@ namespace DSAnimStudio.TaeEditor
 
         public void UpdateInput(FancyInputHandler input, float elapsedSeconds, bool allowScrollWheel)
         {
+            JustManuallyScrolledHorizontally = false;
+            JustManuallyScrolledVertically = false;
+
             var relMouse = new Point((int)(input.MousePosition.X),
                 (int)(input.MousePosition.Y));
 
@@ -264,22 +270,26 @@ namespace DSAnimStudio.TaeEditor
                 {
                     CurrentScroll = ScrollbarType.Horizontal;
                     HorizontalBoxGrabOffset = new Point(relMouse.X - HorizontalBox.X, relMouse.Y - HorizontalBox.Y);
+                    JustManuallyScrolledHorizontally = true;
                 }
                 else if (!DisableVerticalScroll && VerticalBox.Contains(relMouse))
                 {
                     CurrentScroll = ScrollbarType.Vertical;
                     VerticalBoxGrabOffset = new Point(relMouse.X - VerticalBox.X, relMouse.Y - VerticalBox.Y);
+                    JustManuallyScrolledVertically = true;
                 }
             }
             else if (CurrentScroll == ScrollbarType.Horizontal)
             {
                 //ScrollByPixels(new Vector2(input.MousePositionDelta.X, 0));
                 ScrollHorizontalBarToMouse(relMouse);
+                JustManuallyScrolledHorizontally = true;
             }
             else if (CurrentScroll == ScrollbarType.Vertical)
             {
                 //ScrollByPixels(new Vector2(0, input.MousePositionDelta.Y));
                 ScrollVerticalBarToMouse(relMouse);
+                JustManuallyScrolledVertically = true;
             }
 
             if (!input.LeftClickHeld)
@@ -297,11 +307,13 @@ namespace DSAnimStudio.TaeEditor
                 if (ScrollUpButton.Update(elapsedSeconds, ScrollUpButtonHeld))
                 {
                     ScrollByVirtualScrollUnits(new Vector2(0, -ScrollArrowButtonVirtualScrollAmountY));
+                    JustManuallyScrolledVertically = true;
                 }
 
                 if (ScrollDownButton.Update(elapsedSeconds, ScrollDownButtonHeld))
                 {
                     ScrollByVirtualScrollUnits(new Vector2(0, ScrollArrowButtonVirtualScrollAmountY));
+                    JustManuallyScrolledVertically = true;
                 }
             }
 
@@ -310,29 +322,37 @@ namespace DSAnimStudio.TaeEditor
                 if (ScrollLeftButton.Update(elapsedSeconds, ScrollLeftButtonHeld))
                 {
                     ScrollByVirtualScrollUnits(new Vector2(-ScrollArrowButtonVirtualScrollAmountX, 0));
+                    JustManuallyScrolledHorizontally = true;
                 }
 
                 if (ScrollRightButton.Update(elapsedSeconds, ScrollRightButtonHeld))
                 {
                     ScrollByVirtualScrollUnits(new Vector2(ScrollArrowButtonVirtualScrollAmountX, 0));
+                    JustManuallyScrolledHorizontally = true;
                 }
             }
 
             
-                var scrollWheel = allowScrollWheel ? input.ScrollDelta : 0;
-                if (scrollWheel != 0)
+            var scrollWheel = allowScrollWheel ? input.ScrollDelta : 0;
+            if (scrollWheel != 0)
+            {
+                if (input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift))
                 {
-                    if (input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.LeftShift) || input.KeyHeld(Microsoft.Xna.Framework.Input.Keys.RightShift))
+                    if (!DisableHorizontalScroll)
                     {
-                        if (!DisableHorizontalScroll)
-                            ScrollByVirtualScrollUnits(new Vector2(-scrollWheel * ScrollWheelVirtualScrollAmountX, 0));
-                    }
-                    else
-                    {
-                        if (!DisableVerticalScroll)
-                            ScrollByVirtualScrollUnits(new Vector2(0, -scrollWheel * ScrollWheelVirtualScrollAmountY));
+                        ScrollByVirtualScrollUnits(new Vector2(-scrollWheel * ScrollWheelVirtualScrollAmountX, 0));
+                        JustManuallyScrolledHorizontally = true;
                     }
                 }
+                else
+                {
+                    if (!DisableVerticalScroll)
+                    {
+                        ScrollByVirtualScrollUnits(new Vector2(0, -scrollWheel * ScrollWheelVirtualScrollAmountY));
+                        JustManuallyScrolledVertically = true;
+                    }
+                }
+            }
             
         }
 

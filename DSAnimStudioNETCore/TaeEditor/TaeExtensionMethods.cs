@@ -208,7 +208,7 @@ namespace DSAnimStudio.TaeEditor
             }
             catch (Exception ex) when (Main.EnableErrorHandler.ReadInternalSimField)
             {
-                zzz_NotificationManagerIns.PushNotification($"ERROR READING INTERNAL SIM FIELD. ACTION TYPE: {act.Type}, SIM FIELD '{fieldName}'\n\n{ex}");
+                zzz_NotificationManagerIns.PushNotificationError($"ERROR READING INTERNAL SIM FIELD. ACTION TYPE: {act.Type}, SIM FIELD '{fieldName}'\n\n{ex}");
             }
 
             return null;

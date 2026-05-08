@@ -14,6 +14,7 @@ namespace DSAnimStudio
         public bool EnableFlverBoneNames;
         public bool EnableFlverBoneBoxes;
         public bool EnableHkxBoneTransforms;
+        public bool EnableHkxBoneLines;
         public bool EnableHkxBoneNames;
         public bool EnableBoneGlue;
         public bool EnableDummyPolyTransforms;
@@ -153,12 +154,17 @@ namespace DSAnimStudio
             EnableHkxBoneTransforms =
                 MenuBar.CheckboxDual("HKX Bone Transforms",
                     EnableHkxBoneTransforms,
-                    enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperHkxBone);
+                    enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperHkxBoneTransforms);
+
+            EnableHkxBoneLines =
+                MenuBar.CheckboxDual("HKX Bone Lines",
+                    EnableHkxBoneLines,
+                    enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperHkxBoneLines);
 
             EnableHkxBoneNames =
                 MenuBar.CheckboxDual("HKX Bone Names",
                     EnableHkxBoneNames,
-                    enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperHkxBone);
+                    enabled: true, shortcut: "(This Color)", shortcutColor: Main.Colors.ColorHelperHkxBoneTexts);
 
             EnableBoneGlue =
                 MenuBar.CheckboxDual("Bone Glue Joints",

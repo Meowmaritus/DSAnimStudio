@@ -22,7 +22,7 @@ namespace DSAnimStudio
     {
         private void DebugPrint(string str)
         {
-            zzz_NotificationManagerIns.PushNotification($"INPUT: {str}", 0.5f, 0.1f, Color.Orange);
+            zzz_NotificationManagerIns.PushNotification($"INPUT: {str}", 0.5f, 0.1f);
         }
         
         private Rectangle MouseCursorUpdateRect;

@@ -294,7 +294,17 @@ namespace DSAnimStudio
                 //{
                 //    TryToLoadFromMSGBND("engus", "item.msgbnd.dcx", 11, 12); // vanilla
                 //}
-                TryToLoadFromMSGBND("engus", "item.msgbnd.dcx", 11, 12); // vanilla
+
+                if (ParentDocument.GameData.FileExists($@"/msg/engus/item_dlc01.msgbnd.dcx"))
+                {
+                    // Reverse load order so that DLC stuff is overwritten by vanilla stuff
+                    TryToLoadFromMSGBND("engus", "item_dlc01.msgbnd.dcx", 310, 313); // dlc01
+                    TryToLoadFromMSGBND("engus", "item_dlc01.msgbnd.dcx", 11, 12); // vanilla
+                }
+                else
+                {
+                    TryToLoadFromMSGBND("engus", "item.msgbnd.dcx", 11, 12); // vanilla
+                }
             }
             else if (ParentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.SDT
                 or SoulsAssetPipeline.SoulsGames.AC6)

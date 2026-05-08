@@ -54,6 +54,7 @@ namespace DSAnimStudio.ImguiOSD
                         FileName = "GO TO DIRECTORY AND CLICK SAVE",
                         CheckFileExists = false,
                         CheckPathExists = true,
+                        OverwritePrompt = false,
                         Title = "Select Game Directory",
                     };
                     if (!string.IsNullOrWhiteSpace(GameDirectory) && System.IO.Directory.Exists(GameDirectory))
@@ -75,6 +76,7 @@ namespace DSAnimStudio.ImguiOSD
                         FileName = "GO TO DIRECTORY AND CLICK SAVE",
                         CheckFileExists = false,
                         CheckPathExists = true,
+                        OverwritePrompt = false,
                         Title = "Select ModEngine Directory",
                     };
                     if (!string.IsNullOrWhiteSpace(ModEngineDirectory) && System.IO.Directory.Exists(ModEngineDirectory))

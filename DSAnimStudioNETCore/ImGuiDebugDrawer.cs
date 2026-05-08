@@ -97,9 +97,20 @@ namespace DSAnimStudio
             NVector4 bgColor = NVector4.Zero;
 
             var withinAbsClippingRect = absoluteClippingRect?.Contains(Main.Input.MousePosition) ?? true;
-            
+
+            var anchor = Main.Input.LeftClickDownAnchor;
+
+            var clickStartedWithinClippingRect = absoluteClippingRect?.Contains(Main.Input.LeftClickDownAnchor) ?? true;
+
+            anchor = anchor - (GFX.Device.Viewport.Bounds.TopLeftCorner() / Main.DPIVector);
+
+            clickStartedWithinClippingRect = clickStartedWithinClippingRect && anchor.X >= pos.X && anchor.Y >= pos.Y && anchor.X <= (pos.X + size.X) && anchor.Y <= (pos.Y + size.Y);
+
+            if (!(Main.Input.LeftClickHeld || Main.Input.LeftClickUp))
+                clickStartedWithinClippingRect = true;
+
             var relMouse = (Main.Input.MousePosition) - (GFX.Device.Viewport.Bounds.TopLeftCorner() / Main.DPIVector);
-            if (!disableInput && withinAbsClippingRect && relMouse.X >= pos.X && relMouse.Y >= pos.Y && relMouse.X <= (pos.X + size.X) && relMouse.Y <= (pos.Y + size.Y))
+            if (clickStartedWithinClippingRect && !disableInput && withinAbsClippingRect && relMouse.X >= pos.X && relMouse.Y >= pos.Y && relMouse.X <= (pos.X + size.X) && relMouse.Y <= (pos.Y + size.Y))
             {
                 isHovering = true;
                 if (Main.Input.LeftClickHeld && !disableInput)

@@ -658,12 +658,14 @@ namespace DSAnimStudio
                         opacity *= Main.HelperDraw.StationaryDummyPolyOpacity;
                     }
 
-                    bool isVis = (GlobalForceDummyPolyIDVisible == -1 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID)
+                    bool visibleByRefID = DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) && DummyPolyVisibleByRefID[dmy.ReferenceID];
+
+                    bool isVis = (GlobalForceDummyPolyIDVisible == -1 && visibleByRefID
                         && (DummyPolyVisibleByRefID[dmy.ReferenceID] ||
                         dmy.ShowAttackInfos.Count > 0 || dmy.BulletSpawnIDs.Count > 0 || dmy.MiscSpawnTexts.Count > 0 || dmy.SFXSpawnIDs.Count > 0));
                     bool isForceByHover = GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID);
 
-                    if (isVis || isForceByHover || isForce)
+                    if (isForceByHover || ((isVis || isForce) && visibleByRefID))
                     {
                         var mat = dmy.GetFinalMatrix(GetPrimDrawMatrix(dmy.ArrowPrimitive.DmyPolySource), isForceByHover || isForce, isForceByHover, opacity);
                         dmy.DrawPrim(mat, isForceByHover || isForce, isForceByHover, opacity);
@@ -723,12 +725,14 @@ namespace DSAnimStudio
                     {
                         opacity *= Main.HelperDraw.StationaryDummyPolyOpacity;
                     }
-                    
-                    bool isVis = (GlobalForceDummyPolyIDVisible < 0 && DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) 
+
+                    bool visibleByRefID = DummyPolyVisibleByRefID.ContainsKey(dmy.ReferenceID) && DummyPolyVisibleByRefID[dmy.ReferenceID];
+
+                    bool isVis = (GlobalForceDummyPolyIDVisible < 0 && visibleByRefID
                         && (DummyPolyVisibleByRefID[dmy.ReferenceID] ||
                         dmy.ShowAttackInfos.Count > 0 || dmy.BulletSpawnIDs.Count > 0 || dmy.MiscSpawnTexts.Count > 0 || dmy.SFXSpawnIDs.Count > 0));
                     bool isForceByHover = GlobalForceDummyPolyIDVisible == (GlobalDummyPolyIDOffset + dmy.ReferenceID);
-                    if (isVis || isForce || isForceByHover)
+                    if (isForceByHover || ((isVis || isForce) && visibleByRefID))
                         dmy.DrawPrimText(MODEL.CurrentTransform.WorldMatrix, isForce || isForceByHover,
 
                             Main.HelperDraw.DummyPolyIDsAreGlobal ? GlobalDummyPolyIDOffset : 0, opacity,

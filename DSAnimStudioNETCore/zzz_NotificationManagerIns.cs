@@ -25,6 +25,7 @@ namespace DSAnimStudio
         {
             public string Text;
             public Color Color;
+            public NotificationTypes NotifType;
         }
 
         public class NotificationPopup
@@ -77,30 +78,78 @@ namespace DSAnimStudio
         //     }
         // }
 
+        public enum NotificationTypes
+        {
+            Trace = 0,
+            Error = 1,
+            Warning = 2,
+            Normal = 3,
+        }
+
+        public static bool HideNotificationPopups = false;
+
         public static Queue<Notification> NotificationHistory = new Queue<Notification>();
 
         private static List<NotificationPopup> notificationPopups = new List<NotificationPopup>();
         public static IReadOnlyList<NotificationPopup> NotificationPopups => notificationPopups;
         public static object _lock_notifications = new object();
-        public static void PushNotification(string text, float showDuration = 2.5f, float fadeDuration = 0.35f, Color? color = null)
+        public static Color GetNotifColorForType(NotificationTypes type)
         {
+            switch (type)
+            {
+                case NotificationTypes.Error: return Color.Red;
+                case NotificationTypes.Warning: return Color.Yellow;
+                case NotificationTypes.Trace: return Color.Cyan;
+                default:
+                    return Color.White;
+            }
+        }
+
+        public static void PushNotification(string text, float showDuration = 2.5f, float fadeDuration = 0.35f)
+        {
+            PushNotificationInner(NotificationTypes.Normal, text, showDuration, fadeDuration);
+        }
+
+        public static void PushNotificationWarn(string text, float showDuration = 2.5f, float fadeDuration = 0.35f)
+        {
+            PushNotificationInner(NotificationTypes.Warning, text, showDuration, fadeDuration);
+        }
+
+        public static void PushNotificationError(string text, float showDuration = 2.5f, float fadeDuration = 0.35f)
+        {
+            PushNotificationInner(NotificationTypes.Error, text, showDuration, fadeDuration);
+        }
+
+        public static void PushNotificationInner(NotificationTypes type, string text, float showDuration = 2.5f, float fadeDuration = 0.35f)
+        {
+            
+
             lock (_lock_notifications)
             {
                 var notif = new Notification()
                 {
                     Text = text,
-                    Color = color ?? Color.White,
+                    Color = GetNotifColorForType(type),
+                    NotifType = type,
                 };
 
-                var notifPopup = new NotificationPopup()
+                if (HideNotificationPopups)
                 {
-                    Notif = notif,
-                    ShowDuration = showDuration,
-                    FadeDuration = fadeDuration,
-                };
-                if (notificationPopups.Count >= 20)
-                    notificationPopups.RemoveAt(0);
-                notificationPopups.Add(notifPopup);
+                    if (type is NotificationTypes.Trace or NotificationTypes.Warning)
+                        OSD.SpWindowNotifications.Add1ToNotificationCount();
+                }
+                else
+                {
+                    var notifPopup = new NotificationPopup()
+                    {
+                        Notif = notif,
+                        ShowDuration = showDuration,
+                        FadeDuration = fadeDuration,
+                    };
+                    if (notificationPopups.Count >= 1)
+                        notificationPopups.RemoveAt(0);
+                    notificationPopups.Add(notifPopup);
+                }
 
                 NotificationHistory.Enqueue(notif);
 

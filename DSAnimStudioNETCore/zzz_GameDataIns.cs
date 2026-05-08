@@ -599,11 +599,15 @@ namespace DSAnimStudio
                     DataArchives.Add("data1", new EblArchive(this, "data1", "data1.bhd", "data1.bdt", GameType));
                     DataArchives.Add("data2", new EblArchive(this, "data2", "data2.bhd", "data2.bdt", GameType));
                     DataArchives.Add("data3", new EblArchive(this, "data3", "data3.bhd", "data3.bdt", GameType));
-                    
+
                     // ERNR TODO - If DLC is ever added lol
                     if (GameType is SoulsGames.ER)
                     {
                         DataArchives.Add("dlc", new EblArchive(this, "dlc", "dlc.bhd", "dlc.bdt", GameType));
+                    }
+                    else if (GameType is SoulsGames.ERNR)
+                    {
+                        DataArchives.Add("dlc01", new EblArchive(this, "dlc01", "dlc01.bhd", "dlc01.bdt", GameType));
                     }
                 }
                 else if (GameType == SoulsGames.DS2SOTFS)
@@ -1069,47 +1073,63 @@ namespace DSAnimStudio
 
         public byte[] ReadWwiseSoundFile(string relativePath)
         {
-            byte[] result = null;
-            lock (_lock_DataArchives)
+            var looseFile = ReadFile($"sd/{relativePath}", alwaysLoose: true, warningOnFail: false, disableCache: true);
+            if (looseFile != null)
             {
-                if (WwiseSoundArchive == null)
+                return looseFile;
+            }
+            else
+            {
+                byte[] result = null;
+                lock (_lock_DataArchives)
                 {
-                    if (GameType is SoulsGames.ER)
+                    if (WwiseSoundArchive == null)
                     {
-                        WwiseSoundArchive = new EblArchive(this, "sd\\sd", "sd\\sd.bhd", "sd\\sd.bdt", SoulsGames.ER);
-                        WwiseSoundArchive_dlc = new EblArchive(this, "sd\\sd_dlc02", "sd\\sd_dlc02.bhd", "sd\\sd_dlc02.bdt", SoulsGames.ER);
-                        if (!WwiseSoundArchive_dlc.Exists)
+
+
+
+                        if (GameType is SoulsGames.ER)
+                        {
+                            WwiseSoundArchive = new EblArchive(this, "sd\\sd", "sd\\sd.bhd", "sd\\sd.bdt", SoulsGames.ER);
+                            WwiseSoundArchive_dlc = new EblArchive(this, "sd\\sd_dlc02", "sd\\sd_dlc02.bhd", "sd\\sd_dlc02.bdt", SoulsGames.ER);
+                            if (!WwiseSoundArchive_dlc.Exists)
+                                WwiseSoundArchive_dlc = null;
+                        }
+                        else if (GameType is SoulsGames.ERNR)
+                        {
+                            WwiseSoundArchive = new EblArchive(this, "sd\\sd", "sd\\sd.bhd", "sd\\sd.bdt", SoulsGames.ERNR);
+                            WwiseSoundArchive_dlc = new EblArchive(this, "sd\\sd_dlc01", "sd\\sd_dlc01.bhd", "sd\\sd_dlc01.bdt", SoulsGames.ERNR);
+                            if (!WwiseSoundArchive_dlc.Exists)
+                                WwiseSoundArchive_dlc = null;
+                        }
+                        else if (GameType is SoulsGames.AC6)
+                        {
+                            WwiseSoundArchive = new EblArchive(this, "sd\\sd", "sd\\sd.bhd", "sd\\sd.bdt", SoulsGames.AC6);
                             WwiseSoundArchive_dlc = null;
+                        }
                     }
-                    else if (GameType is SoulsGames.ERNR)
-                    {
-                        WwiseSoundArchive = new EblArchive(this, "sd\\sd", "sd\\sd.bhd", "sd\\sd.bdt", SoulsGames.ERNR);
-                        // ERNR TODO - If they ever add DLC lol
-                        //WwiseSoundArchive_dlc = new EblArchive(this, "sd\\sd_dlc02", "sd\\sd_dlc02.bhd", "sd\\sd_dlc02.bdt", SoulsGames.ER);
-                        //if (!WwiseSoundArchive_dlc.Exists)
-                        //    WwiseSoundArchive_dlc = null;
-                    }
-                    else if (GameType is SoulsGames.AC6)
-                    {
-                        WwiseSoundArchive = new EblArchive(this, "sd\\sd", "sd\\sd.bhd", "sd\\sd.bdt", SoulsGames.AC6);
-                    }
-                }
 
-                if (WwiseSoundArchive_dlc != null)
-                {
-                    result = WwiseSoundArchive_dlc.RetrieveFile(relativePath);
-                    if (result == null)
+                    if (WwiseSoundArchive_dlc != null)
+                    {
+                        result = WwiseSoundArchive_dlc.RetrieveFile(relativePath);
+                        if (result == null)
+                            result = WwiseSoundArchive.RetrieveFile(relativePath);
+                    }
+                    else
+                    {
                         result = WwiseSoundArchive.RetrieveFile(relativePath);
-                }
-                else
-                {
-                    result = WwiseSoundArchive.RetrieveFile(relativePath);
+                    }
+
+
                 }
 
-                
+                return result;
+
+
+
             }
 
-            return result;
+            
         }
 
         public bool StreamedWEMExists(uint wemID)
@@ -1157,7 +1177,7 @@ namespace DSAnimStudio
 
             if (warningOnFail && looseFilePath == null)
             {
-                zzz_NotificationManagerIns.PushNotification($"Unable to load game asset '{relativePath}'.", color: Microsoft.Xna.Framework.Color.Orange);
+                zzz_NotificationManagerIns.PushNotificationWarn($"Unable to load game asset '{relativePath}'.");
             }
 
             return looseFilePath;
@@ -1180,7 +1200,7 @@ namespace DSAnimStudio
 
             if (warningOnFail && lastAccess == null)
             {
-                zzz_NotificationManagerIns.PushNotification($"Unable to load game asset '{relativePath}'.", color: Microsoft.Xna.Framework.Color.Orange);
+                zzz_NotificationManagerIns.PushNotificationWarn($"Unable to load game asset '{relativePath}'.");
             }
 
             return lastAccess;
@@ -1211,7 +1231,7 @@ namespace DSAnimStudio
 
             if (warningOnFail && file == null)
             {
-                zzz_NotificationManagerIns.PushNotification($"Unable to load game asset '{relativePath}'.", color: Microsoft.Xna.Framework.Color.Orange);
+                zzz_NotificationManagerIns.PushNotificationWarn($"Unable to load game asset '{relativePath}'.");
             }
 
             return file;

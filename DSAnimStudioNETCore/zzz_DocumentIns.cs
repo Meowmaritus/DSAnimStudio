@@ -210,11 +210,13 @@ namespace DSAnimStudio
 
                 if (Fmod != null)
                 {
-                    Fmod.Purge();
-                    Fmod.Shutdown();
+                    //Fmod.Purge();
+                    //Fmod.Shutdown();
                     Fmod.ParentDocument = null;
                     Fmod = null;
                 }
+
+                
 
                 if (RumbleCamManager != null)
                 {

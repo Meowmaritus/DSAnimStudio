@@ -70,7 +70,7 @@ namespace DSAnimStudio.ImguiOSD
                         if (model.AnimContainer?.Skeleton != null)
                         {
                             ImGui.Checkbox($"Draw HKX Skeleton Transforms###Model{model.GUID}_DebugDispHkxSkeletonTransforms", ref model.AnimContainer.Skeleton.ForceDrawBoneTransforms);
-                            //ImGui.Checkbox($"Draw HKX Skeleton Lines###Model{model.GUID}_DebugDispHkxSkeletonLines", ref model.AnimContainer.Skeleton.ForceDrawBoneLines);
+                            ImGui.Checkbox($"Draw HKX Skeleton Lines###Model{model.GUID}_DebugDispHkxSkeletonLines", ref model.AnimContainer.Skeleton.ForceDrawBoneLines);
                             //ImGui.Checkbox($"Draw HKX Skeleton Boxes###Model{model.GUID}_DebugDispHkxSkeletonBoxes", ref model.AnimContainer.Skeleton.ForceDrawBoneBoxes);
                             ImGui.Checkbox($"Draw HKX Skeleton Texts###Model{model.GUID}_DebugDispHkxSkeletonText", ref model.AnimContainer.Skeleton.ForceDrawBoneText);
                         }

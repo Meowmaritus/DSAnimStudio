@@ -123,23 +123,32 @@ namespace DSAnimStudio
         public void SAFE_SetSoundBanksToLoad(List<string> banks) => SAFE(() => INNER_SetSoundBanksToLoad(banks));
 
 
-        private string[] _GetDefaultSoundBanks(SoulsGames game, string chrID, bool player)
+        private string[] _GetDefaultSoundBanks(SoulsGames game, string chrID, bool player, string npcParamSoundChrID1, string npcParamSoundChrID2)
         {
+            var banks = new List<string>();
             switch (game)
             {
                 case SoulsGames.AC6:
                     if (!player)
-                        return new string[] 
-                        { 
-                            "weapon_enemy", "weapon", "sfx", "impact", "default_work_unit", "bullet_glide", "bomb", 
-                            $"cs_{chrID}", "cs_main", "vcmain" 
-                        };
-                    else
-                        return new string[] 
+                    {
+                        banks = new List<string>
                         {
                             "weapon_enemy", "weapon", "sfx", "impact", "default_work_unit", "bullet_glide", "bomb",
-                            "cs_main", "vcmain" 
+                            $"cs_{chrID}", "cs_main", "vcmain"
                         };
+
+                        return banks.ToArray();
+                    }
+                    else
+                    {
+                        banks = new List<string>
+                        {
+                            "weapon_enemy", "weapon", "sfx", "impact", "default_work_unit", "bullet_glide", "bomb",
+                            "cs_main", "vcmain"
+                        };
+
+                        return banks.ToArray();
+                    }
                 case SoulsGames.BB:
                     if (!player)
                         return new string[] { $"sprj_{chrID}", "sprj_main" };
@@ -153,9 +162,9 @@ namespace DSAnimStudio
                 case SoulsGames.DS1:
                 case SoulsGames.DS1R:
                     if (!player)
-                        return new string[] { $"frpg_{chrID}", "frpg_main" };
+                        return new string[] { $"frpg_{chrID}", "frpg_main", $"fdlc_{chrID}", "fdlc_main" };
                     else
-                        return new string[] { "frpg_main" };
+                        return new string[] { "frpg_main", "fdlc_main" };
                 case SoulsGames.DS3:
                     if (!player)
                         return new string[] { $"fdp_{chrID}", "fdp_main", "fdp_main_dlc1", "fdp_main_dlc2" };
@@ -163,14 +172,50 @@ namespace DSAnimStudio
                         return new string[] { "fdp_main", "fdp_main_dlc1", "fdp_main_dlc2" };
                 case SoulsGames.ER:
                     if (!player)
-                        return new string[] { $"cs_{chrID}", "cs_main", "vcmain" };
+                    {
+                        banks = new List<string> { $"cs_{chrID}", "cs_main", "vcmain" };
+
+                        if (npcParamSoundChrID1 != null)
+                            banks.Add($"cs_{npcParamSoundChrID1}");
+                        if (npcParamSoundChrID2 != null)
+                            banks.Add($"cs_{npcParamSoundChrID2}");
+
+                        return banks.ToArray();
+                    }
                     else
-                        return new string[] { "cs_main", "vcmain" };
+                    {
+                        banks = new List<string> { "cs_main", "vcmain" };
+
+                        if (npcParamSoundChrID1 != null)
+                            banks.Add($"cs_{npcParamSoundChrID1}");
+                        if (npcParamSoundChrID2 != null)
+                            banks.Add($"cs_{npcParamSoundChrID2}");
+
+                        return banks.ToArray();
+                    }
                 case SoulsGames.ERNR:
                     if (!player)
-                        return new string[] { $"cs_{chrID}", "cs_main", "vcmain" };
+                    {
+                        banks = new List<string> { $"cs_{chrID}", "cs_main", "vcmain" };
+
+                        if (npcParamSoundChrID1 != null)
+                            banks.Add($"cs_{npcParamSoundChrID1}");
+                        if (npcParamSoundChrID2 != null)
+                            banks.Add($"cs_{npcParamSoundChrID2}");
+
+                        return banks.ToArray();
+                    }
                     else
-                        return new string[] { "cs_main", "vcmain" };
+                    {
+                        banks = new List<string> { "cs_main", "vcmain" };
+
+                        if (npcParamSoundChrID1 != null)
+                            banks.Add($"cs_{npcParamSoundChrID1}");
+                        if (npcParamSoundChrID2 != null)
+                            banks.Add($"cs_{npcParamSoundChrID2}");
+
+                        return banks.ToArray();
+                    }
                 case SoulsGames.SDT:
                     if (!player)
                         return new string[] { $"{chrID}", "main" };
@@ -181,9 +226,28 @@ namespace DSAnimStudio
         }
         public void INNER_InitDefaultSoundBanksToLoad()
         {
+            string npcParamSoundChrID1 = null;
+            string npcParamSoundChrID2 = null;
+            if (ParentDocument.GameRoot.GameType is SoulsGames.ER or SoulsGames.ERNR)
+            {
+                ParentDocument.Scene?.AccessMainModel(mdl =>
+                {
+                    if (mdl.NpcParam != null)
+                    {
+                        if (mdl.NpcParam.ERSoundBankID > 0)
+                        {
+                            npcParamSoundChrID1 = $"c{mdl.NpcParam.ERSoundBankID.ToString("0000")}";
+                        }
+                        if (mdl.NpcParam.ERSoundBankAddID > 0)
+                        {
+                            npcParamSoundChrID2 = $"c{mdl.NpcParam.ERSoundBankAddID.ToString("0000")}";
+                        }
+                    }
+                });
+            }
             SoundBanksToLoad = _GetDefaultSoundBanks(GameType, 
                 Utils.GetShortIngameFileName(ContainerInfo.GetMainBinderName()), 
-                RootTaeProperties.SaveEachCategoryToSeparateTae).ToList();
+                RootTaeProperties.SaveEachCategoryToSeparateTae, npcParamSoundChrID1, npcParamSoundChrID2).ToList();
         }
         public void SAFE_InitDefaultSoundBanksToLoad()
             => SAFE(INNER_InitDefaultSoundBanksToLoad);

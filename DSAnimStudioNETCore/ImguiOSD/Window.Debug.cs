@@ -38,7 +38,292 @@ namespace DSAnimStudio.ImguiOSD
             private int highlightCategory = 0;
             private int highlightAnim = 0;
             private int highlightTrackIndex = 0;
-            
+
+
+            protected override void BuildContents(ref bool anyFieldFocused)
+            {
+                if (OSD.EnableDebug_QuickDebug)
+                {
+                    if (ImGui.TreeNodeEx("[QUICK DEBUG]", ImGuiTreeNodeFlags.DefaultOpen))
+                    {
+                        _QuickDebug.BuildDebugMenu(MainTaeScreen);
+                        ImGui.TreePop();
+                    }
+
+                    ImGui.Separator();
+                }
+
+                ImGui.Text($"Error check thread running: {((MainProj?.IsAsyncErrorCheckRunning() == true) ? "YES" : "NO")}");
+
+                ImGui.Separator();
+
+                bool forcedSSSEnabled = GFX.FlverShader.Effect.ForcedSSS_Enable;
+                ImGui.Checkbox("Forced SSS - Enabled", ref forcedSSSEnabled);
+                GFX.FlverShader.Effect.ForcedSSS_Enable = forcedSSSEnabled;
+
+                float forcedSSSIntensity = GFX.FlverShader.Effect.ForcedSSS_Intensity;
+                ImGui.SliderFloat("Force SSS - Intensity", ref forcedSSSIntensity, 0, 1);
+                GFX.FlverShader.Effect.ForcedSSS_Intensity = forcedSSSIntensity;
+
+                ImGui.Separator();
+
+                if (MainTaeScreen != null)
+                {
+                    if (ImGui.TreeNode("Anim View History BACKWARD"))
+                    {
+                        MainTaeScreen.ImguiDebugAddAnimViewBackwardStackItems();
+                        ImGui.TreePop();
+                    }
+                }
+
+                ImGui.Separator();
+
+                if (ImGui.TreeNode("Shaders"))
+                {
+                    doShader($"{nameof(GFX.FlverShader)}", GFX.FlverShader.Effect);
+                    doShader($"{nameof(GFX.DbgPrimSolidShader)}", GFX.DbgPrimSolidShader.Effect);
+                    doShader($"{nameof(GFX.DbgPrimWireShader)}", GFX.DbgPrimWireShader.Effect);
+                    doShader($"{nameof(GFX.NewGrid3DShader)}", GFX.NewGrid3DShader.Effect);
+                    doShader($"{nameof(GFX.NewSimpleGridShader)}", GFX.NewSimpleGridShader.Effect);
+                    doShader($"{nameof(GFX.SkyboxShader)}", GFX.SkyboxShader.Effect);
+                    doShader($"{nameof(Main.MainFlverTonemapShader)}", Main.MainFlverTonemapShader.Effect);
+                }
+
+                Tools.EnumPicker("Display RenderTarget", ref Main.ViewRenderTarget);
+
+                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurAnisoPower)}", ref Main.RenderTargetBlurAnisoPower, 0.01f, 0, 0, "%.6f");
+                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurAnisoMin)}", ref Main.RenderTargetBlurAnisoMin, 0.01f, 0, 0, "%.6f");
+                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurAnisoMax)}", ref Main.RenderTargetBlurAnisoMax, 0.01f, 0, 0, "%.6f");
+
+                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurDirections)}", ref Main.RenderTargetBlurDirections, 0.01f, 0, 0, "%.6f");
+                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurQuality)}", ref Main.RenderTargetBlurQuality, 0.01f, 0, 0, "%.6f");
+                //if (Main.RenderTargetBlurQuality < 0.1f)
+                //    Main.RenderTargetBlurQuality = 0.1f;
+                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurSize)}", ref Main.RenderTargetBlurSize, 0.01f, 0, 0, "%.6f");
+
+                //ImGui.Checkbox($"{(nameof(Main.RenderTargetDebugBlurDisp))}", ref Main.RenderTargetDebugBlurDisp);
+                //ImGui.Checkbox($"{(nameof(Main.RenderTargetDebugBlurMaskDisp))}", ref Main.RenderTargetDebugBlurMaskDisp);
+                //ImGui.Checkbox($"{(nameof(Main.RenderTargetDebugDisableBlur))}", ref Main.RenderTargetDebugDisableBlur);
+
+                ImGui.Separator();
+
+                ImGui.Checkbox("Global Bone Glue Enable", ref NewBoneGluer.GlobalEnable);
+                ImGui.Checkbox("Global Skeleton Mapper Enable", ref NewSkeletonMapper.GlobalEnable);
+
+                var mainModel = MainTaeScreen?.Graph?.ViewportInteractor?.CurrentModel;
+                if (mainModel != null)
+                {
+                    doModel_MapperAndGluerOnly(mainModel);
+                    mainModel.ChrAsm?.ForAllArmorModels(m => doModel_MapperAndGluerOnly(m));
+                }
+
+                ImGui.Separator();
+
+                ImGui.Separator();
+
+                if (ImGui.TreeNode("[Scene Debug]"))
+                {
+
+
+                    zzz_DocumentManager.CurrentDocument.Scene.AccessAllModels(doModel);
+                    ImGui.TreePop();
+                }
+
+                ImGui.Separator();
+
+                ImGui.InputInt("highlightCategory", ref highlightCategory, 0, 0);
+                ImGui.InputInt("highlightAnim", ref highlightAnim, 0, 0);
+                ImGui.InputInt("highlightTrackIndex", ref highlightTrackIndex, 0, 0);
+
+                //if (Tools.SimpleClickButton("Debug Test - Highlight"))
+                //{
+                //    var proj = MainTaeScreen.Proj;
+                //    if (proj != null)
+                //    {
+                //        if (proj.AllAnimCategoriesDict.ContainsKey(highlightCategory))
+                //            MainTaeScreen.RequestHighlightAnimCategory(proj.AllAnimCategoriesDict[highlightCategory]);
+
+                //        var anim = proj.GetFirstAnimationFromFullID(SplitAnimID.FromFullID(proj, highlightAnim));
+                //        if (anim != null)
+                //        {
+                //            MainTaeScreen.RequestHighlightAnimation(anim);
+                //            if (highlightTrackIndex >= 0 && highlightTrackIndex < anim.ActionTracks.Count)
+                //            {
+                //                var track = anim.ActionTracks[highlightTrackIndex];
+                //                MainTaeScreen.RequestHighlightTrack(track);
+                //                var action = track.GetActions(anim).FirstOrDefault();
+                //                if (action != null)
+                //                    MainTaeScreen.RequestHighlightAction(action);
+                //            }
+                //        }
+
+
+                //    }
+                //}
+
+
+                var animContainer = zzz_DocumentManager.CurrentDocument.Scene.MainModel?.AnimContainer;
+                if (animContainer != null)
+                {
+                    DebugSlotRequest =
+                        NewAnimSlot.ShowImguiWidgetForRequest(ref DebugSlotType, DebugSlotRequest, animContainer);
+
+                    ImGui.Separator();
+                    ImGui.PushID("Debug.AnimSlotWeights");
+                    animContainer.AccessAnimSlots(slots =>
+                    {
+                        foreach (var kvp in slots)
+                        {
+                            ImGui.SliderFloat(kvp.Key.ToString(), ref kvp.Value.SlotWeight, 0, 1);
+                        }
+                    });
+                    ImGui.PopID();
+                    ImGui.Separator();
+                }
+
+
+                ImGui.Text($"AnyFieldFocused: {OSD.AnyFieldFocused}");
+                ImGui.Text($"Focused window: {(OSD.FocusedWindow?.ImguiTag ?? "None")}");
+
+                //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value);
+
+                if (Tools.SimpleClickButton("Set All StaticWindows to 300x300"))
+                {
+                    OSD.ForAllStaticWindows(window =>
+                    {
+                        window.RequestWindowSize = new Vector2(300, 300);
+                    });
+                }
+
+                ImGui.Separator();
+
+                Main.BuildDebugToggleImgui();
+
+                if (OSD.RequestExpandAllTreeNodes || OSD.IsInit)
+                    ImGui.SetNextItemOpen(true);
+
+                if (ImGui.TreeNode("[Texture Pool]"))
+                {
+                    var texDbg = zzz_DocumentManager.CurrentDocument.TexturePool.GetAllFetchesDbgInfos();
+                    int index = 0;
+                    foreach (var tex in texDbg)
+                    {
+                        if (ImGui.TreeNode($"{(tex.Value.IsTextureLoaded ? "■ " : "□ ")}{tex.Key}###TexDbg_{index}_{tex.Key}"))
+                        {
+                            ImGui.Text($"TexName: {tex.Value.TexName}");
+                            ImGui.Text($"RequestType: {tex.Value.RequestType}");
+                            ImGui.Text($"IsTextureLoaded: {tex.Value.IsTextureLoaded}");
+                            if (tex.Value.Extra != null)
+                            {
+                                if (ImGui.TreeNode("[TexInfo]"))
+                                {
+                                    ImGui.Text($"Platform: {tex.Value.Extra.Platform}");
+                                    if (ImGui.TreeNode("[TPF.Texture]"))
+                                    {
+                                        ImGui.Text($"Name: {tex.Value.Extra.TpfEntryStub.Name}");
+                                        ImGui.Text($"Format: {tex.Value.Extra.TpfEntryStub.Format}");
+                                        ImGui.Text($"Type: {tex.Value.Extra.TpfEntryStub.Type}");
+                                        ImGui.Text($"Mipmaps: {tex.Value.Extra.TpfEntryStub.Mipmaps}");
+                                        ImGui.Text($"Flags1: {tex.Value.Extra.TpfEntryStub.Flags1}");
+
+
+                                        if (tex.Value.Extra.TpfEntryStub.Header != null)
+                                        {
+                                            if (ImGui.TreeNode("[Header]"))
+                                            {
+                                                ImGui.Text($"Width: {tex.Value.Extra.TpfEntryStub.Header.Width}");
+                                                ImGui.Text($"Height: {tex.Value.Extra.TpfEntryStub.Header.Height}");
+                                                ImGui.Text($"TextureCount: {tex.Value.Extra.TpfEntryStub.Header.TextureCount}");
+                                                ImGui.Text($"Unk1: {tex.Value.Extra.TpfEntryStub.Header.Unk1}");
+                                                ImGui.Text($"Unk2: {tex.Value.Extra.TpfEntryStub.Header.Unk2}");
+                                                ImGui.Text($"DXGIFormat: {tex.Value.Extra.TpfEntryStub.Header.DXGIFormat}");
+                                                ImGui.TreePop();
+                                            }
+                                        }
+
+                                        if (tex.Value.Extra.TpfEntryStub.FloatStruct != null)
+                                        {
+                                            if (ImGui.TreeNode("[FloatStruct]"))
+                                            {
+                                                ImGui.Text($"Unk00: {tex.Value.Extra.TpfEntryStub.FloatStruct.Unk00}");
+
+                                                if (tex.Value.Extra.TpfEntryStub.FloatStruct.Values != null)
+                                                {
+                                                    if (ImGui.TreeNode("[Values]"))
+                                                    {
+                                                        foreach (var v in tex.Value.Extra.TpfEntryStub.FloatStruct.Values)
+                                                            ImGui.Text($"{v:0.000000}");
+                                                        ImGui.TreePop();
+                                                    }
+                                                }
+
+                                                ImGui.TreePop();
+                                            }
+                                        }
+
+                                        ImGui.TreePop();
+                                    }
+                                    ImGui.TreePop();
+                                }
+                            }
+
+                            ImGui.TreePop();
+                        }
+                        index++;
+                    }
+
+                    ImGui.TreePop();
+                }
+
+
+                ImGui.Button("Hot Reload FlverShader.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
+                if (ImGui.IsItemClicked())
+                    GFX.ReloadFlverShader();
+
+                ImGui.Button("Hot Reload FlverTonemapShader.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
+                if (ImGui.IsItemClicked())
+                    GFX.ReloadTonemapShader();
+
+                ImGui.Button("Hot Reload CubemapSkyboxShader.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
+                if (ImGui.IsItemClicked())
+                    GFX.ReloadCubemapSkyboxShader();
+
+                ImGui.Button("Hot Reload NewGrid3D.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
+                if (ImGui.IsItemClicked())
+                    GFX.ReloadNewGrid3DShader();
+
+
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             void doMatrix(string name, ref Matrix m)
             {
                 var extraInfo = "";
@@ -1181,260 +1466,7 @@ namespace DSAnimStudio.ImguiOSD
                 }
             }
 
-            protected override void BuildContents(ref bool anyFieldFocused)
-            {
-                if (OSD.EnableDebug_QuickDebug)
-                {
-                    if (ImGui.TreeNodeEx("[QUICK DEBUG]", ImGuiTreeNodeFlags.DefaultOpen))
-                    {
-                        _QuickDebug.BuildDebugMenu(MainTaeScreen);
-                        ImGui.TreePop();
-                    }
-                    
-                    ImGui.Separator();
-                }
-
-                ImGui.Text($"Error check thread running: {((MainProj?.IsAsyncErrorCheckRunning() == true) ? "YES" : "NO")}");
-
-                ImGui.Separator();
-
-                bool forcedSSSEnabled = GFX.FlverShader.Effect.ForcedSSS_Enable;
-                ImGui.Checkbox("Forced SSS - Enabled", ref forcedSSSEnabled);
-                GFX.FlverShader.Effect.ForcedSSS_Enable = forcedSSSEnabled;
-
-                float forcedSSSIntensity = GFX.FlverShader.Effect.ForcedSSS_Intensity;
-                ImGui.SliderFloat("Force SSS - Intensity", ref forcedSSSIntensity, 0, 1);
-                GFX.FlverShader.Effect.ForcedSSS_Intensity = forcedSSSIntensity;
-
-                ImGui.Separator();
-
-                if (MainTaeScreen != null)
-                {
-                    if (ImGui.TreeNode("Anim View History BACKWARD"))
-                    {
-                        MainTaeScreen.ImguiDebugAddAnimViewBackwardStackItems();
-                        ImGui.TreePop();
-                    }
-                }
-
-                ImGui.Separator();
-
-                if (ImGui.TreeNode("Shaders"))
-                {
-                    doShader($"{nameof(GFX.FlverShader)}", GFX.FlverShader.Effect);
-                    doShader($"{nameof(GFX.DbgPrimSolidShader)}", GFX.DbgPrimSolidShader.Effect);
-                    doShader($"{nameof(GFX.DbgPrimWireShader)}", GFX.DbgPrimWireShader.Effect);
-                    doShader($"{nameof(GFX.NewGrid3DShader)}", GFX.NewGrid3DShader.Effect);
-                    doShader($"{nameof(GFX.NewSimpleGridShader)}", GFX.NewSimpleGridShader.Effect);
-                    doShader($"{nameof(GFX.SkyboxShader)}", GFX.SkyboxShader.Effect);
-                    doShader($"{nameof(Main.MainFlverTonemapShader)}", Main.MainFlverTonemapShader.Effect);
-                }
-
-                Tools.EnumPicker("Display RenderTarget", ref Main.ViewRenderTarget);
-
-                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurAnisoPower)}", ref Main.RenderTargetBlurAnisoPower, 0.01f, 0, 0, "%.6f");
-                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurAnisoMin)}", ref Main.RenderTargetBlurAnisoMin, 0.01f, 0, 0, "%.6f");
-                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurAnisoMax)}", ref Main.RenderTargetBlurAnisoMax, 0.01f, 0, 0, "%.6f");
-
-                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurDirections)}", ref Main.RenderTargetBlurDirections, 0.01f, 0, 0, "%.6f");
-                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurQuality)}", ref Main.RenderTargetBlurQuality, 0.01f, 0, 0, "%.6f");
-                //if (Main.RenderTargetBlurQuality < 0.1f)
-                //    Main.RenderTargetBlurQuality = 0.1f;
-                //ImGui.DragFloat($"{nameof(Main.RenderTargetBlurSize)}", ref Main.RenderTargetBlurSize, 0.01f, 0, 0, "%.6f");
-
-                //ImGui.Checkbox($"{(nameof(Main.RenderTargetDebugBlurDisp))}", ref Main.RenderTargetDebugBlurDisp);
-                //ImGui.Checkbox($"{(nameof(Main.RenderTargetDebugBlurMaskDisp))}", ref Main.RenderTargetDebugBlurMaskDisp);
-                //ImGui.Checkbox($"{(nameof(Main.RenderTargetDebugDisableBlur))}", ref Main.RenderTargetDebugDisableBlur);
-
-                ImGui.Separator();
-
-                ImGui.Checkbox("Global Bone Glue Enable", ref NewBoneGluer.GlobalEnable);
-                ImGui.Checkbox("Global Skeleton Mapper Enable", ref NewSkeletonMapper.GlobalEnable);
-                
-                var mainModel = MainTaeScreen?.Graph?.ViewportInteractor?.CurrentModel;
-                if (mainModel != null)
-                {
-                    doModel_MapperAndGluerOnly(mainModel);
-                    mainModel.ChrAsm?.ForAllArmorModels(m => doModel_MapperAndGluerOnly(m));
-                }
-                
-                ImGui.Separator();
-                
-                ImGui.Separator();
-                
-                if (ImGui.TreeNode("[Scene Debug]"))
-                {
-                    
-                    
-                    zzz_DocumentManager.CurrentDocument.Scene.AccessAllModels(doModel);
-                    ImGui.TreePop();
-                }
-                
-                ImGui.Separator();
-                
-                ImGui.InputInt("highlightCategory", ref highlightCategory, 0, 0);
-                ImGui.InputInt("highlightAnim", ref highlightAnim, 0, 0);
-                ImGui.InputInt("highlightTrackIndex", ref highlightTrackIndex, 0, 0);
-                
-                //if (Tools.SimpleClickButton("Debug Test - Highlight"))
-                //{
-                //    var proj = MainTaeScreen.Proj;
-                //    if (proj != null)
-                //    {
-                //        if (proj.AllAnimCategoriesDict.ContainsKey(highlightCategory))
-                //            MainTaeScreen.RequestHighlightAnimCategory(proj.AllAnimCategoriesDict[highlightCategory]);
-
-                //        var anim = proj.GetFirstAnimationFromFullID(SplitAnimID.FromFullID(proj, highlightAnim));
-                //        if (anim != null)
-                //        {
-                //            MainTaeScreen.RequestHighlightAnimation(anim);
-                //            if (highlightTrackIndex >= 0 && highlightTrackIndex < anim.ActionTracks.Count)
-                //            {
-                //                var track = anim.ActionTracks[highlightTrackIndex];
-                //                MainTaeScreen.RequestHighlightTrack(track);
-                //                var action = track.GetActions(anim).FirstOrDefault();
-                //                if (action != null)
-                //                    MainTaeScreen.RequestHighlightAction(action);
-                //            }
-                //        }
-
-
-                //    }
-                //}
-                
-                
-                var animContainer = zzz_DocumentManager.CurrentDocument.Scene.MainModel?.AnimContainer;
-                if (animContainer != null)
-                {
-                    DebugSlotRequest =
-                        NewAnimSlot.ShowImguiWidgetForRequest(ref DebugSlotType, DebugSlotRequest, animContainer);
-
-                    ImGui.Separator();
-                    ImGui.PushID("Debug.AnimSlotWeights");
-                    animContainer.AccessAnimSlots(slots =>
-                    {
-                        foreach (var kvp in slots)
-                        {
-                            ImGui.SliderFloat(kvp.Key.ToString(), ref kvp.Value.SlotWeight, 0, 1);
-                        }
-                    });
-                    ImGui.PopID();
-                    ImGui.Separator();
-                }
-                
-
-                ImGui.Text($"AnyFieldFocused: {OSD.AnyFieldFocused}");
-                ImGui.Text($"Focused window: {(OSD.FocusedWindow?.ImguiTag ?? "None")}");
-                
-                //DBG.DbgPrim_Grid.OverrideColor = HandleColor("Grid Color", DBG.DbgPrim_Grid.OverrideColor.Value);
-
-                if (Tools.SimpleClickButton("Set All StaticWindows to 300x300"))
-                {
-                    OSD.ForAllStaticWindows(window =>
-                    {
-                        window.RequestWindowSize = new Vector2(300, 300);
-                    });
-                }
-                
-                ImGui.Separator();
-                
-                Main.BuildDebugToggleImgui();
-                
-                if (OSD.RequestExpandAllTreeNodes || OSD.IsInit)
-                    ImGui.SetNextItemOpen(true);
-
-                if (ImGui.TreeNode("[Texture Pool]"))
-                {
-                    var texDbg = zzz_DocumentManager.CurrentDocument.TexturePool.GetAllFetchesDbgInfos();
-                    int index = 0;
-                    foreach (var tex in texDbg)
-                    {
-                        if (ImGui.TreeNode($"{(tex.Value.IsTextureLoaded ? "■ " : "□ ")}{tex.Key}###TexDbg_{index}_{tex.Key}"))
-                        {
-                            ImGui.Text($"TexName: {tex.Value.TexName}");
-                            ImGui.Text($"RequestType: {tex.Value.RequestType}");
-                            ImGui.Text($"IsTextureLoaded: {tex.Value.IsTextureLoaded}");
-                            if (tex.Value.Extra != null)
-                            {
-                                if (ImGui.TreeNode("[TexInfo]"))
-                                {
-                                    ImGui.Text($"Platform: {tex.Value.Extra.Platform}");
-                                    if (ImGui.TreeNode("[TPF.Texture]"))
-                                    {
-                                        ImGui.Text($"Name: {tex.Value.Extra.TpfEntryStub.Name}");
-                                        ImGui.Text($"Format: {tex.Value.Extra.TpfEntryStub.Format}");
-                                        ImGui.Text($"Type: {tex.Value.Extra.TpfEntryStub.Type}");
-                                        ImGui.Text($"Mipmaps: {tex.Value.Extra.TpfEntryStub.Mipmaps}");
-                                        ImGui.Text($"Flags1: {tex.Value.Extra.TpfEntryStub.Flags1}");
-                                        
-
-                                        if (tex.Value.Extra.TpfEntryStub.Header != null)
-                                        {
-                                            if (ImGui.TreeNode("[Header]"))
-                                            {
-                                                ImGui.Text($"Width: {tex.Value.Extra.TpfEntryStub.Header.Width}");
-                                                ImGui.Text($"Height: {tex.Value.Extra.TpfEntryStub.Header.Height}");
-                                                ImGui.Text($"TextureCount: {tex.Value.Extra.TpfEntryStub.Header.TextureCount}");
-                                                ImGui.Text($"Unk1: {tex.Value.Extra.TpfEntryStub.Header.Unk1}");
-                                                ImGui.Text($"Unk2: {tex.Value.Extra.TpfEntryStub.Header.Unk2}");
-                                                ImGui.Text($"DXGIFormat: {tex.Value.Extra.TpfEntryStub.Header.DXGIFormat}");
-                                                ImGui.TreePop();
-                                            }
-                                        }
-
-                                        if (tex.Value.Extra.TpfEntryStub.FloatStruct != null)
-                                        {
-                                            if (ImGui.TreeNode("[FloatStruct]"))
-                                            {
-                                                ImGui.Text($"Unk00: {tex.Value.Extra.TpfEntryStub.FloatStruct.Unk00}");
-
-                                                if (tex.Value.Extra.TpfEntryStub.FloatStruct.Values != null)
-                                                {
-                                                    if (ImGui.TreeNode("[Values]"))
-                                                    {
-                                                        foreach (var v in tex.Value.Extra.TpfEntryStub.FloatStruct.Values)
-                                                            ImGui.Text($"{v:0.000000}");
-                                                        ImGui.TreePop();
-                                                    }
-                                                }
-
-                                                ImGui.TreePop();
-                                            }
-                                        }
-
-                                        ImGui.TreePop();
-                                    }
-                                    ImGui.TreePop();
-                                }
-                            }
-
-                            ImGui.TreePop();
-                        }
-                        index++;
-                    }
-
-                    ImGui.TreePop();
-                }
-
-                
-                ImGui.Button("Hot Reload FlverShader.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
-                if (ImGui.IsItemClicked())
-                    GFX.ReloadFlverShader();
-
-                ImGui.Button("Hot Reload FlverTonemapShader.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
-                if (ImGui.IsItemClicked())
-                    GFX.ReloadTonemapShader();
-
-                ImGui.Button("Hot Reload CubemapSkyboxShader.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
-                if (ImGui.IsItemClicked())
-                    GFX.ReloadCubemapSkyboxShader();
-
-                ImGui.Button("Hot Reload NewGrid3D.xnb\nFrom '..\\..\\..\\..\\Content\\Shaders\\' Folder");
-                if (ImGui.IsItemClicked())
-                    GFX.ReloadNewGrid3DShader();
-
-                
-            }
+            
         }
     }
 }

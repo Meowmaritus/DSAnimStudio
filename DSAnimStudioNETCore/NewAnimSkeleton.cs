@@ -491,7 +491,9 @@ namespace DSAnimStudio
                     transformScale *= 2;
                 }
 
-                bone.DrawPrim(model.CurrentTransform.WorldMatrix, enableDrawLines, 
+                //bool enableParentPrimDraw = bone.ParentIndex >= 0 && bone.ParentIndex < Bones.Count && Bones[bone.ParentIndex].EnablePrimDraw;
+
+                bone.DrawPrim(this, model.CurrentTransform.WorldMatrix, enableDrawLines, 
                     (enableDrawBoxes && DebugDrawTransformOfFlverBoneIndex < 0) || bone.Index == DebugDrawTransformOfFlverBoneIndex, colorBoneBoxes, colorBoneLines);
 
                 if (bone.Index == DebugDrawTransformOfFlverBoneIndex || (bone.EnablePrimDraw && DebugDrawTransformOfFlverBoneIndex < 0))

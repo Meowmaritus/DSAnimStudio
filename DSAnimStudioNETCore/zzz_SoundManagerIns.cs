@@ -302,11 +302,11 @@ namespace DSAnimStudio
             return result;
         }
 
-        public void CopySoundBanksFromProjToThis()
+        public void CopySoundBanksFromProjToThis(bool force)
         {
             var projBanks = ParentDocument.Proj.SAFE_GetSoundBanksToLoad();
 
-            if (projBanks.Count == 0)
+            if (projBanks.Count == 0 || force)
             {
                 ParentDocument.Proj.SAFE_InitDefaultSoundBanksToLoad();
                 projBanks = ParentDocument.Proj.SAFE_GetSoundBanksToLoad();
@@ -553,10 +553,11 @@ namespace DSAnimStudio
             {
                 newSlot.BackgroundInitializeTask = Task.Run(() =>
                 {
-                    var fmodUpdater = ParentDocument.Fmod.PlaySE(captureInfo.SoundType, captureInfo.SoundID, captureInfo.NightfallLifetime);
-                    if (fmodUpdater != null)
+                    var fmodEventHandle = ParentDocument.Fmod.CreateSE(captureInfo.SoundType, captureInfo.SoundID, captureInfo.NightfallLifetime);
+                    if (fmodEventHandle != 0)
                     {
-                        var inst = new SoundInstanceFmod(fmodUpdater);
+
+                        var inst = new SoundInstanceFmod(NewFmodIns.EventSys, fmodEventHandle);
                         inst.PlayInfo = info;
                         return new List<SoundInstance>() { inst };
                     }

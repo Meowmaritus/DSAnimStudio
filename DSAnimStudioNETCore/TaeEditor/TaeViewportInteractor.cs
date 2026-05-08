@@ -946,32 +946,32 @@ namespace DSAnimStudio.TaeEditor
 
                         var fmod = ParentDocument.Fmod;
 
-                        fmod.Purge();
+                        //fmod.Purge();
                         if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
                         ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
                         {
                             fmod.LoadInterrootFEV("main");
-                            var dlc = fmod.GetFevPathFromInterroot("main", isDs1Dlc: true);
+                            var dlc = fmod.GetFevPathFromInterroot("main");
                             if (System.IO.File.Exists(dlc))
                                 fmod.LoadFEV(dlc);
 
                             fmod.LoadInterrootFEV("smain");
-                            dlc = fmod.GetFevPathFromInterroot("smain", isDs1Dlc: true);
+                            dlc = fmod.GetFevPathFromInterroot("smain");
                             if (System.IO.File.Exists(dlc))
                                 fmod.LoadFEV(dlc);
 
                             fmod.LoadInterrootFEV($"m{RemoManager.AreaInt:D2}");
-                            dlc = fmod.GetFevPathFromInterroot($"m{RemoManager.AreaInt:D2}", isDs1Dlc: true);
+                            dlc = fmod.GetFevPathFromInterroot($"m{RemoManager.AreaInt:D2}");
                             if (System.IO.File.Exists(dlc))
                                 fmod.LoadFEV(dlc);
 
                             fmod.LoadInterrootFEV($"sm{RemoManager.AreaInt:D2}");
-                            dlc = fmod.GetFevPathFromInterroot($"sm{RemoManager.AreaInt:D2}", isDs1Dlc: true);
+                            dlc = fmod.GetFevPathFromInterroot($"sm{RemoManager.AreaInt:D2}");
                             if (System.IO.File.Exists(dlc))
                                 fmod.LoadFEV(dlc);
 
                             fmod.LoadInterrootFEV($"p{RemoManager.RemoName.Substring(3)}");
-                            dlc = fmod.GetFevPathFromInterroot($"p{RemoManager.RemoName.Substring(3)}", isDs1Dlc: true);
+                            dlc = fmod.GetFevPathFromInterroot($"p{RemoManager.RemoName.Substring(3)}");
                             if (System.IO.File.Exists(dlc))
                                 fmod.LoadFEV(dlc);
                         }
@@ -1030,7 +1030,7 @@ namespace DSAnimStudio.TaeEditor
             document.SoundManager.PurgeLoadedAssets();
             document.SoundManager.SetEngineToCurrentGame(document.GameRoot.GameType);
             document.SoundManager.ClearBankLists(masterList: false, lookupList: true);
-            document.SoundManager.CopySoundBanksFromProjToThis();
+            document.SoundManager.CopySoundBanksFromProjToThis(force: false);
 
             //if (document.SoundManager.EngineType is zzz_SoundManagerIns.EngineTypes.FMOD)
             //{

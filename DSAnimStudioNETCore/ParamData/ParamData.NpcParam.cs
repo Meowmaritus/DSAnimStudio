@@ -84,6 +84,8 @@ namespace DSAnimStudio
                 //    if (resetCamera)
                 //        GFX.CurrentWorldView.SetStartPositionForCharacterModel(HitHeight, HitRadius * 2, HitYOffset);
                 //}
+
+                mdl.Document?.SoundManager.CopySoundBanksFromProjToThis(force: true);
             }
 
             public override void Read(BinaryReaderEx br)

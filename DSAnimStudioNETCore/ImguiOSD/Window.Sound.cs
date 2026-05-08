@@ -147,6 +147,9 @@ namespace DSAnimStudio.ImguiOSD
                                 }
 
                                 soundManager.CopySoundBanksFromThisToProj();
+
+                                if (soundManager.EngineType == EngineTypes.FMOD)
+                                    soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
                             }
 
                             if (selIndex < 0)
@@ -185,6 +188,9 @@ namespace DSAnimStudio.ImguiOSD
 
 
                                 soundManager.CopySoundBanksFromThisToProj();
+
+                                if (soundManager.EngineType == EngineTypes.FMOD)
+                                    soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
                             }
 
                             if (selIndex < 0)
@@ -246,7 +252,7 @@ namespace DSAnimStudio.ImguiOSD
 
                     ImGui.Separator();
 
-                    if (MenuBar.ClickItem("STOP ALL SOUNDS", fmod.IsInitialized, "Escape"))
+                    if (MenuBar.ClickItem("STOP ALL SOUNDS", NewFmodIns.EventSys != null, "Escape"))
                     {
                         soundManager.StopAllSounds();
                     }

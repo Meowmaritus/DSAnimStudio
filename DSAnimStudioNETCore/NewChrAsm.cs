@@ -1099,7 +1099,7 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        zzz_NotificationManagerIns.PushNotification($"Failed to read TPF '{f.Name}' from inside binder. Exception:\n{ex}");
+                        zzz_NotificationManagerIns.PushNotificationWarn($"Failed to read TPF '{f.Name}' from inside binder. Exception:\n{ex}");
                     }
                 }
                 else if (Document.GameRoot.GameType != SoulsAssetPipeline.SoulsGames.DES && (flver2 == null && nameCheck.EndsWith(".flver") || FLVER2.Is(f.Bytes)))
@@ -1111,7 +1111,7 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        zzz_NotificationManagerIns.PushNotification($"Failed to read FLVER2 '{f.Name}' from inside binder. Exception:\n{ex}");
+                        zzz_NotificationManagerIns.PushNotificationWarn($"Failed to read FLVER2 '{f.Name}' from inside binder. Exception:\n{ex}");
                         flver2 = null;
                     }
                 }
@@ -1125,7 +1125,7 @@ namespace DSAnimStudio
                     }
                     catch (Exception ex)
                     {
-                        zzz_NotificationManagerIns.PushNotification($"Failed to read FLVER0 '{f.Name}' from inside binder. Exception:\n{ex}");
+                        zzz_NotificationManagerIns.PushNotificationWarn($"Failed to read FLVER0 '{f.Name}' from inside binder. Exception:\n{ex}");
                         flver0 = null;
                     }
                 }

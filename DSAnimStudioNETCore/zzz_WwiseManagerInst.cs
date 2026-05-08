@@ -673,7 +673,7 @@ namespace DSAnimStudio
 
                 if (bnk.HIRC == null)
                 {
-                    zzz_NotificationManagerIns.PushNotification($"Wwise bank {bnkName}'s HIRC is null.");
+                    zzz_NotificationManagerIns.PushNotificationWarn($"Wwise bank '{bnkName}'s HIRC is null.");
                     return false;
                 }
 
@@ -942,7 +942,7 @@ namespace DSAnimStudio
                                 if (selectedBankName == null)
                                 {
                                     if (Main.Config.Wwise_ShowMissingBankWarnings)
-                                        zzz_NotificationManagerIns.PushNotification($"Could not find Wwise bank name matching hash '{bankID}'.");
+                                        zzz_NotificationManagerIns.PushNotificationWarn($"Could not find Wwise bank name matching hash '{bankID}'.");
                                 }
                                 else
                                 {
@@ -954,7 +954,7 @@ namespace DSAnimStudio
                                     else
                                     {
                                         if (Main.Config.Wwise_ShowMissingBankWarnings)
-                                            zzz_NotificationManagerIns.PushNotification($"Wwise sound bank '{selectedBankName}' not found.");
+                                            zzz_NotificationManagerIns.PushNotificationWarn($"Wwise sound bank '{selectedBankName}' not found.");
                                     }
                                 }
 
@@ -992,18 +992,39 @@ namespace DSAnimStudio
 
 
                             //wwiseSwitchProps[soundMan.Hash("leg_id")] = 0;
+                            uint leg_type = 0;
                             uint leg_id = 0;
-                            soundMan.ParentDocument.Scene.AccessMainModel(m =>
+                            ParentDocument.Scene.AccessMainModel(m =>
                             {
                                 m.ChrAsm.AccessArmorSlot(NewChrAsm.EquipSlotTypes.Legs, lg =>
                                 {
-                                    leg_id = soundMan.Hash($"lg{(lg.EquipID.ToString("000000000"))}");
+                                    var legType = lg.EquipParam.AC6LegTypeModelID;
+
+                                    leg_id = soundMan.Hash($"lg{((ushort)lg.EquipParam.AC6LegTypeSEID).ToString("000000000")}");
+
+                                    switch (legType)
+                                    {
+                                        case ParamData.EquipParamProtector.AC6LegTypeModelIDs.Bipedal:
+                                            leg_type = soundMan.Hash("two_legs");
+                                            break;
+                                        case ParamData.EquipParamProtector.AC6LegTypeModelIDs.ReverseJoint:
+                                            leg_type = soundMan.Hash("reverse_legs");
+                                            break;
+                                        case ParamData.EquipParamProtector.AC6LegTypeModelIDs.Tetrapod:
+                                            leg_type = soundMan.Hash("four_legs");
+                                            break;
+                                        case ParamData.EquipParamProtector.AC6LegTypeModelIDs.Tank1:
+                                        case ParamData.EquipParamProtector.AC6LegTypeModelIDs.Tank2:
+                                        case ParamData.EquipParamProtector.AC6LegTypeModelIDs.Tank3:
+                                            leg_type = soundMan.Hash("crawler_track");
+                                            break;
+                                    }
                                 });
                             });
-                            wwiseSwitchProps[soundMan.Hash("leg_id")] = leg_id;
 
-                            wwiseSwitchProps[soundMan.Hash("leg_type")] = soundMan.Hash("two_legs");
-                            wwiseSwitchProps[soundMan.Hash("charactor_type")] = soundMan.Hash("enemy");
+                            wwiseSwitchProps[soundMan.Hash("leg_id")] = leg_id;
+                            wwiseSwitchProps[soundMan.Hash("leg_type")] = leg_type;
+                            wwiseSwitchProps[soundMan.Hash("charactor_type")] = soundMan.Hash("player");
                         }
 
                             bool StepIntoCheck(int currentNestLevel, WwiseObject.CAkDialogueEvent.Node node)

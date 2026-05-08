@@ -275,13 +275,13 @@ namespace DSAnimStudio.ImguiOSD
                                     }
 
                                     if (error_alreadyExists)
-                                        zzz_NotificationManagerIns.PushNotification($"Cannot add StateInfo - ID {stateInfoID} already exists.");
+                                        zzz_NotificationManagerIns.PushNotificationWarn($"Cannot add StateInfo - ID {stateInfoID} already exists.");
                                     else
                                         zzz_DocumentManager.CurrentDocument.GameData.SaveProjectJson(silent: true);
                                 }
                                 else
                                 {
-                                    zzz_NotificationManagerIns.PushNotification($"Cannot add StateInfo - Unable to parse an integer ID from given string '{result}'.");
+                                    zzz_NotificationManagerIns.PushNotificationWarn($"Cannot add StateInfo - Unable to parse an integer ID from given string '{result}'.");
                                 }
                                 
 

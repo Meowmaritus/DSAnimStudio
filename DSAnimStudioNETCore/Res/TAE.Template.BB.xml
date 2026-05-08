@@ -40,14 +40,14 @@
       <entry name="38: Flying Character Fall (TODO)" value="38" />
       <entry name="39: Disable Character Ragdoll Collision (Including Hurtboxes)" value="39" />
       <entry name="40: Temporary Death State (TODO)" value="40" />
-      <entry name="41: Vulnerable (+50% Damage Taken)" value="41" />
+      <entry name="41: Vulnerable (+40% Damage Taken)" value="41" />
       <entry name="42: Whiff Animation Transition And Sweet Spot (+12.5% Damage Dealt)" value="42" />
       <entry name="43: Enable Foot IK" value="43" />
       <entry name="44: Disable Event Object Collision" value="44" />
       <entry name="45: Disable Poise (TODO)" value="45" />
       <entry name="46: Permanently Disable Character" value="46" />
-      <entry name="47: ExtraJumptable1_Death2" value="47" />
-      <entry name="48: ExtraJumptable2_CultPromtCheck1" value="48" />
+      <entry name="47: ExtraJumptable1_InvokeDeath2" value="47" />
+      <entry name="48: ExtraJumptable2_InvokeCultPromtCheck1" value="48" />
       <entry name="49: Disable Lock-On" value="49" />
       <entry name="50: Disable Character NPCParam HitRadius Push Collision" value="50" />
       <entry name="51: Disable Falling Animation" value="51" />
@@ -75,7 +75,7 @@
       <entry name="73: Parry Possible State" value="73" />
       <entry name="74: Ladder Collision Start" value="74" />
       <entry name="75: Cancel - Grab Loot" value="75" />
-      <entry name="76: CultPromptCheck2" value="76" />
+      <entry name="76: InvokeCultPromptCheck2" value="76" />
       <entry name="78: Cancel - AI Movement" value="78" />
       <entry name="79: Cancel - AI Dodge" value="79" />
       <entry name="80: Cancel - Grab Loot Input Check" value="80" />
@@ -96,32 +96,32 @@
       <entry name="96: Set Immortality" value="96" />
       <entry name="97: Disable 'Cancel - Magic', and 'Cancel - Item'" value="97" />
       <entry name="98: SetBool32_0x7C_21_hks313" value="98" />
-      <entry name="99: IsCultRitualProgressing" value="99" />
+      <entry name="99: InvokeIsCultRitualProgressing" value="99" />
       <entry name="100: SetStartbit17" value="100" />
       <entry name="101: SetStartbit18" value="101" />
       <entry name="102: SetStartbit21" value="102" />
-      <entry name="103: AnimCancelEnd_L2" value="103" />
-      <entry name="104: AnimCancelEnd_L2_WeaponCancelType_HksSet2011" value="104" />
-      <entry name="105: AnimCancelStart_L2" value="105" />
+      <entry name="103: InvokeAnimCancelEnd_L2" value="103" />
+      <entry name="104: InvokeAnimCancelEnd_L2_WeaponCancelType_HksSet2011" value="104" />
+      <entry name="105: InvokeAnimCancelStart_L2" value="105" />
       <entry name="106: GetWeaponCancelType_HksSet2011_SameAs104" value="106" />
-      <entry name="107: AnimCancelEnd_UseItem_ByGoodsParam" value="107" />
-      <entry name="108: AnimCancelStart_UseItem_ByGoodsParam" value="108" />
-      <entry name="109: CanDoubleCast_hks331" value="109" />
-      <entry name="110: DisableDirectionChange" value="110" />
-      <entry name="111: AnimCancelStart_EmergencyStep" value="111" />
-      <entry name="112: AnimCancelEnd_EmergencyStep" value="112" />
-      <entry name="113: HeightCorrection" value="113" />
-      <entry name="114: ChangeLockOnMarkerPos" value="114" />
-      <entry name="115: AnimCancelEnd_R1_LightKick" value="115" />
-      <entry name="116: AnimCancelEnd_R2_HeavyKick" value="116" />
-      <entry name="117: AnimCancelEnd_L1" value="117" />
-      <entry name="118: AnimCancelEnd_L2" value="118" />
-      <entry name="119: TryToForceParryMode" value="119" />
-      <entry name="120: AnimCancelStart_L1_L2_ByWeaponParam" value="120" />
-      <entry name="121: AnimCancelEndExtra_L1_l2_ByWeaponParam" value="121" />
+      <entry name="107: InvokeAnimCancelEnd_UseItem_ByGoodsParam" value="107" />
+      <entry name="108: InvokeAnimCancelStart_UseItem_ByGoodsParam" value="108" />
+      <entry name="109: InvokeCanDoubleCast_hks331" value="109" />
+      <entry name="110: InvokeDisableDirectionChange" value="110" />
+      <entry name="111: InvokeAnimCancelStart_EmergencyStep" value="111" />
+      <entry name="112: InvokeAnimCancelEnd_EmergencyStep" value="112" />
+      <entry name="113: InvokeHeightCorrection" value="113" />
+      <entry name="114: InvokeChangeLockOnMarkerPos" value="114" />
+      <entry name="115: InvokeAnimCancelEnd_R1_LightKick" value="115" />
+      <entry name="116: InvokeAnimCancelEnd_R2_HeavyKick" value="116" />
+      <entry name="117: InvokeAnimCancelEnd_L1" value="117" />
+      <entry name="118: InvokeAnimCancelEnd_L2" value="118" />
+      <entry name="119: TryToInvokeForceParryMode" value="119" />
+      <entry name="120: InvokeAnimCancelStart_L1_L2_ByWeaponParam" value="120" />
+      <entry name="121: InvokeAnimCancelEndExtra_L1_l2_ByWeaponParam" value="121" />
       <entry name="122: SetBool32_0x1E0" value="122" />
       <entry name="123: SetBool32_0x1E0" value="123" />
-      <entry name="124: LockOnAutoSearch" value="124" />
+      <entry name="124: InvokeLockOnAutoSearch" value="124" />
     </s32>
     <f32 name="ArgA" />
     <s32 name="ArgB" />
@@ -129,7 +129,7 @@
     <u8 name="ArgD" />
     <s16 name="ArgE" />
   </action>
-  <action id="1" name="AttackBehavior">
+  <action id="1" name="InvokeAttackBehavior">
     <s32 name="AttackType">
       <entry name="Standard" value="0" />
       <entry name="Unknown_InfestedGhoulJumpSlashDS1" value="1" />
@@ -143,7 +143,7 @@
     <u8 />
     <s16 name="StateInfo" />
   </action>
-  <action id="2" name="BulletBehavior">
+  <action id="2" name="InvokeBulletBehavior">
     <s32 name="DummyPolyID" />
     <s32 />
     <s32 name="BehaviorJudgeID" />
@@ -156,7 +156,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="5" name="CommonBehavior">
+  <action id="5" name="InvokeCommonBehavior">
     <s32 name="AttackIndex (0-8)" />
     <s32 name="BehaviorJudgeID" />
     <s32 assert="0" />
@@ -290,26 +290,32 @@
     <s32 name="SlotID" />
     <s32 assert="0" />
   </action>
-  <action id="100" name="SpawnFFX_100_BB">
+  <action id="100" name="SpawnRepeatingFFX100">
     <s32 name="FFXID" />
-    <s32 name="DummyPolyID" />
+    <s32 name="DummypolyID" />
+    <s32 name="SlotID" />
+    <s32 name="Unk0C" />
+  </action>
+  <action id="101" name="DisableRepeatingFFX101">
     <s32 name="SlotID" />
     <s32 assert="0" />
+    <s32 assert="0" />
+    <s32 assert="0" />
   </action>
-  <action id="109" name="SpawnFFX_109">
+  <action id="108" name="SpawnFFXBody108">
     <s32 name="FFXID" />
-    <s32 name="DummyPolyID" />
+    <s32 name="DummypolyID" />
     <s32 name="SlotID" />
-    <s32 assert="0" />
+    <s32 name="Unk0C" assert="0" />
   </action>
-  <action id="101" name="SpawnFFX_General_BB">
+  <action id="109" name="SpawnRepeatingFFX109">
     <s32 name="FFXID" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
+    <s32 name="DummypolyID" />
+    <s32 name="SlotID" />
+    <s32 name="Unk0C" />
   </action>
-  <action id="110" name="SpawnFFX_General">
-    <s32 name="FFXID" />
+  <action id="110" name="DisableRepeatingFFX110">
+    <s32 name="SlotID" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -321,7 +327,7 @@
     <s32 />
     <s32 assert="0" />
   </action>
-  <action id="113" name="FootSfxOnLanding">
+  <action id="113" name="InvokeFootSfxOnLanding">
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -585,26 +591,41 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="137" name="DecalParamID_CenterBody">
+  <action id="136" name="Type136">
+    <u32 name="Decal Tex ID" />
+    <s16 name="Possible DummyPoly?" />
+    <s16 name="Possible DummyPoly?" />
+    <s32 />
+    <f32 />
+    <u16 />
+    <u16 />
+    <u16 />
+    <u16 />
+    <u16 />
+    <u16 />
+    <u16 />
+    <u16 />
+  </action>
+  <action id="137" name="InvokeDecalParamID_CenterBody">
     <s32 name="DecalParamID" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="138" name="DecalParamID_DummyPoly">
+  <action id="138" name="InvokeDecalParamID_DummyPoly">
     <s32 name="DecalParamID" />
     <s32 name="DummyPolyID" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="144" name="RumbleCam_Local">
+  <action id="144" name="InvokeRumbleCam_Local">
     <s16 name="RumbleCamID" />
     <u16 name="DummyPolyID" />
     <f32 name="FalloffStart" />
     <f32 name="FalloffEnd" />
     <s32 assert="0" />
   </action>
-  <action id="145" name="RumbleCam_Global">
+  <action id="145" name="InvokeRumbleCam_Global">
     <s16 name="RumbleCamID" />
     <u16 name="Condition">
       <entry name="0: Unconditional" value="0" />
@@ -632,13 +653,13 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="161" name="DecalOnLanding">
+  <action id="161" name="InvokeDecalOnLanding">
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="192" name="DebugFadeOut">
+  <action id="192" name="InvokeDebugFadeOut">
     <f32 name="FadeOut" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -650,7 +671,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="194" name="WindState?">
+  <action id="194" name="InvokeWindState?">
     <u16 />
     <u16 />
     <s16 name="StringIndex" />
@@ -676,7 +697,7 @@
     <u8 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="197" name="FadeOut">
+  <action id="197" name="InvokeFadeOut">
     <f32 name="GhostMain" />
     <f32 name="GhostSub" />
     <s32 assert="0" />
@@ -709,7 +730,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="227" name="EventEzStateFlag&lt;HKS_env301&gt;">
+  <action id="227" name="InvokeEventEzStateFlag&lt;HKS_env301&gt;">
     <s32 name="EzStateFlagID" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -721,7 +742,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="229" name="SpawnAISound">
+  <action id="229" name="SpawnAISoundIdle">
     <s32 name="AISoundID" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -752,22 +773,86 @@
     <s32 assert="0" />
   </action>
   <action id="233" name="ChangeChrDrawMask">
-    <u8 name="Mask0" />
-    <u8 name="Mask1" />
-    <u8 name="Mask2" />
-    <u8 name="Mask3" />
-    <u8 name="Mask4" />
-    <u8 name="Mask5" />
-    <u8 name="Mask6" />
-    <u8 name="Mask7" />
-    <u8 name="Mask8" />
-    <u8 name="Mask9" />
-    <u8 name="Mask10" />
-    <u8 name="Mask11" />
-    <u8 name="Mask12" />
-    <u8 name="Mask13" />
-    <u8 name="Mask14" />
-    <u8 name="Mask15" />
+    <u8 name="Mask0">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask1">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask2">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask3">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask4">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask5">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask6">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask7">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask8">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask9">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask10">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask11">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask12">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask13">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask14">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask15">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
   </action>
   <action id="234" name="AddOffsetToNextAnimID">
     <s32 name="Offset" />
@@ -776,7 +861,6 @@
     <s32 assert="0" />
   </action>
   <action id="235" name="Event235">
-    <b name="Mask0" />
     <b name="Mask1" />
     <b name="Mask2" />
     <b name="Mask3" />
@@ -808,6 +892,7 @@
     <b name="Mask29" />
     <b name="Mask30" />
     <b name="Mask31" />
+    <b name="Mask32" />
   </action>
   <action id="236" name="RootMotionReduction">
     <f32 name="ReductionAtEventStart" />
@@ -818,11 +903,167 @@
     <u8 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="237" name="SpawnAISound2">
-    <s32 name="AISoundID" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
+  <action id="237" name="ChangeChrDrawMaskBB2">
+    <u8 name="Mask 0">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 1">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 2">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 3">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 4">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 5">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 6">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 7">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 8">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 9">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 10">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 11">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 12">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 13">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 14">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 15">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 16">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 17">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 18">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 19">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 20">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 21">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 22">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 23">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 24">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 25">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 26">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 27">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 28">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 29">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 30">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
+    <u8 name="Mask 31">
+      <entry name="Off" value="0" />
+      <entry name="On" value="1" />
+      <entry name="No Change" value="255" />
+    </u8>
   </action>
   <action id="300" name="ActivateJumpTableEarly">
     <s16 name="JumpTableID_ToActivateEarly" />
@@ -858,7 +1099,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="304" name="ThrowAttackBehavior">
+  <action id="304" name="InvokeThrowAttackBehavior">
     <u16 />
     <s16 name="Index" />
     <s32 name="BehaviorJudgeID" />
@@ -880,7 +1121,7 @@
     <u8 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="307" name="PCBehavior">
+  <action id="307" name="InvokePCBehavior">
     <u16 name="Condition0x64_GetWeaponData" />
     <u16 name="Offset" />
     <s32 name="PCBehaviorType" />
@@ -893,7 +1134,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="310" name="ChrClothState">
+  <action id="310" name="InvokeChrClothState">
     <u8 />
     <u8 />
     <u8 assert="0" />
@@ -910,7 +1151,6 @@
     <s32 assert="0" />
   </action>
   <action id="312" name="Event312">
-    <b name="Mask0" />
     <b name="Mask1" />
     <b name="Mask2" />
     <b name="Mask3" />
@@ -942,6 +1182,7 @@
     <b name="Mask29" />
     <b name="Mask30" />
     <b name="Mask31" />
+    <b name="Mask32" />
   </action>
   <action id="313" name="AdditiveAnim">
     <s32 name="AnimType">
@@ -951,23 +1192,61 @@
     <f32grad name="Weight" />
     <f32 />
   </action>
-  <action id="315" name="Type315">
-    <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
-    <s32 />
-    <s16 />
-    <s16 />
-    <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
+  <action id="314" name="SpawnAISoundMovement">
+    <s32 name="AISoundParamID" />
+    <s32 name="Unk04" assert="0" />
+    <s32 name="Unk08" assert="0" />
+    <s32 name="Unk0C" assert="0" />
+  </action>
+  <action id="315" name="EnableTwistModifier">
+    <f32 name="UpLimitAngle" />
+    <f32 name="DownLimitAngle" />
+    <f32 name="RightLimitAngle" />
+    <f32 name="LeftLimitAngle" />
+    <s32 name="ModifierID" />
+    <u8 name="Unk04" />
+    <u8 name="Unk04" />
+    <u8 name="Unk04" />
+    <u8 name="Unk04" />
+    <f32 name="UpMinimumAngle" />
+    <f32 name="DownMinimumAngle" />
+    <f32 name="RightMinimumAngle" />
+    <f32 name="LeftMinimumAngle" />
+    <s32 name="Unk08" />
+    <s32 name="Unk0C" />
+  </action>
+  <action id="316" name="InvokeFixedRotationDirection">
+    <b name="IsEnable" />
+    <u8 assert="0" />
+    <u8 assert="0" />
+    <u8 assert="0" />
+    <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="316" name="Type316">
+  <action id="317" name="Type317">
+    <b />
+    <b />
+    <b />
+    <b />
     <s32 />
+    <s32 />
+    <s32 />
+    <s32 />
+  </action>
+  <action id="318" name="InvokeGunBehavior">
+    <s32 />
+    <s32 />
+    <s32 name="BehaviorSubID" />
+    <u8 name="DirectionType" />
+    <u8 name="Unk0D" />
+    <s16 name="StateInfo" />
+  </action>
+  <action id="319" name="ConsumeBloodVial">
+    <b />
+    <u8 assert="0" />
+    <u8 assert="0" />
+    <u8 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -988,11 +1267,43 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
+  <action id="321" name="Invoke Player Throw">
+    <s16 name="DummyPoly?" />
+    <s16 name="pad0" />
+    <s16 name="Behavior Judge ID" />
+    <s16 name="pad1" />
+  </action>
   <action id="322" name="Type322">
+    <u8 assert="0">
+      <entry name="0" value="0" />
+      <entry name="1" value="1" />
+      <entry name="255" value="255" />
+    </u8>
+    <u8 assert="0">
+      <entry name="0" value="0" />
+      <entry name="1" value="1" />
+      <entry name="255" value="255" />
+    </u8>
+    <u8 assert="0">
+      <entry name="0" value="0" />
+      <entry name="1" value="1" />
+      <entry name="255" value="255" />
+    </u8>
+    <u8 assert="0">
+      <entry name="0" value="0" />
+      <entry name="1" value="1" />
+      <entry name="255" value="255" />
+    </u8>
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
-    <s32 assert="0" />
+  </action>
+  <action id="323" name="Type323">
+    <f32 name="SomeFloat?" />
+  </action>
+  <action id="324" name="MultiplayerDisconnectRequest">
+    <s32 />
+    <s32 />
   </action>
   <action id="330" name="WeaponArtFPConsumption">
     <s32 assert="0" />
@@ -1006,7 +1317,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="332" name="WeaponArtWeaponStyleCheck">
+  <action id="332" name="InvokeWeaponArtWeaponStyleCheck">
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1018,534 +1329,30 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="402" name="Wind">
+  <action id="402" name="InvokeWind">
     <s32 name="WindParamID" />
     <u16 />
     <u16 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="500" name="Event500">
-    <u8 name="FlagIndex" />
-    <u8 name="Index">
-      <entry name="1: 0" value="1" />
-      <entry name="2: 0x02000045 or 0x02000049" value="2" />
-      <entry name="3: 0x02000042" value="3" />
-      <entry name="4: 0x02000012" value="4" />
-    </u8>
+  <action id="500" name="IgnoreHitsPartsMask">
+    <u8 name="NPCPartID" />
+    <u8 assert="0" />
     <u16 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="510" name="FullBodyWet">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="520" name="IfLockedOn_Set??">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="521" name="SetChrTurnRateEX">
-    <f32 name="TurnRate" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="522" name="SetSpecialLockOnParameter">
-    <f32 name="TargetChrParameter" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="600" name="EnableBehaviorFlags">
-    <s32 name="Mask (0-63)" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="601" name="AdditiveAnimPlayback">
-    <s32 name="StayAnimType" />
-    <f32 />
-    <f32 />
-    <s32 assert="0" />
-  </action>
-  <action id="602" name="Event602">
-    <s32 name="StayAnimType" />
-    <f32 />
-    <f32 />
-    <s32 assert="0" />
-  </action>
-  <action id="603" name="DebugAnimSpeed">
-    <u32 name="AnimSpeed" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="604" name="TestParam">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="605" name="SetTimeActEditorHavokVariable">
-    <b name="Unk00" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 name="VariableID" />
-    <f32grad name="ValueGradient" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="606" name="JiggleModifier">
-    <u8 name="JigglerId" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u16 name="FadeIn" />
-    <u16 name="FadeOut" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="700" name="Event700">
-    <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
-    <s32 />
-    <u8 name="JumpTableID">
-      <entry name="0 : Default" value="0" />
-      <entry name="1" value="1" />
-      <entry name="2 : BonfireSacrificeIdle" value="2" />
-      <entry name="3" value="3" />
-      <entry name="4" value="4" />
-      <entry name="5" value="5" />
-      <entry name="6 : HeadTurn?" value="6" />
-      <entry name="7 : Throw?" value="7" />
-    </u8>
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="703" name="FixedRotationDirection">
-    <b name="IsEnable" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="704" name="ChrTurnSpeedEX">
-    <f32 name="SpeedDefault" />
-    <f32 name="SpeedExtra" />
-    <f32 name="SpeedBoost" />
-    <s32 assert="0" />
-  </action>
-  <action id="705" name="FacingAngleCorrection">
-    <f32 name="CorrectionRate" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="706" name="ChrTurnSpeed_ForLock">
-    <f32 name="TurnSpeed" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="707" name="ManualAttackAiming">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="710" name="HideEquippedWeapon">
-    <b name="LeftHand" />
-    <b name="RightHand" />
-    <b name="LeftHand_WithScabbard" />
-    <b name="RightHand_WithScabbard" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="711" name="HideModelMask">
-    <b name="Mask0" />
-    <b name="Mask1" />
-    <b name="Mask2" />
-    <b name="Mask3" />
-    <b name="Mask4" />
-    <b name="Mask5" />
-    <b name="Mask6" />
-    <b name="Mask7" />
-    <b name="Mask8" />
-    <b name="Mask9" />
-    <b name="Mask10" />
-    <b name="Mask11" />
-    <b name="Mask12" />
-    <b name="Mask13" />
-    <b name="Mask14" />
-    <b name="Mask15" />
-    <b name="Mask16" />
-    <b name="Mask17" />
-    <b name="Mask18" />
-    <b name="Mask19" />
-    <b name="Mask20" />
-    <b name="Mask21" />
-    <b name="Mask22" />
-    <b name="Mask23" />
-    <b name="Mask24" />
-    <b name="Mask25" />
-    <b name="Mask26" />
-    <b name="Mask27" />
-    <b name="Mask28" />
-    <b name="Mask29" />
-    <b name="Mask30" />
-    <b name="Mask31" />
-  </action>
-  <action id="712" name="OverrideWeaponModelLocations">
-    <u8 name="RHModel0AbsorpPosParamCondition" />
-    <s8 name="RHModel0ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H R WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="RHModel1AbsorpPosParamCondition" />
-    <s8 name="RHModel1ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H R WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="RHModel2AbsorpPosParamCondition" />
-    <s8 name="RHModel2ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H R WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="RHModel3AbsorpPosParamCondition" />
-    <s8 name="RHModel3ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H R WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="LHModel0AbsorpPosParamCondition" default="0" />
-    <s8 name="LHModel0ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H L WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="LHModel1AbsorpPosParamCondition" default="0" />
-    <s8 name="LHModel1ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H L WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="LHModel2AbsorpPosParamCondition" default="0" />
-    <s8 name="LHModel2ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H L WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="LHModel3AbsorpPosParamCondition" default="0" />
-    <s8 name="LHModel3ChangeType" default="-1: Move to Default Location">
-      <entry name="-1: Move to Default Location" value="-1" />
-      <entry name="0: Move to 1H R WPN Location" value="0" />
-      <entry name="1: Move to 1H L WPN Location" value="1" />
-      <entry name="2: Move to 2H L WPN Location" value="2" />
-      <entry name="3: Move to Sheathed Location" value="3" />
-      <entry name="4: Maintain Previous Change" value="4" />
-      <entry name="5: Friede's Scythe Override (hardcoded via weapon ID)" value="5" />
-      <entry name="6: Unknown" value="6" />
-    </s8>
-    <u8 name="IsEnabledWhile1Handing" />
-    <u8 name="IsEnabledWhile2HandingRightWeapon" />
-    <u8 name="IsEnabledWhile2HandingLeftWeapon" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="713" name="ShowModelMask">
-    <b name="Mask0" />
-    <b name="Mask1" />
-    <b name="Mask2" />
-    <b name="Mask3" />
-    <b name="Mask4" />
-    <b name="Mask5" />
-    <b name="Mask6" />
-    <b name="Mask7" />
-    <b name="Mask8" />
-    <b name="Mask9" />
-    <b name="Mask10" />
-    <b name="Mask11" />
-    <b name="Mask12" />
-    <b name="Mask13" />
-    <b name="Mask14" />
-    <b name="Mask15" />
-    <b name="Mask16" />
-    <b name="Mask17" />
-    <b name="Mask18" />
-    <b name="Mask19" />
-    <b name="Mask20" />
-    <b name="Mask21" />
-    <b name="Mask22" />
-    <b name="Mask23" />
-    <b name="Mask24" />
-    <b name="Mask25" />
-    <b name="Mask26" />
-    <b name="Mask27" />
-    <b name="Mask28" />
-    <b name="Mask29" />
-    <b name="Mask30" />
-    <b name="Mask31" />
-  </action>
-  <action id="714" name="StaggerModuleUnk">
-    <u8 />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="715" name="WepAbsorpPos">
-    <u8 />
-    <u8 name="Pad1" />
-    <u8 name="Pad2" />
-    <u8 name="Pad3" />
-    <s32 />
-    <s32 />
-    <s32 />
-    <s32 />
-    <s32 />
-    <s32 />
-    <s32 assert="0" />
-  </action>
-  <action id="720" name="CultCatchAttach">
-    <u8 name="FlagIndex0-1" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="730" name="OnlyForNon_c0000Enemies">
-    <f32 />
-    <f32 />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="740" name="Startbit_0x1409A9A40">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="760" name="BoostRootMotionToReachTarget">
-    <b name="IsEnable" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <f32 name="ReferenceDist" />
-    <f32 name="EnableRangeMin" />
-    <f32 name="EnableRangeMax" />
-    <f32 name="ArriveAngleFromTarget" />
-    <f32 name="ArriveDistFromTarget" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="770" name="ChangeBonePos">
-    <s32 />
-    <f32 />
-    <u8 />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="771" name="FixBone">
-    <u8 />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="772" name="ChangeBonePosEX">
-    <s32 />
-    <f32 />
-    <u8 />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="780" name="AddHeight">
-    <f32 name="Height" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="781" name="TurnLowerBody">
-    <u8 name="TurnState" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="782" name="AiReplanningCtrlReset">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="785" name="SpawnChrFinderBullet">
-    <f32 name="DetectionRange" />
-    <s32 name="DummypolyID" />
-    <s32 name="BulletID" />
-    <b name="IsCompareChrType" />
-    <u8 name="TargetNum" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-  </action>
-  <action id="786" name="SetMaxUndurationAngle">
-    <f32 name="MaxUndurationAngle" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="790" name="DisableDefaultWeaponTrail">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="791" name="PartDamageAdditiveBlendInvalid">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="792" name="FootSfxParam_Entity">
-    <u16 name="FootSFXIndex" />
+  <action id="501" name="Type501">
+    <u8 name="NPCPartID" />
+    <u8 name="Unk01" />
     <u16 assert="0" />
-    <s32 name="DummyPolyID" />
-    <s32 name="SlotID" />
-    <b name="IsIgnoreDummyPolyAngle" />
-    <b name="IsFollowDummyPoly" />
-    <b name="IsRestrictToDummyPoly" />
-    <u8 name="ExtraSpawnCondition" />
-  </action>
-  <action id="793" name="CultWeaponValue">
-    <s32 name="WeaponValue" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="794" name="CultFlag">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="795" name="DS3Poise">
-    <u8 name="ToughnessParamID" />
-    <u8 name="ToughnessType" />
-    <u16 assert="0" />
-    <f32 name="DamageRatio" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="796" name="Menu">
-    <u8 name="MenuType">
-      <entry name="0: Level Up" value="0" />
-      <entry name="1: Rebirth Stats" value="1" />
-    </u8>
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <u8 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="797" name="AddSpEffect_CultRitualCompletion">
-    <s32 name="SpEffectID" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="798" name="CultCompletionSfxValue">
-    <f32 name="CultSfxValue" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="799" name="CultExecution">
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-    <s32 assert="0" />
-  </action>
-  <action id="800" name="DebugMovementMultiplier">
-    <f32 name="MovDistMultiplier" />
-    <f32 name="CamTurnDistMultiplier" />
-    <f32 name="LadderDistMultiplier" />
-    <s32 assert="0" />
-  </action>
-  <action id="10096" name="Sfx?">
+  <action id="10096" name="InvokeSfx?">
     <s32 />
     <s32 />
     <s32 />
@@ -1557,13 +1364,13 @@
     <s32 />
     <s32 assert="0" />
   </action>
-  <action id="10137" name="DebugDecal1">
+  <action id="10137" name="InvokeDebugDecal1">
     <s32 name="DecalParamId" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="10138" name="DebugDecal2">
+  <action id="10138" name="InvokeDebugDecal2">
     <s32 name="DecalParamId" />
     <s32 />
     <s32 assert="0" />

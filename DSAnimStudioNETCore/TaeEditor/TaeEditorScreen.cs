@@ -1,27 +1,28 @@
 ﻿using DSAnimStudio.GFXShaders;
+using DSAnimStudio.ImguiOSD;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using SoulsFormats;
+using SharpDX.DirectWrite;
+using SoulsAssetPipeline;
 using SoulsAssetPipeline.Animation;
+using SoulsFormats;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 //using static DSAnimStudio.TaeEditor.OLD_TaeEditAnimEventGraph;
 using System.Diagnostics;
-using SharpDX.DirectWrite;
 using System.IO;
+using System.Linq;
+using System.Reflection.Metadata;
+using System.Runtime;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using DSAnimStudio.ImguiOSD;
-using SoulsAssetPipeline;
-using static SoulsAssetPipeline.Audio.Wwise.WwiseEnums;
-using Keys = Microsoft.Xna.Framework.Input.Keys;
-using System.Reflection.Metadata;
 using static DSAnimStudio.ImguiOSD.Dialog;
-using System.Runtime;
+using static SoulsAssetPipeline.Audio.Wwise.WwiseEnums;
+using static System.Runtime.CompilerServices.RuntimeHelpers;
+using Keys = Microsoft.Xna.Framework.Input.Keys;
 //using static DSAnimStudio.ImguiOSD.Window;
 
 namespace DSAnimStudio.TaeEditor
@@ -1059,6 +1060,8 @@ namespace DSAnimStudio.TaeEditor
             {
                 FileContainer = new TaeFileContainer(this);
 
+
+
                 try
                 {
                     string folder = new System.IO.FileInfo(mainContainerName).DirectoryName;
@@ -1067,33 +1070,8 @@ namespace DSAnimStudio.TaeEditor
 
                     string interroot = folder.Substring(0, lastSlashInFolder);
 
-                    string oodleSource = Utils.Frankenpath(interroot, "oo2core_6_win64.dll");
+                    ParentDocument.GameRoot.TryCopyOodleFromInterroot();
 
-                    // modengine check
-                    if (!File.Exists(oodleSource))
-                    {
-                        oodleSource = Utils.Frankenpath(interroot, @"..\oo2core_6_win64.dll");
-                    }
-
-                    //if (!File.Exists(oodleSource))
-                    //{
-                    //    System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
-                    //    "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
-                    //    "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
-                    //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-
-                    //    return false;
-                    //}
-
-                    string oodleTarget = Utils.Frankenpath(Main.Directory, "oo2core_6_win64.dll");
-
-                    if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
-                    {
-                        System.IO.File.Copy(oodleSource, oodleTarget, true);
-
-                        zzz_NotificationManagerIns.PushNotification("Oodle compression library was automatically copied from game directory " +
-                                            "to editor's directory and Sekiro / Elden Ring files will load now.");
-                    }
                     var mainBinderName = containerInfo.GetMainBinderName();
                     var mainBinder = Utils.ReadBinder(mainBinderName);
                     TaeFileContainer.CheckGameVersionForTaeInterop(mainBinderName, mainBinder);
@@ -1113,7 +1091,7 @@ namespace DSAnimStudio.TaeEditor
                         System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
                     }
                 }
-                catch (System.DllNotFoundException)
+                catch (SoulsFormats.Exceptions.NoOodleFoundException)
                 {
                     //System.Windows.Forms.MessageBox.Show("Cannot open Sekiro files unless you " +
                     //    "copy the `oo2core_6_win64.dll` file from the Sekiro folder into the " +
@@ -3177,12 +3155,12 @@ namespace DSAnimStudio.TaeEditor
                         {
                             if (!GotoAnimID(id, scrollOnCenter: true, ignoreIfAlreadySelected: false, out _))
                             {
-                                zzz_NotificationManagerIns.PushNotification($"Go to animation failed: Unable to find animation with ID {id.GetFormattedIDString(Proj)}.");
+                                zzz_NotificationManagerIns.PushNotificationWarn($"Go to animation failed: Unable to find animation with ID {id.GetFormattedIDString(Proj)}.");
                             }
                         }
                         else
                         {
-                            zzz_NotificationManagerIns.PushNotification($"Go to animation failed: '{detailedError}'.");
+                            zzz_NotificationManagerIns.PushNotificationWarn($"Go to animation failed: '{detailedError}'.");
                         }
                     }));
                 }, checkError: input =>
@@ -3675,12 +3653,12 @@ namespace DSAnimStudio.TaeEditor
                 }
                 else
                 {
-                    zzz_NotificationManagerIns.PushNotification($"Unable to find animation with ID in clipboard ({id}).");
+                    zzz_NotificationManagerIns.PushNotificationWarn($"Unable to find animation with ID in clipboard ({id}).");
                 }
             }
             else
             {
-                zzz_NotificationManagerIns.PushNotification("Text in clipboard was not a valid animation ID.");
+                zzz_NotificationManagerIns.PushNotificationWarn("Text in clipboard was not a valid animation ID.");
             }
             
         }

@@ -220,8 +220,14 @@ namespace DSAnimStudio
         [ColorEditCfg("Helpers/FLVER Skeleton Boxes", 0x00FF00FF)]
         public Color ColorHelperFlverBoneBoundingBox;
 
-        [ColorEditCfg("Helpers/HKX Skeleton", 0xFF0000FF)]
-        public Color ColorHelperHkxBone;
+        [ColorEditCfg("Helpers/HKX Skeleton Lines", 0xFF0000FF)]
+        public Color ColorHelperHkxBoneLines;
+
+        [ColorEditCfg("Helpers/HKX Skeleton Transforms", 0xFF0000FF)]
+        public Color ColorHelperHkxBoneTransforms;
+
+        [ColorEditCfg("Helpers/HKX Skeleton Texts", 0xFF0000FF)]
+        public Color ColorHelperHkxBoneTexts;
 
         [ColorEditCfg("Helpers/Bone Glue Entries", 255, 165, 0)]
         public Color ColorHelperBoneGlue;

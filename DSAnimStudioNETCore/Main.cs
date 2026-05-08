@@ -26,7 +26,7 @@ namespace DSAnimStudio
     public class Main : Game
     {
         // STOP MOVING THESE FIELDS DOWN LMAO
-        public const string DSAS_VERSION_STRING = "5.0-RC4.1";
+        public const string DSAS_VERSION_STRING = "5.0-RC5";
         public static bool IsPatreonBuild => false;
 
 
@@ -71,7 +71,7 @@ namespace DSAnimStudio
         {
             string msg = $"ERROR HANDLED: {errorName}\n\n{ex}";
             ErrorLog.LogError(msg);
-            zzz_NotificationManagerIns.PushNotification(msg, color: Color.Red);
+            zzz_NotificationManagerIns.PushNotificationError(msg);
         }
         
         public static DPC_EnableErrorHandler EnableErrorHandler = new DPC_EnableErrorHandler();
@@ -537,6 +537,9 @@ namespace DSAnimStudio
             RemoManager.DisposeAllModels();
 
             zzz_DocumentManager.DestroyAllDocs();
+
+            NewFmodIns.EventSys?.Dispose();
+            NewFmodIns.EventSys = null;
 
             base.Dispose(disposing);
         }

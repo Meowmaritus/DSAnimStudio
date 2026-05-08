@@ -521,7 +521,13 @@
     <None Update="Res\PEM\ERNR\data3.pem">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Res\PEM\ERNR\dlc01.pem">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Res\PEM\ERNR\sd\sd.pem">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Res\PEM\ERNR\sd\sd_dlc01.pem">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Res\PEM\ER\data0.pem">
@@ -558,6 +564,18 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Res\PEM\SDT\data5.pem">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Res\RegulationKeys\AC6.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Res\RegulationKeys\DS3.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Res\RegulationKeys\ER.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Res\RegulationKeys\ERNR.bin">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Res\TAE.Template.ERNR.xml">

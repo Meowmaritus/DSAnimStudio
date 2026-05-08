@@ -142,13 +142,13 @@ namespace DSAnimStudio.LiveRefresh
             ER_WorldChrManPtr = Memory.ScanRelativeAob(aob, GetIngameReloadIniOption("ER_WorldChrManPtr_AOB") ?? "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88 ?? ?? ?? ?? 75 06 89 B1 64 03 ?? ?? 0F 28 05 ?? ?? ?? ?? 4C 8D 45 E7",
                 GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_StartOffsetInAOB") ?? 3, GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_EndOffsetInAOB") ?? 7);
             if (ER_WorldChrManPtr == IntPtr.Zero)
-                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring WorldChrMan AOB");
+                zzz_NotificationManagerIns.PushNotificationWarn("Live reload WARNING - Could not find Elden Ring WorldChrMan AOB");
             ER_WorldChrManPtr = Kernel32.ReadIntPtr(ProcessHandle, ER_WorldChrManPtr, true);
 
             var crashPatchOffsetAob = AOBScanner.StringToAOB(GetIngameReloadIniOption("ER_CrashPatchOffset_AOB") ?? "80 65 ?? FD 48 C7 45 ?? 07 00 00 00 ?? 8D 45 48 4C 89 60 ?? 48 83 78 ?? 08 72 03 48 8B 00 66 44 89 20 49 8B 8F ?? ?? ?? ?? 48 8B 01 48 ?? ??");
             IntPtr crashPatchOffset = aob.Scan(crashPatchOffsetAob);
             if (crashPatchOffset == IntPtr.Zero)
-                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring crash patch AOB");
+                zzz_NotificationManagerIns.PushNotificationWarn("Live reload WARNING - Could not find Elden Ring crash patch AOB");
             crashPatchOffset = crashPatchOffset + crashPatchOffsetAob.Length - (GetIngameReloadIniOptionInt("ER_CrashPatchOffset_DistFromEndOfAOB") ?? 3);
             ER_CrashFixPtr = crashPatchOffset;
         }
@@ -162,13 +162,13 @@ namespace DSAnimStudio.LiveRefresh
             ER_WorldChrManPtr = Memory.ScanRelativeAob(aob, GetIngameReloadIniOption("ER_WorldChrManPtr_AOB") ?? "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88 ?? ?? ?? ?? 75 06 89 B1 64 03 ?? ?? 0F 28 05 ?? ?? ?? ?? 4C 8D 45 E7",
                 GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_StartOffsetInAOB") ?? 3, GetIngameReloadIniOptionInt("ER_WorldChrManPtr_JumpInstr_EndOffsetInAOB") ?? 7);
             if (ER_WorldChrManPtr == IntPtr.Zero)
-                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring WorldChrMan AOB");
+                zzz_NotificationManagerIns.PushNotificationWarn("Live reload WARNING - Could not find Elden Ring WorldChrMan AOB");
             ER_WorldChrManPtr = Kernel32.ReadIntPtr(ProcessHandle, ER_WorldChrManPtr, true);
 
             var crashPatchOffsetAob = AOBScanner.StringToAOB(GetIngameReloadIniOption("ER_CrashPatchOffset_AOB") ?? "80 65 ?? FD 48 C7 45 ?? 07 00 00 00 ?? 8D 45 48 4C 89 60 ?? 48 83 78 ?? 08 72 03 48 8B 00 66 44 89 20 49 8B 8F ?? ?? ?? ?? 48 8B 01 48 ?? ??");
             IntPtr crashPatchOffset = aob.Scan(crashPatchOffsetAob);
             if (crashPatchOffset == IntPtr.Zero)
-                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find Elden Ring crash patch AOB");
+                zzz_NotificationManagerIns.PushNotificationWarn("Live reload WARNING - Could not find Elden Ring crash patch AOB");
             crashPatchOffset = crashPatchOffset + crashPatchOffsetAob.Length - (GetIngameReloadIniOptionInt("ER_CrashPatchOffset_DistFromEndOfAOB") ?? 3);
             ER_CrashFixPtr = crashPatchOffset;
         }
@@ -184,7 +184,7 @@ namespace DSAnimStudio.LiveRefresh
             AC6_WorldChrManPtr = Memory.ScanRelativeAob(aob, iniWorldChrManAob ?? "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88 ?? ?? ?? ?? 75 06 89 B1 64 03 ?? ?? 0F 28 05 ?? ?? ?? ?? 4C 8D 45 E7",
                 GetIngameReloadIniOptionInt("AC6_WorldChrManPtr_JumpInstr_StartOffsetInAOB") ?? 3, GetIngameReloadIniOptionInt("AC6_WorldChrManPtr_JumpInstr_EndOffsetInAOB") ?? 7);
             if (AC6_WorldChrManPtr == IntPtr.Zero)
-                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find AC6 WorldChrMan AOB");
+                zzz_NotificationManagerIns.PushNotificationWarn("Live reload WARNING - Could not find AC6 WorldChrMan AOB");
             AC6_WorldChrManPtr = Kernel32.ReadIntPtr(ProcessHandle, AC6_WorldChrManPtr, true);
 
             var iniCrashPtrAob = GetIngameReloadIniOption("AC6_CrashPatchOffset_AOB");
@@ -192,7 +192,7 @@ namespace DSAnimStudio.LiveRefresh
             var crashPatchOffsetAob = AOBScanner.StringToAOB(iniCrashPtrAob ?? "80 65 ?? FD 48 C7 45 ?? 07 00 00 00 ?? 8D 45 48 4C 89 60 ?? 48 83 78 ?? 08 72 03 48 8B 00 66 44 89 20 49 8B 8F ?? ?? ?? ?? 48 8B 01 48 ?? ??");
             IntPtr crashPatchOffset = aob.Scan(crashPatchOffsetAob);
             if (crashPatchOffset == IntPtr.Zero)
-                zzz_NotificationManagerIns.PushNotification("Live reload WARNING - Could not find AC6 crash patch AOB");
+                zzz_NotificationManagerIns.PushNotificationWarn("Live reload WARNING - Could not find AC6 crash patch AOB");
             crashPatchOffset = crashPatchOffset + crashPatchOffsetAob.Length - (GetIngameReloadIniOptionInt("AC6_CrashPatchOffset_DistFromEndOfAOB") ?? 3);
             AC6_CrashFixPtr = crashPatchOffset;
         }

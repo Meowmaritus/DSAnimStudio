@@ -97,10 +97,10 @@ namespace DSAnimStudio.LiveRefresh
 
         private static void ShowInjectionFailed()
         {
-            zzz_NotificationManagerIns.PushNotification("Process injection failed. Make sure the game is running and DS Anim Studio has permission " +
+            zzz_NotificationManagerIns.PushNotificationError("Process injection failed. Make sure the game is running and DS Anim Studio has permission " +
                 "to control processes (running as administrator will force this to be true)."
                 + (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsAssetPipeline.SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.AC6 ? "\n\nFor Elden Ring (incl. Nightreign) or Armored Core 6, make sure EasyAntiCheat is not enabled as it prevents all process memory writing." : ""), 
-                showDuration: 10, color: zzz_NotificationManagerIns.ColorWarning);
+                showDuration: 10);
         }
 
         private static bool RequestReloadChr(string chrName)

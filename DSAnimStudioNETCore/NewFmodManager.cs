@@ -18,18 +18,20 @@ namespace DSAnimStudio
         {
             if (fmod != CurrentFmodIns)
             {
-                if (CurrentFmodIns != null)
-                {
-                    //CurrentFmodIns.LastLoadedFEVs = CurrentFmodIns.LoadedFEVs_FullPaths.Values.ToList();
-                    CurrentFmodIns.Purge();
-                    CurrentFmodIns.Shutdown();
-                }
+                fmod.InitFmodEventSysForThisDocument();
 
-                CurrentFmodIns = fmod;
-                if (CurrentFmodIns != null)
-                {
-                    CurrentFmodIns.InitTest();
-                }
+                //if (CurrentFmodIns != null)
+                //{
+                //    //CurrentFmodIns.LastLoadedFEVs = CurrentFmodIns.LoadedFEVs_FullPaths.Values.ToList();
+                //    CurrentFmodIns.Purge();
+                //    CurrentFmodIns.Shutdown();
+                //}
+
+                //CurrentFmodIns = fmod;
+                //if (CurrentFmodIns != null)
+                //{
+                //    CurrentFmodIns.InitTest();
+                //}
             }
             
             

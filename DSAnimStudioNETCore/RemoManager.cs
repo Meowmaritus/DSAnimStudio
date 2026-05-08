@@ -23,36 +23,40 @@ namespace DSAnimStudio
             ViewportInteractor?.Graph?.PlaybackCursor?.ClearRemoState();
         }
 
-        public static NewFmodIns.FmodEventUpdater StreamedBGM = null;
+        public static long StreamedBGM = 0;
         public static void StartStreamedBGM()
         {
-            zzz_DocumentManager.CurrentDocument.Fmod.PlaySE(4, (int.Parse(RemoName.Substring(3, 6)) * 1000) + 1, -1);
+            StreamedBGM = zzz_DocumentManager.CurrentDocument.Fmod.CreateSE(4, (int.Parse(RemoName.Substring(3, 6)) * 1000) + 1, -1);
         }
         public static void StopStreamedBGM()
         {
-            StreamedBGM?.Stop(true);
+            //StreamedBGM?.Stop(true);
+            if (StreamedBGM != 0)
+                NewFmodIns.EventSys.Event_Stop(StreamedBGM, true);
         }
 
         public static void PauseStreamBGM()
         {
-            StreamedBGM?.Pause();
+            if (StreamedBGM != 0)
+                NewFmodIns.EventSys.Event_Pause(StreamedBGM);
         }
 
         public static void ResumeStreamedBGM()
         {
-            StreamedBGM?.Resume();
+            if (StreamedBGM != 0)
+                NewFmodIns.EventSys.Event_Resume(StreamedBGM);
         }
 
         public static void StopFullPreview()
         {
-            if (StreamedBGM != null && !StreamedBGM.EventIsOver)
-                StreamedBGM.Stop(true);
+            if (StreamedBGM != 0)
+                NewFmodIns.EventSys.Event_Stop(StreamedBGM, true);
         }
 
         public static void StartFullPreview()
         {
-            if (StreamedBGM != null && !StreamedBGM.EventIsOver)
-                StreamedBGM.Stop(true);
+            if (StreamedBGM != 0)
+                NewFmodIns.EventSys.Event_Stop(StreamedBGM, true);
 
             //TaeActionSimulationEnvironment.GlobalPlaybackInstanceStop();
 

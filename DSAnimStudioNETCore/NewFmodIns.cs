@@ -18,20 +18,23 @@ namespace DSAnimStudio
         public NewFmodIns(zzz_DocumentIns doc)
         {
             ParentDocument = doc;
+            DbgPrimCamPos = new DebugPrimitives.DbgPrimWireArrow(Transform.Default, Color.Lime);
         }
 
-        private object _lock_MediaRoot = new object();
+        public static SafeFmod.SafeFmodEventSys EventSys = new SafeFmod.SafeFmodEventSys(MAX_CHANNELS);
 
-        private object _lock_LoadedFevList = new object();
+        //private object _lock_MediaRoot = new object();
 
-        public bool IsInitialized => initialised;
+        //private object _lock_LoadedFevList = new object();
 
-        private static bool eventSystemCreated => _eventSystem?.Created == true;
-        private static bool initialised = false;
-        private static bool eventstart = false;
-        private static bool exit = false;
+        //public bool IsInitialized => initialised;
 
-        private FMOD.RESULT result;
+        //private static bool eventSystemCreated => _eventSystem?.Created == true;
+        //private static bool initialised = false;
+        //private static bool eventstart = false;
+        //private static bool exit = false;
+
+        //private FMOD.RESULT result;
         //FMOD.EventGroup group = null;
         //private FMOD.EventProject project = null;
         //private FMOD.Sound fsb = null;
@@ -42,14 +45,15 @@ namespace DSAnimStudio
         //public float BaseSoundVolume = 0.5f;
 
 
-        public string MediaPath = null;
+        //public string MediaPath = null;
 
         public string StatusString = "FMOD: (Not Running)";
 
-        private static FMOD.System _system = null;
+        //private static FMOD.System _system = null;
 
-        private static FMOD.EventSystem _eventSystem = null;
+        //private static FMOD.EventSystem _eventSystem = null;
 
+        //private Dictionary<string, string> _loadedFEVs_FullDirectories = new Dictionary<string, string>();
 
 
 
@@ -137,28 +141,28 @@ namespace DSAnimStudio
             return null;
         }
 
-        public bool IsFevLoaded(string fevName)
-        {
-            if (fevName == null)
-                return false;
-            string fevKey = Utils.GetShortIngameFileName(fevName).ToLower();
-            bool isLoaded = false;
-            lock (_lock_LoadedFevList)
-            {
-                if (_loadedFEVs_FullPaths.ContainsKey(fevKey) && !File.Exists($@"{LoadedFEVs_FullPaths[fevKey]}\{fevKey}.fev"))
-                {
-                    //TODO: Add unloadFev and call here?
-                    //_loadedFEVs.Remove(fevKey);
-                    _loadedFEVs_FullPaths.Remove(fevKey);
-                }
+        //public bool IsFevLoaded(string fevName)
+        //{
+        //    if (fevName == null)
+        //        return false;
+        //    string fevKey = Utils.GetShortIngameFileName(fevName).ToLower();
+        //    bool isLoaded = false;
+        //    lock (_lock_LoadedFevList)
+        //    {
+        //        if (_loadedFEVs_FullDirectories.ContainsKey(fevKey) && !File.Exists($@"{LoadedFEVs_FullPaths[fevKey]}\{fevKey}.fev"))
+        //        {
+        //            //TODO: Add unloadFev and call here?
+        //            //_loadedFEVs.Remove(fevKey);
+        //            _loadedFEVs_FullDirectories.Remove(fevKey);
+        //        }
 
-                isLoaded = _loadedFEVs_FullPaths.ContainsKey(fevKey);
-            }
+        //        isLoaded = _loadedFEVs_FullDirectories.ContainsKey(fevKey);
+        //    }
 
-            return isLoaded;
-        }
+        //    return isLoaded;
+        //}
 
-        private Dictionary<string, string> _loadedFEVs_FullPaths = new Dictionary<string, string>();
+        
         //private List<string> _loadedFEVs = new List<string>();
 
         // public IReadOnlyList<string> LoadedFEVs
@@ -176,25 +180,25 @@ namespace DSAnimStudio
 
         //public List<string> LastLoadedFEVs = new List<string>();
 
-        public IReadOnlyDictionary<string, string> LoadedFEVs_FullPaths
-        {
-            get
-            {
-                IReadOnlyDictionary<string, string> result = null;
-                lock (_lock_LoadedFevList)
-                {
-                    result = _loadedFEVs_FullPaths.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                }
-                return result ?? new Dictionary<string, string>();
-            }
-        }
+        //public IReadOnlyDictionary<string, string> LoadedFEVs_FullPaths
+        //{
+        //    get
+        //    {
+        //        IReadOnlyDictionary<string, string> result = null;
+        //        lock (_lock_LoadedFevList)
+        //        {
+        //            result = _loadedFEVs_FullDirectories.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        //        }
+        //        return result ?? new Dictionary<string, string>();
+        //    }
+        //}
 
         //private List<FmodEventUpdater> _eventsToUpdate = new List<FmodEventUpdater>();
 
         //public object _lock_eventsToUpdate = new object();
         //public IReadOnlyList<FmodEventUpdater> EventsToUpdate => _eventsToUpdate;
 
-        private Vector3 listenerPosOnPreviousFrame;
+        //private Vector3 listenerPosOnPreviousFrame;
 
         public int FloorMaterial = 1;
 
@@ -204,269 +208,203 @@ namespace DSAnimStudio
 
         public void Update()
         {
-            if (!initialised || !eventSystemCreated)
+            if (EventSys == null)
                 return;
 
-            //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-            //{
-            //    return;
-            //}
+            Vector3 pos = GFX.CurrentWorldView.CameraLocationInWorld_CloserForSound.Position * new Vector3(1, 1, -1);
+            Vector3 vel = Vector3.Zero;
+            Vector3 up = GFX.CurrentWorldView.GetCameraUp() * new Vector3(1, 1, -1);
+            Vector3 forward = GFX.CurrentWorldView.GetCameraForward() * new Vector3(1, 1, -1);
 
-            Main.WinForm.Invoke(new Action(() =>
-            {
+            DbgPrimCamPos.Transform = new Transform(Matrix.CreateWorld(pos, forward, up));
 
-                //_eventSystem.set3DListenerAttributes(listener: 0, ref pos, ref vel, ref forward, ref up);Vector3.Transform(
-
-                Vector3 pos = GFX.CurrentWorldView.CameraLocationInWorld_CloserForSound.Position * new Vector3(1, 1, -1);
-                Vector3 vel = Vector3.Zero;
-                Vector3 up = GFX.CurrentWorldView.GetCameraUp() * new Vector3(1, 1, -1);
-                Vector3 forward = GFX.CurrentWorldView.GetCameraForward() * new Vector3(1, 1, -1);
-
-
-                DbgPrimCamPos.Transform = new Transform(Matrix.CreateWorld(pos, forward, up));
-
-
-                //if (GFX.World.CameraTransform.EulerRotation.X > MathHelper.PiOver4)
-                //{
-                //    // If camera is pointing upward, get forward XZ from the down vector (for preventing gimbal issues)
-                //    forward = -GFX.World.GetScreenSpaceUpVector();
-                //}
-                //else if (GFX.World.CameraTransform.EulerRotation.X < -MathHelper.PiOver4)
-                //{
-                //    // If camera is pointing downward, get forward XZ from the up vector (for preventing gimbal issues)
-                //    forward = GFX.World.GetScreenSpaceUpVector();
-                //}
-
-                //// Flatten forward to be pointing directly forward.
-                //forward.Y = 0;
-                //forward = Vector3.Normalize(forward);
-
-                //// Flatten position to be on a flat plane
-                //pos.Y = 0;
-
-                VECTOR posVec = new VECTOR(pos);
-                VECTOR velVec = new VECTOR(vel);
-                VECTOR upVec = new VECTOR(up);
-                VECTOR forwardVec = new VECTOR(forward);
-
-
-
-                ERRCHECK(result = _eventSystem.set3DListenerAttributes(0, ref posVec, ref velVec, ref forwardVec, ref upVec));
-
-
-
-                //lock (_lock_eventsToUpdate)
-                //{
-                //    List<FmodEventUpdater> finishedEvents = new List<FmodEventUpdater>();
-
-                //    foreach (var evt in _eventsToUpdate)
-                //    {
-                //        evt.Update(Main.DELTA_UPDATE, Matrix.Identity);
-
-                //        if (evt.EventIsOver)
-                //            finishedEvents.Add(evt);
-                //    }
-                //    foreach (var evt in finishedEvents)
-                //    {
-                //        _eventsToUpdate.Remove(evt);
-                //    }
-                //}
-
-
-
-                ERRCHECK(result = _eventSystem.update());
-
-                listenerPosOnPreviousFrame = pos;
-            }));
+            EventSys.Update(pos, vel, forward, up);
         }
 
 
-        public class FmodEventUpdater
-        {
-            public string EventName;
-            FMOD.Event Event;
-            public bool IsFirstFrameExisting = true;
-            public bool EventIsOver = false;
-            RESULT evtRes;
+        //public class FmodEventUpdater
+        //{
+        //    public string EventName;
+        //    FMOD.Event Event;
+        //    public bool IsFirstFrameExisting = true;
+        //    public bool EventIsOver = false;
+        //    RESULT evtRes;
 
-            bool hasntStartedPlayingYet = true;
+        //    bool hasntStartedPlayingYet = true;
 
-            //public int Slot = -1;
+        //    //public int Slot = -1;
 
-            public float Lifetime = -1;
-            public float InitialLifetime = -1;
+        //    public float Lifetime = -1;
+        //    public float InitialLifetime = -1;
 
-            //public string DebugViewString => $"{(Slot >= 0 ? $"[{Slot}] " : "")}{EventName}{(Lifetime >= 0 ? $" ({Lifetime:0.000} / {InitialLifetime:0.000})" : "")}";
+        //    //public string DebugViewString => $"{(Slot >= 0 ? $"[{Slot}] " : "")}{EventName}{(Lifetime >= 0 ? $" ({Lifetime:0.000} / {InitialLifetime:0.000})" : "")}";
 
-            public FmodEventUpdater(FMOD.Event evt, string name, float lifetime)
-            {
-                EventName = name;
-                Event = evt;
-                //Slot = slot;
-                Lifetime = InitialLifetime = lifetime;
-            }
+        //    public FmodEventUpdater(FMOD.Event evt, string name, float lifetime)
+        //    {
+        //        EventName = name;
+        //        Event = evt;
+        //        //Slot = slot;
+        //        Lifetime = InitialLifetime = lifetime;
+        //    }
 
-            public void Stop(bool immediate)
-            {
-                if (EventIsOver && !immediate)
-                    return;
-                try
-                {
-                    if (Event?.eventSysParent?.Created == true)
-                    {
-                        var res = Event.stop(immediate);
+        //    public void Stop(bool immediate)
+        //    {
+        //        if (EventIsOver && !immediate)
+        //            return;
+        //        try
+        //        {
+        //            if (Event?.eventSysParent?.Created == true)
+        //            {
+        //                var res = Event.stop(immediate);
 
-                        if (res == RESULT.ERR_INVALID_HANDLE)
-                        {
-                            EventIsOver = true;
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        EventIsOver = true;
-                    }
-                }
-                catch
-                {
-                    EventIsOver = true;
-                }
-            }
+        //                if (res == RESULT.ERR_INVALID_HANDLE)
+        //                {
+        //                    EventIsOver = true;
+        //                    return;
+        //                }
+        //            }
+        //            else
+        //            {
+        //                EventIsOver = true;
+        //            }
+        //        }
+        //        catch
+        //        {
+        //            EventIsOver = true;
+        //        }
+        //    }
 
-            public void Pause()
-            {
-                if (EventIsOver)
-                    return;
+        //    public void Pause()
+        //    {
+        //        if (EventIsOver)
+        //            return;
 
-                if (Event?.eventSysParent?.Created == true)
-                {
-                    var res = Event.setPaused(true);
-                    if (res == RESULT.ERR_INVALID_HANDLE)
-                    {
-                        EventIsOver = true;
-                        return;
-                    }
-                }
-                else
-                {
-                    EventIsOver = true;
-                }
-            }
+        //        if (Event?.eventSysParent?.Created == true)
+        //        {
+        //            var res = Event.setPaused(true);
+        //            if (res == RESULT.ERR_INVALID_HANDLE)
+        //            {
+        //                EventIsOver = true;
+        //                return;
+        //            }
+        //        }
+        //        else
+        //        {
+        //            EventIsOver = true;
+        //        }
+        //    }
 
-            public void Resume()
-            {
-                if (EventIsOver)
-                    return;
+        //    public void Resume()
+        //    {
+        //        if (EventIsOver)
+        //            return;
 
-                if (Event?.eventSysParent?.Created == true)
-                {
-                    var res = Event.setPaused(false);
+        //        if (Event?.eventSysParent?.Created == true)
+        //        {
+        //            var res = Event.setPaused(false);
 
-                    if (res == RESULT.ERR_INVALID_HANDLE)
-                    {
-                        EventIsOver = true;
-                        return;
-                    }
-                }
-                else
-                {
-                    EventIsOver = true;
-                }
-            }
+        //            if (res == RESULT.ERR_INVALID_HANDLE)
+        //            {
+        //                EventIsOver = true;
+        //                return;
+        //            }
+        //        }
+        //        else
+        //        {
+        //            EventIsOver = true;
+        //        }
+        //    }
 
-            public void StartPlay()
-            {
-                if (Event?.eventSysParent?.Created == true)
-                {
-                    var res = Event.start();
-                    if (res == RESULT.ERR_INVALID_HANDLE)
-                        EventIsOver = true;
-                    hasntStartedPlayingYet = false;
-                }
-                else
-                {
-                    EventIsOver = true;
-                }
-            }
+        //    public void StartPlay()
+        //    {
+        //        if (Event?.eventSysParent?.Created == true)
+        //        {
+        //            var res = Event.start();
+        //            if (res == RESULT.ERR_INVALID_HANDLE)
+        //                EventIsOver = true;
+        //            hasntStartedPlayingYet = false;
+        //        }
+        //        else
+        //        {
+        //            EventIsOver = true;
+        //        }
+        //    }
 
-            public void Update(zzz_SoundManagerIns soundMan, float deltaTime, Matrix world, Vector3 position)
-            {
-                if (Lifetime > 0)
-                {
-                    Lifetime -= deltaTime;
-                    if (Lifetime < 0)
-                        Lifetime = 0;
+        //    public void Update(zzz_SoundManagerIns soundMan, float deltaTime, Matrix world, Vector3 position)
+        //    {
+        //        if (Lifetime > 0)
+        //        {
+        //            Lifetime -= deltaTime;
+        //            if (Lifetime < 0)
+        //                Lifetime = 0;
 
-                    if (Lifetime == 0)
-                        Stop(false);
-                }
+        //            if (Lifetime == 0)
+        //                Stop(false);
+        //        }
 
-                //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-                //{
-                //    return;
-                //}
+        //        //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+        //        //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+        //        //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+        //        //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+        //        //{
+        //        //    return;
+        //        //}
 
-                if (Event?.eventSysParent?.Created != true)
-                {
-                    EventIsOver = true;
-                    return;
-                }
+        //        if (Event?.eventSysParent?.Created != true)
+        //        {
+        //            EventIsOver = true;
+        //            return;
+        //        }
 
-                    FMOD.EVENT_STATE state = EVENT_STATE.PLAYING;
-                var evtRes = Event.getState(ref state);
+        //            FMOD.EVENT_STATE state = EVENT_STATE.PLAYING;
+        //        var evtRes = Event.getState(ref state);
 
-                if (evtRes == RESULT.ERR_INVALID_HANDLE)
-                {
-                    EventIsOver = true;
-                    return;
-                }
+        //        if (evtRes == RESULT.ERR_INVALID_HANDLE)
+        //        {
+        //            EventIsOver = true;
+        //            return;
+        //        }
 
-                if (state == EVENT_STATE.READY && !hasntStartedPlayingYet)
-                {
-                    EventIsOver = true;
-                }
-                else
-                {
-                    //if (UpdatingPosition || IsFirstFrameExisting)
-                    //    CurrentPos = Vector3.Transform(((GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(1, 1, 1)), world);
+        //        if (state == EVENT_STATE.READY && !hasntStartedPlayingYet)
+        //        {
+        //            EventIsOver = true;
+        //        }
+        //        else
+        //        {
+        //            //if (UpdatingPosition || IsFirstFrameExisting)
+        //            //    CurrentPos = Vector3.Transform(((GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(1, 1, 1)), world);
 
-                    // I don't feel like fixing up the world positions with the pos wrapping etc to make the above not horrible
-                    //CurrentPos = Vector3.Transform(((GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(1, 1, 1)), world);
+        //            // I don't feel like fixing up the world positions with the pos wrapping etc to make the above not horrible
+        //            //CurrentPos = Vector3.Transform(((GetPosFunc?.Invoke() ?? Vector3.Zero) * new Vector3(1, 1, 1)), world);
 
-                    var velocity = Vector3.Zero;// (position - oldPos) / deltaTime;
+        //            var velocity = Vector3.Zero;// (position - oldPos) / deltaTime;
 
-                    // Flatten position to be on a flat plane
-                    //position.Y = 0;
+        //            // Flatten position to be on a flat plane
+        //            //position.Y = 0;
 
-                    FMOD.VECTOR posVec = new VECTOR(position);
-                    FMOD.VECTOR velVec = new VECTOR(velocity);
+        //            FMOD.VECTOR posVec = new VECTOR(position);
+        //            FMOD.VECTOR velVec = new VECTOR(velocity);
 
-                    // If it fails due to the event being released, it's fine. No weirdness should happen.
-                    evtRes = Event.set3DAttributes(ref posVec, ref velVec);
-                    evtRes = Event.setVolume(soundMan.FmodBaseSoundVolume * (soundMan.AdjustSoundVolume / 100));
+        //            // If it fails due to the event being released, it's fine. No weirdness should happen.
+        //            evtRes = Event.set3DAttributes(ref posVec, ref velVec);
+        //            evtRes = Event.setVolume(soundMan.FmodBaseSoundVolume * (soundMan.AdjustSoundVolume / 100));
 
-                    //oldPos = CurrentPos;
-                }
+        //            //oldPos = CurrentPos;
+        //        }
 
-                IsFirstFrameExisting = false;
-            }
-        }
+        //        IsFirstFrameExisting = false;
+        //    }
+        //}
 
 
-        public FMOD.EventProject GetEventProject(string name)
-        {
-            FMOD.EventProject proj = null;
-            var numProjects = 0;
-            result = _eventSystem.getNumProjects(ref numProjects);
-            ERRCHECK(result = _eventSystem.getProjectByIndex(0, ref proj));
-            return proj;
-        }
+        //public FMOD.EventProject GetEventProject(string name)
+        //{
+        //    FMOD.EventProject proj = null;
+        //    var numProjects = 0;
+        //    result = _eventSystem.getNumProjects(ref numProjects);
+        //    ERRCHECK(result = _eventSystem.getProjectByIndex(0, ref proj));
+        //    return proj;
+        //}
 
         public void LoadFloorMaterialNamesFromInterroot()
         {
@@ -527,80 +465,28 @@ namespace DSAnimStudio
 
 
 
-        private object _lock_LoadFEV = new object();
+        //private object _lock_LoadFEV = new object();
         public bool LoadFEV(string fullFevPath)
         {
-            if (!initialised)
+            if (EventSys == null)
                 return false;
-            bool funcResult = true;
-            lock (_lock_LoadFEV)
+
+            if (!File.Exists(fullFevPath))
             {
-
-                //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-                //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-                //{
-                //    return false;
-                //}
-
-                string fevKey = Utils.GetShortIngameFileName(fullFevPath).ToLower();
-
-                ParentDocument.SoundManager.RegisterAdditionalSoundBank(fevKey);
-
-               
-
-
-
-
-                bool alreadyLoaded = false;
-               
-                    
-                        lock (_lock_LoadedFevList)
-                        {
-                            bool alreadyLoaded2_FuckingWorkPieceOfShit = false;
-                            if (_loadedFEVs_FullPaths.ContainsKey(fevKey))
-                            {
-                                alreadyLoaded = true;
-                                alreadyLoaded2_FuckingWorkPieceOfShit = true;
-                            }
-
-                            if (alreadyLoaded || alreadyLoaded2_FuckingWorkPieceOfShit)
-                            {
-                                return true;
-                            }
-
-                            if (!File.Exists(fullFevPath))
-                            {
-                                return false;
-                            }
-
-
-                            UpdateMediaRoot(Path.GetDirectoryName(fullFevPath));
-                            
-                            Main.WinForm.Invoke(new Action(() =>
-                            {
-                                result = _eventSystem.load(fevKey + ".fev");
-                                if (result != RESULT.ERR_FILE_NOTFOUND)
-                                {
-                                    ERRCHECK(result);
-                                }
-                            }));
-                            
-
-
-                            //_loadedFEVs.Add(fevKey);
-                            //_loadedFEVs_FullPaths[fevKey] = Path.GetDirectoryName(fullFevPath);
-                            _loadedFEVs_FullPaths.Add(fevKey, Path.GetDirectoryName(fullFevPath));
-                            ParentDocument.SoundManager.RegisterAdditionalSoundBank(fevKey);
-                        }
-                        
-                
-
-                funcResult = true;
+                return false;
             }
 
-            return funcResult;
+            //UpdateInterroot();
+
+            //EventSys.SetMediaPath(Path.GetDirectoryName(fullFevPath));
+
+            EventSys.LoadFEV(fullFevPath);
+
+            string fevKey = Utils.GetShortIngameFileName(fullFevPath).ToLower();
+
+            ParentDocument.SoundManager.RegisterAdditionalSoundBank(fevKey);
+
+            return true;
         }
 
         //public bool PlayEventInFEV(string fevFilePath, string eventName)
@@ -625,7 +511,7 @@ namespace DSAnimStudio
         /// </summary>
         /// <param name="fevNameAfterPrefix"></param>
         /// <returns></returns>
-        public string GetFevPathFromInterroot(string name, bool isDs1Dlc = false)
+        public string GetFevPathFromInterroot(string name)
         {
             //if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
             //    ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
@@ -654,19 +540,13 @@ namespace DSAnimStudio
             if (lang != LanguageType)
             {
                 LanguageType = lang;
-                if (eventSystemCreated && _eventSystem != null)
+
+                var fevKeysToRestore = EventSys.GetCopyOfLoadedFevsAndTheirDirectories().Keys;
+                EventSys.UnloadAllFevs();
+                EventSys.SwitchLanguage(GetFmodLanguageKey(ParentDocument.GameRoot.GameType, lang));
+                foreach (var fev in fevKeysToRestore)
                 {
-                    _eventSystem.setLanguage(GetFmodLanguageKey(ParentDocument.GameRoot.GameType, lang));
-                }
-                List<string> fevsToRestore = null;
-                lock (_lock_LoadedFevList)
-                {
-                    fevsToRestore = _loadedFEVs_FullPaths.Keys.ToList();
-                }
-                Purge();
-                foreach (var f in fevsToRestore)
-                {
-                    LoadInterrootFEV(f);
+                    LoadInterrootFEV(fev);
                 }
             }
         }
@@ -688,16 +568,7 @@ namespace DSAnimStudio
             if (ParentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.ER or SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.AC6)
                 return;
 
-            if (!initialised)
-                return;
-
-            bool alreadyLoaded = false;
-            lock (_lock_LoadedFevList)
-            {
-                if (_loadedFEVs_FullPaths.ContainsKey(Utils.GetShortIngameFileName(name).ToLower()))
-                    alreadyLoaded = true;
-            }
-            if (alreadyLoaded)
+            if (EventSys == null)
                 return;
 
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
@@ -732,7 +603,7 @@ namespace DSAnimStudio
             if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1 ||
                 ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS1R)
             {
-                path = GetFevPathFromInterroot(name, isDs1Dlc: true);
+                path = GetFevPathFromInterroot(name);
                 if (ParentDocument.GameData.FileExists(path))
                 {
                     var unpackedFileDLC = ParentDocument.GameData.ReadFileAndTempUnpack(path);
@@ -811,10 +682,10 @@ namespace DSAnimStudio
             return soundName;
         }
 
-        public FmodEventUpdater PlaySE(int category, int id, float lifetime)
+        public long CreateSE(int category, int id, float lifetime)
         {
-            if (!initialised)
-                return null;
+            if (EventSys == null)
+                return 0;
 
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 || 
             //    GameDataManager.GameType == GameDataManager.GameTypes.DS1R || 
@@ -827,9 +698,9 @@ namespace DSAnimStudio
             var soundName = GetSoundName(category, id);
 
             if (soundName == null)
-                return null;
+                return 0;
 
-            return PlaySE(soundName, lifetime);
+            return CreateSE(soundName, lifetime);
         }
 
         //public void StopAllSESlotsNotInList(List<int> slots, bool immediate)
@@ -873,74 +744,74 @@ namespace DSAnimStudio
         //}
 
 
-        private FmodEventUpdater PlaySE(string seEventName, float lifetime)
+        private long CreateSE(string seEventName, float lifetime)
         {
-            return PlayEvent(seEventName, lifetime);
+            return CreateEvent(seEventName, lifetime);
         }
 
-        public void InitTest()
-        {
-            if (initialised)
-                return;
+        //public void InitTest()
+        //{
+        //    if (initialised)
+        //        return;
 
-            if (zzz_SoundManagerIns.SOUND_DISABLED)
-                return;
+        //    if (zzz_SoundManagerIns.SOUND_DISABLED)
+        //        return;
 
-            Main.WinForm.Invoke(new Action(() =>
-            {
+        //    Main.WinForm.Invoke(new Action(() =>
+        //    {
 
-                if (eventSystemCreated)
-                {
-                    Shutdown();
-                }
+        //        if (eventSystemCreated)
+        //        {
+        //            Shutdown();
+        //        }
 
-                result = FMOD.Event_Factory.EventSystem_Create(ref _eventSystem);
+        //        result = FMOD.Event_Factory.EventSystem_Create(ref _eventSystem);
 
-                if (result == RESULT.OK)
-                {
-                    //eventSystemCreated = true;
-                }
-                else
-                {
-                    ERRCHECK(result);
-                }
+        //        if (result == RESULT.OK)
+        //        {
+        //            //eventSystemCreated = true;
+        //        }
+        //        else
+        //        {
+        //            ERRCHECK(result);
+        //        }
 
-                result = _eventSystem.init(MAX_CHANNELS, FMOD.INITFLAGS.NORMAL, (IntPtr)null, FMOD.EVENT_INITFLAGS.NORMAL);
-                if (result == RESULT.ERR_OUTPUT_INIT)
-                {
-                    DialogManager.DialogOK(null, "Failed to initialize audio output. " +
-                        "Make sure you have an audio device connected and working and " +
-                        "that no other app is taking exclusive control of the device.\n\n" +
-                        "Once you free the device, go to the 'Sound' window and check 'Enable Audio System'\n" +
-                        "or restart DS Anim Studio for Wwise games (Elden Ring and later)");
-                    zzz_SoundManagerIns.SOUND_DISABLED = true;
-                    initialised = false;
-                }
-                else if (result == RESULT.OK)
-                {
-                    initialised = true;
-                    zzz_SoundManagerIns.SOUND_DISABLED = false;
-                }
-                else
-                {
-                    ERRCHECK(result);
-                }
+        //        result = _eventSystem.init(MAX_CHANNELS, FMOD.INITFLAGS.NORMAL, (IntPtr)null, FMOD.EVENT_INITFLAGS.NORMAL);
+        //        if (result == RESULT.ERR_OUTPUT_INIT)
+        //        {
+        //            DialogManager.DialogOK(null, "Failed to initialize audio output. " +
+        //                "Make sure you have an audio device connected and working and " +
+        //                "that no other app is taking exclusive control of the device.\n\n" +
+        //                "Once you free the device, go to the 'Sound' window and check 'Enable Audio System'\n" +
+        //                "or restart DS Anim Studio for Wwise games (Elden Ring and later)");
+        //            zzz_SoundManagerIns.SOUND_DISABLED = true;
+        //            initialised = false;
+        //        }
+        //        else if (result == RESULT.OK)
+        //        {
+        //            initialised = true;
+        //            zzz_SoundManagerIns.SOUND_DISABLED = false;
+        //        }
+        //        else
+        //        {
+        //            ERRCHECK(result);
+        //        }
 
-                //RESULT langResult;
-                //if (ParentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.BB)
-                //{
-                //    langResult = _eventSystem.setLanguage("engb");
-                //}
+        //        //RESULT langResult;
+        //        //if (ParentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.BB)
+        //        //{
+        //        //    langResult = _eventSystem.setLanguage("engb");
+        //        //}
 
-                ERRCHECK(result = _eventSystem.getSystemObject(ref _system));
+        //        ERRCHECK(result = _eventSystem.getSystemObject(ref _system));
 
-                DbgPrimCamPos = new DebugPrimitives.DbgPrimWireArrow(Transform.Default, Color.Lime);
-            }));
-        }
+        //        DbgPrimCamPos = new DebugPrimitives.DbgPrimWireArrow(Transform.Default, Color.Lime);
+        //    }));
+        //}
 
         public void UpdateInterroot()
         {
-            if (!initialised)
+            if (EventSys == null)
                 return;
             //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
             //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
@@ -950,374 +821,236 @@ namespace DSAnimStudio
             //    return;
             //}
 
-            Main.WinForm.Invoke(new Action(() =>
-            {
-                string possiblePath = GetDirWithBackslash(
-                Utils.Frankenpath(ParentDocument.GameRoot.InterrootPath, ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ? "_DSAS_CONVERTED_SOUNDS" : "sound"));
-                result = _eventSystem.setMediaPath(possiblePath);
-                if (result == RESULT.OK)
-                {
-                    MediaPath = possiblePath;
-                }
-                else
-                {
-                    ERRCHECK(result);
-                    MediaPath = null;
-                }
-            }));
+           
+            string possiblePath = GetDirWithBackslash(
+            Utils.Frankenpath(ParentDocument.GameRoot.InterrootPath, ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.BB ? "_DSAS_CONVERTED_SOUNDS" : "sound"));
+            EventSys.SetMediaPath(possiblePath);
+                
+         
         }
 
-        public void UpdateMediaRoot(string mediaRoot)
+        //public void UpdateMediaRoot(string mediaRoot)
+        //{
+        //    if (!initialised)
+        //        return;
+
+        //    Main.WinForm.Invoke(new Action(() =>
+        //    {
+        //        result = _eventSystem.setMediaPath(GetDirWithBackslash(mediaRoot));
+        //        if (result == RESULT.OK)
+        //        {
+        //            MediaPath = mediaRoot;
+        //        }
+        //        else
+        //        {
+        //            ERRCHECK(result);
+        //            MediaPath = null;
+        //        }
+        //    }));
+        //}
+
+        //public void Purge()
+        //{
+        //    lock (_lock_LoadedFevList)
+        //    {
+        //        //_loadedFEVs.Clear();
+        //        _loadedFEVs_FullDirectories.Clear();
+        //    }
+
+        //    if (eventSystemCreated)
+        //    {
+        //        try
+        //        {
+        //            ERRCHECK(result = _eventSystem.unload());
+        //        }
+        //        catch
+        //        {
+
+        //        }
+        //        //eventSystemCreated = false;
+        //    }
+
+        //    //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+        //    //{
+        //    //    return;
+        //    //}
+
+        //    //Main.WinForm.Invoke(new Action(() =>
+        //    //{
+        //    //    ERRCHECK(result = _eventSystem.unload());
+        //    //    lock (_lock_LoadedFevList)
+        //    //    {
+        //    //        _loadedFEVs.Clear();
+        //    //        _loadedFEVs_FullPaths.Clear();
+        //    //    }
+        //    //}));
+            
+        //}
+
+        //private object _lock_MatchBanksToSoundMan = new object();
+        //private void MATCH_BANKS_TO_SOUND_MAN()
+        //{
+        //    var banks = ParentDocument.SoundManager.GetAdditionalSoundBankNames();
+
+        //    lock (_lock_MatchBanksToSoundMan)
+        //    {
+        //        var banks = ParentDocument.SoundManager.GetAdditionalSoundBankNames();
+        //        List<string> fevsToUnload = new List<string>();
+        //        List<string> fevsToLoad = new List<string>();
+        //        lock (_lock_LoadedFevList)
+        //        {
+        //            foreach (var kvp in _loadedFEVs_FullDirectories)
+        //            {
+        //                if (!banks.Contains(kvp.Key))
+        //                    fevsToUnload.Add(kvp.Key);
+        //            }
+
+        //            foreach (var b in banks)
+        //            {
+        //                if (!_loadedFEVs_FullDirectories.ContainsKey(b))
+        //                    fevsToLoad.Add(b);
+        //            }
+
+        //        }
+
+        //        if (fevsToUnload.Count > 0)
+        //        {
+        //            List<string> fevNamesToRestore = new List<string>();
+        //            lock (_lock_LoadedFevList)
+        //            {
+        //                fevNamesToRestore.AddRange(_loadedFEVs_FullDirectories.Keys.ToList());
+        //            }
+
+        //            foreach (var f in fevsToUnload)
+        //            {
+        //                if (fevNamesToRestore.Contains(f))
+        //                    fevNamesToRestore.Remove(f);
+        //            }
+
+        //            Purge();
+        //            Shutdown();
+        //            InitTest();
+        //            foreach (var fev in fevNamesToRestore)
+        //            {
+        //                LoadInterrootFEV(fev);
+        //            }
+        //        }
+
+        //        foreach (var fev in fevsToLoad)
+        //        {
+        //            LoadInterrootFEV(fev);
+        //        }
+
+        //    }
+        //}
+
+        public void InitFmodEventSysForThisDocument()
         {
-            if (!initialised)
+            if (EventSys == null)
                 return;
+            EventSys?.UnloadAllFevs();
 
-            Main.WinForm.Invoke(new Action(() =>
-            {
-                result = _eventSystem.setMediaPath(GetDirWithBackslash(mediaRoot));
-                if (result == RESULT.OK)
-                {
-                    MediaPath = mediaRoot;
-                }
-                else
-                {
-                    ERRCHECK(result);
-                    MediaPath = null;
-                }
-            }));
-        }
 
-        public void Purge()
-        {
-            lock (_lock_LoadedFevList)
+            var banks = ParentDocument.SoundManager.GetAdditionalSoundBankNames();
+
+            var loaded = EventSys.GetCopyOfLoadedFevsAndTheirDirectories();
+
+            bool reinit = false;
+            foreach (var kvp in loaded)
             {
-                //_loadedFEVs.Clear();
-                _loadedFEVs_FullPaths.Clear();
+                if (!banks.Contains(kvp.Key))
+                {
+                    reinit = true;
+                    break;
+                }
+            }
+            if (!reinit)
+            {
+
+                foreach (var b in banks)
+                {
+                    if (!loaded.ContainsKey(b))
+                    {
+                        reinit = true;
+                        break;
+                    }
+                }
             }
 
-            if (eventSystemCreated)
+            if (reinit)
             {
-                try
-                {
-                    ERRCHECK(result = _eventSystem.unload());
-                }
-                catch
-                {
+                EventSys.UnloadAllFevs();
 
+                foreach (var b in banks)
+                {
+                    LoadInterrootFEV(b);
                 }
-                //eventSystemCreated = false;
             }
 
-            //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            //foreach (var kvp in banks)
             //{
-            //    return;
-            //}
-
-            //Main.WinForm.Invoke(new Action(() =>
-            //{
-            //    ERRCHECK(result = _eventSystem.unload());
-            //    lock (_lock_LoadedFevList)
+            //    if (!loadedFevsAndTheirDirectories.ContainsKey(kvp.Key))
             //    {
-            //        _loadedFEVs.Clear();
-            //        _loadedFEVs_FullPaths.Clear();
+            //        INNER_LoadFEV(kvp.Value);
             //    }
-            //}));
-            
-        }
-
-        private object _lock_MatchBanksToSoundMan = new object();
-        private void MATCH_BANKS_TO_SOUND_MAN()
-        {
-            lock (_lock_MatchBanksToSoundMan)
-            {
-                var banks = ParentDocument.SoundManager.GetAdditionalSoundBankNames();
-                List<string> fevsToUnload = new List<string>();
-                List<string> fevsToLoad = new List<string>();
-                lock (_lock_LoadedFevList)
-                {
-                    foreach (var kvp in _loadedFEVs_FullPaths)
-                    {
-                        if (!banks.Contains(kvp.Key))
-                            fevsToUnload.Add(kvp.Key);
-                    }
-
-                    foreach (var b in banks)
-                    {
-                        if (!_loadedFEVs_FullPaths.ContainsKey(b))
-                            fevsToLoad.Add(b);
-                    }
-
-                }
-
-                if (fevsToUnload.Count > 0)
-                {
-                    List<string> fevNamesToRestore = new List<string>();
-                    lock (_lock_LoadedFevList)
-                    {
-                        fevNamesToRestore.AddRange(_loadedFEVs_FullPaths.Keys.ToList());
-                    }
-
-                    foreach (var f in fevsToUnload)
-                    {
-                        if (fevNamesToRestore.Contains(f))
-                            fevNamesToRestore.Remove(f);
-                    }
-
-                    Purge();
-                    Shutdown();
-                    InitTest();
-                    foreach (var fev in fevNamesToRestore)
-                    {
-                        LoadInterrootFEV(fev);
-                    }
-                }
-
-                foreach (var fev in fevsToLoad)
-                {
-                    LoadInterrootFEV(fev);
-                }
-
-            }
-        }
-
-        private FmodEventUpdater PlayEvent(string eventName, float lifetime)
-        {
-            if (!initialised)
-                return null;
-
-
-
-            //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-            //{
-            //    return false;
             //}
 
-            FmodEventUpdater result = null;
-
-            // var testTask = Main.MainThreadLazyDispatchTask(new Task<FmodEventUpdater>(() =>
-            // {
-            //     
-            // }));
-            //
-            // var testTaskActualTask = (testTask.Act as Task<FmodEventUpdater>);
-            // testTaskActualTask.Wait();
-            // result = testTaskActualTask.Result;
-
-            MATCH_BANKS_TO_SOUND_MAN();
-
-            FMOD.EventProject evProject = null;
-
-            bool foundEvent = false;
-
-            FMOD.Event newEvent = null;
-            string newEvent_FullFevPath = null;
-
-            var loadedFevsCopy = LoadedFEVs_FullPaths.Keys.ToList();
-
-            foreach (var fevName in loadedFevsCopy)
-            {
-                var fres = _eventSystem.getProject(fevName, ref evProject);
-                if (fres == RESULT.OK)
-                {
-                    int groupCount = 0;
-                    fres = evProject.getNumGroups(ref groupCount);
-                    if (fres == RESULT.OK)
-                    {
-                        bool searchGroup(FMOD.EventGroup grp)
-                        {
-                            fres = grp.getEvent(eventName, EVENT_MODE.DEFAULT, ref newEvent);
-                            if (fres == RESULT.OK)
-                            {
-                                newEvent.eventSysParent = _eventSystem;
-                                lock (_lock_LoadedFevList)
-                                {
-                                    newEvent_FullFevPath = _loadedFEVs_FullPaths[fevName];
-                                }
-                                return true; // Returning from searchGroup() lol
-                            }
-                            int numInnerGroups = 0;
-                            fres = grp.getNumGroups(ref numInnerGroups);
-
-                            if (fres == RESULT.OK)
-                            {
-                                for (int j = 0; j < numInnerGroups; j++)
-                                {
-                                    FMOD.EventGroup innerInnerGroup = null;
-                                    fres = grp.getGroupByIndex(j, false, ref innerInnerGroup);
-                                    if (fres == RESULT.OK)
-                                    {
-                                        if (searchGroup(innerInnerGroup))
-                                        {
-                                            lock (_lock_LoadedFevList)
-                                            {
-                                                newEvent_FullFevPath = _loadedFEVs_FullPaths[fevName];
-                                            }
-                                            return true;
-                                        }
-                                    }
-                                }
-                            }
-
-                            return false;
-                        }
-
-                        for (int i = 0; i < groupCount; i++)
-                        {
-                            FMOD.EventGroup innerGroup = null;
-                            fres = evProject.getGroupByIndex(i, cacheevents: false, ref innerGroup);
-                            if (fres == RESULT.OK)
-                            {
-                                if (searchGroup(innerGroup))
-                                {
-                                    foundEvent = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (!foundEvent)
-            {
-                result = null;
-                // Return from delegate fatcat
-                return null;
-            }
-
-            lock (_lock_MediaRoot)
-            {
-                UpdateMediaRoot(newEvent_FullFevPath);
-
-                ERRCHECK(newEvent.setVolume(ParentDocument.SoundManager.FmodBaseSoundVolume * (ParentDocument.SoundManager.AdjustSoundVolume / 100)));
-
-                    
-
-                result = new FmodEventUpdater(newEvent, eventName, lifetime);
-
-                //ERRCHECK(newEvent.start());
-            }
-
-            return result;
-            
-            //return result;
-        }
-
-        public void Shutdown()
-        {
-            //if (ParentDocument.GameRoot.GameTypeUsesWwise)
-            //    Wwise.DisposeAll();
-            //Even if not initialized the event system is created and must be released.
-            //if (!initialised)
-            //    return;
-
-            //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+            //foreach (var b in banks)
             //{
-            //    return;
+            //    bankDict[b] = GetFevPathFromInterroot(b);
             //}
-
-            if (!initialised)
-                return;
-
-            if (!eventSystemCreated)
-                return;
-
-            bool failed = false;
-            if (Main.WinForm != null)
-            {
-                try
-                {
-                    Main.WinForm.Invoke(new Action(() =>
-                    {
-                        ERRCHECK(result = _eventSystem.release());
-                        //foreach (var kvp in _eventProjects)
-                        //{
-                        //    ERRCHECK(result = kvp.Value.release());
-                        //}
-                        initialised = false;
-                        //eventSystemCreated = false;
-                    }));
-                }
-                catch
-                {
-                    failed = true;
-                }
-            }
-
-            if (failed)
-            {
-                try
-                {
-                    _eventSystem.release();
-                    //eventSystemCreated = false;
-                }
-                catch
-                {
-
-                }
-            }
+            //EventSys?.EnsureBankListMatch(bankDict);
         }
+
+        private long CreateEvent(string eventName, float lifetime)
+        {
+            if (zzz_SoundManagerIns.SOUND_DISABLED)
+                return 0;
+            return EventSys?.CreateEvent(eventName, lifetime) ?? 0;
+        }
+
+        //public void Shutdown()
+        //{
+        //    //if (ParentDocument.GameRoot.GameTypeUsesWwise)
+        //    //    Wwise.DisposeAll();
+        //    //Even if not initialized the event system is created and must be released.
+        //    //if (!initialised)
+        //    //    return;
+
+        //    //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
+        //    //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
+        //    //{
+        //    //    return;
+        //    //}
+
+        //    EventSys?.Dispose();
+        //    EventSys = null;
+        //}
 
         public void StopAllSounds()
         {
-
-            if (!initialised)
-                return;
+            EventSys?.StopAllChannels();
 
             RemoManager.CancelFullPlayback();
-
-            //if (!(GameDataManager.GameType == GameDataManager.GameTypes.DS1 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS1R ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.DS3 ||
-            //   GameDataManager.GameType == GameDataManager.GameTypes.SDT))
-            //{
-            //    return;
-            //}
-
-            Main.WinForm.Invoke(new Action(() =>
-            {
-                int channelsPlaying = 0;
-                result = _system.getChannelsPlaying(ref channelsPlaying);
-
-                if (result == RESULT.ERR_INVALID_PARAM || result == RESULT.ERR_INVALID_HANDLE)
-                    return;
-
-                for (int i = 0; i < MAX_CHANNELS; i++)
-                {
-                    FMOD.Channel channel = null;
-
-                    result = _system.getChannel(i, ref channel);
-
-                    if (result == RESULT.ERR_INVALID_PARAM || result == RESULT.ERR_INVALID_HANDLE)
-                        continue;
-
-                    result = channel.stop();
-                }
-            }));
-
         }
 
-        private void ERRCHECK(FMOD.RESULT result)
-        {
-            return;
-            if (result != FMOD.RESULT.OK)
-            {
-                string e = result + " - " + FMOD.Error.String(result);
-                zzz_NotificationManagerIns.PushNotification(
-                    $"FMOD (sound engine) error: {e}\n" +
-                    $"STACK TRACE:\n{System.Environment.StackTrace}",
-                    color: zzz_NotificationManagerIns.ColorError, showDuration: 10);
-            }
-        }
+        //private void ERRCHECK(FMOD.RESULT result)
+        //{
+        //    return;
+        //    if (result != FMOD.RESULT.OK)
+        //    {
+        //        string e = result + " - " + FMOD.Error.String(result);
+        //        zzz_NotificationManagerIns.PushNotification(
+        //            $"FMOD (sound engine) error: {e}\n" +
+        //            $"STACK TRACE:\n{System.Environment.StackTrace}",
+        //            color: zzz_NotificationManagerIns.ColorError, showDuration: 10);
+        //    }
+        //}
 
         private string GetDirWithBackslash(string dir)
         {

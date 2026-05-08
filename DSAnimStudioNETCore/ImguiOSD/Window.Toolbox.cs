@@ -30,6 +30,8 @@ namespace DSAnimStudio.ImguiOSD
             
             protected override void BuildContents(ref bool anyFieldFocused)
             {
+                
+
 
                 //if (!Focused)
                 //    ImGui.SetWindowCollapsed(true);

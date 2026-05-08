@@ -83,7 +83,7 @@ namespace DSAnimStudio
 
             if (isIgnored || alwaysPushOnly)
             {
-                zzz_NotificationManagerIns.PushNotification(shortDescForNotif ? messageBeforeColon + ". See details in DSAnimStudio_Log.txt" : $"{messageBeforeColon}:\n{ex.ToString()}", 0.5f, fadeDuration: 0.15f, color: zzz_NotificationManagerIns.ColorError);
+                zzz_NotificationManagerIns.PushNotificationError(shortDescForNotif ? messageBeforeColon + ". See details in DSAnimStudio_Log.txt" : $"{messageBeforeColon}:\n{ex.ToString()}", 0.5f, fadeDuration: 0.15f);
                 return true;
             }
             else

@@ -3,10 +3,12 @@ using SoulsFormats;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace DSAnimStudio
 {
@@ -538,157 +540,129 @@ namespace DSAnimStudio
             return AtkParam_Npc[behaviorParamEntry.RefID];
         }
 
-        public string GetParambndFileName(SoulsGames game)
-        {
-            if (ParentDocument.GameRoot.GameTypeUsesRegulation && ParentDocument.GameData.IsLoadingRegulationParams)
-            {
-                if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3 && ParentDocument.GameData.FileExists("/Data0.bdt", alwaysLoose: true))
-                {
-                    return $"/Data0.bdt";
-                }
-                else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER && ParentDocument.GameData.FileExists("/regulation.bin", alwaysLoose: true))
-                {
-                    return $"/regulation.bin";
-                }
-                else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ERNR && ParentDocument.GameData.FileExists("/regulation.bin", alwaysLoose: true))
-                {
-                    return $"/regulation.bin";
-                }
-                else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.AC6 && ParentDocument.GameData.FileExists("/regulation.bin", alwaysLoose: true))
-                {
-                    return $"/regulation.bin";
-                }
-                else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS && ParentDocument.GameData.FileExists("/enc_regulation.bnd.dcx", alwaysLoose: true))
-                {
-                    return $"/enc_regulation.bnd.dcx";
-                }
-            }
-            else
-            {
-                string genericParambndName = $"/param/GameParam/GameParam{(ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3 ? "_dlc2" : "")}.parambnd.dcx";
-                if (ParentDocument.GameData.FileExists(genericParambndName))
-                {
-                    return genericParambndName;
-                }
-            }
-            return null;
-        }
+
+        
 
         public bool LoadParamBND(bool forceReload)
         {
-            string interroot = ParentDocument.GameRoot.InterrootPath;
-
-            bool justNowLoadedParamBND = false;
-
-            if (forceReload)
+            try
             {
-                ParamBNDs.Clear();
-                LoadedParams.Clear();
+                string interroot = ParentDocument.GameRoot.InterrootPath;
 
-                BehaviorParam?.Clear();
-                BehaviorParam_PC?.Clear();
-                AtkParam_Pc?.Clear();
-                AtkParam_Npc?.Clear();
-                NpcParam?.Clear();
-                SpEffectParam?.Clear();
+                bool justNowLoadedParamBND = false;
 
-                EquipParamWeapon?.Clear();
-                EquipParamProtector?.Clear();
-                WepAbsorpPosParam?.Clear();
-                WwiseValueToStrParam_Switch_DeffensiveMaterial?.Clear();
-                AC6NpcEquipPartsParam?.Clear();
-                AC6AttachObjParam_Pc?.Clear();
-                AC6AttachObjParam_Npc?.Clear();
-                AC6AttackActionParam_NPC?.Clear();
-                AC6AttackActionParam_PC?.Clear();
-                HitMtrlParamEntries?.Clear();
+                if (forceReload)
+                {
+                    ParamBNDs.Clear();
+                    LoadedParams.Clear();
 
-                SeMaterialConvertParam?.Clear();
+                    BehaviorParam?.Clear();
+                    BehaviorParam_PC?.Clear();
+                    AtkParam_Pc?.Clear();
+                    AtkParam_Npc?.Clear();
+                    NpcParam?.Clear();
+                    SpEffectParam?.Clear();
+
+                    EquipParamWeapon?.Clear();
+                    EquipParamProtector?.Clear();
+                    WepAbsorpPosParam?.Clear();
+                    WwiseValueToStrParam_Switch_DeffensiveMaterial?.Clear();
+                    AC6NpcEquipPartsParam?.Clear();
+                    AC6AttachObjParam_Pc?.Clear();
+                    AC6AttachObjParam_Npc?.Clear();
+                    AC6AttackActionParam_NPC?.Clear();
+                    AC6AttackActionParam_PC?.Clear();
+                    HitMtrlParamEntries?.Clear();
+
+                    SeMaterialConvertParam?.Clear();
+                }
+
+                if (forceReload || !ParamBNDs.ContainsKey(ParentDocument.GameRoot.GameType) || Main.Config?.EnableFileCaching == false)
+                {
+                    lock (_lock_Params)
+                    {
+                        ParamBNDs.AddOrUpdate(ParentDocument.GameRoot.GameType, (k) => null, (k, v) => null);
+                    }
+
+
+                    IBinder chosenParambnd = null;
+
+                    if (ParentDocument.GameRoot.GameTypeUsesRegulation && ParentDocument.GameData.IsLoadingRegulationParams)
+                    {
+                        string regulationBinderLocalPath = ParentDocument.GameRoot.GetRegulationPath();
+
+                        if (regulationBinderLocalPath != null && ParentDocument.GameData.FileExists(regulationBinderLocalPath, alwaysLoose: true))
+                        {
+                            var encryptedRegulationBinder = ParentDocument.GameData.ReadFile(regulationBinderLocalPath, alwaysLoose: true, disableCache: true);
+                            chosenParambnd = ParamCryptoUtil.DecryptRegulation(encryptedRegulationBinder, ParentDocument.GameRoot.GameType);
+                            InitAutoReload(ParentDocument.GameData.GetLooseFilePath(regulationBinderLocalPath));
+                        }
+                    }
+                    else
+                    {
+                        string gameParamName_TryFirst = "/param/GameParam/GameParam.parambnd.dcx";
+                        string gameParamName_TrySecond = "/param/GameParam/GameParam.parambnd.dcx";
+                        if (ParentDocument.GameRoot.GameType is SoulsGames.DS3)
+                            gameParamName_TryFirst = "/param/GameParam/GameParam_dlc2.parambnd.dcx";
+                        else if (ParentDocument.GameRoot.GameType is SoulsGames.DES)
+                            gameParamName_TryFirst = "/param/GameParam/gameparamna.parambnd.dcx";
+
+                        if (ParentDocument.GameData.FileExists(gameParamName_TryFirst))
+                        {
+                            chosenParambnd = ParentDocument.GameData.ReadBinder(gameParamName_TryFirst, disableCache: true);
+                            InitAutoReload(ParentDocument.GameData.GetLooseFilePath(gameParamName_TryFirst));
+                        }
+                        else if (ParentDocument.GameData.FileExists(gameParamName_TrySecond))
+                        {
+                            chosenParambnd = ParentDocument.GameData.ReadBinder(gameParamName_TrySecond, disableCache: true);
+                            InitAutoReload(ParentDocument.GameData.GetLooseFilePath(gameParamName_TrySecond));
+                        }
+                    }
+
+                    lock (_lock_Params)
+                    {
+                        if (chosenParambnd != null)
+                        {
+                            ParamBNDs[ParentDocument.GameRoot.GameType] = chosenParambnd;
+                        }
+                    }
+
+
+
+                    justNowLoadedParamBND = true;
+                }
+
+                if (justNowLoadedParamBND || forceReload || GameTypeCurrentLoadedParamsAreFrom != ParentDocument.GameRoot.GameType)
+                {
+                    LoadStuffFromParamBND(isDS2: ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS);
+                }
+
+                return true;
             }
-
-            if (forceReload || !ParamBNDs.ContainsKey(ParentDocument.GameRoot.GameType) || Main.Config?.EnableFileCaching == false)
+            catch (Exception ex)
             {
-                lock (_lock_Params)
-                {
-                    ParamBNDs.AddOrUpdate(ParentDocument.GameRoot.GameType, (k) => null, (k, v) => null);
-                }
+                MessageBox.Show(
+                    $"GameParam (also known as Regulation in some games) has failed to load."
+                    + "\n" + $""
+                    + "\n" + $"Ensure that:"
+                    + "\n" + $""
+                    + "\n" + $"    1) It is not corrupted"
+                    + "\n" + $""
+                    + "\n" + $"    2) (for Regulation) the editor you're using is saving in 'DCX.DFLT' format."
+                    + "\n" + $""
+                    + "\n" + $"    3) (for Regulation) The regulation key file for this game in DS Anim Studio's '/res/RegulationKeys/' folder hasn't been tampered with."
+                    + "\n" + $""
+                    + "\n" + $""
+                    + "\n" + $"!! MANY ELEMENTS OF THIS APP DO NOT FUNCTION WITH GAMEPARAM MISSING !!"
+                    + "\n" + $""
+                    + "\n" + $""
+                    + "\n" + $"Error text:"
+                    + "\n" + $""
+                    + "\n" + $"{ex.Message.ToString()}",
+                    "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-
-                IBinder chosenParambnd = null;
-
-                if (ParentDocument.GameRoot.GameTypeUsesRegulation && ParentDocument.GameData.IsLoadingRegulationParams)
-                {
-                    if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS3 && ParentDocument.GameData.FileExists($"/Data0.bdt", alwaysLoose: true))
-                    {
-                        var encryptedRegulationBinder = ParentDocument.GameData.ReadFile($"/Data0.bdt", alwaysLoose: true, disableCache: true);
-                        chosenParambnd = ParamCryptoUtil.DecryptDS3Regulation(encryptedRegulationBinder);
-                        InitAutoReload(ParentDocument.GameData.GetLooseFilePath($"/Data0.bdt"));
-                    }
-                    else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ER && ParentDocument.GameData.FileExists($"/regulation.bin", alwaysLoose: true))
-                    {
-                        var encryptedRegulationBinder = ParentDocument.GameData.ReadFile($"/regulation.bin", alwaysLoose: true, disableCache: true);
-                        chosenParambnd = ParamCryptoUtil.DecryptERRegulation(encryptedRegulationBinder);
-                        InitAutoReload(ParentDocument.GameData.GetLooseFilePath($"/regulation.bin"));
-                    }
-                    else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.ERNR && ParentDocument.GameData.FileExists($"/regulation.bin", alwaysLoose: true))
-                    {
-                        var encryptedRegulationBinder = ParentDocument.GameData.ReadFile($"/regulation.bin", alwaysLoose: true, disableCache: true);
-                        chosenParambnd = ParamCryptoUtil.DecryptENRRRegulation(encryptedRegulationBinder);
-                        InitAutoReload(ParentDocument.GameData.GetLooseFilePath($"/regulation.bin"));
-                    }
-                    else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.AC6 && ParentDocument.GameData.FileExists($"/regulation.bin", alwaysLoose: true))
-                    {
-                        var encryptedRegulationBinder = ParentDocument.GameData.ReadFile($"/regulation.bin", alwaysLoose: true, disableCache: true);
-                        chosenParambnd = ParamCryptoUtil.DecryptAC6Regulation(encryptedRegulationBinder);
-                        InitAutoReload(ParentDocument.GameData.GetLooseFilePath($"/regulation.bin"));
-                    }
-                    else if (ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS && ParentDocument.GameData.FileExists($"/enc_regulation.bnd.dcx", alwaysLoose: true))
-                    {
-                        var encryptedRegulationBinder = ParentDocument.GameData.ReadFile($"/enc_regulation.bnd.dcx", alwaysLoose: true, disableCache: true);
-                        chosenParambnd = ParamCryptoUtil.DecryptDS2Regulation(encryptedRegulationBinder);
-                        InitAutoReload(ParentDocument.GameData.GetLooseFilePath($"/enc_regulation.bnd.dcx"));
-                    }
-                }
-                else
-                {
-                    string gameParamName_TryFirst = "/param/GameParam/GameParam.parambnd.dcx";
-                    string gameParamName_TrySecond = "/param/GameParam/GameParam.parambnd.dcx";
-                    if (ParentDocument.GameRoot.GameType is SoulsGames.DS3)
-                        gameParamName_TryFirst = "/param/GameParam/GameParam_dlc2.parambnd.dcx";
-                    else if (ParentDocument.GameRoot.GameType is SoulsGames.DES)
-                        gameParamName_TryFirst = "/param/GameParam/gameparamna.parambnd.dcx";
-
-                    if (ParentDocument.GameData.FileExists(gameParamName_TryFirst))
-                    {
-                        chosenParambnd = ParentDocument.GameData.ReadBinder(gameParamName_TryFirst, disableCache: true);
-                        InitAutoReload(ParentDocument.GameData.GetLooseFilePath(gameParamName_TryFirst));
-                    }
-                    else if (ParentDocument.GameData.FileExists(gameParamName_TrySecond))
-                    {
-                        chosenParambnd = ParentDocument.GameData.ReadBinder(gameParamName_TrySecond, disableCache: true);
-                        InitAutoReload(ParentDocument.GameData.GetLooseFilePath(gameParamName_TrySecond));
-                    }
-                }
-
-                lock (_lock_Params)
-                {
-                    if (chosenParambnd != null)
-                    {
-                        ParamBNDs[ParentDocument.GameRoot.GameType] = chosenParambnd;
-                    }
-                }
-
-
-
-                justNowLoadedParamBND = true;
+                return false;
             }
-
-            if (justNowLoadedParamBND || forceReload || GameTypeCurrentLoadedParamsAreFrom != ParentDocument.GameRoot.GameType)
-            {
-                LoadStuffFromParamBND(isDS2: ParentDocument.GameRoot.GameType == SoulsAssetPipeline.SoulsGames.DS2SOTFS);
-            }
-
-            return true;
         }
     }
 }

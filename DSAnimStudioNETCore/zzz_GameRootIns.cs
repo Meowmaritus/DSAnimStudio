@@ -70,6 +70,10 @@ namespace DSAnimStudio
                 result.Add("/chr/c0000_dlc01.anibnd.dcx");
                 result.Add("/chr/c0000_dlc02.anibnd.dcx");
             }
+            else if (ParentDocument.GameRoot.GameType is SoulsGames.ERNR && chrID == "c0000")
+            {
+                result.Add("/chr/c0000_dlc01.anibnd.dcx");
+            }
 
 
             return result;
@@ -149,6 +153,17 @@ namespace DSAnimStudio
 
         private SoulsGames lastGameType = SoulsGames.None;
         public SoulsGames GameType { get; set; } = SoulsGames.None;
+
+        public string GetRegulationPath()
+        {
+            switch (GameType)
+            {
+                case SoulsGames.DS3:
+                    return "/Data0.bdt";
+                default:
+                    return "/regulation.bin";
+            }
+        }
 
         /// <summary>
         /// This just makes DS1 and DS1R both show up as DS1 for TAE stuff since they have same TAE files exactly
@@ -320,6 +335,49 @@ namespace DSAnimStudio
             }
         }
 
+        public void TryCopyOodleFromInterroot()
+        {
+            if (InterrootPath == null)
+                return;
+            bool TryOodle(string oodleName)
+            {
+                string oodleSource = Utils.Frankenpath(InterrootPath, oodleName);
+
+                // modengine check
+                if (!File.Exists(oodleSource))
+                {
+                    oodleSource = Utils.Frankenpath(InterrootPath, @$"..\{oodleName}");
+                }
+
+                //if (!File.Exists(oodleSource))
+                //{
+                //    System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
+                //    "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
+                //    "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
+                //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+
+                //    return false;
+                //}
+
+                string oodleTarget = Utils.Frankenpath(Main.Directory, oodleName);
+
+                if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
+                {
+                    System.IO.File.Copy(oodleSource, oodleTarget, true);
+
+                    zzz_NotificationManagerIns.PushNotification("Oodle compression library was automatically copied from game directory " +
+                                        "to editor's directory and Sekiro / Elden Ring files will load now.");
+
+                    return true;
+                }
+                return false;
+            }
+
+            if (!TryOodle("oo2core_6_win64.dll"))
+                if (!TryOodle("oo2core_8_win64.dll"))
+                    TryOodle("oo2core_9_win64.dll");
+        }
+
         public List<string> GetInterrootFiles(string path, string match)
         {
             IEnumerable<string> result = new List<string>();
@@ -373,7 +431,7 @@ namespace DSAnimStudio
             else if (GameType is SoulsGames.ERNR)
             {
                 // ERNR TODO - IF DLC IS EVER ADDED
-                FlverMaterialDefInfo.LoadMaterialBinders($@"/material/allmaterial.matbinbnd.dcx", null);
+                FlverMaterialDefInfo.LoadMaterialBinders($@"/material/allmaterial.matbinbnd.dcx", $@"/material/allmaterial_dlc01.matbinbnd.dcx", null);
             }
             else if (GameType is SoulsGames.AC6)
             {
@@ -1876,7 +1934,7 @@ namespace DSAnimStudio
                             }
                             else
                             {
-                                zzz_NotificationManagerIns.PushNotification($"Warning: Referenced ANIBND file '{anibndName}' not found.");
+                                zzz_NotificationManagerIns.PushNotificationWarn($"Referenced ANIBND file '{anibndName}' not found.");
                             }
 
 

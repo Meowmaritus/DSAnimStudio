@@ -48,7 +48,7 @@
       <entry name="48: ExtraJumptable2_CultPromtCheck1" value="46" />
       <entry name="49: Set_0x78_11" value="49" />
       <entry name="50: Set_0x78_8" value="50" />
-      <entry name="51: Set_0x78_6" value="51" />
+      <entry name="51: DontCancelIfFalling" value="51" />
       <entry name="52: Set_0x78_13" value="52" />
       <entry name="53: Set_0x78_14" value="53" />
       <entry name="54: Talk_DisableInput" value="54" />
@@ -114,16 +114,19 @@
       <entry name="116: AnimCancelEnd_R2_HeavyKick" value="116" />
       <entry name="117: AnimCancelEnd_L1" value="117" />
       <entry name="118: AnimCancelEnd_L2" value="118" />
-      <entry name="119: TryToForceParryMode" value="119" />
+      <entry name="119: AnimCancelStart_Jump" value="119" />
       <entry name="120: AnimCancelStart_L1_L2_ByWeaponParam" value="120" />
       <entry name="121: AnimCancelEndExtra_L1_l2_ByWeaponParam" value="121" />
       <entry name="122: SetBool32_0x1E0" value="122" />
       <entry name="123: SetBool32_0x1E0" value="123" />
       <entry name="124: LockOnAutoSearch" value="124" />
       <entry name="125: MikiriCounter" value="125" />
-      <entry name="133: ?" value="133" />
-      <entry name="134: ?" value="134" />
+      <entry name="133: PC_ProstheticSwitchBuffer" value="133" />
+      <entry name="134: PC_ProstheticSwitch" value="134" />
+      <entry name="137: AnimCancelEnd_R2_Prosthetic" value="137" />
+      <entry name="141: Underwater_End If Dodge Queued" value="141" />
       <entry name="149: ?" value="149" />
+      <entry name="154: AnimCancelEnd_Deathblow" value="154" />
     </s32>
     <f32 name="ArgA" />
     <s32 name="ArgB" />
@@ -679,33 +682,33 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="151" name="CameraModule1">
-    <s32 />
+  <action id="151" name="CameraLookAtTarget">
+    <s32 name="DummyPolyID" />
     <f32 />
     <f32 />
     <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
+    <f32 name="LookUpLimit" />
+    <f32 name="LookDownLimit" />
+    <f32 name="LookLeftLimit" />
+    <f32 name="LookRightLimit" />
   </action>
-  <action id="152" name="CameraModule2">
-    <s32 />
+  <action id="152" name="AttachCameraToNode">
+    <s32 name="DummyPolyID" />
     <f32 />
     <f32 />
-    <f32 />
+    <f32 name="BlendStrength" />
   </action>
   <action id="153" name="CameraModule3">
-    <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
-    <u8 />
-    <b />
+    <f32 name="CamDistTargetOverride" />
+    <f32 name="StartInterpolationSpeed" />
+    <f32 name="TransitionKeyframe" />
+    <f32 name="EndInterpolationSpeed" />
+    <b name="SlowStart" />
+    <b name="SlowEnd" />
     <u8 assert="0" />
     <u8 assert="0" />
-    <f32 />
-    <u8 />
+    <f32 assert="0" />
+    <u8 assert="0" />
     <u8 assert="0" />
     <u8 assert="0" />
     <u8 assert="0" />
@@ -717,18 +720,22 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="155" name="CameraModule4">
-    <s32 name="CameraParamUnk00" />
+  <action id="155" name="SetLockParamID">
+    <s32 name="LockParamID" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="156" name="CameraModule5">
-    <f32 />
-    <f32 />
-    <s32 />
-    <b />
-    <u8 />
+  <action id="156" name="SetCameraAngle">
+    <s32 name="VerticalAngle" />
+    <s32 name="HorizontalAngle" />
+    <s32 name="InterpolationType">
+      <entry name="0: Closest Interpolation" value="0" />
+      <entry name="1: Clockwise Interpolation" value="1" />
+      <entry name="2: Counterclockwise Interpolation" value="2" />
+    </s32>
+    <b name="OverrideVertical" />
+    <b name="OverrideHorizontal" />
     <s16 assert="0" />
   </action>
   <action id="170" name="Event170">
@@ -984,11 +991,12 @@
     <u8 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="307" name="Type307">
-    <s32 />
-    <s32 />
-    <s32 />
-    <s32 />
+  <action id="307" name="PCBehavior">
+    <u16 name="GetWeaponData" />
+    <u16 name="Offset" />
+    <s32 name="PCBehaviorType" />
+    <s32 name="BehaviorJudgeID" />
+    <s32 assert="0" />
   </action>
   <action id="308" name="Event308">
     <f32 />
@@ -1183,20 +1191,50 @@
     </s32>
     <f32grad name="Weight" />
   </action>
-  <action id="700" name="Event700">
-    <f32 />
-    <f32 />
-    <f32 />
-    <f32 />
-    <s32 />
-    <s8 />
+  <action id="700" name="CustomLookAtTwistModifier">
+    <f32 name="UpLimitAngle" />
+    <f32 name="DownLimitAngle" />
+    <f32 name="RightLimitAngle" />
+    <f32 name="LeftLimitAngle" />
+    <s32 name="ModifierID">
+      <entry name="0: 0_Twist" value="0" />
+      <entry name="1: 1_Twist" value="1" />
+      <entry name="2: 2_Twist" value="2" />
+      <entry name="5: 5_NpcTalkTwist" value="5" />
+      <entry name="6: 6_NpcTalkTwist" value="6" />
+      <entry name="10: 10_Unused" value="10" />
+      <entry name="30: 30_Throw" value="30" />
+      <entry name="31: 31_Throw" value="31" />
+      <entry name="50: 50_Unused" value="50" />
+      <entry name="100: 100_Attack" value="100" />
+      <entry name="110: 110_Attack" value="110" />
+      <entry name="120: 120_Attack" value="120" />
+      <entry name="130: 130_Attack" value="130" />
+      <entry name="140: 140_Wire" value="140" />
+      <entry name="150: 150_Wire" value="150" />
+    </s32>
+    <u8 name="TargetType">
+      <entry name="0: Freeaim" value="0" />
+      <entry name="1" value="1" />
+      <entry name="2: BonfireSacrificeIdle" value="2" />
+      <entry name="3: Lockon (PC)" value="3" />
+      <entry name="4" value="4" />
+      <entry name="5: Wire" value="5" />
+      <entry name="6: Lockon (Unused)" value="6" />
+      <entry name="7: Freeaim (Crouch/Sweep)" value="7" />
+      <entry name="8: Grab" value="8" />
+      <entry name="9: Freeaim (NPC)" value="9" />
+      <entry name="10: Freeaim (High Alert)" value="10" />
+      <entry name="11: Talk" value="11" />
+      <entry name="12" value="12" />
+    </u8>
     <u8 assert="0" />
     <u8 assert="0" />
     <u8 assert="0" />
-    <f32 />
-    <f32grad />
-    <f32 />
-    <f32 />
+    <f32 name="UpMinimumAngle" />
+    <f32 name="DownMinimumAngle" />
+    <f32 name="RightMinimumAngle" />
+    <f32 name="LeftMinimumAngle" />
   </action>
   <action id="703" name="FixedRotationDirection">
     <b name="IsEnable" />
@@ -1468,7 +1506,7 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="717" name="Event717">
+  <action id="717" name="WireModelEventUnk">
     <s32 />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1649,37 +1687,37 @@
     <f32 name="LadderDistMultiplier" />
     <s32 assert="0" />
   </action>
-  <action id="900" name="Event900">
+  <action id="900" name="WireSyncWithTarget_Start">
     <f32 />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="901" name="WireEventUnk1">
+  <action id="901" name="WireSyncWithTarget_Travel">
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="902" name="Event902">
+  <action id="902" name="WireLookAtTarget">
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="903" name="Event903">
+  <action id="903" name="WireEventUnk01">
     <s32 />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="904" name="Event904">
+  <action id="904" name="WireSlideToStartPoint">
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="905" name="Event905">
+  <action id="905" name="WireDisableFalling">
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1709,8 +1747,8 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="920" name="Event920">
-    <s32 />
+  <action id="920" name="ChrPhysicsVelosityChange">
+    <s32 name="ChrPhysicsVelocityParam ID" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1724,8 +1762,8 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="922" name="Event922">
-    <s32 />
+  <action id="922" name="ChrPhysicsVelosityScale">
+    <s32 name="ChrPhysicsVelocityParam ID" />
     <u8 />
     <u8 />
     <u8 />
@@ -1784,8 +1822,8 @@
     <s32 />
     <s32 assert="0" />
   </action>
-  <action id="940" name="Event940">
-    <s32 />
+  <action id="940" name="BehaviorParam_AddSpEffect">
+    <s32 name="BehaviorJudgeId" />
     <s32 assert="0" />
     <s32 assert="0" />
     <s32 assert="0" />
@@ -1873,8 +1911,8 @@
     <s32 assert="0" />
     <s32 assert="0" />
   </action>
-  <action id="960" name="Event960">
-    <u8 />
+  <action id="960" name="StaminaControlParam">
+    <u8 name="StaminaRatioType" />
     <u8 assert="0" />
     <u8 assert="0" />
     <u8 assert="0" />
