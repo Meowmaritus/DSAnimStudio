@@ -268,6 +268,17 @@ namespace DSAnimStudio
                             byte[] wemBytes = getWemBytesIfNotLoaded.Invoke();
                             using (var wemStream = new MemoryStream(wemBytes))
                             {
+                                if (Main.Debug.DumpWEMs)
+                                {
+                                    string wemDumpDir = $"{ParentDocument.GameData.InterrootPath}\\sd\\_dsas_wem_dump";
+                                    if (!Directory.Exists(wemDumpDir))
+                                        Directory.CreateDirectory(wemDumpDir);
+
+                                    string wemDumpPath = $"{wemDumpDir}\\{wemID}.wem";
+                                    
+                                    File.WriteAllBytes(wemDumpPath, wemBytes);
+                                }
+
                                 WEMSharp.WEMFile wemConvert = new WEMSharp.WEMFile(wemStream, WEMSharp.WEMForcePacketFormat.NoForcePacketFormat);
                                 //oggBytes = wemConvert.GenerateOGG($"{Main.Directory}\\Res\\codebooks.bin", false, false);
                                 loadedWem.LoopEnabled = wemConvert.LoopEnabled != 0;
@@ -281,7 +292,7 @@ namespace DSAnimStudio
                         }
                         catch (Exception ex)
                         {
-                            zzz_NotificationManagerIns.PushNotificationWarn($"Failed to convert {wemID}.wem\n\n{ex}");
+                            zzz_NotificationManagerIns.PushNotificationWarn($"Failed to convert {wemID}.wem\n\n{ex.Message}\n\n{ex.StackTrace}");
                         }
                         return loadedWem;
                     });
@@ -570,8 +581,17 @@ namespace DSAnimStudio
             //var wwiseBank2 = GetBank(wwiseBankName2);
             var eventNameHash = soundMan.Hash(sound);
 
+            //string bankFoundPlayActionIn = null;
+
             float paramsVolume = MathF.Pow(10, -12f / 20f);
             float paramsPitchInSemitones = 1;
+
+            bool foundPlayEvent = false;
+            bool foundStopEvent = false;
+
+            //bool? paramsLoop = null;
+            //int? paramsLoopStart = null;
+            //int? paramsLoopEnd = null;
 
             float fadeOutDelay = 0;
             float fadeOutDuration = 0;
@@ -629,10 +649,16 @@ namespace DSAnimStudio
             {
                 const int PROP_VOLUME = 0;
                 const int PROP_PITCH = 2;
+                const int PROP_LOOP = 0x3A;
+                const int PROP_LOOP_START = 0x22;
+                const int PROP_LOOP_END = 0x23;
                 if (props != null)
                 {
                     var propVolumeIndex = props.PropTypes.IndexOf(PROP_VOLUME);
                     var propPitchIndex = props.PropTypes.IndexOf(PROP_PITCH);
+                    //var propLoopIndex = props.PropTypes.IndexOf(PROP_LOOP);
+                    //var propLoopStartIndex = props.PropTypes.IndexOf(PROP_LOOP_START);
+                    //var propLoopEndIndex = props.PropTypes.IndexOf(PROP_LOOP_END);
                     if (propVolumeIndex >= 0)
                     {
                         var volumeDb = props.PropValues[propVolumeIndex].ValueAsFloat;
@@ -644,6 +670,19 @@ namespace DSAnimStudio
                         float semitones = pitchCents / 100;
                         paramsPitchInSemitones += semitones;
                     }
+                    //if (propLoopIndex >= 0)
+                    //{
+                    //    paramsLoop = true;
+                    //}
+                    //if (propLoopStartIndex >= 0)
+                    //{
+                    //    paramsLoopStart = props.PropValues[propLoopStartIndex].ValueAsInt;
+                    //}
+                    //if (propLoopEndIndex >= 0)
+                    //{
+                    //    paramsLoopEnd = props.PropValues[propLoopEndIndex].ValueAsInt;
+                    //}
+
                 }
 
 
@@ -794,12 +833,15 @@ namespace DSAnimStudio
                             }
                             else if (ParentDocument.GameData.StreamedWEMExists(captureWemFileID))
                             {
+                                foundPlayEvent = true;
                                 var captureWemData = ParentDocument.GameData.ReadStreamedWEM(captureWemFileID);
                                 readWemBytesAct = () => captureWemData;
                             }
 
                             if (readWemBytesAct != null)
                             {
+
+                                foundPlayEvent = true;
                                 var instanceGetTask = Task.Run(() =>
                                 {
                                     var wem = LoadWEM(captureWemFileID, readWemBytesAct);
@@ -917,6 +959,11 @@ namespace DSAnimStudio
                         var selectedBank = bnk;
                         string selectedBankName = null;
 
+                        //bankFoundPlayActionIn = bnkName;
+                        
+                        if (tryFindStopEvent(bnk))
+                            foundStopEvent = true;
+
                         if (asAction.ActionType == WwiseObject.CAkAction.ActionTypes.Play && asAction.ActionArgs is WwiseObject.CAkAction.ActArgs_Play asActArgs_Play)
                         {
                             int propIndex_TransitionDelay = asAction.Props.PropTypes.IndexOf((byte)WwiseEnums.PropTypes.InitialDelay);
@@ -971,7 +1018,18 @@ namespace DSAnimStudio
                             }
                         }
 
-                        return DoObjectInBank(selectedBank, asAction.RefID, selectedBankName, new List<string>());
+                        var actionInTargetBank = DoObjectInBank(selectedBank, asAction.RefID, selectedBankName, new List<string>());
+
+                        if (foundPlayEvent)
+                        {
+                            return actionInTargetBank;
+                        }
+                        else
+                        {
+                            return DoObjectInBank(bnk, asAction.RefID, selectedBankName, new List<string>());
+                        }
+
+                            
                     }
 
                     else if (obj is WwiseObject.CAkDialogueEvent asDialogueEvent)
@@ -1141,7 +1199,7 @@ namespace DSAnimStudio
 
             //var cAkEvent = wwiseBank.HIRC.LoadObjectDynamic(testHash);
 
-            bool success = false;
+            //bool success = false;
 
             //if (DoObjectInBank(wwiseBank1, eventNameHash))
             //{
@@ -1156,6 +1214,8 @@ namespace DSAnimStudio
             //    }
             //}
 
+            
+
             List<string> checkedBanks = new List<string>();
             foreach (var bn in wwiseBankNames)
             {
@@ -1165,15 +1225,31 @@ namespace DSAnimStudio
                 var bnk = GetBank(bn);
                 if (bnk == null)
                     continue;
-                tryFindStopEvent(bnk);
-                int countBeforeCheck = instancesSpawnedByThisSound.Count;
-                DoObjectInBank(bnk, eventNameHash, bn, new List<string>());
-                // New sounds found pog
-                if (instancesSpawnedByThisSound.Count > countBeforeCheck)
+                if (tryFindStopEvent(bnk))
+                    foundStopEvent = true;
+                if (!foundPlayEvent)
                 {
-                    success = true;
-                    break;
+                    int countBeforeCheck = instancesSpawnedByThisSound.Count;
+                    if (DoObjectInBank(bnk, eventNameHash, bn, new List<string>()))
+                    {
+                        
+                    }
+                    // New sounds found pog
+                    if (instancesSpawnedByThisSound.Count > countBeforeCheck)
+                    {
+                        foundPlayEvent = true;
+                        //break;
+                        //if (bankFoundPlayActionIn != null)
+                        //{
+                        //    var bankPlayEventWasIn = GetBank(bankFoundPlayActionIn);
+                        //    if (tryFindStopEvent(bankPlayEventWasIn))
+                        //        foundStopEvent = true;
+                        //}
+                    }
                 }
+
+                if ((foundPlayEvent && foundStopEvent))
+                    break;
             }
 
             var result = new List<WemPlaybackInstance>();

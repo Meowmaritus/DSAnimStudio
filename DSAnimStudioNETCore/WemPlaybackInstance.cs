@@ -176,6 +176,13 @@ namespace DSAnimStudio
 
                 vorbisLoop.LoopEnd = loadedOgg.LoopEnd;
 
+                if (enableLoop)
+                {
+                    if (vorbisLoop.LoopEnd == 0)
+                        vorbisLoop.LoopEnd = loadedOgg.TotalSampleCount;
+                    vorbisLoop.LoopEnabled = true;
+                }
+
                 if ((vorbisLoop.LoopEnd % 4) != 0)
                     vorbisLoop.LoopEnd -= (4 - (vorbisLoop.LoopEnd % 4));
                 vorbisLoop.SampleCount = loadedOgg.TotalSampleCount;

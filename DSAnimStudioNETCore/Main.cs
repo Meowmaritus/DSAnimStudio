@@ -133,6 +133,7 @@ namespace DSAnimStudio
             public bool GenTrackNamesIncludeExtraInfo;
             public bool EnableTaeTemplateAssert;
             public bool EnableImGuiFocusDebug;
+            public bool DumpWEMs;
         }
 
         public static string DebugXmlPath => $"{Directory}\\DEBUG.xml"; 

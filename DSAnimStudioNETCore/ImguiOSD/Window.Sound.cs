@@ -9,6 +9,7 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using static DSAnimStudio.zzz_SoundManagerIns;
+using static System.ComponentModel.Design.ObjectSelectorEditor;
 
 namespace DSAnimStudio.ImguiOSD
 {
@@ -19,7 +20,9 @@ namespace DSAnimStudio.ImguiOSD
             public override SaveOpenStateTypes GetSaveOpenStateType() => SaveOpenStateTypes.SaveAlways;
 
             public override string NewImguiWindowTitle => "Sound";
-            
+
+            private string addBankTextField = "";
+
             protected override void Init()
             {
                 
@@ -116,16 +119,22 @@ namespace DSAnimStudio.ImguiOSD
 
                 if (ImGui.BeginTable("test_table", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoSavedSettings))
                 {
-
+                   
                     ImGui.TableNextColumn();
 
                     lock (soundManager._lock_BankNameArray)
                     {
                         if (soundManager.BankNameArray != null)
                         {
-                            ImGui.ListBox("All Banks", ref soundManager.BankNameArray_SelectedIndex,
+                            ImGui.Text("All Banks");
+
+                            ImGui.ListBox("###All Banks", ref soundManager.BankNameArray_SelectedIndex,
                                 soundManager.BankNameArray,
-                                soundManager.BankNameArray.Length);
+                                soundManager.BankNameArray.Length,
+                                20);
+
+                            if (ImGui.IsItemFocused())
+                                anyFieldFocused = true;
 
                             int selIndex = soundManager.BankNameArray_SelectedIndex;
                             if (selIndex < 0)
@@ -163,10 +172,15 @@ namespace DSAnimStudio.ImguiOSD
                     {
                         if (soundManager.LookupBanks != null)
                         {
+                            ImGui.Text("Banks To Lookup Sounds From");
 
-                            ImGui.ListBox("Banks To Lookup Sounds From", ref soundManager.LookupBanks_SelectedIndex,
+                            ImGui.ListBox("###Banks To Lookup Sounds From", ref soundManager.LookupBanks_SelectedIndex,
                                 soundManager.LookupBanks,
-                                soundManager.LookupBanks.Length);
+                                soundManager.LookupBanks.Length,
+                                20);
+
+                            if (ImGui.IsItemFocused())
+                                anyFieldFocused = true;
 
                             int selIndex = soundManager.LookupBanks_SelectedIndex;
                             if (selIndex < 0)
@@ -195,6 +209,30 @@ namespace DSAnimStudio.ImguiOSD
 
                             if (selIndex < 0)
                                 ImGuiDebugDrawer.PopDisabled();
+
+
+                            ImGui.InputText("###AddBankTextField", ref addBankTextField, 64);
+                            if (ImGui.IsItemFocused())
+                                anyFieldFocused = true;
+                            
+                            ImGui.SameLine();
+                            if (Tools.SimpleClickButton("Add"))
+                            {
+                               
+                                var banks = soundManager.LookupBanks.ToList();
+                                if (!banks.Contains(addBankTextField.ToLower()))
+                                {
+                                    banks.Add(addBankTextField.ToLower());
+                                    soundManager.LookupBanks = banks.ToArray();
+
+                                    soundManager.CopySoundBanksFromThisToProj();
+
+                                    if (soundManager.EngineType == EngineTypes.FMOD)
+                                        soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
+                                }
+                            }
+
+                                
                         }
                     }
 

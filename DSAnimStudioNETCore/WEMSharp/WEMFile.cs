@@ -7,7 +7,30 @@ namespace WEMSharp
 {
     public class WEMFile
     {
-        private Stream _wemFile;
+        public enum CodecTypes : ushort
+        {
+            PCM_Old = 0x0001,
+            IMA = 0x0002,
+            IMA_Old = 0x0069,
+            XWMA_WMAv2 = 0x0161,
+            XWMA_WMAPro = 0x0162,
+            XMA2_XMA2Chunk = 0x0165,
+            XMA2_FMTChunk = 0x0166,
+            OPUSNX = 0x3039,
+            OPUS = 0x3040,
+            OPUSWW = 0x3041,
+            PTADPCM = 0x8311,
+            AAC = 0xAAC0,
+            DSP = 0xFFF0,
+            HEVAG = 0xFFFB,
+            ATRAC9 = 0xFFFC,
+            PCM = 0xFFFE,
+            VORBIS = 0xFFFF,
+        }
+
+        private Stream _wemFileStream;
+
+        public CodecTypes CodecType { get; private set; }
 
         private uint _fmtChunkOffset = 0xFFFFFFFF;
         private uint _fmtChunkSize = 0xFFFFFFFF;
@@ -29,8 +52,11 @@ namespace WEMSharp
         /// <summary>
         /// Sample Rate
         /// </summary>
-        public uint SampleRate { get; private set; }
-        public uint AverageBytesPerSecond { get; private set; }
+        public uint SamplesPerSec { get; private set; }
+        public uint AvgBytesPerSecond { get; private set; }
+        public ushort BlockAlign { get; private set; }
+        public ushort BitsPerSample { get; private set; }
+        private ushort _fmtExtensionSize;
 
         public uint LoopCount => _loopCount;
         public uint LoopEnabled => _loopEnabled;
@@ -58,9 +84,9 @@ namespace WEMSharp
 
         public WEMFile(Stream stream, WEMForcePacketFormat forcePacketFormat)
         {
-            this._wemFile = stream;
+            this._wemFileStream = stream;
 
-            using (BinaryReader br = new BinaryReader(this._wemFile, Encoding.UTF8, true))
+            using (BinaryReader br = new BinaryReader(this._wemFileStream, Encoding.UTF8, true))
             {
                 string magic = Encoding.ASCII.GetString(br.ReadBytes(4));
                 if (magic != "RIFF")
@@ -123,67 +149,56 @@ namespace WEMSharp
                     throw new Exception("There was an error reading the file");
                 }
 
-                if (this._fmtChunkOffset == 0xFFFFFFFF && this._dataChunkOffset == 0xFFFFFFFF)
+                if (this._fmtChunkOffset == 0xFFFFFFFF)
                 {
-                    throw new Exception("There was an error reading the file");
+                    throw new Exception("WEM - No FMT chunk, file unreadable.");
                 }
 
-                //Read FMT Chunk
-                if (this._vorbChunkOffset == 0xFFFFFFFF && this._fmtChunkSize != 0x42)
+                if (this._dataChunkOffset == 0xFFFFFFFF)
                 {
-                    throw new Exception("There was an error reading the file");
-                }
-                if (this._vorbChunkOffset != 0xFFFFFFFF && this._fmtChunkSize != 0x28 && this._fmtChunkSize != 0x18 && this._fmtChunkSize != 0x12)
-                {
-                    throw new Exception("There was an error reading the file");
-                }
-                if (this._vorbChunkOffset == 0xFFFFFFFF && this._fmtChunkSize == 0x42)
-                {
-                    this._vorbChunkOffset = this._fmtChunkOffset + 0x18;
+                    throw new Exception("WEM - No DATA chunk, file unreadable.");
                 }
 
                 br.BaseStream.Seek(this._fmtChunkOffset, SeekOrigin.Begin);
 
-                ushort codecID = br.ReadUInt16();
-                if (codecID != 0xFFFF)
+                CodecType = (CodecTypes)br.ReadUInt16();
+                Channels = br.ReadUInt16();
+                SamplesPerSec = br.ReadUInt32();
+                AvgBytesPerSecond = br.ReadUInt32();
+                BlockAlign = br.ReadUInt16();
+                BitsPerSample = br.ReadUInt16();
+                _fmtExtensionSize = br.ReadUInt16();
+
+                
+                
+
+                switch (CodecType)
                 {
-                    throw new Exception("FMT Chunk - Wrong Codec ID");
+                    case CodecTypes.VORBIS:
+                        ParseCodec_Vorbis(br, forcePacketFormat);
+                        break;
+                    case CodecTypes.PCM:
+                        ParseCodec_PCM(br);
+                        break;
+                    default:
+                        throw new NotImplementedException($"Code to parse WEM codec type '{CodecType}' not implemented yet.");
                 }
 
-                this.Channels = br.ReadUInt16();
-                this.SampleRate = br.ReadUInt32();
-                this.AverageBytesPerSecond = br.ReadUInt32();
 
-                ushort blockAlign = br.ReadUInt16();
-                if (blockAlign != 0)
-                {
-                    throw new Exception("FMT Chunk - Wrong Block Align");
-                }
+                
 
-                ushort bitsPerSample = br.ReadUInt16();
-                if (bitsPerSample != 0)
-                {
-                    throw new Exception("FMT Chunk - Wrong Bits Per Sample");
-                }
 
-                ushort extraFmtLength = br.ReadUInt16();
-                if (extraFmtLength != (this._fmtChunkSize - 0x12))
-                {
-                    throw new Exception("FMT Chunk - Wrong Extra FMT Chunk Size");
-                }
 
-                if (this._fmtChunkSize == 0x28)
-                {
-                    byte[] unknownBufferCheck = new byte[] { 1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xAA, 0, 0x38, 0x9b, 0x71 };
-                    byte[] unknownBuffer;
 
-                    unknownBuffer = br.ReadBytes(16);
 
-                    if (unknownBuffer.SequenceEqual(unknownBufferCheck))
-                    {
-                        throw new Exception("FMT Chunk - Wrong Unknown Buffer Signature");
-                    }
-                }
+
+
+
+
+
+
+
+
 
                 //Read CUE Chunk
                 if (this._cueChunkOffset != 0xFFFFFFFF)
@@ -213,92 +228,10 @@ namespace WEMSharp
                     this._loopStart = br.ReadUInt32();
                     this._loopEnd = br.ReadUInt32();
                 }
-
-                //Read VORB Chunk
-                switch (this._vorbChunkSize)
-                {
-                    case 0xFFFFFFFF:
-                    case 0x28:
-                    case 0x2A:
-                    case 0x2C:
-                    case 0x32:
-                    case 0x34:
-                        br.BaseStream.Seek(this._vorbChunkOffset, SeekOrigin.Begin);
-                        break;
-                    default:
-                        throw new Exception("VORB Chunk - Wrong VORB Chunk Size");
-                }
-
-                this._sampleCount = br.ReadUInt32();
-
-                switch (this._vorbChunkSize)
-                {
-                    case 0xFFFFFFFF:
-                    case 0x2A:
-                        {
-                            this._noGranule = true;
-
-                            br.BaseStream.Seek(this._vorbChunkOffset + 4, SeekOrigin.Begin);
-
-                            uint modSignal = br.ReadUInt32();
-
-                            if (modSignal != 0x4A && modSignal != 0x4B && modSignal != 0x69 && modSignal != 0x70)
-                            {
-                                this._modPackets = true;
-                            }
-
-                            br.BaseStream.Seek(this._vorbChunkOffset + 0x10, SeekOrigin.Begin);
-
-                            break;
-                        }
-
-                    default:
-                        br.BaseStream.Seek(this._vorbChunkOffset + 0x18, SeekOrigin.Begin);
-                        break;
-                }
-
-                if (forcePacketFormat == WEMForcePacketFormat.ForceNoModPackets)
-                {
-                    this._modPackets = false;
-                }
-                else if (forcePacketFormat == WEMForcePacketFormat.ForceModPackets)
-                {
-                    this._modPackets = true;
-                }
-
-                this._setupPacketOffset = br.ReadUInt32();
-                this._firstAudioPacketOffset = br.ReadUInt32();
-
-                switch (this._vorbChunkSize)
-                {
-                    case 0xFFFFFFFF:
-                    case 0x2A:
-                        br.BaseStream.Seek(this._vorbChunkOffset + 0x24, SeekOrigin.Begin);
-                        break;
-
-                    case 0x32:
-                    case 0x34:
-                        br.BaseStream.Seek(this._vorbChunkOffset + 0x2C, SeekOrigin.Begin);
-                        break;
-                }
-
-                switch (this._vorbChunkSize)
-                {
-                    case 0x28:
-                    case 0x2C:
-                        this._headerTriadPresent = true;
-                        this._oldPacketHeaders = true;
-                        break;
-
-                    case 0xFFFFFFFF:
-                    case 0x2A:
-                    case 0x32:
-                    case 0x34:
-                        this._uid = br.ReadUInt32();
-                        this._blocksize0Pow = br.ReadByte();
-                        this._blocksize1Pow = br.ReadByte();
-                        break;
-                }
+                //else
+                //{
+                //    _loopCount = 0;
+                //}
 
                 if (this._loopCount != 0)
                 {
@@ -311,13 +244,185 @@ namespace WEMSharp
                         this._loopEnd++;
                     }
 
-                    if (this._loopStart >= this._sampleCount || this._loopEnd > this._sampleCount || this._loopStart > this._loopEnd)
+                    if (this._loopStart >= this._sampleCount)
                     {
-                        throw new Exception("Loops out of range");
+                        throw new Exception($"WEM - SMPL Chunk - Loop starts at sample {_loopStart}, " +
+                            $"which is at the end of the file (sample {(_sampleCount)}) or after it.");
+                    }
+
+                    if (this._loopEnd > this._sampleCount)
+                    {
+                        throw new Exception($"WEM - SMPL Chunk - Loop ends at sample {_loopEnd}, " +
+                            $"which is after the end of the file (sample {(_sampleCount)}).");
+                    }
+
+                    if (this._loopStart > this._loopEnd)
+                    {
+                        throw new Exception($"WEM - SMPL Chunk - Loop starts at sample {_loopStart}, " +
+                            $"which is after the loop end (sample {(_loopEnd)}).");
                     }
                 }
             }
         }
+
+        private void ParseCodec_PCM(BinaryReader br)
+        {
+            _sampleCount = (uint)((_dataChunkSize / Channels) / (BitsPerSample / 8));
+        }
+
+        private void ParseCodec_Vorbis(BinaryReader br, WEMForcePacketFormat forcePacketFormat)
+        {
+            if (BlockAlign != 0)
+            {
+                throw new Exception("WEM - Vorbis codec - FMT Chunk - Wrong Block Align");
+            }
+            if (BitsPerSample != 0)
+            {
+                throw new Exception("WEM - Vorbis codec - FMT Chunk - Wrong Bits Per Sample");
+            }
+            if (_fmtExtensionSize != (_fmtChunkSize - 0x12))
+            {
+                throw new Exception($"WEM - Vorbis codec - FMT Chunk - " +
+                    $"Extra FMT Chunk Size was 0x{_fmtExtensionSize:X2}, expected 0x{(_fmtChunkSize - 0x12):X2}");
+            }
+
+
+            if (_vorbChunkOffset == 0xFFFFFFFF)
+            {
+                if (_fmtChunkSize == 0x42)
+                {
+                    this._vorbChunkOffset = this._fmtChunkOffset + 0x18;
+                }
+                else
+                {
+                    throw new Exception($"WEM - Vorbis codec - Since a VORB chunk was not present, " +
+                        $"the FMT chunk size was expected to be 0x42, but it was 0x{_fmtChunkSize:X2}");
+                    //throw new Exception($"WEM - Vorbis codec - Unknown combination of " +
+                    //    $"{nameof(_vorbChunkOffset)}==0x{_vorbChunkOffset:X8} and " +
+                    //    $"{nameof(_fmtChunkSize)}==0x{_fmtChunkSize:X2} " +
+                    //    $"--> Expected {nameof(_fmtChunkSize)}==0x42 if {nameof(_vorbChunkOffset)}==0xFFFFFFFF");
+                }
+            }
+            else
+            {
+                if (!(this._fmtChunkSize == 0x28 || this._fmtChunkSize == 0x18 || this._fmtChunkSize == 0x12))
+                {
+                    throw new Exception($"WEM - Vorbis codec - Since a VORB chunk was present, " +
+                        $"the FMT chunk size was expected to be 0x12, 0x18, or 0x28, but it was 0x{_fmtChunkSize:X2}");
+                }
+            }
+
+
+
+
+
+
+            if (this._fmtChunkSize == 0x28)
+            {
+                byte[] unknownBufferCheck = new byte[] { 1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xAA, 0, 0x38, 0x9b, 0x71 };
+                byte[] unknownBuffer;
+
+                unknownBuffer = br.ReadBytes(16);
+
+                if (unknownBuffer.SequenceEqual(unknownBufferCheck))
+                {
+                    throw new Exception("WEM - Vorbis codec - FMT Chunk - Wrong Unknown Buffer Signature");
+                }
+            }
+
+
+
+            //Read VORB Chunk
+            switch (this._vorbChunkSize)
+            {
+                case 0xFFFFFFFF:
+                case 0x28:
+                case 0x2A:
+                case 0x2C:
+                case 0x32:
+                case 0x34:
+                    br.BaseStream.Seek(this._vorbChunkOffset, SeekOrigin.Begin);
+                    break;
+                default:
+                    throw new Exception($"WEM - Vorbis codec - VORB Chunk - VORB Chunk Size was 0x{_vorbChunkSize:X2}, " +
+                        "expected 0xFFFFFFFF, 0x28, 0x2A, 0x2C, 0x32, or 0x34");
+            }
+
+            this._sampleCount = br.ReadUInt32();
+
+            switch (this._vorbChunkSize)
+            {
+                case 0xFFFFFFFF:
+                case 0x2A:
+                    {
+                        this._noGranule = true;
+
+                        br.BaseStream.Seek(this._vorbChunkOffset + 4, SeekOrigin.Begin);
+
+                        uint modSignal = br.ReadUInt32();
+
+                        if (modSignal != 0x4A && modSignal != 0x4B && modSignal != 0x69 && modSignal != 0x70)
+                        {
+                            this._modPackets = true;
+                        }
+
+                        br.BaseStream.Seek(this._vorbChunkOffset + 0x10, SeekOrigin.Begin);
+
+                        break;
+                    }
+
+                default:
+                    br.BaseStream.Seek(this._vorbChunkOffset + 0x18, SeekOrigin.Begin);
+                    break;
+            }
+
+            if (forcePacketFormat == WEMForcePacketFormat.ForceNoModPackets)
+            {
+                this._modPackets = false;
+            }
+            else if (forcePacketFormat == WEMForcePacketFormat.ForceModPackets)
+            {
+                this._modPackets = true;
+            }
+
+            this._setupPacketOffset = br.ReadUInt32();
+            this._firstAudioPacketOffset = br.ReadUInt32();
+
+            switch (this._vorbChunkSize)
+            {
+                case 0xFFFFFFFF:
+                case 0x2A:
+                    br.BaseStream.Seek(this._vorbChunkOffset + 0x24, SeekOrigin.Begin);
+                    break;
+
+                case 0x32:
+                case 0x34:
+                    br.BaseStream.Seek(this._vorbChunkOffset + 0x2C, SeekOrigin.Begin);
+                    break;
+            }
+
+            switch (this._vorbChunkSize)
+            {
+                case 0x28:
+                case 0x2C:
+                    this._headerTriadPresent = true;
+                    this._oldPacketHeaders = true;
+                    break;
+
+                case 0xFFFFFFFF:
+                case 0x2A:
+                case 0x32:
+                case 0x34:
+                    this._uid = br.ReadUInt32();
+                    this._blocksize0Pow = br.ReadByte();
+                    this._blocksize1Pow = br.ReadByte();
+                    break;
+            }
+
+            
+
+        }
+
 
         public byte[] GenerateOGG(string codebooksLocation, bool inlineCodebooks, bool fullSetup)
         {
@@ -360,7 +465,7 @@ namespace WEMSharp
 
                             if (this._oldPacketHeaders)
                             {
-                                Packet8 audioPacket = new Packet8(this._wemFile, offset);
+                                Packet8 audioPacket = new Packet8(this._wemFileStream, offset);
                                 packetHeaderSize = audioPacket.GetHeaderSize();
                                 size = audioPacket.GetSize();
                                 packetPayloadOffset = audioPacket.GetOffset();
@@ -369,7 +474,7 @@ namespace WEMSharp
                             }
                             else
                             {
-                                Packet audioPacket = new Packet(this._wemFile, offset, this._noGranule);
+                                Packet audioPacket = new Packet(this._wemFileStream, offset, this._noGranule);
                                 packetHeaderSize = audioPacket.GetHeaderSize();
                                 size = audioPacket.GetSize();
                                 packetPayloadOffset = audioPacket.GetOffset();
@@ -384,7 +489,7 @@ namespace WEMSharp
 
                             offset = packetPayloadOffset;
 
-                            this._wemFile.Seek(offset, SeekOrigin.Begin);
+                            this._wemFileStream.Seek(offset, SeekOrigin.Begin);
 
                             if (granule == 0xFFFFFFFF)
                             {
@@ -409,7 +514,7 @@ namespace WEMSharp
                                 uint remainder = 0;
 
                                 {
-                                    BitStream bitStream = new BitStream(this._wemFile);
+                                    BitStream bitStream = new BitStream(this._wemFileStream);
 
                                     modeNumber = bitStream.Read((int)modeBits);
                                     ogg.BitWrite(modeNumber, (byte)modeBits);
@@ -419,19 +524,19 @@ namespace WEMSharp
 
                                 if (modeBlockFlag[modeNumber])
                                 {
-                                    this._wemFile.Seek(nextOffset, SeekOrigin.Begin);
+                                    this._wemFileStream.Seek(nextOffset, SeekOrigin.Begin);
 
                                     bool nextBlockFlag = false;
                                     if (nextOffset + packetHeaderSize <= this._dataChunkOffset + this._dataChunkSize)
                                     {
-                                        Packet audioPacket = new Packet(this._wemFile, nextOffset, this._noGranule);
+                                        Packet audioPacket = new Packet(this._wemFileStream, nextOffset, this._noGranule);
                                         uint nextPacketSize = audioPacket.GetSize();
 
                                         if (nextPacketSize != 0xFFFFFFFF)
                                         {
-                                            this._wemFile.Seek(audioPacket.GetOffset(), SeekOrigin.Begin);
+                                            this._wemFileStream.Seek(audioPacket.GetOffset(), SeekOrigin.Begin);
 
-                                            BitStream bitStream = new BitStream(this._wemFile);
+                                            BitStream bitStream = new BitStream(this._wemFileStream);
                                             uint nextModeNumber = bitStream.Read((int)modeBits);
 
                                             nextBlockFlag = modeBlockFlag[nextModeNumber];
@@ -444,7 +549,7 @@ namespace WEMSharp
                                     byte nextWindowType = previousBlockFlag ? (byte)1 : (byte)0;
                                     ogg.WriteBit(nextWindowType);
 
-                                    this._wemFile.Seek(offset + 1, SeekOrigin.Begin);
+                                    this._wemFileStream.Seek(offset + 1, SeekOrigin.Begin);
                                 }
 
                                 previousBlockFlag = modeBlockFlag[modeNumber];
@@ -452,7 +557,7 @@ namespace WEMSharp
                             }
                             else
                             {
-                                int b = this._wemFile.ReadByte();
+                                int b = this._wemFileStream.ReadByte();
                                 if (b < 0)
                                 {
                                     throw new Exception("There was an error generating a vorbis packet");
@@ -463,7 +568,7 @@ namespace WEMSharp
 
                             for (int i = 1; i < size; i++)
                             {
-                                int b = this._wemFile.ReadByte();
+                                int b = this._wemFileStream.ReadByte();
                                 if (b < 0)
                                 {
                                     throw new Exception("There was an error generating a vorbis packet");
@@ -495,7 +600,7 @@ namespace WEMSharp
 
             //Information Packet
             {
-                Packet8 informationPacket = new Packet8(this._wemFile, offset);
+                Packet8 informationPacket = new Packet8(this._wemFileStream, offset);
                 uint informationPacketSize = informationPacket.GetSize();
 
                 if (informationPacket.GetGranule() != 0)
@@ -503,10 +608,10 @@ namespace WEMSharp
                     throw new Exception("There was an error while creating the header");
                 }
 
-                this._wemFile.Seek(informationPacket.GetOffset(), SeekOrigin.Begin);
+                this._wemFileStream.Seek(informationPacket.GetOffset(), SeekOrigin.Begin);
 
                 byte[] informationPacketType = new byte[1];
-                this._wemFile.Read(informationPacketType, 0, 1);
+                this._wemFileStream.Read(informationPacketType, 0, 1);
                 if (informationPacketType[0] != 1)
                 {
                     throw new Exception("There was an error while creating the header");
@@ -516,7 +621,7 @@ namespace WEMSharp
                 byte[] b = new byte[1];
                 for (int i = 0; i < informationPacketSize; i++)
                 {
-                    this._wemFile.Read(b, 0, 1);
+                    this._wemFileStream.Read(b, 0, 1);
                     ogg.BitWrite(b[0]);
                 }
 
@@ -526,7 +631,7 @@ namespace WEMSharp
 
             //Comment Packet
             {
-                Packet8 commentPacket = new Packet8(this._wemFile, offset);
+                Packet8 commentPacket = new Packet8(this._wemFileStream, offset);
                 uint commentPacketSize = commentPacket.GetSize();
 
                 if (commentPacket.GetGranule() != 0)
@@ -534,10 +639,10 @@ namespace WEMSharp
                     throw new Exception("There was an error while creating the header");
                 }
 
-                this._wemFile.Seek(commentPacket.GetOffset(), SeekOrigin.Begin);
+                this._wemFileStream.Seek(commentPacket.GetOffset(), SeekOrigin.Begin);
 
                 byte[] commentPacketType = new byte[1];
-                this._wemFile.Read(commentPacketType, 0, 1);
+                this._wemFileStream.Read(commentPacketType, 0, 1);
                 if (commentPacketType[0] != 3)
                 {
                     throw new Exception("There was an error while creating the header");
@@ -547,7 +652,7 @@ namespace WEMSharp
                 byte[] b = new byte[1];
                 for (int i = 0; i < commentPacketSize; i++)
                 {
-                    this._wemFile.Read(b, 0, 1);
+                    this._wemFileStream.Read(b, 0, 1);
                     ogg.BitWrite(b[0]);
                 }
 
@@ -557,15 +662,15 @@ namespace WEMSharp
 
             //Setup Packet
             {
-                Packet8 setupPacket = new Packet8(this._wemFile, offset);
-                this._wemFile.Seek(setupPacket.GetOffset(), SeekOrigin.Begin);
+                Packet8 setupPacket = new Packet8(this._wemFileStream, offset);
+                this._wemFileStream.Seek(setupPacket.GetOffset(), SeekOrigin.Begin);
 
                 if (setupPacket.GetGranule() != 0)
                 {
                     throw new Exception("There was an error while creating the header");
                 }
 
-                BitStream bitStream = new BitStream(this._wemFile);
+                BitStream bitStream = new BitStream(this._wemFileStream);
                 byte setupPacketType = (byte)bitStream.Read(8);
                 if (setupPacketType != 5)
                 {
@@ -608,9 +713,9 @@ namespace WEMSharp
             ogg.WriteVorbisHeader(1);
             ogg.BitWrite((uint)0);
             ogg.BitWrite((byte)this.Channels);
-            ogg.BitWrite(this.SampleRate);
+            ogg.BitWrite(this.SamplesPerSec);
             ogg.BitWrite((uint)0);
-            ogg.BitWrite(this.AverageBytesPerSecond * 8);
+            ogg.BitWrite(this.AvgBytesPerSecond * 8);
             ogg.BitWrite((uint)0);
             ogg.BitWrite(this._blocksize0Pow, 4);
             ogg.BitWrite(this._blocksize1Pow, 4);
@@ -659,16 +764,16 @@ namespace WEMSharp
             {
                 ogg.WriteVorbisHeader(5);
 
-                Packet setupPacket = new Packet(this._wemFile, this._dataChunkOffset + this._setupPacketOffset, this._noGranule);
+                Packet setupPacket = new Packet(this._wemFileStream, this._dataChunkOffset + this._setupPacketOffset, this._noGranule);
 
-                this._wemFile.Seek(setupPacket.GetOffset(), SeekOrigin.Begin);
+                this._wemFileStream.Seek(setupPacket.GetOffset(), SeekOrigin.Begin);
 
                 if (setupPacket.GetGranule() != 0)
                 {
                     throw new Exception("There was an error generating a vorbis packet");
                 }
 
-                BitStream bitStream = new BitStream(this._wemFile);
+                BitStream bitStream = new BitStream(this._wemFileStream);
 
                 uint codebookCount = bitStream.Read(8);
                 ogg.BitWrite((byte)codebookCount);

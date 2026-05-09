@@ -379,6 +379,14 @@ namespace DSAnimStudio
             }
             else
             {
+                var looseFiles = GetFilesInDir(directoryPath, SearchType.LooseOnly)
+                    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(x, matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
+
+                var eblFiles = GetFilesInDir(directoryPath, SearchType.EblOnly)
+                    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(x, matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
+
+                return eblFiles.Concat(looseFiles).ToList();
+
                 var filesInDir = GetFilesInDir(directoryPath, SearchType.AllFiles);
                 return filesInDir.Where(x => System.Text.RegularExpressions.Regex.IsMatch(x, matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
             }

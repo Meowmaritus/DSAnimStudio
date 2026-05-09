@@ -90,6 +90,7 @@ namespace DSAnimStudio
             else if (EngineType is EngineTypes.Wwise)
             {
                 PopulateMasterBankList_Inner(null, ".bnk");
+                PopulateMasterBankList_Inner("/sd/", ".bnk", true);
             }
             else if (EngineType is EngineTypes.MagicOrchestra)
             {
@@ -97,9 +98,9 @@ namespace DSAnimStudio
             }
         }
 
-        private void PopulateMasterBankList_Inner(string soundDirectory, string fileExtension)
+        private void PopulateMasterBankList_Inner(string soundDirectory, string fileExtension, bool additional = false)
         {
-            if (_bankNameList == null || _bankNameList?.Count == 0)
+            if (_bankNameList == null || _bankNameList?.Count == 0 || additional)
             {
                 var blacklist = GetMasterBankBlacklist();
                 _bankNameList = new Dictionary<uint, string>();
