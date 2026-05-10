@@ -348,7 +348,7 @@ namespace DSAnimStudio
                 filePath = filePath.Substring(0, filePath.Length - 4);
 
             var justFileName = Path.GetFileName(filePath).ToLowerInvariant();
-            var allFilesInDir = GetFilesInDir(null, SearchType.AllFiles);
+            var allFilesInDir = GetFilesInDir(null);
 
             var result = allFilesInDir
                 .Where(f => f.ToLowerInvariant().EndsWith(justFileName.ToLowerInvariant()))
@@ -369,37 +369,32 @@ namespace DSAnimStudio
         {
             if (ParentDocument.GameData.GameType == SoulsGames.DS1)
             {
-                var looseFiles = GetFilesInDir(directoryPath, SearchType.LooseOnly)
-                    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(AddFakeDcxIfNeededInDS1(x), matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
+                //var looseFiles = GetFilesInDir(directoryPath, SearchType.LooseOnly)
+                //    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(AddFakeDcxIfNeededInDS1(x), matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
 
-                var eblFiles = GetFilesInDir(directoryPath, SearchType.EblOnly)
-                    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(AddFakeDcxIfNeededInDS1(x), matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
+                //var eblFiles = GetFilesInDir(directoryPath, SearchType.EblOnly)
+                //    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(AddFakeDcxIfNeededInDS1(x), matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
 
-                return eblFiles.Concat(looseFiles).ToList();
+                //return eblFiles.Concat(looseFiles).ToList();
+                var filesInDir = GetFilesInDir(directoryPath);
+                return filesInDir.Where(x => System.Text.RegularExpressions.Regex.IsMatch(AddFakeDcxIfNeededInDS1(x), matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
             }
             else
             {
-                var looseFiles = GetFilesInDir(directoryPath, SearchType.LooseOnly)
-                    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(x, matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
-
-                var eblFiles = GetFilesInDir(directoryPath, SearchType.EblOnly)
-                    .Where(x => System.Text.RegularExpressions.Regex.IsMatch(x, matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
-
-                return eblFiles.Concat(looseFiles).ToList();
-
-                var filesInDir = GetFilesInDir(directoryPath, SearchType.AllFiles);
+                var filesInDir = GetFilesInDir(directoryPath);
                 return filesInDir.Where(x => System.Text.RegularExpressions.Regex.IsMatch(x, matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
             }
 
 
         }
 
-        public enum SearchType
-        {
-            AllFiles,
-            EblOnly,
-            LooseOnly,
-        }
+
+        //public enum SearchType
+        //{
+        //    AllFiles,
+        //    EblOnly,
+        //    LooseOnly,
+        //}
 
 
 
@@ -440,7 +435,7 @@ namespace DSAnimStudio
             }
         }
 
-        public List<string> GetFilesInDir(string directoryPath, SearchType searchType = SearchType.AllFiles)
+        public List<string> GetFilesInDir(string directoryPath)
         {
             if (directoryPath != null)
             {
@@ -449,38 +444,113 @@ namespace DSAnimStudio
                     directoryPath = "/" + directoryPath;
             }
 
-            var result = ((!IsLoadingUnpackedFiles || searchType is SearchType.EblOnly) && searchType != SearchType.LooseOnly) ? UxmDictionary.Where(x => directoryPath == null || x.StartsWith(directoryPath)).ToList() : new List<string>();
+            bool rootDir = string.IsNullOrWhiteSpace(directoryPath);
 
-            if (searchType is SearchType.EblOnly)
+            var result = UxmDictionary.Where(x => rootDir || x.StartsWith(directoryPath)).ToList();
+
+            if (IsLoadingUnpackedFiles)
             {
-                result = result
-                .OrderBy(x => x)
-                .ToList();
-                return result;
-            }
+                string interrootLooseFolderPath = rootDir ? InterrootPath : $@"{InterrootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
 
-            string looseFolderPath = $@"{InterrootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
-            if (System.IO.Directory.Exists(looseFolderPath) && IsLoadingUnpackedFiles)
-                result = result.Concat(System.IO.Directory.GetFiles(looseFolderPath, "*", SearchOption.AllDirectories)
-                    .Select(x => x.ToLower().Replace("\\", "/").StartsWith(InterrootPath.ToLower().Replace("\\", "/")) ?
-                    x.Substring(InterrootPath.Length).Replace("\\", "/") : x.Replace("\\", "/"))).ToList();
+                if (Directory.Exists(interrootLooseFolderPath))
+                {
+                    var interrootFiles = System.IO.Directory.GetFiles(interrootLooseFolderPath, "*", SearchOption.AllDirectories)
+                        .Select(x => x.Substring(InterrootPath.Length).Replace("\\", "/")).ToList();
 
-            if (searchType is SearchType.LooseOnly)
-            {
-                result = result
-                .OrderBy(x => x)
-                .ToList();
-                return result;
+                    result = result.Concat(interrootFiles).ToList();
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(ModengineRootPath))
             {
-                string modengineLooseFolderPath = $@"{ModengineRootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
-                if (System.IO.Directory.Exists(modengineLooseFolderPath))
-                    result = result.Concat(System.IO.Directory.GetFiles(modengineLooseFolderPath, "*", SearchOption.AllDirectories)
-                        .Select(x => x.ToLower().Replace("\\", "/").StartsWith(ModengineRootPath.ToLower().Replace("\\", "/")) ?
-                        x.Substring(ModengineRootPath.Length).Replace("\\", "/") : x.Replace("\\", "/"))).ToList();
+                string modengineLooseFolderPath = rootDir ? ModengineRootPath :  $@"{ModengineRootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
+                if (Directory.Exists(modengineLooseFolderPath))
+                {
+                    var modEngineFiles = System.IO.Directory.GetFiles(modengineLooseFolderPath, "*", SearchOption.AllDirectories)
+                    .Select(x => x.Substring(ModengineRootPath.Length).Replace("\\", "/")).ToList();
+
+                    result = result.Concat(modEngineFiles).ToList();
+                }
             }
+
+            //if (searchType == SearchType.AllFiles)
+            //{
+            //    result.Concat(UxmDictionary.Where(x => rootDir || x.StartsWith(directoryPath)).ToList());
+
+            //    if (IsLoadingUnpackedFiles)
+            //    {
+            //        string interrootLooseFolderPath = $@"{InterrootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
+
+            //        var interrootFiles = System.IO.Directory.GetFiles(interrootLooseFolderPath, "*", SearchOption.AllDirectories)
+            //            .Select(x => x.Substring(InterrootPath.Length).Replace("\\", "/")).ToList();
+
+            //        result.Concat(interrootFiles);
+            //    }
+
+            //    if (!string.IsNullOrWhiteSpace(ModengineRootPath))
+            //    {
+            //        string modengineLooseFolderPath = $@"{ModengineRootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
+
+            //        var modEngineFiles = System.IO.Directory.GetFiles(modengineLooseFolderPath, "*", SearchOption.AllDirectories)
+            //            .Select(x => x.Substring(ModengineRootPath.Length).Replace("\\", "/")).ToList();
+
+            //        result.Concat(modEngineFiles);
+            //    }
+
+            //}
+            //else if (searchType == SearchType.EblOnly)
+            //{
+            //    result.Concat(UxmDictionary.Where(x => rootDir || x.StartsWith(directoryPath)).ToList());
+            //}
+            //else if (searchType == SearchType.LooseOnly)
+            //{
+
+            //}
+
+
+
+
+
+
+
+
+
+
+
+
+
+            //var result = ((!IsLoadingUnpackedFiles || searchType is SearchType.EblOnly) && searchType != SearchType.LooseOnly) ? UxmDictionary.Where(x => directoryPath == null || x.StartsWith(directoryPath)).ToList() : new List<string>();
+
+            //if (searchType is SearchType.EblOnly)
+            //{
+            //    result = result
+            //    .OrderBy(x => x)
+            //    .ToList();
+            //    return result;
+            //}
+
+            //string looseFolderPath = $@"{InterrootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
+            //if (System.IO.Directory.Exists(looseFolderPath) && IsLoadingUnpackedFiles)
+            //    result = result.Concat(System.IO.Directory.GetFiles(looseFolderPath, "*", SearchOption.AllDirectories)
+            //        .Select(x => x.ToLower().Replace("\\", "/").StartsWith(InterrootPath.ToLower().Replace("\\", "/")) ?
+            //        x.Substring(InterrootPath.Length).Replace("\\", "/") : x.Replace("\\", "/"))).ToList();
+
+            //if (searchType is SearchType.LooseOnly)
+            //{
+            //    result = result
+            //    .OrderBy(x => x)
+            //    .ToList();
+            //    return result;
+            //}
+
+            //if (!string.IsNullOrWhiteSpace(ModengineRootPath))
+            //{
+            //    string modengineLooseFolderPath = $@"{ModengineRootPath}{(directoryPath?.Replace("/", "\\") ?? "")}";
+            //    if (System.IO.Directory.Exists(modengineLooseFolderPath))
+            //        result = result.Concat(System.IO.Directory.GetFiles(modengineLooseFolderPath, "*", SearchOption.AllDirectories)
+            //            .Select(x => x.ToLower().Replace("\\", "/").StartsWith(ModengineRootPath.ToLower().Replace("\\", "/")) ?
+            //            x.Substring(ModengineRootPath.Length).Replace("\\", "/") : x.Replace("\\", "/"))).ToList();
+            //}
 
             result = result
                 .OrderBy(x => x)

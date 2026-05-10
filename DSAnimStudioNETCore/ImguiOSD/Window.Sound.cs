@@ -117,78 +117,156 @@ namespace DSAnimStudio.ImguiOSD
 
                 ImGui.Separator();
 
-                if (ImGui.BeginTable("test_table", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoSavedSettings))
+                lock (soundManager._lock_LookupBanks)
                 {
-                   
-                    ImGui.TableNextColumn();
+                    
 
-                    lock (soundManager._lock_BankNameArray)
+                    var s = ImGui.GetStyle();
+                    var t = s.ItemSpacing.Y;
+                    float lnHeight = ImGui.GetTextLineHeight();
+                    int bankListHeightInItems = (int)(((this.LastSize.Y / Main.DPI) / 25)) - 4;
+
+                    if (bankListHeightInItems < 2)
+                        bankListHeightInItems = 2;
+
+                    if (ImGui.BeginTable("test_table", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoSavedSettings))
                     {
-                        if (soundManager.BankNameArray != null)
+
+                        ImGui.TableNextColumn();
+
+                        lock (soundManager._lock_BankNameArray)
                         {
-                            ImGui.Text("All Banks");
-
-                            ImGui.ListBox("###All Banks", ref soundManager.BankNameArray_SelectedIndex,
-                                soundManager.BankNameArray,
-                                soundManager.BankNameArray.Length,
-                                20);
-
-                            if (ImGui.IsItemFocused())
-                                anyFieldFocused = true;
-
-                            int selIndex = soundManager.BankNameArray_SelectedIndex;
-                            if (selIndex < 0)
-                                ImGuiDebugDrawer.PushDisabled();
-                            if (Tools.SimpleClickButton("Add Selected"))
+                            if (soundManager.BankNameArray != null)
                             {
-                                var selected = soundManager.BankNameArray[selIndex];
+                                ImGui.Text("Add Bank From List:");
 
-                                lock (soundManager._lock_LookupBanks)
+                                ImGui.ListBox("###All Banks", ref soundManager.BankNameArray_SelectedIndex,
+                                    soundManager.BankNameArray,
+                                    soundManager.BankNameArray.Length,
+                                    bankListHeightInItems - 1);
+
+                                if (ImGui.IsItemFocused())
+                                    anyFieldFocused = true;
+
+                                int selNameIndex = soundManager.BankNameArray_SelectedIndex;
+                                if (selNameIndex < 0)
+                                    ImGuiDebugDrawer.PushDisabled();
+                                if (Tools.SimpleClickButton("Add Selected From List"))
                                 {
-                                    if (soundManager.LookupBanks == null)
-                                        soundManager.LookupBanks = new string[] { selected };
-                                    else if (!soundManager.LookupBanks.Contains(selected))
+                                    var selected = soundManager.BankNameArray[selNameIndex];
+
+                                    lock (soundManager._lock_LookupBanks)
                                     {
-                                        var banks = soundManager.LookupBanks.ToList();
-                                        banks.Add(selected);
-                                        soundManager.LookupBanks = banks.ToArray();
+                                        if (soundManager.LookupBanks == null)
+                                            soundManager.LookupBanks = new string[] { selected };
+                                        else if (!soundManager.LookupBanks.Contains(selected))
+                                        {
+                                            var banks = soundManager.LookupBanks.ToList();
+                                            banks.Add(selected);
+                                            soundManager.LookupBanks = banks.ToArray();
+                                        }
                                     }
+
+                                    soundManager.CopySoundBanksFromThisToProj();
+
+                                    if (soundManager.EngineType == EngineTypes.FMOD)
+                                        soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
                                 }
 
-                                soundManager.CopySoundBanksFromThisToProj();
+                                if (selNameIndex < 0)
+                                    ImGuiDebugDrawer.PopDisabled();
 
-                                if (soundManager.EngineType == EngineTypes.FMOD)
-                                    soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
+
+                                ImGui.Text("Add Exact Bank:");
+
+                                ImGui.InputText("###AddBankTextField", ref addBankTextField, 64);
+                                if (ImGui.IsItemFocused())
+                                    anyFieldFocused = true;
+
+                                ImGui.SameLine();
+                                if (Tools.SimpleClickButton("Add"))
+                                {
+
+                                    var banks = soundManager.LookupBanks.ToList();
+                                    if (!banks.Contains(addBankTextField.ToLower()))
+                                    {
+                                        banks.Add(addBankTextField.ToLower());
+                                        soundManager.LookupBanks = banks.ToArray();
+
+                                        soundManager.CopySoundBanksFromThisToProj();
+
+                                        if (soundManager.EngineType == EngineTypes.FMOD)
+                                            soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
+                                    }
+                                }
                             }
-
-                            if (selIndex < 0)
-                                ImGuiDebugDrawer.PopDisabled();
                         }
-                    }
 
-                    ImGui.TableNextColumn();
 
-                    lock (soundManager._lock_LookupBanks)
-                    {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        
+
+
+                        ImGui.TableNextColumn();
+
                         if (soundManager.LookupBanks != null)
                         {
-                            ImGui.Text("Banks To Lookup Sounds From");
+                            ImGui.Text("Sound Bank Load Order:");
 
                             ImGui.ListBox("###Banks To Lookup Sounds From", ref soundManager.LookupBanks_SelectedIndex,
                                 soundManager.LookupBanks,
                                 soundManager.LookupBanks.Length,
-                                20);
+                                bankListHeightInItems);
 
                             if (ImGui.IsItemFocused())
                                 anyFieldFocused = true;
 
-                            int selIndex = soundManager.LookupBanks_SelectedIndex;
-                            if (selIndex < 0)
-                                ImGuiDebugDrawer.PushDisabled();
 
-                            if (Tools.SimpleClickButton("Remove Selected"))
+
+                            int selIndex = soundManager.LookupBanks_SelectedIndex;
+                            int count = soundManager.LookupBanks.Length;
+                            //if (selIndex < 0)
+                            //    ImGuiDebugDrawer.PushDisabled();
+
+                            ImGui.Text("For selected bank:");
+
+                            if (Tools.SimpleClickButton("×###Remove Selected Bank", selIndex >= 0 && selIndex < count))
                             {
-                                if (selIndex >= 0 && selIndex < soundManager.LookupBanks.Length)
+                                if (selIndex >= 0 && selIndex < count)
                                 {
                                     var selected = soundManager.LookupBanks[selIndex];
 
@@ -198,32 +276,31 @@ namespace DSAnimStudio.ImguiOSD
                                         banks.Remove(selected);
                                         soundManager.LookupBanks = banks.ToArray();
                                     }
+
+                                    soundManager.CopySoundBanksFromThisToProj();
+
+                                    if (soundManager.EngineType == EngineTypes.FMOD)
+                                        soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
                                 }
 
 
-                                soundManager.CopySoundBanksFromThisToProj();
 
-                                if (soundManager.EngineType == EngineTypes.FMOD)
-                                    soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
                             }
 
-                            if (selIndex < 0)
-                                ImGuiDebugDrawer.PopDisabled();
-
-
-                            ImGui.InputText("###AddBankTextField", ref addBankTextField, 64);
-                            if (ImGui.IsItemFocused())
-                                anyFieldFocused = true;
-                            
                             ImGui.SameLine();
-                            if (Tools.SimpleClickButton("Add"))
+
+                            if (Tools.SimpleClickButton("↑###Move Selected Bank Up", selIndex >= 1 && selIndex < count))
                             {
-                               
-                                var banks = soundManager.LookupBanks.ToList();
-                                if (!banks.Contains(addBankTextField.ToLower()))
+                                if (selIndex >= 1 && selIndex < count)
                                 {
-                                    banks.Add(addBankTextField.ToLower());
-                                    soundManager.LookupBanks = banks.ToArray();
+
+                                    var prev = soundManager.LookupBanks[selIndex - 1];
+                                    var sel = soundManager.LookupBanks[selIndex];
+
+                                    soundManager.LookupBanks[selIndex] = prev;
+                                    soundManager.LookupBanks[selIndex - 1] = sel;
+
+                                    soundManager.LookupBanks_SelectedIndex = --selIndex;
 
                                     soundManager.CopySoundBanksFromThisToProj();
 
@@ -232,13 +309,53 @@ namespace DSAnimStudio.ImguiOSD
                                 }
                             }
 
+                            ImGui.SameLine();
+
+                            bool moveDownBtn = Tools.SimpleClickButton("↓###Move Selected Bank Down", selIndex >= 0 && selIndex < count - 1);
+                            if (ImGui.IsItemHovered())
+                                ImGui.SetTooltip("Move Down");
+
+                            if (moveDownBtn)
+                            {
                                 
+
+                                if (selIndex >= 0 && selIndex < count - 1)
+                                {
+
+                                    var sel = soundManager.LookupBanks[selIndex];
+                                    var next = soundManager.LookupBanks[selIndex + 1];
+
+                                    soundManager.LookupBanks[selIndex] = next;
+                                    soundManager.LookupBanks[selIndex + 1] = sel;
+
+                                    soundManager.LookupBanks_SelectedIndex = ++selIndex;
+
+                                    soundManager.CopySoundBanksFromThisToProj();
+
+                                    if (soundManager.EngineType == EngineTypes.FMOD)
+                                        soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
+                                }
+                            }
+
+                            var y = ImGui.GetCursorPosY();
+                            y += 2;
+                            ImGui.SetCursorPosY(y);
                         }
+
+                        //if (selIndex < 0)
+                        //    ImGuiDebugDrawer.PopDisabled();
+
+
+
+
+
+
+                        ImGui.EndTable();
                     }
 
-                    ImGui.EndTable();
-                }
 
+                }
+                
                 ImGui.Separator();
 
                 if (soundManager.EngineType is EngineTypes.Wwise)

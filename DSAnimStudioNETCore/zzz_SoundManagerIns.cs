@@ -116,7 +116,7 @@ namespace DSAnimStudio
                     }
                 }
 
-                var soundDirFiles = ParentDocument.GameData.GetFilesInDir(soundDirectory, zzz_GameDataIns.SearchType.AllFiles);
+                var soundDirFiles = ParentDocument.GameData.GetFilesInDir(soundDirectory);
                 foreach (var thing in soundDirFiles)
                 {
                     var fn = thing.ToLower().Trim();
@@ -260,6 +260,29 @@ namespace DSAnimStudio
         public object _LOCK = new object();
 
         //private List<string> _additionalSoundBanksLoaded = new List<string>();
+
+        //public void RegisterAdditionalSoundBankBeforeOther(string registSoundBankName, string beforeOtherBankName)
+        //{
+        //    lock (_LOCK)
+        //    {
+        //        if (ParentDocument?.Proj != null)
+        //        {
+        //            lock (_lock_LookupBanks)
+        //            {
+        //                var prevSelected = LookupBanks_SelectedIndex >= 0 && LookupBanks_SelectedIndex < LookupBanks.Length
+        //                    ? LookupBanks[LookupBanks_SelectedIndex] : null;
+        //                var list = LookupBanks.ToList();
+        //                if (list.Contains(beforeOtherBankName))
+        //                {
+        //                    int i = list.IndexOf(beforeOtherBankName);
+        //                    list.Insert(i, registSoundBankName);
+        //                }
+        //                LookupBanks = list.ToArray();
+        //                LookupBanks_SelectedIndex = prevSelected != null ? list.IndexOf(prevSelected) : -1;
+        //            }
+        //        }
+        //    }
+        //}
 
         public void RegisterAdditionalSoundBank(string soundBankName)
         {

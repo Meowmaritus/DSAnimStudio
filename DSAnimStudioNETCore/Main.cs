@@ -26,7 +26,7 @@ namespace DSAnimStudio
     public class Main : Game
     {
         // STOP MOVING THESE FIELDS DOWN LMAO
-        public const string DSAS_VERSION_STRING = "5.0-RC5.1";
+        public const string DSAS_VERSION_STRING = "5.0-RC5.2";
         public static bool IsPatreonBuild => false;
 
 
@@ -35,6 +35,88 @@ namespace DSAnimStudio
         public static void InitTaeEditor()
         {
             //zzz_DocumentManager.CurrentDocument.EditorScreen = new TaeEditor.TaeEditorScreen((Form)Form.FromHandle(Program.MainInstance.Window.Handle));
+        }
+
+        public static bool AnyOodleExists()
+        {
+            if (File.Exists(Main.Directory + $"\\oo2core_6_win64.dll"))
+                return true;
+            if (File.Exists(Main.Directory + $"\\oo2core_8_win64.dll"))
+                return true;
+            if (File.Exists(Main.Directory + $"\\oo2core_9_win64.dll"))
+                return true;
+            return false;
+        }
+
+        public static bool TryCopyOodleFromInterroot(string interroot)
+        {
+            if (Main.AnyOodleExists())
+                return true;
+            if (interroot == null)
+                return false;
+            bool TryOodle(string oodleName)
+            {
+                string oodleSource = Utils.Frankenpath(interroot, oodleName);
+
+                // modengine check
+                if (!File.Exists(oodleSource))
+                {
+                    oodleSource = Utils.Frankenpath(interroot, @$"..\{oodleName}");
+                }
+
+                //if (!File.Exists(oodleSource))
+                //{
+                //    System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
+                //    "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
+                //    "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
+                //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+
+                //    return false;
+                //}
+
+                string oodleTarget = Utils.Frankenpath(Main.Directory, oodleName);
+
+                if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
+                {
+                    System.IO.File.Copy(oodleSource, oodleTarget, true);
+
+                    zzz_NotificationManagerIns.PushNotification("Oodle compression library was automatically copied from game directory " +
+                                        "to editor's directory and SDT/ER/AC6/NR files will load now.");
+
+                    return true;
+                }
+                return false;
+            }
+
+            if (TryOodle("oo2core_6_win64.dll"))
+                return true;
+
+            if (TryOodle("oo2core_8_win64.dll"))
+                return true;
+
+            if (TryOodle("oo2core_9_win64.dll"))
+                return true;
+
+            System.Windows.Forms.MessageBox.Show("To load Sekiro / Elden Ring / Armored Core 6 / Nightreign files, " +
+                            "you need to give DS Anim Studio access to the 'oo2core_6_win64.dll', 'oo2core_8_win64.dll', or 'oo2core_9_win64.dll' file " +
+                            "bundled next to the EXE of one of those games. Click OK to browse to this file for the current game now.");
+
+            var browseDlgOodle = new OpenFileDialog()
+            {
+                FileName = "",
+                CheckFileExists = true,
+                CheckPathExists = true,
+                Title = "Select Oodle DLL",
+                Filter = "DLLs (*.dll)|*.dll"
+            };
+            browseDlgOodle.FileName = "oo2core_6_win64.dll";
+            if (browseDlgOodle.ShowDialog() == DialogResult.OK)
+            {
+                var oodle = Utils.GetShortIngameFileName(browseDlgOodle.FileName);
+                System.IO.File.Copy(browseDlgOodle.FileName, Main.Directory + $"\\{oodle}.dll", true);
+            }
+
+            return false;
         }
 
         public static TaeEditorScreen TAE_EDITOR => zzz_DocumentManager.CurrentDocument?.EditorScreen;

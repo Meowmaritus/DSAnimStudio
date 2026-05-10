@@ -360,7 +360,7 @@ namespace DSAnimStudio
             {
                 var sb = new StringBuilder();
                 Dictionary<int, List<string>> memes = new Dictionary<int, List<string>>();
-                var partsbnds = zzz_DocumentManager.CurrentDocument.GameData.GetFilesInDir("/parts", zzz_GameDataIns.SearchType.AllFiles);
+                var partsbnds = zzz_DocumentManager.CurrentDocument.GameData.GetFilesInDir("/parts");
                 foreach (var file in partsbnds)
                 {
                     if (file.EndsWith("_l.partsbnd.dcx"))
@@ -442,7 +442,7 @@ namespace DSAnimStudio
                 List<int> binderIDs_insidePartsbnd = new List<int>();
                 List<int> binderIDs_insideAnibnd = new List<int>();
                 var sb = new StringBuilder();
-                var partsbnds = zzz_DocumentManager.CurrentDocument.GameData.GetFilesInDir("/parts", zzz_GameDataIns.SearchType.AllFiles);
+                var partsbnds = zzz_DocumentManager.CurrentDocument.GameData.GetFilesInDir("/parts");
                 foreach (var file in partsbnds)
                 {
                     if (file.EndsWith(".partsbnd.dcx"))

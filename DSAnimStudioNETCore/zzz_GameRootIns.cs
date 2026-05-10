@@ -335,48 +335,7 @@ namespace DSAnimStudio
             }
         }
 
-        public void TryCopyOodleFromInterroot()
-        {
-            if (InterrootPath == null)
-                return;
-            bool TryOodle(string oodleName)
-            {
-                string oodleSource = Utils.Frankenpath(InterrootPath, oodleName);
-
-                // modengine check
-                if (!File.Exists(oodleSource))
-                {
-                    oodleSource = Utils.Frankenpath(InterrootPath, @$"..\{oodleName}");
-                }
-
-                //if (!File.Exists(oodleSource))
-                //{
-                //    System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
-                //    "`oo2core_6_win64.dll` file in the Sekiro folder. Please copy that file to the " +
-                //    "'lib' folder next to DS Anim Studio.exe in order to load Sekiro files.", "Unable to find compression DLL",
-                //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-
-                //    return false;
-                //}
-
-                string oodleTarget = Utils.Frankenpath(Main.Directory, oodleName);
-
-                if (System.IO.File.Exists(oodleSource) && !System.IO.File.Exists(oodleTarget))
-                {
-                    System.IO.File.Copy(oodleSource, oodleTarget, true);
-
-                    zzz_NotificationManagerIns.PushNotification("Oodle compression library was automatically copied from game directory " +
-                                        "to editor's directory and Sekiro / Elden Ring files will load now.");
-
-                    return true;
-                }
-                return false;
-            }
-
-            if (!TryOodle("oo2core_6_win64.dll"))
-                if (!TryOodle("oo2core_8_win64.dll"))
-                    TryOodle("oo2core_9_win64.dll");
-        }
+        
 
         public List<string> GetInterrootFiles(string path, string match)
         {

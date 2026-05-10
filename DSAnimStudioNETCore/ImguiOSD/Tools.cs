@@ -39,6 +39,21 @@ namespace DSAnimStudio.ImguiOSD
             return ImGui.IsItemClicked();
         }
 
+        public static bool SimpleClickButton(string name, bool enabled)
+        {
+            bool result;
+            if (!enabled)
+                ImGuiDebugDrawer.PushDisabled();
+
+            ImGui.Button(name);
+            result = ImGui.IsItemClicked();
+
+            if (!enabled)
+                ImGuiDebugDrawer.PopDisabled();
+
+            return result;
+        }
+
         public static void CustomColorPicker(string text, string imguiID, ref Color? c, Color defaultColor)
         {
             bool hasValue = c.HasValue;

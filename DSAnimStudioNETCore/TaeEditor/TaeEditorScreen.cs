@@ -1050,8 +1050,12 @@ namespace DSAnimStudio.TaeEditor
             //    return false;
             //}
 
+            
+
             //CurrentFileContainerInfo = containerInfo;
             var mainContainerName = containerInfo.GetMainBinderName();
+
+            Main.TryCopyOodleFromInterroot(Path.GetDirectoryName(mainContainerName) + "../");
 
             bool loadedSuccessfully = false;
             //var prevContainerInfo = CurrentFileContainerInfo.GetClone();
@@ -1070,7 +1074,7 @@ namespace DSAnimStudio.TaeEditor
 
                     string interroot = folder.Substring(0, lastSlashInFolder);
 
-                    ParentDocument.GameRoot.TryCopyOodleFromInterroot();
+                    Main.TryCopyOodleFromInterroot(ParentDocument.GameRoot.InterrootPath);
 
                     var mainBinderName = containerInfo.GetMainBinderName();
                     var mainBinder = Utils.ReadBinder(mainBinderName);
@@ -1099,8 +1103,8 @@ namespace DSAnimStudio.TaeEditor
                     //    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
 
                     System.Windows.Forms.MessageBox.Show("Was unable to automatically find the " +
-                        "`oo2core_6_win64.dll` file in the Sekiro / Elden Ring game folder. Please copy that file to the " +
-                        "program folder next to DS Anim Studio.exe in order to load Sekiro / Elden Ring files.", "Unable to find compression DLL",
+                        "`oo2core_6_win64.dll`/`oo2core_8_win64.dll`/`oo2core_9_win64.dll` file in the Sekiro / Elden Ring / Armored Core 6 / Nightreign game folder. Please copy that file to the " +
+                        "program folder next to DS Anim Studio.exe in order to load Sekiro / Elden Ring / Armored Core 6 / Nightreign files.", "Unable to find compression DLL",
                         System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
 
                     ParentDocument.RequestClose_ForceDelete = true;
@@ -2227,7 +2231,7 @@ namespace DSAnimStudio.TaeEditor
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                
+                Main.TryCopyOodleFromInterroot(Path.GetDirectoryName(browseDlg.FileName) + "..\\");
 
                 IsReadOnlyFileMode = browseDlg.ReadOnlyChecked;
                 string fileContainerName = browseDlg.FileName;

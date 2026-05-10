@@ -411,7 +411,6 @@ namespace DSAnimStudio
             return result;
         }
 
-
         private Dictionary<string, WwiseBNK> loadedBanks = new Dictionary<string, WwiseBNK>();
 
         //private object _lock = new object();
@@ -506,6 +505,8 @@ namespace DSAnimStudio
                 return "None";
         }
 
+
+
         private object _lock_GetBank = new object();
         private WwiseBNK GetBank(string bankName)
         {
@@ -550,12 +551,56 @@ namespace DSAnimStudio
             return result;
         }
 
+        //private WwiseBNK GetBank_AddBeforeCurrentIfNew(string currentBankName, string bankName)
+        //{
+        //    WwiseBNK result = null;
+
+        //    lock (_lock_GetBank)
+        //    {
+        //        if (loadedBanks.ContainsKey(bankName))
+        //        {
+        //            result = loadedBanks[bankName];
+        //        }
+        //        else
+        //        {
+        //            if (ParentDocument.GameData.WwiseSoundFileExists($"{bankName}.bnk"))
+        //            {
+        //                var bytes = ParentDocument.GameData.ReadWwiseSoundFile($"{bankName}.bnk");
+        //                if (bytes != null)
+        //                {
+        //                    result = WwiseBNK.Read(bytes);
+        //                    loadedBanks.Add(bankName, result);
+        //                    ParentDocument.SoundManager.RegisterAdditionalSoundBankBeforeOther(bankName, currentBankName);
+        //                }
+        //            }
+
+        //            if (result == null && ParentDocument.GameData.WwiseSoundFileExists($"/enus/{bankName}.bnk"))
+        //            {
+        //                var bytes = ParentDocument.GameData.ReadWwiseSoundFile($"/enus/{bankName}.bnk");
+        //                if (bytes != null)
+        //                {
+        //                    result = WwiseBNK.Read(bytes);
+        //                    loadedBanks.Add(bankName, result);
+        //                    ParentDocument.SoundManager.RegisterAdditionalSoundBankBeforeOther(bankName, currentBankName);
+        //                }
+        //            }
+        //        }
+        //    }
+
+
+
+
+
+        //    return result;
+        //}
+
         public List<WemPlaybackInstance> GetPlaybackInstances(zzz_SoundManagerIns soundMan, SoundPlayInfo info)
         {
             string sound = GetSoundName(info.SoundType, info.SoundID);
             if (sound != null)
             {
                 List<string> bankNames = soundMan.GetAdditionalSoundBankNames();
+                bankNames.Reverse();
                 return GetPlaybackInstances(soundMan, bankNames, sound);
             }
             else
