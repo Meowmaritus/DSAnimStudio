@@ -375,7 +375,8 @@ namespace DSAnimStudio.TaeEditor
 
                 if (CheckCurrentInterroot())
                 {
-                    Main.TryCopyOodleFromInterroot(zzz_DocumentManager.CurrentDocument.GameRoot.InterrootPath);
+                    Main.TryCopyOodleFromInterroot(zzz_DocumentManager.CurrentDocument.GameRoot.InterrootPath, 
+                        null, zzz_DocumentManager.CurrentDocument.GameRoot.GameType);
 
                     step = Steps.InterrootValidating;
                     ControlCategories[ControlCategoryTypes.InterrootSelect].IsGrayedOut = true;

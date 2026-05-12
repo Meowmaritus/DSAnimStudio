@@ -20,6 +20,7 @@ using System.Reflection;
 using System.Xml;
 using DSAnimStudio.TaeEditor;
 using System.Runtime;
+using SoulsAssetPipeline;
 
 namespace DSAnimStudio
 {
@@ -48,10 +49,70 @@ namespace DSAnimStudio
             return false;
         }
 
-        public static bool TryCopyOodleFromInterroot(string interroot)
+        public static bool TryCopyOodleFromInterroot(string interroot, 
+            string gameFilePath, SoulsGames? game)
         {
             if (Main.AnyOodleExists())
                 return true;
+
+            bool unsure = true;
+
+            if (game is SoulsGames.DS1 or SoulsGames.DS1R or SoulsGames.BB or SoulsGames.DS3 or SoulsGames.DES)
+            {
+                // Game has no oodle
+                return true;
+            }
+            else if (game == null)// && gameFilePath.ToLower().EndsWith(".dcx"))
+            {
+                if (!string.IsNullOrWhiteSpace(gameFilePath) && File.Exists(gameFilePath))
+                {
+                    using (var fileStream = System.IO.File.OpenRead(gameFilePath))
+                    {
+                        using (var br = new BinaryReader(fileStream))
+                        {
+                            if (br.ReadByte() != 0x44)
+                                return true; // Not DCX
+                            if (br.ReadByte() != 0x43)
+                                return true; // Not DCX
+                            if (br.ReadByte() != 0x58)
+                                return true; // Not DCX
+
+                            br.BaseStream.Seek(0x28, SeekOrigin.Begin);
+                            if (br.ReadByte() != 0x4B)
+                                return true; // Not KRAK
+                            if (br.ReadByte() != 0x52)
+                                return true; // Not KRAK
+                            if (br.ReadByte() != 0x41)
+                                return true; // Not KRAK
+                            if (br.ReadByte() != 0x4B)
+                                return true; // Not KRAK
+                        }
+                    }
+                }
+
+            }
+            else // Game is known to use Oodle
+            {
+                unsure = false;
+            }
+
+            if (unsure)
+            {
+                var answer = System.Windows.Forms.MessageBox.Show(
+                    "The application is unable to detect whether copying the Oodle DLL from the game is needed for this file, so you must specify." +
+                    "\n" +
+                    "\nIs the file you're loading from any of the following games?" +
+                    "\n -Sekiro" +
+                    "\n -Elden Ring" +
+                    "\n -Amored Core 6" +
+                    "\n -Elden Ring Nightreign",
+                        "More Info Needed", MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk);
+                if (answer == DialogResult.No)
+                    return true;
+            }
+
+
+            
             if (interroot == null)
                 return false;
             bool TryOodle(string oodleName)
@@ -97,9 +158,10 @@ namespace DSAnimStudio
             if (TryOodle("oo2core_9_win64.dll"))
                 return true;
 
-            System.Windows.Forms.MessageBox.Show("To load Sekiro / Elden Ring / Armored Core 6 / Nightreign files, " +
+            System.Windows.Forms.MessageBox.Show("To load Sekiro / Elden Ring / Armored Core 6 / Elden Ring Nightreign files, " +
                             "you need to give DS Anim Studio access to the 'oo2core_6_win64.dll', 'oo2core_8_win64.dll', or 'oo2core_9_win64.dll' file " +
-                            "bundled next to the EXE of one of those games. Click OK to browse to this file for the current game now.");
+                            "bundled next to the EXE of one of those games. Click OK to browse to this file for the current game now.", 
+                            "Action Needed", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
 
             var browseDlgOodle = new OpenFileDialog()
             {

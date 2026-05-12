@@ -1055,7 +1055,8 @@ namespace DSAnimStudio.TaeEditor
             //CurrentFileContainerInfo = containerInfo;
             var mainContainerName = containerInfo.GetMainBinderName();
 
-            Main.TryCopyOodleFromInterroot(Path.GetDirectoryName(mainContainerName) + "../");
+            Main.TryCopyOodleFromInterroot(Path.GetDirectoryName(mainContainerName) + "../", 
+                mainContainerName, null);
 
             bool loadedSuccessfully = false;
             //var prevContainerInfo = CurrentFileContainerInfo.GetClone();
@@ -1074,7 +1075,7 @@ namespace DSAnimStudio.TaeEditor
 
                     string interroot = folder.Substring(0, lastSlashInFolder);
 
-                    Main.TryCopyOodleFromInterroot(ParentDocument.GameRoot.InterrootPath);
+                    Main.TryCopyOodleFromInterroot(ParentDocument.GameRoot.InterrootPath, mainContainerName, null);
 
                     var mainBinderName = containerInfo.GetMainBinderName();
                     var mainBinder = Utils.ReadBinder(mainBinderName);
@@ -2231,10 +2232,12 @@ namespace DSAnimStudio.TaeEditor
 
             if (browseDlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Main.TryCopyOodleFromInterroot(Path.GetDirectoryName(browseDlg.FileName) + "..\\");
+                
 
                 IsReadOnlyFileMode = browseDlg.ReadOnlyChecked;
                 string fileContainerName = browseDlg.FileName;
+
+                Main.TryCopyOodleFromInterroot(Path.GetDirectoryName(browseDlg.FileName) + "..\\", fileContainerName, null);
 
                 DSAProj.TaeContainerInfo container = null;
 
