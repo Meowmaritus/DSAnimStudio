@@ -585,15 +585,15 @@ namespace DSAnimStudio.TaeEditor
 
                     EquipIDs = new Dictionary<NewChrAsm.EquipSlotTypes, int>()
                     {
-                        { NewChrAsm.EquipSlotTypes.Head, 54000000 },
-                        { NewChrAsm.EquipSlotTypes.Body, 54001000 },
-                        { NewChrAsm.EquipSlotTypes.Arms, 54002000 },
-                        { NewChrAsm.EquipSlotTypes.Legs, 54003000 },
-                        { NewChrAsm.EquipSlotTypes.RightWeapon, 16160000 },
-                        { NewChrAsm.EquipSlotTypes.LeftWeapon, 21100000 },
+                        { NewChrAsm.EquipSlotTypes.Head, 21000000 },
+                        { NewChrAsm.EquipSlotTypes.Body, 21001000 },
+                        { NewChrAsm.EquipSlotTypes.Arms, 21002000 },
+                        { NewChrAsm.EquipSlotTypes.Legs, 21003000 },
+                        { NewChrAsm.EquipSlotTypes.RightWeapon, 6000000 },
+                        { NewChrAsm.EquipSlotTypes.LeftWeapon, 21040000 },
                     },
 
-                    WeaponStyle = NewChrAsm.WeaponStyleType.RightBoth,
+                    WeaponStyle = NewChrAsm.WeaponStyleType.OneHand,
                 }
             },
             { SoulsAssetPipeline.SoulsGames.BB, new NewChrAsmCfgJson()

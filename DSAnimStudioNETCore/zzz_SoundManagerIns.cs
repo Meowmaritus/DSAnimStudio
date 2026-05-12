@@ -323,7 +323,8 @@ namespace DSAnimStudio
 
         public void LoadSoundbanksFromListIfNeeded()
         {
-            WwiseManager.LoadDataFromBanks(this);
+            if (EngineType is EngineTypes.Wwise)
+                WwiseManager.LoadDataFromBanks(this);
         }
 
         public List<string> GetAdditionalSoundBankNames()
