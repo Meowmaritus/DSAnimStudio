@@ -115,6 +115,14 @@ namespace DSAnimStudio.ImguiOSD
                     GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, false);
                 }
 
+                ImGui.Button("Reset To Default Bank Load Order");
+                if (ImGui.IsItemClicked())
+                {
+                    soundManager.InitDefaultSoundBanksToLoad();
+                    soundManager.CopySoundBanksFromThisToProj();
+                    soundManager.LoadSoundbanksFromListIfNeeded();
+                }
+
                 ImGui.Separator();
 
                 lock (soundManager._lock_LookupBanks)
@@ -168,6 +176,7 @@ namespace DSAnimStudio.ImguiOSD
                                     }
 
                                     soundManager.CopySoundBanksFromThisToProj();
+                                    soundManager.LoadSoundbanksFromListIfNeeded();
 
                                     if (soundManager.EngineType == EngineTypes.FMOD)
                                         soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
@@ -194,6 +203,7 @@ namespace DSAnimStudio.ImguiOSD
                                         soundManager.LookupBanks = banks.ToArray();
 
                                         soundManager.CopySoundBanksFromThisToProj();
+                                        soundManager.LoadSoundbanksFromListIfNeeded();
 
                                         if (soundManager.EngineType == EngineTypes.FMOD)
                                             soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
@@ -201,45 +211,6 @@ namespace DSAnimStudio.ImguiOSD
                                 }
                             }
                         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        
-
 
                         ImGui.TableNextColumn();
 
@@ -278,6 +249,7 @@ namespace DSAnimStudio.ImguiOSD
                                     }
 
                                     soundManager.CopySoundBanksFromThisToProj();
+                                    soundManager.LoadSoundbanksFromListIfNeeded();
 
                                     if (soundManager.EngineType == EngineTypes.FMOD)
                                         soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
@@ -303,6 +275,7 @@ namespace DSAnimStudio.ImguiOSD
                                     soundManager.LookupBanks_SelectedIndex = --selIndex;
 
                                     soundManager.CopySoundBanksFromThisToProj();
+                                    soundManager.LoadSoundbanksFromListIfNeeded();
 
                                     if (soundManager.EngineType == EngineTypes.FMOD)
                                         soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
@@ -331,6 +304,7 @@ namespace DSAnimStudio.ImguiOSD
                                     soundManager.LookupBanks_SelectedIndex = ++selIndex;
 
                                     soundManager.CopySoundBanksFromThisToProj();
+                                    soundManager.LoadSoundbanksFromListIfNeeded();
 
                                     if (soundManager.EngineType == EngineTypes.FMOD)
                                         soundManager.ParentDocument.Fmod.InitFmodEventSysForThisDocument();
@@ -362,30 +336,37 @@ namespace DSAnimStudio.ImguiOSD
                 {
 
                     Main.Config.Wwise_ShowMissingBankWarnings = MenuBar.CheckboxBig("Show Wwise Bank Not Found Warnings", Main.Config.Wwise_ShowMissingBankWarnings);
-                    
-                    
-                    
-                    
-                    
-                     
-                    
+
+
+
+
+
+
+
 
 
                     ImGui.PushItemWidth(OSD.DefaultItemWidth * 3);
                     if (WW.DefensiveMaterialNames != null && WW.DefensiveMaterialNames.Length > 0)
                         ImGui.ListBox("Floor Material", ref WW.DefensiveMaterialIndex, WW.DefensiveMaterialNames, WW.DefensiveMaterialNames.Length);
-
+                    if (ImGui.IsItemFocused())
+                        anyFieldFocused = true;
 
                     //ImGui.ListBox("Armor Material (Top)", ref Wwise.ArmorMaterialIndexTop, Wwise.ArmorMaterialNames, Wwise.ArmorMaterialNames.Length);
                     //ImGui.ListBox("Armor Material (Bottom)", ref Wwise.ArmorMaterialIndexBottom, Wwise.ArmorMaterialNames, Wwise.ArmorMaterialNames.Length);
 
                     //ImGui.ListBox("Player Voice Type", ref Wwise.PlayerVoiceIndex, Wwise.PlayerVoiceTypes, Wwise.PlayerVoiceTypes.Length);
 
-                    
-                    foreach (var switchGroupHandler in WW.SwitchGroupHandlers)
+                    ImGui.Separator();
+
+                    if (ImguiOSD.Tools.SimpleClickButton("Re-Init Switch Groups"))
                     {
-                        switchGroupHandler.DoImGui();
+                        WW.InitDefaultSwitchGroups();
                     }
+
+                    bool switchPropFocused = false;
+                    WW.BuildSwitchPropImGui(ref switchPropFocused);
+                    if (switchPropFocused)
+                        anyFieldFocused = true;
                     ImGui.PopItemWidth();
                     
                     

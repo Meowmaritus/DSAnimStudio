@@ -137,7 +137,7 @@ namespace DSAnimStudio
                 entry.First0x40 = bhdFile.Take(0x40).ToArray();
                 entry.LastModifiedTime = new FileInfo(bhdFilePath).LastWriteTimeUtc.Ticks;
                 entry.HasLastModifiedTime = true;
-                entry.WwiseFnvHash = parentDocument.SoundManager.GetFnvHashOfBytes(bhdFile);
+                entry.WwiseFnvHash = zzz_SoundManagerIns.GetFnvHashOfBytes(bhdFile);
                 entry.HasWwiseFnvHash = true;
                 Entries.Add(entry);
 
@@ -240,7 +240,7 @@ namespace DSAnimStudio
 
                             if (entry.HasWwiseFnvHash)
                             {
-                                var fnvHash = ParentDocument.SoundManager.GetFnvHashOfBytes(bhdFileBytes);
+                                var fnvHash = zzz_SoundManagerIns.GetFnvHashOfBytes(bhdFileBytes);
                                 if (fnvHash == entry.WwiseFnvHash)
                                 {
                                     result = true;
@@ -268,6 +268,8 @@ namespace DSAnimStudio
                     return !CfgLoadLooseParams;
             }
         }
+
+
 
         public bool IsLoadingUnpackedFiles => CfgLoadUnpackedGameFiles ||
             (ParentDocument.GameRoot.GameType is SoulsGames.DS1R or SoulsGames.DES or SoulsGames.BB or SoulsGames.None);

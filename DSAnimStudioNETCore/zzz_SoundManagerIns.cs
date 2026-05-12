@@ -145,7 +145,11 @@ namespace DSAnimStudio
         {
             return FnvHashCache.GetOrAdd(input, key => GetFnvHashOfBytes(Encoding.ASCII.GetBytes(key.ToLowerInvariant()).ToArray()));
         }
-        public uint GetFnvHashOfBytes(byte[] input)//, bool use32bits)
+        public static uint GetFnvHashOfString(string input)
+        {
+            return GetFnvHashOfBytes(Encoding.ASCII.GetBytes(input.ToLowerInvariant()));
+        }
+        public static uint GetFnvHashOfBytes(byte[] input)//, bool use32bits)
         {
             uint prime = 16777619;
             uint offset = 2166136261;
@@ -261,28 +265,28 @@ namespace DSAnimStudio
 
         //private List<string> _additionalSoundBanksLoaded = new List<string>();
 
-        //public void RegisterAdditionalSoundBankBeforeOther(string registSoundBankName, string beforeOtherBankName)
-        //{
-        //    lock (_LOCK)
-        //    {
-        //        if (ParentDocument?.Proj != null)
-        //        {
-        //            lock (_lock_LookupBanks)
-        //            {
-        //                var prevSelected = LookupBanks_SelectedIndex >= 0 && LookupBanks_SelectedIndex < LookupBanks.Length
-        //                    ? LookupBanks[LookupBanks_SelectedIndex] : null;
-        //                var list = LookupBanks.ToList();
-        //                if (list.Contains(beforeOtherBankName))
-        //                {
-        //                    int i = list.IndexOf(beforeOtherBankName);
-        //                    list.Insert(i, registSoundBankName);
-        //                }
-        //                LookupBanks = list.ToArray();
-        //                LookupBanks_SelectedIndex = prevSelected != null ? list.IndexOf(prevSelected) : -1;
-        //            }
-        //        }
-        //    }
-        //}
+        public void RegisterAdditionalSoundBankBeforeOther(string registSoundBankName, string beforeOtherBankName)
+        {
+            lock (_LOCK)
+            {
+                if (ParentDocument?.Proj != null)
+                {
+                    lock (_lock_LookupBanks)
+                    {
+                        var prevSelected = LookupBanks_SelectedIndex >= 0 && LookupBanks_SelectedIndex < LookupBanks.Length
+                            ? LookupBanks[LookupBanks_SelectedIndex] : null;
+                        var list = LookupBanks.ToList();
+                        if (list.Contains(beforeOtherBankName))
+                        {
+                            int i = list.IndexOf(beforeOtherBankName);
+                            list.Insert(i, registSoundBankName);
+                        }
+                        LookupBanks = list.ToArray();
+                        LookupBanks_SelectedIndex = prevSelected != null ? list.IndexOf(prevSelected) : -1;
+                    }
+                }
+            }
+        }
 
         public void RegisterAdditionalSoundBank(string soundBankName)
         {
@@ -304,6 +308,7 @@ namespace DSAnimStudio
             }
 
             CopySoundBanksFromThisToProj();
+            LoadSoundbanksFromListIfNeeded();
         }
 
         public static zzz_DocumentIns CurrentDocInControl = null;
@@ -316,6 +321,11 @@ namespace DSAnimStudio
             }
         }
 
+        public void LoadSoundbanksFromListIfNeeded()
+        {
+            WwiseManager.LoadDataFromBanks(this);
+        }
+
         public List<string> GetAdditionalSoundBankNames()
         {
             List<string> result = new List<string>();
@@ -325,6 +335,22 @@ namespace DSAnimStudio
             }
             return result;
         }
+
+        public void InitDefaultSoundBanksToLoad()
+        {
+            ParentDocument.Proj.SAFE_InitDefaultSoundBanksToLoad();
+            var projBanks = ParentDocument.Proj.SAFE_GetSoundBanksToLoad();
+            lock (_lock_LookupBanks)
+            {
+                var prevSelected = LookupBanks_SelectedIndex >= 0 && LookupBanks_SelectedIndex < LookupBanks.Length
+                            ? LookupBanks[LookupBanks_SelectedIndex] : null;
+                var list = projBanks;
+                LookupBanks = list.ToArray();
+                LookupBanks_SelectedIndex = prevSelected != null ? list.IndexOf(prevSelected) : -1;
+            }
+        }
+
+
 
         public void CopySoundBanksFromProjToThis(bool force)
         {
@@ -893,6 +919,10 @@ namespace DSAnimStudio
             else if (EngineType is EngineTypes.MagicOrchestra)
             {
                 // leaving this here as a note
+            }
+            else if (EngineType is EngineTypes.Wwise)
+            {
+                WwiseManager.Update();
             }
 
             //if (SOUND_DISABLED)

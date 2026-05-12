@@ -13,7 +13,7 @@ namespace DSAnimStudio
 {
     public abstract partial class ParamData
     {
-        public class WwiseValueToStrParam_Switch_DeffensiveMaterial : ParamData
+        public class WwiseValueToStrParam : ParamData
         {
             public string WwiseString;
 

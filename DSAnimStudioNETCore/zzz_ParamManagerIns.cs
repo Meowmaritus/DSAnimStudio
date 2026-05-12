@@ -220,8 +220,8 @@ namespace DSAnimStudio
         //public ConcurrentDictionary<long, ParamDataDS2.ArmorParam> DS2ArmorParam
         //     = new ConcurrentDictionary<long, ParamDataDS2.ArmorParam>();
 
-        public ConcurrentDictionary<long, ParamData.WwiseValueToStrParam_Switch_DeffensiveMaterial> WwiseValueToStrParam_Switch_DeffensiveMaterial
-            = new ConcurrentDictionary<long, ParamData.WwiseValueToStrParam_Switch_DeffensiveMaterial>();
+        public ConcurrentDictionary<long, ParamData.WwiseValueToStrParam> WwiseValueToStrParam_Switch_DeffensiveMaterial
+            = new ConcurrentDictionary<long, ParamData.WwiseValueToStrParam>();
 
 
         public ConcurrentDictionary<long, ParamData.AC6NpcEquipPartsParam> AC6NpcEquipPartsParam
@@ -246,6 +246,40 @@ namespace DSAnimStudio
         public Dictionary<long, string> HitMtrlParamEntries = new Dictionary<long, string>();
 
         private SoulsAssetPipeline.SoulsGames GameTypeCurrentLoadedParamsAreFrom = SoulsAssetPipeline.SoulsGames.None;
+
+        public List<string> GetAllParamNames()
+        {
+            List<string> result = new List<string>();
+
+            lock (_lock_Params)
+            {
+
+                if (!ParamBNDs.ContainsKey(ParentDocument.GameRoot.GameType))
+                    throw new InvalidOperationException("ParamBND not loaded :tremblecat:");
+
+                if (!LoadedParams.ContainsKey(ParentDocument.GameRoot.GameType))
+                    LoadedParams.AddOrUpdate(ParentDocument.GameRoot.GameType, new ConcurrentDictionary<string, PARAM_Hack>(), (k, v) => v);
+
+
+                var thisGamesParambnd = ParamBNDs[ParentDocument.GameRoot.GameType];
+                if (thisGamesParambnd == null)
+                    ImguiOSD.DialogManager.DialogOK("Error", "Unable to load GameParam. Make sure your project directory options such as game data directory, ModEngine /mod/ path, and Load Loose Params options are all correct for your game/mod setup.");
+                else
+                {
+                    foreach (var f in ParamBNDs[ParentDocument.GameRoot.GameType].Files)
+                    {
+                        var paramShortName = Utils.GetShortIngameFileName(f.Name);
+                        if (!result.Contains(paramShortName))
+                            result.Add(paramShortName);
+                    }
+                }
+
+
+            }
+
+            return result;
+
+        }
 
         public PARAM_Hack GetParam(string paramName)
         {

@@ -117,7 +117,7 @@ namespace DSAnimStudio
             Unknown,
         }
 
-        public NewSkeletonMapper.RemapModes CurrentGameSkeletonRemapperMode => GameType is SoulsGames.AC6 ? NewSkeletonMapper.RemapModes.RetargetRelativeAndDirectFKOrientation : NewSkeletonMapper.RemapModes.DirectBoneMap;
+        public NewSkeletonMapper.RemapModes CurrentGameSkeletonRemapperMode => (GameType is SoulsGames.AC6 or SoulsGames.ERNR) ? NewSkeletonMapper.RemapModes.RetargetRelativeAndDirectFKOrientation : NewSkeletonMapper.RemapModes.DirectBoneMap;
 
         public string GameTypeName => GameTypeNames.ContainsKey(GameType) ? GameTypeNames[GameType] : GameType.ToString();
 

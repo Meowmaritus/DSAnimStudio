@@ -26,7 +26,7 @@ namespace DSAnimStudio
     public class Main : Game
     {
         // STOP MOVING THESE FIELDS DOWN LMAO
-        public const string DSAS_VERSION_STRING = "5.0-RC5.2";
+        public const string DSAS_VERSION_STRING = "5.0-RC5.3";
         public static bool IsPatreonBuild => false;
 
 

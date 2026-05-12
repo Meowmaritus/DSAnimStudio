@@ -21,6 +21,9 @@ namespace DSAnimStudio.TaeEditor
         private Dictionary<int, bool> StateInfoSelectConfig_Enabled { get; set; } = new Dictionary<int, bool>();
 
         private Dictionary<string, string> WwiseSwitchControlValues { get; set; } = new Dictionary<string, string>();
+        private Dictionary<string, bool> WwiseSwitchControlAutoEnabled { get; set; } = new Dictionary<string, bool>();
+
+
 
         public void InitDefaults(zzz_DocumentIns doc)
         {
@@ -29,6 +32,7 @@ namespace DSAnimStudio.TaeEditor
 
             doc.SoundManager.WwiseManager.InitDefaultSwitchGroups();
             WwiseSwitchControlValues = doc.SoundManager.WwiseManager.GetSwitchGroupValues();
+            WwiseSwitchControlAutoEnabled = doc.SoundManager.WwiseManager.GetSwitchGroupAutoEnabled();
 
             if (WorldViews == null)
                 WorldViews = new List<WorldView>();
@@ -46,6 +50,7 @@ namespace DSAnimStudio.TaeEditor
             StateInfoSelectConfig_Names = ImguiOSD.OSD.WindowEntity.GetStateInfoSelectConfig_Names();
 
             WwiseSwitchControlValues = doc.SoundManager.WwiseManager.GetSwitchGroupValues();
+            WwiseSwitchControlAutoEnabled = doc.SoundManager.WwiseManager.GetSwitchGroupAutoEnabled();
 
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
             var dir = System.IO.Path.GetDirectoryName(file);
@@ -67,6 +72,7 @@ namespace DSAnimStudio.TaeEditor
             ImguiOSD.OSD.WindowEntity.SetStateInfoSelectConfig_Enabled(proj.StateInfoSelectConfig_Enabled);
 
             doc.SoundManager.WwiseManager.SetSwitchGroupValues(proj.WwiseSwitchControlValues);
+            doc.SoundManager.WwiseManager.SetSwitchGroupAutoEnabled(proj.WwiseSwitchControlAutoEnabled);
 
             return proj;
         }

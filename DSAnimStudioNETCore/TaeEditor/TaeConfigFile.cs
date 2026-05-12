@@ -674,12 +674,12 @@ namespace DSAnimStudio.TaeEditor
 
                     EquipIDs = new Dictionary<NewChrAsm.EquipSlotTypes, int>()
                     {
-                        { NewChrAsm.EquipSlotTypes.Head, 980000 },
-                        { NewChrAsm.EquipSlotTypes.Body, 981100 },
-                        { NewChrAsm.EquipSlotTypes.Arms, 980200 },
-                        { NewChrAsm.EquipSlotTypes.Legs, 980300 },
-                        { NewChrAsm.EquipSlotTypes.RightWeapon, 2180000 },
-                        { NewChrAsm.EquipSlotTypes.LeftWeapon, 31190000 },
+                        { NewChrAsm.EquipSlotTypes.Head, 5000000 },
+                        { NewChrAsm.EquipSlotTypes.Body, 5000100 },
+                        { NewChrAsm.EquipSlotTypes.Arms, 5000200 },
+                        { NewChrAsm.EquipSlotTypes.Legs, 5000300 },
+                        { NewChrAsm.EquipSlotTypes.RightWeapon, 3750000 },
+                        { NewChrAsm.EquipSlotTypes.LeftWeapon, 30750000 },
                     },
 
                     DirectEquipInfos = new Dictionary<NewChrAsm.EquipSlotTypes, NewEquipSlot_Armor.DirectEquipInfo>()
