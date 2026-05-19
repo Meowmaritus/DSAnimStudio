@@ -35,7 +35,7 @@ namespace DSAnimStudio
 
                 public override bool Evaluate(DSAProj proj, Check check)
                 {
-                    string a = check.Track.Info.DisplayName;
+                    string a = check.Track?.Info?.DisplayName;
                     if (a == null || Operand == null)
                         return false;
                     string b = Convert.ToString(Operand);

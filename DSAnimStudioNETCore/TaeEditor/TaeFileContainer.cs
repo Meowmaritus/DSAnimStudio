@@ -29,9 +29,12 @@ namespace DSAnimStudio.TaeEditor
                 if ((flags & EditorFlags.NeedsResave_NullAnimNameBug) != 0)
                     sb.AppendLine($"    -The *{DSAProj.EXT} file was saved with a bug that caused all anim file names " +
                                   $"to get wiped (anim file names have been loaded from the *.dsasbak file for any null file names).");
-                sb.AppendLine("\nIt is reccomended that you resave the file now to apply the fixes for the above issues.");
-                MessageBox.Show(sb.ToString(),
-                                "Notice", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                sb.AppendLine("\nIt is reccomended that you resave the file ASAP to apply the fixes for the above issues.");
+                //MessageBox.Show(sb.ToString(),
+                //                "Notice", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                ImguiOSD.DialogManager.ShowDialogGenericText(sb.ToString(), 500, 200);
+                
             }
         }
 
@@ -557,7 +560,10 @@ namespace DSAnimStudio.TaeEditor
 
                         var runtimeFlags = Proj.GetAllTAEsRuntimeFlags();
                         if (runtimeFlags != EditorFlags.None)
+                        {
+                            Proj.SAFE_MarkAllModified();
                             ShowPopupForDSAProjRuntimeFlags(runtimeFlags);
+                        }
 
                         
                     }

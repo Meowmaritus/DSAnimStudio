@@ -13,6 +13,7 @@ using NVector3 = System.Numerics.Vector3;
 using NVector4 = System.Numerics.Vector4;
 using NQuaternion = System.Numerics.Quaternion;
 using System.Windows.Forms;
+using TAE = SoulsAssetPipeline.Animation.TAE;
 
 namespace DSAnimStudio
 {

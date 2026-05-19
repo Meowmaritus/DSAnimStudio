@@ -18,6 +18,7 @@ using Microsoft.Xna.Framework;
 using static DSAnimStudio.ImguiOSD.Window;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using TAE = SoulsAssetPipeline.Animation.TAE;
 
 namespace DSAnimStudio
 {

@@ -22,6 +22,7 @@ namespace DSAnimStudio.TaeEditor
             get => listBoxFiles.SelectedItem as string;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int SelectedEblFileIndex
         {
             get => listBoxFiles.SelectedIndex;

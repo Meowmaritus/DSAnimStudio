@@ -23,6 +23,7 @@ using NAudio.Gui;
 using FSBANKLOL;
 using System.Runtime.InteropServices;
 using static SoulsAssetPipeline.Audio.Wwise.WwiseBlock;
+using TAE = SoulsAssetPipeline.Animation.TAE;
 
 namespace DSAnimStudio
 {

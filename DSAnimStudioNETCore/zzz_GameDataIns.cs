@@ -413,18 +413,18 @@ namespace DSAnimStudio
                 var fileBytes = ReadFile(relativePath, alwaysLoose, warningOnFail, disableCache);
                 if (fileBytes != null)
                 {
-                    DCX.Type compressionType = DCX.Type.None;
+                    DCX.CompressionInfo compressionInfo = new DCX.NoCompressionInfo();
                     if (DCX.Is(fileBytes))
-                        fileBytes = DCX.Decompress(fileBytes, out compressionType);
+                        fileBytes = DCX.Decompress(fileBytes, out compressionInfo);
 
                     if (BND3.IsRead(fileBytes, out BND3 asBND3))
                     {
-                        asBND3.Compression = compressionType;
+                        asBND3.Compression = compressionInfo;
                         return asBND3;
                     }
                     else if (BND4.IsRead(fileBytes, out BND4 asBND4))
                     {
-                        asBND4.Compression = compressionType;
+                        asBND4.Compression = compressionInfo;
                         return asBND4;
                     }
                 }

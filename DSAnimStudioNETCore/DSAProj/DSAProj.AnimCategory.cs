@@ -19,25 +19,25 @@ namespace DSAnimStudio
             public Binder.FileFlags Flags;
             public int ID;
             public string Name;
-            public DCX.Type CompressionType;
+            public DCX.CompressionInfo CompressionInfo;
             public BinderAttributes GetClone()
             {
                 var clone = new BinderAttributes();
                 clone.Flags = Flags;
                 clone.ID = ID;
                 clone.Name = Name;
-                clone.CompressionType = CompressionType;
+                clone.CompressionInfo = CloneDcxCompressionInfo(CompressionInfo);
                 return clone;
             }
 
 
-            public static BinderAttributes Deserialize(BinaryReaderEx br)
+            public static BinderAttributes Deserialize(BinaryReaderEx br, Versions version)
             {
                 var attr = new BinderAttributes();
                 attr.Flags = (Binder.FileFlags)br.ReadByte();
                 attr.ID = br.ReadInt32();
                 attr.Name = br.ReadNullPrefixUTF16();
-                attr.CompressionType = (DCX.Type)br.ReadInt32();
+                attr.CompressionInfo = DeserializeDcxCompressionInfo(br, version);
                 return attr;
             }
 
@@ -46,7 +46,7 @@ namespace DSAnimStudio
                 bw.WriteByte((byte)Flags);
                 bw.WriteInt32(ID);
                 bw.WriteNullPrefixUTF16(Name);
-                bw.WriteInt32((int)CompressionType);
+                SerializeDcxCompressionInfo(bw, CompressionInfo);
             }
 
             public static BinderAttributes FromBinderFile(BinderFile bf)
@@ -55,7 +55,7 @@ namespace DSAnimStudio
                 {
                     ID = bf.ID,
                     Name = bf.Name,
-                    CompressionType = bf.CompressionType,
+                    CompressionInfo = CloneDcxCompressionInfo(bf.CompressionInfo),
                     Flags = bf.Flags,
                 };
             }
@@ -66,7 +66,7 @@ namespace DSAnimStudio
                 {
                     ID = ID,
                     Name = Name,
-                    CompressionType = CompressionType,
+                    CompressionInfo = CloneDcxCompressionInfo(CompressionInfo),
                     Flags = Flags,
                     Bytes = data,
                 };

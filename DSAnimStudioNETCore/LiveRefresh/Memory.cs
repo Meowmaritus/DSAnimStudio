@@ -372,7 +372,7 @@ namespace DSAnimStudio.LiveRefresh
             var WriteBit_ = (byte)WriteBit;
 
 
-            return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes(WriteBit_), (UIntPtr)1, UIntPtr.Zero);
+            return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes((short)WriteBit_), (UIntPtr)1, UIntPtr.Zero);
         }
 
         public static bool WriteBoolean(IntPtr address, bool value)
@@ -382,7 +382,7 @@ namespace DSAnimStudio.LiveRefresh
 
         public static bool WriteInt8(IntPtr address, byte value)
         {
-            return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes(value), (UIntPtr)1, UIntPtr.Zero);
+            return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes((short)value), (UIntPtr)1, UIntPtr.Zero);
         }
 
         public static bool WriteInt16(IntPtr address, short value)

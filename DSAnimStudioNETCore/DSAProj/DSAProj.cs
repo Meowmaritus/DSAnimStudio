@@ -1,5 +1,7 @@
 ﻿using DSAnimStudio.TaeEditor;
 using Newtonsoft.Json;
+using SoulsAssetPipeline;
+using SoulsAssetPipeline.Animation;
 using SoulsFormats;
 using System;
 using System.Collections.Generic;
@@ -7,10 +9,9 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using SoulsAssetPipeline;
-using SoulsAssetPipeline.Animation;
 using System.Threading;
+using System.Threading.Tasks;
+using TAE = SoulsAssetPipeline.Animation.TAE;
 
 namespace DSAnimStudio
 {
@@ -44,9 +45,10 @@ namespace DSAnimStudio
             v20_00_03 = 20_00_03,
             v21_00_00 = 21_00_00,
             v21_01_00 = 21_01_00,
+            v22_00_00 = 22_00_00, // Support new SoulsFormatsNEXT CompressionInfo
         }
 
-        public const Versions LATEST_FILE_VERSION = Versions.v21_01_00;
+        public const Versions LATEST_FILE_VERSION = Versions.v22_00_00;
         public Versions FILE_VERSION = LATEST_FILE_VERSION;
 
         public string DisplayName;
@@ -633,7 +635,7 @@ namespace DSAnimStudio
             {
                 var binderFile = new BinderFile();
                 binderFile.Flags = RootTaeProperties.BindFlags;
-                binderFile.CompressionType = RootTaeProperties.BindDcxType;
+                binderFile.CompressionInfo = RootTaeProperties.BindDcxCompressionInfo;
                 binderFile.ID = RootTaeProperties.TaeRootBindID + bindIndex;
                 binderFile.Name = $"{RootTaeProperties.BindDirectory}\\{shortTaeName}.tae";
                 binderFile.Bytes = tae.Write();
@@ -1357,7 +1359,7 @@ namespace DSAnimStudio
                     {
                         RootTaeProperties.BindFlags = bf.Flags;
                         RootTaeProperties.BindDirectory = System.IO.Path.GetDirectoryName(bf.Name);
-                        RootTaeProperties.BindDcxType = bf.CompressionType;
+                        RootTaeProperties.BindDcxCompressionInfo = bf.CompressionInfo;
                         RootTaeProperties.Format = tae.Format;
                         RootTaeProperties.IsOldDemonsSoulsFormat_0x1000A = tae.IsOldDemonsSoulsFormat_0x1000A;
                         RootTaeProperties.IsOldDemonsSoulsFormat_0x10000 = tae.IsOldDemonsSoulsFormat_0x10000;
@@ -1671,9 +1673,15 @@ namespace DSAnimStudio
                 ContainerInfo = TaeContainerInfo.ReadFromBinary(br, null);
 
             GameType = (SoulsAssetPipeline.SoulsGames)br.ReadInt32();
-            ParentDocument.GameRoot.GameType = GameType;
 
-            RootTaeProperties = TaeProperties.Deserialize(br);
+            if (ParentDocument.GameRoot.GameType != GameType)
+            {
+                zzz_NotificationManagerIns.PushNotificationWarn($"The .dsaproj metadata was last saved " +
+                    $"with the {GameType} game tag but the current game tag loaded " +
+                    $"is {ParentDocument.GameRoot.GameType}.", showDuration: 10);
+            }
+
+            RootTaeProperties = TaeProperties.Deserialize(br, FILE_VERSION);
             lock (_lock_Tags)
             {
                 Tags = new List<Tag>();
@@ -1722,7 +1730,7 @@ namespace DSAnimStudio
                     stub.ID = br.ReadInt32();
                     stub.Name = br.ReadNullPrefixUTF16();
                     stub.Bytes = new byte[0];
-                    stub.CompressionType = (DCX.Type)br.ReadInt32();
+                    stub.CompressionInfo = DeserializeDcxCompressionInfo(br, FILE_VERSION);
                     TaeFileStubs.Add(stub);
                 }
             }
@@ -1829,7 +1837,7 @@ namespace DSAnimStudio
                 bw.WriteInt32(TaeFileStubs[i].ID);
                 bw.WriteNullPrefixUTF16(TaeFileStubs[i].Name);
                 //TaeFileStubs[i].Bytes
-                bw.WriteInt32((int)TaeFileStubs[i].CompressionType);
+                SerializeDcxCompressionInfo(bw, TaeFileStubs[i].CompressionInfo);
             }
             bw.WriteInt32(SoundBanksToLoad.Count);
             for (int i = 0; i < SoundBanksToLoad.Count; i++)
@@ -1840,7 +1848,175 @@ namespace DSAnimStudio
         }
         
 
+        public static SoulsFormats.DCX.CompressionInfo DeserializeDcxCompressionInfo(BinaryReaderEx br, Versions version)
+        {
+            if (version < Versions.v22_00_00)
+            {
+                // Upgrade
+                var legacyDcxType = (LegacyDCXConverter.LegacyDCXType)br.ReadInt32();
+                return LegacyDCXConverter.ConvertLegacyDCXTypeToCompressionInfo(legacyDcxType);
+            }
 
+            DCX.Type dcxType = (DCX.Type)br.ReadByte();
+            switch (dcxType)
+            {
+                case DCX.Type.DCX_DFLT:
+                    int dcxDfltUnk04 = br.ReadInt32();
+                    int dcxDfltUnk10 = br.ReadInt32();
+                    int dcxDfltUnk14 = br.ReadInt32();
+                    byte dcxDfltUnk30 = br.ReadByte();
+                    byte dcxDfltUnk38 = br.ReadByte();
+                    return new DCX.DcxDfltCompressionInfo(dcxDfltUnk04, dcxDfltUnk10, 
+                        dcxDfltUnk14, dcxDfltUnk30, dcxDfltUnk30);
+                case DCX.Type.DCX_KRAK:
+                    byte dcxKrakCompressionLevel = br.ReadByte();
+                    var dcxKrakOodleCompressorType = (Oodle.OodleLZ_Compressor)br.ReadInt32();
+                    return new DCX.DcxKrakCompressionInfo(dcxKrakCompressionLevel, dcxKrakOodleCompressorType);
+
+                case DCX.Type.DCX_ZSTD:
+                    byte dcxZstdCompressionLevel = br.ReadByte();
+                    return new DCX.DcxZstdCompressionInfo(dcxZstdCompressionLevel);
+
+                case DCX.Type.None:
+                    return new DCX.NoCompressionInfo();
+                
+                case DCX.Type.Zlib:
+                    return new DCX.ZlibCompressionInfo();
+                case DCX.Type.DCP_DFLT:
+                    return new DCX.DcpDfltCompressionInfo();
+                case DCX.Type.DCP_EDGE:
+                    return new DCX.DcpEdgeCompressionInfo();
+                case DCX.Type.DCX_EDGE:
+                    return new DCX.DcxEdgeCompressionInfo();
+                default:
+                case DCX.Type.Unknown:
+                    return new DCX.UnkCompressionInfo();
+            }
+        }
+
+        public static Type GetExpectedDcxCompressionInfoType(DCX.Type type)
+        {
+            switch (type)
+            {
+                case DCX.Type.DCX_DFLT:
+                    return typeof(DCX.DcxDfltCompressionInfo);
+                case DCX.Type.DCX_KRAK:
+                    return typeof(DCX.DcxKrakCompressionInfo);
+                case DCX.Type.DCX_ZSTD:
+                    return typeof(DCX.DcxZstdCompressionInfo);
+                case DCX.Type.None:
+                    return typeof(DCX.NoCompressionInfo);
+                case DCX.Type.Zlib:
+                    return typeof(DCX.ZlibCompressionInfo);
+                case DCX.Type.DCP_DFLT:
+                    return typeof(DCX.DcpDfltCompressionInfo);
+                case DCX.Type.DCP_EDGE:
+                    return typeof(DCX.DcpEdgeCompressionInfo);
+                case DCX.Type.DCX_EDGE:
+                    return typeof(DCX.DcxEdgeCompressionInfo);
+                case DCX.Type.Unknown:
+                    return typeof(DCX.UnkCompressionInfo);
+                default:
+                    throw new ArgumentException($"Invalid DCX type: '{type}'.");
+            }
+        }
+
+        public static DCX.CompressionInfo GetNewDefaultDcxCompressionInfo(DCX.Type type)
+        {
+            switch (type)
+            {
+                case DCX.Type.DCX_DFLT:
+                    return new DCX.DcxDfltCompressionInfo();
+                case DCX.Type.DCX_KRAK:
+                    return new DCX.DcxKrakCompressionInfo();
+                case DCX.Type.DCX_ZSTD:
+                    return new DCX.DcxZstdCompressionInfo();
+                case DCX.Type.None:
+                    return new DCX.NoCompressionInfo();
+                case DCX.Type.Zlib:
+                    return new DCX.ZlibCompressionInfo();
+                case DCX.Type.DCP_DFLT:
+                    return new DCX.DcpDfltCompressionInfo();
+                case DCX.Type.DCP_EDGE:
+                    return new DCX.DcpEdgeCompressionInfo();
+                case DCX.Type.DCX_EDGE:
+                    return new DCX.DcxEdgeCompressionInfo();
+                case DCX.Type.Unknown:
+                    return new DCX.UnkCompressionInfo();
+                default:
+                    throw new ArgumentException($"Invalid DCX type: '{type}'.");
+            }
+        }
+
+        public static DCX.CompressionInfo CloneDcxCompressionInfo(DCX.CompressionInfo comp)
+        {
+            switch (comp)
+            {
+                case DCX.DcxDfltCompressionInfo dcxDflt:
+                    return new DCX.DcxDfltCompressionInfo(dcxDflt.Unk04, dcxDflt.Unk10, 
+                        dcxDflt.Unk14, dcxDflt.Unk30, dcxDflt.Unk38);
+                case DCX.DcxKrakCompressionInfo dcxKrak:
+                    return new DCX.DcxKrakCompressionInfo(dcxKrak.CompressionLevel, dcxKrak.OodleCompressorType);
+                case DCX.DcxZstdCompressionInfo dcxZstd:
+                    return new DCX.DcxZstdCompressionInfo(dcxZstd.CompressionLevel);
+                case DCX.NoCompressionInfo:
+                    return new DCX.NoCompressionInfo();
+                case DCX.UnkCompressionInfo:
+                    return new DCX.UnkCompressionInfo();
+                case DCX.ZlibCompressionInfo:
+                    return new DCX.ZlibCompressionInfo();
+                case DCX.DcpDfltCompressionInfo:
+                    return new DCX.DcpDfltCompressionInfo();
+                case DCX.DcpEdgeCompressionInfo:
+                    return new DCX.DcpEdgeCompressionInfo();
+                case DCX.DcxEdgeCompressionInfo:
+                    return new DCX.DcxEdgeCompressionInfo();
+                default:
+                    throw new NotImplementedException($"Unknown DCX CompressionInfo struct type" +
+                        $" '{comp.GetType().Name}'.");
+            }
+        }
+
+
+        public static void SerializeDcxCompressionInfo(BinaryWriterEx bw, SoulsFormats.DCX.CompressionInfo comp)
+        {
+            switch (comp)
+            {
+                case DCX.DcxDfltCompressionInfo dcxDflt:
+                    bw.WriteByte((byte)comp.Type);
+
+                    bw.WriteInt32(dcxDflt.Unk04);
+                    bw.WriteInt32(dcxDflt.Unk10);
+                    bw.WriteInt32(dcxDflt.Unk14);
+                    bw.WriteByte(dcxDflt.Unk30);
+                    bw.WriteByte(dcxDflt.Unk38);
+                    break;
+                case DCX.DcxKrakCompressionInfo dcxKrak:
+                    bw.WriteByte((byte)comp.Type);
+
+                    bw.WriteByte(dcxKrak.CompressionLevel);
+                    bw.WriteInt32((int)dcxKrak.OodleCompressorType);
+                    break;
+                case DCX.DcxZstdCompressionInfo dcxZstd:
+                    bw.WriteByte((byte)comp.Type);
+
+                    bw.WriteByte(dcxZstd.CompressionLevel);
+                    break;
+
+                case DCX.NoCompressionInfo:
+                case DCX.UnkCompressionInfo:
+                case DCX.ZlibCompressionInfo:
+                case DCX.DcpDfltCompressionInfo:
+                case DCX.DcpEdgeCompressionInfo:
+                case DCX.DcxEdgeCompressionInfo:
+                    bw.WriteByte((byte)comp.Type);
+                    break;
+                default:
+                    throw new NotImplementedException($"Unknown DCX CompressionInfo struct type" +
+                        $" '{comp.GetType().Name}'. Unsure how to serialize.");
+            }
+
+        }
 
     }
 }

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static SoulsAssetPipeline.Animation.TAE;
 using DSAnimStudio.TaeEditor;
+using SoulsAssetPipeline;
 
 namespace DSAnimStudio
 {
@@ -15,7 +16,7 @@ namespace DSAnimStudio
         {
             public Binder.FileFlags BindFlags;
             public string BindDirectory;
-            public DCX.Type BindDcxType;
+            public DCX.CompressionInfo BindDcxCompressionInfo;
             public int TaeRootBindID;
             public TAEFormat Format;
             public bool IsOldDemonsSoulsFormat_0x10000;
@@ -38,12 +39,12 @@ namespace DSAnimStudio
             public int DefaultTaeProjectID;
             public string DefaultTaeShortName;
 
-            public static TaeProperties Deserialize(BinaryReaderEx br)
+            public static TaeProperties Deserialize(BinaryReaderEx br, DSAProj.Versions version)
             {
                 var t = new TaeProperties();
                 t.BindFlags = (Binder.FileFlags)br.ReadByte();
                 t.BindDirectory = br.ReadNullPrefixUTF16();
-                t.BindDcxType = (DCX.Type)br.ReadInt32();
+                t.BindDcxCompressionInfo = DeserializeDcxCompressionInfo(br, version);
                 t.TaeRootBindID = br.ReadInt32();
                 t.Format = (TAEFormat)br.ReadInt32();
                 t.IsOldDemonsSoulsFormat_0x10000 = br.ReadBoolean();
@@ -73,7 +74,7 @@ namespace DSAnimStudio
             {
                 bw.WriteByte((byte)BindFlags);
                 bw.WriteNullPrefixUTF16(BindDirectory);
-                bw.WriteInt32((int)BindDcxType);
+                SerializeDcxCompressionInfo(bw, BindDcxCompressionInfo);
                 bw.WriteInt32(TaeRootBindID);
                 bw.WriteInt32((int)Format);
                 bw.WriteBoolean(IsOldDemonsSoulsFormat_0x10000);
@@ -98,11 +99,47 @@ namespace DSAnimStudio
                 bw.WriteNullPrefixUTF16(DefaultTaeShortName);
             }
 
+            public static bool DcxCompressionInfosAreEqual(DCX.CompressionInfo a, DCX.CompressionInfo b)
+            {
+                if (a.Type != b.Type)
+                    return false;
+                if (a is DCX.DcxZstdCompressionInfo zstdA && b is DCX.DcxZstdCompressionInfo zstdB)
+                {
+                    return zstdA.CompressionLevel == zstdB.CompressionLevel;
+                }
+                if (a is DCX.DcxKrakCompressionInfo krakA && b is DCX.DcxKrakCompressionInfo krakB)
+                {
+                    return krakA.OodleCompressorType == krakB.OodleCompressorType
+                        && krakA.CompressionLevel == krakB.CompressionLevel;
+                }
+                else if (a is DCX.DcxDfltCompressionInfo dfltA && b is DCX.DcxDfltCompressionInfo dfltB)
+                {
+                    return dfltA.Unk04 == dfltB.Unk04 && dfltA.Unk10 == dfltB.Unk10
+                        && dfltA.Unk14 == dfltB.Unk14 && dfltA.Unk30 == dfltB.Unk30
+                        && dfltA.Unk38 == dfltB.Unk38;
+                }
+                else if (a is DCX.NoCompressionInfo && b is DCX.NoCompressionInfo)
+                    return true;
+                else if (a is DCX.UnkCompressionInfo && b is DCX.UnkCompressionInfo)
+                    return true;
+                else if (a is DCX.DcpDfltCompressionInfo && b is DCX.DcpDfltCompressionInfo)
+                    return true;
+                else if (a is DCX.DcpEdgeCompressionInfo && b is DCX.DcpEdgeCompressionInfo)
+                    return true;
+                else if (a is DCX.DcxEdgeCompressionInfo && b is DCX.DcxEdgeCompressionInfo)
+                    return true;
+                else if (a is DCX.ZlibCompressionInfo && b is DCX.ZlibCompressionInfo)
+                    return true;
+
+
+                return false;
+            }
+
             public bool Equals(TaeProperties other)
             {
                 return BindFlags == other.BindFlags
                     && BindDirectory == other.BindDirectory
-                    && BindDcxType == other.BindDcxType
+                    && DcxCompressionInfosAreEqual(BindDcxCompressionInfo, other.BindDcxCompressionInfo)
                     && TaeRootBindID == other.TaeRootBindID
                     && Format == other.Format
                     && IsOldDemonsSoulsFormat_0x10000 == other.IsOldDemonsSoulsFormat_0x10000

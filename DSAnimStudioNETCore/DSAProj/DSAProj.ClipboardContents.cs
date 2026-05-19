@@ -60,7 +60,7 @@ namespace DSAnimStudio
                 Serialize(bw, proj);
                 var result = bw.FinishBytes();
                 if (dcx)
-                    result = DCX.Compress(result, DCX.Type.DCX_DFLT_10000_24_9);
+                    result = DCX.Compress(result, new DCX.DcxDfltCompressionInfo(DCX.DfltCompressionPreset.DCX_DFLT_10000_24_9));
                 return result;
             }
 

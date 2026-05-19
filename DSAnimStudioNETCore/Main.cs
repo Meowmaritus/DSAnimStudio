@@ -27,7 +27,7 @@ namespace DSAnimStudio
     public class Main : Game
     {
         // STOP MOVING THESE FIELDS DOWN LMAO
-        public const string DSAS_VERSION_STRING = "5.0-RC5.4";
+        public const string DSAS_VERSION_STRING = "5.0-RC6";
         public static bool IsPatreonBuild => false;
 
 
@@ -94,6 +94,30 @@ namespace DSAnimStudio
             else // Game is known to use Oodle
             {
                 unsure = false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(interroot))
+            {
+                if (File.Exists(Utils.Frankenpath(interroot, "oo2core_6_win64.dll")))
+                {
+                    unsure = false;
+                    if (TryOodle("oo2core_6_win64.dll"))
+                        return true;
+                }
+
+                if (File.Exists(Utils.Frankenpath(interroot, "oo2core_8_win64.dll")))
+                {
+                    unsure = false;
+                    if (TryOodle("oo2core_8_win64.dll"))
+                        return true;
+                }
+
+                if (File.Exists(Utils.Frankenpath(interroot, "oo2core_9_win64.dll")))
+                {
+                    unsure = false;
+                    if (TryOodle("oo2core_9_win64.dll"))
+                        return true;
+                }
             }
 
             if (unsure)

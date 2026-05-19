@@ -322,6 +322,15 @@ namespace DSAnimStudio.ImguiOSD
             }));
         }
 
+        public static void ShowDialogGenericText(string text, float sizeX, float sizeY)
+        {
+            Task.Run(new Action(() =>
+            {
+                var dlg = new Dialog.GenericText(text, sizeX, sizeY);
+                AddDialog(dlg);
+            }));
+        }
+
         public static void ShowDialogChangeActionColors(List<DSAProj.Action> selActions)
         {
             var actionsCapture = selActions.ToList();

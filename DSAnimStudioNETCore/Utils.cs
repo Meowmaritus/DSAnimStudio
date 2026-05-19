@@ -42,17 +42,17 @@ namespace DSAnimStudio
         {
             if (DCX.Is(bytes))
             {
-                var decompressedBytes = DCX.Decompress(bytes, out DCX.Type dcxType);
+                var decompressedBytes = DCX.Decompress(bytes, out DCX.CompressionInfo dcxCompressionInfo);
                 if (BND3.IsRead(decompressedBytes, out BND3 asBND3))
                 {
                     binder = asBND3;
-                    asBND3.Compression = dcxType;
+                    asBND3.Compression = dcxCompressionInfo;
                     return true;
                 }
                 else if (BND4.IsRead(decompressedBytes, out BND4 asBND4))
                 {
                     binder = asBND4;
-                    asBND4.Compression = dcxType;
+                    asBND4.Compression = dcxCompressionInfo;
                     return true;
                 }
             }
@@ -75,17 +75,17 @@ namespace DSAnimStudio
         {
             if (DCX.Is(path))
             {
-                var bytes = DCX.Decompress(path, out DCX.Type dcxType);
+                var bytes = DCX.Decompress(path, out DCX.CompressionInfo dcxCompressionInfo);
                 if (BND3.IsRead(bytes, out BND3 asBND3))
                 {
                     binder = asBND3;
-                    asBND3.Compression = dcxType;
+                    asBND3.Compression = dcxCompressionInfo;
                     return true;
                 }
                 else if (BND4.IsRead(bytes, out BND4 asBND4))
                 {
                     binder = asBND4;
-                    asBND4.Compression = dcxType;
+                    asBND4.Compression = dcxCompressionInfo;
                     return true;
                 }
             }

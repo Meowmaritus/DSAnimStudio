@@ -24,6 +24,7 @@ using static SoulsAssetPipeline.Audio.Wwise.WwiseEnums;
 using static System.Runtime.CompilerServices.RuntimeHelpers;
 using Keys = Microsoft.Xna.Framework.Input.Keys;
 //using static DSAnimStudio.ImguiOSD.Window;
+using TAE = SoulsAssetPipeline.Animation.TAE;
 
 namespace DSAnimStudio.TaeEditor
 {
@@ -1113,6 +1114,7 @@ namespace DSAnimStudio.TaeEditor
                     return false;
                 }
                 
+
 
                 if (!FileContainer.AllTAE.Any())
                 {
@@ -2237,7 +2239,7 @@ namespace DSAnimStudio.TaeEditor
                 IsReadOnlyFileMode = browseDlg.ReadOnlyChecked;
                 string fileContainerName = browseDlg.FileName;
 
-                Main.TryCopyOodleFromInterroot(Path.GetDirectoryName(browseDlg.FileName) + "..\\", fileContainerName, null);
+                Main.TryCopyOodleFromInterroot(Utils.Frankenpath(Path.GetDirectoryName(browseDlg.FileName), "..\\"), fileContainerName, null);
 
                 DSAProj.TaeContainerInfo container = null;
 

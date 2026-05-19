@@ -29,30 +29,39 @@ namespace DSAnimStudio.TaeEditor
                 textBoxProjectDirectory.Text = System.IO.Path.GetDirectoryName(value);
             }
         }
+
+
         //public TaeProjectJson SaveJsonData { get; set; } = new TaeProjectJson();
         //TODO: Check for threading issues on these? Might need to use the form to invoke.
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string SelectedGameDir
         {
             get => textBoxGameDir.Text;
             set => textBoxGameDir.Text = value;
         }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string SelectedModengineDir
         {
             get => textBoxModDir.Text;
             set => textBoxModDir.Text = value;
         }
+        
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool LoadLooseParams
         {
             get => checkBoxLoadLooseParams.Checked;
             set => checkBoxLoadLooseParams.Checked = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool LoadUnpackedGameFiles
         {
             get => checkBoxLoadUnpackedGameFiles.Checked;
             set => checkBoxLoadUnpackedGameFiles.Checked = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool DisableInterrootDCX
         {
             get => checkBoxDisableInterrootDCX.Checked;

@@ -283,7 +283,7 @@ namespace DSAnimStudio
 
             foreach (var matParam in mat.Textures)
             {
-                var paramNameCheck = matParam.Type?.ToUpper() ?? "null";
+                var paramNameCheck = matParam.ParamName?.ToUpper() ?? "null";
                 string shortTexPath = Utils.GetShortIngameFileName(matParam.Path).ToLower();
 
                 Vector2 texScaleVal = Vector2.One;// new Vector2(matParam.Scale.X, matParam.Scale.Y);
@@ -299,7 +299,7 @@ namespace DSAnimStudio
 
                 if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.SDT or SoulsAssetPipeline.SoulsGames.ER or SoulsAssetPipeline.SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.AC6)
                 {
-                    var mtdTex = FlverMaterialDefInfo.LookupSampler(mat.MTD, matParam.Type);
+                    var mtdTex = FlverMaterialDefInfo.LookupSampler(mat.MTD, matParam.ParamName);
                     if (mtdTex != null)
                     {
                         if (mtdTex.TexPath != null)
@@ -385,7 +385,7 @@ namespace DSAnimStudio
                     }
                     else
                     {
-                        Console.WriteLine($"\nUnrecognized Material Param:\n    [{matParam.Type}]\n    [{matParam.Path}]\n");
+                        Console.WriteLine($"\nUnrecognized Material Param:\n    [{matParam.ParamName}]\n    [{matParam.Path}]\n");
                     }
                 }
 
@@ -399,7 +399,7 @@ namespace DSAnimStudio
                 }
 
                 //smp.TextureType = texType;
-                smp.Name = matParam.Type;
+                smp.Name = matParam.ParamName;
                 //smp.UVIndex = uvIndex;
 
                 if (paramNameCheck == "G_DETAILBUMPMAP")
@@ -409,7 +409,7 @@ namespace DSAnimStudio
 
                 ShaderConfig.SamplerConfigs.Add(new FlverShaderConfig.SamplerConfig()
                 {
-                    Name = matParam.Type,
+                    Name = matParam.ParamName,
                     TexType = texType,
                     UVIndex = uvIndex,
                 });
@@ -576,10 +576,10 @@ namespace DSAnimStudio
 
             foreach (var matParam in mat.Textures)
             {
-                var paramNameCheck = matParam.Type.ToUpper();
+                var paramNameCheck = matParam.ParamName.ToUpper();
                 string shortTexPath = Utils.GetShortIngameFileName(matParam.Path).ToLower();
 
-                Vector2 texScaleVal = new Vector2(matParam.Scale.X, matParam.Scale.Y);
+                Vector2 texScaleVal = new Vector2(matParam.TilingScale.X, matParam.TilingScale.Y);
 
                 if (paramNameCheck == "G_DETAILBUMPMAP")
                 {
@@ -593,7 +593,7 @@ namespace DSAnimStudio
 
                 if (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsAssetPipeline.SoulsGames.SDT or SoulsAssetPipeline.SoulsGames.ER or SoulsAssetPipeline.SoulsGames.ERNR or SoulsAssetPipeline.SoulsGames.AC6)
                 {
-                    var mtdTex = FlverMaterialDefInfo.LookupSampler(mat.MTD, matParam.Type);
+                    var mtdTex = FlverMaterialDefInfo.LookupSampler(mat.MTD, matParam.ParamName);
                     if (mtdTex != null)
                     {
                         if (mtdTex.TexPath != null)
@@ -702,7 +702,7 @@ namespace DSAnimStudio
                         }
                         else
                         {
-                            Console.WriteLine($"\nUnrecognized Material Param:\n    [{matParam.Type}]\n    [{matParam.Path}]\n");
+                            Console.WriteLine($"\nUnrecognized Material Param:\n    [{matParam.ParamName}]\n    [{matParam.Path}]\n");
                         }
                     }
                 }
@@ -717,7 +717,7 @@ namespace DSAnimStudio
                 }
 
                 //smp.TextureType = texType;
-                smp.Name = matParam.Type;
+                smp.Name = matParam.ParamName;
                 //smp.UVIndex = uvIndex;
 
 
@@ -733,7 +733,7 @@ namespace DSAnimStudio
 
                 var sampCfg = new FlverShaderConfig.SamplerConfig()
                 {
-                    Name = matParam.Type,
+                    Name = matParam.ParamName,
                     TexType = texType,
                     UVIndex = uvIndex,
                 };

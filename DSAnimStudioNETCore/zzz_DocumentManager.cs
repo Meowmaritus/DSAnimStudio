@@ -4,6 +4,7 @@ using ImGuiNET;
 using SoulsAssetPipeline.Animation;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Text;
@@ -370,8 +371,19 @@ namespace DSAnimStudio
 
                 zzz_DocumentManager.AddDocument("New Document", immediateSwitch: true);
 
-                CurrentDocument.EditorScreen.File_Open();
+                var thisDoc = CurrentDocument;
 
+
+                try
+                {
+                    CurrentDocument.EditorScreen.File_Open();
+                }
+                catch (Exception ex)
+                {
+                    if (thisDoc != null)
+                        thisDoc.RequestClose_ForceDelete = true;
+                    Main.HandleError("Failed to load file.", ex);
+                }
                 // Document deleting on cancel handled by the messy load file funcs.
 
                 return;
@@ -388,10 +400,21 @@ namespace DSAnimStudio
 
                 zzz_DocumentManager.AddDocument("New Document", immediateSwitch: true);
 
-                if (CurrentDocument.EditorScreen.NewLoadFile_FromDocManager(selectedFile) == true)
-                {
+                var thisDoc = CurrentDocument;
 
-                    afterOpenAction?.Invoke(CurrentDocument);
+                try
+                {
+                    if (CurrentDocument.EditorScreen.NewLoadFile_FromDocManager(selectedFile) == true)
+                    {
+
+                        afterOpenAction?.Invoke(CurrentDocument);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (thisDoc != null)
+                        thisDoc.RequestClose_ForceDelete = true;
+                    Main.HandleError("Failed to load file.", ex);
                 }
 
                 return;

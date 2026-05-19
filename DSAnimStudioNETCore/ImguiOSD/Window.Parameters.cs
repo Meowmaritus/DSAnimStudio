@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Vector2 = System.Numerics.Vector2;
+using TAE = SoulsAssetPipeline.Animation.TAE;
 
 namespace DSAnimStudio.ImguiOSD
 {
