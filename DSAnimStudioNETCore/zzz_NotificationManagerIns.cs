@@ -162,6 +162,8 @@ namespace DSAnimStudio
                 }
 
                 OSD.SpWindowNotifications.RequestScrollDown = true;
+
+                OSD.SpWindowNotifications.IsOpen = true;
             }
         }
 

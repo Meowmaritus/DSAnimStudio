@@ -120,7 +120,7 @@ namespace DSAnimStudio
             if (ParentDocument.GameRoot.GameType == SoulsGames.DES && ((int)weaponID % 100) != 0)
                 return false;
 
-            if (ParentDocument.GameRoot.GameType is SoulsGames.DS1 or SoulsGames.DS1R && ((int)weaponID % 1000) != 0)
+            if ((ParentDocument.GameRoot.GameType is SoulsGames.DS1 or SoulsGames.DS1R) && ((int)weaponID % 1000) != 0)
                 return false;
 
             if (ParentDocument.GameRoot.GameType == SoulsGames.BB && ((int)weaponID % 10000) != 0)

@@ -328,7 +328,29 @@ namespace DSAnimStudio
             }
             DeadDocuments.Clear();
 
-            var userCanInteractWithTabs = !CurrentDocument.LoadingTaskMan.AnyInteractionBlockingTasks() && !DialogManager.AnyDialogsShowing;
+            lock (_lock_CurrentDocument)
+            {
+                lock (_lock_DocumentSwitcher)
+                {
+                    if (_hiddenDefaultDocument == null || _hiddenDefaultDocument?.IsDisposed == true)
+                    {
+                        _hiddenDefaultDocument = new zzz_DocumentIns();
+                        _hiddenDefaultDocument.ImguiTabDisplayName = "No Project Loaded";
+                        _hiddenDefaultDocument.IsUnimportantPlaceholderDoc = true;
+                    }
+
+                    if (_currentDocument?.IsDisposed == true)
+                    {
+                        _currentDocument = null;
+                    }
+                    else if (_currentDocument != null && !Documents.Contains(_currentDocument))
+                    {
+                        Documents.Add(_currentDocument);
+                    }
+                }
+            }
+
+            var userCanInteractWithTabs = !(CurrentDocument?.LoadingTaskMan?.AnyInteractionBlockingTasks() ?? false) && !DialogManager.AnyDialogsShowing;
 
             if (RequestOpenFromPackedGameDataArchives && userCanInteractWithTabs)
             {

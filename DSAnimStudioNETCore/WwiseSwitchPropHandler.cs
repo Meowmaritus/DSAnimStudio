@@ -465,56 +465,60 @@ namespace DSAnimStudio
             {
                 if (!hasCopiedFromParams)
                 {
-                    var param = ww.ParentDocument.ParamManager.GetParam(ParamName);
-
-                    var entryNames = new List<string>();
-                    var entryValues = new List<string>();
-                    var entryValueHashes = new List<uint>();
-                    var entryParamRowIDs = new List<int>();
-                    ParamRowIDToListIndexMap.Clear();
-
-                    for (int i = 0; i < param.Rows.Count; i++)
+                    if (ww.ParentDocument?.ParamManager?.AreParamsLoaded() == true)
                     {
-                        var row = param.Rows[i];
+                        var param = ww.ParentDocument.ParamManager.GetParam(ParamName);
 
-                        if (row.ID == DefaultParamRowID)
+                        var entryNames = new List<string>();
+                        var entryValues = new List<string>();
+                        var entryValueHashes = new List<uint>();
+                        var entryParamRowIDs = new List<int>();
+                        ParamRowIDToListIndexMap.Clear();
+
+                        for (int i = 0; i < param.Rows.Count; i++)
                         {
-                            SelectedEntryIndex = i;
+                            var row = param.Rows[i];
+
+                            if (row.ID == DefaultParamRowID)
+                            {
+                                SelectedEntryIndex = i;
+                            }
+
+                            var x = new ParamData.WwiseValueToStrParam();
+                            var br = param.GetRowReader(row);
+                            x.Read(br);
+                            entryValues.Add(x.WwiseString);
+                            entryValueHashes.Add(zzz_SoundManagerIns.GetFnvHashOfString(x.WwiseString));
+                            entryParamRowIDs.Add(row.ID);
+
+                            // Only add if hasn't been added to simulate game's duplicate ID handling of 
+                            // picking the first occurrence or something.
+                            if (!ParamRowIDToListIndexMap.ContainsKey(row.ID))
+                                ParamRowIDToListIndexMap[row.ID] = i;
+
+                            if (row.Name != null)
+                            {
+                                entryNames.Add($"{row.Name} [{row.ID}]: '{x.WwiseString}'");
+                            }
+                            else
+                            {
+                                entryNames.Add($"[{row.ID}]: '{x.WwiseString}'");
+                            }
+
                         }
 
-                        var x = new ParamData.WwiseValueToStrParam();
-                        var br = param.GetRowReader(row);
-                        x.Read(br);
-                        entryValues.Add(x.WwiseString);
-                        entryValueHashes.Add(zzz_SoundManagerIns.GetFnvHashOfString(x.WwiseString));
-                        entryParamRowIDs.Add(row.ID);
+                        entryNames.Add("<Custom>");
+                        entryValueHashes.Add(0);
+                        entryValues.Add(null);
 
-                        // Only add if hasn't been added to simulate game's duplicate ID handling of 
-                        // picking the first occurrence or something.
-                        if (!ParamRowIDToListIndexMap.ContainsKey(row.ID))
-                            ParamRowIDToListIndexMap[row.ID] = i;
+                        EntryNames = entryNames.ToArray();
+                        EntryValueHashes = entryValueHashes.ToArray();
+                        EntryValues = entryValues.ToArray();
+                        EntryParamRowIDs = entryParamRowIDs.ToArray();
 
-                        if (row.Name != null)
-                        {
-                            entryNames.Add($"{row.Name} [{row.ID}]: '{x.WwiseString}'");
-                        }
-                        else
-                        {
-                            entryNames.Add($"[{row.ID}]: '{x.WwiseString}'");
-                        }
-                        
+                        hasCopiedFromParams = true;
                     }
-
-                    entryNames.Add("<Custom>");
-                    entryValueHashes.Add(0);
-                    entryValues.Add(null);
-
-                    EntryNames = entryNames.ToArray();
-                    EntryValueHashes = entryValueHashes.ToArray();
-                    EntryValues = entryValues.ToArray();
-                    EntryParamRowIDs = entryParamRowIDs.ToArray();
-
-                    hasCopiedFromParams = true;
+                   
                 }
 
                 

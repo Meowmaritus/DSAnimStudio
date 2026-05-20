@@ -180,7 +180,9 @@ namespace DSAnimStudio
         {
             if (SwitchPropHandlersNeedInit)
             {
-                
+                if (!ParentDocument.ParamManager.AreParamsLoaded())
+                    return;
+
                 switchPropHandlers.Clear();
                 switchPropsByName.Clear();
 

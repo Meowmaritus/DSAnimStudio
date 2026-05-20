@@ -379,7 +379,17 @@ namespace DSAnimStudio
 
                 //return eblFiles.Concat(looseFiles).ToList();
                 var filesInDir = GetFilesInDir(directoryPath);
-                return filesInDir.Where(x => System.Text.RegularExpressions.Regex.IsMatch(AddFakeDcxIfNeededInDS1(x), matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)).ToList();
+                List<string> result = new List<string>();
+                foreach (var file in filesInDir)
+                {
+                    var f = AddFakeDcxIfNeededInDS1(file);
+                    if (System.Text.RegularExpressions.Regex.IsMatch(f, matchRegex, System.Text.RegularExpressions.RegexOptions.CultureInvariant)
+                        && !result.Contains(f))
+                    {
+                        result.Add(f);
+                    }
+                }
+                return result;
             }
             else
             {

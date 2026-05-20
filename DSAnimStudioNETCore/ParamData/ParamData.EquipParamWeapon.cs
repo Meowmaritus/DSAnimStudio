@@ -199,7 +199,7 @@ namespace DSAnimStudio
                 br.Position = start + 0xE3;
                 WepMotionCategory = br.ReadByte();
 
-                var isEquipBitmask = GetBitmask(br, start + (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsGames.BB or SoulsGames.DS1 ? 0x100 : 0x101), 5);
+                var isEquipBitmask = GetBitmask(br, start + (zzz_DocumentManager.CurrentDocument.GameRoot.GameType is SoulsGames.BB or SoulsGames.DS1 or SoulsGames.DS1R ? 0x100 : 0x101), 5);
 
                 IsRightHandEquippable = isEquipBitmask[0];
                 IsLeftHandEquippable = isEquipBitmask[1];

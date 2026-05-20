@@ -281,6 +281,17 @@ namespace DSAnimStudio
 
         }
 
+        public bool AreParamsLoaded()
+        {
+            bool result = false;
+            lock (_lock_Params)
+            {
+                if (ParamBNDs.ContainsKey(ParentDocument.GameRoot.GameType))
+                    result = true;
+            }
+            return result;
+        }
+
         public PARAM_Hack GetParam(string paramName)
         {
             PARAM_Hack foundParam = null;

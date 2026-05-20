@@ -30,9 +30,12 @@ namespace DSAnimStudio.TaeEditor
             StateInfoSelectConfig_Enabled = ImguiOSD.OSD.WindowEntity.GetStateInfoSelectConfig_Enabled();
             StateInfoSelectConfig_Names = ImguiOSD.OSD.WindowEntity.GetStateInfoSelectConfig_Names();
 
-            doc.SoundManager.WwiseManager.InitDefaultSwitchGroups();
-            WwiseSwitchControlValues = doc.SoundManager.WwiseManager.GetSwitchGroupValues();
-            WwiseSwitchControlAutoEnabled = doc.SoundManager.WwiseManager.GetSwitchGroupAutoEnabled();
+            //doc.SoundManager.WwiseManager.InitDefaultSwitchGroups();
+            //WwiseSwitchControlValues = doc.SoundManager.WwiseManager.GetSwitchGroupValues();
+            //WwiseSwitchControlAutoEnabled = doc.SoundManager.WwiseManager.GetSwitchGroupAutoEnabled();
+
+            WwiseSwitchControlValues = [];
+            WwiseSwitchControlAutoEnabled = [];
 
             if (WorldViews == null)
                 WorldViews = new List<WorldView>();
